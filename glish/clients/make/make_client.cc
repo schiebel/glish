@@ -8,6 +8,9 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#if defined(_AIX)
+#include <strings.h>
+#endif
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Glish/Client.h"
