@@ -256,6 +256,99 @@ int local_connection( int sock, const char* path )
 	return 1;
 	}
 
+char *canonic_path( const char *path_in )
+	{
+#ifdef S_ISLNK
+	char scratch_[2048];
+	char *scratch = scratch_;
+
+	char path_[2048];
+	char *path = path_;
+	char *pptr = path;
+	char newpath_[2048];
+	char *newpath = newpath_;
+	char *nptr = newpath;
+
+	int len, slen;
+	struct stat stat_buf;
+
+	if ( ! path_in || ! *path_in ) return 0;
+
+	strcpy( path, path_in );
+
+	if ( *pptr == '.' )
+		{
+		getcwd( newpath, 2048 );
+		nptr += strlen(newpath) - 1;
+		if ( *nptr++ != '/' ) *nptr++ = '/';
+		}
+	else if ( *pptr == '/' )
+		*nptr++ = *pptr++;
+
+	while ( *pptr )
+		{
+		if ( pptr[0] == '.' )
+			{
+			if ( pptr[1] == '.' )
+				{
+				nptr -= 1;
+				while ( nptr != newpath && *--nptr != '/' );
+				if (nptr == newpath ) return 0;
+				pptr += 2;
+				if ( *pptr == '/' ) ++pptr;
+				++nptr;
+				continue;
+				}
+			else if ( pptr[1] == '/' )
+				{
+				pptr += 2;
+				continue;
+				}
+			}
+
+		while ( *pptr && *pptr != '/' ) *nptr++ = *pptr++;
+		*nptr = '\0';
+		if ( lstat( newpath, &stat_buf ) < 0 ) return 0;
+		if ( S_ISLNK(stat_buf.st_mode) )
+			{
+			len = readlink( newpath, scratch, 2048 );
+			if ( len <= 0 ) return 0;
+			if ( *pptr )
+				{
+				slen = strlen(pptr);
+				memcpy( &scratch[len], pptr, slen );
+				scratch[len+slen] = '\0';
+				}
+			else
+				scratch[len] = '\0';
+
+			pptr = scratch;
+			scratch = path;
+			path = pptr;
+
+			if ( *pptr == '/' )
+				{
+				nptr = newpath;
+				*nptr++ = *pptr++;
+				}
+			else
+				{
+				while ( nptr != newpath && *--nptr != '/' );
+				++nptr;
+				}
+			}
+
+		if ( *pptr == '/' ) *nptr++ = *pptr++;
+		}
+
+	*nptr = '\0';
+	return strdup(newpath);
+
+#else
+	return 0;
+#endif
+	}
+
 int stream_pipe( int fd[2] )
 	{
 #ifdef HAVE_STREAMLESS_PIPE

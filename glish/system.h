@@ -140,6 +140,11 @@ extern "C" {
 	long random_long();
 
 	/*
+	 * canonicalize a path
+	 */
+	char *canonic_path( const char *path_in );
+
+	/*
 	 * Clean up after a crash.
 	 */
 	void glish_cleanup( );

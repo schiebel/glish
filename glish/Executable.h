@@ -5,6 +5,7 @@
 #define executable_h
 
 #include "Glish/List.h"
+#include "system.h"
 
 // Searches PATH for the given executable; returns a malloc()'d copy
 // of the path to the executable, which the caller should delete when

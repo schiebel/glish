@@ -170,22 +170,24 @@ char* which_executable( const char* exec_name )
 
 	if ( exec_name[0] == '/' || exec_name[0] == '.' )
 		{
-		if ( can_execute( exec_name ) )
-			return strdup( exec_name );
-
-		else
-			return 0;
+		char *exe = canonic_path(exec_name);
+		exe = exe ? exe : strdup(exec_name);
+		if ( can_execute( exe ) ) return exe;
+		free_memory( exe );
+		return 0;
 		}
 
 	char directory[2048];
-
 	if ( executable_path )
 		{
 		for ( int i = 0; i < executable_path_len; ++i )
 			{
 			sprintf( directory, "%s/%s", executable_path[i], exec_name );
 			if ( can_execute( directory ) )
-				return strdup( directory );
+				{
+				char *ret = canonic_path( directory );
+				return ret ? ret : strdup( directory );
+				}
 			}
 		}
 	else
@@ -213,7 +215,10 @@ char* which_executable( const char* exec_name )
 				*(dir_ending++) = hold_char;
 
 			if ( can_execute( directory ) )
-				return strdup( directory );
+				{
+				char *ret = canonic_path( directory );
+				return ret ? ret : strdup( directory );
+				}
 
 			dir_beginning = dir_ending;
 			}

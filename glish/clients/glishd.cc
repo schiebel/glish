@@ -484,8 +484,7 @@ Client *dUser::LookupClient( const char *s )
 	{
 	Client *ret = clients[s];
 	if ( ret ) return ret;
-	const char *prog_str = get_prog_name( s );
-	ret = clients[prog_str];
+	ret = clients[s];
 	if ( ret ) return ret;
 	return LookupClientInMaster( s );	
 	}
@@ -697,23 +696,9 @@ void dUser::ProcessMaster( fd_set *mask )
 			{
 			if ( ! strcmp( e->name, "client" ) )
 				{
-				char *client_str = e->value->StringVal();
-				char* name_str = extract_prog_name(client_str);
-
-				if ( ! name_str )
-					{
-					syslog( LOG_ERR, "bad arguments for creating remote client" );
-					return;
-					}
-
-				Client *client = clients[name_str];
-				if ( ! client )
-					{
-					const char *prog_str = get_prog_name( name_str );
-					client = clients[prog_str];
-					}
-
+				Client *client = clients[e->value->StringPtr(0)[1]];
 				if ( client ) client->PostEvent( "client", e->value );
+				else syslog( LOG_ERR, "bad client event: %s", e->value->StringPtr(0)[1] );
 				}
 			}
 		}
@@ -918,27 +903,17 @@ void dServer::clear_clients_registered_to( const char *user )
 void dServer::CreateClient( Value *value, const char *user_name )
 	{
 	const char *group = get_group_name( get_user_group( user_name ) );
-	char *client_str = value->StringVal();
-	char* name_str = extract_prog_name(client_str);
-
-	if ( ! name_str )
-		{
-		syslog( LOG_ERR, "bad arguments for creating remote client" );
-		return;
-		}
+	const char* name_str = value->StringPtr(0)[1];
 
 	char *registered_user = 0;
-	const char *prog_str = get_prog_name( name_str );
 	str_dict *map = group_clients[group];
-	if ( map && (registered_user = (*map)[name_str]) ||
-		    (registered_user = (*map)[prog_str]) )
+	if ( map && (registered_user = (*map)[name_str]) )
 		{
 		users[registered_user]->PostEvent( "client", value );
 		return;
 		}
 
-	if ( (registered_user = world_clients[name_str]) ||
-	     (registered_user = world_clients[prog_str]) )
+	if ( registered_user = world_clients[name_str] )
 		{
 		users[registered_user]->PostEvent( "client", value );
 		return;
@@ -949,8 +924,6 @@ void dServer::Register( Value *value, const char *user_name )
 	{
 	const char *name = value->StringPtr(0)[0];
 	const char *type = value->StringPtr(0)[1];
-
-syslog( LOG_ERR, "register %s: %s", type, name );
 
 	if ( ! strcmp( type, "WORLD" ) )
 		world_clients.Insert( strdup(name), strdup(user_name) );
@@ -991,22 +964,18 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 
 	charptr *strs = client->StringPtr();
 	const char *name_str = strs[0];
-syslog( LOG_ERR, "client check: %s", name_str);
-	const char *prog_str = get_prog_name( name_str );
 
 	char *registering_user = 0;
 	const char *group = get_group_name( get_user_group( user_name ) );
 	str_dict *map = group_clients[group];
-	if ( map && ( (registering_user = (*map)[name_str]) ||
-		      (registering_user = (*map)[prog_str]) ) )
+	if ( map && ( (registering_user = (*map)[name_str]) ))
 		{
 		Value true_value( glish_true );
 		user->PostEvent( "client-up-reply", &true_value );
 		return;
 		}
 
-	if ( (registering_user = world_clients[name_str]) ||
-	     (registering_user = world_clients[prog_str]) )
+	if ( registering_user = world_clients[name_str] )
 		{
 		Value true_value( glish_true );
 		user->PostEvent( "client-up-reply", &true_value );
@@ -1170,10 +1139,7 @@ void Interp::PingClient( Value* client_id )
 	LocalExec* client = clients[id];
 
 	if ( ! client )
-		{
-		error->Report( "no such client ", id );
 		syslog( LOG_ERR, "no such client, \"%s\"", id );
-		}
 	else
 		client->Ping();
 
@@ -1188,31 +1154,9 @@ void Interp::CreateClient( Value* argv, dUser *hub )
 
 	if ( argc <= 1 )
 		{
-		error->Report(
-			"no arguments given for creating remote client" );
+		error->Report( "no arguments given for creating remote client" );
 		return;
 		}
-
-	char* client_str = argv->StringVal(); // copy here for good reason
-	char* name_str = extract_prog_name(client_str);
-
-	if ( ! name_str )
-		{
-		error->Report( "bad arguments for creating remote client" );
-		return;
-		}
-
-syslog( LOG_ERR, "prospective client: %s", name_str);
-
-	Client *persistent = hub->LookupClient(name_str);
-	if ( persistent )
-		{
-		persistent->PostEvent( "client", argv );
-		free_memory( client_str );
-		return;
-		}
-
-	free_memory( client_str );
 
 	// First strip off the id.
 	charptr* argv_ptr = argv->StringPtr();
@@ -1221,33 +1165,43 @@ syslog( LOG_ERR, "prospective client: %s", name_str);
 	--argc;
 	++argv_ptr;
 
+	if ( path ) set_executable_path( path->StringPtr(0), path->Length() );
+	char *name_str = which_executable( argv_ptr[0] );
+	if ( ! name_str )
+		{
+		error->Report( "no such executable ", argv_ptr[0] );
+		return;
+		}
+
+	Client *persistent = hub->LookupClient(name_str);
+	if ( persistent )
+		{
+		charptr *arg = argv->StringPtr( );
+		free_memory( (char*) arg[1] );
+		arg[1] = strdup( name_str );
+		persistent->PostEvent( "client", argv );
+		free_memory( name_str );
+		return;
+		}
+
 	charptr* client_argv = (charptr*) alloc_memory(sizeof(charptr) * (argc + 1));
 
-	for ( int i = 0; i < argc; ++i )
+	client_argv[0] = name_str;
+	for ( int i = 1; i < argc; ++i )
 		client_argv[i] = argv_ptr[i];
 
 	client_argv[argc] = 0;
 
-	if ( path )
-		set_executable_path( path->StringPtr(0), path->Length() );
+	ChangeDir();
+	LocalExec* exec = new LocalExec( name_str, client_argv );
 
-	const char* exec_name = which_executable( client_argv[0] );
-	if ( ! exec_name )
-		error->Report( "no such executable ", client_argv[0] );
+	if ( exec->ExecError() )
+		error->Report( "problem exec'ing client ", 
+			client_argv[0], ": ", sys_errlist[errno] );
 
-	else
-		{
-		ChangeDir();
+	clients.Insert( client_id, exec );
 
-		LocalExec* exec = new LocalExec( exec_name, client_argv );
-
-		if ( exec->ExecError() )
-			error->Report( "problem exec'ing client ", 
-				client_argv[0], ": ", sys_errlist[errno] );
-
-		clients.Insert( client_id, exec );
-		}
-
+	free_memory( name_str );
 	free_memory( client_argv );
 	}
 
@@ -1259,22 +1213,24 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 
 	if ( argc < 1 )
 		{
-		error->Report(
-			"no client name given" );
+		error->Report( "no client name given" );
 		interpreter->PostEvent( "client-up-reply", false_value );
 		return;
 		}
 
-	charptr *strs = client->StringPtr();
-	const char *name_str = strs[0];
+	if ( path ) set_executable_path( path->StringPtr(0), path->Length() );
+	char *name_str = which_executable( client->StringPtr(0)[0] );
 
-	if ( hub->LookupClient(name_str) )
+	if ( name_str )
 		{
-		Value true_value( glish_true );
-		interpreter->PostEvent( "client-up-reply", &true_value );
-		return;
+		if ( hub->LookupClient(name_str) )
+			{
+			Value true_value( glish_true );
+			interpreter->PostEvent( "client-up-reply", &true_value );
+			return;
+			}
 		}
-	
+
 	interpreter->PostEvent( "client-up-reply", false_value );
 	}
 

@@ -317,7 +317,13 @@ void Task::Exec( const char** argv )
 		if ( ! exec_name )
 			return;
 
+		//
+		// full path needed for registration of shared clients
+		//
+		const char *tmp = argv[0];
+		argv[0] = exec_name;
 		executable = new LocalExec( exec_name, argv );
+		argv[0] = tmp;
 
 		close( read_pipe[1] );
 		close( write_pipe[0] );
@@ -544,7 +550,15 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( sequencer->LocalHost( hostname ) && channel )
 		{
 		shm_flag = 0;
+		sequencer->UpdateBinPath( );
 		char *client = GetString( args[task_args_start] );
+
+		char *ptr = client + strlen(client) - 1;
+		while ( ptr != client && *ptr != '/' ) --ptr;
+		char *exe = which_executable( ptr );
+
+		cerr << (exe ? exe : "0x0") << endl;
+
 		IValue val( client );
 		send_event( channel->Sink(), "client-up", &val );
 		GlishEvent* e = recv_event( channel->Source() );

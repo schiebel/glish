@@ -180,7 +180,8 @@ public:
 	Sequencer( int& argc, char**& argv );
 	~Sequencer();
 
-	char* Name()			{ return name; }
+	const char* Name()		{ return name; }
+	const char* Path()		{ return interpreter_path; }
 
 	void AddBuiltIn( BuiltIn* built_in );
 
@@ -406,6 +407,10 @@ public:
 
 	void UpdateLocalBinPath( );
 	void UpdateRemoteBinPath( );
+	//
+	// host=0 implies local bin path
+	//
+	void UpdateBinPath( const char *host = 0 );
 
 protected:
 	void MakeEnvGlobal();
@@ -430,7 +435,8 @@ protected:
 	void PopAwait();
 	void CurrentAwaitDone();
 
-	char* name;
+	char *name;
+	char *interpreter_path;
 	int verbose;
 	int my_id;
 

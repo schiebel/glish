@@ -740,7 +740,10 @@ void Sequencer::UpdateLocalBinPath( )
 void Sequencer::UpdateRemoteBinPath( )
 	{
 	static unsigned int count = 0;
-	if ( count != system_change_count && daemons.Length() )
+	static int oldlen = 0;
+
+	if ( ! daemons.Length() ) return;
+	if ( count != system_change_count || daemons.Length() != oldlen )
 		{
 		IValue *path = (IValue*) system.BinPath();
 		if ( path  && (path = (IValue*) path->Deref()) )
@@ -761,7 +764,29 @@ void Sequencer::UpdateRemoteBinPath( )
 				}
 			}
 		}
+
+	oldlen = daemons.Length();
 	count = system_change_count;
+	}
+
+void Sequencer::UpdateBinPath( const char *host )
+	{
+	IValue *v1 = 0;
+	IValue *path = (IValue*) system.BinPath();
+
+	const char *daemon_host = ! host || ! strcmp(host,ConnectionHost()) ?
+				"localhost" : host;
+	host = ! host || ! strcmp("localhost",host) ? ConnectionHost() : host;
+
+	RemoteDaemon* d;
+	if ( path  && (path = (IValue*) path->Deref()) && (d = daemons[daemon_host]) )
+		{
+		if ( path && path->Type() == TYPE_RECORD &&
+		     path->HasRecordElement( host ) &&
+		     (v1 = (IValue*) path->ExistingRecordElement( host )) &&
+		     v1 != false_value && v1->Type() == TYPE_STRING )
+			d->UpdatePath(v1);
+		}
 	}
 
 void Sequencer::TopLevelReset()
@@ -1034,6 +1059,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	script_expr->Assign( new IValue( glish_false ) );
 
 	name = argv[0];
+	interpreter_path = which_executable( argv[0] );
 	name_list *load_list = new name_list;
 
 	// Skip past client parameters
