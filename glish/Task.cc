@@ -353,7 +353,7 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	{
 	argc = num_args;
 
-	int use_socket = attrs->daemon_channel || attrs->async_flag;
+	int use_socket = attrs->daemon_channel || attrs->async_flag || attrs->force_sockets;
 
 	// Leave room for the executable's name, the -id flag, the id,
 	// the -interpreter flag, and the interpreter's tag.
@@ -463,11 +463,15 @@ void Task::Exec( const char** argv )
 		executable = new LocalExec( exec_name, argv );
 		argv[0] = tmp;
 
-		close( read_pipe[1] );
-		close( write_pipe[0] );
+		if ( ! attrs->force_sockets )
+			{
+			close( read_pipe[1] );
+			close( write_pipe[0] );
 
-		local_channel = sequencer->AddLocalClient( read_pipe[0],
-								write_pipe[1] );
+			local_channel = sequencer->AddLocalClient( read_pipe[0],
+								   write_pipe[1] );
+			}
+
 		free_memory( exec_name );
 		}
 
@@ -541,7 +545,8 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
     : Task( task_attrs, s )
 	{
 
-	if ( ! shm_flag || attrs->daemon_channel || attrs->async_flag )
+	if ( ! shm_flag || attrs->daemon_channel ||
+	     attrs->async_flag || attrs->force_sockets )
 		attrs->useshm = useshm = 0;
 	else
 		attrs->useshm = useshm = 1;
@@ -641,7 +646,7 @@ void ClientTask::CreateAsyncClient( const char** argv )
 
 TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channel,
 		    int arg_async_flag, int arg_ping_flag, int arg_suspend_flag,
-		    const char *name_ )
+		    int arg_force_sockets, const char *name_ )
 	{
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
@@ -651,6 +656,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channe
 	suspend_flag = arg_suspend_flag;
 	useshm = 0;
 	name = name_ ? strdup(name_) : 0;
+	force_sockets = arg_force_sockets;
 	}
 
 TaskAttr::~TaskAttr()
@@ -672,7 +678,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 	const_args_list& args = *args_val;
 
-	int task_args_start = 8;
+	int task_args_start = 9;
 
 	if ( args.length() <= task_args_start )
 		return (IValue*) Fail( "too few arguments given to create_task" );
@@ -692,6 +698,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	int async_flag = args[3]->IntVal();
 	int ping_flag = args[4]->IntVal();
 	int suspend_flag = args[5]->IntVal();
+	int force_sockets = args[8]->IntVal();
 
 	int shm_flag = 1;
 	const char *script_name = 0;
@@ -761,7 +768,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	shm_flag = shm_flag && args[7]->IntVal();
 
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag,
-			      ping_flag, suspend_flag, script_name );
+			      ping_flag, suspend_flag, force_sockets, script_name );
 
 	// Collect the arguments to the task.
 	const_args_list task_args;

@@ -3576,7 +3576,7 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 void Sequencer::ActivateMonitor( char* monitor_client_name )
 	{
 	TaskAttr* monitor_attrs =
-		new TaskAttr( "*monitor*", "localhost", 0, 0, 0, 0 );
+		new TaskAttr( "*monitor*", "localhost", 0 );
 
 	const_args_list monitor_args;
 	monitor_args.append( new IValue( monitor_client_name ) );

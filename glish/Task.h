@@ -24,7 +24,8 @@ typedef PList(ProxyTask) proxytask_list;
 class TaskAttr {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
-		  int async_flag, int ping_flag, int suspend_flag, const char *name_ = 0 );
+		  int async_flag=0, int ping_flag=0, int suspend_flag=0, int force_sockets=0,
+		  const char *name_ = 0 );
 
 	~TaskAttr();
 
@@ -36,6 +37,7 @@ class TaskAttr {
 	int suspend_flag;
 	int useshm;
 	char *name;
+	int force_sockets;
 	};
 
 

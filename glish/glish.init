@@ -131,8 +131,8 @@ func has_field( const x, const field )
 func shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
  	create_task( id, host, F, async, ping, suspend, input, T, ... )
 
-func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F, shm=F )
- 	create_task( id, host, T, async, ping, suspend, input, shm, ... )
+func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F, shm=F, sock=F )
+ 	create_task( id, host, T, async, ping, suspend, input, shm, sock, ... )
 
 func full_type_name( const x )
 	{
