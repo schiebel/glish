@@ -180,7 +180,9 @@ FILE *File::Open( const char *mode )
 		return 0;
 		}
 
-	return fopen( f, mode );
+	FILE *ret = fopen( f, mode );
+	if ( ! ret ) type_ = ERR;
+	return ret;
 	}
 
 int File::Describe( OStream& s, const ioOpt & ) const
