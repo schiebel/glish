@@ -19,20 +19,32 @@
 #include <iostream.h>
 
 struct sos_header_kernel GC_FINAL_CLASS {
-	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0 ) :
-		buf_((unsigned char*)b), type_(t), length_(l), count_(1), freeit_(freeit) { }
+	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0,
+			   int ver = SOS_VERSION ) : buf_((unsigned char*)b), type_(t),
+				length_(l), count_(1), freeit_(freeit), version_(ver), off_(ver ? 0 : -4) { }
 	unsigned int count() { return count_; }
 	unsigned int ref() { return ++count_; }
 	unsigned int unref() { return --count_; }
+
 	~sos_header_kernel() { if ( freeit_ ) free_memory( buf_ ); }
+
 	void set( void *b, unsigned int l, sos_code t, int freeit = 0 );
 	void set( unsigned int l, sos_code t ) { type_ = t; length_ = l; }
 
+	// SOS version of the remote receiver
+	int version( ) const { return version_; }
+	void set_version( int v ) { if ( v >= 0 && v <= SOS_VERSION ) version_ = v; off_ = version_ ? 0 : -4; }
+
+	int offset( ) const { return off_; }
+
 	unsigned char	*buf_;
+	char		off_;
 	sos_code	type_;
 	unsigned int	length_;	// in units of type_
 	unsigned int	count_;
 	int		freeit_;
+    private:
+	int		version_;
 };
 
 //==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ====
@@ -86,8 +98,6 @@ public:
 	//
 	// information "local" to the class
 	//
-	static unsigned char iSize() { return current_header_size; }
-	static unsigned char iVersion() { return current_version; }
 	unsigned char *iBuffer() { return kernel->buf_; }
 	unsigned int iLength() { return kernel->length_; }
 	sos_code iType() { return kernel->type_; }
@@ -105,17 +115,22 @@ public:
 	//
 	// constructors
 	//
-	sos_header( byte *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_BYTE,freeit) ) { }
-	sos_header( short *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_SHORT,freeit) ) { }
-	sos_header( int *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_INT,freeit) ) { }
-	sos_header( float *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_FLOAT,freeit) ) { }
-	sos_header( double *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_DOUBLE,freeit) ) { }
+	sos_header( byte *a, unsigned int l, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(a,l,SOS_BYTE,freeit,ver) ) { }
+	sos_header( short *a, unsigned int l, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(a,l,SOS_SHORT,freeit, ver) ) { }
+	sos_header( int *a, unsigned int l, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(a,l,SOS_INT,freeit,ver) ) { }
+	sos_header( float *a, unsigned int l, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(a,l,SOS_FLOAT,freeit,ver) ) { }
+	sos_header( double *a, unsigned int l, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(a,l,SOS_DOUBLE,freeit,ver) ) { }
 
-	sos_header( ) : kernel( new sos_header_kernel(0,SOS_UNKNOWN,0) ) { }
-	sos_header( char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0 ) :
-		kernel( new sos_header_kernel(b,l,t,freeit) ) { }
-	sos_header( unsigned char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0 ) :
-		kernel( new sos_header_kernel(b,l,t,freeit) ) { }
+	sos_header( ) : kernel( new sos_header_kernel(0,SOS_UNKNOWN,0,SOS_VERSION) ) { }
+	sos_header( char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(b,l,t,freeit,ver) ) { }
+	sos_header( unsigned char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0, int ver = SOS_VERSION ) :
+		kernel( new sos_header_kernel(b,l,t,freeit,ver) ) { }
 
 	sos_header( const sos_header &h ) : kernel( h.kernel ) { kernel->ref(); }
 
@@ -144,14 +159,15 @@ public:
 	//
 	// access to user data
 	//
-	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[22 + (off % 6)]; }
-	unsigned short ugets( int off = 0 ) const { off = 22 + (off % 3) * 2;
+	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[22 + kernel->offset() + (off % 6)]; }
+	unsigned short ugets( int off = 0 ) const { off = 22 + kernel->offset() + (off % 3) * 2;
 			return kernel->buf_[off] + (kernel->buf_[off+1] << 8); }
-	unsigned int ugeti( ) const { return kernel->buf_[24] + (kernel->buf_[25] << 8) +
-			(kernel->buf_[26] << 16) + (kernel->buf_[27] << 24); }
+	unsigned int ugeti( ) const { int off = 24 + kernel->offset();
+			return kernel->buf_[off] + (kernel->buf_[off+1] << 8) +
+				(kernel->buf_[off+2] << 16) + (kernel->buf_[off+3] << 24); }
 
-	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[22 + (off % 6)] = c; }
-	void usets( unsigned short s, int off = 0 ) { off = 22 + (off % 3) * 2;
+	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[22 + kernel->offset() + (off % 6)] = c; }
+	void usets( unsigned short s, int off = 0 ) { off = 22 + kernel->offset() + (off % 3) * 2;
 			kernel->buf_[off] = s & 0xff; kernel->buf_[off+1] = (s >> 8) & 0xff; }
 	void useti( unsigned int i );
 
@@ -160,11 +176,18 @@ public:
 // 	sos_header &operator=(void *b)
 // 		{ buf = (unsigned char*) b; type_ = type(); length_ = length(); }
 
+	static inline int size( int ver )
+		{ const int s[2] = { SOS_HEADER_0_SIZE, SOS_HEADER_1_SIZE };
+		  return s[ ver >= 0 && ver <= SOS_VERSION ? ver : SOS_VERSION ]; }
+	int size( ) const { return size( kernel->version() ); }
+
+	int start_offset( ) const { return 22 + kernel->offset( ); }
+
+	void set_version( int v ) { kernel->set_version( v ); }
+
 private:
 	friend class sos_in;
 	void adjust_version( );
-	static unsigned char current_version;
-	static unsigned char current_header_size;
 	sos_header_kernel *kernel;
 };
 

@@ -18,9 +18,6 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 #include <string.h>
 
-unsigned char sos_header::current_version = SOS_VERSION;
-unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
-
 void sos_header_kernel::set( void *b, unsigned int l, sos_code t, int freeit )
 	{
 	if ( buf_ && freeit_ )
@@ -97,18 +94,19 @@ void sos_header::scratch( )
 	if ( kernel->count() > 1 )
 		{
 		kernel->unref();
-		kernel = new sos_header_kernel(alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel = new sos_header_kernel(alloc_char(size()), 0, SOS_UNKNOWN, 1 );
 		}
 	else
-		kernel->set( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel->set( alloc_char(size()), 0, SOS_UNKNOWN, 1 );
 	}
 
 void sos_header::useti( unsigned int i )
 	{
-	kernel->buf_[24] = i & 0xff; i >>= 8;
-	kernel->buf_[25] = i & 0xff; i >>= 8;
-	kernel->buf_[26] = i & 0xff; i >>= 8;
-	kernel->buf_[27] = i & 0xff; i >>= 8;
+	int off = kernel->offset( );
+	kernel->buf_[24 + off ] = i & 0xff; i >>= 8;
+	kernel->buf_[25 + off ] = i & 0xff; i >>= 8;
+	kernel->buf_[26 + off ] = i & 0xff; i >>= 8;
+	kernel->buf_[27 + off ] = i & 0xff; i >>= 8;
 	}
 
 void sos_header::stamp( struct timeval &initial )
@@ -143,18 +141,21 @@ void sos_header::stamp( struct timeval &initial )
 		initial.tv_usec = tp.tv_usec;
 		}
 
+	// time seconds
 	*ptr++ = t & 0xff; t >>= 8;		// 12
 	*ptr++ = t & 0xff; t >>= 8;		// 13
 	*ptr++ = t & 0xff; t >>= 8;		// 14
 	*ptr++ = t & 0xff; t >>= 8;		// 15
 
-	// time useconds
-	t = tp.tv_usec;
-
-	*ptr++ = t & 0xff; t >>= 8;		// 16
-	*ptr++ = t & 0xff; t >>= 8;		// 17
-	*ptr++ = t & 0xff; t >>= 8;		// 18
-	*ptr++ = t & 0xff; t >>= 8;		// 19
+	// time useconds -- introduced with SOS version #1
+	if ( kernel->version( ) > 0 )
+		{
+		t = tp.tv_usec;
+		*ptr++ = t & 0xff; t >>= 8;	// 16
+		*ptr++ = t & 0xff; t >>= 8;	// 17
+		*ptr++ = t & 0xff; t >>= 8;	// 18
+		*ptr++ = t & 0xff; t >>= 8;	// 19
+		}
 
 	// future use
 	*ptr++ = 0x0;
@@ -214,7 +215,7 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 		}
 
 	ios << endl << "\tuser: ";
-	char *user = (char*) ((sos_header &)h).iBuffer() + 22;
+	char *user = (char*) ((sos_header &)h).iBuffer() + h.start_offset( );
 	for ( int C = 0; C < 6; C++ )
 		ios << (void*) user[C] << " ";
 

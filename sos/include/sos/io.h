@@ -46,7 +46,7 @@ class sos_status GC_FINAL_CLASS {
 	virtual void finalize( final_func, void * ) { }
 	virtual sos_status *resume( ) { return 0; }
 
-	int remote_version( ) const { return common ? common->remote_version() : -1; }
+	int remote_version( ) const { return common ? common->remote_version() : SOS_VERSION; }
 	void set_remote_version( int v ) { if ( common ) common->set_remote_version( v ); }
 
     protected:
@@ -157,7 +157,7 @@ class sos_fd_source : public sos_source {
 class sos_out GC_FINAL_CLASS {
 public:
 	sos_out( sos_sink *out_ = 0, int integral_header = 0 );
-	void set( sos_sink *out_ ) { out = out_; }
+	void set( sos_sink *out_ ) { out = out_; if ( out ) head.set_version(out->remote_version( )); }
 
 	sos_status *put( byte *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
 	sos_status *put( byte *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
@@ -198,6 +198,8 @@ public:
 
 	const struct timeval &get_stamp( ) { return initial_stamp; }
 	void clear_stamp( ) { initial_stamp.tv_sec = 0; }
+
+	int remote_version( ) const { return out ? out->remote_version() : SOS_VERSION; }
 
 private:
 	enum error_mode { NO_SINK };

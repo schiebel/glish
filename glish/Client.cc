@@ -1798,7 +1798,7 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			       char *name, unsigned char flags,
 			       const ProxyId &proxy_id, FILE *transcript, value_list &been_there )
 	{
-	sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+	sos_header head( alloc_char(sos_header::size(sos.remote_version( ))), 0, SOS_UNKNOWN, 1, sos.remote_version( ) );
 	static Value *empty = empty_value( );
 
 	if ( ! val )
