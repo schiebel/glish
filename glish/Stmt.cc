@@ -453,7 +453,7 @@ const char *AwaitStmt::TerminateInfo() const
 	sos.reset();
 	sos << "await terminated";
 	if ( file && file->chars() )
-		sos << " (file: " << file->chars() << ", line: " << line << ")";
+		sos << " (file \"" << file->chars() << "\", line " << line << ")";
 	sos << ":" << endl;
 	Describe(sos);
 	sos << "" << endl;

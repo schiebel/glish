@@ -3142,12 +3142,30 @@ STD_EXPAND_CANEXPAND(TkListbox)
 int TkHaveGui()
 	{
 	Display *display;
-	int ret = 0;
+	static int ret = 0;
+	static int setup = 1;
 
-	if ( (display=XOpenDisplay(NULL)) != NULL )
+	//
+	// There are some *strange* problems with X11R5 + Solaris...
+	// after multiple (50+) calls to "have_gui()" (plus other
+	// things operations) e.g.:
+	//      GO := T
+	//      CNT := 0
+	//      while (GO) {CNT+:=1;include "tt.g";GO:=have_gui()}
+	//      print GO,CNT
+	// where "tt.g" is an empty file, "have_gui()" will start
+	// returning 'F'. Calling XOpenDisplay(NULL) once is more
+	// efficient, and solves this problem, but probably isn't
+	// as proper.
+	//
+	if ( setup )
 		{
-		ret = 1;
-		XCloseDisplay(display);
+		if ( (display=XOpenDisplay(NULL)) != NULL )
+			{
+			ret = 1;
+			XCloseDisplay(display);
+			}
+		setup = 0;
 		}
 
 	return ret;

@@ -2336,6 +2336,7 @@ IValue *Sequencer::Include( const char *file )
 		}
 
 	FILE *fptr = fopen( expanded_name, "r");
+	delete expanded_name;
 
 	if ( ! fptr )
 		return error_ivalue();
