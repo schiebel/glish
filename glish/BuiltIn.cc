@@ -1528,6 +1528,22 @@ IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
 		return agent->AssociatedStatements();
 	}
 
+IValue* WheneverActiveBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* v = (*args_val)[0];
+
+	if ( ! v->IsNumeric() )
+		return (IValue*) Fail("non-numeric argument, ", v );
+
+	int  index = v->IntVal();
+	Stmt *s = sequencer->LookupStmt( index );
+
+	if ( ! s )
+		return (IValue*) Fail(index, "does not designate a valid \"whenever\" statement" );
+
+	return new IValue ( s->GetActivity() ? glish_true : glish_false );
+	}
+
 
 IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -2302,6 +2318,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new SymbolSetBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolDeleteBuiltIn( s ) );
 
+	s->AddBuiltIn( new WheneverActiveBuiltIn( s ) );
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 	s->AddBuiltIn( new EvalBuiltIn( s ) );

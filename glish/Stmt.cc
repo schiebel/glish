@@ -69,6 +69,11 @@ void Stmt::SetActivity( int /* activate */ )
 	{
 	}
 
+int Stmt::GetActivity( ) const
+	{
+	return 1;
+	}
+
 #ifdef GGC
 void Stmt::TagGC( )
 	{
@@ -291,6 +296,11 @@ int WheneverStmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
 void WheneverStmt::SetActivity( int activate )
 	{
 	active = activate;
+	}
+
+int WheneverStmt::GetActivity( ) const
+	{
+	return active;
 	}
 
 void WheneverStmt::Describe( OStream& s ) const

@@ -198,6 +198,7 @@ IValue* Agent::AssociatedStatements()
 
 	char** event = (char**) alloc_memory( sizeof(char*)*num_stmts );
 	int* stmt = (int*) alloc_memory( sizeof(int)*num_stmts );
+	glish_bool* active = (glish_bool*) alloc_memory( sizeof(glish_bool)*num_stmts );
 	int count = 0;
 
 	c = interested_parties.InitForIteration();
@@ -207,6 +208,8 @@ IValue* Agent::AssociatedStatements()
 			{
 			event[count] = strdup( key );
 			stmt[count] = (*interest)[j]->stmt()->Index();
+			active[count] = (*interest)[j]->stmt()->GetActivity() ?
+							glish_true : glish_false;
 			++count;
 			}
 		}
@@ -218,6 +221,7 @@ IValue* Agent::AssociatedStatements()
 	IValue* r = create_irecord();
 	r->SetField( "event", (charptr*) event, num_stmts );
 	r->SetField( "stmt", stmt, num_stmts );
+	r->SetField( "active", active, num_stmts );
 
 	return r;
 	}

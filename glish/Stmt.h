@@ -67,6 +67,7 @@ class Stmt : public ParseNode {
 	// Sets the statement's activity, either to true (if "activate" is
 	// true) or to false.
 	virtual void SetActivity( int activate );
+	virtual int GetActivity( ) const;
 
 	// Return the index of this statement.  Might be 0, indicating
 	// that the statement is not intended to be indexed (presently,
@@ -126,7 +127,11 @@ class WheneverStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Notify( Agent* agent );
 
+	//
+	// Currently these two stmts do the same thing...
+	//
 	int IsActiveFor( Agent* agent, const char* field, IValue* value ) const;
+	int GetActivity( ) const;
 	void SetActivity( int activate );
 
 	static unsigned int NotifyCount();
