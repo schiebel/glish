@@ -18,3 +18,4 @@
 
 /* Define if gettimeofday is not declared */
 #undef GETTOD_NOT_DECLARED
+
