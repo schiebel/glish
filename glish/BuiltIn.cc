@@ -1,5 +1,9 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
+#include "system.h"
+
 #include <string.h>
 #include <stream.h>
 #include <stdlib.h>
@@ -9,6 +13,7 @@
 #include <values.h>
 
 #include "Sds/sdsgen.h"
+#include "Npd/npd.h"
 #include "glish_event.h"
 #include "BuiltIn.h"
 #include "Reporter.h"
@@ -17,11 +22,19 @@
 #include "Frame.h"
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
+#if defined(HUGE_VAL)
+#define HUGE HUGE_VAL
+#else
 #define HUGE (infinity())
-#define MAXINT 0x7fffffff
+#endif
 
+#if !defined(MAXINT)
+#define MAXINT 0x7fffffff
+#endif
+#if !defined(MAXFLOAT)
 // Half-assed guess.
 #define MAXFLOAT 1e38
+#endif
 #endif
 
 
@@ -888,15 +901,364 @@ Value* NthArgBuiltIn::DoCall( const_args_list* args_val )
 	return copy_value( (*args_val)[n] );
 	}
 
-Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 	{
-	Frame* cur = sequencer->CurrentFrame();
-	if ( ! cur )
-		return empty_value();
+	int len = args_val->length();
+	const Value *val = 0;
+	int arg1 = 0;
+	int arg2 = 0;
 
-	return copy_value( cur->Missing() );
+	if ( len > 2 )
+		{
+		error->Report( this, " takes from zero to two arguments" );
+		return error_value();
+		}
+
+	if ( len >= 1 )
+		{
+		val = (*args_val)[0];
+
+		if ( ! val->IsNumeric() )
+			{
+			error->Report( "non-numeric parameter invalid for",
+						this );
+			return error_value();
+			}
+
+		arg1 = val->IntVal();
+		}
+
+	if ( len == 2 ) 
+		{
+		val = (*args_val)[1];
+
+		if ( ! val->IsNumeric() )
+			{
+			error->Report( "non-numeric parameter invalid for",
+						this );
+			return error_value();
+			}
+
+		arg2 = val->IntVal();
+
+		if ( arg1 > arg2 )
+			{
+			int tmp = arg1;
+			arg1 = arg2;
+			arg2 = tmp;
+			}
+		}
+
+	Value *ret = 0;
+	if ( len <= 1 )
+		{
+		if ( arg1 < 1 )
+			ret = new Value( (int) random_long() );
+		else
+			{
+			int *ival = new int[arg1];
+			for ( int i = arg1 - 1; i >= 0; i-- )
+				ival[i] = (int) random_long();
+
+			ret = new Value( ival, arg1 );
+			}
+		}
+	else
+		{
+		int diff = arg2 - arg1;
+		if ( diff <= 0 )
+			{
+			error->Report( "invalid range for",
+						this );
+			return error_value();
+			}
+		ret =  new Value( (int)((unsigned long)random_long() % 
+						(diff+1)) + arg1 );
+		}
+
+	return ret;
 	}
 
+#define XBIND_MIXTYPE_ERROR						\
+	{								\
+	error->Report( "both numeric and non-numeric arguments" );	\
+	return error_value();						\
+	}
+
+#define XBIND_CLEANUP							\
+	if ( shape_is_copy )						\
+		delete( shape );
+
+#define XBIND_ALLOC_PTR(tag, type)					\
+	case tag:							\
+		result = new type[cols*rows];				\
+		break;
+
+#define XBIND_PLACE_ACTION(tag,type,array,to,from,access)		\
+	case tag:							\
+		((type*)result)[to]  = (type)( array[from] access );	\
+		break;
+
+#define XBIND_PLACE_ELEMENT(array,to,from,access)			\
+	switch ( result_type )						\
+		{							\
+	XBIND_PLACE_ACTION(TYPE_BOOL,glish_bool,array,to,from,access)	\
+	XBIND_PLACE_ACTION(TYPE_INT,int,array,to,from,access)		\
+	XBIND_PLACE_ACTION(TYPE_BYTE,byte,array,to,from,access)		\
+	XBIND_PLACE_ACTION(TYPE_SHORT,short,array,to,from,access)	\
+	XBIND_PLACE_ACTION(TYPE_FLOAT,float,array,to,from,access)	\
+	XBIND_PLACE_ACTION(TYPE_DOUBLE,double,array,to,from,access)	\
+	XBIND_PLACE_ACTION(TYPE_COMPLEX,complex,array,to,from,)		\
+	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,dcomplex,array,to,from,)	\
+		default:						\
+		 fatal->Report( "bad type in CbindBuiltIn::DoCall()" );	\
+		}
+
+#define XBIND_ACTION(tag,ptr_name,source,OFFSET,XLATE,access,stride,COLS,OFF,ADV1,ADV2)	\
+	case tag:							\
+		{							\
+		ptr_name = arg->VecRefDeref()->source();		\
+		int off = offset;					\
+		if (  attr && (shape_v = (*attr)["shape"]) &&		\
+		      shape_v != false_value &&	shape_v->IsNumeric() &&	\
+		      (shape_len = shape_v->Length()) > 1 )		\
+			{						\
+			int* shape = shape_v->CoerceToIntArray( 	\
+				shape_is_copy, shape_len );		\
+			for (int i = 0; i < rows; i++, off += stride - OFF)\
+				for (int j = 0; j < shape[COLS]; j++, off++)\
+					{				\
+					int vecoff = i*shape[COLS]+j;	\
+					XLATE				\
+			XBIND_PLACE_ELEMENT(ptr_name,off,OFFSET,access)	\
+					}				\
+			XBIND_CLEANUP					\
+			offset = ADV1;					\
+			}						\
+		else							\
+			{						\
+			for ( int vecoff = 0; vecoff < rows;		\
+					vecoff++, off += stride )	\
+				{					\
+				XLATE					\
+			XBIND_PLACE_ELEMENT(ptr_name,off,OFFSET,access)	\
+				}					\
+			offset = ADV2;					\
+			}						\
+		}							\
+		break;
+
+#define XBIND_ACTIONS(index,xlate,stride,COLS,OFF,ADV1,ADV2)		\
+XBIND_ACTION(TYPE_INT,int_ptr,IntPtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_BYTE,byte_ptr,BytePtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_BOOL,bool_ptr,BoolPtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_SHORT,short_ptr,ShortPtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_FLOAT,float_ptr,FloatPtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_DOUBLE,double_ptr,DoublePtr,index,xlate,,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_COMPLEX,complex_ptr,ComplexPtr,index,xlate,.r,stride,COLS,OFF,ADV1,ADV2)\
+XBIND_ACTION(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr,index,xlate,.r,stride,COLS,OFF,ADV1,ADV2)
+
+#define XBIND_XLATE							\
+	int index = ref->TranslateIndex( vecoff, &err );		\
+	if ( err )							\
+		{							\
+		error->Report( "invalid sub-vector" );			\
+		return error_value();					\
+		}
+
+#define XBIND_RETURN_ACTION(tag,type)					\
+	case tag:							\
+		result_value = new Value((type*)result,rows*cols);	\
+		break;
+
+#define XBINDBUILTIN(name,ROWS,COLS,stride,OFF,ADV1,ADV2)		\
+Value* name::DoCall( const_args_list* args_vals )			\
+	{								\
+	int numeric = -1, rows = -1, minrows = -1;			\
+	int cols = 0;							\
+	glish_type result_type = TYPE_BOOL;				\
+									\
+	if ( args_vals->length() < 2 )					\
+		{							\
+		error->Report(this, " takes at least two arguments");	\
+		return error_value();					\
+		}							\
+									\
+	loop_over_list( *args_vals, i )					\
+		{							\
+		const Value *arg = (*args_vals)[i];			\
+		int arg_len = arg->Length();				\
+		const attributeptr attr = arg->AttributePtr();		\
+		const Value *attr_val;					\
+		const Value *shape_v;					\
+		int shape_len;						\
+		int shape_is_copy;					\
+									\
+		if ( arg->IsNumeric() )					\
+			if ( numeric == 0 )				\
+				XBIND_MIXTYPE_ERROR			\
+			else						\
+				{					\
+				numeric = 1;				\
+				result_type =				\
+			max_numeric_type(result_type,			\
+					 arg->VecRefDeref()->Type());	\
+				}					\
+		else if ( arg->VecRefDeref()->Type() == TYPE_STRING )	\
+			if ( numeric == 1 )				\
+				XBIND_MIXTYPE_ERROR			\
+			else						\
+				{					\
+				numeric = 0;				\
+				result_type = TYPE_STRING;		\
+				}					\
+		else							\
+			{						\
+			error->Report("invalid type (argument ",i+1,")");\
+			return error_value();				\
+			}						\
+									\
+		if (  attr && (shape_v = (*attr)["shape"]) &&		\
+		      shape_v != false_value && shape_v->IsNumeric() &&	\
+		      (shape_len = shape_v->Length()) > 1 )		\
+			{						\
+			if ( shape_len > 2 )				\
+				{					\
+				error->Report( "argument (",i+1,	\
+				  ") with dimensionality greater than 2" );\
+				return error_value();			\
+				}					\
+			int* shape =					\
+				shape_v->CoerceToIntArray( shape_is_copy,\
+							   shape_len );	\
+									\
+			cols += shape[COLS];				\
+			if ( rows >= 0 )				\
+				{					\
+				if ( shape[ROWS] != rows || 		\
+				     (minrows >= 0 && minrows < rows ) )\
+					{				\
+					error->Report( 			\
+					"mismatch in number of rows" );	\
+					XBIND_CLEANUP			\
+					return error_value();		\
+					}				\
+				}					\
+			else						\
+				rows = shape[ROWS];			\
+			XBIND_CLEANUP					\
+			}						\
+		else							\
+			{						\
+			cols += 1;					\
+			if ( minrows < 0 || minrows > arg_len )		\
+				minrows = arg_len;			\
+			if ( rows >= 0 && minrows < rows )		\
+				{					\
+				error->Report( 				\
+					"mismatch in number of rows" );	\
+				return error_value();			\
+				}					\
+			}						\
+		}							\
+									\
+	if ( rows < 0 )							\
+		rows = minrows;						\
+									\
+	void *result;							\
+	Value *result_value = 0;					\
+	if ( result_type == TYPE_STRING )				\
+		{							\
+		error->Report("sorry not implemented for strings yet");	\
+		return error_value();					\
+		}							\
+									\
+	switch ( result_type )						\
+		{							\
+		XBIND_ALLOC_PTR(TYPE_BOOL,glish_bool)			\
+		XBIND_ALLOC_PTR(TYPE_INT,int)				\
+		XBIND_ALLOC_PTR(TYPE_BYTE,byte)				\
+		XBIND_ALLOC_PTR(TYPE_SHORT,short)			\
+		XBIND_ALLOC_PTR(TYPE_FLOAT,float)			\
+		XBIND_ALLOC_PTR(TYPE_DOUBLE,double)			\
+		XBIND_ALLOC_PTR(TYPE_COMPLEX,complex)			\
+		XBIND_ALLOC_PTR(TYPE_DCOMPLEX,dcomplex)			\
+		default:						\
+		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
+		}							\
+									\
+	int offset = 0;							\
+	loop_over_list( *args_vals, x )					\
+		{							\
+		const Value *arg = (*args_vals)[x];			\
+		int arg_len = arg->Length();				\
+		const attributeptr attr = arg->AttributePtr();		\
+		const Value *shape_v;					\
+		int shape_len;						\
+		int shape_is_copy;					\
+									\
+		glish_bool* bool_ptr;					\
+		byte* byte_ptr;						\
+		short* short_ptr;					\
+		int* int_ptr;						\
+		float* float_ptr;					\
+		double* double_ptr;					\
+		complex* complex_ptr;					\
+		dcomplex* dcomplex_ptr;					\
+		charptr* string_ptr;					\
+									\
+		switch ( arg->Type() )					\
+			{						\
+	XBIND_ACTIONS(vecoff,,stride,COLS,OFF,ADV1,ADV2)		\
+			case TYPE_SUBVEC_REF:				\
+			case TYPE_SUBVEC_CONST:				\
+				{					\
+				const VecRef* ref = arg->VecRefPtr();	\
+				int err;				\
+				switch ( ref->Type() )			\
+					{				\
+	XBIND_ACTIONS(index,XBIND_XLATE,stride,COLS,OFF,ADV1,ADV2)	\
+					default:			\
+					fatal->Report(			\
+				"bad type in CbindBuiltIn::DoCall()" );	\
+						}			\
+				}					\
+				break;					\
+									\
+			default:					\
+			fatal->Report("bad type in CbindBuiltIn::DoCall()");\
+			}						\
+		}							\
+									\
+	switch ( result_type )						\
+		{							\
+		XBIND_RETURN_ACTION(TYPE_BOOL,glish_bool)		\
+		XBIND_RETURN_ACTION(TYPE_INT,int)			\
+		XBIND_RETURN_ACTION(TYPE_BYTE,byte)			\
+		XBIND_RETURN_ACTION(TYPE_SHORT,short)			\
+		XBIND_RETURN_ACTION(TYPE_FLOAT,float)			\
+		XBIND_RETURN_ACTION(TYPE_DOUBLE,double)			\
+		XBIND_RETURN_ACTION(TYPE_COMPLEX,complex)		\
+		XBIND_RETURN_ACTION(TYPE_DCOMPLEX,dcomplex)		\
+		default:						\
+		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
+		}							\
+									\
+	if ( result_value )						\
+		{							\
+		int *newshape = new int[2];				\
+		newshape[ROWS] = rows;					\
+		newshape[COLS] = cols;					\
+		result_value->AssignAttribute( "shape", 		\
+					       new Value(newshape,2) );	\
+		return result_value;					\
+		}							\
+									\
+	return error_value();						\
+	}
+
+XBINDBUILTIN(CbindBuiltIn,0,1,1,1,off,off)
+XBINDBUILTIN(RbindBuiltIn,1,0,cols,shape[0],offset+shape[0],offset+1)
 
 Value* PasteBuiltIn::DoCall( const_args_list* args_val )
 	{
@@ -1080,6 +1442,142 @@ Value* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return user_agent->AgentRecord();
 	}
 
+
+Value* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+	Scope *scope = sequencer->GetScope( );
+	if ( ! scope || ! scope->Length() )
+		return error_value();
+
+	if ( len > 1 )
+		{
+		error->Report( this, " takes 0 or 1 argument" );
+		return error_value();
+		}
+
+	const Value *func_val = len > 0 ? (*args_val)[0] : 0 ;
+	funcptr func = 0;
+
+	if ( func_val )
+ 		if ( func_val->Type() != TYPE_FUNC )
+			{
+			error->Report( this, " only takes a function as an argument");
+			return error_value();
+			}
+		else
+			func = func_val->FuncVal();
+
+	int cnt = 0;
+	charptr *name_ary = new charptr[ scope->Length() ];
+	IterCookie *c = scope->InitForIteration();
+	const Expr *member;
+	const char *key;
+	while ( (member = scope->NextEntry( key, c )) )
+		{
+		int flag = 0;
+		if ( func )
+			{
+			parameter_list p;
+			Parameter arg( 0, VAL_CONST, (Expr*) member );
+			p.append( &arg );
+			Value *r = func->Call( &p, EVAL_COPY );
+			if ( r && r->IsNumeric() )
+				flag = r->IntVal();
+			Unref( r );
+			}
+		if ( ! func || flag )
+			{
+			name_ary[cnt] = new char[strlen( key )+1];
+			strcpy((char*) name_ary[cnt++], key);
+			}
+		}
+
+	return new Value( (charptr*) name_ary, cnt );
+	}
+
+Value* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+	const Value *str = (*args_val)[0];
+
+	if ( ! str || str->Type() != TYPE_STRING )
+		{
+		error->Report( this, " takes 1 string argument" );
+		return error_value();
+		}
+
+	charptr *strs = str->StringPtr();
+	recordptr rptr = create_record_dict();
+	for ( int i = 0; i < str->Length(); i++ )
+		{
+		Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+		if ( exp )
+			{
+			Value *val = exp->CopyEval();
+			if ( val )
+				rptr->Insert( strdup(strs[i]), val );
+			}
+		}
+
+	return new Value( rptr );
+	}
+
+Value* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+
+	if ( len < 1 || len > 2 )
+		{
+		error->Report( this, " takes either 1 record argument or a string and a value" );
+		return error_value();
+		}
+
+	const Value *arg1 = (*args_val)[0];
+	const Value *arg2 = len > 1 ? (*args_val)[1] : 0;
+
+	if ( ! arg2 )
+		{
+		if ( arg1->Type() != TYPE_RECORD )
+			{
+			error->Report( "wrong type for argument 1, record expected" );
+			return error_value();
+			}
+
+		recordptr rptr = arg1->RecordPtr();
+		IterCookie *c = rptr->InitForIteration();
+		Value *member;
+		const char *key;
+		while ( (member = rptr->NextEntry( key, c )) )
+			{
+			Expr *id = sequencer->LookupID( strdup(key), GLOBAL_SCOPE, 1, 0 );
+			id->Assign( copy_value(member) );
+			}
+		}
+	else
+		{
+		if ( arg1->Type() != TYPE_STRING )
+			{
+			error->Report( "wrong type for argument 1, string expected" );
+			return error_value();
+			}
+
+		charptr *strs = arg1->StringPtr();
+		Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
+		id->Assign( copy_value( arg2 ) );
+		}
+
+	return new Value( glish_true );
+	}
+
+Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+	{
+	Frame* cur = sequencer->CurrentFrame();
+	if ( ! cur )
+		return empty_value();
+
+	return copy_value( cur->Missing() );
+	}
 
 Value* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -1498,7 +1996,7 @@ dcomplex atan( const dcomplex )
 	return dcomplex( 0, 0 );
 	}
 
-void create_built_ins( Sequencer* s )
+void create_built_ins( Sequencer* s, const char *program_name )
 	{
 	add_one_arg_built_in( s, as_boolean_built_in, "as_boolean" );
 	add_one_arg_built_in( s, as_byte_built_in, "as_byte" );
@@ -1515,13 +2013,16 @@ void create_built_ins( Sequencer* s )
 
 	s->AddBuiltIn( new NumericVectorBuiltIn( sqrt, sqrt, "sqrt" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( exp, exp, "exp" ) );
-	s->AddBuiltIn( new NumericVectorBuiltIn( log, log, "log" ) );
+	s->AddBuiltIn( new NumericVectorBuiltIn( log, log, "ln" ) );
+	s->AddBuiltIn( new NumericVectorBuiltIn( log10, log10, "log" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( sin, sin, "sin" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( cos, cos, "cos" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( tan, tan, "tan" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( asin, asin, "asin" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( acos, acos, "acos" ) );
 	s->AddBuiltIn( new NumericVectorBuiltIn( atan, atan, "atan" ) );
+	s->AddBuiltIn( new NumericVectorBuiltIn( floor, floor, "floor" ) );
+	s->AddBuiltIn( new NumericVectorBuiltIn( ceil, ceil, "ceiling" ) );
 
 	s->AddBuiltIn( new RealBuiltIn );
 	s->AddBuiltIn( new ImagBuiltIn );
@@ -1535,6 +2036,9 @@ void create_built_ins( Sequencer* s )
 	s->AddBuiltIn( new RepBuiltIn );
 	s->AddBuiltIn( new NumArgsBuiltIn );
 	s->AddBuiltIn( new NthArgBuiltIn );
+	s->AddBuiltIn( new RandomBuiltIn );
+	s->AddBuiltIn( new CbindBuiltIn );
+	s->AddBuiltIn( new RbindBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
 
 	s->AddBuiltIn( new PasteBuiltIn );
@@ -1550,8 +2054,16 @@ void create_built_ins( Sequencer* s )
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
 
+	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
+	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );
+	s->AddBuiltIn( new SymbolSetBuiltIn( s ) );
+
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 
 	sds_init();
+
+#ifdef AUTHENTICATE
+	init_log( program_name );
+#endif
 	}

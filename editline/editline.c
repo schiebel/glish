@@ -2,7 +2,9 @@
 **
 **  Main editing routines for editline library.
 */
+
 #include "editline.h"
+RCSID("@(#) $Id$")
 #include <signal.h>
 #include <ctype.h>
 #include <sys/time.h>
@@ -64,7 +66,8 @@ typedef struct _HISTORY {
 /*
 **  Globals.
 */
-CHAR		*rl_data_incomplete = "";
+CHAR		editline_null_byte = '\0';
+CHAR		*rl_data_incomplete = &editline_null_byte;
 
 int		rl_eof;
 int		rl_erase;

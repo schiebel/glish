@@ -5,10 +5,30 @@
 
 #include <generic.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include "Glish/Value.h"
 
+extern "C" {
+#ifndef HAVE_STRDUP
+char* strdup( const char* );
+#endif
+}
+
 struct fd_set;
+class EventContext {
+public:
+	EventContext(const char *client_name_ = 0, const char *context_ = 0 );
+	EventContext(const EventContext &c);
+	EventContext &operator=(const EventContext &c);
+	const char *id() const { return context; }
+	const char *name() const { return client_name; }
+	~EventContext();
+private:
+	char *context;
+	char *client_name;
+	static unsigned int client_count;
+};
 
 class GlishEvent : public GlishObject {
 public:
@@ -39,6 +59,59 @@ protected:
 	int delete_value;
 	};
 
+typedef enum event_src_type { INTERP, I_LINK, STDIO, GLISHD } event_src_type;
+
+class EventSource : public GlishObject {
+    public:
+	EventSource( int arg_read_fd, int arg_write_fd,
+	    event_src_type arg_type = INTERP ) : context( )
+		{
+		read_fd = arg_read_fd;
+		write_fd = arg_write_fd;
+		type = arg_type;
+		}
+
+	EventSource( int arg_read_fd, int arg_write_fd,
+	    event_src_type arg_type,
+	    const EventContext &arg_context ) : context(arg_context)
+		{
+		read_fd = arg_read_fd;
+		write_fd = arg_write_fd;
+		type = arg_type;
+		}
+
+	EventSource( int arg_fd, event_src_type arg_type = INTERP ) : 
+	    context( )
+		{
+		read_fd = write_fd = arg_fd;
+		type = arg_type;
+		}
+
+	EventSource( int arg_fd, event_src_type arg_type,
+	    const EventContext &arg_context ) : context( arg_context )
+		{
+		read_fd = write_fd = arg_fd;
+		type = arg_type;
+		}
+
+	// destructor closes the fds
+	~EventSource()
+		{
+		close ( read_fd );
+		close ( write_fd );
+		}
+
+	int Read_FD() { return read_fd; }
+	int Write_FD() { return write_fd; }
+	const EventContext &Context() const { return context; }
+	event_src_type Type() { return type; }
+
+    protected:
+	int read_fd;
+	int write_fd;
+	EventContext context;
+	event_src_type type;
+	};
 
 declare(List,int);
 
@@ -48,11 +121,18 @@ class EventLink;
 declare(PList,EventLink);
 declare(PDict,EventLink);
 
+declare(PList,EventSource);
+declare(PDict,EventSource);
+
 typedef PList(EventLink) event_link_list;
 declare(PDict,event_link_list);
 
-declare(Dict,int);
+typedef PDict(event_link_list) event_link_context_list;
+declare(PDict,event_link_context_list);
 
+declare(Dict,int);
+typedef Dict(int) sink_id_list;
+declare(PDict,sink_id_list);
 
 class AcceptSocket;
 
@@ -61,13 +141,15 @@ class Client {
 	// Client's are constructed by giving them the program's
 	// argc and argv.  Any client-specific arguments are read
 	// and stripped off.
-	Client( int& argc, char** argv );
+	Client( int& argc, char** argv, int arg_multithreaded = 0 );
 
 	// Alternatively, a Client can be constructed from fd's for
 	// reading and writing events and a client name.  This version
 	// of the constructor does not generate an initial "established"
 	// event.
 	Client( int client_read_fd, int client_write_fd, const char* name );
+	Client( int client_read_fd, int client_write_fd, const char* name,
+		const EventContext &arg_context, int arg_multithreaded = 0 );
 
 	virtual ~Client();
 
@@ -95,11 +177,21 @@ class Client {
 
 
 	// Sends an event with the given name and value.
-	void PostEvent( const GlishEvent* event );
-	void PostEvent( const char* event_name, const Value* event_value );
+	void PostEvent( const GlishEvent* event, const EventContext &context );
+	void PostEvent( const GlishEvent* event ) 
+		{ PostEvent( event, EventContext( initial_client_name, interpreter_tag ) ); }
+	void PostEvent( const char* event_name, const Value* event_value,
+		const EventContext &context );
+	void PostEvent( const char* event_name, const Value* event_value )
+		{ PostEvent( event_name, event_value, 
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Sends an event with the given name and character string value.
-	void PostEvent( const char* event_name, const char* event_value );
+	void PostEvent( const char* event_name, const char* event_value,
+		const EventContext &context );
+	void PostEvent( const char* event_name, const char* event_value )
+		{ PostEvent( event_name, event_value,
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Sends an event with the given name, using a printf-style format
 	// and an associated string argument.  For example,
@@ -107,9 +199,18 @@ class Client {
 	//	client->PostEvent( "error", "couldn't open %s", file_name );
 	//
 	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* event_arg );
+				const char* event_arg, const EventContext &context );
 	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* arg1, const char* arg2 );
+				const char* event_arg )
+		{ PostEvent( event_name, event_fmt, event_arg, 
+			     EventContext(initial_client_name, interpreter_tag) ); }
+	void PostEvent( const char* event_name, const char* event_fmt,
+				const char* arg1, const char* arg2,
+				const EventContext &context );
+	void PostEvent( const char* event_name, const char* event_fmt,
+				const char* arg1, const char* arg2 )
+		{ PostEvent( event_name, event_fmt, arg1, arg2,
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Reply to the last received event.
 	void Reply( const Value* event_value );
@@ -119,7 +220,11 @@ class Client {
 
 	// Post an event with an "opaque" SDS value - one that we won't
 	// try to convert to a Glish record.
-	void PostOpaqueSDS_Event( const char* event_name, int sds );
+	void PostOpaqueSDS_Event( const char* event_name, int sds,
+		const EventContext &context );
+	void PostOpaqueSDS_Event( const char* event_name, int sds )
+		{ PostOpaqueSDS_Event( event_name, sds, 
+				       EventContext(initial_client_name, interpreter_tag) ); }
 
 
 	// For any file descriptors this Client might read events from,
@@ -144,6 +249,17 @@ class Client {
 	// the interpreter or stdin; false if not.
 	int HasEventSource()	{ return ! int(no_glish); }
 
+	// Register with glishd if multithreaded, adding event_source
+	// that corresponds to the glishd.  Returns nonzero if connection
+	// failed for any reason (eg no glishd).
+	int ReRegister( char* registration_name = 0 );
+
+	// 1 if multithreaded, 0 if not
+	int Multithreaded() { return multithreaded; }
+
+	// return context of last event received
+	const EventContext &LastContext() { return last_context; }
+
     protected:
 	friend void Client_signal_handler();
 
@@ -156,10 +272,10 @@ class Client {
 	void CreateSignalHandler();
 
 	// Sends out the Client's "established" event.
-	void SendEstablishedEvent();
+	void SendEstablishedEvent( const EventContext &context );
 
-	// Returns the next event from the given fd.
-	GlishEvent* GetEvent( int fd );
+	// Returns the next event from the given event source.
+	GlishEvent* GetEvent( EventSource* source );
 
 	// Called whenever a new fd is added (add_flag=1) or deleted
 	// (add_flag=0) from those that the client listens to.  By
@@ -203,35 +319,54 @@ class Client {
 
 	// Sends the given event.  If sds is non-negative, the event's value
 	// is taken from the SDS "sds".
-	void SendEvent( const GlishEvent* e, int sds = -1 );
+	void SendEvent( const GlishEvent* e, int sds, const EventContext &context );
+	void SendEvent( const GlishEvent* e, int sds = -1 )
+		{ SendEvent( e, sds, last_context ); }
 
 
-	const char* client_name;
-	int read_fd;
-	int write_fd;
+	void RemoveIncomingLink( int dead_event_source );
+	void RemoveInterpreter( EventSource* source );
+
+	const char* initial_client_name;
 	int have_interpreter_connection;
 	int no_glish;	// if true, no event source whatsoever
 
 	char* pending_reply;	// the name of the pending reply, if any
 
-	List(int) input_links;
+	// All EventSources, keyed by context and typed
+	PList(EventSource) event_sources;
 
-	// Maps event names to EventLink's describing where to send
-	// those events.
-	PDict(event_link_list) output_links;	// keyed on event name
+	// Maps interpreter contexts to output link lists
+	//
+	// context_links is a PDICT of event_link_contexts_lists,
+	//	keyed by context.
+	//
+	// event_link_context_list is a PDICT of event_link_lists,
+	//	keyed by event name.
+	//
+	// event_link_list is a PLIST of EventLinks.
 
-	// Maps remote client id's to socket fds so we can use a single
-	// socket for all links to that client.
-	Dict(int) remote_sources;
-	Dict(int) remote_sinks;
+	PDict(event_link_context_list) context_links;
+
+	// context_sinks and context_sources are PDICTs of sink_id_lists,
+	//	keyed by context.
+	PDict(sink_id_list) context_sinks;
+	PDict(sink_id_list) context_sources;
 
 	GlishEvent* last_event;
 
 	// Previous signal handler; used for <ping>'s.
 	glish_signal_handler former_handler;
 
-	const char* local_host;
-	const char* interpreter_tag;
+	const char *local_host;
+	char *interpreter_tag;
+
+	// Context of last received event
+	EventContext last_context;
+
+	// Multithreaded or not?
+	int multithreaded;
+
 	};
 
 

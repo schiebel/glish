@@ -1,0 +1,116 @@
+# $Header$
+#
+# Makefile for sds C libraries.
+
+CC = @CC@
+CFLAGS = @CFLAGS@
+RANLIB = @RANLIB@
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+
+SHELL = /bin/sh
+
+RM = rm -f
+
+SRC = ..
+HEADERDIR = $(SRC)/include/Npd
+INC = -I$(SRC)/include -I/usr/ucbinclude
+
+ISTKPLACE = $(SRC)/..
+ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
+ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
+KEYDIR = @KEYDIR@
+##LOGDIR = /net/kochab/kochab_3/dschieb/glish/glish/log
+
+OBJS = auth.o \
+	md5c.o \
+	npd.o \
+	util.o
+
+SINC = $(HEADERDIR)/auth.h \
+	$(HEADERDIR)/md5.h \
+	$(HEADERDIR)/util.h \
+	$(HEADERDIR)/npd.h
+
+TAR_FILE = npd.tar
+
+build: make-key-dir
+	@if [ -d $(ARCH) ]; then \
+		cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile libs; \
+		else $(MAKE) $(MFLAGS) -f ../Makefile libs; fi;
+
+libs: libnpd.a genkey
+
+libnpd.a: $(OBJS)
+	$(RM) libnpd.a
+	ar cru libnpd.a $(OBJS)
+	$(RANLIB) libnpd.a
+
+genkey: libnpd.a genkey.o
+	$(CC) $(CFLAGS) $(INC) -o genkey genkey.o libnpd.a -lm @LIBS@
+
+$(ISTKLIBS)/libnpd.a:libnpd.a
+	$(INSTALL_DATA) libnpd.a $(ISTKLIBS)
+	$(RANLIB) $(ISTKLIBS)/libnpd.a
+
+$(ISTKBIN)/genkey:genkey
+	$(INSTALL_PROGRAM) -s genkey $(ISTKBIN)
+
+install: $(ISTKLIBS)/libnpd.a $(ISTKBIN)/genkey
+	@rm -f $(ISTKPLACE)/include/Npd/*.h
+	cp $(SINC) $(ISTKPLACE)/include/Npd
+
+install-all: make-key-dir
+	@if [ ! -d $(ARCH) ]; then mkdir $(ARCH); else exit 0; fi;
+	@echo Installing npd ...
+	@cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile install
+
+make-key-dir:
+	@echo "Creating directories (\"File exists\" errors are okay) ..."
+	-@mkdir $(KEYDIR) $(KEYDIR)/users $(KEYDIR)/hosts
+	-@chmod -f 770 $(KEYDIR)/users
+	-@chmod -f 750 $(KEYDIR)/hosts
+
+tar:
+	@rm -f $(TAR_FILE).Z tar-files
+	@$(MAKE) $(MFLAGS) tar-list >tar-files
+	tar cf $(TAR_FILE) -I tar-files
+	compress $(TAR_FILE)
+	@rm -f tar-files
+
+tar-list:
+	@echo npd >&2
+	@ls Makefile.in *.c include/Npd/*.h
+
+rcsinfo:
+	@echo sds
+	@rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
+	@echo sds/include/Sds
+	@cd include/Sds;rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
+
+clean:
+	@if [ -d $(ARCH) ]; then cd $(ARCH); fi; \
+		$(RM) errs *.o *~* $(APPS) core a.out *.a ../$(TAR_FILE).Z
+
+clean-all:
+	@$(MAKE) $(MFLAGS) clean
+
+distclean: clean
+	rm -f config.status config.cache config.h
+
+auth.o: $(SRC)/auth.c $(HEADERDIR)/md5.h $(HEADERDIR)/util.h $(HEADERDIR)/auth.h
+	$(CC) $(CFLAGS) $(INC) -c $(SRC)/auth.c
+
+npd.o: $(SRC)/npd.c $(SRC)/version.h $(HEADERDIR)/auth.h $(HEADERDIR)/util.h
+	$(CC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" $(INC) -c $(SRC)/npd.c
+
+md5c.o: $(SRC)/md5c.c $(HEADERDIR)/md5.h
+	$(CC) $(CFLAGS) $(INC) -c $(SRC)/md5c.c
+
+util.o: $(SRC)/util.c $(HEADERDIR)/util.h
+	$(CC) $(CFLAGS) $(INC) -c $(SRC)/util.c
+#	$(CC) $(CFLAGS) -DLOG_FMT=\"$(LOGDIR)/%s.%s@%s.log\" $(INC) -c $(SRC)/util.c
+
+genkey.o: $(SRC)/genkey.c $(HEADERDIR)/util.h
+	$(CC) $(CFLAGS) $(INC) -c $(SRC)/genkey.c

@@ -1,5 +1,7 @@
 /* $Header$ */
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "system.h"
 
 #include <stdio.h>
@@ -436,6 +438,9 @@ const char* local_host_name()
 
 void* alloc_memory( unsigned int size )
 	{
+#if defined(_AIX)
+	if ( ! size ) size += 8;
+#endif
 	return (void*) malloc( size );
 	}
 
