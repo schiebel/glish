@@ -315,18 +315,16 @@ class TkButton : public TkAgent {
 	void State(unsigned char s);
 	unsigned long Id() const { return id; }
 
-	TkFrame *Frame() { return menu ? menu->Frame() : frame; }
 	TkButton *Parent() { return menu; }
-	Rivetobj RootMenu() { return menu ? menu->Menu() : menu_base; }
 	Rivetobj Menu() { return type == MENU ? menu_base : menu ? menu->Menu() : 0; }
 	int IsMenu() { return type == MENU; }
 	int IsMenuEntry() { return menu != 0; }
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id ) { radio_id = id; }
 
-        void Add(TkButton *item) {  entry_list.append(item); }
-        void Remove(TkButton *item) { entry_list.remove(item); }
- 	const char *Index( ) const { return menu_index ? menu_index : ""; }
+	void Add(TkButton *item) {  entry_list.append(item); }
+	void Remove(TkButton *item) { entry_list.remove(item); }
+	const char *Index( ) const { return menu_index ? menu_index : ""; }
 
 	void ButtonPressed( );
 	static IValue *Create( Sequencer *, const_args_list *);
@@ -348,7 +346,7 @@ class TkButton : public TkAgent {
 	unsigned long next_menu_entry;	// only used for menu buttons
 	unsigned long radio_id;		// only used for menu buttons
 
-        tkagent_list entry_list;        // only used for menu buttons
+	tkagent_list entry_list;        // only used for menu buttons
 	const char *menu_index;
 
 	char *fill;

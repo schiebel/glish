@@ -826,6 +826,14 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 	sys_val->SetField( "version", ver );
 	Unref(ver);
 
+	IValue *pid = new IValue( (int) getpid() );
+	sys_val->SetField( "pid", pid );
+	Unref(pid);
+
+	IValue *ppid = new IValue( (int) getppid() );
+	sys_val->SetField( "ppid", ppid );
+	Unref(ppid);
+
 #if defined( GLISHTK )
 	IValue *tkversion = new IValue( TK_VERSION );
 	sys_val->SetField( "tk", tkversion );
