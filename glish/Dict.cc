@@ -231,14 +231,12 @@ void* Dictionary::Insert( DictEntry* new_entry )
 
 int Dictionary::Hash( const char* str, int hash_size ) const
 	{
-	int hashval;
-
-	hashval = 0;
+	int hashval = 0;
 
 	while ( *str )
-		hashval = ((hashval << 1) + *str++) % hash_size;
+		hashval = (hashval << 1) + *str++;
 
-	return hashval;
+	return (hashval < 0 ? -hashval : hashval) % hash_size;
 	}
 
 int Dictionary::NextPrime( int n ) const
