@@ -63,6 +63,13 @@ const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData
 	return out;
 	}
 
+char *glishtk_quote_string( charptr str )
+	{
+	char *ret = alloc_memory(strlen(str)+3);
+	sprintf(ret,"\"%s\"", str);
+	return ret;
+	}
+
 class glishtk_event {
     public:
 	glishtk_event( TkAgent *a_, const char *n_, Value *v_ ) :
@@ -517,7 +524,7 @@ char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	if ( args->Type() == TYPE_STRING )
 		{
 		const char *str = args->StringPtr(0)[0];
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, SP, str, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " \"", str, "\"", 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 	else
@@ -876,8 +883,14 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 			{
 			EXPRVAL( val, event_name )
 			char *s = val->StringVal( ' ', 0, 1 );
-			argv[argc++] = i != 1 || param ? val->StringVal( ' ', 0, 1 ) :
-					strdup(a->IndexCheck(s));
+			if ( i != 1 || param )
+				{
+				argv[argc] = alloc_memory(strlen(s)+3);
+				sprintf(argv[argc],"\"%s\"", s);
+				++argc;
+				}
+			else
+				argv[argc++] = strdup(a->IndexCheck(s));
 			free_memory(s);
 			EXPR_DONE( val )
 			}
@@ -1206,7 +1219,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
-			     cmd, SP, args->StringPtr(0)[0], 0 );
+			     cmd, " \"", args->StringPtr(0)[0], "\"", 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -1622,6 +1635,39 @@ int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	return TCL_OK;
 	}
 
+void glishtk_popup_adjust_dim_cb( ClientData clientData, XEvent *ptr)
+	{
+	// This dimension (width and height) adjustment was necessary
+	// because there were time when the geometry manager would be
+	// stuck in oscillations between satisfying the requested
+	// height and the needed height. This happened upon entering
+	// the popup. This means that the popup won't shrink in size
+	// if things are removed... probably OK... This happened
+	// with the aips++ combobox...
+	if ( ptr->xany.type == ConfigureNotify )
+		{
+		Tk_Window self = ((TkAgent*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		int req_width = atoi(Tcl_GetStringResult(tcl));
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+		int req_height = atoi(Tcl_GetStringResult(tcl));
+
+		char buf[40];
+		if ( Tk_Width(self) > req_width )
+			{
+			sprintf( buf, "%d", Tk_Width(self) );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -width ", buf, 0 );
+			}
+		if ( Tk_Height(self) > req_height )
+			{
+			sprintf( buf, "%d", Tk_Height(self) );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -height ", buf, 0 );
+			}
+		}
+	}
+
 void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 	{
 	if ( eventPtr->xany.type == ConfigureNotify )
@@ -1694,7 +1740,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		tcl_ArgEval( tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), SP, title, 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " \"", title, "\"", 0 );
 
 		if ( tlead )
 			{
@@ -1713,7 +1759,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		{
 		top_created = 1;
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), SP, title, 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " \"", title, "\"", 0 );
 
 		if ( tlead )
 			{
@@ -1820,7 +1866,10 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	procs.Insert("raise", new TkProc( this, &TkFrame::Raise ));
 	procs.Insert("title", new TkProc( this, &TkFrame::Title ));
 
-	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_resizeframe_cb, this );
+	if ( tlead )
+		Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
+	else
+		Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	size[0] = Tk_ReqWidth(self);
 	size[1] = Tk_ReqHeight(self);
@@ -2041,10 +2090,6 @@ void TkFrame::UnMap()
 		Unref( tlead );
 		tlead = 0;
 		}
-
-	if ( ! tl_count )
-		// Empty queue
-		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
 
 	if ( RefCount() > 0 ) Unref(this);
 	}
@@ -2373,14 +2418,6 @@ void TkFrame::ResizeEvent( )
 		size[1] = Tk_Height(self);
 		rec->Insert( strdup("new"), new Value( size, 2, COPY_ARRAY ) );
 
-		//
-		//  This is needed to let the lower widgets repack, and
-		//  resize; otherwise, this resize event isn't too useful
-		//  because all information from the lower widgets is
-		//  "one off".
-		//
-		while ( TkAgent::DoOneTkEvent( TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-
 		PostTkEvent( "resize", new Value( rec ) );
 		}
 	}
@@ -2391,7 +2428,6 @@ void TkFrame::LeaderMoved( )
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
 	Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
-	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
 	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
 	}
 
@@ -2700,7 +2736,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = "-height";
 		argv[c++] = height_;
 		argv[c++] = "-text";
-		argv[c++] = (char*) label;
+		argv[c++] = glishtk_quote_string(label);
 		}
 
 	argv[c++] = "-anchor";
@@ -2885,7 +2921,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		argv[c++] = height_;
 #endif
 		argv[c++] = "-label";
-		argv[c++] = (char*) label;
+		argv[c++] = glishtk_quote_string(label);
 		}
 
 	if ( font[0] )
@@ -3079,6 +3115,7 @@ void TkButton::State(unsigned char s)
 			Tcl_VarEval( tcl, Tk_PathName(self), " invoke", 0 );
 		else if ( menu )
 			Tcl_VarEval( tcl, Tk_PathName(Menu()), " invoke ", Index(), 0 );
+		dont_invoke_button = 0;
 		ExitEnable();
 		}
 	}
@@ -3196,7 +3233,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	if ( text && *text )
 		{
 		argv[c++] = "-label";
-		argv[c++] = (char*) text;
+		argv[c++] = glishtk_quote_string(text);
 		}
 	argv[c++] = "-width";
 	argv[c++] = (char*) width_;
@@ -3708,7 +3745,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "label";
 	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-text";
-	argv[c++] = (char*) text;
+	argv[c++] = glishtk_quote_string(text);
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-padx";
@@ -3983,7 +4020,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[0] = "message";
 	argv[1] = NewName( frame->Self() );
 	argv[c++] = "-text";
-	argv[c++] = (char*) text;
+	argv[c++] = glishtk_quote_string(text);
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-width";
