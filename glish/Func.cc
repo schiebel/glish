@@ -93,7 +93,7 @@ const IValue* Parameter::NthEllipsisVal( evalOpt &opt, int n ) const
 		fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
 
 	char field_name[256];
-	sprintf( field_name, "%d", n );
+	sprintf( field_name, "*%d", n+1 );
 
 	const IValue* result = (const IValue*) values->ExistingRecordElement( field_name );
 
@@ -351,7 +351,7 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 	int i;
 	IValue *fail = 0;
 	IValue *missing_val = empty_ivalue();
-	Frame* call_frame = new Frame( frame_size, missing_val, FUNC_SCOPE );
+	Frame* call_frame = new Frame( frame_size, missing_val, formals, FUNC_SCOPE );
 
 	loop_over_list_nodecl( *args, i )
 		{
@@ -554,7 +554,13 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 					if ( fail ) break;
 					((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, v, call_frame );
 					arg_cnt++;
-					ADD_MISSING_INFO(glish_true)
+					glish_bool is_missing = glish_true;
+					int dflt_off = default_value->FrameOffset( );
+					int formal_off = f->Arg()->FrameOffset( );
+					if ( dflt_off >= 0 && formal_off >= 0 && dflt_off < formal_off &&
+					     dflt_off < missing_len )
+						is_missing = missing[dflt_off];
+					ADD_MISSING_INFO(is_missing)
 					}
 				}
 
@@ -883,8 +889,8 @@ IValue *UserFuncKernel::AddEllipsisArgs( evalOpt &opt, Frame *call_frame, int &a
 						") supplied in call to", this );
 
 			char field_name[256];
-			sprintf( field_name, "%d",
-				formal_ellipsis_value->RecordPtr(0)->Length() );
+			sprintf( field_name, "*%d",
+				formal_ellipsis_value->RecordPtr(0)->Length()+1 );
 
 			val = actual_ellipsis->NthEllipsisVal( opt, i );
 
@@ -930,7 +936,7 @@ IValue *UserFuncKernel::AddEllipsisArgs( evalOpt &opt, Frame *call_frame, int &a
 void UserFuncKernel::AddEllipsisValue( evalOpt &opt, IValue* ellipsis_value, Expr* arg )
 	{
 	char field_name[256];
-	sprintf( field_name, "%d", ellipsis_value->RecordPtr(0)->Length() );
+	sprintf( field_name, "*%d", ellipsis_value->RecordPtr(0)->Length()+1 );
 
 	IValue* val = arg->RefEval( opt, VAL_CONST );
 

@@ -14,10 +14,6 @@ class back_offsets_type;
 
 typedef PList(IValue) args_list;
 
-class Parameter;
-glish_declare(PList,Parameter);
-typedef PList(Parameter) parameter_list;
-
 class Func : public CycleNode {
     public:
 	virtual IValue* Call( evalOpt &opt, parameter_list* args ) = 0;
