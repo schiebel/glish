@@ -53,6 +53,12 @@
 /* Define if you have the <sys/signal.h> header file.  */
 #undef HAVE_SYS_SIGNAL_H
 
+/* Define if you have the <sys/shm.h> header file.  */
+#undef HAVE_SYS_SHM_H
+
+/* Define if you have the shmget() function.  */
+#undef HAVE_SHMGET
+
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
@@ -62,20 +68,8 @@
 /* Define if you have the lrand48() SYSV function.  */
 #undef HAVE_LRAND48
 
-/* Define if you have <nan.h>.  */
-#undef HAVE_NAN_H
-
 /* Define if you have <fp.h>.  */
 #undef HAVE_FP_H
-
-/* Define if you have the macro NaN().  */
-#undef HAVE_NAN
-
-/* Define if you have the macro IS_NAN().  */
-#undef HAVE_IS_NAN
-
-/* Define if you have isnan().  */
-#undef HAVE_ISNAN
 
 /* Define to be "int" if C++ for loops have local scope.  */
 #undef LOOPDECL

@@ -10,11 +10,13 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#define HAVE_SHM
-#if defined(HAVE_SHM)
+
+#if defined(HAVE_SHMGET)
 #include <sys/types.h>
 #include <sys/ipc.h>
+#if HAVE_SYS_SHM_H
 #include <sys/shm.h>
+#endif
 #endif
 
 #include "Channel.h"
@@ -1574,7 +1576,7 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 		}
 	}
 
-#if ! defined(HAVE_SHM)
+#if ! defined(HAVE_SHMGET)
 
 void send_shm_event( int write_fd, const char* event_name,
 		     const GlishEvent* e, int sds )
