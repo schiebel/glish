@@ -216,15 +216,14 @@ func sort(x)
 	}
 
 func uniq( s, sorted=F )
-        {
-        if ( ! sorted ) s := sort(s)
-        l := len(s)
-        if ( l > 1 && s[l] != s[1] )
-                return s[s != [s[l], s[1:(l-1)]]]
-
-	if ( l > 1 ) return s[1]
-	return s
-        }
+	{
+	if ( ! sorted ) s := sort(s)
+	l := len(s)
+	if ( l > 1 )
+		return s[[T, s[2:l] != s[1:(l-1)]]]
+	else
+		return s
+	}
 
 func sort_pair(x, y)
 	{
