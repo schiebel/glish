@@ -48,6 +48,8 @@ int system( const char* string );
 // Interval between subsequent probes, in seconds.
 #define PROBE_INTERVAL 5
 
+// Keeps track of the current sequencer...
+Sequencer *Sequencer::cur_sequencer = 0;
 
 // A Selectee corresponding to input for a Glish client.
 class ClientSelectee : public Selectee {
@@ -242,6 +244,8 @@ void Notification::Describe( ostream& s ) const
 
 Sequencer::Sequencer( int& argc, char**& argv )
 	{
+	cur_sequencer = this;
+
 	init_reporters();
 	init_values();
 
@@ -495,6 +499,18 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 	return result;
 	}
 
+const Value *Sequencer::LookupVal( const char *id )
+	{
+	Expr *expr = 0;
+	const Value *val = 0;
+	if ( cur_sequencer && (expr = cur_sequencer->LookupID( strdup( id ), GLOBAL_SCOPE, 0 )) )
+		{
+		val = expr->ReadOnlyEval();
+		expr->ReadOnlyDone( val );
+		}
+	return val;
+	}
+	
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{
