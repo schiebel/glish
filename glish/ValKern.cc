@@ -35,8 +35,8 @@ glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
 	  { sizeof(void*), 0, 0, 0 }				/* TYPE_REGEX */
 	};
 
-void register_type_funcs( glish_type t, KernelCopyFunc c=0,
-			  KernelDeleteFunc d=0, KernelZeroFunc z=0 )
+void register_type_funcs( glish_type t, KernelCopyFunc c,
+			  KernelDeleteFunc d, KernelZeroFunc z )
 	{
 	glish_typeinfo[t].copy = c;
 	glish_typeinfo[t].final = d;
