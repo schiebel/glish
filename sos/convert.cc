@@ -76,13 +76,6 @@ void swap_abcdefgh_hgfedcba(char *buffer, unsigned int len)
 		}
 	}
 
-
-#define VAX_SNG_BIAS  0x81
-#define IEEE_SNG_BIAS  0x7f
-#define VAXD_DBL_BIAS  0x81
-#define VAXG_DBL_BIAS  0x401
-#define IEEE_DBL_BIAS  0x3ff
-
 void vax2ieee_single(float *f, unsigned int len)
 	{
 	float tmp;
@@ -99,7 +92,7 @@ void vax2ieee_single(float *f, unsigned int len)
 			}
 		else
 			{
-			ieee.exp(vax.exp() - VAX_SNG_BIAS + IEEE_SNG_BIAS);
+			ieee.exp(vax.exp() - vax_single::BIAS + ieee_single::BIAS);
 			ieee.mantissa(vax.mantissa());
 			}
 		ieee.sign(vax.sign());
@@ -122,7 +115,7 @@ void ieee2vax_single(float *f, unsigned int len)
 			}
 		else
 			{
-			vax.exp(ieee.exp() - IEEE_SNG_BIAS + VAX_SNG_BIAS);
+			vax.exp(ieee.exp() - ieee_single::BIAS + vax_single::BIAS);
 			vax.mantissa(ieee.mantissa());
 			}
 		vax.sign(ieee.sign());
@@ -146,7 +139,7 @@ void vax2ieee_double(double *f, unsigned int len,char op)
 			}
 		else
 			{
-			ieee.exp(vax.exp() - (op == 'D' ? VAXD_DBL_BIAS : VAXG_DBL_BIAS) + IEEE_DBL_BIAS);
+			ieee.exp(vax.exp() - (op == 'D' ? vax_double::D_BIAS : vax_double::G_BIAS) + ieee_double::BIAS);
 			ieee.mantissa(op == 'D' ? (vax.mantissa() >> 3) : vax.mantissa());
 			}
 		ieee.sign(vax.sign());
@@ -169,7 +162,7 @@ void ieee2vax_double(double *f, unsigned int len, char op)
 			}
 		else
 			{
-			vax.exp(ieee.exp() - IEEE_DBL_BIAS + (op == 'D' ? VAXD_DBL_BIAS : VAXG_DBL_BIAS));
+			vax.exp(ieee.exp() - ieee_double::BIAS + (op == 'D' ? vax_double::D_BIAS : vax_double::G_BIAS));
 			vax.mantissa(op == 'D' ? (ieee.mantissa() << 3) : vax.mantissa());
 			}
 		vax.sign(ieee.sign());

@@ -19,6 +19,8 @@
 //
 class ieee_single {
     public:
+	enum {BIAS=0x7f};
+
 	ieee_single(float *f) : buf((unsigned int*)f) { }
 	ieee_single &operator++() { buf++; return *this; }
 	ieee_single &operator++(int) { buf++; return *this; }
@@ -47,6 +49,8 @@ class ieee_single {
 //
 class vax_single {
     public:
+	enum {BIAS=0x81};
+
 	vax_single(float *f) : buf((unsigned int*)f) { }
 	vax_single &operator++() { buf++; return *this; }
 	vax_single &operator++(int) { buf++; return *this; }
@@ -78,6 +82,8 @@ class vax_single {
 //
 class ieee_double {
     public:
+	enum {BIAS=0x3ff};
+
 	ieee_double(double *d) : buf((unsigned int*)d) { }
 	ieee_double &operator++() { buf+=2; return *this; }
 	ieee_double &operator++(int) { buf+=2; return *this; }
@@ -124,6 +130,8 @@ class ieee_double {
 //
 class vax_double {
     public:
+	enum {D_BIAS=0x81, G_BIAS=0x401};
+
 	vax_double(double *f, char type='D' ) : buf((unsigned int*)f),
 		exp_mask(type == 'D' ? 0x00007f80 : 0x00007ff0),
 		mantissa_mask(type == 'D' ? 0x7f : 0xf),
