@@ -7,16 +7,16 @@ to which processes are connected and controlled by the Glish scripting
 language. The Glish C++ class library provides the tools necessary for
 processes to connect the software bus and exchange structured binary
 data. If you would like more information, please see the Glish home
-page:                           http://www.cv.nrao.edu/glish/
+page:              http://www.cv.nrao.edu/glish/
 
 If you have trouble installing Glish or have questions, please check the
 Glish home page (see URL above); it has information about Glish and who
 to contact with questions or bug reports.
 
 A Glish email exploder list is available, and it is probably the best way
-to keep up to date on future Glish releases. You can subscribe to it by
-sending email to:               majordomo@majordomo.cv.nrao.edu
-with the message contents:      subscribe glish
+to keep up to date on future Glish releases. For information about
+subscribing to the list, send an (empty) email message to:
+                   glish-request@majordomo.cv.nrao.edu
 
 A few introductory papers and the Glish "User Manual" can be found in
 the directory glish/doc.
