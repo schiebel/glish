@@ -429,7 +429,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cvet ", cmd, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		return Tcl_GetStringResult(tcl);
 		}
 }
