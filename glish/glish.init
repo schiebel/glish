@@ -1,5 +1,7 @@
 # $Id$
 
+function is_defined( const x )	length( symbol_value( x ) ) > 0
+
 function is_boolean( const x )	type_name(x) == "boolean"
 function is_byte( const x )	type_name(x) == "byte"
 function is_short( const x )	type_name(x) == "short"
