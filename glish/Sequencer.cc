@@ -1182,7 +1182,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 	agents = new agent_list;
 	init_interp_reporters(this);
-	init_values();
+	init_ivalues();
 	init_regex();
 
 	// Create the global scope.

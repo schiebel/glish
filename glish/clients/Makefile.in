@@ -38,8 +38,8 @@ MKHIER = $(top)/config/mkhier
 INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
-GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
-LIBS = $(CLIENT_LIBS) @LIBS@
+GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+LIBS = malloc.o $(CLIENT_LIBS) @LIBS@
 
 CLIENTS = \
 	$(BINDIR_P)/echo_client \
@@ -77,7 +77,7 @@ install:  make-bindir $(INSTALLED_CLIENTS)
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
 		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(INCLUDE) -I$(INCDIR_P) $(CXXFLAGS) -c $(SRC)/glishd.cc 
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/glishd.cc 
 
 glishd: glishd.o $(GLISH_LIBS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glishd glishd.o $(LIBS)
@@ -135,7 +135,7 @@ $(BINDIR)/shell_client: shell_client
 
 tell_glishd.o: $(SRC)/tell_glishd.cc $(GLISH_SRC)/include/Glish/Client.h  \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(INCLUDE) -I$(INCDIR_P) $(CXXFLAGS) -c $(SRC)/tell_glishd.cc 
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tell_glishd.cc 
 
 tell_glishd: tell_glishd.o $(GLISH_LIBS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o tell_glishd tell_glishd.o $(LIBS)
@@ -189,6 +189,9 @@ $(BINDIR_P)/multiplexer: multiplexer
 $(BINDIR)/multiplexer: multiplexer
 	$(INSTALL_PROGRAM) multiplexer $(BINDIR)
 #	strip $(BINDIR)/multiplexer
+
+malloc.o: $(GLISH_SRC)/malloc.c
+	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

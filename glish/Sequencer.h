@@ -206,6 +206,10 @@ private:
 class EnvHolder {
     public:
 	void put( const char *var, char *string );
+	IterCookie* InitForIteration() const
+		{ return strings.InitForIteration(); }
+	void* NextEntry( const char*& key, IterCookie*& cookie )
+		{ return strings.NextEntry( key, cookie ); }
     private:
 	PDict(char) strings;
 };

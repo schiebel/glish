@@ -27,6 +27,16 @@ typedef void (*KernelDeleteFunc)( void *, unsigned int len );
 extern void copy_strings( void *, void *, unsigned int len );
 extern void delete_strings( void *, unsigned int len );
 
+struct glish_typeinfo_t {
+	unsigned short bytes;
+	KernelCopyFunc copy;
+	KernelDeleteFunc final;
+	KernelZeroFunc zero;
+};
+
+extern glish_typeinfo_t glish_typeinfo[];
+extern void register_type_funcs( glish_type, KernelCopyFunc c=0,
+				 KernelDeleteFunc d=0, KernelZeroFunc z=0 );
 //
 // Copy-on-write semantics
 //
@@ -39,37 +49,39 @@ class ValueKernel {
 	// Sun's native compiler
 	//
 	struct array_t {
+
 		glish_type type;
-		unsigned short type_bytes;
 
 		unsigned int length;
 		unsigned int alloc_bytes;
-		unsigned int bytes() { return type_bytes*length; }
 
 		unsigned long ref_count;
 
 		void* values;
-		KernelCopyFunc copy;
-		KernelZeroFunc zero;
-		KernelDeleteFunc final;
 
-		void SetType( glish_type t, KernelCopyFunc c = 0, KernelZeroFunc z = 0,
-			      KernelDeleteFunc d = 0);
-		void SetType( glish_type t, unsigned short type_len, KernelCopyFunc c = 0,
-			      KernelZeroFunc z = 0, KernelDeleteFunc d = 0 );
+		unsigned short type_bytes() { return glish_typeinfo[type].bytes; }
+		KernelCopyFunc copy() { return glish_typeinfo[type].copy; }
+		KernelDeleteFunc final() { return glish_typeinfo[type].final; }
+		KernelZeroFunc zero() { return glish_typeinfo[type].zero; }
+
+		unsigned int bytes() { return type_bytes()*length; }
+
+		void SetType( glish_type t ) { type = t; }
+
 		void Grow( unsigned int len, int do_zero = 1 );
 		void SetStorage( void *storage, unsigned int len )
 			{
 			values = storage;
 			length = len;
-			alloc_bytes = length*type_bytes;
+			alloc_bytes = length*type_bytes();
 			}
 		void clear();
 
-		array_t() : type(TYPE_ERROR), type_bytes(0), length(0),
-				alloc_bytes(0), ref_count(1), values(0), 
-				copy(0), zero(0) { DIAG2((void*)this,"\t\tarray_t alloc") }
+		array_t() : type(TYPE_ERROR), length(0),
+				alloc_bytes(0), ref_count(1), values(0)
+				{ DIAG2((void*)this,"\t\tarray_t alloc") }
 		~array_t();
+
 	};
 
 	struct record_t {
@@ -144,37 +156,23 @@ class ValueKernel {
 
 	ValueKernel &operator=( const ValueKernel &v );
 
-	ValueKernel( glish_type t, unsigned int len, KernelCopyFunc c = 0,
-		     KernelZeroFunc z = 0, KernelDeleteFunc d = 0 );
+	ValueKernel( glish_type t, unsigned int len );
 
-	void SetType( glish_type t, unsigned int l, KernelCopyFunc c=0,
-		      KernelZeroFunc z=0, KernelDeleteFunc d=0 );
+	void SetType( glish_type t, unsigned int l );
 	// This function should be used with caution. It assumes 
 	// sizeof(int) == sizeof(glish_type).
 	void BoolToInt();
-// 	void SetArray( void *storage, unsigned int len, glish_type t, int copy = 0,
-// 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( glish_bool vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( byte vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( short vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( int vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( float vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( double vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( complex vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( dcomplex vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( const char* vec[], unsigned int len, int copy = 0,
-		       KernelCopyFunc c=copy_strings, KernelZeroFunc z=0,
-		       KernelDeleteFunc d=delete_strings );
-	void SetArray( voidptr vec[], unsigned int len, glish_type t, int copy = 0,
-		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
+// 	void SetArray( void *storage, unsigned int len, glish_type t, int copy = 0 );
+	void SetArray( glish_bool vec[], unsigned int len, int copy = 0 );
+	void SetArray( byte vec[], unsigned int len, int copy = 0 );
+	void SetArray( short vec[], unsigned int len, int copy = 0 );
+	void SetArray( int vec[], unsigned int len, int copy = 0 );
+	void SetArray( float vec[], unsigned int len, int copy = 0 );
+	void SetArray( double vec[], unsigned int len, int copy = 0 );
+	void SetArray( complex vec[], unsigned int len, int copy = 0 );
+	void SetArray( dcomplex vec[], unsigned int len, int copy = 0 );
+	void SetArray( const char* vec[], unsigned int len, int copy = 0 );
+	void SetArray( voidptr vec[], unsigned int len, glish_type t, int copy = 0 );
 
 	void Grow( unsigned int len );
 

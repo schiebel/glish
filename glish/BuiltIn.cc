@@ -1437,6 +1437,14 @@ IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( val->Sizeof() );
 	}
 
+IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
+	{
+	struct mallinfo info = mallinfo();
+	recordptr rec = create_record_dict();
+	rec->Insert(strdup("used"),new IValue(info.uordblks));
+	rec->Insert(strdup("unused"),new IValue(info.fordblks));
+	return new IValue( rec );
+	}
 
 IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
 	{
@@ -2333,6 +2341,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );
 	s->AddBuiltIn( new SizeofBuiltIn );
+	s->AddBuiltIn( new AllocInfoBuiltIn );
 
 	s->AddBuiltIn( new IsNaNBuiltIn );
 

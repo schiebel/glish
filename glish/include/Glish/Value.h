@@ -377,7 +377,7 @@ public:
 	//
 	// The name has an embedded '*' to avoid collision with user-chosen
 	// names.
-	char* NewFieldName();
+	char* NewFieldName( int alloc=1 );
 
 	// Returns a pointer to the underlying values of the given field,
 	// polymorphed to the indicated type.  The length of the array is

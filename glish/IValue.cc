@@ -127,26 +127,24 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
 	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
 	copy_array(&value,ary,1,funcptr);
-	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
+	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
 	{
-	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY,
-			 copy_funcs, 0, delete_funcs );
+	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 	{
 	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
 	copy_array(&value,ary,1,regexptr);
-	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0, copy_regexs, 0, delete_regexs );
+	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
 	}
 
 IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX) GGCTOR
 	{
-	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY,
-			 copy_regexs, 0, delete_regexs );
+	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
@@ -155,10 +153,10 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 		{
 		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
 		copy_array(&value,ary,1,agentptr);
-		kernel.SetArray( (voidptr*) ary, 1, TYPE_AGENT, 0, copy_agents, 0, delete_agents );
+		kernel.SetArray( (voidptr*) ary, 1, TYPE_AGENT, 0 );
 		}
 	else
-		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1, copy_agents, 0, delete_agents );
+		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1 );
 	}
 
 IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
@@ -686,6 +684,14 @@ void IValue::TagGC( )
 		}
 	}
 #endif
+
+void init_ivalues( )
+	{
+	init_values( );
+	register_type_funcs( TYPE_FUNC, copy_funcs, delete_funcs );
+	register_type_funcs( TYPE_REGEX, copy_regexs, delete_regexs );
+	register_type_funcs( TYPE_AGENT, copy_agents, delete_agents );
+	}
 
 IValue *copy_value( const IValue *value )
 	{

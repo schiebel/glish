@@ -8,7 +8,8 @@
 
 typedef enum {
 	/* If you change the order here or add new types, be sure to
-	 * update the definition of type_names[] in Value.cc.
+	 * update the definition of type_names[] in Value.cc. Also,
+	 * update glish_typeinfo[] in ValKern.cc.
 	 *
 	 * If adding numeric types update the "max_numeric_type" function
 	 * definition in Value.cc.

@@ -2101,7 +2101,7 @@ const char* Value::NthFieldName( int n ) const
 	return key;
 	}
 
-char* Value::NewFieldName()
+char* Value::NewFieldName( int alloc )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		return 0;
@@ -2113,7 +2113,7 @@ char* Value::NewFieldName()
 		sprintf( buf, "*%d", ++counter );
 	while ( Field( buf ) );
 
-	return strdup( buf );
+	return alloc ? strdup( buf ) : buf;
 	}
 
 
@@ -2561,7 +2561,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 
 		else
 			// Create a new field.
-			AssignRecordElement( NewFieldName(), value );
+			AssignRecordElement( NewFieldName(0), value );
 
 		return;
 		}
@@ -2597,7 +2597,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 				") out of range (> ", rptr->Length() + 1, ")" );
 
 		else
-			AssignRecordElement( NewFieldName(), val );
+			AssignRecordElement( NewFieldName(0), val );
 		}
 	}
 

@@ -15,6 +15,34 @@ RCSID("@(#) $Id$")
 extern int glish_collecting_garbage;
 #endif
 
+glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
+	{ { 0, 0, 0, 0 },  					/* TYPE_ERROR */
+	  { 0, 0, 0, 0 },  					/* TYPE_REF */
+	  { 0, 0, 0, 0 },  					/* TYPE_SUBVEC_REF */
+	  { sizeof(glish_bool), 0, 0, 0 },			/* TYPE_BOOL */
+	  { sizeof(byte), 0, 0, 0 },				/* TYPE_BYTE */
+	  { sizeof(short), 0, 0, 0 },				/* TYPE_SHORT */
+	  { sizeof(int), 0, 0, 0 },				/* TYPE_INT */
+	  { sizeof(float), 0, 0, 0 },				/* TYPE_FLOAT */
+	  { sizeof(double), 0, 0, 0 },				/* TYPE_DOUBLE */
+	  { sizeof(charptr), copy_strings, delete_strings, 0 },	/* TYPE_STRING */
+	  { sizeof(void*), 0, 0, 0 },				/* TYPE_AGENT */
+	  { sizeof(void*), 0, 0, 0 },				/* TYPE_FUNC */
+	  { 0, 0, 0, 0 },					/* TYPE_RECORD */
+	  { sizeof(complex), 0, 0, 0 },				/* TYPE_COMPLEX */
+	  { sizeof(dcomplex), 0, 0, 0 },			/* TYPE_DCOMPLEX */
+	  { 0, 0, 0, 0 },					/* TYPE_FAIL */
+	  { sizeof(void*), 0, 0, 0 }				/* TYPE_REGEX */
+	};
+
+void register_type_funcs( glish_type t, KernelCopyFunc c=0,
+			  KernelDeleteFunc d=0, KernelZeroFunc z=0 )
+	{
+	glish_typeinfo[t].copy = c;
+	glish_typeinfo[t].final = d;
+	glish_typeinfo[t].zero = z;
+	}
+
 void ValueKernel::record_t::clear()
 	{
 	if (record) delete_record(record);
@@ -52,8 +80,8 @@ ValueKernel::array_t::~array_t()
 	{
 	if ( values ) 
 		{
-		if ( final )
-			(*final)( values, length );
+		if ( final() )
+			(*final())( values, length );
 
 		free_memory( values );
 		}
@@ -62,7 +90,7 @@ ValueKernel::array_t::~array_t()
 void ValueKernel::array_t::clear()
 	{
 	type = TYPE_ERROR;
-	length = type_bytes = 0;
+	length = 0;
 	ref_count = 1;
 	}
 
@@ -141,48 +169,6 @@ void ValueKernel::SetRecord( recordptr r )
 	record->record = r;
 	}
 
-void ValueKernel::array_t::SetType( glish_type new_type, KernelCopyFunc c,
-				     KernelZeroFunc z, KernelDeleteFunc d )
-	{
-	copy = c;
-	zero = z;
-	final = d;
-
-	switch (new_type)
-		{
-
-#define SETTYPE_ACTION(TAG,TYPE)	\
-case TAG:				\
-	type_bytes = sizeof(TYPE);	\
-	type = TAG;			\
-	break;
-
-SETTYPE_ACTION(TYPE_BOOL,glish_bool)
-SETTYPE_ACTION(TYPE_BYTE,byte)
-SETTYPE_ACTION(TYPE_SHORT,short)
-SETTYPE_ACTION(TYPE_INT,int)
-SETTYPE_ACTION(TYPE_FLOAT,float)
-SETTYPE_ACTION(TYPE_DOUBLE,double)
-SETTYPE_ACTION(TYPE_COMPLEX,complex)
-SETTYPE_ACTION(TYPE_DCOMPLEX,dcomplex)
-SETTYPE_ACTION(TYPE_STRING,charptr)
-
-		default:
-			type = new_type;
-			type_bytes = sizeof(voidptr); 
-		}
-	}
-
-void ValueKernel::array_t::SetType( glish_type new_type, unsigned short type_len, 
-				     KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
-	{
-	copy = c;
-	zero = z;
-	final = d;
-	type = new_type;
-	type_bytes = type_len;
-	}
-
 void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 	{
 	unsigned int alen = len ? len : 1;
@@ -192,28 +178,28 @@ void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 
 	if ( len < length )
 		{
-		if ( final )
-			(*final)( &(((char *)values)[len*type_bytes]), length-len );
+		if ( final() )
+			(*final())( &(((char *)values)[len*type_bytes()]), length-len );
 		}
 	else
 		{
 		if ( values == 0 || alloc_bytes == 0 )
 			{
-			values = (void *) alloc_memory( alen*type_bytes );
-			alloc_bytes = alen*type_bytes;
+			values = (void *) alloc_memory( alen*type_bytes() );
+			alloc_bytes = alen*type_bytes();
 			}
-		else if ( len*type_bytes > alloc_bytes )
+		else if ( len*type_bytes() > alloc_bytes )
 		  	{
-			alloc_bytes = len*type_bytes;
+			alloc_bytes = len*type_bytes();
 			values = (void *) realloc_memory( values, alloc_bytes );
 			}
 
 		if ( do_zero || ! len )
 			{
-			if ( zero  )
-				(*zero)( &(((char *)values)[length*type_bytes]), alen-length );
+			if ( zero()  )
+				(*zero())( &(((char *)values)[length*type_bytes()]), alen-length );
 			else
-				memset( &((char *)values)[length*type_bytes], 0, (alen-length)*type_bytes );
+				memset( &((char *)values)[length*type_bytes()], 0, (alen-length)*type_bytes() );
 			}
 		}
 
@@ -257,20 +243,18 @@ void ValueKernel::unrefRecord(int del)
 			record = new record_t();
 	}
 
-ValueKernel::ValueKernel( glish_type t, unsigned int len, KernelCopyFunc c,
-			  KernelZeroFunc z, KernelDeleteFunc d ) : mode(ARRAY()), array(new array_t())
+ValueKernel::ValueKernel( glish_type t, unsigned int len ) : mode(ARRAY()), array(new array_t())
 	{
-	array->SetType( t, c, z, d );
+	array->SetType( t );
 	array->Grow( len );
 	}
 
-void ValueKernel::SetType( glish_type t, unsigned int l, 
-			KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
+void ValueKernel::SetType( glish_type t, unsigned int l )
 	{
 	unref( ARRAY(mode) ? 0 : 1 );
 	mode = ARRAY();
 	if ( ! array ) array = new array_t();
-	array->SetType( t, c, z, d );
+	array->SetType( t );
 	array->Grow( l );
 	}
 
@@ -280,25 +264,6 @@ void ValueKernel::BoolToInt()
 	modArray();
 	array->type = TYPE_INT;
 	}
-
-// void ValueKernel::SetArray( void *storage, unsigned int l, glish_type t, int copy,
-// 			    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
-// 	{
-// 	unref( ARRAY(mode) ? 0 : 1 );
-// 	mode = ARRAY();
-// 	if ( ! array ) array = new array_t();
-// 	array->SetType( t, c, z, d );
-// 	if ( copy )
-// 		{
-// 		array->Grow( l, 0 );
-// 		if ( array->copy )
-// 			(*array->copy)(array->values, storage, array->length);
-// 		else
-// 			memcpy(array->values, storage, array->bytes());
-// 		}
-// 	else
-// 		array->SetStorage( storage, l );
-// 	}
 
 ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 	{
@@ -310,16 +275,16 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 	}
 
 
-#define ARRAY_SET_BODY(TYPE, GLISH_TYPE)					\
+#define ARRAY_SET_BODY(GLISH_TYPE)						\
 	unref( ARRAY(mode) ? 0 : 1 );						\
 	mode = ARRAY();								\
 	if ( ! array ) array = new array_t();					\
-	array->SetType( GLISH_TYPE, sizeof(TYPE), c , z, d );			\
+	array->SetType( GLISH_TYPE );						\
 	if ( copy )								\
 		{								\
 		array->Grow( len, 0 );						\
-		if ( array->copy )						\
-			(*array->copy)(array->values, vec, array->length);	\
+		if ( array->copy() )						\
+			(*array->copy())(array->values, vec, array->length);	\
 		else								\
 			memcpy(array->values, vec, array->bytes());		\
 		}								\
@@ -327,11 +292,10 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 		array->SetStorage( vec, len );
 
 #define DEFINE_ARRAY_SET(TYPE, GLISH_TYPE)					\
-void ValueKernel::SetArray( TYPE vec[], unsigned int len, int copy,		\
-		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )	\
+void ValueKernel::SetArray( TYPE vec[], unsigned int len, int copy )		\
 	{									\
 	DIAG4( (void*) this, "\tValueKernel::SetArray ", #TYPE, "[]" )		\
-	ARRAY_SET_BODY(TYPE,GLISH_TYPE)						\
+	ARRAY_SET_BODY(GLISH_TYPE)						\
 	}
 
 DEFINE_ARRAY_SET(glish_bool,TYPE_BOOL)
@@ -344,11 +308,10 @@ DEFINE_ARRAY_SET(complex,TYPE_COMPLEX)
 DEFINE_ARRAY_SET(dcomplex,TYPE_DCOMPLEX)
 DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 
-void ValueKernel::SetArray( voidptr vec[], unsigned int len, glish_type t, int copy,
-		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
+void ValueKernel::SetArray( voidptr vec[], unsigned int len, glish_type t, int copy )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetArray void*")
-	ARRAY_SET_BODY(voidptr,t)
+	ARRAY_SET_BODY(t)
 	}
 
 void ValueKernel::Grow( unsigned int len )
@@ -363,22 +326,22 @@ void ValueKernel::Grow( unsigned int len )
 		array_t *k = array;
 		unrefArray();
 		int m = mode;
-		array->SetType( k->type, k->copy, k->zero );
+		array->SetType( k->type );
 		mode = m;
 		array->Grow( len, 0 );
 
-		if ( array->copy )
-			(*array->copy)(array->values, k->values, minlen);
+		if ( array->copy() )
+			(*array->copy())(array->values, k->values, minlen);
 		else
-			memcpy(array->values, k->values, minlen*array->type_bytes);
+			memcpy(array->values, k->values, minlen*array->type_bytes());
 
 		if ( len > minlen )
 			{
-			if ( array->zero )
-				(*array->zero)( &((char*)array->values)[k->bytes()],len - k->length );
+			if ( array->zero() )
+				(*array->zero())( &((char*)array->values)[k->bytes()],len - k->length );
 			else
 				memset( &((char*)array->values)[k->bytes()], 0,
-					(len-k->length)*array->type_bytes );
+					(len-k->length)*array->type_bytes() );
 			}
 		}
 	}
@@ -395,11 +358,11 @@ void *ValueKernel::modArray( )
 		array_t *k = array;
 		unrefArray();
 		int m = mode;
-		array->SetType( k->type, k->copy, k->zero );
+		array->SetType( k->type );
 		mode = m;
 		array->Grow( k->length, 0 );
-		if ( array->copy )
-			(*array->copy)(array->values, k->values, array->length);
+		if ( array->copy() )
+			(*array->copy())(array->values, k->values, array->length);
 		else
 			memcpy(array->values, k->values, array->bytes());
 		}

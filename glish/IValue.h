@@ -199,6 +199,8 @@ protected:
 #endif
 	};
 
+extern void init_ivalues();
+
 typedef const IValue* const_ivalue;
 #define const_ivalue_to_void void_ptr
 #define void_to_const_ivalue const_ivalue
