@@ -121,6 +121,29 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 		}
 	}
 
+void Agent::UnRegisterInterest( Stmt* s, const char* field )
+	{
+	if ( ! field )
+		field = INTERESTED_IN_ALL;
+
+	notification_list* list = interested_parties[field];
+
+	if ( ! list )
+		return;
+
+	int element = -1;
+	loop_over_list( *list, i )
+		if ( (*list)[i]->stmt == s )
+			{
+			element = i;
+			break;
+			}
+
+	if ( element >= 0 )
+		delete list->remove_nth(element);
+
+	}
+
 int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
 	{
 	notification_list* interest = interested_parties[field];

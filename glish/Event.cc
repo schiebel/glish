@@ -111,6 +111,35 @@ void EventDesignator::Register( Notifiee* notifiee )
 	EventAgentDone();
 	}
 
+void EventDesignator::UnRegister( Stmt* s )
+	{
+	name_list* nl = EventNames();
+
+	Agent* a = EventAgent( VAL_CONST );
+
+	if ( a )
+		{
+		if ( ! nl )
+			// Register for all events.
+			a->UnRegisterInterest( s );
+
+		else
+			loop_over_list( *nl, i )
+				a->UnRegisterInterest( s, (*nl)[i] );
+
+		delete_name_list( nl );
+		}
+
+	else
+		{
+		error->Report( EventAgentExpr(), "is not an agent" );
+
+		delete_name_list( nl );
+		}
+
+	EventAgentDone();
+	}
+
 name_list* EventDesignator::EventNames()
 	{
 	name_list* result = new name_list;

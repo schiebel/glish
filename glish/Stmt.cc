@@ -277,7 +277,8 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 	only_flag = arg_only_flag;
 	except_list = arg_except_list;
 	sequencer = arg_sequencer;
-	except_stmt = null_stmt;
+//	except_stmt = null_stmt;
+	except_stmt = this;
 
 	description = "await";
 	}
@@ -293,6 +294,13 @@ Value* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 					new Notifiee( except_stmt, 0 ) );
 
 	sequencer->Await( this, only_flag, except_stmt );
+
+	loop_over_list( *await_list, k )
+		(*await_list)[k]->UnRegister( this );
+
+	if ( except_list )
+		loop_over_list( *except_list, l )
+			(*except_list)[l]->UnRegister( except_stmt );
 
 	return 0;
 	}

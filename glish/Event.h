@@ -31,6 +31,9 @@ public:
 	// of the event corresponding to this event designator.
 	void Register( Notifiee* notifiee );
 
+	// Undo a previous Register()
+	void UnRegister( Stmt* s );
+
 	// Evaluates and returns the event's agent.  Returns nil if
 	// the agent expression does not evaluate to an agent value.
 	// EventAgentDone() must be called when done with the agent

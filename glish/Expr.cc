@@ -932,6 +932,8 @@ void ArrayRefExpr::Assign( Value* new_value )
 
 			if ( ! do_assign )
 				vecref->Deref()->AssignElements( new_value );
+			else
+				Unref( new_value );
 
 			Unref( vecref );
 			Unref( lhs_value_ref );
@@ -963,6 +965,7 @@ void ArrayRefExpr::Assign( Value* new_value )
 	if ( args->length() != 1 )
 		{
 		warn->Report( this, " invalid array addressing" );
+		Unref( new_value );
 		Unref( lhs_value_ref );
 		return;
 		}

@@ -1,6 +1,7 @@
 // $Header$
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <osfcn.h>
 
 #include "Socket.h"

@@ -64,6 +64,9 @@ class Agent : public GlishObject {
 	void RegisterInterest( Notifiee* notifiee, const char* field = 0,
 				int is_copy = 0 );
 
+	// Undo RegisterInterest()
+	void UnRegisterInterest( Stmt* s, const char* field = 0 );
+
 
 	// True if the given statement has expressed interested in
 	// this Agent for the given field (or for all fields).
