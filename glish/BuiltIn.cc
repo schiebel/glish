@@ -1442,6 +1442,134 @@ Value* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return user_agent->AgentRecord();
 	}
 
+
+Value* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+	Scope *scope = sequencer->GetScope( );
+	if ( ! scope || ! scope->Length() )
+		return error_value();
+
+	if ( len > 1 )
+		{
+		error->Report( this, " takes 0 or 1 argument" );
+		return error_value();
+		}
+
+	const Value *func_val = len > 0 ? (*args_val)[0] : 0 ;
+	funcptr func = 0;
+
+	if ( func_val )
+ 		if ( func_val->Type() != TYPE_FUNC )
+			{
+			error->Report( this, " only takes a function as an argument");
+			return error_value();
+			}
+		else
+			func = func_val->FuncVal();
+
+	int cnt = 0;
+	charptr *name_ary = new charptr[ scope->Length() ];
+	IterCookie *c = scope->InitForIteration();
+	const Expr *member;
+	const char *key;
+	while ( (member = scope->NextEntry( key, c )) )
+		{
+		int flag = 0;
+		if ( func )
+			{
+			parameter_list p;
+			Parameter arg( 0, VAL_CONST, (Expr*) member );
+			p.append( &arg );
+			Value *r = func->Call( &p, EVAL_COPY );
+			if ( r && r->IsNumeric() )
+				flag = r->IntVal();
+			Unref( r );
+			}
+		if ( ! func || flag )
+			{
+			name_ary[cnt] = new char[strlen( key )+1];
+			strcpy((char*) name_ary[cnt++], key);
+			}
+		}
+
+	return new Value( (charptr*) name_ary, cnt );
+	}
+
+Value* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+	const Value *str = (*args_val)[0];
+
+	if ( ! str || str->Type() != TYPE_STRING )
+		{
+		error->Report( this, " takes 1 string argument" );
+		return error_value();
+		}
+
+	charptr *strs = str->StringPtr();
+	recordptr rptr = create_record_dict();
+	for ( int i = 0; i < str->Length(); i++ )
+		{
+		Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+		if ( exp )
+			{
+			Value *val = exp->CopyEval();
+			if ( val )
+				rptr->Insert( strdup(strs[i]), val );
+			}
+		}
+
+	return new Value( rptr );
+	}
+
+Value* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+
+	if ( len < 1 || len > 2 )
+		{
+		error->Report( this, " takes either 1 record argument or a string and a value" );
+		return error_value();
+		}
+
+	const Value *arg1 = (*args_val)[0];
+	const Value *arg2 = len > 1 ? (*args_val)[1] : 0;
+
+	if ( ! arg2 )
+		{
+		if ( arg1->Type() != TYPE_RECORD )
+			{
+			error->Report( "wrong type for argument 1, record expected" );
+			return error_value();
+			}
+
+		recordptr rptr = arg1->RecordPtr();
+		IterCookie *c = rptr->InitForIteration();
+		Value *member;
+		const char *key;
+		while ( (member = rptr->NextEntry( key, c )) )
+			{
+			Expr *id = sequencer->LookupID( strdup(key), GLOBAL_SCOPE, 1, 0 );
+			id->Assign( copy_value(member) );
+			}
+		}
+	else
+		{
+		if ( arg1->Type() != TYPE_STRING )
+			{
+			error->Report( "wrong type for argument 1, string expected" );
+			return error_value();
+			}
+
+		charptr *strs = arg1->StringPtr();
+		Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
+		id->Assign( copy_value( arg2 ) );
+		}
+
+	return new Value( glish_true );
+	}
+
 Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Frame* cur = sequencer->CurrentFrame();
@@ -1925,6 +2053,10 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
+
+	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
+	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );
+	s->AddBuiltIn( new SymbolSetBuiltIn( s ) );
 
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );

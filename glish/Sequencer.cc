@@ -347,10 +347,13 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	// Skip past client parameters
 	for ( ++argv, --argc; argc > 0; ++argv, --argc )
 		if ( ! strcmp( argv[0], "-+-" ) )
+			{
+			--argc, ++argv;
 			break;
+			}
 
 	// Process startup parameters
-	for ( ++argv, --argc; argc > 0; ++argv, --argc )
+	for ( ; argc > 0; ++argv, --argc )
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
@@ -525,7 +528,7 @@ int Sequencer::PopScope()
 
 	scopes.remove( top_scope );
 
-	if ( top_scope->GetScope() != LOCAL_SCOPE )
+	if ( top_scope->GetScopeType() != LOCAL_SCOPE )
 		global_scopes.remove( top_scope_pos );
 
 	delete top_scope;
@@ -533,6 +536,27 @@ int Sequencer::PopScope()
 	return frame_size;
 	}
 
+scope_type Sequencer::GetScopeType() const
+	{
+	int s_index = scopes.length() - 1;
+
+        if ( ! s_index )
+		return GLOBAL_SCOPE;
+
+	int gs_index = global_scopes.length();
+	if (  gs_index && global_scopes[--gs_index] == s_index )
+		return FUNC_SCOPE;
+
+	return LOCAL_SCOPE;
+	}
+
+Scope *Sequencer::GetScope( )
+	{
+	if ( scopes.length() )
+		return scopes[0];
+	else
+		return 0;
+	}
 
 Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 				int GlobalRef, int FrameOffset )
@@ -554,7 +578,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 			else
 				{
 				int goff = global_scopes[gs_index];
-				if ( scopes[goff]->GetScope() != GLOBAL_SCOPE )
+				if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
 					scope_offset = scope_index - goff;
 				}
 			break;
@@ -571,7 +595,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 
 	Scope *cur_scope = scopes[scope_index];
 	
-	scope = cur_scope->GetScope();
+	scope = cur_scope->GetScopeType();
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
@@ -589,7 +613,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 	if ( scope == GLOBAL_SCOPE )
 		{
 		global_frame.append( 0 );
-		if ( GetScope() != GLOBAL_SCOPE && ! GlobalRef )
+		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
 			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
 		}
 
@@ -620,7 +644,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
 				{
 				result = (*scopes[cnt])[id];
-				if ( scopes[cnt]->GetScope() != LOCAL_SCOPE )
+				if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
 					break;
 				}
 			if ( ! result && do_install )
@@ -640,7 +664,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 			result = (*scopes[0])[id];
 			if ( ! result && do_install )
 				return InstallID( id, GLOBAL_SCOPE, do_warn );
-			if ( result && GetScope() != GLOBAL_SCOPE )
+			if ( result && GetScopeType() != GLOBAL_SCOPE )
 				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset() );
 			break;
 		default:
@@ -665,7 +689,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 			scope_index = scopes.length() - 1;
 
 			int goff = global_scopes[gs_index];
-			if ( scopes[goff]->GetScope() != GLOBAL_SCOPE )
+			if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
 				scope_offset = scope_index - goff;
 			}
 			break;
@@ -682,7 +706,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 
 	Scope *cur_scope = scopes[scope_index];
 	
-	scope = cur_scope->GetScope();
+	scope = cur_scope->GetScopeType();
 
 	int frame_offset = cur_scope->Length();
 
@@ -726,7 +750,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
 				{
 				result = (*scopes[cnt])[id];
-				if ( scopes[cnt]->GetScope() != LOCAL_SCOPE )
+				if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
 					break;
 				}
 			if ( ! result )
@@ -771,7 +795,7 @@ const Value *Sequencer::LookupVal( const char *id )
 void Sequencer::PushFrame( Frame* new_frame )
 	{
 	frames.append( new_frame );
-	if ( new_frame->GetScope() != LOCAL_SCOPE )
+	if ( new_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames.append( frames.length() - 1 );
 	}
 
@@ -783,7 +807,7 @@ Frame* Sequencer::PopFrame()
 			"local frame stack underflow in Sequencer::PopFrame" );
 
 	Frame *top_frame = frames.remove_nth( top_frame_pos );
-	if ( top_frame->GetScope() != LOCAL_SCOPE )
+	if ( top_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames.remove( top_frame_pos );
 
 	return top_frame;
@@ -1674,20 +1698,6 @@ void Sequencer::RunQueue()
 			(void) PopFrame();
 		Unref( n );
 		}
-	}
-
-scope_type Sequencer::GetScope() const
-	{
-	int s_index = scopes.length() - 1;
-
-        if ( ! s_index )
-		return GLOBAL_SCOPE;
-
-	int gs_index = global_scopes.length();
-	if (  gs_index && global_scopes[--gs_index] == s_index )
-		return FUNC_SCOPE;
-
-	return LOCAL_SCOPE;
 	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )

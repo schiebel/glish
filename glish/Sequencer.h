@@ -57,7 +57,7 @@ typedef PDict(Expr) expr_dict;
 class Scope : public expr_dict {
 public:
 	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
-	scope_type GetScope() const { return scope; }
+	scope_type GetScopeType() const { return scope; }
 	int WasGlobalRef(const char *c) const
 		{ return global_refs.Lookup(c) ? 1 : 0; }
 	void MarkGlobalRef(const char *c);
@@ -86,6 +86,10 @@ public:
 
 	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
+	scope_type GetScopeType( ) const;
+	// For now returns the "global" scope. Later this may be modified
+	// to take a "scope_type" parameter.
+	Scope *GetScope( );
 
 	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
 					int GlobalRef = 0, int FrameOffset = 0 );
@@ -218,8 +222,6 @@ public:
 
 	// Returns a non-zero value if there are existing clients.
 	int ActiveClients() const	{ return num_active_processes > 0; }
-
-	scope_type GetScope() const;
 
 	int MultiClientScript() { return multi_script; }
 	int MultiClientScript( int set_to )

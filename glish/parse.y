@@ -417,7 +417,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 
 			if ( $2 )
 				{
-				if ( current_sequencer->GetScope() == GLOBAL_SCOPE )
+				if ( current_sequencer->GetScopeType() == GLOBAL_SCOPE )
 					{ 
 					// Create global reference to function.
 					Expr* func =

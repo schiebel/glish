@@ -22,7 +22,7 @@ class Frame : public GlishObject {
 
 	int Size() const	{ return size; }
 
-	scope_type GetScope() const { return scope; }
+	scope_type GetScopeType() const { return scope; }
 
     protected:
 	int size;
