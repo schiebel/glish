@@ -109,7 +109,7 @@ IValue::IValue( ) : unref(0), Value( )
 	{
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
-	if ( (other = FailStmt::GetFail()) )
+	if ( (other = FailStmt::GetFail()) && other->Type()  == TYPE_FAIL )
 		{
 		kernel = other->kernel;
 		Value *v = 0;
@@ -1348,7 +1348,16 @@ IValue* IValue::SubRef( const IValue* index, value_type vtype )
 		if ( index->Type() == TYPE_STRING )
 			return (IValue*) GetOrCreateRecordElement( index );
 
-		IValue* ret = (IValue*) NthField( index->IntVal() );
+		IValue *ret = 0;
+		int i = index->IntVal( );
+		if ( i == Length( ) + 1 )
+			{
+			ret = (IValue*) create_value( glish_false );
+			AssignRecordElement( NewFieldName(0), ret );
+			}
+		else
+			ret = (IValue*) NthField( index->IntVal() );
+
 		if ( ! ret )
 			return (IValue*) Fail( "record index (=", index->IntVal(),
 				") out of range (> ", Length(), ")" );

@@ -1424,6 +1424,12 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
 
 	arg->ReadOnlyDone( index_val );
 
+	if ( result->Deref()->Type( ) == TYPE_FAIL )
+		{
+		Unref( array_ref );
+		return result;
+		}
+
 	result = new IValue( result, val_type );
 
 	//## After the creation of this last value, the initial "result" has
@@ -1924,7 +1930,9 @@ IValue *RefExpr::Assign( evalOpt &opt, IValue* new_value )
 		{
 		IValue* value = op->RefEval( opt, VAL_REF );
 
-		if ( value->VecRefDeref()->IsConst() )
+		if ( value->Deref()->Type() == TYPE_FAIL )
+			return value;
+		else if ( value->VecRefDeref()->IsConst() )
 			ret = "'const' values cannot be modified.";
 		else if ( value->Deref()->IsVecRef() )
 			value->AssignElements( new_value );
