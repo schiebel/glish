@@ -50,7 +50,7 @@ void PagerReporter::Report( const RMessage& m0,
 			{
 			int x = 0;
 
-			char **argv = new char*[exec_len+1];
+			char **argv = (char**) alloc_memory(sizeof(char*)*(exec_len+1));
 			argv[x++] = exec;
 			for ( ; x < exec_len; ++x )
 				argv[x] = (char*) exec_ary[x];
