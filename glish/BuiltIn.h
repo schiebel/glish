@@ -103,6 +103,7 @@ DERIVE_BUILTIN(SeqBuiltIn,NUM_ARGS_VARIES,"seq",)
 DERIVE_BUILTIN(RepBuiltIn,2,"rep",)
 DERIVE_BUILTIN(NumArgsBuiltIn,NUM_ARGS_VARIES,"num_args",)
 DERIVE_BUILTIN(NthArgBuiltIn,NUM_ARGS_VARIES,"nth_arg",)
+DERIVE_BUILTIN(RandomBuiltIn,NUM_ARGS_VARIES,"random",)
 
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
 DERIVE_BUILTIN(SplitBuiltIn,NUM_ARGS_VARIES,"split",)

@@ -183,6 +183,19 @@ protected:
 	};
 
 
+void Scope::MarkGlobalRef(const char *c)
+	{
+	if ( ! WasGlobalRef( c ) )
+		global_refs.Insert( strdup(c), 1 );
+	}
+
+void Scope::ClearGlobalRef(const char *c)
+	{
+	char *v = global_refs.Remove(c);
+	if ( v )
+		delete v;
+	}
+
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    Value* arg_value, Notifiee* arg_notifiee )
 	{
@@ -493,7 +506,8 @@ int Sequencer::PopScope()
 	}
 
 
-Expr* Sequencer::InstallID( char* id, scope_type scope, int GlobalRef, int foff )
+Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
+				int GlobalRef, int FrameOffset )
 	{
 	int scope_index;
 	int scope_offset = 0;
@@ -506,7 +520,8 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int GlobalRef, int foff 
 		{
 		case LOCAL_SCOPE:
 			scope_index = scopes.length() - 1;
-		  	if ( GlobalRef )
+
+			if ( GlobalRef )
 				scope_offset = -scope_index;
 			else
 				{
@@ -530,9 +545,16 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int GlobalRef, int foff 
 	
 	scope = cur_scope->GetScope();
 
-	int frame_offset = GlobalRef ? foff : cur_scope->Length();
+	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
 	Expr* result = new VarExpr( id, scope, scope_offset, frame_offset, this );
+
+	if ( cur_scope->WasGlobalRef( id ) )
+		{
+		cur_scope->ClearGlobalRef( id );
+		if ( do_warn )
+			warn->Report( "scope of ", id," goes from global to local");
+		}
 
 	cur_scope->Insert( id, result );
 
@@ -540,18 +562,31 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int GlobalRef, int foff 
 		{
 		global_frame.append( 0 );
 		if ( GetScope() != GLOBAL_SCOPE && ! GlobalRef )
-			InstallID( id, LOCAL_SCOPE, 1, frame_offset );
+			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
 		}
 
 	return result;
 	}
 
-Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
+Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_warn )
 	{
 	Expr *result = 0;
 
 	switch ( scope )
 		{
+		case ANY_SCOPE:
+			{
+			int off = scopes.length()-1;
+			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+				result = (*scopes[cnt])[id];
+
+			if ( off != cnt+1 )
+				scopes[off]->MarkGlobalRef( id );
+
+			if ( ! result && do_install )
+				return InstallID( id, GLOBAL_SCOPE, do_warn );
+			}
+			break;
 		case LOCAL_SCOPE:
 			{
 			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
@@ -561,7 +596,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 					break;
 				}
 			if ( ! result && do_install )
-				return InstallID( id, FUNC_SCOPE );
+				return InstallID( id, FUNC_SCOPE, do_warn );
 			}
 			break;
 		case FUNC_SCOPE:
@@ -570,15 +605,15 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 			int offset = global_scopes[cnt];
 			result = (*scopes[offset])[id];
 			if ( ! result && do_install )
-				return InstallID( id, FUNC_SCOPE );
+				return InstallID( id, FUNC_SCOPE, do_warn );
 			}
 			break;
 		case GLOBAL_SCOPE:
 			result = (*scopes[0])[id];
 			if ( ! result && do_install )
-				return InstallID( id, GLOBAL_SCOPE );
+				return InstallID( id, GLOBAL_SCOPE, do_warn );
 			if ( result && GetScope() != GLOBAL_SCOPE )
-				return InstallID( id, LOCAL_SCOPE, 1, ((VarExpr*)result)->offset() );
+				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset() );
 			break;
 		default:
 			fatal->Report("bad scope tag in Sequencer::LookupID()" );
@@ -586,6 +621,109 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 		}
 
 	delete id;
+	return result;
+	}
+
+Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
+	{
+	int scope_index;
+	int scope_offset = 0;
+	int gs_index = global_scopes.length() - 1;
+
+	switch ( scope )
+		{
+		case LOCAL_SCOPE:
+			{
+			scope_index = scopes.length() - 1;
+
+			int goff = global_scopes[gs_index];
+			if ( scopes[goff]->GetScope() != GLOBAL_SCOPE )
+				scope_offset = scope_index - goff;
+			}
+			break;
+		case FUNC_SCOPE:
+			scope_index = global_scopes[gs_index];
+			break;
+		case GLOBAL_SCOPE:
+			scope_index = 0;
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::InstallID()" );
+
+		}
+
+	Scope *cur_scope = scopes[scope_index];
+	
+	scope = cur_scope->GetScope();
+
+	int frame_offset = cur_scope->Length();
+
+	var->set( scope, scope_offset, frame_offset );
+
+	if ( cur_scope->WasGlobalRef( id ) )
+		{
+		cur_scope->ClearGlobalRef( id );
+		warn->Report( "scope of ", id," goes from global to local");
+		}
+
+	cur_scope->Insert( id, var );
+
+	if ( scope == GLOBAL_SCOPE )
+		global_frame.append( 0 );
+
+	return var;
+	}
+
+Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
+	{
+	Expr *result = 0;
+
+	switch ( scope )
+		{
+		case ANY_SCOPE:
+			{
+			int off = scopes.length()-1;
+			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+				result = (*scopes[cnt])[id];
+
+			if ( off != cnt+1 )
+				scopes[off]->MarkGlobalRef( id );
+
+			if ( ! result )
+				return InstallVar( id, GLOBAL_SCOPE, var );
+			}
+			break;
+		case LOCAL_SCOPE:
+			{
+			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+				{
+				result = (*scopes[cnt])[id];
+				if ( scopes[cnt]->GetScope() != LOCAL_SCOPE )
+					break;
+				}
+			if ( ! result )
+				return InstallVar( id, FUNC_SCOPE, var );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int cnt = global_scopes.length() - 1;
+			int offset = global_scopes[cnt];
+			result = (*scopes[offset])[id];
+			if ( ! result )
+				return InstallVar( id, FUNC_SCOPE, var );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			result = (*scopes[0])[id];
+			if ( ! result )
+				return InstallVar( id, GLOBAL_SCOPE, var );
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+
+		}
+//	delete id;
 	return result;
 	}
 
@@ -1517,8 +1655,8 @@ scope_type Sequencer::GetScope() const
         if ( ! s_index )
 		return GLOBAL_SCOPE;
 
-	if ( int gs_index = global_scopes.length() &&
-			global_scopes[--gs_index] == s_index )
+	int gs_index = global_scopes.length();
+	if (  gs_index && global_scopes[--gs_index] == s_index )
 		return FUNC_SCOPE;
 
 	return LOCAL_SCOPE;

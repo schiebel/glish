@@ -58,8 +58,13 @@ class Scope : public expr_dict {
 public:
 	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
 	scope_type GetScope() const { return scope; }
+	int WasGlobalRef(const char *c) const
+		{ return global_refs.Lookup(c) ? 1 : 0; }
+	void MarkGlobalRef(const char *c);
+	void ClearGlobalRef(const char *c);
 private:
 	scope_type scope;
+	Dict(int) global_refs;
 };
 
 declare(PList,Scope);
@@ -82,8 +87,12 @@ public:
 	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
 
-	Expr* InstallID( char* id, scope_type scope, int GlobalRef = 0, int foff = 0 );
-	Expr* LookupID( char* id, scope_type scope, int do_install = 1 );
+	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
+					int GlobalRef = 0, int FrameOffset = 0 );
+	Expr* LookupID( char* id, scope_type scope, int do_install = 1, int do_warn = 1 );
+
+	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
+	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
