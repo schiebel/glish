@@ -1551,6 +1551,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 Sequencer::~Sequencer()
 	{
+	IValue exit_val(glish_true);
+
+	SystemEvent( "exiting", &exit_val );
+	RunQueue( );
+
 	shutting_glish_down = 1;
 
 #ifdef LINT
