@@ -257,7 +257,7 @@ class TkFrame : public TkRadioContainer {
 	TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, charptr title,
-		  charptr icon, int new_cmap );
+		  charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ );
 	TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,
@@ -328,6 +328,8 @@ class TkFrame : public TkRadioContainer {
 
 	int size[2];
 
+	TkAgent *tlead;
+	char *tpos;
 	int unmapped;
 	};
 

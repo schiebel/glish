@@ -490,6 +490,69 @@ CLASS::~CLASS( )					\
 		return ret->AgentRecord();
 
 
+#define GEOM_GET(WHAT)									\
+	char *c_##WHAT = (char*) rivet_va_func( tlead, (int (*)()) Tk_WinfoCmd, #WHAT,	\
+						rivet_path(tlead), 0 );			\
+	int WHAT = c_##WHAT ? atoi(c_##WHAT) : 0;
+
+
+//                  <-------X/WIDTH-------->
+//                                                      A  ==  'nw'
+//               ^  A           2          C            2  ==  'n'
+//               |   +--------------------+             C  ==  'ne'
+//               |   |                    |             1  ==  'w'
+//  Y/HEIGHT     |  1|          X         |3            X  ==  'c'
+//               |   |                    |             3  ==  'e'
+//               |   +--------------------+             B  ==  'sw'
+//               v  B           4          D            4  ==  's'
+//                                                      D  ==  'se'
+//
+const char *glishtk_popup_geometry( Rivetobj tlead, charptr pos )
+	{
+	static char geometry[80];
+
+	GEOM_GET(rootx)
+	GEOM_GET(rooty)
+
+	if ( ! pos || ! *pos ) return "+0+0";
+
+	if ( pos[0] == 'n' )
+		if ( pos[1] == 'w' )
+			sprintf(geometry,"+%d+%d",rootx,rooty);					// ==> A
+		else
+			{
+			GEOM_GET(width)
+			sprintf(geometry,"+%d+%d",rootx+(pos[1]?width:width/2), rooty);		// ==> 2, C
+			}
+	else
+		{
+		GEOM_GET(height);
+		if ( pos[0] == 'w' || pos[1] == 'w' )
+			sprintf(geometry, "+%d+%d", rootx, rooty+(pos[1]?height:height/2));	// ==> 1, B
+		else
+			{
+			GEOM_GET(width)
+			switch( pos[0] )
+				{
+			    case 'c':
+				sprintf(geometry, "+%d+%d", rootx+(width/2), rooty+(height/2));	// ==> X
+				break;
+			    case 's':
+				sprintf(geometry, "+%d+%d", rootx+(pos[1]?width:width/2), 	// ==> 4, D
+					rooty+height);
+				break;
+			    case 'e':
+				sprintf(geometry, "+%d+%d", rootx+width, rooty+height/2);	// ==> 3
+				break;
+			    default:
+				strcpy( geometry, "+0+0");
+				}
+			}
+		}
+
+	return geometry;
+	}
+
 char *glishtk_nostr(Rivetobj self, const char *cmd, parameter_list *,
 				int, int )
 	{
@@ -1557,14 +1620,15 @@ void TkFrame::Enable( int force )
 			elements[i]->Enable( force );
 	}
 
-TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
-		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr cursor, charptr title, charptr icon, int new_cmap ) :
+TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth, charptr padx_,
+		  charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
+		  charptr cursor, charptr title, charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ ) :
 		  TkRadioContainer( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
-		  is_tl( 1 ), pseudo( 0 ), reject_first_resize(1), unmapped(0)
+		  is_tl( 1 ), pseudo( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0)
 
 	{
 	char *argv[17];
+	char geometry[40];
 
 	agent_ID = "<graphic:frame>";
 
@@ -1574,6 +1638,12 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
 	tl_count++;
+
+	if ( tlead )
+		{
+		Ref( tlead );
+		tpos = strdup(tpos_);
+		}
 
 	if ( top_created )
 		{
@@ -1591,6 +1661,16 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		if ( title && title[0] )
 			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "title",
 				      rivet_path(pseudo), title, 0 );
+		if ( tlead )
+			{
+			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "transient",
+				      rivet_path(pseudo), rivet_path(tlead->Self()), 0 );
+			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "overrideredirect",
+				      rivet_path(pseudo), "true", 0 );
+			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
+			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "geometry",
+				      rivet_path(pseudo), geometry, 0 );
+			}
 		}
 	else
 		{
@@ -1598,6 +1678,16 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		if ( title && title[0] )
 			rivet_va_func(root, (int (*)()) Tk_WmCmd, "title",
 				      rivet_path(root), title, 0 );
+		if ( tlead )
+			{
+			rivet_va_func(root, (int (*)()) Tk_WmCmd, "transient",
+				      rivet_path(root), rivet_path(tlead->Self()), 0 );
+			rivet_va_func(root, (int (*)()) Tk_WmCmd, "overrideredirect",
+				      rivet_path(root), "true", 0 );
+			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
+			rivet_va_func(root, (int (*)()) Tk_WmCmd, "geometry",
+				      rivet_path(root), geometry, 0 );
+			}
 		}
 
 	side = strdup(side_);
@@ -1693,8 +1783,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, int new_cmap ) : TkRadioContainer( s ),
-		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), 
-		  is_tl( 0 ), pseudo( 0 ), reject_first_resize(0), unmapped(0)
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), is_tl( 0 ),
+		  pseudo( 0 ), reject_first_resize(0), tlead(0), tpos(0), unmapped(0)
 
 	{
 	char *argv[16];
@@ -1774,7 +1864,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkRadioContainer( s ), side(0),
-		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0),  unmapped(0)
+		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0),
+		  tlead(0), tpos(0), unmapped(0)
 
 	{
 	char *argv[12];
@@ -1891,6 +1982,12 @@ void TkFrame::UnMap()
 	if ( unmap_root )
 		rivet_unmap_window( root );
 
+	if ( tlead )
+		{
+		Unref( tlead );
+		tlead = 0;
+		}
+
 	if ( ! tl_count )
 		// Empty queue
 		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
@@ -1917,6 +2014,7 @@ TkFrame::~TkFrame( )
 	free_memory( padx );
 	free_memory( pady );
 	free_memory( expand );
+	if ( tpos ) free_memory( tpos );
 
 	UnMap();
 	}
@@ -2201,8 +2299,8 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret = 0;
 
-	if ( args_val->length() != 15 )
-		return InvalidNumberOfArgs(15);
+	if ( args_val->length() != 17 )
+		return InvalidNumberOfArgs(17);
 
 	int c = 1;
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -2219,10 +2317,19 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( title )
 	SETSTR( icon )
 	SETINT( new_cmap )
+	SETVAL( tlead, tlead->Type() == TYPE_BOOL || tlead->IsAgentRecord() )
+	SETSTR( tpos )
 
 	if ( parent->Type() == TYPE_BOOL )
-		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
-				    background, width, height, cursor, title, icon, new_cmap );
+		{
+		Agent *tl = tlead->IsAgentRecord() ? tlead->AgentVal() : 0;
+
+		if ( tl && strncmp( tl->AgentID(), "<graphic:", 9 ) )
+			return (IValue*) generate_error("bad transient leader");
+
+		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand, background,
+				    width, height, cursor, title, icon, new_cmap, (TkAgent*) tl, tpos );
+		}
 	else
 		{
 		Agent *agent = parent->AgentVal();

@@ -113,12 +113,10 @@ func have_gui( )   { return tk_builtin_funcs( 1 ) }
 func tk_hold( )    { return tk_builtin_funcs( 2 ) }
 func tk_release( ) { return tk_builtin_funcs( 3 ) }
 
-func frame ( parent=F, relief='flat',
-		 borderwidth=2, side='top',
-		 padx=0, pady=0, expand='both',
-		 background='lightgrey',
-		 width=70, height=50, cursor='', title='glish/tk', icon='', newcmap=F )
-	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title, icon, newcmap )
+func frame ( parent=F, relief='flat', borderwidth=2, side='top', padx=0, pady=0,
+	     expand='both', background='lightgrey', width=70, height=50, cursor='',
+	     title='glish/tk', icon='', newcmap=F, tlead=F, tpos='sw' )
+	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title, icon, newcmap, tlead, tpos )
 
 func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T, anchor='c', fill='none', group=parent )
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value, anchor, fill, group )
