@@ -1449,8 +1449,9 @@ void TkAgent::FlushGlishEvents()
 
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
-	int ret = 0;
+	if ( shutting_glish_down ) return 0;
 
+	int ret = 0;
 	if ( hold_tk_events )
 		{
 		if ( flags & TK_FILE_EVENTS )
