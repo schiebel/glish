@@ -1,30 +1,22 @@
 This is Glish version 2.6.0, dated 14Nov97.
 ------------------------------------------------------------------------
 
-This release includes a large number of new features - see "NEWS" for
-details.
-
-------------------------------------------------------------------------
-
 Glish is a language, interpreter, and class library for building
-loosely-coupled distributed systems.  For an overview from a general
-computing perspective, see the paper ``Glish: A User-Level Software
-Bus for Loosely-Coupled Distributed Systems,'' in the Proceedings of
-the 1993 USENIX Winter Technical Conference.  For an overview from
-an accelerator control perspective, see the paper ``Glish: A Software
-Bus for High-Level Control,'' Proceedings of the 1993 International
-Conference on Accelerator and Large Experimental Physics Control Systems.
-
-These papers are also available via anonymous ftp to ftp.ee.lbl.gov;
-retrieve glish/USENIX-93.ps.Z and glish/ICALEPCS-93.ps.Z, respectively.
-
-This release includes user documentation, which can also be retrieved
-separately from ftp.ee.lbl.gov as glish/USER-DOC-2.3.ps.Z.
+loosely-coupled distributed systems. Glish provides a "software bus"
+to which processes are connected and controlled by the intrepreted
+Glish scripting language. The Glish C++ class library provides the tools
+necessary to exchange structured binary data among the processes on the
+software bus. If you would like more information, please see URL:
+"http://www.cv.nrao.edu/glish/".
 
 Glish users are encouraged to make themselves known by sending email to
-vern@ee.lbl.gov; that way we can keep you informed of bug fixes, new
+drs@nrao.edu; that way we can keep you informed of bug fixes, new
 releases, and the like.  There is also a Glish mailing list - send mail
 to glishers-request@ee.lbl.gov to be added.
+
+For information about Glish's copyright, see the file COPYING.
+
+For information about the changes in this release, see the file CHANGES.
 
 To install Glish, see the file INSTALL.
 
