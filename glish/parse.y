@@ -124,6 +124,7 @@ static ivalue_list *gc_registry = 0;
 static List(int) *gc_registry_offset = 0;
 #endif
 
+extern int glish_regex_matched;
 extern void putback_token( int );
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
@@ -134,6 +135,7 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 glish:
 		statement
 			{
+			glish_regex_matched = 0;
 			if ( interactive )
 				status = 0;
         		static int *lookahead = & ( yyclearin );
@@ -965,8 +967,19 @@ void yyerror( char msg[] )
 	{
 	if ( ! status )
 		{
-		parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
-		error->Report( msg, " at or near '", yytext, "'" );
+		if ( glish_regex_matched )
+			{
+			parse_error = (IValue*) generate_error( msg, " at or near '", yytext,
+					"'; a regular expression\n",
+					"was matched in this statement, perhaps it is a mistaken arithmetic expression?" );
+			error->Report( msg, " at or near '", yytext, "'; a regular expression\n",
+				       "was matched in this statement, perhaps it is a mistaken arithmetic expression?" );
+			}
+		else
+			{
+			parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
+			error->Report( msg, " at or near '", yytext, "'" );
+			}
 		}
 
 	error_reset( );

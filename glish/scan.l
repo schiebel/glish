@@ -161,17 +161,21 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX
 
 	static int is_double_quote = 0;
-	static int is_match_regex = 0;
+	int glish_regex_matched = 0;
 	static char *match_regex_portion = 0;
+	static char regex_delimit = '\0';
+	static char regex_start = '\0';
 
 
 ID	[A-Za-z_][A-Za-z0-9_]*
 WS	[ \t]+
 OWS	[ \t]*
 D	[0-9]
+RXSTART	[!/#@%^&*|+-^,.~`;:]
+RXCONT	[^\n\\!/#@%^&*|+-^,.~`;:]
 
 FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
@@ -311,9 +315,10 @@ pragma{WS}shared{WS}world{OWS};?{OWS}\n		PRAGMA_SHARED(WORLD)
 pragma{WS}include{WS}once{OWS};?{OWS}\n		PRAGMA_ONCE
 pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
-{ID}		{
+<INITIAL,NO_REGEX>{ID} {
 		statement_can_end = 1;
 		YYLVAL(id) = strdup( yytext );
+		BEGIN(INITIAL);
 		return TOK_ID;
 		}
 
@@ -346,15 +351,16 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-[ms]!		{
+<INITIAL>[ms]{RXSTART}	{
 		clear_literal();
-		is_match_regex = yytext[0] == 'm';
+		regex_start = yytext[0];
+		regex_delimit = yytext[1];
 		match_regex_portion = 0;
 		BEGIN(REGEX);
 		break;
 		}
 		
-<REGEX>[^\n\\!]+			literal( yytext ); break;
+<REGEX>{RXCONT}+			literal( yytext ); break;
 <QUOTE,ATTR_QUOTE>[^'"\n\\]+		literal( yytext ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
@@ -427,12 +433,17 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<REGEX>!	{
-		if ( is_match_regex || match_regex_portion )
+<REGEX>{RXSTART} {
+		if ( yytext[0] != regex_delimit )
+			{
+			literal(yytext);
+			break;
+			}
+		else if ( regex_start == 'm' || match_regex_portion )
 			{
 			statement_can_end = 1;
 			IValue *v = 0;
-			Regex *r = is_match_regex ? new Regex(strdup(literal())) :
+			Regex *r = regex_start == 'm' ? new Regex(strdup(literal())) :
 					new Regex(match_regex_portion, strdup(literal()));
 			if ( ! r->Error() )
 				v = new IValue( r );
@@ -443,6 +454,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 				}
 			DO_GC_REGISTER
 			YYLVAL(expr) = new ConstExpr( v );
+			glish_regex_matched = 1;
 			BEGIN(INITIAL);
 			return TOK_REGEX;
 			}
@@ -454,12 +466,35 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			}
 		}
 
-<QUOTE,REGEX,ATTR_QUOTE>\n	{
+<QUOTE,ATTR_QUOTE>\n	{
 		error->Report( "unmatched quote (",
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;
 		BEGIN(INITIAL);
 		return TOK_FLEX_ERROR;
+		}
+
+<REGEX>\n	{
+		unput('\n');
+		char *bad = literal();
+		int len = strlen(bad)-1;
+		for ( int i = len; i >= 0; --i )
+			{
+			unput(bad[i]);
+			}
+		unput( regex_delimit );
+		if ( match_regex_portion )
+			{
+			len = strlen(match_regex_portion)-1;
+			for ( int i = len; i >= 0; --i )
+				unput(match_regex_portion[i]);
+			free_memory(match_regex_portion);
+			match_regex_portion = 0;
+			unput( regex_delimit );
+			}
+		unput( regex_start );
+		BEGIN(NO_REGEX);
+		break;
 		}
 
 <INCL>\"[^"]*\"	{
