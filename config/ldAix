@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# Copyright (c) 1996 The Regents of the University of California.
+#
 # ldAix ldCmd ldArg ldArg ...
 #
 # This shell script provides a wrapper for ld under AIX in order to
