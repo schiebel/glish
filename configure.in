@@ -1,7 +1,7 @@
 ## $Id$
 AC_INIT(glish)
 ## Copyright (c) 1993 The Regents of the University of California.
-## Copyright (c) 1997,1998 Associated Universities Inc.
+## Copyright (c) 1997,1998,1999,2000 Associated Universities Inc.
 ##
 ## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
 ## from ftp.ee.lbl.gov.
@@ -1185,10 +1185,8 @@ case $host_os in
 	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
 	GC_MACH_DEP=mach_dep.o
-	echo "$ac_t""FINDING SHARED VERSION" 1>&AC_FD_MSG
 	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g" -e "s/$/$SLIB_SUFFIX/" )
 	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g", SLIB_VERSION )
-	echo "$ac_t""FINDING SHARED VERSION $GLISH_SLIB_SUFFIX" 1>&AC_FD_MSG
 	;;
     hpux10.*)
 	SLIB_CFLAGS="+z"

@@ -652,7 +652,7 @@ running configure, to aid debugging if configure makes a mistake.
 
 
 ## Copyright (c) 1993 The Regents of the University of California.
-## Copyright (c) 1997,1998 Associated Universities Inc.
+## Copyright (c) 1997,1998,1999,2000 Associated Universities Inc.
 ##
 ## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
 ## from ftp.ee.lbl.gov.
@@ -4620,7 +4620,6 @@ EOF
 	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
 	GC_MACH_DEP=mach_dep.o
-	echo "$ac_t""FINDING SHARED VERSION" 1>&6
 	
     for tmp_index in glish sos npd editline regx; do
         tmp_suffix=SLIB_SUFFIX
@@ -4647,7 +4646,6 @@ EOF
         fi
     done
 
-	echo "$ac_t""FINDING SHARED VERSION $GLISH_SLIB_SUFFIX" 1>&6
 	;;
     hpux10.*)
 	SLIB_CFLAGS="+z"
@@ -4728,7 +4726,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4732 "configure"
+#line 4730 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4826,7 +4824,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4830 "configure"
+#line 4828 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4936,12 +4934,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4940 "configure"
+#line 4938 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4945: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4943: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -5030,12 +5028,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 5034 "configure"
+#line 5032 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:5039: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:5037: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -5463,7 +5461,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5467 "configure"
+#line 5465 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5471,7 +5469,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5475: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5473: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5494,7 +5492,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5498 "configure"
+#line 5496 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5502,7 +5500,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5506: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5504: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
