@@ -1578,13 +1578,22 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// first execute any statements we've seen so far due
 		// to .glishrc files.
 		Exec( 1 );
+		NodeUnref( stmts );
+		stmts = null_stmt;
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 		interactive = 1;
 		}
 	else
+		{
+		// Handle the .glishrc startup so that we can use any include
+		// path which might be specified in there.
+		Exec( 1 );
+		NodeUnref( stmts );
+		stmts = null_stmt;
 		interactive = 0;
+		}
 
 	if ( glish_parser() )
 		error->Report( "syntax errors parsing input" );
