@@ -82,8 +82,6 @@
 	Value *create_value( charptrref& value_ref )				\
 		{ return new type( value_ref ); }
 
-void glish_fpe_enter( float *lhs, float *rhs, void (*)(float*,float*) );
-void glish_fpe_enter( double *lhs, double *rhs, void (*)(double*,double*) );
 void glish_fpe_enter( );
 int glish_fpe_exit( );
 
