@@ -189,6 +189,8 @@ class AwaitStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
 	const char *TerminateInfo() const;
+	event_list *AwaitList() { return await_list; }
+	const Agent *GetAgent() const { return agent; }
 
 	~AwaitStmt();
 
@@ -200,6 +202,7 @@ class AwaitStmt : public Stmt {
 	event_list* except_list;
 	Sequencer* sequencer;
 	Stmt* except_stmt;
+	Agent* agent;
 	};
 
 

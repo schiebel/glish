@@ -421,14 +421,19 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 	sequencer = arg_sequencer;
 //	except_stmt = null_stmt;
 	except_stmt = this;
+	agent = 0;
 
 	description = "await";
 	}
 
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
+	agent = 0;
 	loop_over_list( *await_list, i )
+		{
+		if ( ! agent ) agent = (*await_list)[i]->EventAgent( VAL_REF );
 		(*await_list)[i]->Register( new Notifiee( this ) );
+		}
 
 	if ( except_list )
 		loop_over_list( *except_list, j )

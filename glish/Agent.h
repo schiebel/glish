@@ -40,6 +40,9 @@ typedef PList(Notifiee) notification_list;
 declare(PDict,notification_list);
 typedef PDict(notification_list) notification_dict;
 
+declare(PDict,agent_list);
+typedef PDict(agent_list) agent_dict;
+
 class Agent : public GlishObject {
     public:
 	Agent( Sequencer* s );

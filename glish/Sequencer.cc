@@ -261,11 +261,11 @@ protected:
 
 class awaitinfo {
 public:
-	awaitinfo( Stmt *stmt_arg, Stmt *except_arg, int await_only_arg ) :
-		stmt(stmt_arg), except(except_arg), await_only(await_only_arg),
+	awaitinfo( Stmt *stmt_arg, Stmt *except_arg, int await_only_arg, agent_dict *ad_ ) :
+		stmt(stmt_arg), except(except_arg), await_only(await_only_arg), ad(ad_),
 		value(0), name(0), agent(0) {}
 	~awaitinfo();
-	void SetValue( Agent *agent_, const char *name_, IValue *val );
+	int SetValue( Agent *agent_, const char *name_, IValue *val );
 
 	Stmt *stmt;
 	Stmt *except;
@@ -273,6 +273,7 @@ public:
 	IValue *value;
 	Agent *agent;
 	char *name;
+	agent_dict *ad;
 };
 
 awaitinfo::~awaitinfo()
@@ -280,18 +281,35 @@ awaitinfo::~awaitinfo()
 	if ( value ) Unref( value );
 	if ( agent ) Unref( agent );
 	if ( name )  free_memory( name );
+	if ( ad )
+		{
+		IterCookie* c = ad->InitForIteration();
+		agent_list* member;
+		const char* key;
+		while ( (member = ad->NextEntry( key, c )) )
+			{
+			free_memory( (void*) key );
+			delete member;
+			}
+
+		delete ad;
+		}
 	}
 
-void awaitinfo::SetValue( Agent *agent_, const char *name_, IValue *val )
+
+int awaitinfo::SetValue( Agent *agent_, const char *name_, IValue *val )
 	{
-	if ( value ) Unref(value);
+	agent_list *al = 0;
+	if ( value || name || agent ) return 0;
+	if ( ad && ( !(al = (*ad)[name_]) || !al->is_member(agent_) ) )
+		return 0;
+
 	value = val;
 	Ref(value);
-	if ( agent ) Unref(agent);
 	agent = agent_;
 	Ref(agent);
-	if ( name ) free_memory( name );
 	name = strdup(name_);
+	return 1;
 	}
 
 Scope::~Scope()
@@ -1817,9 +1835,20 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 
 void Sequencer::PushAwait( )
 	{
+	
 	if ( await_stmt )
-		await_list.append( new awaitinfo(await_stmt, except_stmt,
-						  await_only_flag) );
+		{
+		if ( current_await_done && last_await_info && last_await_info->stmt == await_stmt )
+			{
+			await_list.append( last_await_info );
+			last_await_info = 0;
+			}
+		else
+			await_list.append( new awaitinfo(await_stmt, except_stmt,
+							 await_only_flag, await_dict) );
+		}
+
+	current_await_done = 0;
 	}
 
 void Sequencer::PopAwait( )
@@ -1831,6 +1860,7 @@ void Sequencer::PopAwait( )
 		if ( last )
 			{
 			await_stmt = last->stmt;
+			await_dict = last->ad;
 			except_stmt = last->except;
 			await_only_flag = last->await_only;
 			if ( last->value && last->name && last->agent )
@@ -1846,20 +1876,43 @@ void Sequencer::PopAwait( )
 	else
 		{
 		await_stmt = except_stmt = 0;
+		await_dict = 0;
 		await_only_flag = 0;
 		}
 	}
 
-void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
+void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
 	int removed_yyin = 0;
 
-	PushAwait();
+	PushAwait( );
 
 	await_stmt = arg_await_stmt;
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
+
+	await_dict = new agent_dict;
+	event_list *el = ((AwaitStmt*)await_stmt)->AwaitList();
+	loop_over_list ( *el, X )
+		{
+		name_list *nl = (*el)[X]->EventNames();
+		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
+		loop_over_list( *nl, Y )
+			{
+			char *name = (*nl)[Y];
+			agent_list *al = (*await_dict)[name];
+			if ( ! al )
+				{
+				al = new agent_list;
+				await_dict->Insert(name,al);
+				}
+			else
+				free_memory(name);
+
+			al->append(await_agent);
+			}
+		}
 
 	if ( yyin && isatty( fileno( yyin ) ) && 
 			selector->FindSelectee( fileno( yyin ) ) )
@@ -2137,14 +2190,40 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	if ( await_finished ) selector->AwaitDone();
 	}
 
+void stop_here_please()
+	{
+	static int i = 0;
+	i += 1;
+	}
+
 #define NEWEVENT_BODY							\
 									\
-	CHECK_AWAIT							\
+	int ignore_event = 0;						\
+	int await_finished = 0;						\
 									\
-	/* Look ahead into queued awaits for future handling */		\
-	loop_over_list( await_list, X )					\
-		if ( agent->HasRegisteredInterest( await_list[X]->stmt, event_name ) ) \
-			await_list[X]->SetValue( agent, event_name, value );	\
+	if ( await_stmt )						\
+		{							\
+		int found_match = 0;					\
+									\
+		/* Look ahead into queued awaits for future handling */	\
+		loop_over_list( await_list, X )				\
+			{						\
+			if ( agent->HasRegisteredInterest( await_list[X]->stmt, event_name ) ) \
+				{					\
+				if ( found_match = await_list[X]->SetValue( agent, event_name, value ) ) \
+					break;				\
+				}					\
+			}						\
+									\
+		if ( ! found_match )					\
+			{						\
+			await_finished = agent->HasRegisteredInterest( await_stmt, event_name ); \
+									\
+			if ( ! await_finished && await_only_flag && 	\
+			     ! agent->HasRegisteredInterest( except_stmt, event_name ) ) \
+				ignore_event = 1;			\
+			}						\
+		}							\
 									\
 	if ( ignore_event )						\
 		warn->Report( "event ", agent->Name(), ".", event_name,	\

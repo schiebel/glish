@@ -9,9 +9,8 @@
 
 #include "Stmt.h"
 #include "Queue.h"
+#include "Agent.h"
 
-
-class Agent;
 class UserAgent;
 class GlishEvent;
 class Frame;
@@ -291,7 +290,7 @@ public:
 	// though while waiting process any of the events in which
 	// except_stmt has expressed interest (or all other events,
 	// if "only_flag" is false).
-	void Await( Stmt* await_list, int only_flag, Stmt* except_list );
+	void Await( AwaitStmt* await_list, int only_flag, Stmt* except_list );
 
 	// Wait for a reply to the given event to arrive on the given
 	// channel and return its value.
@@ -404,7 +403,7 @@ protected:
 	void RunQueue();
 	void RemoveSelectee( Channel* chan );
 
-	void PushAwait();
+	void PushAwait( );
 	void PopAwait();
 
 	char* name;
@@ -442,6 +441,7 @@ protected:
 	PList(Stmt) registered_stmts;
 
 	Stmt* await_stmt;
+	agent_dict* await_dict;
 	int await_only_flag;
 	Stmt* except_stmt;
 	awaitinfo_list await_list;
