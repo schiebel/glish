@@ -1441,6 +1441,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			break;
 		}
 
+	MakeArgvGlobal( argv, argc, 1 );
 	MakeEnvGlobal();
 	BuildSuspendList();
 
@@ -1532,14 +1533,10 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	if ( argc > 0 && strcmp( argv[0], "--" ) && (run_file = which_include(argv[0])) )
 		{
 		do_interactive = 0;
+		MakeArgvGlobal( argv, argc, 0 );
 		if ( ! include_once.Lookup( run_file ) )
-			{
-			MakeArgvGlobal( argv, argc );
 			Parse( run_file );
-			}
 		}
-	else
-		MakeArgvGlobal( argv, argc, 1 );
 
 	if ( ! ScriptCreated() )
 		InitScriptClient( );
