@@ -200,4 +200,19 @@ xx := func (v)
     }
 assert(xx(90),90)
 # --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+mark()
+the := 200
+assert(the,200)
+func try()
+    {
+    the := 901
+    assert(the,901)
+    {
+        wider the := 100
+        assert(the,100)
+    }
+    assert(the,100)
+    }
+assert(the,200)
+# --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 exit
