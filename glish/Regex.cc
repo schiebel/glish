@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 #include "Regex.h"
 #include "IValue.h"
 #include "Glish/Stream.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 static char regx_buffer[2048];
 static jmp_buf regx_jmpbuf;

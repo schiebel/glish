@@ -6,7 +6,7 @@
 RCSID("@(#) $Id$")
 
 #include "Glish/Value.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "glishlib.h"
 #include <strstream.h>
 #include "system.h"

@@ -67,7 +67,7 @@
 #include "Event.h"
 #include "Stmt.h"
 #include "Func.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Pager.h"
 #include "Sequencer.h"
 #include "Task.h"

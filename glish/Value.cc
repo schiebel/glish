@@ -14,7 +14,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Client.h"
 
 #include "glish_event.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 #define AGENT_MEMBER_NAME "*agent*"
 

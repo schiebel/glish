@@ -13,7 +13,7 @@ RCSID("@(#) $Id$")
 #include <sys/socket.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>

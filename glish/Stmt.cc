@@ -10,7 +10,7 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 #include <string.h>
 
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Pager.h"
 #include "Sequencer.h"
 #include "Stmt.h"

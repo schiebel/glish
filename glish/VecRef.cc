@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "system.h"
 
 #ifdef GGC

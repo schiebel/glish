@@ -24,7 +24,7 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Client.h"
 #include "Glish/List.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Socket.h"
 #include "LocalExec.h"
 #include "Npd/npd.h"

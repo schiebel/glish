@@ -8,7 +8,7 @@ RCSID("@(#) $Id$")
 
 #include <string.h>
 #include <stdlib.h>
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
 #include "comdefs.h"

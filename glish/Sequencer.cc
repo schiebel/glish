@@ -54,7 +54,7 @@ extern int glish_include_jmpbuf_set;
 
 #include "Npd/npd.h"
 #include "Daemon.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Sequencer.h"
 #include "Frame.h"
 #include "BuiltIn.h"

@@ -14,7 +14,7 @@
 
 #include "Expr.h"
 #include "BuiltIn.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Sequencer.h"
 #include "Regex.h"
 #include "input.h"

@@ -11,7 +11,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Expr.h"
 #include "Agent.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 
 EventDesignator::EventDesignator( Expr* arg_agent, Expr* arg_event_name )

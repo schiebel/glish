@@ -7,7 +7,7 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 #include "Glish/Object.h"
 #include "Glish/Value.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 name_list *glish_files = 0;
 name_list *glish_desc = 0;

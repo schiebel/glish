@@ -71,7 +71,7 @@ RCSID("@(#) $Id$")
 
 #include "input.h"
 #include "glishlib.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Sequencer.h"
 #include "IValue.h"
 #include "Task.h"

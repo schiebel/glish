@@ -14,7 +14,7 @@ RCSID("@(#) $Id$")
 #include "glish_event.h"
 #include "BinOpExpr.h"
 #include "Func.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Sequencer.h"
 #include "Agent.h"
 #include "Regex.h"

@@ -7,7 +7,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "File.h"
 #include <ctype.h>
 #include "Glish/Stream.h"

@@ -42,7 +42,7 @@ char* strdup( const char* );
 #include "Glish/Client.h"
 
 #include "Daemon.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Socket.h"
 #include "glish_event.h"
 #include "system.h"

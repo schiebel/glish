@@ -7,7 +7,7 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 #include "IValue.h"
 #include "Frame.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "system.h"
 
 const char *Frame::Description() const

@@ -4,7 +4,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Garbage.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 garbage_list *Garbage::values = 0;
 

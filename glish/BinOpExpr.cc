@@ -6,7 +6,7 @@
 RCSID("@(#) $Id$")
 #include <string.h>
 #include <math.h>
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "BinOpExpr.h"
 #include "IValue.h"
 #include "Glish/Complex.h"

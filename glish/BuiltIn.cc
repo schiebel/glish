@@ -22,7 +22,7 @@ RCSID("@(#) $Id$")
 #include "Npd/npd.h"
 #include "glish_event.h"
 #include "BuiltIn.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Pager.h"
 #include "Task.h"
 #include "Sequencer.h"

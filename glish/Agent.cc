@@ -12,7 +12,7 @@ RCSID("@(#) $Id$")
 #include "Agent.h"
 #include "Frame.h"
 #include "IValue.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Sequencer.h"
 
 

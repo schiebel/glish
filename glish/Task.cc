@@ -21,7 +21,7 @@ RCSID("@(#) $Id$")
 #include "RemoteExec.h"
 #include "Task.h"
 #include "Sequencer.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 
 class Serialize {

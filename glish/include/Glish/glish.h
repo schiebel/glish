@@ -36,7 +36,7 @@ typedef void (*glish_signal_handler)( );
 
 #if ! defined(DIAG) && defined(__cplusplus)
 #if defined(DO_DIAG)
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #define DiAg_LiSt_hdn2(w,x) w,x
 #define DiAg_LiSt_hdn3(w,x,y) w,x,y
 #define DiAg_LiSt_hdn4(w,x,y,z) w,x,y,z

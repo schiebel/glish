@@ -15,7 +15,7 @@ RCSID("@(#) $Id$")
 #include "Stmt.h"
 #include "Frame.h"
 #include "Sequencer.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 
 #ifdef GGC
 void Func::TagGC() { }

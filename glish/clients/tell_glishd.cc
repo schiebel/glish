@@ -15,7 +15,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Client.h"
 #include "sos/io.h"
 
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "ports.h"
 
 const char* prog_name;

@@ -4,7 +4,7 @@
 #define pager_h_
 
 #include "Sequencer.h"
-#include "Reporter.h"
+#include "Glish/Reporter.h"
 #include "Glish/Stream.h"
 
 class PagerReporter : public Reporter {
