@@ -1654,9 +1654,6 @@ Value *read_value( sos_in &sos )
 	char *name = 0;
 	unsigned char flags;
 	Value *result = read_value( sos, name, flags );
-
-	cerr << "read_value: " << name << " (" << (void*) flags << ")" << endl;
-
 	return result;
 	}
 

@@ -44,9 +44,11 @@ CLIENTS = \
 	$(BINDIR_P)/echo_client \
 	$(BINDIR_P)/echo_mclient \
 	$(BINDIR_P)/glishd \
+	$(BINDIR_P)/glishd2 \
 	$(BINDIR_P)/shell_client \
 	$(BINDIR_P)/tell_glishd \
 	$(BINDIR_P)/test_client \
+	$(BINDIR_P)/test_glishd2 \
 	$(BINDIR_P)/timer \
 	$(BINDIR_P)/multiplexer
 
@@ -54,9 +56,11 @@ INSTALLED_CLIENTS = \
 	$(BINDIR)/echo_client \
 	$(BINDIR)/echo_mclient \
 	$(BINDIR)/glishd \
+	$(BINDIR)/glishd2 \
 	$(BINDIR)/shell_client \
 	$(BINDIR)/tell_glishd \
 	$(BINDIR)/test_client \
+	$(BINDIR)/test_glishd2 \
 	$(BINDIR)/timer \
 	$(BINDIR)/multiplexer
 
@@ -88,6 +92,22 @@ $(BINDIR_P)/glishd: glishd
 $(BINDIR)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(BINDIR)
 #	strip $(BINDIR)/glishd
+
+glishd2.o: $(SRC)/glishd2.cc $(GLISH_SRC)/Executable.h \
+		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
+		$(GLISH_SRC)/ports.h
+	$(CPLUS) $(INCLUDE) -I$(INCDIR_P) $(CXXFLAGS) -c $(SRC)/glishd2.cc 
+
+glishd2: glishd2.o $(GLISH_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glishd2 glishd2.o $(LIBS)
+
+$(BINDIR_P)/glishd2: glishd2
+	$(INSTALL_PROGRAM) glishd2 $(BINDIR_P)
+#	strip $(BINDIR_P)/glishd2
+
+$(BINDIR)/glishd2: glishd2
+	$(INSTALL_PROGRAM) glishd2 $(BINDIR)
+#	strip $(BINDIR)/glishd2
 
 echo_client.o: $(SRC)/echo_client.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/echo_client.cc 
@@ -160,6 +180,20 @@ $(BINDIR_P)/test_client: test_client
 $(BINDIR)/test_client: test_client
 	$(INSTALL_PROGRAM) test_client $(BINDIR)
 #	strip $(BINDIR)/test_client
+
+test_glishd2.o: $(SRC)/test_glishd2.cc $(GLISH_SRC)/include/Glish/Client.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/test_glishd2.cc 
+
+test_glishd2: test_glishd2.o $(GLISH_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o test_glishd2 test_glishd2.o $(LIBS)
+
+$(BINDIR_P)/test_glishd2: test_glishd2
+	$(INSTALL_PROGRAM) test_glishd2 $(BINDIR_P)
+#	strip $(BINDIR_P)/test_glishd2
+
+$(BINDIR)/test_glishd2: test_glishd2
+	$(INSTALL_PROGRAM) test_glishd2 $(BINDIR)
+#	strip $(BINDIR)/test_glishd2
 
 timer.o: $(SRC)/timer.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/timer.cc 

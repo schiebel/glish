@@ -9,8 +9,10 @@
 extern "C" {
 #endif
 
-	int authenticate_client( int sock );
+	char **authenticate_client( int sock );
 	int authenticate_to_server( int sock );
+	int get_userid( const char *name );
+	int get_user_group( const char *name );
 
 	/* Returns 0 upon failure */
 	int create_keyfile();

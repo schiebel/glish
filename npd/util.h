@@ -87,12 +87,20 @@ extern int get_our_userid();
  */
 extern const char *get_username( int id );
 extern int get_userid( const char *name );
+extern int get_user_group( const char *name );
+extern const char *get_user_shell( const char *name );
 
 /*
  * Get the uid of the owner of a file. Returns 0 upon failure.
  * Note the effect of this on files owned by root.
  */
 extern int get_file_owner( const char *filename );
+
+/*
+ * Check to see if the file is not a link and readable
+ * by only by the owner.
+ */
+extern int is_regfile_protected( const char *filename );
 
 /* Restart the log, reporting success to the given peer. */
 extern int restart_log( FILE *peer );

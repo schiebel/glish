@@ -245,8 +245,10 @@ unsigned char *read_encoded_binary( FILE *f, int *len_p )
 	int n = 0;
 	int c;
 
+	*len_p = 0;
 	while ( (c = getc( f )) != EOF )
 		{
+		putc(c,stderr);
 		if ( c == '\n' )
 			{
 			if ( n == 0 )
@@ -542,11 +544,34 @@ int get_userid( const char *name )
 	return pw ? pw->pw_uid : 0;
 	}
 
+int get_user_group( const char *name )
+	{
+	struct passwd *pw;
+	pw = getpwnam( name );
+	return pw ? pw->pw_gid : 0;
+	}
+
+const char *get_user_shell( const char *name )
+	{
+	struct passwd *pw;
+	pw = getpwnam( name );
+	return pw && *pw->pw_shell ? pw->pw_shell : 0;
+	}
+
 int get_file_owner( const char *filename )
 	{
 	struct stat statrec;
 	int result = stat(filename, &statrec);
 	return result >= 0 ? statrec.st_uid : 0;
+	}
+
+int is_regfile_protected( const char *filename )
+	{
+	struct stat rec;
+	int result = stat(filename, &rec);
+	return ( ! S_ISREG(rec.st_mode) ||
+	         ( S_IRGRP | S_IWGRP | S_IXGRP |
+		   S_IROTH | S_IWOTH | S_IXOTH ) & rec.st_mode ) ? 0 : 1;
 	}
 
 static void start_log()

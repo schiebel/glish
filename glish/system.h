@@ -63,6 +63,16 @@ extern "C" {
 	 */
 	int local_connection( int sock, const char* path );
 
+	/* Creates a stream pipe, currently used in
+	 * glishd to pass open file descriptors.
+	 */
+	int stream_pipe( int fd[2] );
+	/* Send and receive an open file descriptor
+	 * over a stream pipe.
+	 */
+	int send_fd( int pipe, int fd );
+	int recv_fd( int pipe );
+
 	/* An interface to waitpid/wait4. */
 	int wait_for_pid( int pid, int *loc, int opts );
 

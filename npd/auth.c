@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "md5.h"
 #include "util.h"
@@ -79,6 +81,7 @@ static unsigned char *get_key( const char *dir, const char *host,
 	const char *nme;
 	int user_len;
 	int n,id;
+	struct stat stat_buf;
 
 	static const char from_fmt[] = "%s/hosts/%s";
 	static const char to_fmt[] = "%s/hosts/%s";
@@ -129,12 +132,19 @@ static unsigned char *get_key( const char *dir, const char *host,
 		return 0;
 		}
 
+	if ( fstat( fileno(key_f), &stat_buf) < 0)
+	        {
+		sprintf( errmsg, "couldn't stat user key file \"%s\"", key_file );
+		return 0;
+		}
+
 	user_key = read_encoded_binary( key_f, &user_len );
 
 	fclose( key_f );
 
 	if ( host_len != user_len )
 		{
+		fprintf( stderr, "user key file: \"%s\"\n", key_file );
 		sprintf( errmsg, "host key length (%d) != user key length (%d)",host_len,user_len);
 		my_free( host_key );
 		my_free( user_key );
@@ -160,6 +170,14 @@ static unsigned char *get_key( const char *dir, const char *host,
 	if ( strcmp( nme, user ) )
 		{
 		sprintf( errmsg, "key file ownership problem (not owned by %s)", user );
+		my_free( host_key );
+		my_free( user_key );
+		return 0;
+		}
+
+	if ( ! is_regfile_protected(key_file) )
+		{
+		sprintf( errmsg, "key file ownership problem, has world/group access or not regular file" );
 		my_free( host_key );
 		my_free( user_key );
 		return 0;

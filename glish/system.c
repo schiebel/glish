@@ -26,6 +26,9 @@ RCSID("@(#) $Id$")
 #include <sys/resource.h>
 #include <string.h>
 #include <termio.h>
+#include <sys/uio.h>
+#include <stddef.h>
+#include <stropts.h>
 
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
@@ -250,6 +253,122 @@ int local_connection( int sock, const char* path )
 	return 1;
 	}
 
+int stream_pipe( int fd[2] )
+	{
+#ifdef HAVE_STREAMLESS_PIPE
+	return socketpair(AF_UNIX, SOCK_STREAM, 0, fd);
+#else
+	return pipe(fd);
+#endif
+	}
+
+#ifdef HAVE_BSD_RENO
+static struct cmsghdr *cmptr = 0;
+#define CONTROLLEN (sizeof(struct cmsghdr) + sizeof(int))
+#endif
+
+#ifdef HAVE_STREAMLESS_PIPE
+int send_fd( int pipe, int fd )
+	{
+	char buf;
+	struct iovec iov[1];
+	struct msghdr msg;
+
+	if ( fd <= 0 ) return -1;
+
+	iov[0].iov_base = &buf;
+	iov[0].iov_len = 1;
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+	msg.msg_name = NULL;
+	msg.msg_namelen = 0;
+
+#ifndef HAVE_BSD_RENO
+	msg.msg_accrights = (caddr_t) &fd;
+	msg.msg_accrightslen = sizeof(int);
+#else
+	if ( cmptr == 0 && (cmptr = malloc(CONTROLLEN)) == NULL )
+		return -1;
+	cmptr->cmsg_level = SOL_SOCKET;
+	cmptr->cmsg_type = SCM_RIGHTS;
+	cmptr->cmsg_len = CONTROLLEN;
+	msg.msg_control = (caddr_t) cmptr;
+	msg.msg_controllen = CONTROLLEN;
+	*(int*)CMSG_DATA(cmptr) = fd;
+#endif
+	if ( sendmsg(pipe, &msg, 0) != 1 )
+		return -1;
+
+	return 0;
+	}
+
+int recv_fd( int pipe )
+	{
+	int newfd = -1;
+	int len;
+	char buf;
+	struct iovec iov[1];
+	struct msghdr msg;
+
+	iov[0].iov_base = &buf;
+	iov[0].iov_len = 1;
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+	msg.msg_name = NULL;
+	msg.msg_namelen = 0;
+
+#ifndef HAVE_BSD_RENO
+	msg.msg_accrights = (caddr_t) &newfd;
+	msg.msg_accrightslen = sizeof(int);
+#else
+	if ( ! cmptr && ! (cmptr = malloc(CONTROLLEN)) )
+		return -1;
+	msg.msg_control = (caddr_t) cmptr;
+	msg.msg_controllen = CONTROLLEN;
+#endif
+
+	if ( (len = recvmsg(pipe, &msg, 0)) < 0 )
+		{
+		fprintf(stderr,"recvmsg error\n");
+		return -1;
+		}
+	else if ( len == 0 )
+		{
+		fprintf(stderr,"connection closed by server\n");
+		return -1;
+		}
+
+#ifndef HAVE_BSD_RENO
+	if ( msg.msg_accrightslen != sizeof(int) )
+#else
+	if ( msg.msg_controllen == CONTROLLEN )
+		newfd = *(int*)CMSG_DATA(cmptr);
+	else
+#endif
+		{
+		fprintf(stderr,"no fd found\n");
+		return -1;
+		}
+
+	return newfd;
+	}
+#else
+int send_fd( int pipe, int fd )
+	{
+	if ( ioctl(pipe, I_SENDFD, fd) < 0 )
+		return -1;
+	return 0;
+	}
+int recv_fd( int pipe )
+	{
+	struct strrecvfd fdrec;
+
+	if ( ioctl( pipe, I_RECVFD, &fdrec ) < 0 )
+		return -1;
+
+	return fdrec.fd;
+	}
+#endif
 
 #ifndef HAVE_WAITPID
 pid_t waitpid( pid_t pid, int *loc, int opts )
@@ -281,7 +400,6 @@ void mark_close_on_exec( int fd )
 	if ( fcntl( fd, F_SETFD, 1 ) == -1 )
 		pgripe( "mark_close_on_exec(): fcntl failed" );
 	}
-
 
 static char* input_file_name = 0;
 

@@ -131,11 +131,12 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 /* Returns true if the peer successfully authenticates itself, false
  * otherwise.
  */
-static int authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *sin )
+static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *sin )
 	{
 	unsigned char *answer, *peer_answer;
-	char peer_hostname[256];
-	char peer_username[9];
+	static char peer_hostname[256];
+	static char peer_username[9];
+	static char *OK[3] = { 0, 0, 0 };
 	long peer_addr;
 	u_long ip_addr;
 	int answer_len, peer_answer_len;
@@ -144,6 +145,14 @@ static int authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *s
 	const char *s;
 	int uid;
 	int i;
+
+	/* return peer information if properly authenticated */
+	if ( ! OK[0] )
+		{
+		OK[0] = peer_username;
+		OK[1] = peer_hostname;
+		OK[2] = 0;
+		}
 
 	/* First, figure out who we're talking to. */
 	peer_addr = sin->sin_addr.s_addr;
@@ -207,6 +216,10 @@ static int authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *s
 	if ( ! (uid = get_userid( peer_username )) )
 		return to_log( "peer sent bogus user name" );
 
+	/* Prevent access for users who don't have a shell */
+	if ( ! get_user_shell( peer_username ) )
+		return to_log( "peer sent bogus user name" );
+
 	if ( ! (s = get_word_from_peer( npd_in )) || (version = atoi( s )) < 1 )
 		return to_log( "peer protocol error, version expected, got \"%s\"",
 				s ? s : "<EOF>" );
@@ -237,15 +250,15 @@ static int authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *s
 
 	to_log( "peer %s authenticated", peer_hostname );
 
-	return 1;
+	return OK;
 	}
 
-int authenticate_client(int sock)
+char **authenticate_client(int sock)
 	{
 	FILE *in, *out;
 	struct sockaddr_in sin;
 	int len = sizeof( sin );
-	int result = 0;
+	char **result = 0;
 
 	if (! (in = fdopen(dup(sock),"r")))
 		{

@@ -132,3 +132,8 @@
 /* Define if you have the <osfcn.h> header file.  */
 #undef HAVE_OSFCN_H
 
+/* Define if pipe() doesn't create a stream. */
+#undef HAVE_STREAMLESS_PIPE
+
+/* Define if you're running 4.3 BSD Reno */
+#undef HAVE_BSD_RENO
