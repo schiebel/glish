@@ -200,9 +200,9 @@ void GlishEvent::SetValue( const Value *v )
 
 ProxyId::ProxyId( const Value *val )
 	{
-	if ( val && val->Type() == TYPE_RECORD )
+	if ( val && val->Deref()->Type() == TYPE_RECORD )
 		{
-		const Value *v = (*val->RecordPtr(0))[AGENT_MEMBER_NAME];
+		const Value *v = (*val->Deref()->RecordPtr(0))[AGENT_MEMBER_NAME];
 		if ( ! v )
 			{
 			ary[0]=ary[1]=ary[2]=0;
@@ -219,7 +219,15 @@ ProxyId::ProxyId( const Value *val )
 				}
 			else
 				{
-				ary[0]=ary[1]=ary[2]=0;
+				const ProxyId *id = val->Deref()->GetProxyId( );
+				if ( id )
+					{
+					ary[0] = id->ary[0];
+					ary[1] = id->ary[1];
+					ary[2] = id->ary[2];
+					}
+				else
+					ary[0]=ary[1]=ary[2]=0;
 				}
 			}
 		}

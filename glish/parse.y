@@ -466,7 +466,7 @@ local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			}
 	|	TOK_ID
 			{
-			(void) current_sequencer->LookupID( $1, LOCAL_SCOPE, 1, 0, 0 );
+			(void) current_sequencer->LookupID( $1, LOCAL_SCOPE, 1, 0, 0, 1 );
 			$$ = null_stmt;
 			}
 	;
@@ -490,7 +490,7 @@ global_item:	TOK_ID TOK_ASSIGN scoped_expr
 			}
 	|	TOK_ID
 			{
-			(void) current_sequencer->LookupID( $1, GLOBAL_SCOPE, 1, 0 );
+			(void) current_sequencer->LookupID( $1, GLOBAL_SCOPE, 1, 0, 1, 1 );
 			$$ = null_stmt;
 			}
 	;

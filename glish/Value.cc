@@ -402,20 +402,15 @@ int Value::IsAgentRecord( int inc_proxy ) const
 		if ( ! v ) return 0;
 		v = v->Deref();
 		if ( v->Type() == TYPE_INT && v->Length() == ProxyId::len() )
-			{
-// 			fprintf( stderr, "\t\t\t\t\t\t\t>>%d/1<<\n", inc_proxy );
 			return 1;
-			}
 		else
-			{
-// 			fprintf( stderr, "\t\t\t\t\t\t\t>>>%d/0<<<\n", inc_proxy );
 			return 0;
-			}
 		}
 
-// 	fprintf( stderr, "\t\t\t\t\t\t\t>>>%d/0<<<\n", inc_proxy );
 	return 0;
 	}
+
+const ProxyId *Value::GetProxyId( ) const { return 0; }
 
 #define DEFINE_CONST_ACCESSOR(name,tag,type,MOD,CONST)			\
 type Value::name( int modify ) const					\
@@ -1136,8 +1131,8 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 		// values of length 1 to be converted to strings; assuming that
 		// they are uninitialized variables. This if-clause permits this
 		// conversion.
-		if ( size > 1 )
-			warn->Report( "array values lost due to conversion to string type" );
+// 		if ( size > 1 )
+// 			warn->Report( "array values lost due to conversion to string type" );
 		is_copy = 1;
 		char **ary = alloc_charptr(size);
 		for ( int x=0; x < size; ++x )

@@ -1549,6 +1549,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		else if ( ! strcmp( argv[0], "-noaf" ) )
 			verbose_mask |= NO_AUTO_FAIL();
 
+		else if ( ! strcmp( argv[0], "-faildef" ) )
+			verbose_mask |= FAIL_DEFAULT();
+
 		else if ( ! strcmp( argv[0], "-vi" ) )
 			verbose_mask |= VERB_INCL();
 
@@ -1584,6 +1587,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			message->Report( "-v[1-9]      set the verbosity level" );
 			message->Report( "-w           report each generated error string" );
 			message->Report( "-noaf        suppress auto-fail behavior (TEMPOARY FLAG)" );
+			message->Report( "-faildef     initialized values to <fail> by default" );
 			message->Report( "<FILE>       execute <FILE> rather than running interactively" );
 			message->Report( "<ENV>=<VAL>  export <ENV> to the environment with value <VAL>" );
 			message->Report( "--           end arguments to Glish" );
@@ -2018,7 +2022,7 @@ Scope *Sequencer::GetScope( )
 		return 0;
 	}
 
-Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
+Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn, int bool_initial,
 				int GlobalRef, int FrameOffset,
 				change_var_notice f )
 	{
@@ -2062,7 +2066,8 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
-	Expr* result = CreateVarExpr( id, GlobalRef ? GLOBAL_SCOPE : scope, scope_offset, frame_offset, this, f );
+	Expr* result = CreateVarExpr( id, GlobalRef ? GLOBAL_SCOPE : scope, scope_offset,
+				      frame_offset, this, f, bool_initial );
 
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
@@ -2077,7 +2082,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 		{
 		global_frame.append( 0 );
 		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
-			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
+			InstallID( id, LOCAL_SCOPE, do_warn, bool_initial, 1, frame_offset );
 		}
 
 	if ( old )
@@ -2090,7 +2095,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 	}
 
 Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_warn,
-			   int local_search_all )
+			   int local_search_all, int bool_initial )
 	{
 	Expr *result = 0;
 
@@ -2124,7 +2129,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 				}
 
 			if ( ! result && do_install )
-				return InstallID( id, GLOBAL_SCOPE, do_warn );
+				return InstallID( id, GLOBAL_SCOPE, do_warn, bool_initial );
 			}
 			break;
 		case LOCAL_SCOPE:
@@ -2138,13 +2143,13 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 						break;
 					}
 				if ( ! result && do_install )
-					return InstallID( id, FUNC_SCOPE, do_warn );
+					return InstallID( id, FUNC_SCOPE, do_warn, bool_initial );
 				}
 			else
 				{
 				result = (*scopes[scopes.length()-1])[id];
 				if ( ! result && do_install )
-					return InstallID( id, LOCAL_SCOPE, do_warn );
+					return InstallID( id, LOCAL_SCOPE, do_warn, bool_initial );
 				}
 			}
 			break;
@@ -2154,15 +2159,16 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 			int offset = global_scopes[cnt];
 			result = (*scopes[offset])[id];
 			if ( ! result && do_install )
-				return InstallID( id, FUNC_SCOPE, do_warn );
+				return InstallID( id, FUNC_SCOPE, do_warn, bool_initial );
 			}
 			break;
 		case GLOBAL_SCOPE:
 			result = (*scopes[0])[id];
 			if ( ! result && do_install )
-				return InstallID( id, GLOBAL_SCOPE, do_warn );
+				return InstallID( id, GLOBAL_SCOPE, do_warn, bool_initial );
 			if ( result && GetScopeType() != GLOBAL_SCOPE )
-				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset(),
+				return InstallID( id, LOCAL_SCOPE, do_warn, bool_initial, 1,
+						  ((VarExpr*)result)->offset(),
 						  ((VarExpr*)result)->change_func() );
 			break;
 		default:

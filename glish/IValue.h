@@ -49,7 +49,6 @@ extern void copy_agents( void *to_, void *from_, unsigned long len );
 extern void delete_agents( void *ary_, unsigned long len );
 
 class IValue : public Value {
-friend IValue* deep_copy_value( const IValue*, int );
 public:
 	// Create a <fail> value
 	IValue( );
@@ -141,6 +140,7 @@ public:
 
 	// True if the value is a record corresponding to a agent.
 	int IsAgentRecord( int inc_proxy = 0 ) const;
+	const ProxyId *GetProxyId( ) const;
 
 	// Returns the agent or function corresponding to the Value.
 	Agent* AgentVal( ) const;
@@ -265,11 +265,6 @@ public:
 
 protected:
 
-	//
-	// used by deep_copy_value( )
-	//
-	const recordptr GetFailDict( ) const { return kernel.constRecord( ); }
-
 	void DeleteValue();
 
 	// ** NOTE THIS CAN PROBABLY BE REMOVED, BUT IT IS LEFT IN FOR NOW **
@@ -293,7 +288,7 @@ typedef PList(const_ivalue) const_ivalue_list;
 typedef PList(const_ivalue) const_args_list;
 
 extern IValue* copy_value( const IValue* value );
-extern IValue* deep_copy_value( const IValue* value, int proxy_subst=0 );
+extern IValue* deep_copy_value( const IValue* value );
 
 inline IValue* empty_ivalue(glish_type t = TYPE_INT) { return (IValue*) empty_value(t); }
 inline IValue* empty_bool_ivalue() { return (IValue*) empty_bool_value(); }

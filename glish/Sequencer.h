@@ -259,6 +259,7 @@ public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 	inline unsigned int NO_AUTO_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
+	inline unsigned int FAIL_DEFAULT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
 
 	friend class SystemInfo;
 	Sequencer( int& argc, char**& argv );
@@ -292,14 +293,14 @@ public:
 	Scope *GetScope( );
 	int ScopeDepth() const { return scopes.length(); }
 
-	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
+	Expr* InstallID( char* id, scope_type scope, int do_warn = 1, int bool_initial=0,
 					int GlobalRef = 0, int FrameOffset = 0,
 					change_var_notice f=0 );
 	// "local_search_all" is used to indicate if all local scopes should be
 	// searched or if *only* the "most local" scope should be searched. This
 	// is only used if "scope==LOCAL_SCOPE".
 	Expr* LookupID( char* id, scope_type scope, int do_install = 1, int do_warn = 1,
-			int local_search_all=1 );
+			int local_search_all=1, int bool_initial=0 );
 
 	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var,
@@ -314,6 +315,7 @@ public:
 	// Returns true when "auto fail" should be suppressed,
 	// unhandled fails cause the routine to fail by default.
 	int SupressAutoFail( ) const { return NO_AUTO_FAIL(verbose_mask); }
+	int FailDefault( ) const { return FAIL_DEFAULT(verbose_mask); }
 
 	SystemInfo &System() { return system; }
 

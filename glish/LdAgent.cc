@@ -103,7 +103,7 @@ void LoadedProxyStore::Reply( const Value *event_value, const ProxyId &proxy_id 
 			{
 			recordptr rec = create_record_dict( );
 			rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
-			rec->Insert( string_dup("value"), copy_value(event_value) );
+			rec->Insert( string_dup("value"), deep_copy_value(event_value) );
 			GlishEvent e( (const char*) pending_reply, create_value(rec) );
 			e.SetIsReply();
 			e.SetIsProxy();
@@ -128,7 +128,7 @@ void LoadedProxyStore::PostEvent( const char* event_name, const Value* event_val
 		{
 		recordptr rec = create_record_dict( );
 		rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
-		rec->Insert( string_dup("value"), copy_value(event_value) );
+		rec->Insert( string_dup("value"), deep_copy_value(event_value) );
 		GlishEvent e( event_name, create_value(rec) );
 		e.SetIsProxy( );
 		PostEvent( &e, context );
@@ -417,7 +417,7 @@ IValue* LoadedAgent::SendEvent( const char* event_name, IValue *&event_val,
 	//
 	if ( ! is_request )
 		{
-		GlishEvent *event = new GlishEvent( string_dup( event_name ), deep_copy_value( event_val, 1 ) );
+		GlishEvent *event = new GlishEvent( string_dup( event_name ), deep_copy_value( event_val ) );
 		if ( is_bundle ) event->SetIsBundle();
 		if ( is_proxy ) event->SetIsProxy( );
 
@@ -433,7 +433,7 @@ IValue* LoadedAgent::SendEvent( const char* event_name, IValue *&event_val,
 		sprintf( reply_name, fmt, event_name );
 
 		recordptr rptr = create_record_dict();
-		rptr->Insert( string_dup("*request*"), deep_copy_value( event_val, 1 ) );
+		rptr->Insert( string_dup("*request*"), deep_copy_value( event_val ) );
 		char **sary = alloc_charptr( 1 );
 		sary[0] = string_dup( reply_name );
 		rptr->Insert( string_dup("*reply*"), new IValue( (charptr*) sary, 1 ) );

@@ -778,7 +778,7 @@ const char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 
 const char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
 	{
-	if ( ! val->IsNumeric() || val->Length() < 2 )
+	if ( ! val->Deref()->IsNumeric() || val->Deref()->Length() < 2 )
 		{
 		proxy->Error("scrollbar update function");
 		return 0;

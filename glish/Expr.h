@@ -102,7 +102,7 @@ class evalOpt {
 	// VALUE_NEEDED is included because it is the only outstanding statement
 	// evaluation flag, it indicates if a return value is expected or not.
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
-	enum returnType { VALUE_NEEDED=9, RESULT_PERISHABLE=10, RHS_RESULT=11, PRESERVE_FIELDNAMES=12 };
+	enum returnType { VALUE_NEEDED=9, RESULT_PERISHABLE=10, RHS_RESULT=11, PRESERVE_FIELDNAMES=12, BOOL_INITIAL=13 };
 
 	evalOpt( ) : mask(0), fcount(0), backrefs(0) { }
 	evalOpt( exprType t ) : mask(1<<t), fcount(0), backrefs(0) { }
@@ -147,6 +147,7 @@ class evalOpt {
 	inline static unsigned short mRESULT_PERISHABLE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RESULT_PERISHABLE; }
 	inline static unsigned short mRHS_RESULT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RHS_RESULT; }
 	inline static unsigned short mPRESERVE_FIELDNAMES( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<PRESERVE_FIELDNAMES; }
+	inline static unsigned short mBOOL_INITIAL( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<BOOL_INITIAL; }
 
 	// evaluation types/modes
 	int copy() const { return mCOPY(mask); }
@@ -166,6 +167,7 @@ class evalOpt {
 	int result_perishable() const { return mRESULT_PERISHABLE(mask); }
 	int rhs_result() const { return mRHS_RESULT(mask); }
 	int preserve_fieldnames() const { return mPRESERVE_FIELDNAMES(mask); }
+	int bool_initial() const { return mBOOL_INITIAL(mask); }
 
 	// References to global or wider values discovered while evaluating
 	back_offsets_type &Backrefs( );
@@ -304,7 +306,7 @@ class Expr : public ParseNode {
 class VarExpr : public Expr {
     public:
 	VarExpr( char* var_id, scope_type scope, int scope_offset,
-			int frame_offset, Sequencer* sequencer );
+			int frame_offset, Sequencer* sequencer, int bool_initial = 0 );
 
 	VarExpr( char *var_id, Sequencer *sequencer );
 
@@ -379,6 +381,7 @@ class VarExpr : public Expr {
 	change_var_notice func;
 	frame_list frames;
 	int hold_frames;
+	int init_to_bool;
 	};
 
 
@@ -404,7 +407,7 @@ class ScriptVarExpr : public VarExpr {
 VarExpr *CreateVarExpr( char *id, Sequencer *seq );
 VarExpr *CreateVarExpr( char *id, scope_type scope, int scope_offset,
 			int frame_offset, Sequencer *seq,
-			change_var_notice f=0 );
+			change_var_notice f=0, int bool_initial=0 );
 
 class ValExpr : public Expr {
     public:

@@ -25,6 +25,7 @@ typedef enum {
 extern int glish_dummy_int;
 
 class Value;
+class ProxyId;
 struct glish_complex;
 struct glish_dcomplex;
 struct record_header;	// Needed when dealing with SDS; see AddToSds()
@@ -72,7 +73,7 @@ typedef SubVecRef(charptr) charptrref;
 	copy_array( src, (void *) new type[len], length, type )
 
 extern Value* copy_value( const Value* value );
-extern Value* deep_copy_value( const Value* value /* , int i=0 */ );
+extern Value* deep_copy_value( const Value* value );
 
 extern const Value* false_value;
 extern Value* empty_value( glish_type t = TYPE_INT );
@@ -193,6 +194,7 @@ public:
 
 	// True if the value is a record corresponding to a  Proxy agent.
 	virtual int IsAgentRecord( int inc_proxy = 1 ) const;
+	virtual const ProxyId *GetProxyId( ) const;
 
 	// Returns the "n"'th element coereced to the corresponding type.
 	glish_bool BoolVal( int n = 1, Str &err = glish_errno ) const;

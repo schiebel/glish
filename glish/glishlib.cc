@@ -28,6 +28,35 @@ int lookup_print_precision( ) { return -1; }
 int lookup_print_limit( ) { return 0; }
 
 
+//
+// this macro is currently NOT USED
+//
+#define COPY_VECREF(tag,type,accessor,COPY,CLEANUP)			\
+	case tag:							\
+		{							\
+		int len = value->Length( );				\
+		type *ptr = value->accessor(0);				\
+		type *cvec = (type*) alloc_##type( len );		\
+		VecRef *ref = value->VecRefPtr( );			\
+									\
+		for ( int i = 0; i < len; ++i )				\
+			{						\
+			int erri = 0;					\
+			int index = ref->TranslateIndex( i, &erri );	\
+			if ( erri )					\
+				{					\
+				CLEANUP					\
+				free_memory( cvec );			\
+				return (Value*) generate_error( "invalid sub-vector" ); \
+				}					\
+			cvec[i] = COPY(ptr[index]);			\
+			}						\
+									\
+		copy = new Value( cvec, len );				\
+		copy->CopyAttributes( value );				\
+		}							\
+		break;
+
 Value *copy_value( const Value *value )
 	{
 	if ( value->IsRef() )
@@ -82,77 +111,7 @@ Value *copy_value( const Value *value )
 	return copy;
 	}
 
-Value *deep_copy_value( const Value *value /* , int */ )
-	{
-	if ( value->IsRef() )
-		return deep_copy_value( value->RefPtr() );
-
-	Value *copy = 0;
-	switch( value->Type() )
-		{
-		case TYPE_BOOL:
-#define DCOPY_ARY(accessor)							\
-	copy = create_value( value->accessor(0), value->Length(), COPY_ARRAY );	\
-	copy->DeepCopyAttributes( value );					\
-	break;
-			DCOPY_ARY(BoolPtr)
-		case TYPE_BYTE:
-			DCOPY_ARY(BytePtr)
-		case TYPE_SHORT:
-			DCOPY_ARY(ShortPtr)
-		case TYPE_INT:
-			DCOPY_ARY(IntPtr)
-		case TYPE_FLOAT:
-			DCOPY_ARY(FloatPtr)
-		case TYPE_DOUBLE:
-			DCOPY_ARY(DoublePtr)
-		case TYPE_COMPLEX:
-			DCOPY_ARY(ComplexPtr)
-		case TYPE_DCOMPLEX:
-			DCOPY_ARY(DcomplexPtr)
-		case TYPE_STRING:
-			DCOPY_ARY(StringPtr)
-		case TYPE_RECORD:
-			copy = create_value( copy_record_dict( value->RecordPtr(0), 1 ) );
-			copy->DeepCopyAttributes( value );
-			break;
-		case TYPE_FAIL:
-			copy = create_value( );
-			copy->DeepCopyAttributes( value );
-			copy->SetFail( copy_record_dict( value->RecordPtr(0), 1 ) );
-			break;
-
-		case TYPE_SUBVEC_REF:
-			switch ( value->VecRefPtr()->Type() )
-				{
-#define DCOPY_REF(tag,accessor)						\
-	case tag:							\
-		copy = create_value( value->accessor ); 		\
-		copy->DeepCopyAttributes( value );			\
-		break;
-
-				DCOPY_REF(TYPE_BOOL,BoolRef())
-				DCOPY_REF(TYPE_BYTE,ByteRef())
-				DCOPY_REF(TYPE_SHORT,ShortRef())
-				DCOPY_REF(TYPE_INT,IntRef())
-				DCOPY_REF(TYPE_FLOAT,FloatRef())
-				DCOPY_REF(TYPE_DOUBLE,DoubleRef())
-				DCOPY_REF(TYPE_COMPLEX,ComplexRef())
-				DCOPY_REF(TYPE_DCOMPLEX,DcomplexRef())
-				DCOPY_REF(TYPE_STRING,StringRef())
-
-				default:
-					fatal->Report( "bad type in deep_copy_value(Value*) [",
-						       value->VecRefPtr()->Type(), "]" );
-				}
-			break;
-
-		default:
-			fatal->Report( "bad type in deep_copy_value(Value*) [", value->Type(), "]" );
-		}
-
-	return copy;
-	}
+Value *deep_copy_value( const Value *value ) { return copy_value(value); }
 
 int write_agent( sos_out &, Value *, sos_header &, const ProxyId & )
 	{ return 0; }

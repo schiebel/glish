@@ -19,7 +19,6 @@ RCSID("@(#) $Id$")
 #include "Regex.h"
 #include "File.h"
 
-
 int ParseNode::canDelete() const
 	{
 	return 1;
@@ -215,8 +214,10 @@ void VarExpr::change_id( char *newid )
 	}
 
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
-			int var_frame_offset, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
+			int var_frame_offset, Sequencer* var_sequencer,
+			int bool_initial ) : access(PARSE_ACCESS), init_to_bool(bool_initial)
 	{
+
 	id = var_id;
 	scope = var_scope;
 	frame_offset = var_frame_offset;
@@ -227,7 +228,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	if ( scope_offset < 0 ) sequencer->RegisterBackRef( this );
 	}
 
-VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
+VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS), init_to_bool( 0 )
 	{
 	id = string_dup(var_id);
 	sequencer = var_sequencer;
@@ -260,7 +261,8 @@ IValue* VarExpr::Eval( evalOpt &opt )
 
 	if ( ! value )
 		{
-		value = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+		value = init_to_bool || ! sequencer->FailDefault( ) ? false_ivalue( ) :
+			(IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
 					" variable", this, "used", ! strcmp(id,"quit") ?
 					"; use \"exit\" to quit" : "" );
 		value->MarkUninitialized( );
@@ -288,9 +290,10 @@ IValue* VarExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
-		var = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
-					" variable", this, "used", ! strcmp(id,"quit") ?
-					"; use \"exit\" to quit" : "" );
+		var = init_to_bool || opt.bool_initial( ) || ! sequencer->FailDefault( ) ? false_ivalue( ) :
+		      (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+				      " variable", this, "used", ! strcmp(id,"quit") ?
+				      "; use \"exit\" to quit" : "" );
 		var->MarkUninitialized( );
 		sequencer->SetFrameElement( scope, scope_offset,
 						frame_offset, var );
@@ -345,7 +348,8 @@ IValue *VarExpr::ApplyRegx( regexptr* rptr, int rlen, RegexMatch &match )
 
 	if ( ! value )
 		{
-		value = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+		value = init_to_bool || ! sequencer->FailDefault( ) ? false_ivalue( ) :
+			(IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
 					" variable", this, "used" );
 		value->MarkUninitialized( );
 		sequencer->SetFrameElement( scope, scope_offset, frame_offset, value );
@@ -455,12 +459,12 @@ VarExpr *CreateVarExpr( char *id, Sequencer *seq )
 	}
 
 VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff, 
-			Sequencer *seq, change_var_notice f )
+			Sequencer *seq, change_var_notice f, int bool_initial )
 	{
 	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
 			! strcmp( id, "script" ) )
 		return new ScriptVarExpr( id, sc, soff, foff, seq );
-	VarExpr *ret = new VarExpr( id, sc, soff, foff, seq );
+	VarExpr *ret = new VarExpr( id, sc, soff, foff, seq, bool_initial );
 	if ( f ) ret->SetChangeNotice( f );
 	return ret;
 	}
@@ -712,7 +716,9 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 	if ( opt.Return() )
 		opt.set( evalOpt::RESULT_PERISHABLE );
 
-	IValue *l_err = left->Assign( opt, r );
+	evalOpt lhsOpt(opt);
+	lhsOpt.set(evalOpt::BOOL_INITIAL);
+	IValue *l_err = left->Assign( lhsOpt, r );
 
 	//
 	// In this case we had an expression like:
@@ -1820,7 +1826,6 @@ IValue *RecordRefExpr::Assign( evalOpt &opt, IValue* new_value )
 		{
 		Unref( new_value );
 		Unref( lhs_value_ref );
-		message->Report( lhs_value );
 		return (IValue*) Fail( op, "is not a record" );
 		}
 

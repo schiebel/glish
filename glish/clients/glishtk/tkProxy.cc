@@ -165,7 +165,7 @@ class glishtk_event {
     public:
 	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
 			agent(a_), nme(n_ ? strdup(n_) : strdup(" ")), val(v_)
-			{ Ref(agent); Ref(val); }
+			{ Ref(agent); copy_value(val); }
 	void Post();
 	~glishtk_event();
 	Value *value() { return val; }

@@ -23,78 +23,108 @@
 	}
 
 #define SETINIT								\
-	if ( args->Type() != TYPE_RECORD )				\
+        VecRef *ref = args->Type() == TYPE_SUBVEC_REF ? args->VecRefPtr( ) : 0; \
+	Value *args_ = ref ? args->VecRefDeref() : args;		\
+	if ( args_->Type() != TYPE_RECORD )				\
 		{							\
-		global_store->Error("bad value");			\
+		global_store->Error("bad value #10");  			\
 		return;							\
 		}							\
 									\
-	Ref( args );							\
-	recordptr rptr = args->RecordPtr(0);				\
-	int c = 0;							\
+	Ref( args_ );							\
+	recordptr rptr = args_->RecordPtr(0);				\
+	int c = 0, erri=0, tx_index = 0;				\
 	const char *key;
 
-#define SETDONE Unref(args);
+#define SETDONE Unref(args_);
 
 #define SETVAL(var,condition)						\
-	const Value *var      = rptr->NthEntry( c++, key );		\
-	if ( ! ( condition) )						\
+	const Value *var##_raw_ = rptr->NthEntry( c++, key )->Deref();	\
+	VecRef *var##_ref_ = var##_raw_->Type() == TYPE_SUBVEC_REF ? var##_raw_->VecRefPtr( ) : 0; \
+	const Value *var = var##_ref_ ? var##_raw_->VecRefDeref() : var##_raw_; \
+	if ( ! (condition) )						\
 		InvalidArg(c-1);
 
+//########HERE WE ARE########
+#define gtkType(var) (var->Type( ))
+#define gtkLength(var) (var##_raw_->Length( ))
+#define gtkIsNumeric(var) (var->IsNumeric( ))
+#define gtkAccessV(proxy,lhs,var,accessor,result) lhs = var##_raw_->accessor;
+#define gtkAccess(proxy,lhs,var,accessor,idx,result)			\
+	erri = 0;							\
+	tx_index = var##_ref_ ? var##_ref_->TranslateIndex( idx, &erri ) : idx; \
+	if ( erri )							\
+		{							\
+		proxy->Error( "invalid sub_vector" );			\
+		return result;						\
+		}							\
+	lhs = (var->accessor)[ tx_index ];
+
+//########HERE WE ARE########
+
 #define SETSTR(var)							\
-	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
-				var##_v_ ->Length() > 0 )		\
-	charptr var = ( var##_v_ ->StringPtr(0) )[0];
+	SETVAL(var##_v_, gtkType(var##_v_) == TYPE_STRING &&		\
+			 gtkLength(var##_v_) > 0 )			\
+	gtkAccess( global_store,charptr var,var##_v_,StringPtr(0),0,)
+
 #define SETDIM(var)							\
-	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
-				var##_v_ ->Length() > 0   ||		\
-				var##_v_ ->IsNumeric() )		\
+	SETVAL(var##_v_, gtkType(var##_v_) == TYPE_STRING &&		\
+			 gtkLength(var##_v_) > 0   ||			\
+			 gtkIsNumeric(var##_v_))			\
 	char var##_char_[30];						\
 	charptr var = 0;						\
-	if ( var##_v_ ->Type() == TYPE_STRING )				\
-		var = ( var##_v_ ->StringPtr(0) )[0];			\
+	if ( gtkType(var##_v_) == TYPE_STRING )				\
+		{							\
+		gtkAccess(global_store,var,var##_v_,StringPtr(0),0,)	\
+		}							\
 	else								\
 		{							\
-		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
+		gtkAccessV(global_store,int v,var##_v_,IntVal(),)	\
+		sprintf(var##_char_,"%d", v);				\
 		var = var##_char_;					\
 		}
 #define SETINT(var)							\
-	SETVAL(var##_v_, var##_v_ ->IsNumeric() &&			\
-				var##_v_ ->Length() > 0 )		\
-	int var = var##_v_ ->IntVal();
+	SETVAL(var##_v_, gtkIsNumeric(var##_v_) &&			\
+				gtkLength(var##_v_) > 0 )		\
+	gtkAccessV(global_store,int var,var##_v_,IntVal(),)
 
 #define SETDOUBLE(var)							\
-	SETVAL(var##_v_, var##_v_ ->IsNumeric() &&			\
-				var##_v_ ->Length() > 0 )		\
-	double var = var##_v_ ->DoubleVal();
+	SETVAL(var##_v_, gtkIsNumeric(var##_v_) &&			\
+				gtkLength(var##_v_) > 0 )		\
+	gtkAccessV(global_store,double var,var##_v_,DoubleVal(),)
 
 #define EXPRINIT(proxy,EVENT)						\
-	if ( args->Type() != TYPE_RECORD )				\
+	int erri=0, tx_index = 0;					\
+	if ( args->Deref()->Type() != TYPE_RECORD )			\
 		{							\
-		proxy->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value #1");				\
 		return 0;						\
 		}							\
 									\
 	/*Ref(args);*/							\
-	recordptr rptr = args->RecordPtr(0);				\
+	recordptr rptr = args->Deref()->RecordPtr(0);			\
 	int c = 0;							\
 	const char *key;
 
 #define EXPRVAL(proxy, var,EVENT)					\
-	const Value *var = rptr->NthEntry( c++, key );			\
+	const Value *var##_raw_ = rptr->NthEntry( c++, key )->Deref( ); \
+	VecRef *var##_ref_ = var##_raw_->Type() == TYPE_SUBVEC_REF ? var##_raw_->VecRefPtr( ) : 0; \
+	const Value *var = var##_ref_ ? var##_raw_->VecRefDeref() : var##_raw_; \
 	if ( ! var )							\
 		{							\
-		proxy->Error("bad value: %s", EVENT);			\
+		proxy->Error("bad value #2");				\
 		return 0;						\
 		}
 
 #define EXPRSTRVALXX(proxy,var,EVENT,LINE)				\
-	const Value *var = rptr->NthEntry( c++, key );			\
+	EXPRVAL(proxy,var,EVENT);					\
 	LINE								\
-	if ( ! var || var ->Type() != TYPE_STRING ||			\
-		var->Length() <= 0 )					\
+	if ( gtkType(var) != TYPE_STRING || gtkLength(var) <= 0 )	\
 		{							\
-		proxy->Error("bad value: %s", EVENT);			\
+		proxy->Error("bad value #3 %d", (char*) gtkType(var));	\
+		proxy->Error("bad value #3 %s", var->StringVal());	\
+		proxy->Error("bad value #3");				\
+		sleep(120);						\
 		return 0;						\
 		}
 
@@ -103,113 +133,69 @@
 #define EXPRSTR(proxy, var,EVENT)					\
 	charptr var = 0;						\
 	EXPRSTRVALXX(proxy, var##_val_, EVENT,)				\
-	var = ( var##_val_ ->StringPtr(0) )[0];
+	gtkAccess(proxy,var,var##_val_,StringPtr(0),0,0)
 
 #define EXPRDIM(var,EVENT)						\
-	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
+	EXPRVAL(global_store,var##_val_,EVENT)				\
 	charptr var = 0;						\
 	char var##_char_[30];						\
-	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
-			       ! var##_val_ ->IsNumeric() ) ||		\
-		var##_val_ ->Length() <= 0 )				\
+	if ( gtkType(var##_val_) != TYPE_STRING && ! gtkIsNumeric(var##_val_) || \
+		gtkLength(var##_val_) <= 0 )				\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		global_store->Error("bad value #4");			\
 		return 0;						\
 		}							\
 	else								\
-		if ( var##_val_ ->Type() == TYPE_STRING	)		\
-			var = ( var##_val_ ->StringPtr(0) )[0];		\
+		if ( gtkType(var##_val_) == TYPE_STRING	)		\
+			{						\
+			gtkAccess(global_store,var,var##_val_,StringPtr(0),0,0) \
+			}						\
 		else							\
 			{						\
-			sprintf(var##_char_,"%d", var##_val_->IntVal());\
+			gtkAccessV(global_store,int v,var##_val_,IntVal(),0) \
+			sprintf(var##_char_,"%d", v);			\
 			var = var##_char_;				\
 			}
 
 #define EXPRINTVALXX(proxy,var,EVENT,LINE)				\
-	const Value *var = rptr->NthEntry( c++, key );			\
+	EXPRVAL(proxy,var,EVENT)					\
 	LINE								\
-	if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )	\
+	if ( ! gtkIsNumeric(var) || gtkLength(var) <= 0 )		\
 		{							\
-		proxy->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value #5");				\
 		return 0;						\
 		}
 
 #define EXPRINTVAL(proxy,var,EVENT)  EXPRINTVALXX(proxy,var,EVENT, const Value *var##_val_ = var;)
 
 #define EXPRINT(proxy,var,EVENT)					\
-	int var = 0;							\
 	EXPRINTVALXX(proxy,var##_val_,EVENT,)				\
-	var = var##_val_ ->IntVal();
+	gtkAccessV(proxy,int var,var##_val_,IntVal(),0)
 
 #define EXPRINT2(proxy,var,EVENT)					\
-	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
+	EXPRVAL(proxy,var##_val_,EVENT)					\
         char var##_char_[30];						\
 	charptr var = 0;						\
-	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
+	if ( gtkLength(var##_val_) <= 0 )				\
 		{							\
-		proxy->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value #6");				\
 		return 0;						\
 		}							\
-	if ( var##_val_ -> IsNumeric() )				\
+	if ( gtkIsNumeric(var##_val_) )					\
 		{							\
-		int var##_int_ = var##_val_ ->IntVal();			\
+		gtkAccessV(proxy,int var##_int_,var##_val_,IntVal(),0)	\
 		var = var##_char_;					\
 		sprintf(var##_char_,"%d",var##_int_);			\
 		}							\
-	else if ( var##_val_ -> Type() == TYPE_STRING )			\
-		var = ( var##_val_ ->StringPtr(0) )[0];			\
+	else if ( gtkType(var##_val_) == TYPE_STRING )			\
+		{							\
+		gtkAccess(proxy,var,var##_val_,StringPtr(0),0,0)	\
+		}							\
 	else								\
 		{							\
 		proxy->Error("bad type: %s", EVENT);			\
 		return 0;						\
 		}
-
-#define EXPRDOUBLE(var,EVENT)                                           \
-        const Value *var##_val_ = rptr->NthEntry( c++, key );           \
-        double var = 0;                                                 \
-        if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
-                var##_val_ ->Length() <= 0 )                            \
-                {                                                       \
-                global_store->Error("bad value: %s", EVENT);            \
-                return 0;                                   		\
-                }                                                       \
-        else                                                            \
-                var = var##_val_ ->DoubleVal();
-
-#define EXPRDOUBLE2(var,EVENT)						\
-	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
-        char var##_char_[30];						\
-	charptr var = 0;						\
-	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
-		{							\
-		global_store->Error("bad value: %s", EVENT);		\
-		return 0;						\
-		}							\
-	if ( var##_val_ -> IsNumeric() )				\
-		{							\
-		double var##_double_ = var##_val_ ->DoubleVal();	\
-		var = var##_char_;					\
-		sprintf(var##_char_,"%f",var##_double_);		\
-		}							\
-	else if ( var##_val_ -> Type() == TYPE_STRING )			\
-		var = ( var##_val_ ->StringPtr(0) )[0];			\
-	else								\
-		{							\
-		global_store->Error("bad type: %s", EVENT);		\
-		return 0;						\
-		}
-
-#define EXPRDOUBLEPTR(var, NUM, EVENT)					\
-	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
-	double *var = 0;						\
-	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_DOUBLE ||	\
-		var##_val_ ->Length() < NUM )				\
-		{							\
-		global_store->Error("bad value: %s", EVENT);		\
-		return 0;						\
-		}							\
-	else								\
-		var = var##_val_ ->DoublePtr(0);
 
 #define EXPR_DONE(var)
 
