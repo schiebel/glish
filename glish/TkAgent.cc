@@ -2156,8 +2156,9 @@ void TkFrame::UnMap()
 	if ( tlead )
 		{
 		Rivetobj top = tlead->TopLevel();
-		Tk_DeleteEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
-				      glishtk_moveframe_cb, this );
+		if ( top )
+			Tk_DeleteEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
+					      glishtk_moveframe_cb, this );
 		Unref( tlead );
 		tlead = 0;
 		}
