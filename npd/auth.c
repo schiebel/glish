@@ -205,9 +205,9 @@ static unsigned char *compute_MD5( unsigned char *b, int n, int *len_p )
 		return 0;
 		}
 
-	MD5Init( &context );
-	MD5Update( &context, b, n );
-	MD5Final( digest, &context );
+	nMD5Init( &context );
+	nMD5Update( &context, b, n );
+	nMD5Final( digest, &context );
 
 	return digest;
 	}
