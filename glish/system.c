@@ -223,12 +223,12 @@ int remote_connection( int sock, const char* hostname, int port )
 	struct hostent *target_host;
 	struct sockaddr_in target_addr;
 
-	//
-	// On a machine with the network configuration messed up,
-	// e.g. pip.aoc.nrao.edu connected to the *.tuc.nrao.edu
-	// network, failure to use "localhost" will cause glish
-	// to hang unnecessarily...
-	//
+	/*
+	** On a machine with the network configuration messed up,
+	** e.g. pip.aoc.nrao.edu connected to the *.tuc.nrao.edu
+	** network, failure to use "localhost" will cause glish
+	** to hang unnecessarily...
+	*/
 	if ( ! strcmp( hostname, local_host_name() ) )
 		hostname = "localhost";
 
