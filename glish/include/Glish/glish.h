@@ -13,44 +13,45 @@ typedef unsigned char byte;
 
 typedef void (*glish_signal_handler)();
 
-#if ! defined(STAT)
-#if defined(DO_STAT)
-#define StAt_LiSt_hdn2(w,x) w,x
-#define StAt_LiSt_hdn3(w,x,y) w,x,y
-#define StAt_LiSt_hdn4(w,x,y,z) w,x,y,z
-#define StAt_LiSt_hdn5(w,x,y,z,a) w,x,y,z,a
-#define StAt_LiSt_hdn6(w,x,y,z,a,b) w,x,y,z,a,b
-#define StAt_LiSt_hdn7(w,x,y,z,a,b,c) w,x,y,z,a,b,c
-#define StAt_LiSt_hdn8(w,x,y,z,a,b,c,d) w,x,y,z,a,b,c,d
-#define StAt_LiSt_hdn9(w,x,y,z,a,b,c,d,e) w,x,y,z,a,b,c,d,e
-#define StAt_LiSt_hdn10(w,x,y,z,a,b,c,d,e,f) w,x,y,z,a,b,c,d,e,f
-#define StAt_LiSt_hdn11(w,x,y,z,a,b,c,d,e,f,g) w,x,y,z,a,b,c,d,e,f,g
-#define StAt_LiSt_hdn12(w,x,y,z,a,b,c,d,e,f,g,h) w,x,y,z,a,b,c,d,e,f,g,h
-#define STAT(MESSAGE) message->Report(MESSAGE,": ", __FILE__, ", ", __LINE__);
-#define STAT2(w,x) STAT(StAt_LiSt_hdn(w,x))
-#define STAT3(w,x,y) STAT(StAt_LiSt_hdn3(w,x,y))
-#define STAT4(w,x,y,z) STAT(StAt_LiSt_hdn4(w,x,y,z))
-#define STAT5(w,x,y,z,a) STAT(StAt_LiSt_hdn5(w,x,y,z,a))
-#define STAT6(w,x,y,z,a,b) STAT(StAt_LiSt_hdn6(w,x,y,z,a,b))
-#define STAT7(w,x,y,z,a,b,c) STAT(StAt_LiSt_hdn7(w,x,y,z,a,b,c))
-#define STAT8(w,x,y,z,a,b,c,d) STAT(StAt_LiSt_hdn8(w,x,y,z,a,b,c,d))
-#define STAT9(w,x,y,z,a,b,c,d,e) STAT(StAt_LiSt_hdn9(w,x,y,z,a,b,c,d,e))
-#define STAT10(w,x,y,z,a,b,c,d,e,f) STAT(StAt_LiSt_hdn10(w,x,y,z,a,b,c,d,e,f))
-#define STAT11(w,x,y,z,a,b,c,d,e,f,g) STAT(StAt_LiSt_hdn11(w,x,y,z,a,b,c,d,e,f,g))
-#define STAT12(w,x,y,z,a,b,c,d,e,f,g,h) STAT(StAt_LiSt_hdn9(w,x,y,z,a,b,c,d,e,f,g,h))
+#if ! defined(DIAG)
+#if defined(DO_DIAG)
+#include "Reporter.h"
+#define DiAg_LiSt_hdn2(w,x) w,x
+#define DiAg_LiSt_hdn3(w,x,y) w,x,y
+#define DiAg_LiSt_hdn4(w,x,y,z) w,x,y,z
+#define DiAg_LiSt_hdn5(w,x,y,z,a) w,x,y,z,a
+#define DiAg_LiSt_hdn6(w,x,y,z,a,b) w,x,y,z,a,b
+#define DiAg_LiSt_hdn7(w,x,y,z,a,b,c) w,x,y,z,a,b,c
+#define DiAg_LiSt_hdn8(w,x,y,z,a,b,c,d) w,x,y,z,a,b,c,d
+#define DiAg_LiSt_hdn9(w,x,y,z,a,b,c,d,e) w,x,y,z,a,b,c,d,e
+#define DiAg_LiSt_hdn10(w,x,y,z,a,b,c,d,e,f) w,x,y,z,a,b,c,d,e,f
+#define DiAg_LiSt_hdn11(w,x,y,z,a,b,c,d,e,f,g) w,x,y,z,a,b,c,d,e,f,g
+#define DiAg_LiSt_hdn12(w,x,y,z,a,b,c,d,e,f,g,h) w,x,y,z,a,b,c,d,e,f,g,h
+#define DIAG(MESSAGE) message->Report(MESSAGE,": ", __FILE__, ", ", __LINE__);
+#define DIAG2(w,x) DIAG(DiAg_LiSt_hdn2(w,x))
+#define DIAG3(w,x,y) DIAG(DiAg_LiSt_hdn3(w,x,y))
+#define DIAG4(w,x,y,z) DIAG(DiAg_LiSt_hdn4(w,x,y,z))
+#define DIAG5(w,x,y,z,a) DIAG(DiAg_LiSt_hdn5(w,x,y,z,a))
+#define DIAG6(w,x,y,z,a,b) DIAG(DiAg_LiSt_hdn6(w,x,y,z,a,b))
+#define DIAG7(w,x,y,z,a,b,c) DIAG(DiAg_LiSt_hdn7(w,x,y,z,a,b,c))
+#define DIAG8(w,x,y,z,a,b,c,d) DIAG(DiAg_LiSt_hdn8(w,x,y,z,a,b,c,d))
+#define DIAG9(w,x,y,z,a,b,c,d,e) DIAG(DiAg_LiSt_hdn9(w,x,y,z,a,b,c,d,e))
+#define DIAG10(w,x,y,z,a,b,c,d,e,f) DIAG(DiAg_LiSt_hdn10(w,x,y,z,a,b,c,d,e,f))
+#define DIAG11(w,x,y,z,a,b,c,d,e,f,g) DIAG(DiAg_LiSt_hdn11(w,x,y,z,a,b,c,d,e,f,g))
+#define DIAG12(w,x,y,z,a,b,c,d,e,f,g,h) DIAG(DiAg_LiSt_hdn9(w,x,y,z,a,b,c,d,e,f,g,h))
 #else
-#define STAT(MESSAGE)
-#define STAT2(w,x)
-#define STAT3(w,x,y)
-#define STAT4(w,x,y,z)
-#define STAT5(w,x,y,z,a)
-#define STAT6(w,x,y,z,a,b)
-#define STAT7(w,x,y,z,a,b,c)
-#define STAT8(w,x,y,z,a,b,c,d)
-#define STAT9(w,x,y,z,a,b,c,d,e)
-#define STAT10(w,x,y,z,a,b,c,d,e,f)
-#define STAT11(w,x,y,z,a,b,c,d,e,f,g)
-#define STAT12(w,x,y,z,a,b,c,d,e,f,g,h)
+#define DIAG(MESSAGE)
+#define DIAG2(w,x)
+#define DIAG3(w,x,y)
+#define DIAG4(w,x,y,z)
+#define DIAG5(w,x,y,z,a)
+#define DIAG6(w,x,y,z,a,b)
+#define DIAG7(w,x,y,z,a,b,c)
+#define DIAG8(w,x,y,z,a,b,c,d)
+#define DIAG9(w,x,y,z,a,b,c,d,e)
+#define DIAG10(w,x,y,z,a,b,c,d,e,f)
+#define DIAG11(w,x,y,z,a,b,c,d,e,f,g)
+#define DIAG12(w,x,y,z,a,b,c,d,e,f,g,h)
 #endif
 #endif
 

@@ -83,7 +83,7 @@ unsigned long ValueKernel::otherLength() const
 
 void ValueKernel::SetRecord( recordptr r )
 	{
-	STAT2( (void*) this, "\tValueKernel::SetRecord recordptr")
+	DIAG2( (void*) this, "\tValueKernel::SetRecord recordptr")
 	unref( RECORD(mode) ? 0 : 1 );
 	mode = RECORD();
 	if ( ! record ) record = new record_t();
@@ -170,7 +170,7 @@ void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 
 void ValueKernel::unrefArray(int del)
 	{
-	STAT7((void*) this, "\t\tarray unref c:",array->ref_count,"a:",(void*)array,"d:",del)
+	DIAG7((void*) this, "\t\tarray unref c:",array->ref_count,"a:",(void*)array,"d:",del)
 	if ( array && --array->ref_count == 0 )
 		if ( del )
 			{
@@ -188,7 +188,7 @@ void ValueKernel::unrefArray(int del)
 
 void ValueKernel::unrefRecord(int del)
 	{
-	STAT7((void*) this, "\t\trecord unref c:",record->ref_count,"r:",(void*)record,"d:",del)
+	DIAG7((void*) this, "\t\trecord unref c:",record->ref_count,"r:",(void*)record,"d:",del)
 	if ( record && --record->ref_count == 0 )
 		if ( del )
 			{
@@ -270,7 +270,7 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 void ValueKernel::SetArray( TYPE vec[], unsigned long len, int copy,		\
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )	\
 	{									\
-	STAT4( (void*) this, "\tValueKernel::SetArray ", #TYPE, "[]" )		\
+	DIAG4( (void*) this, "\tValueKernel::SetArray ", #TYPE, "[]" )		\
 	ARRAY_SET_BODY(TYPE,GLISH_TYPE)						\
 	}
 
@@ -287,7 +287,7 @@ DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 void ValueKernel::SetArray( voidptr vec[], unsigned long len, glish_type t, int copy,
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 	{
-	STAT2( (void*) this, "\tValueKernel::SetArray void*")
+	DIAG2( (void*) this, "\tValueKernel::SetArray void*")
 	ARRAY_SET_BODY(voidptr,t)
 	}
 
@@ -329,7 +329,7 @@ void *ValueKernel::modArray( )
 		return array->values;
 	else
 		{
-		STAT5((void*) this, "\t\tarray copy c:",array->ref_count,"a:",(void*)array)
+		DIAG5((void*) this, "\t\tarray copy c:",array->ref_count,"a:",(void*)array)
 		array_t *k = array;
 		unrefArray();
 		array->SetType( k->type, k->copy, k->zero );
@@ -351,7 +351,7 @@ recordptr ValueKernel::modRecord( )
 		return record->record;
 	else
 		{
-		STAT5((void*) this, "\t\trecord copy c:",record->ref_count,"r:",(void*)record)
+		DIAG5((void*) this, "\t\trecord copy c:",record->ref_count,"r:",(void*)record)
 		record_t *a = record;
 		unrefRecord();
 		SetRecord(copy_record_dict(a->record));

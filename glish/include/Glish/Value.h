@@ -105,7 +105,12 @@ class Value : public GlishObject {
 friend class IValue;
 public:
 	Value( const Value &v ) : kernel(v.kernel), attributes( v.CopyAttributePtr() ),
-				value_manager(0) { description = 0; ++num_Values_created; }
+				value_manager(0)
+		{
+		DIAG2( (void*) this, "Value( const Value& )" )
+		description = 0;
+		++num_Values_created;
+		}
 
 	Value( glish_bool value );
 	Value( byte value );
@@ -677,6 +682,7 @@ protected:
 	void AssignRecordSlice( Value* value, int* indices, int num_indices );
 	void AssignArrayElements( Value* value, int* indices,
 					int num_indices );
+	void AssignArrayElements( const_value_list* index, Value* value );
 
 	// Assigns the elements from record parameter to the corresponding 
 	// elements in this object.

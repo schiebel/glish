@@ -63,7 +63,7 @@ DelObj::~DelObj()
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\
-	STAT4( (void*) this, "Value(", #constructor_type,")" )		\
+	DIAG4( (void*) this, "Value(", #constructor_type,")" )		\
 	InitValue();							\
 	kernel.SetArray( &value, 1, 1 );				\
 	}
@@ -71,7 +71,7 @@ Value::Value( constructor_type value )					\
 #define DEFINE_ARRAY_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value[], int len, array_storage_type s ) \
 	{								\
-	STAT4( (void*) this, "Value(", #constructor_type, "[] )" )	\
+	DIAG4( (void*) this, "Value(", #constructor_type, "[] )" )	\
 	InitValue();							\
 	kernel.SetArray( value, len, s == COPY_ARRAY || s == PRESERVE_ARRAY ); \
 	}
@@ -79,7 +79,7 @@ Value::Value( constructor_type value[], int len, array_storage_type s ) \
 #define DEFINE_ARRAY_REF_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type& value_ref )				\
 	{								\
-	STAT4( (void*) this, "Value(", #constructor_type, "& )" )	\
+	DIAG4( (void*) this, "Value(", #constructor_type, "& )" )	\
 	InitValue();							\
 	SetValue( value_ref );						\
 	}
@@ -101,7 +101,7 @@ DEFINE_CONSTRUCTORS(charptr,charptrref)
 
 Value::Value( recordptr value )
 	{
-	STAT2( (void*) this, "Value( recordptr )" )
+	DIAG2( (void*) this, "Value( recordptr )" )
 	InitValue();
 	kernel.SetRecord( value );
 	}
@@ -109,7 +109,7 @@ Value::Value( recordptr value )
 
 Value::Value( SDS_Index& value )
 	{
-	STAT2( (void*) this, "Value( SDS_Index & )" )
+	DIAG2( (void*) this, "Value( SDS_Index & )" )
 	InitValue();
 	SetValue( value );
 	}
@@ -117,7 +117,7 @@ Value::Value( SDS_Index& value )
 
 Value::Value( Value* ref_value, value_type val_type )
 	{
-	STAT2( (void*) this, "Value( Value*, value_type )" )
+	DIAG2( (void*) this, "Value( Value*, value_type )" )
 	InitValue();
 
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
@@ -141,7 +141,7 @@ Value::Value( Value* ref_value, value_type val_type )
 Value::Value( Value* ref_value, int index[], int num_elements,
 		value_type val_type )
 	{
-	STAT2( (void*) this, "Value( Value*, int[], int, value_type )" )
+	DIAG2( (void*) this, "Value( Value*, int[], int, value_type )" )
 	InitValue();
 	SetValue( ref_value, index, num_elements, val_type );
 	attributes = ref_value->CopyAttributePtr();
