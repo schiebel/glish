@@ -3884,13 +3884,13 @@ if test -n "cxx_include_path"; then
 fi
 rm -f $conftest*
 
-if `echo $cxx_include_path | sed 's/\/^/*include\//X/' > /dev/null 2>&1`; then
+if `echo $cxx_include_path | sed 's/\/[^/]*include\//X/' > /dev/null 2>&1`; then
     ##
     ## must handle lines like:
     ##
     ##    # 1 "/opt/local/compilers/gcc-2.7.2.3/lib/g++-include/iostream.h" 1 3
     ##
-    cxx_library_path=`echo $cxx_include_path | sed -e 's/^[^\/]*//' -e 's/\/^/*include\/.*/\/lib/' -e 's/\/lib\/.*/\/lib/' -e 's/\n$//'`
+    cxx_library_path=`echo $cxx_include_path | sed -e 's/^[^\/]*//' -e 's/\/[^/]*include\/.*/\/lib/' -e 's/\/lib\/.*/\/lib/' -e 's/\n$//'`
 fi
 echo "$ac_t""$cxx_library_path" 1>&6
 if test -n "$cxx_library_path"; then
