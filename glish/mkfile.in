@@ -89,6 +89,7 @@ CLIENT_OBJS = \
 	Reporter.o \
 	Socket.o \
 	Str.o \
+	Stream.o \
 	VecRef.o \
 	glishlib.o \
 	system.o
@@ -129,6 +130,7 @@ CLIENT_OBJS_PROXY = \
 	$(D)Reporter.o \
 	$(D)Socket.o \
 	$(D)Str.o \
+	$(D)Stream.o \
 	$(D)VecRef.o \
 	$(D)glishlib.o \
 	$(D)system.o
@@ -326,6 +328,9 @@ $(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 
 $(D)Str.o: $(SRC)/Str.cc $(H)/Str.h
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Str.cc $(T)
+
+$(D)Stream.o: $(SRC)/Stream.cc $(H)/Stream.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Stream.cc $(T)
 
 $(D)Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Stmt.cc $(T)
