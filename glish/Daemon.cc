@@ -22,7 +22,12 @@ int start_remote_daemon( const char *host )
 
 int start_local_daemon( )
 	{
-	new LocalExec("/net/kochab/kochab_3/dschieb/glish/glish/glish/clients/sun4sol/glishd");
+	char *exec_name = which_executable( "glishd" );
+
+	if ( ! exec_name )
+		return 0;
+
+	new LocalExec( exec_name );
 	return 1;
 	}
 
