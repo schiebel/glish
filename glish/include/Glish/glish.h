@@ -57,7 +57,7 @@ typedef void (*glish_signal_handler)();
 
 #if ! defined(RCSID)
 #if ! defined(NO_RCSID)
-#if defined(__STDC__) || defined(__ANSI_CPP__)
+#if defined(__STDC__) || defined(__ANSI_CPP__) || defined(__hpux)
 #define UsE_PaStE(b) UsE__##b##_
 #else
 #define UsE_PaStE(b) UsE__/**/b/**/_
