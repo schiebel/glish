@@ -811,7 +811,8 @@ Scope *Sequencer::GetScope( )
 	}
 
 Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
-				int GlobalRef, int FrameOffset )
+				int GlobalRef, int FrameOffset,
+				change_var_notice f )
 	{
 	int scope_index;
 	int scope_offset = 0;
@@ -853,7 +854,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
-	Expr* result = CreateVarExpr( id, GlobalRef ? GLOBAL_SCOPE : scope, scope_offset, frame_offset, this );
+	Expr* result = CreateVarExpr( id, GlobalRef ? GLOBAL_SCOPE : scope, scope_offset, frame_offset, this, f );
 
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
@@ -952,7 +953,8 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 			if ( ! result && do_install )
 				return InstallID( id, GLOBAL_SCOPE, do_warn );
 			if ( result && GetScopeType() != GLOBAL_SCOPE )
-				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset() );
+				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset(),
+						  ((VarExpr*)result)->change_func() );
 			break;
 		default:
 			fatal->Report("bad scope tag in Sequencer::LookupID()" );

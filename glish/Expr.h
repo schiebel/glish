@@ -185,6 +185,7 @@ class VarExpr : public Expr {
 	int offset()		{ return frame_offset; }
 	int soffset()		{ return scope_offset; }
 	scope_type Scope()	{ return scope; }
+	change_var_notice change_func() const { return func; }
 	void set( scope_type scope, int scope_offset, int frame_offset );
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -229,7 +230,8 @@ class ScriptVarExpr : public VarExpr {
 // known if it is multithreaded or not.
 VarExpr *CreateVarExpr( char *id, Sequencer *seq );
 VarExpr *CreateVarExpr( char *id, scope_type scope, int scope_offset,
-			int frame_offset, Sequencer *seq );
+			int frame_offset, Sequencer *seq,
+			change_var_notice f=0 );
 
 class ValExpr : public Expr {
     public:

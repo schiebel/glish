@@ -321,12 +321,14 @@ VarExpr *CreateVarExpr( char *id, Sequencer *seq )
 	}
 
 VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff, 
-			Sequencer *seq )
+			Sequencer *seq, change_var_notice f )
 	{
 	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
 			! strcmp( id, "script" ) )
 		return new ScriptVarExpr( id, sc, soff, foff, seq );
-	return new VarExpr( id, sc, soff, foff, seq );
+	VarExpr *ret = new VarExpr( id, sc, soff, foff, seq );
+	if ( f ) ret->SetChangeNotice( f );
+	return ret;
 	}
 
 

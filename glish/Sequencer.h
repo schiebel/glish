@@ -151,7 +151,8 @@ public:
 	Scope *GetScope( );
 
 	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
-					int GlobalRef = 0, int FrameOffset = 0 );
+					int GlobalRef = 0, int FrameOffset = 0,
+					change_var_notice f=0 );
 	// "local_search_all" is used to indicate if all local scopes should be
 	// searched or if *only* the "most local" scope should be searched. This
 	// is only used if "scope==LOCAL_SCOPE".
