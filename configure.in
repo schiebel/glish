@@ -74,6 +74,7 @@ AC_TYPE_SIZE_T
 AC_CHECK_TYPE(malloc_t,void*)
 
 dnl Checks for library functions.
+AC_CHECK_LIB(dl, main)
 AC_CHECK_LIB(bsd, main)
 AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(inet, main)
