@@ -174,7 +174,7 @@ func one() {
 #foobar := F
 
 #####
-##### OK
+##### OK *** leave nine() uncommented when using this ***
 #####
 #func ten( ) {
 #    private := [=]
