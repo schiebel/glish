@@ -573,11 +573,13 @@ void SystemInfo::update_output( )
 		     v2->BoolVal() == glish_true )
 			trace = 1;
 
+		pager_exec = 0;
+		pager_exec_len = 0;
+
 		if ( v1->HasRecordElement( "pager" ) &&
 		     (v2 = (const IValue*)(v1->ExistingRecordElement("pager"))) &&
 		     v2 != false_value && v2->Type() == TYPE_RECORD )
 			{
-			pager_exec = 0;
 			if ( v2->HasRecordElement( "exec" ) &&
 			     (v3 = (const IValue*)(v2->ExistingRecordElement("exec"))) &&
 			     v3 != false_value && v3->Type() == TYPE_STRING )
@@ -2317,7 +2319,7 @@ void Sequencer::PagerOutput( char *string, char **argv )
 
 		close( input[0] );
 		close( input[1] );
-		close( status[1] );
+		close( status[0] );
 
                 execvp( argv[0], &argv[0] );
 
@@ -2326,24 +2328,24 @@ void Sequencer::PagerOutput( char *string, char **argv )
                 }
 
 	close( input[0] );
-	close( status[0] );
+	close( status[1] );
 
 	write( input[1], string, strlen(string) );
 	close( input[1] );
 
 	//
 	// UserInputSelectee is pulling double duty here; all it does
-	// is stop the event loop when a fd changes. "status[1]" should
+	// is stop the event loop when a fd changes. "status[0]" should
 	// only change when the exec'ed  pager exits (i.e. when it is
 	// closed).
 	//
-	selector->AddSelectee( new PagerSelectee( status[1], this ) );
+	selector->AddSelectee( new PagerSelectee( status[0], this ) );
 
 	doing_pager = 1;
 	EventLoop( 0 );
 
-	selector->DeleteSelectee( status[1] );
-	close( status[1] );
+	selector->DeleteSelectee( status[0] );
+	close( status[0] );
 
 	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		{
