@@ -294,6 +294,8 @@ class TkFrame : public TkRadioContainer {
 	char *ReleaseCB( parameter_list *, int, int );
 	char *FontsCB( parameter_list *, int, int );
 
+	char *Raise( parameter_list *, int, int );
+
 	void Pack();
 	void PackSpecial( TkAgent * );
 	void AddElement( TkAgent *obj ) { elements.append(obj); }

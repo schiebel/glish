@@ -1928,6 +1928,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("map", new TkProc(this, "MT", glishtk_agent_map));
 	procs.Insert("unmap", new TkProc(this, "UT", glishtk_agent_map));
 
+	procs.Insert("raise", new TkProc( this, &TkFrame::Raise ));
+
 	Tk_CreateEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	size[0] = self->tkwin->reqWidth;
@@ -2290,6 +2292,12 @@ char *TkFrame::GrabCB( parameter_list *args, int, int )
 		}
 
 	return Grab( global_scope );
+	}
+
+char *TkFrame::Raise( parameter_list *args, int, int )
+	{
+	rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd, rivet_path(TopLevel()), 0 );
+	return "";
 	}
 
 char *TkFrame::FontsCB( parameter_list *args, int, int )
