@@ -79,7 +79,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 		}
 
 	else
-		error->Report( EventAgentExpr(), "is not an agent" );
+		result = (IValue*) Fail( EventAgentExpr(), "is not an agent" );
 
 	delete_name_list( nl );
 
