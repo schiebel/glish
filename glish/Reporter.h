@@ -12,6 +12,7 @@ class RMessage {
 	RMessage( const GlishObject* message_object );
 	RMessage( const char* message_string );
 	RMessage( int message_int );
+	RMessage( void* message_void );
 
 	// Writes its value to the given stream.  leading_space true means
 	// that if appropriate (i.e., if the Rmessage object is an GlishObject
@@ -32,6 +33,7 @@ class RMessage {
 	const GlishObject* object;
 	const char* str;
 	int int_val;
+	void *void_val;
 	};
 
 
@@ -43,6 +45,9 @@ class Reporter {
 	Reporter( ostream& reporter_stream );
 
 	void Report( const RMessage&,
+		     const RMessage& = EndMessage, const RMessage& = EndMessage,
+		     const RMessage& = EndMessage, const RMessage& = EndMessage,
+		     const RMessage& = EndMessage, const RMessage& = EndMessage,
 		     const RMessage& = EndMessage, const RMessage& = EndMessage,
 		     const RMessage& = EndMessage, const RMessage& = EndMessage,
 		     const RMessage& = EndMessage, const RMessage& = EndMessage,

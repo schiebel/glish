@@ -56,18 +56,28 @@ RMessage::RMessage( const GlishObject* message_object )
 	{
 	object = message_object;
 	str = 0;
+	void_val = 0;
 	}
 
 RMessage::RMessage( const char* message_string )
 	{
 	str = message_string;
 	object = 0;
+	void_val = 0;
+	}
+
+RMessage::RMessage( void *message_void )
+	{
+	str = 0;
+	object = 0;
+	void_val = message_void;
 	}
 
 RMessage::RMessage( int message_int )
 	{
 	str = 0;
 	object = 0;
+	void_val = 0;
 	int_val = message_int;
 	}
 
@@ -98,6 +108,18 @@ char RMessage::Write( ostream& s, int leading_space, int trailing_space ) const
 			return '\0';
 		}
 
+	else if ( void_val )
+		{
+		if ( leading_space )
+			s << " ";
+
+		s << void_val;
+
+		if ( trailing_space )
+			s << " ";
+
+		return '\0';
+		}
 	else
 		{
 		if ( leading_space )
@@ -130,12 +152,16 @@ Reporter::Reporter( ostream& reporter_stream ) : stream( reporter_stream )
 	count = 0;
 	}
 
-void Reporter::Report( const RMessage& m0, const RMessage& m1,
-			const RMessage& m2, const RMessage& m3,
-			const RMessage& m4, const RMessage& m5,
-			const RMessage& m6, const RMessage& m7,
-			const RMessage& m8, const RMessage& m9,
-			const RMessage& m10 )
+void Reporter::Report( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		     )
 	{
 	const int max_messages = 50;
 	const RMessage* messages[max_messages];
@@ -151,6 +177,12 @@ void Reporter::Report( const RMessage& m0, const RMessage& m1,
 	messages[8] = &m8;
 	messages[9] = &m9;
 	messages[10] = &m10;
+	messages[11] = &m11;
+	messages[12] = &m12;
+	messages[13] = &m13;
+	messages[14] = &m14;
+	messages[15] = &m15;
+	messages[16] = &m16;
 	messages[11] = &EndMessage;
 
 	Prolog();
