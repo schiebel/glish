@@ -242,6 +242,16 @@ int glishtk_xioerror_handler(Display *d)
 	return 1;
 	}
 
+static int (*glishtk_dflt_xerror_handler)(Display *,XErrorEvent*) = 0;
+int glishtk_xerror_handler(Display *d, XErrorEvent*e)
+	{
+	glish_cleanup();
+	if ( glishtk_dflt_xerror_handler )
+		(*glishtk_dflt_xerror_handler)(d,e);
+	exit(1);
+	return 1;
+	}
+
 const char *TkProxy::init_tk( int visible_root )
 	{
 	if ( ! root )
@@ -271,6 +281,7 @@ const char *TkProxy::init_tk( int visible_root )
 				{
 				root = Tk_MainWindow(tcl);
 				glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
+				glishtk_dflt_xerror_handler = XSetErrorHandler(glishtk_xerror_handler);
 
 				static char tk_follow[] = "tk_focusFollowsMouse";
 				Tcl_Eval(tcl, tk_follow);
