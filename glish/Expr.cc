@@ -117,7 +117,7 @@ VarExpr::~VarExpr()
 
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 			int var_frame_offset,
-			Sequencer* var_sequencer ) : Expr(var_id)
+			Sequencer* var_sequencer ) : Expr(var_id), access(PARSE_ACCESS)
 	{
 	id = var_id;
 	scope = var_scope;
@@ -126,7 +126,8 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	sequencer = var_sequencer;
 	}
 
-VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : Expr(var_id)
+VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
+			Expr(var_id), access(PARSE_ACCESS)
 	{
 	id = strdup(var_id);
 	sequencer = var_sequencer;
@@ -144,6 +145,7 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 
 IValue* VarExpr::Eval( eval_type etype )
 	{
+	access = USE_ACCESS;
 	IValue* value = sequencer->FrameElement( scope, scope_offset,
 						frame_offset );
 	if ( ! value )
@@ -163,6 +165,7 @@ IValue* VarExpr::Eval( eval_type etype )
 
 IValue* VarExpr::RefEval( value_type val_type )
 	{
+	access = USE_ACCESS;
 	IValue* var = sequencer->FrameElement( scope, scope_offset,
 						frame_offset );
 	if ( ! var )
@@ -181,6 +184,7 @@ IValue* VarExpr::RefEval( value_type val_type )
 
 void VarExpr::Assign( IValue* new_value )
 	{
+	access = USE_ACCESS;
 	sequencer->SetFrameElement( scope, scope_offset, frame_offset,
 					new_value );
 	}

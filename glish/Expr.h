@@ -48,6 +48,13 @@ inline void NodeUnref( ParseNode *obj )
 //
 typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
 
+// Different variable access; used by the VarExpr
+//	PARSE_ACCESS --  the variable has been parsed for the purpose of
+//			 constructing a frame
+//      USE_ACCESS   --  the variable has been used in an expression
+//
+typedef enum { PARSE_ACCESS, USE_ACCESS } access_type;
+
 // Various ways the scope of a value can be modified
 //      SCOPE_UNKNOWN --  no particular modification
 //      SCOPE_LHS     --  left hand side of an assignment
@@ -169,12 +176,15 @@ class VarExpr : public Expr {
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
+	access_type Access() { return access; }
+
     protected:
 	char* id;
 	scope_type scope;
 	int frame_offset;
 	int scope_offset;
 	Sequencer* sequencer;
+	access_type access;
 	};
 
 

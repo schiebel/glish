@@ -1585,21 +1585,24 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	const char *key;
 	while ( (member = scope->NextEntry( key, c )) )
 		{
-		int flag = 0;
-		if ( func )
+		if ( member && ((VarExpr*)member)->Access() == USE_ACCESS )
 			{
-			parameter_list p;
-			Parameter arg( VAL_CONST, (Expr*) member ); Ref( (Expr*) member );
-			p.append( &arg );
-			IValue *r = func->Call( &p, EVAL_COPY );
-			if ( r && r->IsNumeric() )
-				flag = r->IntVal();
-			Unref( r );
-			}
-		if ( ! func || flag )
-			{
-			name_ary[cnt] = new char[strlen( key )+1];
-			strcpy((char*) name_ary[cnt++], key);
+			int flag = 0;
+			if ( func )
+				{
+				parameter_list p;
+				Parameter arg( VAL_CONST, (Expr*) member ); Ref( (Expr*) member );
+				p.append( &arg );
+				IValue *r = func->Call( &p, EVAL_COPY );
+				if ( r && r->IsNumeric() )
+					flag = r->IntVal();
+				Unref( r );
+				}
+			if ( ! func || flag )
+				{
+				name_ary[cnt] = new char[strlen( key )+1];
+				strcpy((char*) name_ary[cnt++], key);
+				}
 			}
 		}
 
@@ -1622,7 +1625,7 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	for ( int i = 0; i < str->Length(); i++ )
 		{
 		Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
-		if ( exp )
+		if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
 			{
 			IValue *val = exp->CopyEval();
 			if ( val )
