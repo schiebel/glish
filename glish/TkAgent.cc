@@ -1410,7 +1410,8 @@ const char **TkFrame::PackInstruction()
 		{
 		ret[c++] = "-fill";
 		ret[c++] = expand;
-		if ( ! frame || ! strcmp(expand,"both") )
+		if ( ! frame || ! strcmp(expand,"both") || 
+		     strcmp(frame->expand,"both") && ExpandNum() )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";
@@ -1424,7 +1425,8 @@ const char **TkFrame::PackInstruction()
 
 int TkFrame::CanExpand() const
 	{
-	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") ) )
+	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") || 
+				strcmp(frame->expand,"both") && ExpandNum() ) )
 		return 1;
 
 	return 0;
