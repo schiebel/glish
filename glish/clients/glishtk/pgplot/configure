@@ -2778,6 +2778,22 @@ fi
 echo "$ac_t""$_cv_sgiabi" 1>&6
 	
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	    case $_cv_sgiabi in
+		-o32)
+		    if test -f /usr/lib/c++init.o; then
+			DL_LIBS=/usr/lib/c++init.o
+		    fi
+		    ;;
+		-n32)
+		    if test -f /usr/lib32/c++init.o; then
+			DL_LIBS=/usr/lib32/c++init.o
+		    fi
+		    ;;
+		-64)
+		    if test -f /usr/lib64/c++init.o; then
+			DL_LIBS=/usr/lib64/c++init.o
+		    fi;
+	    esac
 	fi
 	;;
     linux*)
@@ -2795,12 +2811,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2799 "configure"
+#line 2815 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2804: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2820: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -2884,12 +2900,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2888 "configure"
+#line 2904 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2893: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2909: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3227,7 +3243,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3231 "configure"
+#line 3247 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3235,7 +3251,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3239: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3255: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3258,7 +3274,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3262 "configure"
+#line 3278 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3266,7 +3282,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3270: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3286: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
