@@ -100,7 +100,6 @@ extern jmp_buf glish_top_level;
 extern int glish_jmpbuf_set;
 
 Sequencer* current_sequencer = 0;
-int current_whenever_index = -1;
 static IValue *parse_error = 0;
 
 /* Communication of status between glish_parser() and yyparse() */
@@ -916,7 +915,7 @@ no_cont:		{ statement_can_end = 1; }
 extern "C"
 void yyerror( char msg[] )
 	{
-	current_whenever_index = -1;
+	current_sequencer->ClearWhenevers();
 
 	if ( ! status )
 		{

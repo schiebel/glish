@@ -167,6 +167,8 @@ class WheneverStmtCtor : public Stmt {
 
 	void CollectUnref( stmt_list & );
 
+	int Index( );
+
     protected:
 	event_list* trigger;
 	Stmt* stmt;

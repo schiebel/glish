@@ -3088,6 +3088,20 @@ void Sequencer::RunQueue()
 		}
 	}
 
+int Sequencer::CurWheneverIndex( )
+	{
+	int len = cur_whenever.length();
+	if ( len <= 0 ) return -1;
+	return cur_whenever[len-1]->Index();
+	}
+
+void Sequencer::ClearWhenevers( )
+	{
+	int len = cur_whenever.length();
+	while ( len > 0 )
+		cur_whenever.remove_nth(--len);
+	}
+
 void Sequencer::CollectGarbage( )
 	{
 	((IValue*)false_value)->TagGC();

@@ -19,7 +19,6 @@ RCSID("@(#) $Id$")
 
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
-extern int current_whenever_index;
 unsigned int WheneverStmt::notify_count = 0;
 
 Stmt::~Stmt() { }
@@ -134,23 +133,21 @@ WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequ
 	trigger = arg_trigger;
 	stmt = 0;
 	misc = 0;
+	cur = 0;
 	sequencer = arg_sequencer;
-
-	//
-	// Change the "current_whenever_index" temporarily so that parameterless
-	// "enable"/"disable" stmts within the whenever have the right index.
-	// "current_whenever_index" is reset in SetStmt().
-	//
-	index = current_whenever_index;
-	cur = new WheneverStmt(sequencer);
-	current_whenever_index = cur->Index();
-
+	sequencer->RegisterWhenever(this);
 	description = "whenever";
+	}
+
+int WheneverStmtCtor::Index( )
+	{
+	if ( ! cur ) cur = new WheneverStmt(sequencer);
+	return cur->Index();
 	}
 
 void WheneverStmtCtor::SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc )
 	{
-	current_whenever_index = index;
+	sequencer->UnregisterWhenever( );
 	index = 0;
 	stmt = arg_stmt;
 	misc = arg_misc;
@@ -239,8 +236,12 @@ void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *a
 	loop_over_list( *trigger, i )
 		{
 		(*trigger)[i]->Register( new Notifiee( this, stack ) );
-		(*trigger)[i]->EventAgent( VAL_CONST )->RegisterUnref( this );
-		(*trigger)[i]->EventAgentDone( );
+		Agent *ag = (*trigger)[i]->EventAgent( VAL_CONST );
+		if ( ag )
+			{
+			ag->RegisterUnref( this );
+			(*trigger)[i]->EventAgentDone( );
+			}
 		}
 
 	active = 1;
@@ -606,7 +607,7 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 
 	description = "activate";
 
-	whenever_index = current_whenever_index;
+	whenever_index = sequencer->CurWheneverIndex();
 	}
 
 IValue* ActivateStmt::DoExec( int /* value_needed */,

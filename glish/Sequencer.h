@@ -68,6 +68,7 @@ glish_declare(PDict,RemoteDaemon);
 glish_declare(PDict,char);
 glish_declare(PQueue,Notification);
 glish_declare(PList, awaitinfo);
+glish_declare(PList, WheneverStmtCtor);
 
 typedef PDict(Expr) expr_dict;
 typedef PList(awaitinfo) awaitinfo_list;
@@ -423,6 +424,7 @@ public:
 	// referenced via the globals
 	//
 	void CollectGarbage( );
+
 	//
 	// register ivalues to be preserved
 	//
@@ -430,6 +432,17 @@ public:
 		{ registered_values.append(v); }
 	void UnregisterValue( IValue *v )
 		{ registered_values.remove(v); }
+
+	//
+	// register current whenever ctor, for use in
+	// activate/deactivate stmts local to the whenever
+	//
+	void RegisterWhenever( WheneverStmtCtor *ctor ) { cur_whenever.append(ctor); }
+	void UnregisterWhenever( ) { int len = cur_whenever.length();
+				     if ( len > 0 ) cur_whenever.remove_nth(len-1); }
+	void ClearWhenevers( );
+
+	int CurWheneverIndex( );
 
 protected:
 	void MakeEnvGlobal();
@@ -540,6 +553,11 @@ protected:
 	// Later this may have to be a stack...
 	static Sequencer *cur_sequencer;
 	static int hold_queue;
+
+	//
+	// handling for the current whenever stmt
+	//
+	PList(WheneverStmtCtor) cur_whenever;
 
 	// Called from Sequencer::TopLevelReset()
 	void toplevelreset();
