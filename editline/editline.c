@@ -38,7 +38,7 @@ RCSID("@(#) $Id$")
 #define ISMETA(x)	((x) & 0x80)
 #define UNMETA(x)	((x) & 0x7F)
 #if	!defined(HIST_SIZE)
-#define HIST_SIZE	201
+#define HIST_SIZE	401
 #endif	/* !defined(HIST_SIZE) */
 
 typedef const CHAR	*STRING;
