@@ -1323,6 +1323,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 	sys_value->SetField( "output", output_val );
 	Unref(output_val);
+
+	IValue *nogui = new IValue( glish_false );
+	sys_value->SetField( "nogui", nogui );
+	Unref(nogui);
 	}
 
 int *Sequencer::NewObjId( Task *t )

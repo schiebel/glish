@@ -419,6 +419,7 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 	if ( ! fail && do_call )
 		{
 		// Check the named arguments to see if they're valid.
+		int ellipsis_count = first_named_arg;
 		for ( int named_arg = first_named_arg; named_arg < num_supplied_args ;
 		      ++named_arg )
 			{
@@ -446,9 +447,30 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 					}
 
 				if ( j >= formals->length() )
-					fail = (IValue*) Fail( "named arg \"", arg_name,
-					    "\" does not match any formal in call to",
-							this );
+					{
+					//
+					// Allow named arguments (which don't match) to be added to the
+					// ellipsis if no "matched" named arguments have been encountered
+					// yet. Given:
+					//
+					//	func x( a,b,c,d,...,t=200 ) { fail [...] }
+					//
+					// x(1,2,3,4,5,6,z=5000,w=500,q=800) is OK, but
+					// x(1,2,3,4,5,6,t=10,z=5000,w=500,q=800) is not...
+					//
+					if ( ellipsis_count == named_arg && num_args == num_formals &&
+					     (f = (*formals)[num_formals]) && f->IsEllipsis() &&
+					     ! (*args)[named_arg]->IsEmpty( ) )
+						{
+						fail = ArgOverFlow( opt, (*args)[named_arg]->Arg(), num_args,
+								    num_formals, ellipsis_value );
+						ADD_MISSING_INFO(glish_false)
+						++ellipsis_count;
+						}
+					else
+						fail = (IValue*) Fail( "named arg \"", arg_name,
+								       "\" does not match any formal in call to", this );
+					}
 
 				else if ( j < arg_cnt )
 					fail = (IValue*) Fail( "formal \"", arg_name,
