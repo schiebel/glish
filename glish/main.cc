@@ -2,7 +2,7 @@
 //
 // Copyright (c) 1993 The Regents of the University of California.
 // All rights reserved.
-// Copyright (c) 1997,1998,2000 Associated Universities Inc.
+// Copyright (c) 1997,1998,2000,2004 Associated Universities Inc.
 // All rights reserved.
 //
 // This code is derived from software contributed to Berkeley by
@@ -44,13 +44,13 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <stdlib.h>
 #include <setjmp.h>
-#include <strstream.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <termio.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -75,6 +75,8 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "IValue.h"
 #include "Task.h"
+#include "Glish/ValCtor.h"
+#include "IValCtorKern.h"
 
 static Sequencer* s = 0;
 // used to recover from a ^C typed while glish
@@ -83,11 +85,8 @@ int glish_top_jmpbuf_set = 0;
 jmp_buf glish_top_jmpbuf;
 int glish_include_jmpbuf_set = 0;
 jmp_buf glish_include_jmpbuf;
-int glish_silent = 0;
-int glish_collecting_garbage = 0;
 
 int allwarn = 0;
-static unsigned int error_count = 0;
 
 #if USE_EDITLINE
 extern "C" {
@@ -108,21 +107,10 @@ static int handling_fatal_signal = 0;
 
 static void install_terminate_handlers();
 
-void glish_cleanup( )
-	{
-#if USE_EDITLINE
-	nb_readline_cleanup();
-	finalize_readline_history( );
-#endif
-	set_term_unchar_mode();
-	Sequencer::CurSeq()->AbortOccurred();
-	}
-
-
 #define DEFINE_SIG_FWD(NAME,STRING,SIGNAL,COREDUMP)			\
 void NAME( )								\
 	{								\
-	glish_cleanup( );						\
+	ValCtor::cleanup( );						\
 	fprintf(stderr,"\n[fatal error, '%s' (signal %d), exiting]\n",	\
 			STRING, SIGNAL);				\
 									\
@@ -133,6 +121,11 @@ void NAME( )								\
 	kill( getpid(), SIGNAL );					\
 	}
 
+#if !defined(TCGETA)
+#define TCGETA TIOCGETA
+#define TCSETAF TIOCSETAF
+#endif
+
 
 DEFINE_SIG_FWD(glish_sighup,"hangup signal",SIGHUP,)
 DEFINE_SIG_FWD(glish_sigterm,"terminate signal",SIGTERM,)
@@ -140,7 +133,7 @@ DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT,)
 
 void glish_sigquit( )
 	{
-	glish_cleanup( );
+	ValCtor::cleanup( );
 	fprintf(stderr,"exiting on ^\\ ...\n");
 	fflush(stderr);
 	exit(0);
@@ -152,7 +145,7 @@ void glish_sigint( )
 	if ( glish_include_jmpbuf_set || glish_top_jmpbuf_set )
 		{
 		if ( Sequencer::ActiveAwait() )
-			message->Report( Sequencer::ActiveAwait()->TerminateInfo() );
+			glish_message->Report( Sequencer::ActiveAwait()->TerminateInfo() );
 		Sequencer::TopLevelReset();
 		unblock_signal(SIGINT);
 		if ( glish_include_jmpbuf_set )
@@ -162,7 +155,7 @@ void glish_sigint( )
 		}
 
 	char answ = 0;
-	struct termio tbuf, tbufsave;
+	struct termios tbuf, tbufsave;
 	int did_ioctl = 0;
 
 	fprintf(stdout,"\nexit glish (y/n)? ");
@@ -179,7 +172,6 @@ void glish_sigint( )
 		}
 
 	read( fileno(stdin), &answ, 1 );
-
 	if ( did_ioctl )
 		ioctl( fileno(stdin), TCSETAF, &tbufsave );
 
@@ -188,7 +180,7 @@ void glish_sigint( )
 
 	if ( answ == 'y' || answ == 'Y' )
 		{
-		glish_cleanup( );
+		ValCtor::cleanup( );
 		install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
 		kill(getpid(), SIGINT);
 		}
@@ -196,21 +188,9 @@ void glish_sigint( )
 	unblock_signal(SIGINT);
 	}
 
-class StringReporter : public Reporter {
-    public:
-	StringReporter( OStream* reporter_stream ) :
-		Reporter( reporter_stream ) { loggable = 0; }
-	void Epilog();
-	void Prolog();
-	};
-
-void StringReporter::Epilog() { }
-void StringReporter::Prolog() { }
-static StringReporter *srpt = 0;
-
 int main( int argc, char** argv )
 	{
-	srpt = new StringReporter( new SOStream );
+	ValCtor::init( new IValCtorKern );
 
 	install_terminate_handlers();
 
@@ -227,13 +207,9 @@ int main( int argc, char** argv )
 	evalOpt opt;
 	s->Exec(opt);
 
-	glish_cleanup();
+	ValCtor::cleanup();
 
 	delete s;
-
-#ifdef LINT
-	delete srpt;
-#endif
 
 	return 0;
 	}
@@ -288,7 +264,7 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 			to_buf = strcpy( to_buf, from_buf_start );
 		else
 			{
-			error->Stream() << "Not enough buffer size (in fmt_readline_str)"
+			glish_error->Stream() << "Not enough buffer size (in fmt_readline_str)"
 			     << endl;
 			free_memory( (void*) from_buf );
 			return 0;
@@ -348,182 +324,9 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 
 #endif
 
-DEFINE_CREATE_VALUE(IValue)
-
-Value *copy_value( const Value *value )
-	{
-	return (Value*)copy_value( (const IValue*) value );
-	}
-
-Value *deep_copy_value( const Value *value ) { return (Value*)copy_value( (const IValue*) value ); }
-
-int write_agent( sos_out &sos, Value *val_, sos_header &head, const ProxyId &proxy_id )
-	{
-	if ( val_->Type() != TYPE_AGENT )
-		return 0;
-
-	IValue *val = (IValue*) val_;
-	Agent *agent = val->AgentVal();
-	if ( ! agent || ! agent->IsProxy() )
-		{
-// 		warn->Report( "non-proxy agent" );
-		return 0;
-		}
-
-	ProxyTask *pxy = (ProxyTask*) agent;
-	if ( pxy->Id().interp() != proxy_id.interp() ||
-	     pxy->Id().task() != proxy_id.task() )
-		{
-		warn->Report( "attempt to pass proxy agent to client which did not create it" );
-		return 0;
-		}
-
-	sos.put( (int*) pxy->Id().array(), ProxyId::len(), head, sos_sink::COPY );
-	return 1;
-	}
-
-int lookup_print_precision( )
-	{
-	return Sequencer::CurSeq()->System().PrintPrecision();
-	}
-int lookup_print_limit( )
-	{
-	return Sequencer::CurSeq()->System().PrintLimit();
-	}
-
-Value *generate_error( int auto_fail, const RMessage& m0,
-		       const RMessage& m1, const RMessage& m2,
-		       const RMessage& m3, const RMessage& m4,
-		       const RMessage& m5, const RMessage& m6,
-		       const RMessage& m7, const RMessage& m8,
-		       const RMessage& m9, const RMessage& m10,
-		       const RMessage& m11, const RMessage& m12,
-		       const RMessage& m13, const RMessage& m14,
-		       const RMessage& m15, const RMessage& m16
-		    )
-	{
-	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), auto_fail );
-	if ( allwarn )
-		{
-		error->Stream() << "E[" << ++error_count << "]: ";
-		ret->Describe( error->Stream() );
-		error->Stream() << endl;
-		}
-	return ret;
-	}
-
-Value *generate_error( int auto_fail, const char *file, int line,
-		       const RMessage& m0,
-		       const RMessage& m1, const RMessage& m2,
-		       const RMessage& m3, const RMessage& m4,
-		       const RMessage& m5, const RMessage& m6,
-		       const RMessage& m7, const RMessage& m8,
-		       const RMessage& m9, const RMessage& m10,
-		       const RMessage& m11, const RMessage& m12,
-		       const RMessage& m13, const RMessage& m14,
-		       const RMessage& m15, const RMessage& m16
-		    )
-	{
-	srpt->Stream().reset();
-	srpt->report( ioOpt( ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line, auto_fail );
-	if ( allwarn )
-		{
-		error->Stream() << "E[" << ++error_count << "]: ";
-		ret->Describe( error->Stream() );
-		error->Stream() << endl;
-		}
-	return ret;
-	}
-
-const Str generate_error_str( const RMessage& m0,
-		       const RMessage& m1, const RMessage& m2,
-		       const RMessage& m3, const RMessage& m4,
-		       const RMessage& m5, const RMessage& m6,
-		       const RMessage& m7, const RMessage& m8,
-		       const RMessage& m9, const RMessage& m10,
-		       const RMessage& m11, const RMessage& m12,
-		       const RMessage& m13, const RMessage& m14,
-		       const RMessage& m15, const RMessage& m16
-		    )
-	{
-	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	if ( allwarn )
-		error->Stream() << "E[" << ++error_count << "]: " <<
-		  ((SOStream&)srpt->Stream()).str() << endl;
-	return Str( (const char *) ((SOStream&)srpt->Stream()).str() );
-	}
-
 void describe_value( IValue *v )
 	{
-	message->Report(v);
-	}
-
-void report_error( const RMessage& m0,
-		       const RMessage& m1, const RMessage& m2,
-		       const RMessage& m3, const RMessage& m4,
-		       const RMessage& m5, const RMessage& m6,
-		       const RMessage& m7, const RMessage& m8,
-		       const RMessage& m9, const RMessage& m10,
-		       const RMessage& m11, const RMessage& m12,
-		       const RMessage& m13, const RMessage& m14,
-		       const RMessage& m15, const RMessage& m16
-		    )
-	{
-	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
-	if ( allwarn )
-		{
-		error->Stream() << "E[" << ++error_count << "]: ";
-		ret->Describe( error->Stream() );
-		error->Stream() << endl;
-		}
-	Sequencer::SetErrorResult( ret );
-	}
-
-void report_error( const char *file, int line,
-		       const RMessage& m0,
-		       const RMessage& m1, const RMessage& m2,
-		       const RMessage& m3, const RMessage& m4,
-		       const RMessage& m5, const RMessage& m6,
-		       const RMessage& m7, const RMessage& m8,
-		       const RMessage& m9, const RMessage& m10,
-		       const RMessage& m11, const RMessage& m12,
-		       const RMessage& m13, const RMessage& m14,
-		       const RMessage& m15, const RMessage& m16
-		    )
-	{
-	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
-	if ( allwarn )
-		{
-		error->Stream() << "E[" << ++error_count << "]: ";
-		ret->Describe( error->Stream() );
-		error->Stream() << endl;
-		}
-	Sequencer::SetErrorResult( ret );
-	}
-
-void log_output( const char *s )
-	{
-	if ( Sequencer::CurSeq()->System().OLog() )
-		Sequencer::CurSeq()->System().DoOLog( s );
-	}
-
-int do_output_log()
-	{
-	return Sequencer::CurSeq()->System().OLog();
-	}
-
-void show_glish_stack( OStream &s )
-	{
-	Sequencer::CurSeq()->DescribeFrames( s );
-	s << endl;
+	glish_message->Report(v);
 	}
 
 static void glish_dump_core( const char *file )
@@ -570,7 +373,7 @@ void glish_sigfpe( int, siginfo_t *, ucontext_t *uap )
 
 	if ( glish_abort_on_fpe )
 		{
-		glish_cleanup( );
+		ValCtor::cleanup( );
 		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
 		sigfpe(FPE_INTDIV, (sigfpe_handler_type)SIGFPE_DEFAULT);
 		kill( getpid(), SIGFPE );
@@ -601,7 +404,7 @@ void glish_sigfpe( )
 
 	if ( glish_abort_on_fpe )
 		{
-		glish_cleanup( );
+		ValCtor::cleanup( );
 		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
 		install_signal_handler( SIGFPE, (signal_handler) SIG_DFL );
 		kill( getpid(), SIGFPE );
@@ -612,4 +415,4 @@ static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
 #endif
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
-static char copyright2[]  = "Copyright (c) 1997,1998,1999 Associated Universities Inc.";
+static char Copyright2[] = "Copyright (c) 1997,1998,1999,2004 Associated Universities Inc.";
