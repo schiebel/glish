@@ -9,8 +9,6 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -200,12 +198,6 @@ Channel* CreateChild( char** argv, int& pid )
 
 	if ( pid == 0 )
 		{ // child
-
-		// Set the child's process group incase it and all of
-		// its children must be forcefully killed.
-		pid = getpid();
-		setpgid(pid,pid);
-
 		if ( dup2( to_pipe[0], fileno(stdin) ) < 0 ||
 		     dup2( from_pipe[1], fileno(stdout) ) < 0 )
 			{
@@ -238,15 +230,7 @@ void SendChildInput( Client& c, int send_to_child_fd )
 	GlishEvent* e = c.NextEvent();
 
 	if ( ! e || streq( e->name, "terminate" ) )
-		{
 		kill( pid, SIGTERM );
-		sleep(1);
-		if ( kill( pid, 0 ) >= 0 )
-			{
-			kill ( - pid, SIGKILL );
-			exit( 0 );
-			}
-		}
 
 	else if ( streq( e->name, "EOF" ) )
 		close( send_to_child_fd );

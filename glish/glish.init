@@ -44,22 +44,13 @@ function conj(x)
 	}
 		
 function arg(x)
-{
+	{
 	if ( is_complex(x) || is_dcomplex(x) )
-		{
-		local pi  := 3.141592653589793238462643
-		local ret := atan(as_double(imag(x)) / as_double(real(x)))
-		local real_lt := real(x) < 0.0
-		local one := imag(x) >= 0.0 & real_lt
-		local two := imag(x) < 0.0 & real_lt
-		ret[ one ] := pi - abs(ret[ one ])
-		ret[ two ] := -pi + abs(ret[ two ])
-		return ret
-		}
+		return atan(as_double(imag(x)) / as_double(real(x)))
 	else
 		return as_double(0)
 	}
-
+		
 function all(x) sum(!x) == 0
 function any(x) sum(as_boolean(x)) > 0
 

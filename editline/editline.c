@@ -25,7 +25,7 @@
 #define ISMETA(x)	((x) & 0x80)
 #define UNMETA(x)	((x) & 0x7F)
 #if	!defined(HIST_SIZE)
-#define HIST_SIZE	150
+#define HIST_SIZE	20
 #endif	/* !defined(HIST_SIZE) */
 
 typedef CONST CHAR	*STRING;

@@ -34,7 +34,6 @@
 #include <osfcn.h>
 #include <ctype.h>
 #include <string.h>
-#include <stdlib.h>
 
 #include "input.h"
 #include "Reporter.h"

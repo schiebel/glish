@@ -228,7 +228,7 @@ Value* RealBuiltIn::DoCall( const_args_list* args_val )
 
 	Value* result;
 
-#define RE_IM_BUILTIN_ACTION(tag,type,subtype,accessor,OFFSET,elem,XLATE)\
+#define RE_IM_BUILTIN_ACTION(tag,type,subtype,accessor,elem)	\
 	case tag:						\
 		{						\
 		int is_copy;					\
@@ -236,10 +236,7 @@ Value* RealBuiltIn::DoCall( const_args_list* args_val )
 		subtype* stor = new subtype[len];		\
 		type* from = v->accessor( is_copy, len );	\
 		for ( int i = 0; i < len; i++ )			\
-			{					\
-			XLATE					\
-			stor[i] = from[OFFSET] elem;		\
-			}					\
+			stor[i] = from[i] elem;			\
 		if ( is_copy )					\
 			delete from;				\
 		result = new Value( stor, len );		\
@@ -249,39 +246,9 @@ Value* RealBuiltIn::DoCall( const_args_list* args_val )
 
 	switch ( v->Type() )
 		{
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,.r)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,.r)
 
-		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
-			{
-			VecRef* ref = v->VecRefPtr();
-			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
-
-			switch ( theVal->Type() )
-				{
-
-#define RE_IM_BUILTIN_ACTION_XLATE				\
-	int err;						\
-	int off = ref->TranslateIndex( i, &err );		\
-	if ( err )						\
-		{						\
-		delete stor;					\
-		if ( is_copy )					\
-			delete from;				\
-		error->Report("invalid index (=",i+1,"), sub-vector reference may be bad");\
-		return error_value();				\
-		}
-
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
-
-				default:
-					result = copy_value(v);
-				}
-			}
-			break;
 		default:
 			result = copy_value(v);
 		}
@@ -303,27 +270,9 @@ Value* ImagBuiltIn::DoCall( const_args_list* args_val )
 
 	switch ( v->Type() )
 		{
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.i,)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,.i)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,.i)
 
-		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
-			{
-			VecRef* ref = v->VecRefPtr();
-			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
-
-			switch ( theVal->Type() )
-				{
-
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.i,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,RE_IM_BUILTIN_ACTION_XLATE)
-
-				default:
-					result = copy_value(v);
-				}
-			}
-			break;
 		default:
 			result = new Value( 0.0 );
 		}
@@ -1316,19 +1265,12 @@ Value* field_names_built_in( const Value* arg )
 
 	recordptr record_dict = arg->RecordPtr();
 	IterCookie* c = record_dict->InitForIteration();
-	int len = record_dict->Length();
 
-	charptr* names = new charptr[len];
+	charptr* names = new charptr[record_dict->Length()];
 	const char* key;
 
-	for ( int i = 0; i < len; ++i )
-		{
-		Value* nth_val = record_dict->NthEntry( i, key );
-		if ( ! nth_val )
-			fatal->Report(
-				"bad record in field_names_built_in" );
+	for ( int i = 0; record_dict->NextEntry( key, c ); ++i )
 		names[i] = strdup( key );
-		}
 
 	return new Value( names, i );
 	}
