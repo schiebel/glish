@@ -18,8 +18,6 @@
 /*
 ** Force insertion of rcsid
 */
-#if ! defined(RCSID)
-#if ! defined(NO_RCSID)
 #if defined(__STDC__) || defined(__ANSI_CPP__) || defined(__hpux)
 #define UsE_PaStE(b) UsE__##b##_
 #define PASTE(a,b) a##b
@@ -32,6 +30,8 @@
 #else
 #define UsE(x) static void UsE_PaStE(x)(char *d) { UsE_PaStE(x)(x); }
 #endif
+#if ! defined(RCSID)
+#if ! defined(NO_RCSID)
 #define RCSID(str)                      \
         static char *rcsid_ = str;      \
         UsE(rcsid_)
