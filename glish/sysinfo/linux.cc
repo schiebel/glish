@@ -46,7 +46,9 @@
 #define PROC_SUPER_MAGIC 0x9fa0
 #endif
 
-#define PROCFS "/proc"
+#define PROCFS  "/proc"
+#define CPUINFO "/proc/cpuinfo"
+#define MEMINFO "/proc/meminfo"
 
 #define bytetok(x)	(((x) + 512) >> 10)
 
@@ -80,16 +82,13 @@ void Sysinfo::machine_initialize( )
 	}
     }
 
-    /* chdir to the proc filesystem to make things easier */
-    chdir(PROCFS);
-
     /* get number of CPUs */
     {
 	char buffer[4096+1];
 	int fd, len;
 
 	cpus = 0;
-	fd = open("cpuinfo", O_RDONLY);
+	fd = open(CPUINFO, O_RDONLY);
 	len = read(fd, buffer, sizeof(buffer)-1);
 	close(fd);
 	buffer[len] = '\0';
@@ -118,7 +117,7 @@ void Sysinfo::update_info( )
     {
 	char *p;
 
-	fd = open("meminfo", O_RDONLY);
+	fd = open( MEMINFO, O_RDONLY);
 	len = read(fd, buffer, sizeof(buffer)-1);
 	close(fd);
 	buffer[len] = '\0';
