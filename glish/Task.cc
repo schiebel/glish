@@ -637,6 +637,13 @@ IValue* CreateTaskBuiltIn::SynchronousShell( const char* command,
 
 	int status = pclose_with_input( shell );
 
+	if ( result )
+		{
+		IValue *stat_val = new IValue( status );
+		result->AssignAttribute( "status", stat_val );
+		Unref( stat_val );
+		}
+
 	if ( status )
 		{
 		char status_buf[128];
@@ -690,6 +697,9 @@ IValue* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 		warn->Report( "remote daemon died" );
 		return error_ivalue();
 		}
+
+	if ( result )
+		result->AssignAttribute( "status", e->value );
 
 	int status = e->value->IntVal();
 	delete e;

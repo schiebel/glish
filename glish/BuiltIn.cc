@@ -1754,10 +1754,17 @@ IValue* name( const IValue* arg )					\
 
 glish_bool string_to_bool( const char* string )
 	{
+	while ( *string == ' ' ) string++;
+
+	if ( *string == 'T' && (string[1] == ' ' || string[1] == '\0') )
+		return glish_true;
+	if ( *string == 'F' && (string[1] == ' ' || string[1] == '\0') )
+		return glish_false;
+
 	int successful;
 	double d = text_to_double( string, successful );
 	if ( successful )
-		return glish_bool( int( d ) );
+		return d ? glish_true : glish_false;
 	else
 		return glish_false;
 	}
