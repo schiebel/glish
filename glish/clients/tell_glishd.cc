@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 #endif
 
 #include "Glish/Client.h"
+#include "sos/io.h"
 
 #include "Reporter.h"
 #include "ports.h"
@@ -56,7 +57,8 @@ int main( int argc, char** argv )
 		exit( 1 );
 		}
 
-	send_event( daemon_socket, "*terminate-daemon*", (const Value*) 0 );
+	sos_fd_sink sock( daemon_socket );
+	send_event( sock, "*terminate-daemon*", (const Value*) 0 );
 
 	return 0;
 	}
