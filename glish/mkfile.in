@@ -86,8 +86,8 @@ CLIENT_OBJS = Value.o ValKern.o Client.o Complex.o Dict.o Executable.o LocalExec
 	Proxy.o Queue.o Reporter.o Socket.o Str.o Stream.o VecRef.o glishlib.o system.o @ARCH_OBJ@
 
 CLIENT_GCOBJS = gcValue.o gcValKern.o gcClient.o gcComplex.o gcDict.o gcExecutable.o gcLocalExec.o \
-	gcObject.o gcProxy.o gcQueue.o gcReporter.o gcSocket.o gcStr.o gcStream.o gcVecRef.o gcsystem.o \
-	@ARCH_OBJ@
+	gcObject.o gcProxy.o gcQueue.o gcReporter.o gcSocket.o gcStr.o gcStream.o gcVecRef.o \
+	gcsystem.o @ARCH_OBJ@
 
 INTERP_OBJS_PROXY = $(D)IValue.o $(D)Agent.o $(D)BinOpExpr.o $(D)BuiltIn.o $(D)Daemon.o \
 	$(D)Event.o $(D)Expr.o $(D)File.o $(D)Frame.o $(D)Func.o $(D)Pager.o \
