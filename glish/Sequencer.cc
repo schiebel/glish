@@ -2893,6 +2893,7 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 	else
 		result = last_reply;
 
+	current_await_done = 0;
 	last_reply = 0;
 
 	PopAwait();
