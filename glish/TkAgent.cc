@@ -731,6 +731,42 @@ char *glishtk_button_state(TkAgent *a, const char *cmd, parameter_list *args,
 	return ret;
 	}
 
+extern "C" int rivet_menuentry_set(Rivetobj,char*,char*,char*);
+
+char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char index[100];
+	TkButton *Self = (TkButton*)a;
+	TkButton *Parent = Self->Parent();
+	char *ret = 0;
+	char *event_name = "one string menu function";
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRSTR( str, event_name )
+	sprintf(index,"%d",Parent->Index(Self));
+	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", index, (char*) cmd, (char*) str, 0 );
+	EXPR_DONE( str )
+	return ret;
+	}
+
+char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, const char *pfalse,
+				parameter_list *args, int is_request, int log )
+	{
+	char index[100];
+	TkButton *Self = (TkButton*)a;
+	TkButton *Parent = Self->Parent();
+	char *ret = 0;
+	char *event_name = "one binary menu function";
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRINT( i, event_name )
+	sprintf(index,"%d",Parent->Index(Self));
+	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", index, (char*) cmd, (char*)(i ? ptrue : pfalse), 0 );
+	EXPR_DONE( i )
+	return ret;
+	}
+
 IValue *glishtk_strtobool( char *str )
 	{
 	if ( str && (*str == 'T' || *str == '1') )
@@ -861,7 +897,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		return;
 		}
 
-	++frame_count;
+	id = ++frame_count;
 
 	if ( tl_count++ )
 		{
@@ -1260,12 +1296,22 @@ const char **TkFrame::PackInstruction()
 
 TkButton::~TkButton( )
 	{
-	if ( frame )
-		frame->RemoveElement( this );
+	if ( ! menu )
+		{
+		if ( frame )
+			frame->RemoveElement( this );
 
-	if ( value ) Unref(value);
+		if ( value ) Unref(value);
 
-	UnMap();
+		UnMap();
+		}
+	else
+		{
+		char index[100];
+		sprintf(index,"%d",menu->Index(this));	
+		rivet_va_cmd( menu->Menu(), "delete", index, 0 );
+		menu->Remove(this);
+		}
 	}
 
 unsigned long TkButton::button_count = 0;
@@ -1277,13 +1323,27 @@ int buttoncb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData unus
 	return TCL_OK;
 	}
 
+int tk_button_menupost(Rivetobj menu, XEvent *unused1, ClientData ignored, ClientData unused2)
+	{
+	return TCL_OK;
+	}
+
+int TkButton::Index( TkButton *item ) const
+	{
+	for ( int i=0; i < entry_list.length(); i++ )
+		if ( item == entry_list[i] )
+			return i+1;
+
+	return 0;
+	}
+
 TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val )
-			: value(0), TkAgent( s ), state(0)
+			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0), menu_base(0)
 	{
-	type = 0;
+	type = PLAIN;
 	frame = frame_;
 	char *argv[32];
 
@@ -1297,18 +1357,19 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
 
-	if ( ! strcmp(type_, "radio") ) type = 1;
-	else if ( ! strcmp(type_, "check") ) type = 2;
+	if ( ! strcmp(type_, "radio") ) type = RADIO;
+	else if ( ! strcmp(type_, "check") ) type = CHECK;
+	else if ( ! strcmp(type_, "menu") ) type = MENU;
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
 
-	if ( type == 1 )
+	if ( type == RADIO )
 		{
-		sprintf(var_name,"%s%x",type_,frame->Count());
+		sprintf(var_name,"%s%x",type_,frame->Id());
 		argv[c++] = "-variable";
 		argv[c++] = var_name;
-		sprintf(val_name,"BVaLuE%x",Count());
+		sprintf(val_name,"BVaLuE%x",Id());
 		argv[c++] = "-value";
 		argv[c++] = val_name;
 		}
@@ -1331,6 +1392,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		argv[c++] = "-font";
 		argv[c++] = (char*) font;
 		}
+
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief;
 	argv[c++] = "-borderwidth";
@@ -1341,16 +1403,28 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	argv[c++] = (char*) background;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
-	argv[c++] = "-command";
-	argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
+	if ( type != MENU )
+		{
+		argv[c++] = "-command";
+		argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
+		}
 
 	switch ( type )
 		{
-		case 1:
+		case RADIO:
 			self = rivet_create(RadioButtonClass, frame->Self(), c, argv);
 			break;
-		case 2:
+		case CHECK:
 			self = rivet_create(CheckButtonClass, frame->Self(), c, argv);
+			break;
+		case MENU:
+			self = rivet_create(MenubuttonClass, frame->Self(), c, argv);
+			rivet_set(self, "-postcommand", rivet_new_callback( (int (*)()) tk_button_menupost, (ClientData) this, 0));
+			argv[0] = argv[1] = 0;
+			argv[2] = "-tearoff";
+			argv[3] = "0";
+			menu_base = rivet_create(MenuClass, self, 4, argv);
+			rivet_set(self, "-menu", rivet_path(menu_base));
 			break;
 		default:
 			self = rivet_create(ButtonClass, frame->Self(), c, argv);
@@ -1378,11 +1452,126 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	}
 
+TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_,
+		    charptr padx, charptr pady, int width, int height, charptr justify,
+		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
+		    charptr background, int disabled, const IValue *val )
+			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu_base(0)
+	{
+	type = PLAIN;
+
+	menu = frame_;
+	frame = 0;
+
+	if ( ! frame_->IsMenu() )
+		fatal->Report("internal error with creation of menu entry");
+
+	char *argv[34];
+
+	id = ++button_count;
+
+	char width_[30];
+	char height_[30];
+	char var_name[256];
+	char val_name[256];
+
+	sprintf(width_,"%d", width);
+	sprintf(height_,"%d", height);
+
+	if ( ! strcmp(type_, "radio") ) type = RADIO;
+	else if ( ! strcmp(type_, "check") ) type = CHECK;
+	else if ( ! strcmp(type_, "menu") ) type = MENU;
+
+	int c = 3;
+	argv[0] = argv[2] = 0;
+	argv[1] = "add";
+
+	if ( type == RADIO )
+		{
+		sprintf(var_name,"%s%x",type_,menu->Id());
+		argv[c++] = "-variable";
+		argv[c++] = var_name;
+		sprintf(val_name,"BVaLuE%x",Id());
+		argv[c++] = "-value";
+		argv[c++] = val_name;
+		}
+
+#if 0
+	argv[c++] = "-padx";
+	argv[c++] = (char*) padx;
+	argv[c++] = "-pady";
+	argv[c++] = (char*) pady;
+	argv[c++] = "-width";
+	argv[c++] = width_;
+	argv[c++] = "-height";
+	argv[c++] = height_;
+	argv[c++] = "-justify";
+	argv[c++] = (char*) justify;
+#endif
+	argv[c++] = "-label";
+	argv[c++] = (char*) label;
+
+	if ( font[0] )
+		{
+		argv[c++] = "-font";
+		argv[c++] = (char*) font;
+		}
+
+#if 0
+	argv[c++] = "-relief";
+	argv[c++] = (char*) relief;
+	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = "-fg";
+	argv[c++] = (char*) foreground;
+	argv[c++] = "-bg";
+	argv[c++] = (char*) background;
+#endif
+	argv[c++] = "-state";
+	argv[c++] = disabled ? "disabled" : "normal";
+
+	argv[c++] = "-command";
+	argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
+
+	switch ( type )
+		{
+		case RADIO:
+			argv[2] = "radio";
+			rivet_cmd(menu->Menu(), c, argv);
+			break;
+		case CHECK:
+			argv[2] = "check";
+			rivet_cmd(menu->Menu(), c, argv);
+			break;
+		default:
+			argv[2] = "command";
+			rivet_cmd(menu->Menu(), c, argv);
+			break;
+		}
+
+	self = menu->Menu();
+	agent_ID = "<graphic:button>";
+
+	value = val ? copy_value( val ) : 0;
+
+	menu->Add(this);
+
+	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr));
+	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr));
+// 	procs.Insert("background", new TkProc(this, "-bg", glishtk_menu_onestr));
+// 	procs.Insert("foreground", new TkProc(this, "-fg", glishtk_menu_onestr));
+	procs.Insert("disabled", new TkProc(this, "-state", "disabled", "normal", glishtk_menu_onebinary));
+	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
+	}
+
 void TkButton::ButtonPressed( )
 	{
-	if ( type == 1 )
-		frame->RadioID( Id() );
-	else if ( type == 2 )
+	if ( type == RADIO )
+		if ( frame )
+			frame->RadioID( Id() );
+		else
+			menu->RadioID( Id() );
+	else if ( type == CHECK )
 		state = state ? 0 : 1;
 
 	if ( dont_invoke_button == 0 )
@@ -1390,7 +1579,7 @@ void TkButton::ButtonPressed( )
 		IValue *v = value ? copy_value(value) : new IValue( glish_true );
 
 		attributeptr attr = v->ModAttributePtr();
-		attr->Insert( strdup("state"), type != 2 || state ? new IValue( glish_true ) :
+		attr->Insert( strdup("state"), type != CHECK || state ? new IValue( glish_true ) :
 							    new IValue( glish_false ) ) ;
 
 		CreateEvent( "press", v );
@@ -1423,8 +1612,13 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETINT( disabled )
 	SETVAL( val, 1 )
 
+	Agent *agent = parent->AgentVal();
 
-	ret =  new TkButton( s, (TkFrame*)parent->AgentVal(), label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
+	if ( ! strcmp( agent->AgentID(), "<graphic:button>") &&
+	     ((TkButton*)agent)->IsMenu() )
+		ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
+	else
+		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
 
 	return ret;
 	}
@@ -1432,24 +1626,37 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 unsigned char TkButton::State() const
 	{
 	unsigned char ret = 0;
-	if ( type == 1 )
-		ret = frame->RadioID() == Id();
-	else if ( type == 2 )
+	if ( type == RADIO )
+		if ( frame )
+			ret = frame->RadioID() == Id();
+		else
+			ret = menu->RadioID() == Id();
+	else if ( type == CHECK )
 		ret = state;
 	return ret;
 	}
 
 void TkButton::State(unsigned char s)
 	{
-	if ( type == 0 || State() && s || ! State() && ! s )
+	if ( type == PLAIN || State() && s || ! State() && ! s )
 		return;
 
-	if ( type == 1 && s == 0 )
+	if ( type == RADIO && s == 0 )
 		{
 		char var_name[256];
-		sprintf(var_name,"radio%x",frame->Count());
+
+		if ( frame )
+			{
+			sprintf(var_name,"radio%x",frame->Id());
+			frame->RadioID( 0 );
+			}
+		else
+			{
+			sprintf(var_name,"radio%x",menu->Id());
+			menu->RadioID( 0 );
+			}
+
 		Tcl_SetVar( self->interp, var_name, "", TCL_GLOBAL_ONLY );
-		frame->RadioID( 0 );
 		}
 	else
 		{

@@ -186,6 +186,7 @@ class TkFrame : public TkAgent {
 	void UnMap();
 
 	unsigned long Count() const { return frame_count; }
+	unsigned long Id() const { return id; }
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkFrame();
@@ -194,7 +195,7 @@ class TkFrame : public TkAgent {
 	const char *Expand() const { return expand; }
 
 	unsigned long RadioID() const { return radio_id; }
-	void RadioID( unsigned long id ) { radio_id = id; }
+	void RadioID( unsigned long id_ ) { radio_id = id_; }
 
     protected:
 	char *side;
@@ -205,6 +206,7 @@ class TkFrame : public TkAgent {
   	tkagent_list elements;
 	static unsigned long tl_count;
 	static unsigned long frame_count;
+	unsigned long id;
 	char is_tl;
 	Rivetobj pseudo;
 
@@ -213,7 +215,13 @@ class TkFrame : public TkAgent {
 
 class TkButton : public TkAgent {
     public:
+	enum button_type { PLAIN, RADIO, CHECK, MENU };
+
 	TkButton( Sequencer *, TkFrame *, charptr label, charptr type_, charptr padx,
+		  charptr pady, int width, int height, charptr justify, charptr font,
+		  charptr relief, charptr borderwidth, charptr foreground,
+		  charptr background, int disabled, const IValue *val );
+	TkButton( Sequencer *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const IValue *val );
@@ -223,6 +231,16 @@ class TkButton : public TkAgent {
 	void State(unsigned char s);
 	unsigned long Id() const { return id; }
 
+	TkButton *Parent() { return menu; }
+	Rivetobj Menu() { return menu ? menu->Menu() : menu_base; }
+	int IsMenu() { return type == MENU; }
+	int IsMenuEntry() { return menu != 0; }
+	unsigned long RadioID() const { return radio_id; }
+	void RadioID( unsigned long id ) { radio_id = id; }
+	void Add(TkButton *item) {  entry_list.append(item); }
+	void Remove(TkButton *item) { entry_list.remove(item); }
+	int Index(TkButton *) const;
+
 	void ButtonPressed( );
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkButton();
@@ -231,8 +249,14 @@ class TkButton : public TkAgent {
 	IValue *value;
 
 	unsigned char state;		// only used for check buttons
-	unsigned char type;
+	button_type type;
 	unsigned long id;
+
+	TkButton *menu;
+	Rivetobj menu_base;
+	unsigned long next_menu_entry;	// only used for menu buttons
+	unsigned long radio_id;		// only used for menu buttons
+	tkagent_list entry_list;	// only used for menu buttons
 	};
 
 class TkScale : public TkAgent {
