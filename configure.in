@@ -338,14 +338,16 @@ AC_C_BIGENDIAN
 AC_CHECK_FUNC(sendmsg,[
 AC_MSG_CHECKING([stream creation])
 AC_TRY_RUN([
+#include <stdio.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+#ifdef HAVE_STROPTS_H
 #include <stropts.h>
-#include <stdio.h>
+#endif
 
 main() {
     int io[2];
