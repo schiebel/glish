@@ -690,7 +690,9 @@ formal_param_list:
 	;
 
 formal_params:	formal_params ',' formal_param
-			{ $1->append( $3 ); }
+			{
+			$1->append( $3 );
+			}
 
 	|	formal_param
 			{
@@ -701,8 +703,14 @@ formal_params:	formal_params ',' formal_param
 
 formal_param:	formal_param_class TOK_ID formal_param_default
 			{
-			Expr* param =
-				current_sequencer->InstallID( $2, LOCAL_SCOPE );
+			Expr* id = current_sequencer->LookupID( strdup($2), LOCAL_SCOPE, 0, 0 );
+			if ( id )
+				{
+				yyerror("multiple parameters with same name");
+				YYERROR;
+				}
+
+			Expr* param = current_sequencer->InstallID( $2, LOCAL_SCOPE );
 			Ref(param);
 			$$ = new FormalParameter( (const char *) $2, $1, param, 0, $3 );
 			}
