@@ -1685,8 +1685,11 @@ void finalize_readline_history( )
 
 	if ( f ) {
 	    for ( i=0; i < History.Size; ++i ) {
-	        fputs( History.Lines[i], f );
-		fputc( '\n', f );
+	        if ( i < History.Size-1 || strcmp( History.Lines[i], "exit" ) )
+		    {
+		    fputs( History.Lines[i], f );
+		    fputc( '\n', f );
+		    }
 	    }
 	    fclose( f );
 	}
