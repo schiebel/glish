@@ -163,15 +163,15 @@ public:
 	sos_status *put_record_start( unsigned int l, sos_header &h );
 
 	sos_status *write( const char *buf, unsigned int len, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ return out ? out->write( buf, len, type ) : error( NO_SINK ); }
+		{ return out ? out->write( buf, len, type ) : Error( NO_SINK ); }
 
-	sos_status *flush( ) { return out ? out->flush( ) : error( NO_SINK ); }
+	sos_status *flush( ) { return out ? out->flush( ) : Error( NO_SINK ); }
 
 	~sos_out( );
 
 private:
 	enum error_mode { NO_SINK };
-	sos_status *error( error_mode );
+	sos_status *Error( error_mode );
 	char *not_integral;
 	sos_header head;
 	sos_sink *out;
@@ -191,7 +191,7 @@ public:
 
 private:
 	enum error_mode { NO_SOURCE };
-	sos_status *error( error_mode );
+	sos_status *Error( error_mode );
 	void *get_numeric( sos_code &, unsigned int &, sos_header & );
 	void *get_string( unsigned int &, sos_header & );
 	void *get_chars( unsigned int &, sos_header & );

@@ -357,6 +357,7 @@ class Client {
 
 Value *read_value( sos_in & );
 void write_value( sos_out &, const Value * );
+void write_value( sos_out &, Value *, const char *, char *name = 0, unsigned char flags = 0 );
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 extern GlishEvent* recv_event( sos_source &in );

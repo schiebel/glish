@@ -1498,7 +1498,7 @@ GlishEvent* recv_event( sos_source &in )
 	}
 
 
-static void write_value( sos_out &sos, Value *val, const char *label, char *name = 0, unsigned char flags = 0 )
+void write_value( sos_out &sos, Value *val, const char *label, char *name, unsigned char flags )
 	{
 	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 

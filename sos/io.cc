@@ -221,10 +221,10 @@ sos_status *sos_fd_sink::flush( )
 				{
 				// resource temporarily unavailable
 				if ( errno == EAGAIN ) return this;
-				perror( "sos_fd_sink::flush( )" );
 				// broken pipe
 				if ( errno == EPIPE ) { reset(); return 0; }
-				exit(1);
+				perror( "sos_fd_sink::flush( )" );
+				return 0;
 				}
 
 			int old_start = start;
@@ -328,7 +328,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 #define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )			\
 	{								\
 	if ( ! out )							\
-		return error( NO_SINK );				\
+		return Error( NO_SINK );				\
 									\
 	if ( not_integral )						\
 		{							\
@@ -379,7 +379,7 @@ PUTCHAR(unsigned char)
 #define PUTCHARPTR_BODY(SOURCE)						\
 	{								\
 	if ( ! out )							\
-		return error( NO_SINK );				\
+		return Error( NO_SINK );				\
 									\
 	unsigned int total = (len+1) * 4;				\
 	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE ); \
@@ -429,7 +429,7 @@ PUTCHAR(unsigned char)
 #define PUTSTR_BODY(SOURCE)						\
 	{								\
 	if ( ! out )							\
-		return error( NO_SINK );				\
+		return Error( NO_SINK );				\
 									\
 	unsigned int len = s.length();					\
 	unsigned int total = (len+1) * 4;				\
@@ -485,7 +485,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 #define PUTREC_BODY( SOURCE )						\
 	{								\
 	if ( ! out )							\
-		return error( NO_SINK );				\
+		return Error( NO_SINK );				\
 									\
 	static char buf[SOS_HEADER_SIZE];				\
 									\
@@ -535,7 +535,7 @@ sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : in(in_), 
 void *sos_in::get( unsigned int &len, sos_code &type )
 	{
 	if ( ! in )
-		return error( NO_SOURCE );
+		return Error( NO_SOURCE );
 
 	type = SOS_UNKNOWN;
 	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
@@ -558,7 +558,7 @@ void *sos_in::get( unsigned int &len, sos_code &type )
 void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 	{
 	if ( ! in )
-		return error( NO_SOURCE );
+		return Error( NO_SOURCE );
 
 	type = SOS_UNKNOWN;
 	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
@@ -716,8 +716,8 @@ void *sos_in::get_chars( unsigned int &len, sos_header &head )
 
 sos_in::~sos_in() { }
 
-sos_status *sos_in::error( error_mode )
+sos_status *sos_in::Error( error_mode )
 	{ return sos_err_status; }
 
-sos_status *sos_out::error( error_mode )
+sos_status *sos_out::Error( error_mode )
 	{ return sos_err_status; }

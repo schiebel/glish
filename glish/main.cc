@@ -67,6 +67,9 @@ static unsigned int error_count = 0;
 extern "C" void nb_readline_cleanup();
 #endif
 
+static void glish_dump_core( const char * );
+static int handling_fatal_signal = 0;
+
 static void install_terminate_handlers();
 
 void glish_cleanup( )
@@ -79,7 +82,7 @@ void glish_cleanup( )
 	}
 
 
-#define DEFINE_SIG_FWD(NAME,STRING,SIGNAL)				\
+#define DEFINE_SIG_FWD(NAME,STRING,SIGNAL,COREDUMP)			\
 void NAME( )								\
 	{								\
 	glish_cleanup( );						\
@@ -87,14 +90,17 @@ void NAME( )								\
 			STRING, SIGNAL);				\
 									\
 	install_signal_handler( SIGNAL, (signal_handler) SIG_DFL );	\
+									\
+	COREDUMP							\
+									\
 	kill( getpid(), SIGNAL );					\
 	}
 
 
-DEFINE_SIG_FWD(glish_sighup,"hangup signal",SIGHUP)
-DEFINE_SIG_FWD(glish_sigterm,"terminate signal",SIGTERM)
-DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT)
-DEFINE_SIG_FWD(glish_sigquit,"quit signal",SIGQUIT)
+DEFINE_SIG_FWD(glish_sighup,"hangup signal",SIGHUP,)
+DEFINE_SIG_FWD(glish_sigterm,"terminate signal",SIGTERM,)
+DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT,)
+DEFINE_SIG_FWD(glish_sigquit,"quit signal",SIGQUIT,)
 
 void glish_sigint( )
 	{
@@ -149,16 +155,23 @@ int main( int argc, char** argv )
 	return 0;
 	}
 
-DEFINE_SIG_FWD(glish_sigsegv,"segmentation violation",SIGSEGV)
-DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS)
-DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL)
+#define DUMP_CORE						\
+	if ( ! handling_fatal_signal )				\
+		{						\
+		handling_fatal_signal = 1;			\
+		glish_dump_core( "glish.core" );		\
+		}
+
+DEFINE_SIG_FWD(glish_sigsegv,"segmentation violation",SIGSEGV,DUMP_CORE)
+DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS,DUMP_CORE)
+DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL,DUMP_CORE)
 #ifdef SIGEMT
-DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT)
+DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT,DUMP_CORE)
 #endif
-DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE)
-DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP)
+DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE,DUMP_CORE)
+DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP,DUMP_CORE)
 #ifdef SIGSYS
-DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS)
+DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS,DUMP_CORE)
 #endif
 
 static void install_terminate_handlers()
@@ -402,6 +415,58 @@ void show_glish_stack( OStream &s )
 	{
 	Sequencer::CurSeq()->DescribeFrames( s );
 	s << endl;
+	}
+
+static void glish_dump_core( const char *file )
+	{
+	int fd = open(file,O_WRONLY|O_CREAT|O_TRUNC,0600);
+	if ( fd < 0 ) return;
+
+	// 's' above has not *yet* been assigned
+	Scope *scope = Sequencer::CurSeq()->GetScope( );
+	int len = scope->Length();
+
+	char **fields = (char**) alloc_memory( sizeof(char*) * len );
+	const IValue **vals = (const IValue**) alloc_memory( sizeof(IValue*) * len );
+	if ( ! fields || ! vals ) return;
+
+	IterCookie *c = scope->InitForIteration();
+	const Expr *member;
+	const char *key;
+
+	sos_fd_sink sink( fd );
+	sos_out sos( &sink );
+
+	c = scope->InitForIteration( );
+
+	unsigned int alen = 0;
+	while ( (member = scope->NextEntry( key, c )) )
+		{
+		if ( key && key[0] == '*' && key[strlen(key)-1] == '*' )
+			continue;
+
+		if ( member && ((VarExpr*)member)->Access() == USE_ACCESS )
+			{
+			// "val" may be LEAKED, but we don't care;
+			//  we're dumping core
+			const IValue *val = ((Expr*)member)->ReadOnlyEval( );
+
+			glish_type type = val->Type();
+			if ( type != TYPE_FUNC && type != TYPE_AGENT &&
+			     (type != TYPE_RECORD || ! val->IsAgentRecord()) )
+				{
+				fields[alen] = (char*) key;
+				vals[alen++] = val;
+				}
+			}
+		}
+
+	sos.put_record_start( alen );
+	sos.put( fields, alen );
+	for ( int i=0; i < alen; i++ )
+		write_value( sos, (Value*) vals[i], "" );
+
+	sos.flush( );
 	}
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
