@@ -20,6 +20,7 @@ EventDesignator::EventDesignator( Expr* arg_agent, Expr* arg_event_name )
 	event_name_expr = arg_event_name;
 	event_name_str = 0;
 	event_agent_ref = 0;
+	names = 0;
 	}
 
 EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
@@ -28,12 +29,14 @@ EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
 	event_name_expr = 0;
 	event_name_str = arg_event_name;
 	event_agent_ref = 0;
+	names = 0;
 	}
 
 EventDesignator::~EventDesignator( )
 	{
 	NodeUnref( agent );
 	NodeUnref( event_name_expr );
+	if ( names ) delete_name_list( names );
 	}
 
 Agent* EventDesignator::EventAgent( value_type val_type )
@@ -58,9 +61,9 @@ void EventDesignator::EventAgentDone()
 
 IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 	{
-	name_list* nl = EventNames();
+	name_list &nl = EventNames();
 
-	if ( ! nl )
+	if ( nl.length() == 0 )
 		{
 		error->Report( "->* illegal for sending an event" );
 		return is_request ? error_ivalue() : 0;
@@ -71,17 +74,15 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 
 	if ( a )
 		{
-		if ( nl->length() > 1 )
+		if ( nl.length() > 1 )
 			error->Report( this,
-					"must designate exactly one event" );
+				       "must designate exactly one event" );
 
-		result = a->SendEvent( (*nl)[0], arguments, is_request, 1 );
+		result = a->SendEvent( nl[0], arguments, is_request, 1 );
 		}
 
 	else
 		result = (IValue*) Fail( EventAgentExpr(), "is not an agent" );
-
-	delete_name_list( nl );
 
 	EventAgentDone();
 
@@ -90,76 +91,67 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 
 void EventDesignator::Register( Notifiee* notifiee )
 	{
-	name_list* nl = EventNames();
+	if ( names ) delete_name_list( names );
+	names = 0;
+
+	name_list &nl = EventNames();
 
 	Agent* a = EventAgent( VAL_CONST );
 
 	if ( a )
 		{
-		if ( ! nl || nl->length() == 0 )
+		if ( nl.length() == 0 )
 			// Register for all events.
 			a->RegisterInterest( notifiee );
 		else
-			loop_over_list( *nl, i )
-				a->RegisterInterest( notifiee, (*nl)[i], 1 );
-
-		// We don't delete the elements of nl because they've
-		// been given over to the agent.
-
-		delete nl;
+			loop_over_list( nl, i )
+				a->RegisterInterest( notifiee, strdup(nl[i]), 1 );
 		}
 
 	else
-		{
 		error->Report( EventAgentExpr(), "is not an agent" );
-
-		delete_name_list( nl );
-		}
 
 	EventAgentDone();
 	}
 
 void EventDesignator::UnRegister( Stmt* s )
 	{
-	name_list* nl = EventNames();
+	name_list &nl = EventNames();
 
 	Agent* a = EventAgent( VAL_CONST );
 
 	if ( a )
 		{
-		if ( ! nl )
+		if ( nl.length() == 0 )
 			// Register for all events.
 			a->UnRegisterInterest( s );
 
 		else
-			loop_over_list( *nl, i )
-				a->UnRegisterInterest( s, (*nl)[i] );
-
-		delete_name_list( nl );
+			loop_over_list( nl, i )
+				a->UnRegisterInterest( s, nl[i] );
 		}
 
 	else
-		{
 		error->Report( EventAgentExpr(), "is not an agent" );
-
-		delete_name_list( nl );
-		}
 
 	EventAgentDone();
 	}
 
-name_list* EventDesignator::EventNames()
+name_list &EventDesignator::EventNames()
 	{
-	name_list* result = new name_list;
+
+	if ( names ) return *names;
+
+	names = new name_list;
 
 	if ( event_name_str )
 		{
-		result->append( strdup( event_name_str ) );
-		return result;
+		names->append( strdup( event_name_str ) );
+		return *names;
 		}
 
 	if ( ! event_name_expr )
-		return 0;
+		return *names;
 
 	const IValue* index_val = event_name_expr->ReadOnlyEval();
 
@@ -168,7 +160,7 @@ name_list* EventDesignator::EventNames()
 		int n = index_val->Length();
 		const char** s = index_val->StringPtr(0);
 		for ( int i = 0; i < n; ++i )
-			result->append( strdup( s[i] ) );
+			names->append( strdup( s[i] ) );
 		}
 
 	else
@@ -176,7 +168,7 @@ name_list* EventDesignator::EventNames()
 
 	event_name_expr->ReadOnlyDone( index_val );
 
-	return result;
+	return *names;
 	}
 
 int EventDesignator::DescribeSelf( OStream& s, charptr prefix ) const

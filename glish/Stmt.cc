@@ -412,9 +412,9 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 			continue;
 			}
 
-		PList(char)* name_list = src->EventNames();
+		PList(char) &name_list = src->EventNames();
 
-		if ( ! name_list )
+		if ( name_list.length() == 0 )
 			{
 			err = (IValue*) Fail( this,
 				"linking of all events not yet supported" );
@@ -444,28 +444,26 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 				continue;
 				}
 
-			PList(char)* sink_list = snk->EventNames();
+			PList(char) &sink_list = snk->EventNames();
 
-			if ( sink_list && sink_list->length() > 1 )
+			if ( sink_list.length() > 1 )
 				err = (IValue*) Fail(
 				"multiple event names not allowed in \"to\":",
 						this );
 			else
 				{
-				loop_over_list( *name_list, k )
+				loop_over_list( name_list, k )
 					{
-					const char* name = (*name_list)[k];
+					const char* name = (name_list)[k];
 
 					MakeLink( src_task, name, snk_task,
-						sink_list ? (*sink_list)[0] : name );
+						  sink_list.length() ? sink_list[0] : name );
 					}
 				}
 
-			delete_name_list( sink_list );
 			snk->EventAgentDone();
 			}
 
-		delete_name_list( name_list );
 		src->EventAgentDone();
 		}
 

@@ -50,13 +50,7 @@ public:
 	// in error messages.
 	Expr* EventAgentExpr() const	{ return agent; }
 
-	// Evaluates the event name(s) and returns a list of them.
-	// The contents of the list should be deleted when done, as
-	// should the list itself.
-	//
-	// If this event designator is for "any" event then a nil
-	// list is returned.
-	name_list* EventNames();
+	name_list &EventNames( );
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
@@ -67,6 +61,7 @@ protected:
 	Expr* event_name_expr;
 	const char* event_name_str;
 	IValue* event_agent_ref;
+	name_list *names;
 	};
 
 extern void delete_name_list( name_list* nl );

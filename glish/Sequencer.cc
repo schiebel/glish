@@ -2406,32 +2406,25 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	event_list *el = ((AwaitStmt*)await_stmt)->AwaitList();
 	loop_over_list ( *el, X )
 		{
-		name_list *nl = (*el)[X]->EventNames();
-		if ( ! nl ) continue;
+		name_list &nl = (*el)[X]->EventNames();
+		if ( nl.length() == 0 ) continue;
 		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
 
 		if ( ! await_agent )
-			{
-			delete_name_list( nl );
 			continue;
-			}
 
-		loop_over_list( *nl, Y )
+		loop_over_list( nl, Y )
 			{
-			char *nme = (*nl)[Y];
+			char *nme = nl[Y];
 			agent_list *al = (*await_dict)[nme];
 			if ( ! al )
 				{
 				al = new agent_list;
-				await_dict->Insert(nme,al);
+				await_dict->Insert(strdup(nme),al);
 				}
-			else
-				free_memory(nme);
 
 			al->append(await_agent);
 			}
-
-		delete nl;
 
 		(*el)[X]->EventAgentDone();
 		}
