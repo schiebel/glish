@@ -2561,6 +2561,136 @@ else
 fi
 
 
+#--------------------------------------------------------------------
+#	Stolen from the Tk configure.in...
+#
+#       The code below deals with several issues related to gettimeofday:
+#       1. Some systems don't provide a gettimeofday function at all
+#          (set NO_GETTOD if this is the case).
+#       2. SGI systems don't use the BSD form of the gettimeofday function,
+#          but they have a BSDgettimeofday function that can be used instead.
+#       3. See if gettimeofday is declared in the <sys/time.h> header file.
+#          if not, set the GETTOD_NOT_DECLARED flag so that tclPort.h can
+#          declare it.
+#--------------------------------------------------------------------
+echo $ac_n "checking for BSDgettimeofday""... $ac_c" 1>&6
+if eval "test \"`echo '$''{'ac_cv_func_BSDgettimeofday'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > $conftest.$ac_ext <<EOF
+#line 2582 "configure"
+#include "$confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char BSDgettimeofday(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+char BSDgettimeofday();
+
+int main() { return 0; }
+int t() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_BSDgettimeofday) || defined (__stub___BSDgettimeofday)
+choke me
+#else
+BSDgettimeofday();
+#endif
+
+; return 0; }
+EOF
+if eval $ac_link; then
+  rm -rf $conftest*
+  eval "ac_cv_func_BSDgettimeofday=yes"
+else
+  rm -rf $conftest*
+  eval "ac_cv_func_BSDgettimeofday=no"
+fi
+rm -f $conftest*
+
+fi
+if eval "test \"`echo '$ac_cv_func_'BSDgettimeofday`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  cat >> $confdefs.h <<\EOF
+#define HAVE_BSDGETTIMEOFDAY 1
+EOF
+
+else
+  echo "$ac_t""no" 1>&6
+echo $ac_n "checking for gettimeofday""... $ac_c" 1>&6
+if eval "test \"`echo '$''{'ac_cv_func_gettimeofday'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > $conftest.$ac_ext <<EOF
+#line 2627 "configure"
+#include "$confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char gettimeofday(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+char gettimeofday();
+
+int main() { return 0; }
+int t() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_gettimeofday) || defined (__stub___gettimeofday)
+choke me
+#else
+gettimeofday();
+#endif
+
+; return 0; }
+EOF
+if eval $ac_link; then
+  rm -rf $conftest*
+  eval "ac_cv_func_gettimeofday=yes"
+else
+  rm -rf $conftest*
+  eval "ac_cv_func_gettimeofday=no"
+fi
+rm -f $conftest*
+
+fi
+if eval "test \"`echo '$ac_cv_func_'gettimeofday`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  :
+else
+  echo "$ac_t""no" 1>&6
+cat >> $confdefs.h <<\EOF
+#define NO_GETTOD 1
+EOF
+
+fi
+
+fi
+
+echo $ac_n "checking for gettimeofday declaration""... $ac_c" 1>&6
+cat > $conftest.$ac_ext <<EOF
+#line 2674 "configure"
+#include "$confdefs.h"
+#include <sys/time.h>
+EOF
+if (eval "$ac_cpp $conftest.$ac_ext") 2>&5 |
+  egrep "gettimeofday" >/dev/null 2>&1; then
+  rm -rf $conftest*
+  echo "$ac_t""present" 1>&6
+else
+  rm -rf $conftest*
+  
+    echo "$ac_t""missing" 1>&6
+    cat >> $confdefs.h <<\EOF
+#define GETTOD_NOT_DECLARED 1
+EOF
+
+
+fi
+rm -f $conftest*
+
+
 
 
 
