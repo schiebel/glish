@@ -408,7 +408,7 @@ dnl##
 dnl## Set up sub-directories which need to be configured
 dnl##
 if test -d glish/clients/glishtk/pgplot; then
-    AC_CONFIG_SUBDIRS( glish/clients/glishtk/pgplot )
+    AC_CONFIG_SUBDIRS( glish/clients/make glish/clients/glishtk/pgplot )
 fi
 
 dnl##--------------------------------------------------------------------

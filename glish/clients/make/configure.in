@@ -4,7 +4,173 @@ dnl	$Id$
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(makefile.boot.in)
+
+AC_INIT(make_client.h,../../../config)
+
+dnl##--------------------------------------------------------------------
+dnl##
+dnl## Extra command line options
+dnl##
+dnl##--------------------------------------------------------------------
+AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
+AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
+AC_ARG_ENABLE(gc,                  [  --enable-gc                 garbage collection])
+AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
+AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])
+AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR      directory for sitewide key files])
+AC_ARG_ASSIGN(script-dir,          [  --script-dir=SCRIPT_DIR     directory for sitewide script files])
+AC_ARG_ASSIGN(tcl-includes,        [  --tcl-includes=DIR          tcl and tk include files are in DIR])
+AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR         tcl and tk libraries are in DIR])
+AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags   PGPLOT include flags])
+AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags   PGPLOT link flags])
+AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags  PGPLOT search flags])
+
+dnl##
+dnl## Attempt to strip off the automounter mount point
+dnl##
+AC_DEFUN(STRIP_AUTOMOUNT,
+[case "${$1}" in
+    /tmp_mnt/*)
+	[$1]_tmp_mnt=`echo ${$1} | sed 's/^\/tmp_mnt\///'`
+	test -d "/${[$1]_tmp_mnt}" && $1="/${[$1]_tmp_mnt}"
+	;;
+esac
+])
+
+dnl##
+dnl## Do shell expansion of a particular variable
+dnl##
+AC_DEFUN(EXPAND_VAR,
+[while :
+do
+    case "${$1}" in
+	*\$\{*\}*) $1=`eval "echo ${$1}"` ;;
+	*) break ;;
+    esac
+done
+[$1]_rel_path=`echo ${$1} | sed ['s/^\([\.\/]*\).*/\1/'`]
+[$1]_rel_path=`echo $[$1]_rel_path | sed -e 's/\/\.\//\//' -e 's/^\.\///' -e 's/\/\.$//' -e 's/\/$//'`
+if test -n "$[$1]_rel_path"; then
+    [$1]_root=`cd $[$1]_rel_path; pwd`
+    STRIP_AUTOMOUNT([$1]_root)
+    [$1]_end=`echo ${$1} | sed ['s/^\([\.\/]*\)//'`]
+    $1=`echo "$[$1]_root/$[$1]_end" | sed ['s/\/$//']`
+fi
+])
+
+dnl##
+dnl## Set up $prefix (fully expanded), and patch the argument
+dnl## list where necessary
+dnl##
+AC_DEFUN(SET_PREFIX,
+[test "x$prefix" = xNONE && prefix="."
+tmp_prefix="$prefix"
+EXPAND_VAR(tmp_prefix)
+if test "$prefix" != "$tmp_prefix"; then
+    prefix="$tmp_prefix"
+    configure_args=
+    prev=
+    found_prefix=
+    for arg in $ac_configure_args; do
+	if test -n "$prev"; then
+	    prev=
+	    configure_args="$configure_args $prefix"
+	else
+	    case "$arg" in
+		-prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
+		    prev=prefix
+		    found_prefix=TRUE
+		    ;;
+		-prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
+		    configure_args="$configure_args --prefix=$prefix"
+		    found_prefix=TRUE
+		    ;;
+		*) configure_args="$configure_args $arg" ;;
+	    esac
+	fi
+    done
+    if test -n "$found_prefix"; then
+	ac_configure_args="$configure_args"
+    else
+	ac_configure_args="$configure_args --prefix=$prefix"
+    fi
+fi
+])
+dnl##
+dnl## Preprocess files
+dnl##
+dnl##      $1 => input file
+dnl##	$2 => output file
+dnl##	$3 => initialization
+dnl##
+AC_DEFUN(PREPROCESS,
+[rm -f $ARCH/preprocess.conf
+
+cat > $ARCH/preprocess.conf <<EOF
+[#!/bin/sh]
+ifelse($#, 3, [$3], )
+[cat <<'!NO!SUBS!']
+EOF
+
+sed -e "s/^\#FI/!NO!SUBS!\\
+fi\\
+cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
+else\\
+cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][_A-Z]*\)/!NO!SUBS!\\
+if test -n \"\$\1\"; then\\
+cat <<'!NO!SUBS!'/" < $1 >> $ARCH/preprocess.conf
+
+cat >> $ARCH/preprocess.conf <<\EOF
+[!NO!SUBS!]
+EOF
+
+rm -f $2
+/bin/sh $ARCH/preprocess.conf > $2
+])
+
+dnl##
+dnl##   This macro takes care of appending things to
+dnl##   the ld search path...
+dnl##
+dnl##   parameters are:   prefix, path, variable
+dnl##
+AC_DEFUN(ADD_LD_SEARCH,[
+    if test -n "$2"; then
+        if test -z "$$3"; then
+            $3="$1$2"
+        else
+            $3="$$3:$2"
+        fi
+    fi]
+)
+
+dnl##--------------------------------------------------------------------
+dnl##
+dnl## Initialize basic variables
+dnl##
+dnl##--------------------------------------------------------------------
+
+dnl##
+dnl## Locate "mkhier" based on $cache_file...
+dnl## probably bad, but how else? top_off is used
+dnl## to bump top a few directories up.
+dnl##
+conf_root=`echo $cache_file | sed ['s/^\([\.\/]*\).*/\1/'`]
+conf_root=`echo $conf_root | sed -e 's/\/\.\//\//' -e 's/^\.\///' -e 's/\/\.$//' -e 's/\/$//'`
+if test -z "$conf_root"; then
+    conf_root=.
+    top_off=""
+else
+    top_off="/$conf_root"
+fi
+mkhier="${conf_root}/config/mkhier"
+
+dnl##
+dnl## Make sure basic values are set
+dnl##
+SET_PREFIX
+test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
+
 AC_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
@@ -60,4 +226,632 @@ dnl
 dnl
 dnl
 
-AC_OUTPUT(makefile.boot lst.lib/makefile.boot)
+dnl##--------------------------------------------------------------------
+dnl##
+dnl## Tackle dynamic loading
+dnl##
+dnl##--------------------------------------------------------------------
+
+dnl##- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+   ##	Derived from the Tk configure.in...
+dnl##
+dnl##	There are two different types of variables discussed here. The
+dnl##	first group is exported to the makefiles. The second group is
+dnl##	*not* exported to the makefiles, but is used for configuration
+dnl##	or record keeping.
+dnl##
+dnl##	SLIB_CFLAGS -	Flags to pass to cc when compiling the components
+dnl##			of a shared library (may request position-independent
+dnl##			code, among other things).
+dnl##	SLIB_CXXFLAGS - like SLIB_CFLAGS except for C++
+dnl##	SLIB_LD_LIBS -	Dependent libraries for the linker to scan when
+dnl##			creating shared libraries.  This symbol typically
+dnl##			goes at the end of the "ld" commands that build
+dnl##			shared libraries. The value of the symbol is
+dnl##			"${LIBS}" if all of the dependent libraries should
+dnl##			be specified when creating a shared library.  If
+dnl##			dependent libraries should not be specified (as on
+dnl##			SunOS 4.x, where they cause the link to fail, or in
+dnl##			general if Tcl and Tk aren't themselves shared
+dnl##			libraries), then this symbol has an empty string
+dnl##			as its value. Also used for objects the C++ compiler
+dnl##			would add automatically.
+dnl##	GLISH_SLIB_SUFFIX - the suffix to stick onto all of the shared libraries
+dnl##			which are a part of a given Glish release.
+dnl##	GLISH_LIB_SUFFIX - the suffix to stick onto all of the static libraries
+dnl##			which are a part of a given Glish release.
+dnl##	MAKE_LIB -	Command to execute to build the static library;
+dnl##	MAKE_SLIB -	Command to execute to build the shared library
+dnl##	GLISH_LIBS -	The libraries needed to link the Glish interperter
+dnl##			indicated by SHARED_BIN & STATIC_BIN (so both should not be set)
+dnl##	CLIENT_LIBS -	The libraries needed to link a Glish client indicated
+dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
+dnl##	TKCLIENT_LIBS - The libraries needed to link a Glish client indicated
+dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
+dnl##	SHARED_LIB -	'lib_tgt' if shared libary should be built, empty otherwise
+dnl##	STATIC_LIB -	'lib_tgt' if static libary should be built, empty otherwise
+dnl##	SHARED_BIN -	'bin_tgt' if shared binary should be built, empty otherwise
+dnl##	STATIC_BIN -	'bin_tgt' if static binary should be built, empty otherwise
+dnl##
+dnl##	---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---
+dnl##
+dnl##	DL_LIBS -	Library file(s) to include in tclsh and other base
+dnl##			applications in order for the "load" command to work.
+dnl##	LD_FLAGS -	Flags to pass to the compiler when linking object
+dnl##			files into an executable application binary such
+dnl##			as tclsh.
+dnl##   TK_LD_RPATH
+dnl##   TK_CXX_RPATH
+dnl##	GLISH_LD_SEARCH - Flags to pass to ld, such as "-R /usr/local/tcl/lib",
+dnl##			that tell the run-time dynamic linker where to look
+dnl##			for shared libraries such as libtcl.so.  Depends on
+dnl##			the variable LIB_INSTALL_DIR in the Makefile.
+dnl##                   The Tk runtime path is broken off with flags for
+dnl##                   CXX and LD treated separately because the client
+dnl##			(glishtk) is built with C++ using an RPATH and
+dnl##			any loadable objects (gPgplot.so) are built with
+dnl##			LD using an RPATH, on some systems C++ and LD
+dnl##			take different flags...
+dnl##	SLIB_LD -	Base command to use for combining object files
+dnl##			into a shared library.
+dnl##	SLIB_SUFFIX -	Suffix to use for the names of dynamically loadable
+dnl##			extensions.  An empty string means we don't know how
+dnl##			to use shared libraries on this platform.
+dnl##
+dnl##- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+dnl##
+dnl## Find the hostname, if we haven't already
+dnl##
+if test -z "$host_os"; then
+    AC_CANONICAL_HOST()
+fi
+
+dnl##
+dnl## Set up configuration options based on system name and version.
+dnl##
+GLISH_SLIB_SUFFIX=""
+GLISH_LIB_SUFFIX=""
+LIB_VERSIONS_OK=ok
+SLIB_CXXFLAGS=""
+GLISH_LD_SEARCH=""
+TK_LD_RPATH=""
+TK_CXX_RPATH=""
+GC_LOW_OPT=""
+GC_MACH_DEP=""
+case $host_os in
+    aix*)
+	SLIB_CFLAGS=""
+	SLIB_LD="\$(top)/config/ldAix /bin/ld -bhalt:4 -bM:SRE -bE:lib.exp -H512 -T512"
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".so"
+	DL_LIBS="-lld"
+	LD_FLAGS=""
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+	fi
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+        if test -n "$x_libraries"; then
+	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_RPATH="$TK_LD_RPATH -L$tcl_library"
+	fi
+	AC_DEFINE(NO_DLFCN_H)
+##	GLISH_SLIB_SUFFIX='${VERSION}.a'
+	GC_MACH_DEP=rs6000_mach_dep.o
+	;;
+    hpux8.*|hpux9.*|hpux10.*)
+	SLIB_CFLAGS="+z"
+	SLIB_LD="ld -b"
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".sl"
+	DL_LIBS="-ldld"
+	LD_FLAGS="-Wl,-E"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	TK_LD_RPATH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+	GC_MACH_DEP=mach_dep.o
+	;;
+    irix4.*)
+	SLIB_CFLAGS="-G 0"
+	SLIB_SUFFIX="..o"
+	SLIB_LD="echo tclLdAout $CC \{$SLIB_CFLAGS\} | `pwd`/tclsh -r -G 0"
+	SLIB_LD_LIBS=""
+	DL_LIBS=""
+	LD_FLAGS="-Wl,-D,08000000"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_sgi_mach_dep.o
+	;;
+    irix5.*)
+	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
+	SLIB_LD="ld -shared -rdata_shared"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+	MAKE_LIB="/bin/ar cru"
+
+	if test $ac_cv_prog_gcc != yes; then
+	    SGI_ABI	
+	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	fi
+
+	if test -n "$cxx_library_path"; then
+	    AC_MSG_CHECKING([C++ library path (again)])
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    AC_MSG_RESULT($cxx_library_path)
+	fi
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	GC_MACH_DEP=mips_sgi_mach_dep.o
+	;;
+    irix6.*)
+	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
+	SLIB_LD="ld -shared -rdata_shared"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+	MAKE_LIB="/bin/ar cru"
+
+	if test $ac_cv_prog_gcc != yes; then
+	    SGI_ABI	
+	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	    case $_cv_sgiabi in
+		-o32)
+		    if test -f /usr/lib/c++init.o; then
+			SLIB_LD_LIBS=/usr/lib/c++init.o
+		    fi
+		    ;;
+		-n32)
+		    if test -f /usr/lib32/c++init.o; then
+			SLIB_LD_LIBS=/usr/lib32/c++init.o
+		    fi
+		    ;;
+		-64)
+		    if test -f /usr/lib64/c++init.o; then
+			SLIB_LD_LIBS=/usr/lib64/c++init.o
+		    fi;
+	    esac
+	fi
+
+	if test -n "$cxx_library_path"; then
+	    AC_MSG_CHECKING([C++ library path (again)])
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    AC_MSG_RESULT($cxx_library_path)
+	fi
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	GC_MACH_DEP=mips_sgi_mach_dep.o
+	;;
+    linux*)
+	SLIB_CFLAGS="-fPIC"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	SLIB_LABEL="-Wl,-h,"
+	if test "$have_dl" = yes; then
+	    SLIB_LD="$CC -shared"
+	    DL_LIBS="-ldl"
+	    LD_FLAGS="-rdynamic"
+	else
+	    AC_CHECK_HEADER(dld.h, [
+		SLIB_LD="ld -shared"
+		DL_LIBS="-ldld"
+		LD_FLAGS=""])
+	fi
+	dnl##
+	dnl## After problems with shared libraries/objects and undefined
+	dnl## symbols (stat and lstat), -lc was added and seems to fix
+	dnl## the problem.
+	dnl##
+	DL_LIBS="$DL_LIBS -lc"
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=mach_dep.o
+	;;
+    MP-RAS-02*)
+	SLIB_CFLAGS="-K PIC"
+	SLIB_LD="cc -G"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS="-ldl"
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+    MP-RAS-*)
+	SLIB_CFLAGS="-K PIC"
+	SLIB_LD="cc -G"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS="-ldl"
+	LD_FLAGS="-Wl,-Bexport"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+    netbsd*|freebsd*)
+	# Not available on all versions:  check for include file.
+	AC_CHECK_HEADER(dlfcn.h, [
+	    SLIB_CFLAGS="-fpic"
+	    SLIB_LD="ld -Bshareable"
+	    SLIB_LD_LIBS=""
+	    SLIB_SUFFIX=".so"
+	], [
+	    SLIB_CFLAGS=""
+	    SLIB_LD="echo tclLdAout $CC \{$SLIB_CFLAGS\} | `pwd`/tclsh -r -G 0"
+	    SLIB_LD_LIBS=""
+	    SLIB_SUFFIX="..o"
+	])
+	DL_LIBS=""
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+
+	# FreeBSD doesn't handle version numbers with dots.  Also, have to
+	# append a dummy version number to .so file names.
+
+	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
+	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
+	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=mach_dep.o
+	;;
+    nextstep*)
+	SLIB_CFLAGS=""
+	SLIB_LD="cc -nostdlib -r"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+    osf1.[[012]])
+	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
+	SLIB_CFLAGS=""
+	# Hack: make package name same as library name
+	SLIB_LABEL='-soname '
+	SLIB_LD='ld -R -export $@:'
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
+	;;
+    osf1.*)
+	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
+	SLIB_CFLAGS="-fpic"
+	SLIB_LABEL='-soname '
+	SLIB_LD="ld -shared"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
+	;;
+    osf3.*)
+        # Digital OSF/1
+	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
+	SLIB_LD='ld -shared -expect_unresolved "*"'
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
+	;;
+    osf4.*)
+        # Digital OSF/1
+	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
+	SLIB_LD='ld -shared -expect_unresolved "*"'
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS=""
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
+	;;
+    riscos*)
+	SLIB_CFLAGS="-G 0"
+	SLIB_LD="echo tclLdAout $CC \{$SLIB_CFLAGS\} | `pwd`/tclsh -r -G 0"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX="..o"
+	DL_LIBS=""
+	LD_FLAGS="-Wl,-D,08000000"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
+	;;
+    sco_sv3.2*)
+        # Note, dlopen is available only on SCO 3.2.5 and greater.  However,
+        # this test works, since "uname -s" was non-standard in 3.2.4 and
+        # below.
+	SLIB_CFLAGS="-Kpic -belf"
+	SLIB_LD="ld -G"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS=""
+	LD_FLAGS="-belf -Wl,-Bexport"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+     sinix*5.4*)
+	SLIB_CFLAGS="-K PIC"
+	SLIB_LD="cc -G"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS="-ldl"
+	LD_FLAGS=""
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+    sunos4*)
+	SLIB_CFLAGS="-PIC"
+	SLIB_LD="ld"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so.$_cv_version"
+	DL_LIBS="-ldl"
+	LD_FLAGS=""
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+	fi
+
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+        if test -n "$x_libraries"; then
+	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_RPATH="$TK_LD_RPATH -L$tcl_library"
+	fi
+
+	# SunOS can't handle version numbers with dots in them in library
+	# specs, like -ltcl7.5, so use -ltcl75 instead.  Also, it
+	# requires an extra version number at the end of .so file names.
+	# So, the library has to have a name like libtcl75.so.1.0
+
+	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
+	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
+	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=sparc_sunos4_mach_dep.o
+	;;
+    solaris2*)
+	SLIB_CFLAGS="-K PIC"
+	if test "$KAI" = yes; then
+	    LDI="--backend "
+	    SLIB_LD="$CXX"
+	    SLIB_CXXFLAGS="-KPIC"
+	else
+	    LDI=""
+	    SLIB_LD="/usr/ccs/bin/ld -G -z text"
+	    SLIB_CXXFLAGS="-PIC"
+	fi
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".so"
+	SLIB_LABEL="-h "
+	DL_LIBS="-ldl"
+	LD_FLAGS=""
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=sparc_mach_dep.o
+	;;
+    ultrix4.*)
+	SLIB_CFLAGS="-G 0"
+	SLIB_SUFFIX="..o"
+	SLIB_LD="echo tclLdAout $CC \{$SLIB_CFLAGS\} | `pwd`/tclsh -r -G 0"
+	SLIB_LD_LIBS=""
+	DL_LIBS=""
+	LD_FLAGS="-Wl,-D,08000000"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
+	;;
+    unix_sv*)
+	SLIB_CFLAGS="-K PIC"
+	SLIB_LD="cc -G"
+	SLIB_LD_LIBS=""
+	SLIB_SUFFIX=".so"
+	DL_LIBS="-ldl"
+	LD_FLAGS="-Wl,-Bexport"
+	GLISH_LD_SEARCH=""
+	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
+	;;
+esac
+
+dnl##
+dnl## If SLIB_CXXFLAGS is not set, set it to the same as SLIB_CFLAGS.
+dnl## This may need more work in the future since the C++ compilers
+dnl## are probably less uniform then the C compilers...
+dnl##
+if test -z "$SLIB_$CXXFLAGS"; then
+    SLIB_CXXFLAGS="$SLIB_CFLAGS"
+fi
+
+if test $ac_cv_prog_gxx = yes; then
+    SLIB_CXXFLAGS='-fPIC'
+fi
+
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_CFLAGS='-fPIC'
+fi
+
+AC_MSG_CHECKING(for shared loader)
+AC_MSG_RESULT($SLIB_LD)
+
+dnl##
+dnl## Setup the command to create the libraries
+dnl##
+MAKE_SLIB="$SLIB_LD -o"
+if test -z "$MAKE_LIB"; then
+    MAKE_LIB="ar cru"
+fi
+
+dnl##
+dnl## If SLIB_CXXFLAGS is not set, set it to the same as SLIB_CFLAGS.
+dnl## This may need more work in the future since the C++ compilers
+dnl## are probably less uniform then the C compilers...
+dnl##
+if test -z "$SLIB_$CXXFLAGS"; then
+    SLIB_CXXFLAGS="$SLIB_CFLAGS"
+fi
+
+if test $ac_cv_prog_gxx = yes; then
+    SLIB_CXXFLAGS='-fPIC'
+fi
+
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_CFLAGS='-fPIC'
+fi
+
+AC_MSG_CHECKING(for shared loader)
+AC_MSG_RESULT($SLIB_LD)
+
+dnl##
+dnl## Setup the command to create the libraries
+dnl##
+MAKE_SLIB="$SLIB_LD -o"
+if test -z "$MAKE_LIB"; then
+    MAKE_LIB="ar cru"
+fi
+
+dnl##
+dnl## These will typically be the same
+dnl##
+if test -z "$TK_CXX_RPATH"; then
+    TK_CXX_RPATH="$TK_LD_RPATH"
+fi
+
+dnl##
+dnl## Set up shared suffix
+dnl##
+GLISH_LIB_SUFFIX=".a"
+if test "$GLISH_SLIB_SUFFIX" = "" ; then
+if test "$LIB_VERSIONS_OK" = "ok"; then
+    GLISH_SLIB_SUFFIX="$SLIB_SUFFIX.$_cv_version"
+fi
+fi
+
+if test "$GLISH_LIB_SUFFIX" = "" ; then
+if test "$LIB_VERSIONS_OK" = "ok"; then
+    GLISH_LIB_SUFFIX="$VERSION.a"
+else
+    GLISH_LIB_SUFFIX="`echo $VERSION | tr -d .`.a"
+fi
+fi
+
+dnl##
+dnl## Select the binary to build
+dnl##
+if test "$static_binary" = "yes"; then
+    CLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglish -lsos -lnpd"
+else
+    CLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglish -lsos -lnpd"
+fi
+
+AC_SUBST(top_off)
+AC_SUBST(CLIENT_LIBS)
+
+AC_OUTPUT($ARCH/Makefile:Makefile.in)
