@@ -22,8 +22,10 @@ char* strdup( const char* );
 }
 
 #include "Sds/sdsgen.h"
+#include "Npd/npd.h"
 #include "Glish/Client.h"
 
+#include "Daemon.h"
 #include "BuiltIn.h"
 #include "Reporter.h"
 #include "Socket.h"
@@ -51,6 +53,8 @@ void Client_signal_handler()
 	}
 
 
+unsigned int EventContext::client_count = 1;
+
 EventContext::~EventContext() 
 	{ 
 	if (context) delete (char *) context;
@@ -67,10 +71,32 @@ EventContext &EventContext::operator=(const EventContext &c) {
 		return *this;
 	}
 
-EventContext::EventContext(const char *context_, const char *client_name_) :
-		context(context_ ? strdup(context_) : 0),
-		client_name(client_name_ ? strdup(client_name_) : 0)
-	{ }	
+EventContext::EventContext( const char *client_name_, const char *context_ )
+	{
+	if ( client_name_ )
+		client_name = strdup(client_name_);
+	else
+		{
+		const char *unknown_str = "unknown-client";
+		const int len = strlen(unknown_str);
+		client_name = new char[len + 22];
+		sprintf(client_name,"%s#%u", unknown_str, client_count);
+		}
+
+	if ( context_ )
+		context = strdup(context_);
+	else
+		{
+		const char *unknown_str = "<unknown>";
+		const int len = strlen(unknown_str);
+		context = new char[len + 22];
+		sprintf(context,"%s#%u", unknown_str, client_count);
+		}
+
+	if ( ! context_ || ! client_name_ )
+		client_count++;
+	}
+
 EventContext::EventContext(const EventContext &c) : 
 			context( c.id() ? strdup(c.id()) : 0), 
 			client_name( c.name() ? strdup(c.name()) : 0)
@@ -171,7 +197,7 @@ private:
 
 
 Client::Client( int& argc, char** argv, int arg_multithreaded ) :
-	last_context( "<unknown>", 0 )
+	last_context( )
 	{
 	char** orig_argv = argv;
 
@@ -187,7 +213,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 	int write_fd;
 
 	no_glish = 0;
-	interpreter_tag = "*no-interpreter*";
+	interpreter_tag = strdup("*no-interpreter*");
 
 	if ( argc < 2 || ! streq( argv[0], "-id" ) )
 		{
@@ -213,9 +239,9 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 			read_fd = fileno( stdin );
 			write_fd = fileno( stdout );
 
-			interpreter_tag = "*stdio*";
+			interpreter_tag = strdup("*stdio*");
 
-			last_context = EventContext(interpreter_tag,initial_client_name);
+			last_context = EventContext(initial_client_name,interpreter_tag);
 
 			EventSource* es = new EventSource( read_fd,
 				write_fd, STDIO, last_context );
@@ -275,11 +301,11 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 			argc -= 2, argv += 2;
 			}
 
-		interpreter_tag = "<unknown>";
+		interpreter_tag = strdup(last_context.id());
 
 		if ( argc > 1 && streq( argv[0], "-interpreter" ) )
 			{
-			interpreter_tag = argv[1];
+			interpreter_tag = strdup(argv[1]);
 			argc -= 2, argv += 2;
 			}
 
@@ -289,7 +315,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 			--argc, ++argv;
 			}
 
-		last_context = EventContext(interpreter_tag, initial_client_name);
+		last_context = EventContext(initial_client_name,interpreter_tag);
 
 		EventSource* es = new EventSource( read_fd, write_fd,
 					INTERP, last_context );
@@ -332,7 +358,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 
 
 Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
-	last_context( "<unknown>", name )
+	last_context( name )
 	{
 	initial_client_name = prog_name = name;
 
@@ -416,6 +442,9 @@ Client::~Client()
 	// links were cleaned with RemoveInterpreter() calls
 	for ( int j = event_sources.length() ; j >= 1 ; j-- )
 		delete event_sources[j];
+
+	if ( interpreter_tag )
+		delete interpreter_tag;
 	}
 
 GlishEvent* Client::NextEvent()
@@ -601,7 +630,24 @@ int Client::ReRegister( char* registration_name )
 	delete mysock;
 
 	if ( ! glishd_running )
-		return 1; // no glishd
+		{
+		message->Report( "starting local daemon ..." );
+		start_local_daemon();
+		const int tries = 15;
+		for (int count=tries; count && ! glishd_running; count--)
+			{
+			if ( count != tries )
+				{
+				message->Report( "waiting for daemon ..." );
+				sleep( 1 );
+				}
+			mysock = new AcceptSocket( 0, DAEMON_PORT, 0 );
+			glishd_running = ! mysock->Port(); // Port()==0 if glishd running
+			delete mysock;
+			}
+		if ( ! count )
+			return 1;
+		}
 
 	// connect and register with glishd
 
@@ -610,9 +656,18 @@ int Client::ReRegister( char* registration_name )
 	if ( ! remote_connection( socket, local_host, DAEMON_PORT ) )
 		return 1; // connect failed
 
+#ifdef AUTHENTICATE
+	if ( ! authenticate_to_server( socket ) )
+		{
+		close( socket );
+		return 1;
+		}
+#endif
+
 	EventSource* es = new EventSource( socket, GLISHD,
-		EventContext("*glishd*", ( registration_name == 0 ) ?
-				prog_name : registration_name  ));
+		EventContext(( registration_name == 0 ) ?
+			       prog_name : registration_name,
+			       "*glishd*"));
 	event_sources.append( es );
 
 	GlishEvent e( (const char *) "*register-persistent*",
@@ -633,6 +688,10 @@ void Client::ClientInit()
 		init_values();
 
 		did_init = 1;
+
+#ifdef AUTHENTICATE
+		init_log( prog_name );
+#endif
 		}
 
 	last_event = 0;
@@ -654,6 +713,8 @@ void Client::SendEstablishedEvent( const EventContext &context )
 	r->SetField( "name", context.name() ? context.name() : initial_client_name );
 	r->SetField( "protocol", GLISH_CLIENT_PROTO_VERSION );
 
+	// Leave some time to allow client to setup
+	sleep(1);
 	PostEvent( "established", r, context );
 
 	Unref( r );
@@ -735,6 +796,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				char c_name[256];
 				char host[256];
 				char interp_tag[256];
+
 				sscanf(info, "remote task %*d %*s -id %s -host %s -port %d -interpreter %s",
 						c_name, host, &port, interp_tag);
 
@@ -750,8 +812,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				char context_str[256];
 				sprintf(context_str,"%s#%d",interp_tag,++count);
 				mult_connect.Insert(interp_tag,count);
-
-				last_context = EventContext(context_str, c_name);
+				last_context = EventContext(c_name, context_str);
 
 				EventSource* es = new EventSource( my_socket,
 					INTERP,	last_context );
@@ -761,7 +822,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				SendEstablishedEvent( last_context );
 
 				last_event = new GlishEvent( (const char *) "*new-context*",
-					new Value( context_str ) );
+					new Value( es->Context().id() ) );
 
 				return last_event;
 				}
@@ -1213,8 +1274,7 @@ void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &contex
 	loop_over_list( event_sources, j )
 		{
 		if ( streq( event_sources[j]->Context().id(), context.id() ) &&
-		    event_sources[j]->Write_FD() >= 0 &&
-		    event_sources[j]->Type() == INTERP )
+		    event_sources[j]->Write_FD() >= 0 )
 			{
 			GlishEvent e( name, value );
 			send_event( event_sources[j]->Write_FD(), &e, sds );

@@ -494,6 +494,37 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	char* var_ID = GetString( args[0] );
 	char* hostname = GetString( args[1] );
 
+	int err = 0;
+	Channel* channel = sequencer->GetHostDaemon( hostname, err );
+
+	if ( err )
+		{
+	  	error->Report( "remote task creation failed" );
+		return error_value();
+		}
+
+	if ( sequencer->LocalHost( hostname ) && channel )
+		{
+		char *client = GetString( args[task_args_start] );
+		Value val( client );
+		send_event( channel->WriteFD(), "client-up", &val );
+		GlishEvent* e = recv_event( channel->ReadFD() );
+		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
+			{
+			if ( hostname )
+				delete hostname;
+			hostname = strdup( "localhost" );
+			}
+		else
+			{
+			if ( hostname )
+				delete hostname;
+			hostname = 0;
+			channel = 0;
+			}
+		Unref( e );
+		}
+
 	// If the following values are changed, be sure to also change
 	// them in CreateTaskBuiltIn::DoSideEffectsCall().
 	int client_flag = args[2]->IntVal();
@@ -504,8 +535,6 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )
 		input = new Value( (Value*) args[6], VAL_CONST );
-
-	Channel* channel = sequencer->GetHostDaemon( hostname );
 
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag, ping_flag,
 				suspend_flag );
