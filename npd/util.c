@@ -186,13 +186,10 @@ int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len )
 long random_long( )
 	{
 #ifdef HAVE_RANDOM
-	extern long random();
-	long l = random();
+	long l = (long) random();
 #elif defined(HAVE_LRAND48)
-	extern long lrand48();
-	long l = lrand48();
+	long l = (long) lrand48();
 #else
-	extern int rand();
 	long l = (long) rand();
 #endif
 	return l;
