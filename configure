@@ -4269,6 +4269,8 @@ SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
 TK_LD_RPATH=""
 TK_CXX_RPATH=""
+GC_LOW_OPT=""
+GC_MACH_DEP=""
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
@@ -4292,6 +4294,7 @@ case $host_os in
 EOF
 
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
+	GC_MACH_DEP=rs6000_mach_dep.o
 	;;
     hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
@@ -4337,6 +4340,7 @@ EOF
 	if test -n "$TK_LD_RPATH"; then
 	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
+	GC_MACH_DEP=mach_dep.o
 	;;
     irix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -4347,6 +4351,7 @@ EOF
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix5.*)
 	SLIB_CFLAGS=""
@@ -4397,7 +4402,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4401 "configure"
+#line 4406 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4418,6 +4423,7 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 	
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	fi
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix6.*)
 	SLIB_CFLAGS=""
@@ -4468,7 +4474,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4472 "configure"
+#line 4478 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4505,6 +4511,7 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 		    fi;
 	    esac
 	fi
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
@@ -4521,12 +4528,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4525 "configure"
+#line 4532 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4530: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4537: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4582,6 +4589,7 @@ fi
         fi
     fi
 
+	GC_MACH_DEP=mach_dep.o
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -4592,6 +4600,7 @@ fi
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     MP-RAS-*)
 	SLIB_CFLAGS="-K PIC"
@@ -4602,6 +4611,7 @@ fi
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     netbsd*|freebsd*)
 	# Not available on all versions:  check for include file.
@@ -4611,12 +4621,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4615 "configure"
+#line 4625 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4620: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4630: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4657,6 +4667,7 @@ fi
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
 	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=mach_dep.o
 	;;
     nextstep*)
 	SLIB_CFLAGS=""
@@ -4667,6 +4678,7 @@ fi
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     osf1.[012])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
@@ -4679,6 +4691,8 @@ fi
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
@@ -4690,6 +4704,8 @@ fi
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf3.*)
         # Digital OSF/1
@@ -4732,6 +4748,8 @@ fi
         fi
     fi
 
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf4.*)
         # Digital OSF/1
@@ -4774,6 +4792,8 @@ fi
         fi
     fi
 
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     riscos*)
 	SLIB_CFLAGS="-G 0"
@@ -4784,6 +4804,7 @@ fi
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
 	;;
     sco_sv3.2*)
         # Note, dlopen is available only on SCO 3.2.5 and greater.  However,
@@ -4797,6 +4818,7 @@ fi
 	LD_FLAGS="-belf -Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
      sinix*5.4*)
 	SLIB_CFLAGS="-K PIC"
@@ -4807,6 +4829,7 @@ fi
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     sunos4*)
 	SLIB_CFLAGS="-PIC"
@@ -4835,6 +4858,7 @@ fi
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
 	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=sparc_sunos4_mach_dep.o
 	;;
     solaris2*)
 	SLIB_CFLAGS="-K PIC"
@@ -4884,6 +4908,7 @@ fi
         fi
     fi
 
+	GC_MACH_DEP=sparc_mach_dep.o
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -4894,6 +4919,7 @@ fi
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
 	;;
     unix_sv*)
 	SLIB_CFLAGS="-K PIC"
@@ -4904,6 +4930,7 @@ fi
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
 esac
 
@@ -4992,7 +5019,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 4996 "configure"
+#line 5023 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5000,7 +5027,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5004: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5031: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5023,7 +5050,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5027 "configure"
+#line 5054 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5031,7 +5058,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5035: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5062: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5098,6 +5125,9 @@ esac
     TKCLIENT_LIBS_expanded_end=`echo ${TKCLIENT_LIBS_expanded} | sed 's/^\([\.\/]*\)//'`
     TKCLIENT_LIBS_expanded=`echo "$TKCLIENT_LIBS_expanded_root/$TKCLIENT_LIBS_expanded_end" | sed 's/\/$//'`
 fi
+
+
+
 
 
 
@@ -5526,7 +5556,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/static/Makefile:gcmem/$ARCH/static.in gcmem/$ARCH/dynamic/Makefile:gcmem/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/static/Makefile:gcmem/$ARCH/static.in gcmem/$ARCH/dynamic/Makefile:gcmem/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in " | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -5610,6 +5640,8 @@ s%@DYNAMIC_LIB@%$DYNAMIC_LIB%g
 s%@STATIC_LIB@%$STATIC_LIB%g
 s%@DYNAMIC_BIN@%$DYNAMIC_BIN%g
 s%@STATIC_BIN@%$STATIC_BIN%g
+s%@GC_MACH_DEP@%$GC_MACH_DEP%g
+s%@GC_LOW_OPT@%$GC_LOW_OPT%g
 
 CEOF
 EOF
@@ -5693,7 +5725,7 @@ ac_eB='$%\1#\2define\3'
 ac_eC=' '
 ac_eD='%g'
 
-CONFIG_HEADERS=${CONFIG_HEADERS-"glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in"}
+CONFIG_HEADERS=${CONFIG_HEADERS-"glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in "}
 for ac_file in .. $CONFIG_HEADERS; do if test "x$ac_file" != x..; then
   # Support "outfile[:infile]", defaulting infile="outfile.in".
   case "$ac_file" in

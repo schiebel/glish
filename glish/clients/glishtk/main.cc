@@ -6,10 +6,8 @@ RCSID("@(#) $Id$")
 #include <unistd.h>
 #include <string.h>
 #include "Glish/Proxy.h"
-#define GC XGC
 #include "tkCore.h"
 #include "tkCanvas.h"
-#undef GC
 
 class TkStore : public ProxyStore {
     public:

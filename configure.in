@@ -482,7 +482,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in )
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -494,7 +494,7 @@ else
     BUILD_NPD=""
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in)
 fi
 
 dnl##--------------------------------------------------------------------
@@ -975,6 +975,8 @@ SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
 TK_LD_RPATH=""
 TK_CXX_RPATH=""
+GC_LOW_OPT=""
+GC_MACH_DEP=""
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
@@ -995,6 +997,7 @@ case $host_os in
 	fi
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
+	GC_MACH_DEP=rs6000_mach_dep.o
 	;;
     hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
@@ -1016,6 +1019,7 @@ case $host_os in
 	if test -n "$TK_LD_RPATH"; then
 	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
+	GC_MACH_DEP=mach_dep.o
 	;;
     irix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1026,6 +1030,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix5.*)
 	SLIB_CFLAGS=""
@@ -1047,6 +1052,7 @@ case $host_os in
 	    SGI_ABI	
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	fi
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix6.*)
 	SLIB_CFLAGS=""
@@ -1084,6 +1090,7 @@ case $host_os in
 		    fi;
 	    esac
 	fi
+	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
@@ -1113,6 +1120,7 @@ case $host_os in
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=mach_dep.o
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -1123,6 +1131,7 @@ case $host_os in
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     MP-RAS-*)
 	SLIB_CFLAGS="-K PIC"
@@ -1133,6 +1142,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     netbsd*|freebsd*)
 	# Not available on all versions:  check for include file.
@@ -1158,6 +1168,7 @@ case $host_os in
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
 	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=mach_dep.o
 	;;
     nextstep*)
 	SLIB_CFLAGS=""
@@ -1168,6 +1179,7 @@ case $host_os in
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     osf1.[[012]])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
@@ -1180,6 +1192,8 @@ case $host_os in
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
@@ -1191,6 +1205,8 @@ case $host_os in
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf3.*)
         # Digital OSF/1
@@ -1209,6 +1225,8 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf4.*)
         # Digital OSF/1
@@ -1227,6 +1245,8 @@ case $host_os in
         ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=alpha_mach_dep.o
+	GC_LOW_OPT="-Wo,-notail"
 	;;
     riscos*)
 	SLIB_CFLAGS="-G 0"
@@ -1237,6 +1257,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
 	;;
     sco_sv3.2*)
         # Note, dlopen is available only on SCO 3.2.5 and greater.  However,
@@ -1250,6 +1271,7 @@ case $host_os in
 	LD_FLAGS="-belf -Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
      sinix*5.4*)
 	SLIB_CFLAGS="-K PIC"
@@ -1260,6 +1282,7 @@ case $host_os in
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
     sunos4*)
 	SLIB_CFLAGS="-PIC"
@@ -1288,6 +1311,7 @@ case $host_os in
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
 	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
+	GC_MACH_DEP=sparc_sunos4_mach_dep.o
 	;;
     solaris2*)
 	SLIB_CFLAGS="-K PIC"
@@ -1313,6 +1337,7 @@ case $host_os in
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	GC_MACH_DEP=sparc_mach_dep.o
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1323,6 +1348,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mips_ultrix_mach_dep.o
 	;;
     unix_sv*)
 	SLIB_CFLAGS="-K PIC"
@@ -1333,6 +1359,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
+	GC_MACH_DEP=mach_dep.o
 	;;
 esac
 
@@ -1518,6 +1545,12 @@ AC_SUBST(DYNAMIC_LIB)
 AC_SUBST(STATIC_LIB)
 AC_SUBST(DYNAMIC_BIN)
 AC_SUBST(STATIC_BIN)
+
+dnl##
+dnl## garbage collection
+dnl##
+AC_SUBST(GC_MACH_DEP)
+AC_SUBST(GC_LOW_OPT)
 
 #dnl##
 #dnl## $1 => input file

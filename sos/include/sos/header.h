@@ -9,7 +9,7 @@
 #ifndef sos_header_h
 #define sos_header_h
 #include "sos/mdep.h"
-#include "gc/gc_cpp.h"
+#include "gcmem/gcmem.h"
 
 #define SOS_HEADER_SIZE		24
 #define SOS_VERSION		0

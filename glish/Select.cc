@@ -41,6 +41,12 @@ extern "C" int gettimeofday (struct timeval *, struct timezone *);
 #define gettimeofday BSDgettimeofday
 #endif
 
+#ifdef __CLCC__
+#define GET_TIME(x) gettimeofday( &x )
+#else
+#define GET_TIME(x) gettimeofday( &x, (struct timezone *) 0 )
+#endif
+
 #include "Select.h"
 
 
@@ -112,11 +118,8 @@ SelectTimer::~SelectTimer()
 
 void SelectTimer::Init( struct timeval* delta, struct timeval* interval )
 	{
-#ifdef __CLCC__
-	if ( gettimeofday( &exp_t ) < 0 )
-#else
-	if ( gettimeofday( &exp_t, (struct timezone *) 0 ) < 0 )
-#endif
+
+	if ( GET_TIME( exp_t ) < 0 )
 		gripe( "gettimeofday failed" );
 
 	increment_time( exp_t, *delta );
@@ -293,11 +296,8 @@ void Selector::FindTimerDelta( struct timeval *timeout, struct timeval &min_t )
 			gripe( "internal consistency problem" );
 
 		struct timeval t;
-#ifdef __CLCC__
-		if ( gettimeofday( &t ) < 0 )
-#else
-		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
-#endif
+
+		if ( GET_TIME( t ) < 0 )
 			gripe( "gettimeofday failed" );
 
 		*timeout = min_t;
@@ -348,7 +348,7 @@ int Selector::DoSelection( int CanBlock )
 	fd_set write_mask = *w_fdset;
 	int status;
 
-	if ( (status = select( FD_SETSIZE, (SELECT_MASK_TYPE *) &read_mask,
+	if ( (status = gc_select( FD_SETSIZE, (SELECT_MASK_TYPE *) &read_mask,
 			(SELECT_MASK_TYPE *) &write_mask, (SELECT_MASK_TYPE *) 0, timeout )) < 0 )
 		{
 		if ( errno != EINTR )

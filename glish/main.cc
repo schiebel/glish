@@ -326,20 +326,12 @@ char *readline_read( const char *prompt, char history )
 	//
 	if ( history ) last_history = set_history(history);
 
-	if ( current_sequencer->ActiveClients() )
-		{
-		ret = nb_readline( prompt );
+	ret = nb_readline( prompt );
 
-		while ( ret == rl_data_incomplete )
-			{
-			int clc = current_sequencer->EventLoop();
-			ret = clc ? nb_readline( prompt ) : readline( prompt );
-			}
-		}
-	else
+	while ( ret == rl_data_incomplete )
 		{
-		current_sequencer->EventLoop();
-		ret = readline( prompt );
+		int clc = current_sequencer->EventLoop();
+		ret = clc ? nb_readline( prompt ) : readline( prompt );
 		}
 
 	if ( ret && *ret ) add_history( ret );

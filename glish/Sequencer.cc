@@ -3868,7 +3868,7 @@ int Sequencer::EventLoop( int in_await )
 	if ( in_await && current_await_done )
 		return ActiveClients();
 
-	while ( (doing_pager || ActiveClients()) && ! selector->DoSelection() )
+	while ( ! selector->DoSelection() )
 		{
 		if ( in_await && current_await_done ) break;
 		RunQueue();

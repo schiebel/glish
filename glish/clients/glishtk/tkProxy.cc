@@ -4,11 +4,8 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#define GC XGC
-#include <X11/Xlib.h>
 #include "tkCore.h"
 #include "tkCanvas.h"
-#undef GC
 #include <string.h>
 #include <stdlib.h>
 #include "Glish/Value.h"

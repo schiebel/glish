@@ -3,8 +3,9 @@
 //
 #ifndef tkagent_h_
 #define tkagent_h_
-
+#define GC XGC
 #include "tk.h"
+#undef GC
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
 #ifdef DEBUGTK
