@@ -66,8 +66,6 @@ class ReflexPtr(type) : ReflexPtrBase {					\
 class CycleNode : public ReflexObj { };
 
 glish_declare(ReflexPtr,CycleNode);
-glish_declare(PList,CycleNode);
-typedef PList(CycleNode) cyclenode_list;
 
 struct node_list : BaseList
 	{
@@ -93,6 +91,9 @@ struct node_list : BaseList
 	FINAL set_finalize_handler(FINAL fh=0)
 		{ return BaseList::set_finalize_handler(fh); }
 	};
+
+glish_declare(PList,node_list);
+typedef PList(node_list) cyclenodelist_list;
 
 class NodeList : public CycleNode {
     public:

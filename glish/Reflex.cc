@@ -81,27 +81,29 @@ ReflexPtr(CycleNode) *node_list::remove(CycleNode *a)
 
 ReflexPtr(CycleNode) *node_list::is_member(const CycleNode *e)
 	{
+	static int recurse_count = 0;
+	static cyclenodelist_list been_there;
+	if ( been_there.is_member( this ) )
+		return 0;
+
+	++recurse_count;
+	been_there.append( this );
+
 	ReflexPtr(CycleNode) *ret = 0;
 	for ( int i = 0; i < length() && ! ret; i++ )
 		{
 		CycleNode *cur = ((ReflexPtr(CycleNode)*)entry[i])->ptr();
 		if ( ! cur ) continue;
 		if ( cur->isList( ) )
-			{
-			static cyclenode_list been_there;
-			if ( ! been_there.is_member( cur ) )
-				{
-				//
-				// How do we get these cycles?!!
-				//
-				been_there.append( cur );
-				ret = ((NodeList*)cur)->is_member( e );
-				been_there.remove( cur );
-				}
-			}
+			ret = ((NodeList*)cur)->is_member( e );
 		else if ( e == cur )
 			ret = (ReflexPtr(CycleNode)*)entry[i];
 		}
+
+	--recurse_count;
+	if ( recurse_count == 0 )
+		been_there.clear();
+
 	return ret;
 	}
 
