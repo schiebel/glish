@@ -241,7 +241,11 @@
 #if __STD_C
 #define Void_t      void
 #else
+#ifdef __DECC
+#define Void_t      void
+#else
 #define Void_t      char
+#endif
 #endif
 #endif /*Void_t*/
 
