@@ -66,7 +66,7 @@ const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData
 char *glishtk_quote_string( charptr str )
 	{
 	char *ret = alloc_memory(strlen(str)+3);
-	sprintf(ret,"\"%s\"", str);
+	sprintf(ret,"{%s}", str);
 	return ret;
 	}
 
@@ -524,7 +524,7 @@ char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	if ( args->Type() == TYPE_STRING )
 		{
 		const char *str = args->StringPtr(0)[0];
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " \"", str, "\"", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", str, "}", 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 	else
@@ -845,7 +845,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 		EXPRSTR( str, event_name );
 		EXPRSTR( where, event_name )
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " \"", str, "\"", 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " {", str, "}", 0);
 		a->ExitEnable();
 		EXPR_DONE( where )
 		EXPR_DONE( str )
@@ -853,7 +853,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " \"", args->StringPtr(0)[0], "\"", 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " {", args->StringPtr(0)[0], "}", 0 );
 		a->ExitEnable();
 		}
 	else
@@ -886,7 +886,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 			if ( i != 1 || param )
 				{
 				argv[argc] = alloc_memory(strlen(s)+3);
-				sprintf(argv[argc],"\"%s\"", s);
+				sprintf(argv[argc],"{%s}", s);
 				++argc;
 				}
 			else
@@ -911,7 +911,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	else if ( args->Type() == TYPE_STRING && param )
 		{
 		char *s = args->StringVal( ' ', 0, 1 );
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, " \"", s, "\"", 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, " {", s, "}", 0 );
 		free_memory(s);
 		}
 	else
@@ -1219,7 +1219,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
-			     cmd, " \"", args->StringPtr(0)[0], "\"", 0 );
+			     cmd, " {", args->StringPtr(0)[0], "}", 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -1741,7 +1741,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		Tk_ToplevelCmd( root, tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " \"", title, "\"", 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " {", title, "}", 0 );
 
 		if ( tlead )
 			{
@@ -1760,7 +1760,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		{
 		top_created = 1;
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " \"", title, "\"", 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " {", title, "}", 0 );
 
 		if ( tlead )
 			{
