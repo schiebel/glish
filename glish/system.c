@@ -502,7 +502,7 @@ const char* local_host_name()
 
 void* alloc_memory( unsigned int size )
 	{
-#if defined(_AIX)
+#if defined(_AIX) || defined(__alpha__)
 	if ( ! size ) size += 8;
 #endif
 	return (void*) malloc( size );
