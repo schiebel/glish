@@ -38,5 +38,5 @@ int main( int argc, char **argv )
 
 	write_encoded_binary( stdout, key, n );
 
-	exit( 0 );
+	return 0;
 	}

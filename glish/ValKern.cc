@@ -30,7 +30,7 @@ ValueKernel::array_t::~array_t()
 void ValueKernel::array_t::clear()
 	{
 	type = TYPE_ERROR;
-	type_bytes = length = 0;
+	length = type_bytes = 0;
 	ref_count = 1;
 	}
 
@@ -69,7 +69,7 @@ glish_type ValueKernel::otherType() const
 		return TYPE_ERROR;
 	}
 
-unsigned long ValueKernel::otherLength() const
+unsigned int ValueKernel::otherLength() const
 	{
 	if ( VALUE(mode) )
 		return value->Length();
@@ -132,9 +132,9 @@ void ValueKernel::array_t::SetType( glish_type new_type, unsigned short type_len
 	type_bytes = type_len;
 	}
 
-void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
+void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 	{
-	unsigned long alen = len ? len : 1;
+	unsigned int alen = len ? len : 1;
 
 	if ( len && len == length )
 		return;
@@ -206,14 +206,14 @@ void ValueKernel::unrefRecord(int del)
 			record = new record_t();
 	}
 
-ValueKernel::ValueKernel( glish_type t, unsigned long len, KernelCopyFunc c,
+ValueKernel::ValueKernel( glish_type t, unsigned int len, KernelCopyFunc c,
 			  KernelZeroFunc z, KernelDeleteFunc d ) : mode(ARRAY()), array(new array_t())
 	{
 	array->SetType( t, c, z, d );
 	array->Grow( len );
 	}
 
-void ValueKernel::SetType( glish_type t, unsigned long l, 
+void ValueKernel::SetType( glish_type t, unsigned int l, 
 			KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 	{
 	unref( ARRAY(mode) ? 0 : 1 );
@@ -223,7 +223,7 @@ void ValueKernel::SetType( glish_type t, unsigned long l,
 	array->Grow( l );
 	}
 
-// void ValueKernel::SetArray( void *storage, unsigned long l, glish_type t, int copy,
+// void ValueKernel::SetArray( void *storage, unsigned int l, glish_type t, int copy,
 // 			    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 // 	{
 // 	unref( ARRAY(mode) ? 0 : 1 );
@@ -269,7 +269,7 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 		array->SetStorage( vec, len );
 
 #define DEFINE_ARRAY_SET(TYPE, GLISH_TYPE)					\
-void ValueKernel::SetArray( TYPE vec[], unsigned long len, int copy,		\
+void ValueKernel::SetArray( TYPE vec[], unsigned int len, int copy,		\
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )	\
 	{									\
 	DIAG4( (void*) this, "\tValueKernel::SetArray ", #TYPE, "[]" )		\
@@ -286,14 +286,14 @@ DEFINE_ARRAY_SET(complex,TYPE_COMPLEX)
 DEFINE_ARRAY_SET(dcomplex,TYPE_DCOMPLEX)
 DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 
-void ValueKernel::SetArray( voidptr vec[], unsigned long len, glish_type t, int copy,
+void ValueKernel::SetArray( voidptr vec[], unsigned int len, glish_type t, int copy,
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetArray void*")
 	ARRAY_SET_BODY(voidptr,t)
 	}
 
-void ValueKernel::Grow( unsigned long len )
+void ValueKernel::Grow( unsigned int len )
 	{
 	if ( ! ARRAY(mode) || ! array || len == array->length || array->ref_count < 1 )
 		return;
@@ -301,7 +301,7 @@ void ValueKernel::Grow( unsigned long len )
 		array->Grow( len );
 	else
 		{
-		unsigned long minlen = len > array->length ? array->length : len;
+		unsigned int minlen = len > array->length ? array->length : len;
 		array_t *k = array;
 		unrefArray();
 		int m = mode;
@@ -432,17 +432,17 @@ recordptr copy_record_dict( recordptr rptr )
 	return new_record;
 	}
 
-void copy_strings(void *tgt, void *src, unsigned long len)
+void copy_strings(void *tgt, void *src, unsigned int len)
 	{
 	charptr *from = (charptr*)src;
 	charptr *to = (charptr*)tgt;
-	for ( unsigned long i=0; i < len; i++ )
+	for ( unsigned int i=0; i < len; i++ )
 		*to++ = strdup(*from++);
 	}
 
-void delete_strings(void *src, unsigned long len)
+void delete_strings(void *src, unsigned int len)
 	{
 	char **ary = (char**)src;
-	for ( unsigned long i=0; i < len; i++ )
+	for ( unsigned int i=0; i < len; i++ )
 		delete *ary++;
 	}

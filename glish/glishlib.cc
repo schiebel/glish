@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 
 DEFINE_CREATE_VALUE(Value)
 
-const Value *lookup_sequencer_value( const char *id )
+const Value *lookup_sequencer_value( const char * /* id */ )
 	{
 	return 0;
 	}

@@ -1140,7 +1140,6 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 		const IValue *arg = (*args_vals)[i];			\
 		int arg_len = arg->Length();				\
 		const attributeptr attr = arg->AttributePtr();		\
-		const IValue *attr_val;					\
 		const IValue *shape_v;					\
 		int shape_len;						\
 		int shape_is_copy;					\
@@ -1256,7 +1255,6 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 		double* double_ptr;					\
 		complex* complex_ptr;					\
 		dcomplex* dcomplex_ptr;					\
-		charptr* string_ptr;					\
 									\
 		switch ( arg->Type() )					\
 			{						\

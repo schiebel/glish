@@ -276,7 +276,6 @@ int Selector::DoSelection( int CanBlock )
 	struct timeval timeout_buf;
 	struct timeval *timeout = &timeout_buf;
 	struct timeval noblock;
-	struct timeval curtime;
 
 	FindTimerDelta( timeout, min_t );
 

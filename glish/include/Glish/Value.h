@@ -180,7 +180,7 @@ public:
 
 
 	glish_type Type() const			{ return kernel.Type(); }
-	unsigned long Length() const
+	int Length() const
 		{ return IsRef() ? Deref()->Length() : kernel.Length();	}
 
 	// True if the value is a reference.

@@ -20,15 +20,15 @@ RCSID("@(#) $Id$")
 
 #define AGENT_MEMBER_NAME "*agent*"
 
-void copy_agents( void *to_, void *from_, unsigned long len )
+void copy_agents( void *to_, void *from_, unsigned int len )
 	{
 	agentptr *to = (agentptr*) to_;
 	agentptr *from = (agentptr*) from_;
-	copy_array(from,to,len,agentptr);
+	copy_array(from,to,(int)len,agentptr);
 	for (int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_agents( void *ary_, unsigned long len )
+void delete_agents( void *ary_, unsigned int len )
 	{
 	agentptr *ary = (agentptr*) ary_;
 	for (int i = 0; i < len; i++)
@@ -36,15 +36,15 @@ void delete_agents( void *ary_, unsigned long len )
 			Unref( ary[i] );
 	}
 
-void copy_funcs( void *to_, void *from_, unsigned long len )
+void copy_funcs( void *to_, void *from_, unsigned int len )
 	{
 	funcptr *to = (funcptr*) to_;
 	funcptr *from = (funcptr*) from_;
-	copy_array(from,to,len,funcptr);
+	copy_array(from,to,(int)len,funcptr);
 	for (int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_funcs( void *ary_, unsigned long len )
+void delete_funcs( void *ary_, unsigned int len )
 	{
 	funcptr *ary = (funcptr*) ary_;
 	for (int i = 0; i < len; i++)
@@ -421,7 +421,7 @@ DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray,Dco
 void IValue::Polymorph( glish_type new_type )
 	{
 	glish_type type = Type();
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( type == new_type )
 		return;

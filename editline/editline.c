@@ -1268,6 +1268,7 @@ find_word()
     return new;
 }
 
+/***
 STATIC STATUS
 c_complete()
 {
@@ -1289,6 +1290,7 @@ c_complete()
     }
     return ring_bell();
 }
+***/
 
 STATIC STATUS
 c_possible()

@@ -427,7 +427,7 @@ val_type Value::name( int n ) const					\
 		return zero;						\
 		}							\
 									\
-	switch ( Type() )					\
+	switch ( Type() )						\
 		{							\
 		case TYPE_BOOL:						\
 			return val_type( BoolPtr(0)[n - 1] ? 1 : 0 );	\
@@ -570,7 +570,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			int useAttributes ) const
 	{
 	glish_type type = Type();
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( IsRef() )
 		return Deref()->StringVal( sep, max_elements, useAttributes );
@@ -1084,7 +1084,7 @@ const Value* Value::VecRefDeref() const
 
 
 #define COERCE_HDR(name, ctype, gtype, type_name, accessor)		\
-	unsigned long length = kernel.Length();				\
+	int length = kernel.Length();				\
 									\
 	if ( IsRef() )							\
 		return Deref()->name( is_copy, size, result );		\
@@ -1520,7 +1520,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 	delete len;						\
 	return retval;
 
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
 		{
@@ -3629,7 +3629,7 @@ void Value::Negate()
 		return;
 		}
 
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	switch ( Type() )
 		{
@@ -3676,7 +3676,7 @@ void Value::Not()
 		return;
 		}
 
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( Type() == TYPE_BOOL )
 		{
@@ -3852,7 +3852,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 			{
 			int total_size = 0;
 			charptr* strs = StringPtr(0);
-			unsigned long length = kernel.Length();
+			int length = kernel.Length();
 
 			// First figure out how much total storage is needed
 			// for all of the strings.
@@ -3946,7 +3946,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 void Value::Polymorph( glish_type new_type )
 	{
 	glish_type type = Type();
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( type == new_type )
 		return;
@@ -4011,7 +4011,7 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 void Value::VecRefPolymorph( glish_type new_type )
 	{
 	glish_type type = Type();
-	unsigned long length = kernel.Length();
+	int length = kernel.Length();
 
 	if ( IsVecRef() )
 		{
@@ -4065,8 +4065,6 @@ Value* Value::AttributeRef( const Value* index ) const
 
 int Value::Grow( unsigned int new_size )
 	{
-	int i;
-
 	switch ( Type() )
 		{
 		case TYPE_BOOL:

@@ -103,7 +103,7 @@ class ActualParameter : public Parameter {
 	ActualParameter( value_type parm_type_, Expr* arg_,
 			int is_ellipsis_ = 0, Expr* default_value_ = 0,
 			int is_empty_ = 0 )
-		: Parameter( parm_type_, arg, is_ellipsis_,
+		: Parameter( parm_type_, arg_, is_ellipsis_,
 				default_value_, is_empty_ )
 		{
 		}

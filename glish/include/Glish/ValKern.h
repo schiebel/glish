@@ -19,12 +19,12 @@ extern recordptr copy_record_dict( recordptr );
 extern recordptr create_record_dict();
 void delete_record( recordptr r );
 
-typedef void (*KernelCopyFunc)( void *, void *, unsigned long len );
-typedef void (*KernelZeroFunc)( void *, unsigned long len );
-typedef void (*KernelDeleteFunc)( void *, unsigned long len );
+typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
+typedef void (*KernelZeroFunc)( void *, unsigned int len );
+typedef void (*KernelDeleteFunc)( void *, unsigned int len );
 
-extern void copy_strings( void *, void *, unsigned long len );
-extern void delete_strings( void *, unsigned long len );
+extern void copy_strings( void *, void *, unsigned int len );
+extern void delete_strings( void *, unsigned int len );
 
 //
 // Copy-on-write semantics
@@ -41,9 +41,9 @@ class ValueKernel {
 		glish_type type;
 		unsigned short type_bytes;
 
-		unsigned long length;
-		unsigned long alloc_bytes;
-		unsigned long bytes() { return type_bytes*length; }
+		unsigned int length;
+		unsigned int alloc_bytes;
+		unsigned int bytes() { return type_bytes*length; }
 
 		unsigned long ref_count;
 
@@ -56,8 +56,8 @@ class ValueKernel {
 			      KernelDeleteFunc d = 0);
 		void SetType( glish_type t, unsigned short type_len, KernelCopyFunc c = 0,
 			      KernelZeroFunc z = 0, KernelDeleteFunc d = 0 );
-		void Grow( unsigned long len, int do_zero = 1 );
-		void SetStorage( void *storage, unsigned long len )
+		void Grow( unsigned int len, int do_zero = 1 );
+		void SetStorage( void *storage, unsigned int len )
 			{
 			values = storage;
 			length = len;
@@ -99,7 +99,7 @@ class ValueKernel {
 	unsigned int mode;
 
 	glish_type otherType() const;
-	unsigned long otherLength() const;
+	unsigned int otherLength() const;
 
 	void unrefArray(int del=0);
 	void unrefRecord(int del=0);
@@ -134,36 +134,36 @@ class ValueKernel {
 
 	ValueKernel &operator=( const ValueKernel &v );
 
-	ValueKernel( glish_type t, unsigned long len, KernelCopyFunc c = 0,
+	ValueKernel( glish_type t, unsigned int len, KernelCopyFunc c = 0,
 		     KernelZeroFunc z = 0, KernelDeleteFunc d = 0 );
 
-	void SetType( glish_type t, unsigned long l, KernelCopyFunc c=0,
+	void SetType( glish_type t, unsigned int l, KernelCopyFunc c=0,
 		      KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-// 	void SetArray( void *storage, unsigned long len, glish_type t, int copy = 0,
+// 	void SetArray( void *storage, unsigned int len, glish_type t, int copy = 0,
 // 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( glish_bool vec[], unsigned long len, int copy = 0,
+	void SetArray( glish_bool vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( byte vec[], unsigned long len, int copy = 0,
+	void SetArray( byte vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( short vec[], unsigned long len, int copy = 0,
+	void SetArray( short vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( int vec[], unsigned long len, int copy = 0,
+	void SetArray( int vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( float vec[], unsigned long len, int copy = 0,
+	void SetArray( float vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( double vec[], unsigned long len, int copy = 0,
+	void SetArray( double vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( complex vec[], unsigned long len, int copy = 0,
+	void SetArray( complex vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( dcomplex vec[], unsigned long len, int copy = 0,
+	void SetArray( dcomplex vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
-	void SetArray( const char* vec[], unsigned long len, int copy = 0,
+	void SetArray( const char* vec[], unsigned int len, int copy = 0,
 		       KernelCopyFunc c=copy_strings, KernelZeroFunc z=0,
 		       KernelDeleteFunc d=delete_strings );
-	void SetArray( voidptr vec[], unsigned long len, glish_type t, int copy = 0,
+	void SetArray( voidptr vec[], unsigned int len, glish_type t, int copy = 0,
 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
 
-	void Grow( unsigned long len );
+	void Grow( unsigned int len );
 
 	// May return 0 if Type() == TYPE_ERROR
 	void *constArray() const { return array->values; }
@@ -193,9 +193,9 @@ class ValueKernel {
 		       RECORD(mode) ? TYPE_RECORD :
 		       otherType();
 		}
-	unsigned long Length() const
+	int Length() const
 		{
-		return ARRAY(mode) ? array->length :
+		return ARRAY(mode) ? (int) array->length :
 		       RECORD(mode) ? record->record->Length() :
 		       otherLength();
 		}
