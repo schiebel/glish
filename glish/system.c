@@ -220,29 +220,10 @@ int accept_local_connection( int connection_socket )
 
 int remote_connection( int sock, const char* hostname, int port )
 	{
-	static struct hostent *local_host;
-	struct hostent *target_host;
+	struct hostent *target_host = 0;
 	struct sockaddr_in target_addr;
 
-	/*
-	** On a machine with the network configuration messed up,
-	** e.g. pip.aoc.nrao.edu connected to the *.tuc.nrao.edu
-	** network, failure to use "localhost" will cause glish
-	** to hang unnecessarily...
-	*/
-	if ( ! strcmp( hostname, local_host_name() ) )
-		{
-		hostname = "localhost";
-		if ( ! local_host )
-			{
-			local_host = (struct hostent*) alloc_memory_atomic( sizeof(struct hostent) );
-			target_host = gethostbyname( (char*) hostname );
-			memcpy( local_host, target_host, sizeof(struct hostent) );
-			}
-		target_host = local_host;
-		}
-	else
-		target_host = gethostbyname( (char*) hostname );
+	target_host = gethostbyname( (char*) hostname );
 
 	if ( ! target_host )
 		return 0;
@@ -288,7 +269,12 @@ char *canonic_path( const char *path_in )
 	{
 #ifdef S_ISLNK
 	char scratch_[2048];
+	char scratch_1[2048];
 	char *scratch = scratch_;
+	char *backup = scratch_1;
+	char *sptr;
+	char *lptr;
+	char *tmp;
 
 	char path_[2048];
 	char *path = path_;
@@ -297,7 +283,7 @@ char *canonic_path( const char *path_in )
 	char *newpath = newpath_;
 	char *nptr = newpath;
 
-	int len, slen;
+	int len, slen, llen;
 	struct stat stat_buf;
 
 	if ( ! path_in || ! *path_in ) return 0;
@@ -341,6 +327,48 @@ char *canonic_path( const char *path_in )
 			{
 			len = readlink( newpath, scratch, 2048 );
 			scratch[len] = '\0';
+			// if link is relative, fill it out (since it is relative
+			// to newpath not the current working directory)
+			if ( *scratch == '.' )
+				{
+				sptr = scratch;
+				// trim off link portion
+				llen = nptr-newpath;
+				memcpy( backup, newpath, nptr-newpath );
+				lptr = &backup[llen];
+				while ( lptr != backup && *--lptr != '/' );
+				// interpret relative path in link target
+				while ( *sptr )
+					{
+					if ( sptr[0] == '.' )
+						{
+						if ( sptr[1] == '.' )
+							{
+							lptr -= 1;
+							while ( lptr != backup && *--lptr != '/' );
+							if ( lptr == backup ) return 0;
+							sptr += 2;
+							if ( *sptr == '/' ) ++sptr;
+							++lptr;
+							continue;
+							}
+						else if ( sptr[1] == '/' )
+							{
+							sptr += 2;
+							continue;
+							}
+						}
+
+					strcpy( lptr, sptr );
+					break;
+					}
+				tmp = scratch;
+				scratch = backup;
+				backup = tmp;
+				len = strlen(scratch);
+				}
+
+			// check the new path
 			if ( lstat( scratch, &stat_buf ) < 0 ) return 0;
 			if ( ! S_ISREG(stat_buf.st_mode) )
 				{
