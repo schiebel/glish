@@ -1159,7 +1159,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	const char* glish_rc;
 	if ( (glish_rc = getenv( "GLISHRC" )) )
 		Parse( glish_rc );
-
 	else
 		{
 		FILE* glish_rc_file = fopen( GLISH_RC_FILE, "r" );

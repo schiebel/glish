@@ -209,6 +209,9 @@ class TkAgent : public Agent {
 	void SetMap( int do_map );
 	int DontMap( ) const { return dont_map; }
 
+	virtual void Disable( );
+	virtual void Enable( int force = 1 );
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;
@@ -225,6 +228,8 @@ class TkAgent : public Agent {
 	unsigned int enable_state;
 
 	int dont_map;
+
+	unsigned int disable_count;
 	};
 
 class TkFrame : public TkAgent {
@@ -282,6 +287,10 @@ class TkFrame : public TkAgent {
 	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
 
 	int NumChildren() const { return elements.length() - 1; }
+
+	void Disable( );
+	void Enable( int force = 1 );
+
     protected:
 	char *side;
 	char *padx;
@@ -342,6 +351,10 @@ class TkButton : public TkAgent {
 	int CanExpand() const;
 
 	~TkButton();
+
+	void Disable( );
+	void Enable( int force = 1 );
+
     protected:
 	static unsigned long button_count;
 	IValue *value;
@@ -401,8 +414,13 @@ class TkText : public TkAgent {
 	void xScrolled( const double *firstlast );
 	~TkText();
 
+	// Enable modification, used to allow glish commands to modify
+	// a widget even if it has been disabled for the user.
 	void EnterEnable();
 	void ExitEnable();
+
+	void Disable( );
+	void Enable( int force = 1 );
 
     protected:
 	char *fill;
@@ -459,6 +477,9 @@ class TkEntry : public TkAgent {
 
 	void EnterEnable();
 	void ExitEnable();
+
+	void Disable( );
+	void Enable( int force = 1 );
 
     protected:
 	char *fill;

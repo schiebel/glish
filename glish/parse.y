@@ -97,9 +97,7 @@ extern int yylex( YYSTYPE * );
 
 /* Used for recovery after a ^C */
 extern jmp_buf glish_top_level;
-extern jmp_buf glish_recover;
 extern int glish_jmpbuf_set;
-extern int glish_did_recover;
 
 Sequencer* current_sequencer = 0;
 int current_whenever_index = -1;
@@ -873,12 +871,8 @@ IValue *glish_parser( Stmt *&stmt )
 	status = 0;
 
 	if ( interactive )
-		{
 		scope_depth = current_sequencer->ScopeDepth();
-		setjmp( glish_recover );
-		}
 
-	glish_did_recover = 0;
 	while ( ! (ret = yyparse()) )
 		{
 		if ( ! interactive )

@@ -84,10 +84,6 @@ static Sequencer* s = 0;
 // is executing an instruction
 int glish_jmpbuf_set = 0;
 jmp_buf glish_top_level;
-// used to start over from the beginning if the
-// user typed ^C, but doesn't really want to quit
-int glish_did_recover = 0;
-jmp_buf glish_recover;
 
 int allwarn = 0;
 static unsigned int error_count = 0;
@@ -134,6 +130,7 @@ void glish_sigquit( )
 	{
 	glish_cleanup( );
 	fprintf(stderr,"exiting on quit signal (^\\) ...\n");
+	fflush(stderr);
 	exit(0);
 	}
 
@@ -149,47 +146,39 @@ void glish_sigint( )
 		longjmp( glish_top_level, 1 );
 		}
 
-	if ( ! glish_did_recover )
+	char answ = 0;
+	struct termio tbuf, tbufsave;
+	int did_ioctl = 0;
+
+	fprintf(stdout,"\nexit glish (y/n)? ");
+	fflush(stdout);
+
+	if ( ioctl( fileno(stdin), TCGETA, &tbuf) != -1 )
 		{
-		char answ = 0;
-		struct termio tbuf, tbufsave;
-		int did_ioctl = 0;
-
-		fprintf(stdout,"\nexit glish (y/n)? ");
-		fflush(stdout);
-
-		if ( ioctl( fileno(stdin), TCGETA, &tbuf) != -1 )
-			{
-			tbufsave = tbuf;
-			tbuf.c_lflag &= ~ICANON;
-			tbuf.c_cc[4] = 1;		/* MIN */
-			tbuf.c_cc[5] = 9;		/* TIME */
-			if ( ioctl( fileno(stdin), TCSETAF, &tbuf ) != -1 )
-				did_ioctl = 1;
-			}
-
-		read( fileno(stdin), &answ, 1 );
-
-		if ( did_ioctl )
-			ioctl( fileno(stdin), TCSETAF, &tbufsave );
-
-		fputc('\n',stdout);
-		fflush(stdout);
-
-		if ( answ == 'y' || answ == 'Y' )
-			{
-			glish_cleanup( );
-			install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
-			kill(getpid(), SIGINT);
-			}
-		glish_did_recover = 1;
+		tbufsave = tbuf;
+		tbuf.c_lflag &= ~ICANON;
+		tbuf.c_cc[4] = 1;		/* MIN */
+		tbuf.c_cc[5] = 9;		/* TIME */
+		if ( ioctl( fileno(stdin), TCSETAF, &tbuf ) != -1 )
+			did_ioctl = 1;
 		}
 
-	Sequencer::TopLevelReset();
-	glish_jmpbuf_set = 0;
-	yyrestart( stdin );
+	read( fileno(stdin), &answ, 1 );
+
+	if ( did_ioctl )
+		ioctl( fileno(stdin), TCSETAF, &tbufsave );
+
+	fputc('\n',stdout);
+	fflush(stdout);
+
+	if ( answ == 'y' || answ == 'Y' )
+		{
+		glish_cleanup( );
+		install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
+		kill(getpid(), SIGINT);
+		}
+
 	unblock_signal(SIGINT);
-	longjmp( glish_recover, 1 );
 	}
 
 class StringReporter : public Reporter {
