@@ -40,7 +40,9 @@ extern ProxyStore *global_store;
 			global_store->Error( "tk widget creation failed" ); \
 		}						\
 	else							\
-		ret->SendCtor("newtk");
+		ret->SendCtor("newtk");				\
+								\
+	SETDONE
 
 int TkCanvas::count = 0;
 
@@ -63,22 +65,22 @@ int TkCanvas::count = 0;
 		return;							\
 		}							\
 									\
+	Ref( args );							\
 	recordptr rptr = args->RecordPtr(0);				\
-	IterCookie *c = rptr->InitForIteration();			\
-	const char *key;						\
-	int cnt = 0;
+	int c = 0;							\
+	const char *key;
+
+#define SETDONE Unref(args);
 
 #define SETVAL(var,condition)						\
-	const Value *var      = rptr->NextEntry( key, c );		\
+	const Value *var      = rptr->NthEntry( c++, key );		\
 	if ( ! ( condition) )						\
-		InvalidArg(cnt);					\
-	++cnt;
+		InvalidArg(c-1);
 
 #define SETSTR(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0 )		\
 	charptr var = ( var##_v_ ->StringPtr(0) )[0];
-
 #define SETDIM(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0   ||		\
@@ -101,30 +103,31 @@ int TkCanvas::count = 0;
 #define EXPRINIT(EVENT)							\
 	if ( args->Type() != TYPE_RECORD )				\
 		{							\
-		error->Report("bad value", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 									\
+	/*Ref(args);*/							\
 	recordptr rptr = args->RecordPtr(0);				\
-	IterCookie *c = rptr->InitForIteration();			\
+	int c = 0;							\
 	const char *key;
 
 #define EXPRVAL(var,EVENT)						\
-	const Value *var = rptr->NextEntry( key, c );			\
+	const Value *var = rptr->NthEntry( c++, key );			\
 	const Value *var##_val_ = var;					\
 	if ( ! var )							\
 		{							\
-		error->Report("bad value", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}
 
 #define EXPRSTRVALXX(var,EVENT,LINE)					\
-	const Value *var = rptr->NextEntry( key, c );			\
+	const Value *var = rptr->NthEntry( c++, key );			\
 	LINE								\
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}
 
@@ -136,14 +139,14 @@ int TkCanvas::count = 0;
 	var = ( var##_val_ ->StringPtr(0) )[0];
 
 #define EXPRDIM(var,EVENT)						\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
 	charptr var = 0;						\
 	char var##_char_[30];						\
 	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
 			       ! var##_val_ ->IsNumeric() ) ||		\
 		var##_val_ ->Length() <= 0 )				\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	else								\
@@ -156,11 +159,11 @@ int TkCanvas::count = 0;
 			}
 
 #define EXPRINTVALXX(var,EVENT,LINE)                                    \
-        const Value *var = rptr->NextEntry( key, c );			\
+        const Value *var = rptr->NthEntry( c++, key );			\
         LINE                                                            \
         if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )      \
                 {                                                       \
-                error->Report("bad value for ", EVENT);                 \
+                global_store->Error("bad value: %s", EVENT);            \
                 return 0;                                   		\
                 }
 
@@ -172,12 +175,12 @@ int TkCanvas::count = 0;
         var = var##_val_ ->IntVal();
 
 #define EXPRINT2(var,EVENT)						\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
         char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	if ( var##_val_ -> IsNumeric() )				\
@@ -190,17 +193,17 @@ int TkCanvas::count = 0;
 		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
-		error->Report("bad type for ", EVENT);			\
+		global_store->Error("bad type: %s", EVENT);		\
 		return 0;						\
 		}
 
 #define EXPRDOUBLEPTR(var, NUM, EVENT)					\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
 	double *var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_DOUBLE ||	\
 		var##_val_ ->Length() < NUM )				\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	else								\
@@ -211,7 +214,7 @@ int TkCanvas::count = 0;
 #define HASARG( args, cond )						\
 	if ( ! (args->Length() cond) )					\
 		{							\
-		error->Report("wrong number of arguments");		\
+		global_store->Error("wrong number of arguments");	\
 		return 0;						\
 		}
 
@@ -257,12 +260,16 @@ char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, Value *args )
 	char *ret = 0;
 	char *event_name = "one dim function";
 	char buf[256];
-	if ( args->Length() > 0 )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
+		rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
 		{
-		EXPRINIT( event_name)
-		EXPRDIM( dim, event_name )
-		rivet_set( self, (char*) cmd, (char*) dim );
-		EXPR_DONE( dim )
+		char buf[30];
+		sprintf(buf,"%d",args->IntVal());
+		rivet_set( self, (char*) cmd, (char*) buf );
 		}
 
 	ret = rivet_va_func(self, (int (*)()) Tk_WinfoCmd, &cmd[1], rivet_path(self), 0);
@@ -315,28 +322,40 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
-	HASARG( args, >= 1 )
-	int len = args->Length() < howmany ? args->Length() : howmany;
-	CANVAS_FUNC_REALLOC(len+2)
-	static char buff[128];
-	int argc = 0;
 
-	Argv[argc++] = 0;
-	Argv[argc++] = (char*) cmd;
-	EXPRINIT( event_name)
-	for ( int i=0; i < len; i++ )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
-		EXPRINT( v, event_name )
-		sprintf(buff,"%d",v);
-		Argv[argc++] = strdup(buff);
-		EXPR_DONE( v )
+		HASARG( args, > 1 )
+		int len = args->Length() < howmany ? args->Length() : howmany;
+		CANVAS_FUNC_REALLOC(len+2)
+		static char buff[128];
+		int argc = 0;
+
+		Argv[argc++] = 0;
+		Argv[argc++] = (char*) cmd;
+		EXPRINIT( event_name)
+		for ( int i=0; i < len; i++ )
+			{
+			EXPRINT( v, event_name )
+			sprintf(buff,"%d",v);
+			Argv[argc++] = strdup(buff);
+			EXPR_DONE( v )
+			}
+
+		rivet_cmd( self, argc, Argv );
+		ret = (char*) self->interp->result;
+
+		for ( int x=0; x < len; x++ )
+			free_memory( Argv[x + 2] );
 		}
-
-	rivet_cmd( self, argc, Argv );
-	ret = (char*) self->interp->result;
-
-	for ( int x=0; x < len; x++ )
-		free_memory( Argv[x + 2] );
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		{
+		char buf[30];
+		sprintf(buf,"%d",args->IntVal());
+		rivet_va_cmd( self, cmd, buf, 0);
+		}
 
 	return ret;
 	}
@@ -434,8 +453,9 @@ else									\
 	EXPR_DONE( str_v )						\
 	}
 
-		while ( (val = rptr->NextEntry( key, c )) ) 
+		for (int i = 0; i < (*args).Length(); i++)
 			{
+			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
@@ -467,11 +487,16 @@ else									\
 			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
-		while ( (val = rptr->NextEntry( key, c )) )
+		for (i = c; i < (*args).Length(); i++)
+			{
+			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
+			else
+				c++;
+			}
 		}
 	else if ( val->Length() > 1 && val->IsNumeric() )
 		{
@@ -487,12 +512,15 @@ else									\
 			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
-		while ( (val = rptr->NextEntry( key, c )) ) 
+		for (i = c; i < (*args).Length(); i++)
 			{
+			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
+			else
+				c++;
 			}
 		}
 	else
@@ -640,7 +668,7 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
 			{
-			error->Report("Error, binding not created.");
+			global_store->Error("Error, binding not created.");
 			delete binfo;
 			}
 
@@ -660,7 +688,7 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
 				{
-				error->Report("Error, binding not created.");
+				global_store->Error("Error, binding not created.");
 				delete binfo;
 				}
 			}
@@ -669,7 +697,7 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 			if ( rivet_create_binding(0, "all", (char*)button, (int (*)()) canvas_buttoncb,
 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
 				{
-				error->Report("Error, binding not created.");
+				global_store->Error("Error, binding not created.");
 				delete binfo;
 				}
 			}
@@ -935,6 +963,7 @@ void TkCanvas::Create( ProxyStore *s, Value *args, void * )
 		ret = new TkCanvas( s, (TkFrame*)agent, width, height, region, relief, borderwidth, background, fill );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}

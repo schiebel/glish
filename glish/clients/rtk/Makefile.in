@@ -35,8 +35,6 @@ BINDIR = @bindir@
 
 MKHIER = $(top)/config/mkhier
 
-INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
-CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
 GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) \
 		$(LIBDIR_P)/librivet$(LIB_SUFFIX)
@@ -49,8 +47,8 @@ TK_LIB = @TK_LIB@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+INCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
 CLIENTS = $(BINDIR_P)/rtk
 
@@ -69,10 +67,13 @@ make-bindir:
 install:  make-bindir $(INSTALLED_CLIENTS)
 
 tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkAgent.cc 
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkAgent.cc
 
-tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
+tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(SRC)/tkAgent.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkCanvas.cc 
+
+malloc.o: $(GLISH_SRC)/malloc.c
+	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
@@ -117,15 +118,6 @@ clean:
 
 distclean: clean
 	rm -f config.status config.cache config.h config_p.h Makefile
-
-$(D)tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkAgent.cc $(T)
-
-main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc
-
-malloc.o: $(GLISH_SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 INSTALL_:
 

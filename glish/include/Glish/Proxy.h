@@ -55,8 +55,8 @@ friend class ProxyStore;
 	// object to survive the "terminate" event, you should overload this
 	// function and return 0.
 	//
-	virtual Proxy *Done( const Value * );
-	virtual void ProcessEvent( const char *name, const Value *val ) = 0;
+	virtual Proxy *Done( Value * );
+	virtual void ProcessEvent( const char *name, Value *val ) = 0;
 
 	const ProxyId &Id( ) const { return id; }
 
@@ -87,6 +87,11 @@ friend class ProxyStore;
 				{ store->PostEvent( event_name, event_fmt, arg1, arg2, context, id ); }
 
 	void Reply( const Value* event_value ) { store->Reply( event_value, id ); }
+	void Reply( const char *event_value ) { store->Reply( event_value, id ); }
+	void Reply( const char* event_fmt, const char* arg )
+				{ store->Reply( event_fmt, arg, id ); }
+	void Reply( const char* event_fmt, const char* arg1, const char* arg2 )
+				{ store->Reply( event_fmt, arg1, arg2, id ); }
 
 	int ReplyPending() const { return store->ReplyPending(); }
 

@@ -67,6 +67,14 @@ int main( int argc, char** argv )
 
 	stor.Register( "frame", TkFrame::Create );
 	stor.Register( "button", TkButton::Create );
+	stor.Register( "scale", TkScale::Create );
+	stor.Register( "text", TkText::Create );
+	stor.Register( "scrollbar", TkScrollbar::Create );
+	stor.Register( "label", TkLabel::Create );
+	stor.Register( "entry", TkEntry::Create );
+	stor.Register( "message", TkMessage::Create );
+	stor.Register( "listbox", TkListbox::Create );
+	stor.Register( "canvas", TkCanvas::Create );
 
 	stor.Loop();
 	}

@@ -123,7 +123,7 @@ void ProxyStore::ProcessEvent( GlishEvent *e )
 			}
 
 		const Value *idv = rval->HasRecordElement( "id" );
-		const Value *val = rval->HasRecordElement( "value" );
+		Value *val = rval->Field( "value" );
 		if ( ! idv || ! val || idv->Type() != TYPE_INT ||
 		     idv->Length() != ProxyId::len() )
 			{
@@ -171,7 +171,7 @@ Proxy::~Proxy( )
 	store->removeProxy( this );
 	}
 
-Proxy *Proxy::Done( const Value * )
+Proxy *Proxy::Done( Value * )
 	{
 	return this;
 	}

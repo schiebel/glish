@@ -8,7 +8,7 @@ class ProxyA : public Proxy {
 	ProxyA( ProxyStore *s );
 	~ProxyA( );
 	static void Create( ProxyStore *s, GlishEvent *e, void *data );
-	void ProcessEvent( const char *name, const Value *val );
+	void ProcessEvent( const char *name, Value *val );
 };
 
 ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { 	cerr << "hello world " << id << endl; }
@@ -25,7 +25,7 @@ void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
 	np->SendCtor("newtp");
 	}
 
-void ProxyA::ProcessEvent( const char *name, const Value *val )
+void ProxyA::ProcessEvent( const char *name, Value *val )
 	{
 	if ( ReplyPending() )
 		Reply( val );

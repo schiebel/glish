@@ -17,7 +17,6 @@ all:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS all
-	(cd rtk; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing glish clients ...
@@ -26,65 +25,9 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
-	(cd rtk; $(MAKE) $$FLGS install)
 
 build: all
 
-glishd:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS glishd
-
-echo_client:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS echo_client
-
-echo_mclient:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS echo_mclient
-
-shell_client:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS shell_client
-
-tell_glishd:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS tell_glishd
-
-test_client:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS test_client
-
-timer:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS timer
-
-multiplexer:
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS multiplexer
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

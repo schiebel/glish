@@ -165,12 +165,6 @@ class TkAgent : public Proxy {
 	TkAgent( ProxyStore *s );
 	~TkAgent();
 
-	Value* SendEvent( const char* event_name, Value *args );
-	virtual Value* HandleEvent( const char* event_name, Value *args )
-		{ return SendEvent( event_name, args ); }
-
-	virtual Value *Invoke(TkProc*,Value *arg);
-
 	virtual charptr IndexCheck( charptr );
 
 	int IsValid() { return self != 0; }
@@ -218,7 +212,7 @@ class TkAgent : public Proxy {
 
 	const char *AgentID() const { return agent_ID; }
 
-	void ProcessEvent( const char *name, const Value *val );
+	void ProcessEvent( const char *name, Value *val );
 
     protected:
 	tkprochash procs;

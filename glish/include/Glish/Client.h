@@ -277,6 +277,11 @@ class Client {
 
 	// Reply to the last received event.
 	void Reply( const Value* event_value, const ProxyId &proxy_id=glish_proxyid_dummy );
+	void Reply( const char *event_value, const ProxyId &proxy_id=glish_proxyid_dummy );
+	void Reply( const char* event_fmt, const char* event_arg,
+		    const ProxyId &proxy_id=glish_proxyid_dummy );
+	void Reply( const char* event_fmt, const char* arg1,
+		    const char* arg2, const ProxyId &proxy_id=glish_proxyid_dummy );
 
 	// True if the Client is expecting a reply, false otherwise.
 	int ReplyPending() const	{ return pending_reply != 0; }

@@ -649,11 +649,22 @@ void Client::Unrecognized( const ProxyId &proxy_id )
 
 void Client::Error( const char* msg, const ProxyId &proxy_id )
 	{
-	if ( last_event )
-		PostEvent( "error", "bad \"%s\" event: %s",
-				last_event->name, msg, proxy_id );
+	if ( ! ReplyPending() )
+		{
+		if ( last_event )
+			PostEvent( "error", "bad \"%s\" event: %s",
+				   last_event->name, msg, proxy_id );
+		else
+			PostEvent( "error", msg, proxy_id );
+		}
 	else
-		PostEvent( "error", msg, proxy_id );
+		{
+		if ( last_event )
+			Reply( "bad \"%s\" event: %s",
+			       last_event->name, msg, proxy_id );
+		else
+			Reply( msg, proxy_id );
+		}
 	}
 
 void Client::Error( const char* fmt, const char* arg, const ProxyId &proxy_id )
@@ -753,6 +764,27 @@ void Client::Reply( const Value* event_value, const ProxyId &proxy_id )
 		free_memory( pending_reply );
 		pending_reply = 0;
 		}
+	}
+
+void Client::Reply( const char *event_value, const ProxyId &proxy_id )
+	{
+	Value val( event_value );
+	Reply( &val, proxy_id );
+	}
+
+void Client::Reply( const char* event_fmt, const char* event_arg, const ProxyId &proxy_id )
+	{
+	char buf[8192];
+	sprintf( buf, event_fmt, event_arg );
+	Reply( buf, proxy_id );
+	}
+
+void Client::Reply( const char* event_fmt, const char* arg1,
+		    const char* arg2, const ProxyId &proxy_id )
+	{
+	char buf[8192];
+	sprintf( buf, event_fmt, arg1, arg2 );
+	Reply( buf, proxy_id );
 	}
 
 int Client::AddInputMask( fd_set* mask )

@@ -279,30 +279,31 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 #define EXPRINIT(EVENT)							\
 	if ( args->Type() != TYPE_RECORD )				\
 		{							\
-		error->Report("bad value", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 									\
+	/*Ref(args);*/							\
 	recordptr rptr = args->RecordPtr(0);				\
-	IterCookie *c = rptr->InitForIteration();			\
+	int c = 0;							\
 	const char *key;
 
 #define EXPRVAL(var,EVENT)						\
-	const Value *var = rptr->NextEntry( key, c );			\
+	const Value *var = rptr->NthEntry( c++, key );			\
 	const Value *var##_val_ = var;					\
 	if ( ! var )							\
 		{							\
-		error->Report("bad value", EVENT);			\
+		global_store->Error("bad value: %", EVENT);		\
 		return 0;						\
 		}
 
 #define EXPRSTRVALXX(var,EVENT,LINE)					\
-	const Value *var = rptr->NextEntry( key, c );			\
+	const Value *var = rptr->NthEntry( c++, key );			\
 	LINE								\
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}
 
@@ -314,14 +315,14 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 	var = ( var##_val_ ->StringPtr(0) )[0];
 
 #define EXPRDIM(var,EVENT)						\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
 	charptr var = 0;						\
 	char var##_char_[30];						\
 	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
 			       ! var##_val_ ->IsNumeric() ) ||		\
 		var##_val_ ->Length() <= 0 )				\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	else								\
@@ -334,11 +335,11 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 			}
 
 #define EXPRINTVALXX(var,EVENT,LINE)                                    \
-        const Value *var = rptr->NextEntry( key, c );			\
+        const Value *var = rptr->NthEntry( c++, key );			\
         LINE                                                            \
         if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )      \
                 {                                                       \
-                error->Report("bad value for ", EVENT);                 \
+                global_store->Error("bad value: %s", EVENT);            \
                 return 0;                                   		\
                 }
 
@@ -350,12 +351,12 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
         var = var##_val_ ->IntVal();
 
 #define EXPRINT2(var,EVENT)						\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
         char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	if ( var##_val_ -> IsNumeric() )				\
@@ -368,29 +369,29 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
-		error->Report("bad type for ", EVENT);			\
+		global_store->Error("bad type: %s", EVENT);		\
 		return 0;						\
 		}
 
 #define EXPRDOUBLE(var,EVENT)                                           \
-        const Value *var##_val_ = rptr->NextEntry( key, c );            \
+        const Value *var##_val_ = rptr->NthEntry( c++, key );           \
         double var = 0;                                                 \
         if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
                 var##_val_ ->Length() <= 0 )                            \
                 {                                                       \
-                error->Report("bad value for ", EVENT);                 \
+                global_store->Error("bad value: %s", EVENT);            \
                 return 0;                                   		\
                 }                                                       \
         else                                                            \
                 var = var##_val_ ->DoubleVal();
 
 #define EXPRDOUBLE2(var,EVENT)						\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
         char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	if ( var##_val_ -> IsNumeric() )				\
@@ -403,17 +404,17 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
-		error->Report("bad type for ", EVENT);			\
+		global_store->Error("bad type: %s", EVENT);		\
 		return 0;						\
 		}
 
 #define EXPRDOUBLEPTR(var, NUM, EVENT)					\
-	const Value *var##_val_ = rptr->NextEntry( key, c );		\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
 	double *var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_DOUBLE ||	\
 		var##_val_ ->Length() < NUM )				\
 		{							\
-		error->Report("bad value for ", EVENT);			\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	else								\
@@ -424,7 +425,7 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 #define HASARG( args, cond )						\
 	if ( ! (args->Length() cond) )					\
 		{							\
-		error->Report("wrong number of arguments");		\
+		global_store->Error("wrong number of arguments");	\
 		return 0;						\
 		}
 
@@ -535,15 +536,11 @@ char *glishtk_nostr(Rivetobj self, const char *cmd, Value * )
 char *glishtk_onestr(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one string function";
 
-	if ( args->Length() > 0 )
+	if ( args->Type() == TYPE_STRING )
 		{
-		HASARG( args, > 0 )
-		EXPRINIT( event_name)
-		EXPRSTR( str, event_name )
+		const char *str = args->StringPtr(0)[0];
 		ret = (char*) rivet_set( self, (char*) cmd, (char*) str );
-		EXPR_DONE( str )
 		}
 	else
 		ret = rivet_va_cmd(self, "cget", cmd, 0);
@@ -556,16 +553,13 @@ char *glishtk_bitmap(Rivetobj self, const char *cmd, Value *args )
 	char *ret = 0;
 	char *event_name = "one string function";
 
-	if ( args->Length() > 0 )
+	if ( args->Type() == TYPE_STRING )
 		{
-		HASARG( args, > 0 )
-		EXPRINIT( event_name )
-		EXPRSTR( str, event_name )
+		const char *str = args->StringPtr(0)[0];
 		char *bitmap = (char*) alloc_memory(strlen(str)+2);
 		sprintf(bitmap,"@%s",str);
 		ret = (char*) rivet_set( self, (char*) cmd, bitmap );
 		free_memory( bitmap );
-		EXPR_DONE( str )
 		}
 	else
 		{
@@ -579,13 +573,16 @@ char *glishtk_bitmap(Rivetobj self, const char *cmd, Value *args )
 char *glishtk_onedim(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one dim function";
-	if ( args->Length() > 0 )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
+		ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
 		{
-		EXPRINIT( event_name )
-		EXPRDIM( dim, event_name )
-		ret = (char*) rivet_set( self, (char*) cmd, (char*) dim );
-		EXPR_DONE( dim )
+		char buf[30];
+		sprintf(buf,"%d",args->IntVal());
+		ret = (char*) rivet_set( self, (char*) cmd, buf );
 		}
 	else
 		ret = rivet_va_cmd(self, "cget", cmd, 0);
@@ -598,49 +595,22 @@ char *glishtk_winfo(Rivetobj self, const char *cmd, Value *args )
 	return (char*) rivet_va_func( self, (int (*)()) Tk_WinfoCmd, (char*) cmd, rivet_path(self), 0 );
 	}
 
-char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, Value *args )
-	{
-	char *ret = 0;
-	char *event_name = "one int list function";
-	HASARG( args, >= howmany )
-	static int len = 4;
-	static char *buf = (char*) alloc_memory( sizeof(char)*(len*128) );
-	static char elem[128];
-
-	if ( ! howmany )
-		howmany = args->Length();
-
-	while ( howmany > len )
-		{
-		len *= 2;
-		buf = (char *) realloc(buf, len * sizeof(char) * 128);
-		}
-
-	EXPRINIT( event_name )
-	for ( int x=0; x < howmany; x++ )
-		{
-		EXPRINT( v, event_name )
-		sprintf(elem,"%d ",v);
-		strcat(buf,elem);
-		EXPR_DONE( v )
-		}
-
-	ret = (char*) rivet_set( self, (char*) cmd, buf );
-	return ret;
-	}
-
 char *glishtk_oneint(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one int function";
 
-	if ( args->Length() > 0 )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() != TYPE_BOOL )
 		{
-		HASARG( args, > 0 )
-		EXPRINIT( event_name )
-		EXPRINT2( i, event_name )
-		ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
-		EXPR_DONE( i )
+		if ( args->IsNumeric() )
+			{
+			char buf[30];
+			sprintf(buf,"%d",args->IntVal());
+			ret = (char*) rivet_set( self, (char*) cmd, buf );
+			}
+		else if ( args->Type() == TYPE_STRING )
+			ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
 		}
 	else
 		ret = rivet_va_cmd(self, "cget", cmd, 0);
@@ -661,14 +631,19 @@ char *glishtk_height(Rivetobj self, const char *cmd, Value *args )
 char *glishtk_onedouble(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one double function";
-	if ( args->Length() > 0 )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() != TYPE_BOOL )
 		{
-		HASARG( args, > 0 )
-		EXPRINIT( event_name )
-		EXPRDOUBLE2( i, event_name )
-		ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
-		EXPR_DONE( i )
+		if ( args->IsNumeric() )
+			{
+			char buf[30];
+			sprintf(buf,"%f",args->DoubleVal());
+			ret = (char*) rivet_set( self, (char*) cmd, buf );
+			}
+		else if ( args->Type() == TYPE_STRING )
+			ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
 		}
 	else
 		ret = rivet_va_cmd(self, "cget", cmd, 0);
@@ -680,12 +655,15 @@ char *glishtk_onebinary(Rivetobj self, const char *cmd, const char *ptrue, const
 				Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one binary function";
-	HASARG( args, > 0 )
-	EXPRINIT( event_name )
-	EXPRINT( i, event_name )
-	ret = (char*) rivet_set( self, (char*) cmd, (char*)(i ? ptrue : pfalse) );
-	EXPR_DONE( i )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+
+	else if ( args->IsNumeric() )
+		ret = (char*) rivet_set( self, (char*) cmd, (char*)(args->IntVal() ? ptrue : pfalse) );
+	else
+		global_store->Error("wrong type, numeric expected");
+	
 	return ret;
 	}
 
@@ -697,39 +675,39 @@ char *glishtk_onebool(Rivetobj self, const char *cmd, Value *args )
 char *glishtk_oneidx(TkAgent *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one index function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name )
-	EXPRSTR( index, event_name )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
+		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0);
+	else
+		global_store->Error("wrong type, string expected");
 
-	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( index ), 0);
-
-	EXPR_DONE( index )
 	return ret;
 	}
 
 char *glishtk_disable_cb(TkAgent *a, const char *cmd, Value *args )
 	{
-	char *event_name = "glishtk_disable_cb";
 	if ( ! *cmd )
 		{
-		HASARG( args, > 0 )
-		EXPRINIT( event_name )
-		EXPRINT( i, event_name )
-		if ( i )
-			a->Disable( );
+		if ( args->Length() <= 0 )
+			global_store->Error("zero length value");
+		else if ( args->IsNumeric() )
+			{
+			if ( args->IntVal() )
+				a->Disable( );
+			else
+				a->Enable( );
+			}
 		else
-			a->Enable( );
-		EXPR_DONE( i )
+			global_store->Error("wrong type, numeric expected");
 		}
 	else
-		{
 		if ( *cmd == '1' )
 			a->Disable( );
 		else
 			a->Enable( 0 );
-		}
+
 	return 0;
 	}
 
@@ -738,25 +716,25 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, Value *args )
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name )
-	EXPRSTR( start, event_name )
-	if ( args->Length() > 1 )
+	if ( args->Type() == TYPE_RECORD )
 		{
+		HASARG( args, > 1 )
+		EXPRINIT( event_name )
+		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
 		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( start ),
 					     a->IndexCheck( end ), 0);
 		a->ExitEnable();
 		EXPR_DONE( end )
+		EXPR_DONE( start )
 		}
-	else
+	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( start ), 0);
+		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0);
 		a->ExitEnable();
 		}
-	EXPR_DONE( start )
 	return ret;
 	}
 
@@ -776,12 +754,17 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 	{
 	char *event_name = "one-or-two index function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name )
-
 	strary_ret *ret = 0;
-	if ( args->Length() >= 2 )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
+		HASARG( args, >= 2 )
+		EXPRINIT( event_name )
+
+		strary_ret *ret = 0;
+
 		ret = new strary_ret;
 		ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(args->Length()/2)) );
 		ret->len = 0;
@@ -795,27 +778,17 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 			EXPR_DONE(two)
 			}
 		}
-	else
+	else if ( args->Type() == TYPE_STRING )
 		{
-		EXPRVAL(start,event_name)
-	        if ( ! start || start->Type() != TYPE_STRING ||
-		     start->Length() <= 0 )
-			{
-			error->Report("bad value for ", event_name);
-			EXPR_DONE(start)
-			return 0;
-			}
-
-		if ( start->Length() > 1 )
+		if ( args->Length() > 1 )
 			{
 			ret = new strary_ret;
 			ret->len = 0;
-			ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(start->Length() / 2)) );
-			charptr *idx = start->StringPtr(0);
-			for ( int i = 0; i+1 < start->Length(); i+=2 )
+			ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(args->Length() / 2)) );
+			charptr *idx = args->StringPtr(0);
+			for ( int i = 0; i+1 < args->Length(); i+=2 )
 				{
-				char *s = rivet_va_cmd(a->Self(), cmd,
-						       a->IndexCheck( idx[i] ),
+				char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( idx[i] ),
 						       a->IndexCheck( idx[i+1] ),0);
 
 				if ( s ) ret->ary[ret->len++] = strdup(s);
@@ -823,7 +796,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 			}
 		else
 			{
-			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( (start->StringPtr(0))[0] ), 0);
+			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( (args->StringPtr(0))[0] ), 0);
 			if ( s )
 				{
 				ret = new strary_ret;
@@ -833,6 +806,8 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 				}
 			}
 		}
+	else
+		global_store->Error("wrong type");
 			
 	return (char*) ret;
 	}
@@ -843,25 +818,27 @@ char *glishtk_listbox_select(TkAgent *a, const char *cmd, const char *param,
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRSTR( start, event_name )
-
-	if ( args->Length() > 1 )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
+		HASARG( args, > 1 )
+		EXPRINIT( event_name)
+		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
 		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ),
 					     a->IndexCheck( end ), 0);
 		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( end ), 0 );
 		EXPR_DONE( end )
+		EXPR_DONE( start )
 		}
-	else
+	else if ( args->Type() == TYPE_STRING )
 		{
+		const char *start = args->StringPtr(0)[0];
 		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ), 0);
 		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( start ), 0 );
 		}
 
-	EXPR_DONE( start )
 	return ret;
 	}
 
@@ -870,44 +847,29 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRVAL( val, event_name );
-	char *str = val->StringVal( ' ', 0, 1 );
-	if ( args->Length() > 1 )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
+		HASARG( args, > 1 )
+		EXPRINIT( event_name)
+		EXPRSTR( str, event_name );
 		EXPRSTR( where, event_name )
 		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( where ), str, 0);
 		a->ExitEnable();
 		EXPR_DONE( where )
+		EXPR_DONE( str )
 		}
-	else
+	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( "end" ), str, 0);
+		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( "end" ), args->StringPtr(0)[0], 0);
 		a->ExitEnable();
 		}
-	free_memory( str );
-	EXPR_DONE( val )
-	return ret;
-	}
+	else
+		global_store->Error("wrong type, string expected");
 
-char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
-				Value *args )
-	{
-	char *ret = 0;
-	char *event_name = "one-or-two index function";
-
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRVAL( val, event_name );
-	char *str = val->StringVal( ' ', 0, 1 );
-	a->EnterEnable();
-	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
-	a->ExitEnable();
-	free_memory( str );
-	EXPR_DONE( val )
 	return ret;
 	}
 
@@ -916,36 +878,50 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	{
 	char *event_name = "text append function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	char **argv = (char**) alloc_memory(sizeof(char*) * (args->Length()+3));
-	int argc = 0;
-	argv[argc++] = 0;
-	argv[argc++] = (char*) cmd;
-	if ( param ) argv[argc++] = (char*) a->IndexCheck(param);
-	int start = argc;
-	for ( int i=0; i < args->Length(); ++i )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
-		EXPRVAL( val, event_name )
-		char *s = val->StringVal( ' ', 0, 1 );
-		argv[argc++] = i != 1 || param ? val->StringVal( ' ', 0, 1 ) :
-				strdup(a->IndexCheck(s));
+		HASARG( args, > 1 )
+		EXPRINIT( event_name)
+		char **argv = (char**) alloc_memory(sizeof(char*) * (args->Length()+3));
+		int argc = 0;
+		argv[argc++] = 0;
+		argv[argc++] = (char*) cmd;
+		if ( param ) argv[argc++] = (char*) a->IndexCheck(param);
+		int start = argc;
+		for ( int i=0; i < args->Length(); ++i )
+			{
+			EXPRVAL( val, event_name )
+			char *s = val->StringVal( ' ', 0, 1 );
+			argv[argc++] = i != 1 || param ? val->StringVal( ' ', 0, 1 ) :
+					strdup(a->IndexCheck(s));
+			free_memory(s);
+			EXPR_DONE( val )
+			}
+		a->EnterEnable();
+		if ( ! param && argc > 3 )
+			{
+			char *tmp = argv[3];
+			argv[3] = argv[2];
+			argv[2] = tmp;
+			}
+		rivet_cmd(a->Self(), argc, argv);
+		if ( param ) rivet_va_cmd(a->Self(), "see", a->IndexCheck(param), 0);
+		a->ExitEnable();
+		for ( LOOPDECL i = start; i < argc; ++i )
+			free_memory(argv[i]);
+		free_memory( argv );
+		}
+	else if ( args->Type() == TYPE_STRING && param )
+		{
+		char *s = args->StringVal( ' ', 0, 1 );
+		rivet_va_cmd(a->Self(), cmd, param, s, 0);
 		free_memory(s);
-		EXPR_DONE( val )
 		}
-	a->EnterEnable();
-	if ( ! param && argc > 3 )
-		{
-		char *tmp = argv[3];
-		argv[3] = argv[2];
-		argv[2] = tmp;
-		}
-	rivet_cmd(a->Self(), argc, argv);
-	if ( param ) rivet_va_cmd(a->Self(), "see", a->IndexCheck(param), 0);
-	a->ExitEnable();
-	for ( LOOPDECL i = start; i < argc; ++i )
-		free_memory(argv[i]);
-	free_memory( argv );
+	else
+		global_store->Error("wrong arguments");
+
 	return 0;
 	}
 
@@ -954,11 +930,12 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 	{
 	char *event_name = "tag function";
 		
-	if ( args-> Length() < 2 )
+	if ( args->Length() < 2 )
 		{
-		error->Report("wrong number of arguments");
+		global_store->Error("wrong number of arguments");
 		return 0;
 		}
+
 	EXPRINIT( event_name)
 	EXPRSTR(tag, event_name)
 	int argc = 0;
@@ -1009,7 +986,7 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 	char *event_name = "tag function";
 	if ( args->Length() < 2 )
 		{
-		error->Report("wrong number of arguments");
+		global_store->Error("wrong number of arguments");
 		return 0;
 		}
 	EXPRINIT( event_name)
@@ -1022,15 +999,14 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 	EXPRSTR(tag, event_name)
 	argv[argc++] = (char*) tag;
 	const Value *val;
-	while ( (val = rptr->NextEntry( key, c )) ) 
+	for ( int i=c; i < args->Length(); i++ )
 		{
+		const Value *val = rptr->NthEntry( i, key );
 		if ( strncmp( key, "arg", 3 ) )
 			{
 			int doit = 1;
 			sprintf(buf,"-%s",key);
 			argv[argc] = buf;
-//** 			c = i;
-//** 			EXPRVAL(val, event_name)
 			if ( val->Type() == TYPE_STRING )
 				argv[argc+1] = (char*)((val->StringPtr(0))[0]);
 			else if ( val->Type() == TYPE_BOOL )
@@ -1039,7 +1015,6 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 				doit = 0;
 			
 			if ( doit ) rivet_cmd(self,argc+2,argv);
-//** 			EXPR_DONE(val)
 			}
 		}
 	EXPR_DONE(tag)
@@ -1049,23 +1024,19 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
 			      Value *args )
 	{
-	char *event_name = "tag function";
-	if ( args->Length() < 1 )
+	char *ret = 0;
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		error->Report("wrong number of arguments");
-		return 0;
+		rivet_va_cmd( self, cmd, param, args->StringPtr(0)[0], 0 );
+		ret = self->interp->result;
 		}
-	EXPRINIT( event_name)
-	int argc = 0;
-	char *argv[8];
-	argv[argc++] = 0;
-	argv[argc++] = (char*) cmd;
-	argv[argc++] = (char*) param;
-	EXPRSTR(tag, event_name)
-	argv[argc++] = (char*) tag;
-	rivet_cmd(self,argc,argv);
-	EXPR_DONE(tag)
-	return 	self->interp->result;
+	else
+		global_store->Error("wrong type, string expected");
+
+	return ret;
 	}
 
 char *glishtk_no2str(TkAgent *a, const char *cmd, const char *param, Value * )
@@ -1098,24 +1069,23 @@ char *glishtk_listbox_insert(TkAgent *a, const char *cmd, Value *args )
 	{
 	char *event_name = "listbox insert function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRVAL( val, event_name )
-	if ( val->Type() != TYPE_STRING )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
-		error->Report("invalid argument type");
-		EXPR_DONE(val)
-		return 0;
-		}
-	if ( args->Length() > 1 )
-		{
+		HASARG( args, > 1 )
+		EXPRINIT( event_name)
+		EXPRSTRVAL( val, event_name )
 		EXPRSTR( where, event_name )
 		glishtk_listbox_insert_action(a, (char*) cmd, (Value*) val, where );
 		EXPR_DONE( where )
+		EXPR_DONE( val )
 		}
+	else if ( args->Type() == TYPE_STRING )
+		glishtk_listbox_insert_action(a, (char*) cmd, args );
 	else
-		glishtk_listbox_insert_action(a, (char*) cmd, (Value*) val );
-	EXPR_DONE( val )
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
@@ -1161,80 +1131,70 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, Value *args )
 	char *ret = 0;
 	char *event_name = "listbox get function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRVAL( val, event_name )
-	if ( val->Type() == TYPE_STRING && val->Length() )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_RECORD )
 		{
-		if ( args->Length() > 1 )
-			{
-			EXPRSTR( end, event_name )
-			ret = rivet_va_cmd( a->Self(), cmd,
-					    a->IndexCheck( val->StringPtr(0)[0] ),
-					    a->IndexCheck( end ), 0 );
-			EXPR_DONE( end )
-			}
-		else
-			ret = rivet_va_cmd( a->Self(), cmd,
-					    a->IndexCheck( val->StringPtr(0)[0] ), 0 );
+		HASARG( args, > 1 )
+		EXPRINIT( event_name)
+		EXPRSTR( start, event_name )
+		EXPRSTR( end, event_name )
+		ret = rivet_va_cmd( a->Self(), cmd, a->IndexCheck( start ), a->IndexCheck( end ), 0 );
+		EXPR_DONE( end )
+		EXPR_DONE( val )
 		}
-
-	else if ( val->Type() == TYPE_INT && val->Length() )
-			ret = glishtk_listbox_get_int( a, (char*) cmd, (Value*) val );
+	else if ( args->Type() == TYPE_STRING )
+		ret = rivet_va_cmd( a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+	else if ( args->Type() == TYPE_INT )
+		ret = glishtk_listbox_get_int( a, (char*) cmd, args );
 	else
-		error->Report("invalid argument type");
+		global_store->Error("invalid argument type");
 
-	EXPR_DONE( val )
 	return ret;
 	}
 
 char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "listbox nearest function";
 
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRINT( val, event_name )
-	char ycoord[40];
-
-	sprintf(ycoord,"%d", val);
-	ret = rivet_va_cmd( a->Self(), "nearest", ycoord, 0 );
-
-	EXPR_DONE( val )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->IsNumeric() )
+		{
+		char ycoord[30];
+		sprintf(ycoord,"%d", args->IntVal());
+		ret = rivet_va_cmd( a->Self(), "nearest", ycoord, 0 );
+		}
+	else
+		global_store->Error("wrong type, numeric expected");
 
 	return ret;
 	}
 
 
-char *glishtk_scrolled_update(Rivetobj self, const char *, Value *args )
+char *glishtk_scrolled_update(Rivetobj self, const char *, Value *data )
 	{
 	static char ret[5];
-	char *event_name = "scrolled update function";
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRVAL( data, event_name )
-
 	Scrollbar_notify_data *data_ = ValueToScroll( data );
-	if ( ! data_ )
-		return 0;
+	if ( ! data_ ) return 0;
 	rivet_scrollbar_set_client_view( self, data_ );
 	delete data_;
-
-	EXPR_DONE( data )
 	ret[0] = (char) 0;
 	return ret;
 	}
 
-char *glishtk_scrollbar_update(Rivetobj self, const char *, Value *args )
+char *glishtk_scrollbar_update(Rivetobj self, const char *, Value *val )
 	{
 	static char ret[5];
-	char *event_name = "scrollbar update function";
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRDOUBLEPTR( firstlast, 2, event_name )
+
+	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
+		{
+		global_store->Error("scrollbar update function");
+		return 0;
+		}
+
+	double *firstlast = val->DoublePtr(0);
 	rivet_scrollbar_set( self, firstlast[0], firstlast[1] );
-	EXPR_DONE( firstlast )
 	ret[0] = (char) 0;
 	return ret;
 	}
@@ -1242,15 +1202,11 @@ char *glishtk_scrollbar_update(Rivetobj self, const char *, Value *args )
 char *glishtk_button_state(TkAgent *a, const char *, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "button state function";
 
-	EXPRINIT( event_name)
-	if ( args->Length() >= 1 )
-		{
-		EXPRINT( i, event_name )
-		((TkButton*)a)->State( i ? 1 : 0 );
-		EXPR_DONE( i )
-		}
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		((TkButton*)a)->State( args->IntVal() ? 1 : 0 );
 
 	ret = ((TkButton*)a)->State( ) ? "T" : "F";
 	return ret;
@@ -1263,12 +1219,15 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
 	char *ret = 0;
-	char *event_name = "one string menu function";
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRSTR( str, event_name )
-	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(), (char*) cmd, (char*) str, 0 );
-	EXPR_DONE( str )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
+		ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(),
+					    (char*) cmd, (char*) args->StringPtr(0)[0], 0 );
+	else
+		global_store->Error("wrong type, string expected");
+
 	return ret;
 	}
 
@@ -1278,12 +1237,15 @@ char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, con
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
 	char *ret = 0;
-	char *event_name = "one binary menu function";
-	HASARG( args, > 0 )
-	EXPRINIT( event_name)
-	EXPRINT( i, event_name )
-	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(), (char*) cmd, (char*)(i ? ptrue : pfalse), 0 );
-	EXPR_DONE( i )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	if ( args->IsNumeric() )
+		ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(),
+					    (char*) cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
+	else
+		global_store->Error("wrong type, numeric expected");
+
 	return ret;
 	}
 
@@ -1354,7 +1316,22 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 		return new Value( glish_false );
 	}
 
-void TkAgent::ProcessEvent( const char *name, const Value *val ) { }
+void TkAgent::ProcessEvent( const char *name, Value *val )
+	{
+	if ( ! IsValid() )
+		Error("graphic is defunct");
+
+	TkProc *proc = procs[name];
+
+	if ( proc != 0 )
+		{
+		Value *v = (*proc)( self, val );
+		if ( v && ReplyPending() ) Reply( v );
+		}
+	else
+		Error("unknown event");
+	}
+
 void TkAgent::EnterEnable() { }
 void TkAgent::ExitEnable() { }
 
@@ -1560,24 +1537,6 @@ const char **TkAgent::PackInstruction()
 	return 0;
 	}
 
-Value *TkAgent::SendEvent( const char* event_name, Value *args )
-	{
-	if ( ! IsValid() )
-		return (Value*) Fail("graphic is defunct");
-
-	TkProc *proc = procs[event_name];
-
-	if ( proc != 0 )
-		return Invoke( proc, args );
-	else
-		return 0;
-	}
-
-Value *TkAgent::Invoke(TkProc *proc, Value *arg)
-	{
-	return (*proc)( self, arg );
-	}
-
 charptr TkAgent::IndexCheck( charptr c )
 	{
 	return c;
@@ -1658,7 +1617,7 @@ char *glishtk_bind(TkAgent *agent, const char *, Value *args )
 		if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) glishtk_bindcb,
 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
 			{
-			error->Report("Error, binding not created.");
+			global_store->Error("Error, binding not created.");
 			delete binfo;
 			}
 
@@ -1719,8 +1678,6 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	char geometry[40];
 
 	agent_ID = "<graphic:frame>";
-
-	hold_glish_events += 1;
 
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
@@ -2130,63 +2087,105 @@ TkFrame::~TkFrame( )
 
 char *TkFrame::SetIcon( Value *args )
 	{
-	HASARG( args, > 0 )
-	EXPRINIT( "" )
-	EXPRSTR( icon, "" )
-	if ( icon && strlen(icon) )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		char *icon_ = (char*) alloc_memory(strlen(icon)+2);
-		sprintf(icon_,"@%s",icon);
-		rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
-			      rivet_path((pseudo ? pseudo : root)),icon_, 0);
-		free_memory( icon_ );
+		const char *icon = args->StringPtr(0)[0];
+		if ( icon && strlen(icon) )
+			{
+			char *icon_ = (char*) alloc_memory(strlen(icon)+2);
+			sprintf(icon_,"@%s",icon);
+			rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
+				      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+			free_memory( icon_ );
+			}
 		}
-	EXPR_DONE( icon )
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
 char *TkFrame::SetSide( Value *args )
 	{
-	HASARG( args, > 0 )
-	EXPRINIT( "" )
-	EXPRSTR( side_, "" )
-	if ( side_[0] != side[0] || strcmp(side, side_) )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		free_memory( side );
-		side = strdup( side_ );
-		Pack();
+		const char *side_ = args->StringPtr(0)[0];
+		if ( side_[0] != side[0] || strcmp(side, side_) )
+			{
+			free_memory( side );
+			side = strdup( side_ );
+			Pack();
+			}
 		}
-	EXPR_DONE( side_ )
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
 char *TkFrame::SetPadx( Value *args )
 	{
-	HASARG( args, > 0 )
-	EXPRINIT( "" )
-	EXPRDIM( padx_, "" )
-	if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		free_memory( padx );
-		padx = strdup( padx_ );
-		Pack();
+		const char *padx_ = args->StringPtr(0)[0];
+		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
+			{
+			free_memory( padx );
+			padx = strdup( padx_ );
+			Pack();
+			}
 		}
-	EXPR_DONE( padx_ )
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		{
+		char padx_[30];
+		sprintf(padx_, "%d", args->IntVal());
+		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
+			{
+			free_memory( padx );
+			padx = strdup( padx_ );
+			Pack();
+			}
+		}
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
 char *TkFrame::SetPady( Value *args )
 	{
-	HASARG( args, > 0 )
-	EXPRINIT( "" )
-	EXPRDIM( pady_, "" )
-	if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		free_memory( pady );
-		pady = strdup( pady_ );
-		Pack();
+		const char *pady_ = args->StringPtr(0)[0];
+		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
+			{
+			free_memory( pady );
+			pady = strdup( pady_ );
+			Pack();
+			}
 		}
-	EXPR_DONE( pady_ )
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		{
+		char pady_[30];
+		sprintf(pady_, "%d", args->IntVal());
+		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
+			{
+			free_memory( pady );
+			pady = strdup( pady_ );
+			Pack();
+			}
+		}
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
@@ -2197,16 +2196,21 @@ char *TkFrame::GetTag( Value * )
 
 char *TkFrame::SetExpand( Value *args )
 	{
-	HASARG( args, > 0 )
-	EXPRINIT( "" )
-	EXPRDIM( expand_, "" )
-	if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
 		{
-		free_memory( expand );
-		expand = strdup( expand_ );
-		Pack();
+		const char *expand_ = args->StringPtr(0)[0];
+		if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
+			{
+			free_memory( expand );
+			expand = strdup( expand_ );
+			Pack();
+			}
 		}
-	EXPR_DONE( expand_ )
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
@@ -2228,41 +2232,19 @@ char *TkFrame::GrabCB( Value *args )
 	if ( grab ) return 0;
 
 	int global_scope = 0;
-	if ( args->Length() > 0 )
-		{
-		EXPRINIT( "" )
-		EXPRDIM( str, "" )
 
-		if ( ! strcmp(str,"global") )
-			global_scope = 1;
-
-		EXPR_DONE( str )
-		}
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 && ! strcmp(args->StringPtr(0)[0],"global") )
+		global_scope = 1;
 
 	return Grab( global_scope );
 	}
 
 char *TkFrame::Raise( Value *args )
 	{
-	if ( args->Length() )
-		{
-		char *event_name = "TkFrame::Raise()";
-		EXPRINIT( event_name)
-		EXPRVAL(arg,event_name)
-		if ( ! arg->IsAgentRecord() )
-			return 0;
-
-		TkAgent *agent = (TkAgent*) store->GetProxy(arg);
-		if ( ! agent ) return 0;
-
-		if ( strncmp( agent->AgentID(), "<graphic:", 9 ) )
-			return 0;
-
-		TkAgent *tkagent = (TkAgent*)agent;
+	TkAgent *agent = 0;
+	if ( args->IsAgentRecord( ) && (agent = (TkAgent*) store->GetProxy(args)) )
 		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd,
-			       rivet_path(TopLevel()), rivet_path(tkagent->TopLevel()), 0 );
-		EXPR_DONE(arg)
-		}
+			       rivet_path(TopLevel()), rivet_path(agent->TopLevel()), 0 );
 	else
 		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd, rivet_path(TopLevel()), 0 );
 
@@ -2271,14 +2253,15 @@ char *TkFrame::Raise( Value *args )
 
 char *TkFrame::Title( Value *args )
 	{
-	if ( args->Length() == 1 )
+	if ( args->Type() == TYPE_STRING )
 		{
-		EXPRINIT( "TkFrame::Title" )
-		EXPRSTR( title, "TkFrame::Title" )
 		Rivetobj top = TopLevel( );
-		rivet_va_func(top, (int (*)()) Tk_WmCmd, "title", rivet_path(top), title, 0 );
-		EXPR_DONE( title )
+		rivet_va_func( top, (int (*)()) Tk_WmCmd, "title",
+			       rivet_path(top), args->StringPtr(0)[0], 0 );
 		}
+	else
+		global_store->Error("wrong type, string expected");
+
 	return "";
 	}
 
@@ -2287,18 +2270,16 @@ char *TkFrame::FontsCB( Value *args )
 	char *wild = "-*-*-*-*-*-*-*-*-*-*-*-*-*-*";
 	char **fonts = 0;
 	int len = 0;
-	EXPRINIT( "TkFrame::FontsCB" )
-	if ( args->Length() == 1 )
+
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() == TYPE_STRING )
+		fonts = XListFonts(self->display, args->StringPtr(0)[0], 32768, &len);
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		fonts = XListFonts(self->display, wild, args->IntVal(), &len);
+	else if ( args->Type() == TYPE_RECORD )
 		{
-		EXPRVAL( val, "TkFrame::FontsCB" )
-		if ( val->Type() == TYPE_STRING && val->Length() > 0 )
-			fonts = XListFonts(self->display, val->StringPtr(0)[0], 32768, &len);
-		else if ( val->Type() == TYPE_INT && val->Length() > 0 )
-			fonts = XListFonts(self->display, wild, val->IntVal(), &len);
-		EXPR_DONE( val )
-		}
-	else if ( args->Length() >= 2 )
-		{
+		EXPRINIT("TkFrame::FontsCB")
 		EXPRSTR( str, "TkFrame::FontsCB" )
 		EXPRINT( l, "TkFrame::FontsCB" )
 		fonts = XListFonts(self->display, str, l, &len);
@@ -3067,7 +3048,6 @@ void TkButton::Create( ProxyStore *s, Value *args, void * )
 	SETSTR( background )
 	SETINT( disabled )
 	SETVAL( val, 1 )
-	error->Report( val );
 	SETSTR( anchor )
 	SETSTR( fill )
 	SETSTR( bitmap )
@@ -3087,12 +3067,9 @@ void TkButton::Create( ProxyStore *s, Value *args, void * )
 						     foreground, background, disabled, val, bitmap,
 						     (TkRadioContainer*) grp );
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-			{
-			error->Report( val );
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
 					     disabled, val, anchor, fill, bitmap, (TkRadioContainer*) grp );
-			}
 		}
 	else
 		{
@@ -3201,15 +3178,11 @@ int scalecb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 
 char *glishtk_scale_value(TkAgent *a, const char *, Value *args )
 	{
-	char *event_name = "scale value function";
 
-	EXPRINIT( event_name)
-	if ( args->Length() >= 1 )
-		{
-		EXPRDOUBLE( d, event_name )
-		((TkScale*)a)->SetValue( d );
-		EXPR_DONE( d )
-		}
+	if ( args->Length() <= 0 )
+		global_store->Error("zero length value");
+	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		((TkScale*)a)->SetValue( args->DoubleVal() );
 
 	return 0;
 	}
