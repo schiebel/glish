@@ -1539,7 +1539,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 		if ( func )
 			{
 			parameter_list p;
-			Parameter arg( 0, VAL_CONST, (Expr*) member ); Ref(member);
+			Parameter arg( 0, VAL_CONST, (Expr*) member ); Ref( (Expr*) member );
 			p.append( &arg );
 			IValue *r = func->Call( &p, EVAL_COPY );
 			if ( r && r->IsNumeric() )

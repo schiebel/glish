@@ -906,6 +906,8 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 		default:
 			fatal->Report("bad scope tag in Sequencer::FrameElement()" );
 		}
+
+	return 0;
 	}
 
 void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
@@ -1606,7 +1608,7 @@ void Sequencer::LogEvent( const char* gid, const char* id,
 	ConstExpr gid_expr( &gid_value ); Ref( &gid_value );
 	ConstExpr id_expr( &id_value ); Ref( &id_value );
 	ConstExpr name_expr( &name_value ); Ref( &name_value );
-	ConstExpr value_expr( event_value ); Ref( event_value );
+	ConstExpr value_expr( event_value ); Ref( (IValue*) event_value );
 
 	Parameter gid_param( "glish_id", VAL_VAL, &gid_expr, 0 ); Ref( &gid_expr );
 	Parameter id_param( "id", VAL_VAL, &id_expr, 0 ); Ref( &id_expr );

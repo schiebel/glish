@@ -39,6 +39,10 @@ class ValueKernel {
 	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
 	inline unsigned int FIELD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
 
+#if defined(_AIX)
+    public:
+#endif
+
 	struct array_t {
 		glish_type type;
 		unsigned short type_bytes;
@@ -81,6 +85,9 @@ class ValueKernel {
 		~record_t() { clear(); }
 	};
 
+#if defined(_AIX)
+    protected:
+#endif
 	union {
 		array_t *array;
 		record_t *record;

@@ -1039,7 +1039,7 @@ int Value::SDS_IndexVal() const
 		return SDS_NO_SUCH_SDS;
 		}
 
-	return int(kernel.GetOpaque);
+	return int( kernel.GetOpaque() );
 	}
 
 Value* Value::Deref()

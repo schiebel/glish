@@ -427,8 +427,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 						current_sequencer->LookupID(
 							$2, LOCAL_SCOPE );
 
-					IValue* ref = new IValue( copy_value( func_val ),
-							VAL_CONST );
+					IValue* ref = copy_value( func_val );
 
 					func->Assign( ref );
 					}
