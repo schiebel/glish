@@ -573,7 +573,7 @@ val_type Value::name( int n, Str &err ) const				\
 				err = strFail( "bad sub-vector subscript" ); \
 				return zero;				\
 				}					\
-			return ref->Val()->name( off );			\
+			return ref->Val()->name( off+1 );		\
 			}						\
 									\
 		default:						\
