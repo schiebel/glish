@@ -6,6 +6,8 @@
 // This client was built using the BSD make tool from NetBSD.
 //
 
+#include <stdio.h>
+#include <ctype.h>
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Glish/Client.h"
@@ -16,9 +18,35 @@ inline int streq( const char* a, const char* b )
         return ! strcmp( a, b );
         }
 
+static Client *client = 0;
+static void action_handler( char *cmd ) {
+
+    if ( ! cmd ) return;
+    while ( isspace(*cmd) ) ++cmd;
+    if ( ! *cmd ) return;
+
+    if ( client ) {
+        char event[1024];
+	char *ep = event;
+	for ( ; *cmd && ! isspace(*cmd); *ep++ = *cmd++ );
+	if ( ep == event ) return;
+	*ep = '\0';
+	while ( isspace(*cmd) ) ++cmd;
+	Value *val = *cmd ? new Value( cmd ) : new Value( glish_true );
+	client->PostEvent( event, val );
+	Unref( val );
+    } else {
+        printf( "%s\n", cmd );
+    }
+}
+
+	
+
 int main( int argc, char** argv ) {
     Client c( argc, argv );
     bMake_Init( argc, argv );
+    client = &c;
+    bMake_SetHandler( action_handler );
 
     for ( GlishEvent* e; (e = c.NextEvent()); ) {
         Value *val = e->value;
@@ -85,6 +113,8 @@ int main( int argc, char** argv ) {
 	        c.Error( "no root target specified" );
 	    else
 	        bMake( );
+	} else if ( streq(e->name, "dump" ) ) {
+	    Targ_PrintGraph (1);
 	} else {
 	    c.Error( "unknown event ('%s') or bad value", e->name );
 	    continue;

@@ -41,6 +41,8 @@ extern "C" {
 	 **  perform each make action
 	 **/
 	void bMake_SetHandler( void (*)(char*) );
+
+	void Targ_PrintGraph (int);
 #ifdef __cplusplus
 	}
 #endif
