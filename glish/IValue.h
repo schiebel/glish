@@ -6,6 +6,8 @@
 
 #include "Glish/Value.h"
 
+extern const char *glish_charptrdummy;
+
 class Agent;
 class Func;
 class ArithExpr;
@@ -125,16 +127,20 @@ public:
 
 	void Polymorph( glish_type new_type );
 
-	void ByteOpCompute( const IValue* value, int lhs_len, ArithExpr* expr );
-	void ShortOpCompute( const IValue* value, int lhs_len, ArithExpr* expr );
-	void IntOpCompute( const IValue* value, int lhs_len, ArithExpr* expr );
-	void FloatOpCompute( const IValue* value, int lhs_len, ArithExpr* expr );
-	void DoubleOpCompute( const IValue* value, int lhs_len,
-				ArithExpr* expr );
-	void ComplexOpCompute( const IValue* value, int lhs_len,
-				ArithExpr* expr );
-	void DcomplexOpCompute( const IValue* value, int lhs_len,
-				ArithExpr* expr );
+	void ByteOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			    const char *&err = glish_charptrdummy );
+	void ShortOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			     const char *&err = glish_charptrdummy );
+	void IntOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			   const char *&err = glish_charptrdummy );
+	void FloatOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			     const char *&err = glish_charptrdummy );
+	void DoubleOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			      const char *&err = glish_charptrdummy );
+	void ComplexOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+			       const char *&err = glish_charptrdummy );
+	void DcomplexOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
+				const char *&err = glish_charptrdummy );
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 

@@ -11,6 +11,15 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Glish/Complex.h"
 
+extern void glish_fpe_enter( );
+extern int glish_fpe_exit( );
+
+static char *add_fpe_errmsg = "addition FPE occurred";
+static char *sub_fpe_errmsg = "subtraction FPE occurred";
+static char *mul_fpe_errmsg = "multiplication FPE occurred";
+static char *div_fpe_errmsg = "division FPE occurred";
+static char *mod_fpe_errmsg = "modulo FPE occurred";
+static char *pow_fpe_errmsg = "power FPE occurred";
 
 BinOpExpr::BinOpExpr( binop bin_op, Expr* op1, Expr* op2, const char* desc )
     : BinaryExpr(op1, op2, desc)
@@ -106,13 +115,14 @@ IValue* ArithExpr::Eval( eval_type /* etype */ )
 	IValue* result = left->CopyEval();
 	const IValue* rhs = right->ReadOnlyEval();
 
+	const char *err_str = 0;
 	int lhs_len;
 	int element_by_element;
 	IValue *err = 0;
 	if ( ! ( err = TypeCheck( result, rhs, element_by_element )) &&
 	     (! element_by_element ||
 	      ! ( err = Compute( result, rhs, lhs_len ) )))
-		result = OpCompute( result, rhs, lhs_len );
+		result = OpCompute( result, rhs, lhs_len, err_str );
 
 	else
 		{
@@ -122,39 +132,46 @@ IValue* ArithExpr::Eval( eval_type /* etype */ )
 
 	right->ReadOnlyDone( rhs );
 
+	if ( err_str )
+		{
+		Unref( result );
+		return (IValue*) Fail( err_str );
+		}
+
 	return result;
 	}
 
-IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len )
+IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len,
+			      const char *&err )
 	{
 	switch ( OperandsType( lhs, rhs ) )
 		{
 		case TYPE_BYTE:
-			lhs->ByteOpCompute( rhs, lhs_len, this );
+			lhs->ByteOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_SHORT:
-			lhs->ShortOpCompute( rhs, lhs_len, this );
+			lhs->ShortOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_INT:
-			lhs->IntOpCompute( rhs, lhs_len, this );
+			lhs->IntOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_FLOAT:
-			lhs->FloatOpCompute( rhs, lhs_len, this );
+			lhs->FloatOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_DOUBLE:
-			lhs->DoubleOpCompute( rhs, lhs_len, this );
+			lhs->DoubleOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_COMPLEX:
-			lhs->ComplexOpCompute( rhs, lhs_len, this );
+			lhs->ComplexOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		case TYPE_DCOMPLEX:
-			lhs->DcomplexOpCompute( rhs, lhs_len, this );
+			lhs->DcomplexOpCompute( rhs, lhs_len, this, err );
 			break;
 
 		default:
@@ -166,59 +183,83 @@ IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len )
 	}
 
 
-#define COMPUTE_OP(name,op,type)					\
-void name::Compute( type lhs[], type rhs[], int lhs_len, int rhs_incr )	\
+#define COMPUTE_OP(name,op,type,errmsg)					\
+void name::Compute( type lhs[], type rhs[], int lhs_len,		\
+		    int rhs_incr, const char *&err )			\
 	{								\
+	err = 0;							\
+	glish_fpe_enter( ); /* reset FPE trap */			\
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )	\
-		lhs[i] op rhs[j];				\
+		lhs[i] op rhs[j];					\
+	if ( glish_fpe_exit( ) ) err = errmsg;				\
 	}
 
-#define COMPLEX_COMPUTE_OP(name,op,type)				\
-void name::Compute( type lhs[], type rhs[], int lhs_len, int rhs_incr )	\
+#define COMPLEX_COMPUTE_OP(name,op,type,errmsg)				\
+void name::Compute( type lhs[], type rhs[], int lhs_len,		\
+		    int rhs_incr, const char *&err  )			\
 	{								\
+	err = 0;							\
+	glish_fpe_enter( ); /* reset FPE trap */			\
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )	\
 		{							\
 		lhs[i].r op rhs[j].r;					\
 		lhs[i].i op rhs[j].i;					\
 		}							\
+	if ( glish_fpe_exit( ) ) err = errmsg;				\
 	}
 
-#define COMPLEX_COMPUTE_MUL_OP(type)				\
-void MultiplyExpr::Compute( type lhs[], type rhs[], int lhs_len, int rhs_incr )\
+#define COMPLEX_COMPUTE_MUL_OP(type,errmsg)				\
+void MultiplyExpr::Compute( type lhs[], type rhs[], int lhs_len,	\
+			    int rhs_incr, const char *&err )		\
 	{								\
+	err = 0;							\
+	glish_fpe_enter( ); /* reset FPE trap */			\
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )	\
 		lhs[i] = mul( lhs[i], rhs[j] );				\
+	if ( glish_fpe_exit( ) ) err = errmsg;				\
 	}
 
-#define COMPLEX_COMPUTE_DIV_OP(type)				\
-void DivideExpr::Compute( type lhs[], type rhs[], int lhs_len, int rhs_incr ) \
+#define COMPLEX_COMPUTE_DIV_OP(type,errmsg)				\
+void DivideExpr::Compute( type lhs[], type rhs[], int lhs_len,		\
+			  int rhs_incr, const char *&err )		\
 	{								\
+	err = 0;							\
+	glish_fpe_enter( ); /* reset FPE trap */			\
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )	\
 		lhs[i] = div( lhs[i], rhs[j] );				\
+	if ( glish_fpe_exit( ) ) err = errmsg;				\
 	}
 
-#define DEFINE_ARITH_EXPR(name, op)	\
-COMPUTE_OP(name,op,byte)		\
-COMPUTE_OP(name,op,short)		\
-COMPUTE_OP(name,op,int)			\
-COMPUTE_OP(name,op,float)		\
-COMPUTE_OP(name,op,double)		\
+#define DEFINE_ARITH_EXPR(name, op, errmsg)	\
+COMPUTE_OP(name,op,byte,errmsg)			\
+COMPUTE_OP(name,op,short,errmsg)		\
+COMPUTE_OP(name,op,int,errmsg)			\
+COMPUTE_OP(name,op,float,errmsg)		\
+COMPUTE_OP(name,op,double,errmsg)		\
 
-#define DEFINE_SIMPLE_ARITH_EXPR(name, op)	\
-DEFINE_ARITH_EXPR(name,op)			\
-COMPLEX_COMPUTE_OP(name,op,complex)		\
-COMPLEX_COMPUTE_OP(name,op,dcomplex)		\
+#define DEFINE_SIMPLE_ARITH_EXPR(name, op, errmsg)	\
+DEFINE_ARITH_EXPR(name,op,errmsg)			\
+COMPLEX_COMPUTE_OP(name,op,complex,errmsg)		\
+COMPLEX_COMPUTE_OP(name,op,dcomplex,errmsg)		\
 
-DEFINE_SIMPLE_ARITH_EXPR(AddExpr,+=)
-DEFINE_SIMPLE_ARITH_EXPR(SubtractExpr,-=)
+DEFINE_SIMPLE_ARITH_EXPR(AddExpr,+=,add_fpe_errmsg)
+DEFINE_SIMPLE_ARITH_EXPR(SubtractExpr,-=,sub_fpe_errmsg)
 
-DEFINE_ARITH_EXPR(MultiplyExpr,*=)
-COMPLEX_COMPUTE_MUL_OP(complex)
-COMPLEX_COMPUTE_MUL_OP(dcomplex)
+DEFINE_ARITH_EXPR(MultiplyExpr,*=,mul_fpe_errmsg)
+COMPLEX_COMPUTE_MUL_OP(complex,mul_fpe_errmsg)
+COMPLEX_COMPUTE_MUL_OP(dcomplex,mul_fpe_errmsg)
 
-DEFINE_ARITH_EXPR(DivideExpr,/=)
-COMPLEX_COMPUTE_DIV_OP(complex)
-COMPLEX_COMPUTE_DIV_OP(dcomplex)
+COMPUTE_OP(DivideExpr,/=,byte,div_fpe_errmsg)
+COMPUTE_OP(DivideExpr,/=,short,div_fpe_errmsg)
+COMPUTE_OP(DivideExpr,/=,int,div_fpe_errmsg)
+//
+// Some OSes generate a SIGFPE (OSF1), and others don't (SunOS)
+// assume that on divide all is OK (for now) with floating point
+//
+COMPUTE_OP(DivideExpr,/=,float,0)
+COMPUTE_OP(DivideExpr,/=,double,0)
+COMPLEX_COMPUTE_DIV_OP(complex,div_fpe_errmsg)
+COMPLEX_COMPUTE_DIV_OP(dcomplex,div_fpe_errmsg)
 
 
 glish_type DivideExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
@@ -243,40 +284,26 @@ glish_type ModuloExpr::OperandsType( const IValue* /* lhs */,
 	return TYPE_INT;
 	}
 
-void ModuloExpr::Compute( byte lhs[], byte rhs[], int lhs_len, int rhs_incr )
-	{
-	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )
-		lhs[i] %= rhs[j];
-	}
+COMPUTE_OP(ModuloExpr,%=,byte,mod_fpe_errmsg)
+COMPUTE_OP(ModuloExpr,%=,short,mod_fpe_errmsg)
+COMPUTE_OP(ModuloExpr,%=,int,mod_fpe_errmsg)
 
-void ModuloExpr::Compute( short lhs[], short rhs[], int lhs_len, int rhs_incr )
-	{
-	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )
-		lhs[i] %= rhs[j];
-	}
-
-void ModuloExpr::Compute( int lhs[], int rhs[], int lhs_len, int rhs_incr )
-	{
-	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )
-		lhs[i] %= rhs[j];
-	}
-
-void ModuloExpr::Compute( float*, float*, int, int )
+void ModuloExpr::Compute( float*, float*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with float operands" );
 	}
 
-void ModuloExpr::Compute( double*, double*, int, int )
+void ModuloExpr::Compute( double*, double*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with double operands" );
 	}
 
-void ModuloExpr::Compute( complex*, complex*, int, int )
+void ModuloExpr::Compute( complex*, complex*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with complex operands" );
 	}
 
-void ModuloExpr::Compute( dcomplex*, dcomplex*, int, int )
+void ModuloExpr::Compute( dcomplex*, dcomplex*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with dcomplex operands" );
 	}
@@ -296,42 +323,49 @@ glish_type PowerExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	else return TYPE_DOUBLE;
 	}
 
-void PowerExpr::Compute( byte*, byte*, int, int )
+void PowerExpr::Compute( byte*, byte*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with byte operands" );
 	}
 
-void PowerExpr::Compute( short*, short*, int, int )
+void PowerExpr::Compute( short*, short*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with short operands" );
 	}
 
-void PowerExpr::Compute( int*, int*, int, int )
+void PowerExpr::Compute( int*, int*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with integer operands" );
 	}
 
-void PowerExpr::Compute( float*, float*, int, int )
+void PowerExpr::Compute( float*, float*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with float operands" );
 	}
 
-void PowerExpr::Compute( double lhs[], double rhs[], int lhs_len, int rhs_incr )
+void PowerExpr::Compute( double lhs[], double rhs[], int lhs_len,
+			 int rhs_incr, const char *&err )
 	{
+	err = 0;
+	glish_fpe_enter( ); /* reset FPE trap */
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )
 		lhs[i] = pow( lhs[i], rhs[j] );
+	if ( glish_fpe_exit( ) ) err = pow_fpe_errmsg;
 	}
 
-void PowerExpr::Compute( complex*, complex*, int, int )
+void PowerExpr::Compute( complex*, complex*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with complex operands" );
 	}
 
 void PowerExpr::Compute( dcomplex lhs[], dcomplex rhs[],
-			int lhs_len, int rhs_incr )
+			int lhs_len, int rhs_incr, const char *&err )
 	{
+	err = 0;
+	glish_fpe_enter( ); /* reset FPE trap */
 	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )
 		lhs[i] = pow( lhs[i], rhs[j] );
+	if ( glish_fpe_exit( ) ) err = pow_fpe_errmsg;
 	}
 
 
@@ -495,7 +529,7 @@ void name::Compute( type lhs[], type rhs[], glish_bool result[],	\
 	}
 
 #define DEFINE_REL_EXPR(name, op)					\
-COMPUTE_BOOL_REL_RESULT(name,op,glish_bool)					\
+COMPUTE_BOOL_REL_RESULT(name,op,glish_bool)				\
 COMPUTE_NUMERIC_REL_RESULT(name,op,byte)				\
 COMPUTE_NUMERIC_REL_RESULT(name,op,short)				\
 COMPUTE_NUMERIC_REL_RESULT(name,op,int)					\

@@ -22,6 +22,8 @@ RCSID("@(#) $Id$")
 
 #define AGENT_MEMBER_NAME "*agent*"
 
+const char *glish_charptrdummy = 0;
+
 void copy_agents( void *to_, void *from_, unsigned int len )
 	{
 	agentptr *to = (agentptr*) to_;
@@ -441,7 +443,8 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	}
 
 #define DEFINE_XXX_ARITH_OP_COMPUTE(name,type,coerce_func,access_func)	\
-void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
+void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr,	\
+		   const char *&err )					\
 	{								\
 	int lhs_copy, rhs_copy;						\
 	type* lhs_array = coerce_func( lhs_copy, lhs_len );		\
@@ -452,7 +455,7 @@ void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 	if ( ! lhs_copy )						\
 		lhs_array = access_func();				\
 									\
-	expr->Compute( lhs_array, rhs_array, lhs_len, rhs_incr );	\
+	expr->Compute( lhs_array, rhs_array, lhs_len, rhs_incr, err );	\
 									\
 	if ( lhs_copy )							\
 		{							\

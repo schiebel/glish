@@ -8,6 +8,7 @@
 
 #include "Expr.h"
 
+extern const char *glish_charptrdummy;
 
 // Arithmetic operations supported on values.
 typedef enum {
@@ -70,44 +71,50 @@ class ArithExpr : public BinOpExpr {
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
 
-	virtual void Compute( byte lhs[], byte rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( short lhs[], short rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( int lhs[], int rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( float lhs[], float rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( double lhs[], double rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( complex lhs[], complex rhs[],
-				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( dcomplex lhs[], dcomplex rhs[],
-				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( byte lhs[], byte rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( short lhs[], short rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( int lhs[], int rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( float lhs[], float rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( double lhs[], double rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( complex lhs[], complex rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
+	virtual void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,
+			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
 
     protected:
-	IValue* OpCompute( IValue* lhs, const IValue* rhs, int lhs_len );
+	IValue* OpCompute( IValue* lhs, const IValue* rhs, int lhs_len,
+			   const char *&err = glish_charptrdummy );
 	};
 
-#define DECLARE_ARITH_EXPR(name, op, op_name, overloads)		\
-class name : public ArithExpr {						\
-    public:								\
-	name( Expr* op1, Expr* op2 )					\
-		: ArithExpr(op, op1, op2, op_name)	{ }		\
-	overloads							\
-									\
+#define DECLARE_ARITH_EXPR(name, op, op_name, overloads)			\
+class name : public ArithExpr {							\
+    public:									\
+	name( Expr* op1, Expr* op2 )						\
+		: ArithExpr(op, op1, op2, op_name)	{ }			\
+	overloads								\
+										\
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
-			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }\
-									\
-	void Compute( byte lhs[], byte rhs[], int lhs_len, int rhs_incr );\
-	void Compute( short lhs[], short rhs[], int lhs_len, int rhs_incr );\
-	void Compute( int lhs[], int rhs[], int lhs_len, int rhs_incr );\
-	void Compute( float lhs[], float rhs[], int lhs_len, int rhs_incr );\
-	void Compute( double lhs[], double rhs[], int lhs_len, int rhs_incr );\
-	void Compute( complex lhs[], complex rhs[], int lhs_len,	\
-			int rhs_incr );					\
-	void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,	\
-			int rhs_incr );					\
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }	\
+										\
+	void Compute( byte lhs[], byte rhs[], int lhs_len,			\
+		      int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( short lhs[], short rhs[], int lhs_len,			\
+		      int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( int lhs[], int rhs[], int lhs_len,			\
+		      int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( float lhs[], float rhs[], int lhs_len,			\
+		      int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( double lhs[], double rhs[], int lhs_len,			\
+		      int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( complex lhs[], complex rhs[], int lhs_len,		\
+			int rhs_incr, const char *&err = glish_charptrdummy );	\
+	void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,		\
+			int rhs_incr, const char *&err = glish_charptrdummy );	\
 	};
 
 DECLARE_ARITH_EXPR(AddExpr, OP_ADD, "+",)

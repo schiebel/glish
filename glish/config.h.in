@@ -98,3 +98,19 @@
 
 /* Define if you have the <float.h> header file.  */
 #undef HAVE_FLOAT_H
+
+/* Define if you have the <siginfo.h> header file.  */
+#undef HAVE_SIGINFO_H
+
+/* Define if you have the <ucontext.h> header file.  */
+#undef HAVE_UCONTEXT_H
+
+/* Define if you have the <floatingpoint.h> header file.  */
+#undef HAVE_FLOATINGPOINT_H
+
+/* Define if you have the sigfpe() function */
+#undef HAVE_SIGFPE
+
+/* Define if you have the FPE_INTDIV macro definition */
+#undef HAVE_FPE_INTDIV
+

@@ -51,6 +51,18 @@ RCSID("@(#) $Id$")
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+#ifdef HAVE_SIGINFO_H
+#include <siginfo.h>
+#endif
+#ifdef HAVE_UCONTEXT_H
+#include <ucontext.h>
+#endif
+#ifdef HAVE_FLOATINGPOINT_H
+#include <floatingpoint.h>
+#endif
+#endif
+
 #include "input.h"
 #include "glishlib.h"
 #include "Reporter.h"
@@ -134,16 +146,13 @@ void StringReporter::Epilog() { }
 void StringReporter::Prolog() { }
 static StringReporter *srpt = 0;
 
-int glish_can_divide_by_0 = 1;
-static void resolve_divide_by_0( );
-static double TMP_DOUBLE;
-static double ZERO_DOUBLE = 0.0;
+static void setup_sigfpe( );
 
 int main( int argc, char** argv )
 	{
 	srpt = new StringReporter( new SOStream );
 
-	resolve_divide_by_0( );
+	setup_sigfpe();
 	install_terminate_handlers();
 
 	(void) install_signal_handler( SIGINT, glish_sigint );
@@ -178,8 +187,8 @@ DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL,DUMP_CORE)
 #ifdef SIGEMT
 DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT,DUMP_CORE)
+DEFINE_SIG_FWD(glish_sigfpe_die,"floating point exception",SIGFPE,DUMP_CORE)
 #endif
-DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP,DUMP_CORE)
 #ifdef SIGSYS
 DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS,DUMP_CORE)
@@ -193,7 +202,6 @@ static void install_terminate_handlers()
 #ifdef SIGEMT
 	(void) install_signal_handler( SIGEMT, glish_sigemt );
 #endif
-	(void) install_signal_handler( SIGFPE, glish_sigfpe );
 	(void) install_signal_handler( SIGTRAP, glish_sigtrap );
 #ifdef SIGSYS
 	(void) install_signal_handler( SIGSYS, glish_sigsys );
@@ -480,12 +488,58 @@ static void glish_dump_core( const char *file )
 	sos.flush( );
 	}
 
-void glish_check_sigfpe( ) { glish_can_divide_by_0 = 0; }
 
-void resolve_divide_by_0( )
+static int sigfpe_trap = 0;
+void glish_sigfpe_recover( )
 	{
-	(void) install_signal_handler( SIGFPE, glish_check_sigfpe );
-	TMP_DOUBLE = (double) glish_can_divide_by_0 / ZERO_DOUBLE;
+	sigfpe_trap = 1;
+	(void) install_signal_handler( SIGFPE, (signal_handler) SIG_IGN );
+	unblock_signal(SIGFPE);
+	}
+
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
+	{
+	sigfpe_trap = 1;
+	/*
+	**  Increment program counter; ieee_handler does this by
+	**  default, but here we have to use sigfpe() to set up the
+	**  signal handler for integer divide by 0.
+	*/
+	uap->uc_mcontext.gregs[REG_PC] = uap->uc_mcontext.gregs[REG_nPC];
+	}
+#endif
+
+
+void glish_fpe_enter( )
+	{
+	sigfpe_trap = 0;
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);
+#else
+	(void) install_signal_handler( SIGFPE, glish_sigfpe_recover );
+#endif
+	}
+
+int glish_fpe_exit( )
+	{
+	int ret = sigfpe_trap;
+	sigfpe_trap = 0;
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+	sigfpe(FPE_INTDIV, SIGFPE_DEFAULT);
+#else
+	(void) install_signal_handler( SIGFPE, glish_sigfpe_die );
+#endif
+	return ret;
+	}
+
+void setup_sigfpe( )
+	{
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+/*	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);*/
+#else
+	(void) install_signal_handler( SIGFPE, glish_sigfpe_die );
+#endif
 	}
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
