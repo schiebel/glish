@@ -224,7 +224,7 @@ AC_CHECK_HEADERS(ar.h ranlib.h fcntl.h paths.h sys/select.h sys/time.h unistd.h 
 
 dnl Both *BSD and Linux have sys/cdefs.h, most do not.
 dnl If it is missing, we add -I${srcdir}/missing to CFLAGS
-AC_CHECK_HEADER(sys/cdefs.h,,CPPFLAGS="${CPPFLAGS} -I\${srcdir}/missing")
+AC_CHECK_HEADER(sys/cdefs.h,,CPPFLAGS="${CPPFLAGS} -I\${SRC}/missing")
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_BIGENDIAN
@@ -244,6 +244,12 @@ AC_FUNC_WAIT3
 AC_CHECK_FUNCS(getcwd getwd putenv select strdup strerror strtod strtol setenv getenv)
 dnl AC_REPLACE_FUNCS(setenv getenv)
 AC_REPLACE_FUNCS(getenv)
+
+AC_CHECK_LIB(bsd, main)
+AC_CHECK_LIB(socket, main)
+AC_CHECK_LIB(inet, main)
+AC_CHECK_LIB(nsl, main)
+
 dnl
 dnl Structures
 dnl

@@ -1360,7 +1360,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		char *expanded = which_bitmap(icon);
 		if ( expanded )
 			{
-			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
+			char *icon_ = (char*) alloc_memory(strlen(expanded)+3);
 			sprintf(icon_," @%s",expanded);
 			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(topwin), icon_, (char *)NULL);
 			free_memory( expanded );

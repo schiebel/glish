@@ -418,8 +418,14 @@ dnl##
 dnl##--------------------------------------------------------------------
 if test -n "$option_pgplot_link_search"; then
     PGPLOTLINKSEARCH="$option_pgplot_link_search"
+    BUILD_PGPLOT="BUILD_PGPLOT"
 else
     PGPLOTLINKSEARCH=""
+    if test -z "$option_pgplot_incl_flags" -a -z "$option_pgplot_link_flags"; then
+	BUILD_PGPLOT=""
+    else
+	BUILD_PGPLOT="BUILD_PGPLOT"
+    fi
 fi
 
 dnl##--------------------------------------------------------------------
@@ -834,7 +840,6 @@ if test -z "$NO_TK"; then
     if test -z "$tcl_lib"; then
         XLIBSW=""
         XINCLUDES=""
-        BUILD_TK=""
         TK_LIB=""
         TK_FLAGS=""
         do_tk='no'
@@ -845,12 +850,10 @@ if test -z "$NO_TK"; then
         TK_INCL="$tcl_incl"
         TK_LIB="$tcl_lib"
         do_tk='yes'
-        BUILD_TK="BUILD_TK"
     fi
 else
     XLIBSW=""
     XINCLUDES=""
-    BUILD_TK=""
     TK_LIB=""
     do_tk='no'
     TK_INCL=""
@@ -1712,13 +1715,13 @@ AC_SUBST(LOOPDECL)
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBSW)
 
-AC_SUBST(BUILD_TK)
 AC_SUBST(TK_LIB)
 AC_SUBST(TK_INCL)
 AC_SUBST(TK_FLAGS)
 AC_SUBST(DL_LIBS)
 AC_SUBST(NPD_LIB)
 AC_SUBST(BUILD_NPD)
+AC_SUBST(BUILD_PGPLOT)
 AC_SUBST(top_off)
 
 

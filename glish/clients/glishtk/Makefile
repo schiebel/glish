@@ -18,9 +18,11 @@ all:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(SHARED_DIR); $(MAKE) $$FLGS all);			\
-	(cd $(STATIC_DIR); $(MAKE) $$FLGS all);			\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS all)
 	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS all); fi;
+		$(MAKE) build.pgplot; fi;
+
+#		(cd pgplot; $(MAKE) $$FLGS all); fi;
 
 install:
 	@echo Installing glish clients ...
@@ -29,9 +31,11 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(SHARED_DIR); $(MAKE) $$FLGS install);		\
-	(cd $(STATIC_DIR); $(MAKE) $$FLGS install);		\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS install)
 	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS install); fi;
+		$(MAKE) install.pgplot; fi;
+
+#		(cd pgplot; $(MAKE) $$FLGS install); fi;
 
 build: all
 
@@ -56,9 +60,11 @@ clean:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(SHARED_DIR); $(MAKE) $$FLGS clean);		\
-	(cd $(STATIC_DIR); $(MAKE) $$FLGS clean);		\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS clean)
 	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS clean); fi;
+		$(MAKE) clean.pgplot; fi;
+
+#		(cd pgplot; $(MAKE) $$FLGS clean); fi;
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
@@ -66,6 +72,89 @@ distclean:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(SHARED_DIR); $(MAKE) $$FLGS distclean);		\
-	(cd $(STATIC_DIR); $(MAKE) $$FLGS distclean);		\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS distclean)
 	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS distclean); fi;
+		$(MAKE) distclean.pgplot; fi;
+
+#		(cd pgplot; $(MAKE) $$FLGS distclean); fi;
+
+##
+## Building PGPLOT object
+##
+build.pgplot: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="ARCH=`../../../config/architecture`";	\
+	else 	FLGS=""; fi;				 	\
+	$(MAKE) $$FLGS $@_r
+
+build.pgplot_r: 
+	@if test -z "$(BUILD_PGPLOT)"; then 			\
+		FLGS="BUILD_PGPLOT=`tail -1 ../../../$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+build.pgplot_r_r: $(BUILD_PGPLOT)
+
+BUILD_PGPLOT: 
+	@cd pgplot; $(MAKE)
+
+install.pgplot: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="ARCH=`../../../config/architecture`";	\
+	else 	FLGS=""; fi; 					\
+	$(MAKE) $$FLGS $@_r
+
+install.pgplot_r: 
+	@if test -z "$(BUILD_PGPLOT)"; then 			\
+		FLGS="BUILD_PGPLOT=`tail -1 ../../../$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+install.pgplot_r_r: install-$(BUILD_PGPLOT)
+
+install-BUILD_PGPLOT:
+	@cd pgplot; $(MAKE) install
+
+clean.pgplot: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="ARCH=`../../../config/architecture`";	\
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+clean.pgplot_r: 
+	@if test -z "$(BUILD_PGPLOT)"; then 			\
+		FLGS="BUILD_PGPLOT=`tail -1 ../../../$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+clean.pgplot_r_r: clean-$(BUILD_PGPLOT)
+
+clean-BUILD_PGPLOT: 
+	@cd pgplot; $(MAKE) clean
+
+distclean.pgplot: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="ARCH=`../../../config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
+
+distclean.pgplot_r: 
+	@if test -z "$(BUILD_PGPLOT)"; then 			\
+		FLGS="BUILD_PGPLOT=`tail -1 ../../../$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+distclean.pgplot_r_r: distclean-$(BUILD_PGPLOT)
+
+distclean-BUILD_PGPLOT: 
+	@cd pgplot; $(MAKE) distclean
+
+##
+## Dummy targets
+##
+install-:
+
+clean-:
+
+distclean-:
+

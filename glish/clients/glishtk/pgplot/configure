@@ -2411,7 +2411,6 @@ rm -f $conftest*
     if test -z "$tcl_lib"; then
         XLIBSW=""
         XINCLUDES=""
-        BUILD_TK=""
         TK_LIB=""
         TK_FLAGS=""
         do_tk='no'
@@ -2422,12 +2421,10 @@ rm -f $conftest*
         TK_INCL="$tcl_incl"
         TK_LIB="$tcl_lib"
         do_tk='yes'
-        BUILD_TK="BUILD_TK"
     fi
 else
     XLIBSW=""
     XINCLUDES=""
-    BUILD_TK=""
     TK_LIB=""
     do_tk='no'
     TK_INCL=""
@@ -2466,12 +2463,12 @@ ac_compile='${CXX-g++} -c $CXXFLAGS $CPPFLAGS $conftest.$ac_ext 1>&5'
 ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS 1>&5'
   CXXCPP="${CXX-g++} -E"
   cat > $conftest.$ac_ext <<EOF
-#line 2470 "configure"
+#line 2467 "configure"
 #include "$confdefs.h"
 #include <stdlib.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2475: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2472: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   :
@@ -2490,7 +2487,7 @@ echo "$ac_t""$CXXCPP" 1>&6
 
 echo $ac_n "checking C++ library path""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2494 "configure"
+#line 2491 "configure"
 #include "$confdefs.h"
 #include <iostream.h>
 EOF
@@ -2516,7 +2513,7 @@ fi
 
 echo $ac_n "checking Are we using the KAI compiler""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2520 "configure"
+#line 2517 "configure"
 #include "$confdefs.h"
 #ifdef __KCC
   yes
@@ -2537,7 +2534,7 @@ echo "$ac_t""$KAI" 1>&6
 
 echo $ac_n "checking 'for' scope""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2541 "configure"
+#line 2538 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -2548,7 +2545,7 @@ for ( int i=0; i < 1; i++ ) { ; }
 
 ; return 0; }
 EOF
-if { (eval echo configure:2552: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2549: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf $conftest*
   echo "$ac_t""local" 1>&6; cat >> $confdefs.h <<\EOF
 #define LOOPDECL int
@@ -2711,7 +2708,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 2715 "configure"
+#line 2712 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -2806,7 +2803,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 2810 "configure"
+#line 2807 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -2914,12 +2911,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2918 "configure"
+#line 2915 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2923: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2920: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3006,12 +3003,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 3010 "configure"
+#line 3007 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:3015: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3012: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3359,7 +3356,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3363 "configure"
+#line 3360 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3367,7 +3364,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3371: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3368: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3390,7 +3387,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3394 "configure"
+#line 3391 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3398,7 +3395,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3402: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3399: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3415,7 +3412,6 @@ ac_link='${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIB
 
 fi
 echo "$ac_t""$SLIB_CXXFLAGS" 1>&6
-
 
 
 
@@ -3626,7 +3622,6 @@ s%@LOOPDECL@%$LOOPDECL%g
 s%@XINCLUDES@%$XINCLUDES%g
 s%@XLIBSW@%$XLIBSW%g
 s%@PGPLOTINCLUDES@%$PGPLOTINCLUDES%g
-s%@BUILD_TK@%$BUILD_TK%g
 s%@TK_LIB@%$TK_LIB%g
 s%@TK_INCL@%$TK_INCL%g
 s%@TK_FLAGS@%$TK_FLAGS%g

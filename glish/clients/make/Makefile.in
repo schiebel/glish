@@ -76,7 +76,7 @@ make_client.o: $(SRC)/make_client.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/make_client.cc 
 
 make_client: make_client.o $(OBJS) $(LSTOBJS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o make_client make_client.o $(OBJS) $(LSTOBJS) $(CLIENT_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o make_client make_client.o $(OBJS) $(LSTOBJS) $(CLIENT_LIBS) @LIBS@
 
 $(BINDIR_P)/make_client: make_client
 	$(INSTALL_PROGRAM) make_client $(BINDIR_P)
