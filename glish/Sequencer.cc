@@ -2190,12 +2190,6 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	if ( await_finished ) selector->AwaitDone();
 	}
 
-void stop_here_please()
-	{
-	static int i = 0;
-	i += 1;
-	}
-
 #define NEWEVENT_BODY							\
 									\
 	int ignore_event = 0;						\
