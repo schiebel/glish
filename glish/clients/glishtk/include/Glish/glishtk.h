@@ -156,6 +156,8 @@ class TkProxy : public Proxy {
 	unsigned int enable_state;
 
 	int dont_map;
+	unsigned short withdrawn;
+	unsigned short leader_unmapped;
 
 	unsigned int disable_count;
 

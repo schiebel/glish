@@ -257,7 +257,7 @@ char *glishtk_onebinary(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const 
 		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " ", (char*)(args->IntVal() ? ptrue : pfalse), (char *)NULL );
 	else
 		global_store->Error("wrong type, numeric expected");
-	
+
 	return ret;
 	}
 
@@ -530,7 +530,7 @@ char *glishtk_text_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, con
 			   Value *args )
 	{
 	char *event_name = "tag function";
-		
+
 	if ( args->Length() < 2 )
 		{
 		global_store->Error("wrong number of arguments");
@@ -613,7 +613,7 @@ char *glishtk_text_configfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, 
 				argv[argc+1] = (char*) (val->BoolVal() ? "true" : "false");
 			else
 				doit = 0;
-			
+
 			if ( doit ) tcl_ArgEval( tcl, argc+2, argv );
 			}
 		}
@@ -706,7 +706,7 @@ char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
 	for ( int i=0; i < len; i++ )
 		{
 		sprintf(buf,"%d",index[i]);
-		
+
 		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( buf ), (char *)NULL );
 
 		if ( r == TCL_OK )
@@ -1164,7 +1164,7 @@ void glishtk_popup_adjust_dim_cb( ClientData clientData, XEvent *ptr)
 		{
 		Tk_Window self = ((TkProxy*)clientData)->Self();
 		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
-		
+
 		tcl_VarEval( tcl, Tk_PathName(self), " cget -width", (char *)NULL );
 		int req_width = atoi(Tcl_GetStringResult(tcl));
 		tcl_VarEval( tcl, Tk_PathName(self), " cget -height", (char *)NULL );
@@ -1191,7 +1191,7 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 
 		Tk_Window self = ((TkProxy*)clientData)->Self();
 		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
-		
+
 		tcl_VarEval( tcl, Tk_PathName(self), " cget -width", (char *)NULL );
 		tcl_VarEval( tcl, Tk_PathName(self), " cget -height", (char *)NULL );
 
@@ -1329,7 +1329,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	char *ctor_error = Tcl_GetStringResult(tcl);
 	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 	topwin = Tk_NameToWindow( tcl, argv[1], root );
-	
+
 	if ( title && title[0] )
 		tcl_VarEval( tcl, "wm title ", Tk_PathName( topwin ), " {", title, "}", (char *)NULL );
 
@@ -2078,13 +2078,16 @@ void TkFrameP::LeaderMoved( )
 
 void TkFrameP::LeaderUnmapped( )
 	{
-	if ( ! tlead ) return;
+	if ( ! tlead || unmapped || leader_unmapped ) return;
+	leader_unmapped = 1;
+	if ( withdrawn ) return;
 	tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(topwin), (char *)NULL );
 	}
 
 void TkFrameP::LeaderMapped( )
 	{
-	if ( ! tlead ) return;
+	leader_unmapped = 0;
+	if ( ! tlead || unmapped || withdrawn ) return;
 	tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(topwin), (char *)NULL );
 	tcl_VarEval( tcl, "raise ", Tk_PathName(topwin), (char *)NULL );
 	}
@@ -2169,9 +2172,9 @@ const char **TkFrameP::PackInstruction()
 		ret[c++] = expand;
 
 		if ( ! canvas && (! frame || ! strcmp(expand,"both") ||
-			! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") || 
+			! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") ||
 						 ! strcmp(frame->Side(),"right"))  ||
-			! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") || 
+			! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") ||
 						 ! strcmp(frame->Side(),"bottom"))) )
 			{
 			ret[c++] = "-expand";
@@ -2192,9 +2195,9 @@ const char **TkFrameP::PackInstruction()
 int TkFrameP::CanExpand() const
 	{
 	return ! canvas && (! frame || ! strcmp(expand,"both") ||
-		! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") || 
+		! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") ||
 					 !strcmp(frame->Side(),"right")) ||
-		! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") || 
+		! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") ||
 					 ! strcmp(frame->Side(),"bottom")) );
 	}
 
@@ -2869,7 +2872,7 @@ void TkButton::Create( ProxyStore *s, Value *args )
 
 	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	TkProxy *grp = (TkProxy*) (global_store->GetProxy(group));
-	if ( agent && grp && 
+	if ( agent && grp &&
 	     ( ! strcmp( grp->AgentID(),"<graphic:button>" ) && ((TkButton*)grp)->IsMenu() ||
 	       ! strcmp( grp->AgentID(), "<graphic:frame>") ) )
 		{
@@ -3289,7 +3292,7 @@ void TkScale::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 STD_EXPAND_PACKINSTRUCTION(TkScale)
 STD_EXPAND_CANEXPAND(TkScale)
@@ -3487,7 +3490,7 @@ void TkText::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 void TkText::yScrolled( const double *d )
 	{
@@ -3639,7 +3642,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 
 	free_memory(hlcolor_);
 	free_memory(hlbackground_);
-	
+
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScrollbar::TkScrollbar")
 
@@ -3724,7 +3727,7 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 void TkScrollbar::Scrolled( Value *data )
 	{
@@ -3874,7 +3877,7 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 STD_EXPAND_PACKINSTRUCTION(TkLabel)
 STD_EXPAND_CANEXPAND(TkLabel)
@@ -3906,7 +3909,7 @@ int entry_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 DEFINE_ENABLE_FUNCS(TkEntry)
 
 TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
-		  charptr justify, charptr font, charptr relief, 
+		  charptr justify, charptr font, charptr relief,
 		  charptr borderwidth, charptr foreground, charptr background,
 		  int disabled, int show, int exportselection, charptr fill_,
 		  charptr hlcolor, charptr hlbackground, charptr hlthickness)
@@ -4072,7 +4075,7 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 charptr TkEntry::IndexCheck( charptr s )
 	{
@@ -4220,7 +4223,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 STD_EXPAND_PACKINSTRUCTION(TkMessage)
 STD_EXPAND_CANEXPAND(TkMessage)
@@ -4407,7 +4410,7 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 		}
 
 	CREATE_RETURN
-	}      
+	}
 
 charptr TkListbox::IndexCheck( charptr s )
 	{

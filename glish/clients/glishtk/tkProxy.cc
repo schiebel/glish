@@ -747,15 +747,27 @@ void TkProxy::SetMap( int do_map, int toplevel )
 			if ( win )
 				{
 				if ( dont_map )
-					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), (char *)NULL );
+					{
+					if ( ! withdrawn )
+						{
+						withdrawn = 1;
+						if ( ! leader_unmapped )
+							tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), (char *)NULL );
+						}
+					}
 				else
-					tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), (char *)NULL );
+					{
+					withdrawn = 0;
+					if ( ! leader_unmapped )
+						tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), (char *)NULL );
+					}
 				}
 			}
 		}
 	}
 
-TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ), disable_count(0)
+TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ), withdrawn( 0 ),
+						      leader_unmapped( 0 ), disable_count( 0 )
 	{
 	agent_ID = "<graphic>";
 	enable_state = 0;
