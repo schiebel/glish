@@ -1,3 +1,5 @@
+// $Header$
+
 #if !defined(stream_h_)
 #define stream_h_
 #include "Glish/Object.h"

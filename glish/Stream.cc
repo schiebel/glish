@@ -1,3 +1,7 @@
+// $Header$
+
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "Glish/Stream.h"
 #include "system.h"
 #include <stdlib.h>
