@@ -18,7 +18,7 @@ char* strdup( const char* );
 class StrKernel {
 public:
 	StrKernel( ) : str(0), cnt(1) { }
-	StrKernel( const char *s ) : str( s ? strdup( s ) : 0 ),
+	StrKernel( const char *s ) : str( s && s[0] ? strdup( s ) : 0 ),
 					cnt(1) { }
 	StrKernel( char *s ) : str( s ), cnt(1) { }
 	const char *Chars() const { return str ? str : ""; }
