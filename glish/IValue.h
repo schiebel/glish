@@ -120,6 +120,18 @@ public:
 	funcptr FuncVal( ) const;
 	regexptr RegexVal( ) const;
 
+	// Returns the entire value converted to a single string, with
+	// "sep" used to separate array elements.  "max_elements" allows
+	// one to specify the maximum number of elements to be printed. If
+	// "max_elements" is zero, all elements will be printed, but if
+	// it is greater than zero only "max_elements" will be printed.
+	// If "use_attr" is true (non-zero), then the value's attributes
+	// are used for determining its shape (as a n-D array).
+	//
+	// Returns a new string, which should be delete'd when done with.
+	char* StringVal( char sep = ' ', int max_elements = 0, 
+			 int use_attr = 0, Str &err = glish_errno ) const;
+
 	// The following accessors return pointers to the underlying value
 	// array.  The "const" versions complain with a fatal error if the
 	// value is not the given type.  The non-const versions first

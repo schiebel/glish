@@ -443,8 +443,8 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			{
 			statement_can_end = 1;
 			IValue *v = 0;
-			Regex *r = regex_start == 'm' ? new Regex(strdup(literal())) :
-					new Regex(match_regex_portion, strdup(literal()));
+			Regex *r = regex_start == 'm' ? new Regex(strdup(literal()),regex_delimit) :
+					new Regex(match_regex_portion, regex_delimit, strdup(literal()));
 			if ( ! r->Error() )
 				v = new IValue( r );
 			else

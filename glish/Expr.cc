@@ -935,6 +935,7 @@ BUILD_WITH_COERCE_TYPE(TYPE_DCOMPLEX, dcomplex, CoerceToDcomplexArray)
 // For strings, copy the result so that each string in the array gets
 // copied, too.
 BUILD_WITH_NON_COERCE_TYPE(TYPE_STRING, charptr, StringPtr(), COPY_ARRAY)
+BUILD_WITH_NON_COERCE_TYPE(TYPE_REGEX, regexptr, RegexPtr(), TAKE_OVER_ARRAY)
 BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY)
 
 		case TYPE_AGENT:
@@ -1783,27 +1784,105 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s ) : BinaryExpr(op
 	{
 	}
 
+
+#define APPLYREG_BAIL( string )			\
+	{					\
+	ReadOnlyDone( regval );			\
+	ReadOnlyDone( strval );			\
+	return (IValue*) Fail( string );	\
+	}
+
 IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	{
-	const IValue* left_val = left->ReadOnlyEval();
-	const IValue* right_val = right->ReadOnlyEval();
+	const IValue* strval = left->ReadOnlyEval();
+	const IValue* regval = right->ReadOnlyEval();
 
-	IValue* result;
+	IValue* result = 0;
 
-	if ( right_val->Type() != TYPE_REGEX )
-		result = (IValue*) Fail( "right-hand-side is not a regular expression" );
-	else if ( left_val->Type() != TYPE_STRING )
-		result = (IValue*) Fail( "left-hand-side is not a string" );
-	else
+	if ( regval->Type() != TYPE_REGEX )
 		{
-		regexptr reg = right_val->RegexVal();
-		if ( left_val->Length() == 1 )
-			result = reg->Eval((char*)left_val->StringPtr(0)[0]);
+		if ( strval->Type() != TYPE_REGEX )
+			APPLYREG_BAIL( "no regular expression" )
+		else if ( regval->Type() != TYPE_STRING )
+			APPLYREG_BAIL( "right-hand-side of '~' is not a string" )
 		else
-			result = reg->Eval((char**)left_val->StringPtr(0),left_val->Length());
+			{
+			register const IValue* tmp = regval;
+			regval = strval;
+			strval = tmp;
+			}
+		}
+	else if ( strval->Type() != TYPE_STRING )
+		APPLYREG_BAIL( "left-hand-side of '~' is not a string" )
 
+	int rlen = regval->Length();
+	int slen = strval->Length();
+
+	if ( rlen == 1 )
+		{
+		regexptr reg = regval->RegexVal();
+		if ( slen == 1 )
+			result = reg->Eval((char*)strval->StringPtr(0)[0]);
+		else
+			result = reg->Eval((char**)strval->StringPtr(0),slen);
 		sequencer->RegexExecuted( reg );
 		}
+
+	else if ( rlen > 1 )
+		{
+		regexptr *regs = regval->RegexPtr();
+		Regex::regex_type type = regs[0]->Type();
+		for ( int i = 1; i < rlen; ++i )
+			if ( regs[i]->Type() != type )
+				APPLYREG_BAIL( "application contains both matches and substitutions" )
+
+		charptr *strs = strval->StringPtr(0);
+		if ( type == Regex::MATCH )
+			{
+			if ( slen == 1 )
+				{
+				glish_bool *ret = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+				for ( int i=0; i < rlen; ++i )
+					ret[i] = regs[i]->mEval( (char*) strs[0] );
+				result = new IValue( ret, rlen );
+				}
+			else if ( slen > 1 )
+				{
+				glish_bool *ret = (glish_bool*) alloc_memory( slen * rlen * sizeof(glish_bool) );
+				for ( int row=0; row < slen; ++row )
+					for ( int col=0; col < rlen; ++col )
+						ret[row + col % rlen * slen] = regs[col]->mEval( (char*) strs[row] );
+				result = new IValue( ret, slen * rlen );
+				int *shape = (int*) alloc_memory( 2 * sizeof(int) );
+				shape[0] = slen;
+				shape[1] = rlen;
+				result->AssignAttribute("shape", new IValue(shape,2));
+				}
+			else
+				result = (IValue*) Fail( "zero length string" );
+			}
+		else if ( type == Regex::SUBST && slen > 0 )
+			{
+			charptr *ret = (charptr*) alloc_memory( sizeof(charptr) * slen );
+			for ( int i = 0; i < slen; ++i )
+				{
+				register charptr last = 0;
+				ret[i] = strs[i];
+				for ( int j=0; j < rlen && ret[i]; ++j )
+					{
+					ret[i] = regs[j]->sEval( (char*) ret[i] );
+					if ( last ) free_memory( (char*) last );
+					last = ret[i];
+					}
+				if ( ! ret[i] ) ret[i] = strdup( "" );
+				}
+			result = new IValue( ret, slen );
+			}
+		else
+			APPLYREG_BAIL( "bad type or zero length string" )
+		}
+	else
+		APPLYREG_BAIL( "zero length regular expression" )
 
 	return result;
 	}

@@ -184,6 +184,12 @@ char *regxsubst::apply( const char *str )
 	return strdup(regx_buffer);
 	}
 
+void regxsubst::setStr( char *s )
+	{
+	if ( subst ) free_memory(subst);
+	subst = s;
+	}
+
 regxsubst::~regxsubst( )
 	{
 	if ( startp ) free_memory( startp );
@@ -211,12 +217,51 @@ void Regex::compile( )
 		}
 	}
 
-Regex::Regex( char *match_, char *subst_ ) : subst( subst_ ), reg(0), match(match_), match_end(0),
-						match_val(0), match_res(0), match_len(0), alloc_len(0),
-						error_string(0)
+Regex::Regex( char *match_, char divider_, char *subst_ ) : subst( subst_ ), reg(0), match(match_),
+				match_end(0) ,match_val(0), match_res(0), match_len(0), alloc_len(0),
+				error_string(0), divider(divider_)
 	{
 	if ( match ) compile( );
 	}
+
+Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
+				match_end(0), match_val(0), match_res(0), match_len(0), alloc_len(0),
+				error_string(0), divider( o.divider )
+	{
+	if ( match ) compile( );
+	}
+
+Regex::Regex( const Regex *o )
+	{
+
+	if ( o )
+		{
+		subst.setStr( o->subst.str() );
+		reg = 0;
+		match = o->match ? strdup(o->match) : 0;
+		match_end = 0;
+		match_val = 0;
+		match_res = 0;
+		match_len = 0;
+		alloc_len = 0;
+		error_string = 0;
+		divider = o-> divider;
+		}
+	else
+		{
+		subst = match = match_end = 0;
+		reg = 0;
+		match_val = 0;
+		match_res = 0;
+		match_len = 0;
+		alloc_len = 0;
+		error_string = 0;
+		divider = '!';
+		}
+
+	if ( match ) compile( );
+	}
+
 
 #define ADJUST_MATCH(LENMOD,DUMMY)					\
 if ( match_val )							\
@@ -286,7 +331,7 @@ IValue *Regex::Eval( char *string )
 	if ( subst.str() )
 		{
 		char **outs = (char**) alloc_memory(sizeof(char*));
-		EVAL_ACTION( ret , cnt-1 , cnt , , outs[0] = subst.apply( string );, outs[0] = strdup("");)
+		EVAL_ACTION( ret , cnt-1 , cnt , , outs[0] = subst.apply( string );, outs[0] = strdup(string);)
 		return new IValue( (charptr*) outs, 1 );
 		}
 	else
@@ -316,7 +361,7 @@ IValue *Regex::Eval( char **strs, int len )
 			glish_bool ret = regxexec( reg, strs[i], strs[i]+strlen(strs[i]), strs[i], 1,0,1 ) ? glish_true : glish_false;
 			EVAL_ACTION( ret , i+(cnt-1)%reg->nparens*len , index ,		\
 				     register int index = i+cnt%reg->nparens*len,	\
-				     outs[i] = subst.apply(strs[i]);, outs[i] = strdup(""); )
+				     outs[i] = subst.apply(strs[i]);, outs[i] = strdup(strs[i]); )
 			}
 		return new IValue(  (charptr*) outs, len );
 		}
@@ -331,6 +376,38 @@ IValue *Regex::Eval( char **strs, int len )
 			}
 		return new IValue( r, len );
 		}
+	}
+
+
+char *Regex::sEval( char *string )
+	{
+
+	if ( ! reg || ! match || ! subst.str() )
+		return 0;
+
+	ADJUST_MATCH(,)
+
+	char *ret = 0;
+	match_len = reg->nparens;
+	glish_bool ok = regxexec( reg, string, string+strlen(string), string, 1,0,1 ) ? glish_true : glish_false;
+
+	EVAL_ACTION( ok , cnt-1 , cnt , , ret = subst.apply( string );, ret = strdup(string);)
+	return ret;
+	}
+
+glish_bool Regex::mEval( char *string )
+	{
+
+	if ( ! reg || ! match || subst.str() )
+		return glish_false;
+
+	ADJUST_MATCH(,)
+
+	match_len = reg->nparens;
+	glish_bool ret = regxexec( reg, string, string+strlen(string), string, 1,0,1 ) ? glish_true : glish_false;
+
+	EVAL_ACTION( ret , cnt-1 , cnt , , , )
+	return ret;
 	}
 
 IValue *Regex::GetMatch( )
@@ -359,37 +436,35 @@ IValue *Regex::GetMatch( )
 void Regex::Describe( OStream& s ) const
 	{
 	if ( subst.str() )
-		s << "s!" << match << "!" << subst.str() << "!";
+		s << "s" << divider << match << divider << subst.str() << divider;
 	else
-		s << "m!" << match << "!";
+		s << "m" << divider << match << divider;
 	}
 
 
-char *Regex::Description( ) const
+char *Regex::Description( char *ret ) const
 	{
 	if ( ! match || ! reg ) return strdup( "bad <regex>" );
-
-	char *ret = 0;
 
 	int mlen = match_end - match;
 	if ( subst.str() )
 		{
 		int slen = strlen(subst.str());
-		ret = (char*) alloc_memory( mlen + slen + 5 );
+		if ( ! ret ) ret = (char*) alloc_memory( mlen + slen + 5 );
 		char *ptr = ret;
-		*ptr++ = 's'; *ptr++ = '!';
+		*ptr++ = 's'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
-		ptr += mlen; *ptr++ = '!';
+		ptr += mlen; *ptr++ = divider;
 		memcpy( ptr, subst.str(), slen );
-		*ptr += slen; *ptr++ = '!'; *ptr = '\0';
+		*ptr += slen; *ptr++ = divider; *ptr = '\0';
 		}
 	else
 		{
-		ret = (char*) alloc_memory( mlen + 4 );
+		if ( ! ret ) ret = (char*) alloc_memory( mlen + 4 );
 		char *ptr = ret;
-		*ptr++ = 'm'; *ptr++ = '!';
+		*ptr++ = 'm'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
-		ptr += mlen; *ptr++ = '!'; *ptr = '\0';
+		ptr += mlen; *ptr++ = divider; *ptr = '\0';
 		}
 
 	return ret;

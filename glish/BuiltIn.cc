@@ -844,6 +844,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		REPBUILTIN_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,)
 		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
 		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,strdup)
+		REPBUILTIN_ACTION_A(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 			default:
 				fatal->Report(
@@ -879,6 +880,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_COMPLEX,complex,ComplexVal,,)
 			REPBUILTIN_ACTION_B(TYPE_DCOMPLEX,dcomplex,DcomplexVal,,)
 			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,strdup,free_memory((void*)val);)
+			REPBUILTIN_ACTION_B(TYPE_REGEX,regexptr,RegexVal,new Regex,)
 
 				default:
 					fatal->Report(
@@ -915,6 +917,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	REPBUILTIN_ACTION_C(TYPE_COMPLEX,complex,ComplexPtr,)
 	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
 	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,strdup)
+	REPBUILTIN_ACTION_C(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 				default:
 					fatal->Report(
