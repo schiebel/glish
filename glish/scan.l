@@ -46,7 +46,7 @@ int bump_line_num = 0;
 // created, simply delete it.
 class InputFileInfo {
 public:
-	InputFileInfo();
+	InputFileInfo( FILE*, YY_BUFFER_STATE );
 	~InputFileInfo();
 
 protected:
@@ -56,6 +56,8 @@ protected:
 	int save_first_line;
 	int save_bump_line_num;
 	int save_statement_can_end;
+	FILE *file;
+	YY_BUFFER_STATE newbuf;
 	};
 
 // List of input buffers associated with included files.
@@ -365,10 +367,10 @@ include		BEGIN(INCL); break;
 			else
 				{
 				// Save current file information.
-				file_list.append( new InputFileInfo() );
-				input_file_name = filename;
 				YY_BUFFER_STATE incl_buf =
 					yy_create_buffer( file, YY_BUF_SIZE );
+				file_list.append( new InputFileInfo( file, incl_buf ) );
+				input_file_name = filename;
 				yy_switch_to_buffer( incl_buf );
 				new_file();
 				}
@@ -442,7 +444,7 @@ include		BEGIN(INCL); break;
 %%
 
 
-InputFileInfo::InputFileInfo()
+InputFileInfo::InputFileInfo( FILE *f, YY_BUFFER_STATE s )
 	{
 	buf = YY_CURRENT_BUFFER;
 	filename = input_file_name;
@@ -450,6 +452,8 @@ InputFileInfo::InputFileInfo()
 	save_first_line = first_line;
 	save_bump_line_num = bump_line_num;
 	save_statement_can_end = statement_can_end;
+	file = f;
+	newbuf = s;
 	}
 
 InputFileInfo::~InputFileInfo()
@@ -460,6 +464,8 @@ InputFileInfo::~InputFileInfo()
 	first_line = save_first_line;
 	bump_line_num = save_bump_line_num;
 	statement_can_end = save_statement_can_end;
+	if ( newbuf ) yy_delete_buffer( newbuf );
+	if ( file ) fclose( file );
 	}
 
 
