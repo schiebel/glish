@@ -3,7 +3,6 @@ static char rcsid[]  = "$Id$";
 // longint.cc
 //
 // $Id$
-// $Revision$
 //
 //======================================================================
 #include "longint.h"
