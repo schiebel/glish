@@ -22,7 +22,10 @@ int main( int argc, char** argv )
 		}
 
 	for ( GlishEvent* e; (e = c.NextEvent()); )
-		c.PostEvent( e );
+		if ( e->IsRequest() )
+			c.Reply( e->value );
+		else
+			c.PostEvent( e );
 
 	return 0;
 	}
