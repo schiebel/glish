@@ -824,7 +824,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	// If there was an unhandled fail (and the result isn't
 	// already a fail), replace the result with the fail.
 	//
-	if ( unhandled_fail && result->Type() != TYPE_FAIL )
+	if ( unhandled_fail && ( ! result || result->Type() != TYPE_FAIL ) )
 		{
 		Unref( result );
 		result = unhandled_fail;
