@@ -55,14 +55,16 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include
 
-OBJS = convert.o header.o io.o longint.o types.o alloc.o
-OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o $(D)types.o $(D)alloc.o
+OBJS = convert.o header.o io.o longint.o types.o list.o alloc.o
+OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
+	$(D)types.o $(D)list.o $(D)alloc.o
 
-HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h \
-	$(H)/header.h $(H)/mdep.h $(H)/alloc.h
+HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h $(H)/ref.h \
+	$(H)/header.h $(H)/mdep.h $(H)/list.h $(H)/alloc.h
 
 HDRS_P = $(INCDIR_P)/sos/io.h $(INCDIR_P)/sos/sos.h $(INCDIR_P)/sos/types.h \
-	$(INCDIR_P)/sos/header.h $(INCDIR_P)/sos/mdep.h $(INCDIR_P)/sos/alloc.h
+	$(INCDIR_P)/sos/header.h $(INCDIR_P)/sos/mdep.h $(INCDIR_P)/sos/ref.h \
+	$(INCDIR_P)/sos/list.h $(INCDIR_P)/sos/alloc.h
 
 TAR_FILE = sos.tar
 
@@ -133,7 +135,10 @@ $(D)longint.o: $(SRC)/longint.cc $(SRC)/longint.h $(H)/sos.h
 $(D)types.o: $(SRC)/types.cc $(H)/types.h $(H)/mdep.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/types.cc $(T)
 
-$(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h
+$(D)list.o: $(SRC)/list.cc $(H)/list.h $(H)/alloc.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/list.cc $(T)
+
+$(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h $(H)/sos.h
 	$(CC) $(INCLUDE) $(CFLAGS) -c $(SRC)/alloc.c $(T)
 
 ##
@@ -158,6 +163,14 @@ $(INCDIR_P)/sos/header.h: $(H)/header.h
 $(INCDIR_P)/sos/mdep.h: $(H)/mdep.h
 	rm -f $@ 
 	cp $(H)/mdep.h $@
+
+$(INCDIR_P)/sos/list.h: $(H)/list.h
+	rm -f $@ 
+	cp $(H)/list.h $@
+
+$(INCDIR_P)/sos/ref.h: $(H)/ref.h
+	rm -f $@ 
+	cp $(H)/ref.h $@
 
 $(INCDIR_P)/sos/alloc.h: $(H)/alloc.h
 	rm -f $@ 

@@ -4,6 +4,7 @@
 #ifndef object_h
 #define object_h
 #include "Glish/Str.h"
+#include "sos/ref.h"
 
 // GlishObject is the root of the class hierarchy.  GlishObjects know how to
 // describe themselves.
@@ -20,20 +21,7 @@ extern RMessage EndMessage;
 extern Str glish_errno;
 
 typedef const char* charptr;
-
-class GlishRef {
-    public:
-	GlishRef() : ref_count(1) 	{ }
-	virtual ~GlishRef()		{ }
-
-	// Return the ref count so other classes can do intelligent copying.
-	int RefCount() const	{ return ref_count; }
-    protected:
-	friend inline void Ref( GlishRef* object );
-	friend inline void Unref( GlishRef* object );
-
-	int ref_count;
-};
+typedef SosRef GlishRef;
 
 class GlishObject : public GlishRef {
     public:
@@ -101,17 +89,5 @@ class GlishObject : public GlishRef {
 	int line;
 	Str *file;
 	};
-
-
-inline void Ref( GlishRef* object )
-	{
-	++object->ref_count;
-	}
-
-inline void Unref( GlishRef* object )
-	{
-	if ( object && --object->ref_count == 0 )
-		delete object;
-	}
 
 #endif	/* object_h */

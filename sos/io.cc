@@ -26,6 +26,7 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #if defined(HAVE_WRITEV) && defined(WRITEV_NOT_DECLARED)
 extern "C" int writev(int, const struct iovec *, int);
@@ -39,52 +40,155 @@ extern "C" int writev(int, const struct iovec *, int);
 #define MAXIOV 16
 #endif
 
+sos_status *sos_err_status = (sos_status*) -1;
+
+
+struct sos_fd_buf_kernel {
+
+	sos_fd_buf_kernel( );
+	void reset( );
+	~sos_fd_buf_kernel( );
+	char *tmp( unsigned int len ) { return len <= tmp_size && tmp_cur < tmp_cnt ? new_tmp( ) : 0; }
+
+	// iovec struct
+	struct iovec *iov;
+	// number of iovec struct
+	unsigned int cnt;
+	// status of buffer of each iovec struct
+	sos_sink::buffer_type *status;
+	// the total length of all buffers
+	unsigned int total;
+
+	// temporary buffers
+	char **tmp_bufs;
+	unsigned int tmp_cur;
+
+	// constants
+	static unsigned int tmp_cnt;
+	static unsigned int tmp_size;
+	static unsigned int size;
+
+    private:
+	char *new_tmp( );
+};
+
 //
 //  These may need to be tuned for each application that uses
 //  this library. With glish, the only writes which are tagged
 //  as "COPY" are the writing of record headers (i.e. 
 //  SOS_HEADER_SIZE bytes).
 //
-unsigned int sos_fd_sink::tmp_buf_count = 16;
-unsigned int sos_fd_sink::tmp_buf_size = 64;
+unsigned int sos_fd_buf_kernel::tmp_cnt = 16;
+unsigned int sos_fd_buf_kernel::tmp_size = 64;
+unsigned int sos_fd_buf_kernel::size = MAXIOV;
+
+sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), tmp_cur(0), total(0)
+	{
+	iov = (struct iovec*) sos_alloc_memory( size * sizeof( struct iovec ) );
+	status = (sos_sink::buffer_type*) sos_alloc_memory( size * sizeof( sos_sink::buffer_type ) );
+	tmp_bufs = (char**) sos_alloc_zero_memory( tmp_cnt * sizeof(void*) );
+	}
+
+sos_fd_buf_kernel::~sos_fd_buf_kernel()
+	{
+	reset( );
+	for ( int x = 0; tmp_bufs[x]; x++ )
+		sos_free_memory( tmp_bufs[x] );
+	}
+
+char *sos_fd_buf_kernel::new_tmp( )
+	{
+	if ( ! tmp_bufs[tmp_cur] )
+		tmp_bufs[tmp_cur] = (char *) sos_alloc_memory( tmp_size );
+	return tmp_bufs[tmp_cur++];
+	}
+
+void sos_fd_buf_kernel::reset( )
+	{
+	for ( int x = 0; x < cnt; x++ )
+		if ( status[x] == sos_sink::FREE )
+			sos_free_memory( iov[x].iov_base );
+	cnt = 0;
+	tmp_cur = 0;
+	total = 0;
+	}
+
+sos_fd_buf::sos_fd_buf( )
+	{
+	buf.append( new sos_fd_buf_kernel );
+	}
+
+unsigned int sos_fd_buf::total( )
+	{
+	return first( )->total;
+	}
+
+sos_fd_buf_kernel *sos_fd_buf::next( )
+	{
+	if ( buf.length() > 1 )
+		{
+		delete buf.remove_nth( 0 );  // later reuse these
+		return first( );
+		}
+
+	first()->reset( );
+	return 0;
+	}
+		  
+sos_fd_buf_kernel *sos_fd_buf::add( )
+	{
+	buf.append( new sos_fd_buf_kernel ); // later reuse these
+	return last( );
+	}
 
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-sos_fd_sink::sos_fd_sink( int fd_ ) : fd(fd_)
-	{
-	iov = (void*) sos_alloc_memory( MAXIOV * sizeof( struct iovec ) );
-	status = (buffer_type*) sos_alloc_memory( MAXIOV * sizeof( buffer_type ) );
-	iov_cnt = 0;
+int sos_fd_sink::nonblock_all_ = 0;
 
-	tmp_bufs = (void**) sos_alloc_zero_memory( tmp_buf_count * sizeof(void*) );
-	tmp_buf_cur = 0;
+void sos_fd_sink::nonblock_all()
+	{
+	nonblock_all_ = 1;
 	}
 
-sos_status *sos_fd_sink::write( const char *buf, unsigned int len, buffer_type type )
+sos_fd_sink::sos_fd_sink( int fd__ ) : fd_(fd__), start(0), buf_holder(0), sent(0)
 	{
-	struct iovec *iov_ = (struct iovec*) iov;
-	if ( fd < 0 ) return 0;
+	if ( nonblock_all_ == 1  && fd_ >= 0 ) nonblock();
+	}
+
+void sos_fd_sink::setFd( int fd__ )
+	{
+	fd_ = fd__;
+	if ( nonblock_all_ == 1  && fd_ >= 0 ) nonblock();
+	}
+
+sos_status *sos_fd_sink::write( const char *cbuf, unsigned int len, buffer_type type )
+	{
+	if ( fd_ < 0 ) return 0;
+
+	sos_fd_buf_kernel &K = *buf.last();
+
 	switch ( type )
 		{
 		case COPY:
-			if ( len <= tmp_buf_size && tmp_buf_cur < tmp_buf_count )
+			{
+			if ( char *t = K.tmp( len ) )
 				{
-				if ( ! tmp_bufs[tmp_buf_cur] )
-					tmp_bufs[tmp_buf_cur] = sos_alloc_memory( tmp_buf_size );
-				memcpy( tmp_bufs[tmp_buf_cur], buf, len );
+				memcpy( t, cbuf, len );
 				type = HOLD;
-				buf = (const char *) tmp_bufs[tmp_buf_cur++];
+				cbuf = (const char *) t;
 				}
+			}
 		case HOLD:
 		case FREE:
-			iov_[iov_cnt].iov_base = (char*) buf;
-			iov_[iov_cnt].iov_len = len;
-			status[iov_cnt++] = type;
+			K.iov[K.cnt].iov_base = (char*) cbuf;
+			K.iov[K.cnt].iov_len = len;
+			K.status[K.cnt++] = type;
 			break;
 		}
 
-	if ( iov_cnt >= MAXIOV || type == COPY )
+	K.total += len;
+	if ( K.cnt >= K.size || type == COPY )
 		return flush( );
 
 	return 0;
@@ -92,33 +196,121 @@ sos_status *sos_fd_sink::write( const char *buf, unsigned int len, buffer_type t
 
 sos_status *sos_fd_sink::flush( )
 	{
-	if ( iov_cnt == 0 ) return 0;
-	struct iovec *iov_ = (struct iovec*) iov;
-	unsigned int ret = writev( fd, iov_, iov_cnt );
-
-	for ( int x = 0; x < iov_cnt; x++ )
-		if ( status[x] == FREE )
-			sos_free_memory( iov_[x].iov_base );
-
-	iov_cnt = tmp_buf_cur = 0;
+	sos_status *stat = real_flush( );
+	while ( stat ) stat = stat->resume( );
 	return 0;
 	}
+
+void sos_fd_sink::reset( )
+	{
+	sos_fd_buf_kernel *K = buf.first();
+
+	if ( K->cnt == 0 ) return;
+
+	struct iovec *iov = K->iov;
+
+	if ( buf_holder )
+		{
+		iov[start].iov_base = (char*) buf_holder;
+		buf_holder = 0;
+		}
+
+	start = sent = 0;
+	while ( K = buf.next() );
+	}
+
+sos_status *sos_fd_sink::real_flush( )
+	{
+	sos_fd_buf_kernel *K = buf.first();
+
+	if ( K->cnt == 0 ) return 0;
+
+	int done = 0;
+	while ( K )
+		{
+		struct iovec *iov = K->iov;
+		unsigned int needed = K->total - sent;
+		unsigned int buckets = K->cnt - start;
+		int cur = 0;
+
+		if ( (cur = writev( fd_, &iov[start], buckets )) < needed  || cur < 0 )
+			{
+			if ( cur < 0 )
+				{
+				// resource temporarily unavailable
+				if ( errno == EAGAIN ) return this;
+				perror( "sos_fd_sink::flush( )" );
+				// broken pipe
+				if ( errno == EPIPE ) { reset(); return 0; }
+				exit(1);
+				}
+
+			int old_start = start;
+
+			unsigned int cnt;
+			for ( cnt = iov[start].iov_len; cnt < cur; cnt += iov[++start].iov_len );
+
+			if ( buf_holder && old_start != start )
+				{
+				iov[old_start].iov_base = (char*) buf_holder;
+				buf_holder = 0;
+				}
+
+			if ( cnt > cur )
+				{
+				if ( ! buf_holder ) buf_holder = iov[start].iov_base;
+				iov[start].iov_base = iov[start].iov_base + iov[start].iov_len - (cnt - cur);
+				iov[start].iov_len = cnt - cur;
+				}
+
+			sent += cur;
+			return this;
+			}
+
+		if ( buf_holder )
+			{
+			iov[start].iov_base = (char*) buf_holder;
+			buf_holder = 0;
+			}
+
+		start = sent = 0;
+		K = buf.next( );
+		}
+
+	return 0;
+	}
+
+#define DEFINE_FDBLOCK(NAME,OP)						\
+void sos_fd_sink::NAME( )						\
+	{								\
+	if ( fd_ < 0 ) return;						\
+									\
+	int val = -1;							\
+	if ( (val = fcntl(fd_, F_GETFL, 0)) < 0 )			\
+		perror("sos_fd_sink::block() F_GETFL");			\
+	else								\
+		if ( fcntl(fd_, F_SETFL, val OP O_NONBLOCK) < 0 )	\
+			perror("sos_fd_sink::block() F_SETFL");		\
+	}
+
+DEFINE_FDBLOCK(block,& ~)
+DEFINE_FDBLOCK(nonblock, |)
 
 sos_fd_sink::~sos_fd_sink()
 	{
 	flush( );
-	if ( fd >= 0 ) close(fd);
+	if ( fd_ >= 0 ) close(fd_);
 	}
 
 unsigned int sos_fd_source::read( char *buf, unsigned int len )
 	{
-	if ( fd < 0 || len == 0 ) return 0;
+	if ( fd_ < 0 || len == 0 ) return 0;
 
 	unsigned int needed = len;
 	unsigned int total = 0;
 
 	register unsigned int cur = 0;
-	while ( needed && (cur = ::read( fd, buf, needed )) > 0 )
+	while ( needed && (cur = ::read( fd_, buf, needed )) > 0 )
 		{
 		total += cur;
 		buf += cur;
@@ -133,10 +325,10 @@ unsigned int sos_fd_source::read( char *buf, unsigned int len )
 
 sos_fd_source::~sos_fd_source()
 	{
-	if ( fd >= 0 ) close(fd);
+	if ( fd_ >= 0 ) close(fd_);
 	}
 
-sos_out::sos_out( sos_sink &out_, int integral_header ) : out(out_)
+sos_out::sos_out( sos_sink *out_, int integral_header ) : out(out_)
 	{
 	if ( integral_header )
 		not_integral = 0;
@@ -152,20 +344,23 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
 #define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )			\
 	{								\
+	if ( ! out )							\
+		return error( NO_SINK );				\
+									\
 	if ( not_integral )						\
 		{							\
 		head.set(l,SOSTYPE);					\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
 		head.stamp();						\
-		out.write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
-		return out.write( a, l * sos_size(SOSTYPE), type ); 	\
+		out->write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
+		return out->write( a, l * sos_size(SOSTYPE), type ); 	\
 		}							\
 	else								\
 		{							\
 		head.set(a,l PARAM);					\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
 		head.stamp();						\
-		return out.write( head.iBuffer(), l * sos_size(SOSTYPE) + \
+		return out->write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   SOS_HEADER_SIZE, type );			\
 		}							\
 	}
@@ -200,6 +395,9 @@ PUTCHAR(unsigned char)
 
 #define PUTCHARPTR_BODY(SOURCE)						\
 	{								\
+	if ( ! out )							\
+		return error( NO_SINK );				\
+									\
 	unsigned int total = (len+1) * 4;				\
 	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE ); \
 	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
@@ -222,15 +420,15 @@ PUTCHAR(unsigned char)
 									\
 	for ( unsigned int j = 0; j < len; j++ )			\
 		{							\
-		register char *out = (char*) s[j];			\
-		if ( out )						\
+		register char *o = (char*) s[j];			\
+		if ( o )						\
 			{						\
-			memcpy( cptr, out, *lptr );			\
+			memcpy( cptr, o, *lptr );			\
 			cptr += *lptr++;				\
 			}						\
 		}							\
 									\
-	sos_status *ret = out.write( buf, total + SOS_HEADER_SIZE,	\
+	sos_status *ret = out->write( buf, total + SOS_HEADER_SIZE,	\
 				     sos_sink::FREE );			\
 									\
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
@@ -247,6 +445,9 @@ PUTCHAR(unsigned char)
 
 #define PUTSTR_BODY(SOURCE)						\
 	{								\
+	if ( ! out )							\
+		return error( NO_SINK );				\
+									\
 	unsigned int len = s.length();					\
 	unsigned int total = (len+1) * 4;				\
 									\
@@ -265,11 +466,11 @@ PUTCHAR(unsigned char)
 									\
 	for ( unsigned int j = 0; j < len; j++ )			\
 		{							\
-		register char *out = (char*) s.get(j);			\
-		if ( out )						\
+		register char *o = (char*) s.get(j);			\
+		if ( o )						\
 			{						\
 			register unsigned int slen = s.strlen(j);	\
-			memcpy( cptr, out, slen );			\
+			memcpy( cptr, o, slen );			\
 			*lptr++ = slen;					\
 			cptr += slen;					\
 			}						\
@@ -277,7 +478,7 @@ PUTCHAR(unsigned char)
 			*lptr++ = 0;					\
 		}							\
 									\
-	sos_status *ret = out.write( buf, total + SOS_HEADER_SIZE,	\
+	sos_status *ret = out->write( buf, total + SOS_HEADER_SIZE,	\
 				     sos_sink::FREE );			\
 									\
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
@@ -300,6 +501,9 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 
 #define PUTREC_BODY( SOURCE )						\
 	{								\
+	if ( ! out )							\
+		return error( NO_SINK );				\
+									\
 	static char buf[SOS_HEADER_SIZE];				\
 									\
 	if ( not_integral )						\
@@ -310,7 +514,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
 	head.stamp();							\
 									\
-	return out.write( head.iBuffer(), SOS_HEADER_SIZE,		\
+	return out->write( head.iBuffer(), SOS_HEADER_SIZE,		\
 			  sos_sink::COPY );				\
 	}
 
@@ -340,15 +544,18 @@ sos_status *sos_out::put_record_start( unsigned int l, sos_header &h )
 
 sos_out::~sos_out() { if ( not_integral ) sos_free_memory(not_integral); }
 
-sos_in::sos_in( sos_source &in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
+sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
 			head((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), not_integral(integral_header ? 0 : 1)
 	{
 	}
 
 void *sos_in::get( unsigned int &len, sos_code &type )
 	{
+	if ( ! in )
+		return error( NO_SOURCE );
+
 	type = SOS_UNKNOWN;
-	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
+	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
 		return 0;
 
 	type = head.type();
@@ -367,8 +574,11 @@ void *sos_in::get( unsigned int &len, sos_code &type )
 
 void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 	{
+	if ( ! in )
+		return error( NO_SOURCE );
+
 	type = SOS_UNKNOWN;
-	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
+	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
 		return 0;
 
 	type = head.type();
@@ -425,7 +635,7 @@ void *sos_in::get_numeric( sos_code &type, unsigned int &len, sos_header &head )
 		result  = result_ + SOS_HEADER_SIZE;
 		}
 
-	in.read( result, len * head.typeLen());
+	in->read( result, len * head.typeLen());
 	if ( ! (head.magic() & SOS_MAGIC) )
 		switch( type ) {
 		    case SOS_SHORT:
@@ -461,7 +671,7 @@ void *sos_in::get_string( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) sos_alloc_memory(len);
-	in.read( buf, len );
+	in->read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
 	len = *lptr++;
@@ -496,7 +706,7 @@ void *sos_in::get_chars( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) sos_alloc_memory(len);
-	in.read( buf, len );
+	in->read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
 	len = *lptr++;
@@ -522,3 +732,9 @@ void *sos_in::get_chars( unsigned int &len, sos_header &head )
 	}
 
 sos_in::~sos_in() { }
+
+sos_status *sos_in::error( error_mode )
+	{ return sos_err_status; }
+
+sos_status *sos_out::error( error_mode )
+	{ return sos_err_status; }

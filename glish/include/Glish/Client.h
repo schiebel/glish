@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "Glish/Value.h"
+#include "sos/io.h"
 
 extern "C" {
 #ifndef HAVE_STRDUP
@@ -67,52 +68,31 @@ typedef enum event_src_type { INTERP, I_LINK, STDIO, GLISHD } event_src_type;
 
 class EventSource : public GlishObject {
     public:
-	EventSource( int arg_read_fd, int arg_write_fd,
-	    event_src_type arg_type = INTERP ) : context( )
-		{
-		read_fd = arg_read_fd;
-		write_fd = arg_write_fd;
-		type = arg_type;
-		}
+	EventSource( int read_fd, int write_fd, event_src_type type_ = INTERP ) :
+		context( ), source( read_fd ), sink( write_fd ), type(type_) { }
 
-	EventSource( int arg_read_fd, int arg_write_fd,
-	    event_src_type arg_type,
-	    const EventContext &arg_context ) : context(arg_context)
-		{
-		read_fd = arg_read_fd;
-		write_fd = arg_write_fd;
-		type = arg_type;
-		}
+	EventSource( int read_fd, int write_fd, event_src_type type_,
+		const EventContext &context_ ) : context(context_), source( read_fd ),
+		sink( write_fd ), type(type_) { }
 
-	EventSource( int arg_fd, event_src_type arg_type = INTERP ) : 
-	    context( )
-		{
-		read_fd = write_fd = arg_fd;
-		type = arg_type;
-		}
+	EventSource( int fd, event_src_type type_ = INTERP ) : 
+	    context( ), source( fd ), sink( fd ), type(type_) { }
 
-	EventSource( int arg_fd, event_src_type arg_type,
-	    const EventContext &arg_context ) : context( arg_context )
-		{
-		read_fd = write_fd = arg_fd;
-		type = arg_type;
-		}
+	EventSource( int fd, event_src_type type_, const EventContext &context_ ) :
+			context( context_ ), source( fd ), sink( fd ), type(type_) { }
 
 	// destructor closes the fds
-	~EventSource()
-		{
-		close ( read_fd );
-		close ( write_fd );
-		}
+	~EventSource() { }
 
-	int Read_FD() { return read_fd; }
-	int Write_FD() { return write_fd; }
+	sos_fd_sink &Sink()	{ return sink; }
+	sos_fd_source &Source()	{ return source; }
+
 	const EventContext &Context() const { return context; }
 	event_src_type Type() { return type; }
 
     protected:
-	int read_fd;
-	int write_fd;
+	sos_fd_source source;
+	sos_fd_sink sink;
 	EventContext context;
 	event_src_type type;
 	};
@@ -379,38 +359,20 @@ Value *read_value( sos_in & );
 void write_value( sos_out &, const Value * );
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-extern GlishEvent* recv_event( int fd );
+extern GlishEvent* recv_event( sos_source &in );
 
-extern void send_event( int fd, const char* event_name,
-			const GlishEvent* e, int sds = -1 );
+extern void send_event( sos_sink &out, const char* event_name,
+			const GlishEvent* e );
 
-inline void send_event( int fd, const GlishEvent* e, int sds = -1 )
+inline void send_event( sos_sink &out, const GlishEvent* e )
 	{
-	send_event( fd, e->name, e, sds );
+	send_event( out, e->name, e );
 	}
 
-inline void send_event( int fd, const char* name, const Value* value )
-	{
-	GlishEvent e( name, value );
-	send_event( fd, &e );
-	}
-
-extern void send_shm_event( int write_fd, const char* event_name,
-			const GlishEvent* e, int sds = -1 );
-
-inline void send_shm_event( int write_fd, const GlishEvent* e, int sds = -1 )
-	{
-	send_shm_event( write_fd, e->name, e, sds );
-	}
-
-inline void send_shm_event( int write_fd, const char* name, const Value* value )
+inline void send_event( sos_sink &out, const char* name, const Value* value )
 	{
 	GlishEvent e( name, value );
-	send_shm_event( write_fd, &e );
+	send_event( out, name, &e );
 	}
-
-extern GlishEvent* recv_shm_event( int shmid );
-
-extern void clear_shared_memory();
 
 #endif	/* client_h */

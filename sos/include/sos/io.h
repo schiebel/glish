@@ -7,6 +7,7 @@
 #ifndef sos_io_h_
 #define sos_io_h_
 #include "sos/header.h"
+#include "sos/list.h"
 
 #if defined(ENABLE_STR)
 #include "sos/str.h"
@@ -19,21 +20,20 @@ typedef const char* charptr;
 
 class sos_status {
     public:
-	enum Type { WRITE, READ };
+	enum Type { WRITE, READ, UNKNOWN };
 
-	Type type() { return type_; }
-	int fd() { return fd_; }
+	virtual Type type() { return UNKNOWN; }
+	virtual int fd() { return -1; }
 
-	unsigned int total() { return total_; }
-	unsigned int remaining() { return total_ - sent_; }
-    private:
-	int fd_;
-	Type type_;
-	unsigned int total_;
-	unsigned int sent_;
+	virtual unsigned int total() { return 0; }
+	virtual unsigned int remaining() { return 0; }
+
+	virtual sos_status *resume( ) { return 0; }
 };
 
-class sos_sink {
+extern sos_status *sos_err_status;
+
+class sos_sink : public sos_status {
     public:
 	enum buffer_type { FREE, HOLD, COPY };
 	virtual sos_status *write( const char *, unsigned int, buffer_type type = HOLD ) = 0;
@@ -41,14 +41,42 @@ class sos_sink {
 			{ return write( (const char *) buf, len, type ); }
 	virtual sos_status *flush( ) = 0;
 	virtual ~sos_sink();
+	Type type() { return WRITE; }
 };
 
-class sos_source {
+class sos_source : public sos_status {
     public:
 	virtual unsigned int read( char *, unsigned int ) = 0;
 	unsigned int read( unsigned char *buf, unsigned int len )
 		{ return read((char*)buf, len); }
 	virtual ~sos_source();
+	Type type() { return READ; }
+};
+
+struct sos_fd_buf_kernel;
+declare(PList,sos_fd_buf_kernel);
+typedef PList(sos_fd_buf_kernel) sos_buf_list;
+
+class sos_fd_buf {
+    public:
+	sos_fd_buf();
+
+	// used in the "flush" phase
+	sos_fd_buf_kernel *first( ) { return buf[0]; }
+	sos_fd_buf_kernel *next( );
+
+	// total number of bytes in the "first()" buffer
+	unsigned int total();
+
+	// used in the "write" phase
+	sos_fd_buf_kernel *last( ) { return buf[buf.length()-1]; }
+
+	// used to add a new buffer, once all of the
+	// buckets are filled in the "last()" one
+	sos_fd_buf_kernel *add( );
+
+    private:
+	sos_buf_list buf;
 };
 
 class sos_fd_sink : public sos_sink {
@@ -56,41 +84,62 @@ class sos_fd_sink : public sos_sink {
 	sos_fd_sink( int fd_ = -1 );
 	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
 	sos_status *flush( );
+	sos_status *resume( ) { return real_flush(); }
 
-	void setFd( int fd_ ) { fd = fd_; }
+	//
+	// set fd state for blocking or nonblocking writes
+	//
+	void block( );
+	void nonblock( );
+
+	//
+	// automatically set all fds to nonblocking at
+	// construction/set time
+	//
+	static void nonblock_all();
 
 	~sos_fd_sink();
 
+	void setFd( int fd__ );
+	int fd() { return fd_; }
+
+	unsigned int total() { return buf.total(); }
+	unsigned int remaining() { return buf.total() - sent; }
+
     private:
-	void *iov;
-	unsigned int iov_cnt;
-	buffer_type *status;
+	sos_status *real_flush( );
+	void reset();
+	// how much have we already sent
+	unsigned int sent;
+	// where to start writing
+	unsigned int start;
+	// hold buffer from iovec struct
+	void *buf_holder;
 
-	void **tmp_bufs;
-	unsigned int tmp_buf_cur;
+	static int nonblock_all_;
 
-	static unsigned int tmp_buf_count;
-	static unsigned int tmp_buf_size;
+	sos_fd_buf buf;
 
-	int fd;
+	int fd_;
 };
 
 class sos_fd_source : public sos_source {
     public:
-	sos_fd_source( int fd_ = -1 ) : fd(fd_) { }
+	sos_fd_source( int fd__ = -1 ) : fd_(fd__) { }
 	unsigned int read( char *, unsigned int );
-
-	void setFd( int fd_ ) { fd = fd_; }
 
 	~sos_fd_source();
 
+	void setFd( int fd__ ) { fd_ = fd__; }
+	int fd() { return fd_; }
     private:
-	int fd;
+	int fd_;
 };
 
 class sos_out {
 public:
-	sos_out( sos_sink &out_, int integral_header = 0 );
+	sos_out( sos_sink *out_ = 0, int integral_header = 0 );
+	void set( sos_sink *out_ ) { out = out_; }
 
 	sos_status *put( byte *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
 	sos_status *put( byte *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
@@ -123,37 +172,42 @@ public:
 	sos_status *put_record_start( unsigned int l, sos_header &h );
 
 	sos_status *write( const char *buf, unsigned int len, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ return out.write( buf, len, type ); }
+		{ return out ? out->write( buf, len, type ) : error( NO_SINK ); }
 
-	sos_status *flush( ) { return out.flush( ); }
+	sos_status *flush( ) { return out ? out->flush( ) : error( NO_SINK ); }
 
 	~sos_out( );
 
 private:
+	enum error_mode { NO_SINK };
+	sos_status *error( error_mode );
 	char *not_integral;
 	sos_header head;
-	sos_sink &out;
+	sos_sink *out;
 };
 
 class sos_in {
 public:
-	sos_in( sos_source &in_, int use_str_ = 0, int integral_header = 0 );
+	sos_in( sos_source *in_ = 0, int use_str_ = 0, int integral_header = 0 );
+	void set( sos_source *in_ ) { in = in_; }
 
 	void *get( unsigned int &length, sos_code &type );
 	void *get( unsigned int &length, sos_code &type, sos_header &h );
 
-	void read( char *buf, unsigned int len ) { in.read( buf, len ); }
+	void read( char *buf, unsigned int len ) { if ( in ) in->read( buf, len ); }
 
 	~sos_in( );
 
 private:
+	enum error_mode { NO_SOURCE };
+	sos_status *error( error_mode );
 	void *get_numeric( sos_code &, unsigned int &, sos_header & );
 	void *get_string( unsigned int &, sos_header & );
 	void *get_chars( unsigned int &, sos_header & );
 	sos_header head;
 	int use_str;
 	int not_integral;
-	sos_source &in;
+	sos_source *in;
 };
 
 #endif
