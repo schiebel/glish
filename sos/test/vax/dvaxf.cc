@@ -66,8 +66,7 @@ main(int argc, char **argv) {
 			swap_abcd_dcba((char*)&d,2);
 #endif
 #if defined(__alpha__)
-			swap_abcd_dcba((char*)&d,2);
-			swap_abcdefgh_hgfedcba((char*)&d,1);
+			swap_abcdefgh_efghabcd((char*)&d,1);
 #endif
 			dumpdouble(d,1);
 			xd = d;

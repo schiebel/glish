@@ -6,6 +6,7 @@
 //======================================================================
 #ifndef sos_mdep_h
 #define sos_mdep_h
+#include "sos/sos.h"
 
 //======================= PADDING BYTE INFORMATION =======================
 /*

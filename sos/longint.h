@@ -6,7 +6,12 @@
 //======================================================================
 #ifndef sos_longint_h
 #define sos_longint_h
-#include <iostream.h>
+class ostream;
+
+//
+// Indicates if this machine is big endian
+//
+extern int sos_big_endian;
 
 //
 // used to initialize the endian-ness of long_int
@@ -65,8 +70,7 @@ inline long_int operator<<( const long_int &left, unsigned int right )
 inline long_int operator>>( const long_int &left, unsigned int right )
 	{ return long_int(left[1] >> right, (left[1] << (32 - right)) | (left[0] >> right)); }
 
-inline ostream &operator<<(ostream &ios, const long_int &li)
-	{ ios.form("0x%08x%08x",li[1],li[0]); return ios; }
+ostream &operator<<(ostream &, const long_int &);
 
 static class long_int_init {
     public:

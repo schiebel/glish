@@ -1,10 +1,11 @@
-static char rcsid[]  = "$Id$";
 //======================================================================
 // header.cc
 //
 // $Id$
 //
 //======================================================================
+#include "sos/sos.h"
+RCSID("@(#) $Id$")
 #include <sys/time.h>
 #include <stdlib.h>
 #include "sos/header.h"
@@ -16,6 +17,14 @@ static char rcsid[]  = "$Id$";
 
 unsigned char sos_header::current_version = SOS_VERSION;
 unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
+
+void sos_header::useti( unsigned int i )
+	{
+	buf[20] = i & 0xff; i >>= 8;
+	buf[21] = i & 0xff; i >>= 8;
+	buf[22] = i & 0xff; i >>= 8;
+	buf[23] = i & 0xff; i >>= 8;
+	}
 
 void sos_header::stamp()
 	{

@@ -1,10 +1,11 @@
-static char rcsid[]  = "$Id$";
 //======================================================================
 // io.cc
 //
 // $Id$
 //
 //======================================================================
+#include "sos/sos.h"
+RCSID("@(#) $Id$")
 #include "sos/io.h"
 #include "sos/types.h"
 #include "convert.h"
@@ -48,12 +49,17 @@ PUTACTION_B(unsigned char)
 #define RIGHT_FLOAT     ieee2vax_single
 #define RIGHT_DOUBLE    ieee2vax_double
 #define DOUBLE_OP	'G'
+#define FOREIGN_SWAP_A	case SOS_IDOUBLE:
+#define FOREIGN_SWAP_B
 #else 
 #define FOREIGN_FLOAT   SOS_VFLOAT
 #define FOREIGN_DOUBLE  SOS_DVDOUBLE: case SOS_GVDOUBLE
 #define RIGHT_FLOAT     vax2ieee_single
 #define RIGHT_DOUBLE    vax2ieee_double
 #define DOUBLE_OP	type == SOS_DVDOUBLE ? 'D' : 'G'
+#define FOREIGN_SWAP_A
+#define FOREIGN_SWAP_B	if ( sos_big_endian ) swap_abcd_dcba(result,len*2); \
+			else swap_abcdefgh_efghabcd(result,len);
 #endif
 
 sos_sink::~sos_sink() { if ( FD >= 0 ) close(FD); }
@@ -79,12 +85,9 @@ void *sos_source::get( sos_code &type, unsigned int &len )
 		    case FOREIGN_FLOAT:
 		    	swap_abcd_dcba(result,len);
 			break;
+		    FOREIGN_SWAP_A
 		    case SOS_DOUBLE:
 		    	swap_abcdefgh_hgfedcba(result,len);
-			break;
-		    case FOREIGN_DOUBLE:
-			swap_abcd_dcba(result,len*2);   /***!!! verified for VAX=>(sun)IEEE         !!!***/
-			                                /***!!! doesn't yet work for VAX=>(dec)IEEE !!!***/
 			break;
 		}
 
@@ -94,6 +97,7 @@ void *sos_source::get( sos_code &type, unsigned int &len )
 		type = SOS_FLOAT;
 		break;
 	    case FOREIGN_DOUBLE:
+		FOREIGN_SWAP_B
 		RIGHT_DOUBLE((double*)result,len,DOUBLE_OP);
 		type = SOS_DOUBLE;
 		break;

@@ -162,12 +162,13 @@ class vax_double {
 	long_int buf;
 };
 
-extern void vax2ieee_single(float *, unsigned int);
-extern void ieee2vax_single(float *, unsigned int);
-extern void vax2ieee_double(double *, unsigned int, char op = 'D');
-extern void ieee2vax_double(double *, unsigned int, char op = 'D');
-extern void swap_ab_ba(char *, unsigned int);
-extern void swap_abcd_dcba(char *, unsigned int);
-extern void swap_abcdefgh_hgfedcba(char *, unsigned int);
+extern float *vax2ieee_single(float *, unsigned int);
+extern float *ieee2vax_single(float *, unsigned int);
+extern double *vax2ieee_double(double *, unsigned int, char op = 'D');
+extern double *ieee2vax_double(double *, unsigned int, char op = 'D');
+extern char *swap_ab_ba(char *, unsigned int);
+extern char *swap_abcd_dcba(char *, unsigned int);
+extern char *swap_abcdefgh_hgfedcba(char *, unsigned int);
+extern char *swap_abcdefgh_efghabcd(char *, unsigned int);
 
-#endif;
+#endif

@@ -1,10 +1,11 @@
-static char rcsid[]  = "$Id$";
 //======================================================================
 // convert.cc
 //
 // $Id$
 //
 //======================================================================
+#include "sos/sos.h"
+RCSID("@(#) $Id$")
 #include "convert.h"
 
 struct swap_ab_struct {
@@ -30,7 +31,7 @@ struct swap_abcdefgh_struct {
 	char  eight;
 };
 
-void swap_ab_ba(char *buffer, unsigned int len)
+char *swap_ab_ba(char *buffer, unsigned int len)
 	{
 	register struct swap_ab_struct *ptr = (swap_ab_struct *) buffer;
 	for (register unsigned int i = 0; i < len; i++, ptr++)
@@ -39,9 +40,10 @@ void swap_ab_ba(char *buffer, unsigned int len)
 		ptr->one = ptr->two;
 		ptr->two = tmp;
 		}
+	return buffer;
 	}
 
-void swap_abcd_dcba(char *buffer, unsigned int len)
+char *swap_abcd_dcba(char *buffer, unsigned int len)
 	{
 	register struct swap_abcd_struct *ptr = (swap_abcd_struct *) buffer;
 	for (register unsigned int i = 0; i < len; i++, ptr++)
@@ -53,9 +55,10 @@ void swap_abcd_dcba(char *buffer, unsigned int len)
 		ptr->two = ptr->three;
 		ptr->three = tmp;
 		}
+	return buffer;
 	}
 
-void swap_abcdefgh_hgfedcba(char *buffer, unsigned int len)
+char *swap_abcdefgh_hgfedcba(char *buffer, unsigned int len)
 	{
 	register struct swap_abcdefgh_struct *ptr = (swap_abcdefgh_struct *) buffer;
 	for (register unsigned int i = 0; i < len; i++, ptr++)
@@ -73,9 +76,31 @@ void swap_abcdefgh_hgfedcba(char *buffer, unsigned int len)
 		ptr->four = ptr->five;
 		ptr->five = tmp;
 		}
+	return buffer;
 	}
 
-void vax2ieee_single(float *f, unsigned int len)
+char *swap_abcdefgh_efghabcd(char *buffer, unsigned int len)
+	{
+	register struct swap_abcdefgh_struct *ptr = (swap_abcdefgh_struct *) buffer;
+	for (register unsigned int i = 0; i < len; i++, ptr++)
+		{
+		register char tmp = ptr->one;
+		ptr->one = ptr->five;
+		ptr->five = tmp;
+		tmp = ptr->two;
+		ptr->two = ptr->six;
+		ptr->six = tmp;
+		tmp = ptr->seven;
+		ptr->three = ptr->seven;
+		ptr->seven = tmp;
+		tmp = ptr->four;
+		ptr->four = ptr->eight;
+		ptr->eight = tmp;
+		}
+	return buffer;
+	}
+
+float *vax2ieee_single(float *f, unsigned int len)
 	{
 	float tmp;
 	ieee_single ieee(f);
@@ -96,9 +121,10 @@ void vax2ieee_single(float *f, unsigned int len)
 			}
 		ieee.sign(vax.sign());
 		}
+	return f;
 	}
 
-void ieee2vax_single(float *f, unsigned int len)
+float *ieee2vax_single(float *f, unsigned int len)
 	{
 	float tmp;
 	vax_single  vax(f);
@@ -119,10 +145,11 @@ void ieee2vax_single(float *f, unsigned int len)
 			}
 		vax.sign(ieee.sign());
 		}
+	return f;
 	}
 
 
-void vax2ieee_double(double *f, unsigned int len,char op)
+double *vax2ieee_double(double *f, unsigned int len,char op)
 	{
 	double tmp;
 	ieee_double ieee(f);
@@ -143,9 +170,10 @@ void vax2ieee_double(double *f, unsigned int len,char op)
 			}
 		ieee.sign(vax.sign());
 		}
+	return f;
 	}
 
-void ieee2vax_double(double *f, unsigned int len, char op)
+double *ieee2vax_double(double *f, unsigned int len, char op)
 	{
 	double tmp;
 	vax_double  vax(f,op);
@@ -166,6 +194,7 @@ void ieee2vax_double(double *f, unsigned int len, char op)
 			}
 		vax.sign(ieee.sign());
 		}
+	return f;
 	}
 
 

@@ -8,10 +8,6 @@
 #define sos_header_h
 #include "sos/mdep.h"
 
-typedef unsigned char byte;
-#define alloc_memory malloc
-
-
 //	sos header structure
 //							      offset
 //		1 byte version number				0
@@ -21,21 +17,36 @@ typedef unsigned char byte;
 //		4 byte magic number				4
 //		4 byte length					8
 //		4 byte time stamp				12
-//		8 byte control info (future use/user data?)	16
+//		4 byte control info (future use/user data?)	16
+//		4 byte user info				20
 //
 //	( should provide a way for user control info... )
 //
 class sos_header {
 public:
-	unsigned char version() { return buf[0]; }
-	unsigned char arch() { return buf[1]; }
-	sos_code type() { return buf[2]; }
-	unsigned char typeLen() { return buf[3]; }
-	unsigned int magic() { return *((int*)&buf[4]); }
-	unsigned int length() { return buf[8] + (buf[9] << 8) +
-				  (buf[10] << 16) + (buf[11] << 24); }
-	unsigned int time() { return buf[12] + (buf[13] << 8) +
-				  (buf[14] << 16) + (buf[15] << 24); }
+	unsigned char version() const { return buf[0]; }
+	unsigned char arch() const { return buf[1]; }
+	sos_code type() const { return buf[2]; }
+	unsigned char typeLen() const { return buf[3]; }
+	unsigned int magic() const { return *((int*)&buf[4]); }
+	unsigned int length() const { return buf[8] + (buf[9] << 8) +
+				      (buf[10] << 16) + (buf[11] << 24); }
+	unsigned int time() const { return buf[12] + (buf[13] << 8) +
+				    (buf[14] << 16) + (buf[15] << 24); }
+
+	//
+	// access to user data
+	//
+	unsigned char ugetc( int off = 0 ) const { return buf[20 + (off % 4)]; }
+	unsigned short ugets( int off = 0 ) const { off = 20 + (off % 2) * 2;
+			return buf[off] + (buf[off+1] << 8); }
+	unsigned int ugeti( ) const { return buf[20] + (buf[21] << 8) +
+			(buf[22] << 16) + (buf[23] << 24); }
+
+	void usetc( unsigned char c, int off = 0 ) { buf[20 + (off % 4)] = c; }
+	void usets( unsigned short s, int off = 0 ) { off = 20 + (off % 2) * 2;
+			buf[off] = s & 0xff; buf[off+1] = (s >> 8) & 0xff; }
+	void useti( unsigned int i );
 
 	static unsigned char iSize() { return current_header_size; }
 	static unsigned char iVersion() { return current_version; }
