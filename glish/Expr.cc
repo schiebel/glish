@@ -744,10 +744,6 @@ IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 		else if ( lopt.result_perishable( ) )
 			return ret;
 
-		fprintf( stdout, "------------------------------------------------------------\n" );
-		ret->Describe( message->Stream() );
-		fprintf( stdout, "\n------------------------------------------------------------\n" );
-		fprintf( stdout, "\n" );
 		fatal->Report(
 		"value unexpected returnedly in AssignExpr::SideEffectsEval" );
 		}
