@@ -90,7 +90,14 @@ int allwarn = 0;
 static unsigned int error_count = 0;
 
 #if USE_EDITLINE
-extern "C" void nb_readline_cleanup();
+extern "C" {
+	char *readline( const char * );
+	char *nb_readline( const char * );
+	extern char *rl_data_incomplete;
+	void add_history( char * );
+	char set_history( char mode );
+	void nb_readline_cleanup();
+}
 #endif
 
 static void glish_dump_core( const char * );
@@ -270,13 +277,6 @@ static void install_terminate_handlers()
 
 #if USE_EDITLINE
 
-extern "C" {
-	char *readline( const char * );
-	char *nb_readline( const char * );
-	extern char *rl_data_incomplete;
-	void add_history( char * );
-}
-
 static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 	{
 	if ( from_buf )
@@ -296,9 +296,6 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 			return 0;
 			}
 		  
-		if ( *to_buf )
-			add_history( to_buf );
-
 		sprintf( to_buf, "%s\n", from_buf_start );
 
 		if ( from_buf )
@@ -311,8 +308,7 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 		return 0;
 	}
 
-int interactive_read( FILE* /* file */, const char prompt[], char buf[],
-			int max_size )
+char *readline_read( const char *prompt, char history )
 	{
 #ifndef __GNUC__
         static int did_sync = 0;
@@ -324,6 +320,12 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 #endif
 
 	char* ret;
+	char last_history = '\0';
+	//
+	// tell readline to use the alternate history
+	//
+	if ( history ) last_history = set_history(history);
+
 	if ( current_sequencer->ActiveClients() )
 		{
 		ret = nb_readline( prompt );
@@ -340,7 +342,17 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 		ret = readline( prompt );
 		}
 
-	return fmt_readline_str( buf, max_size, ret );
+	if ( ret && *ret ) add_history( ret );
+
+	if ( history ) set_history(last_history);
+
+	return ret;
+	}
+
+int interactive_read( FILE* /* file */, const char prompt[], char buf[],
+			int max_size )
+	{
+	return fmt_readline_str( buf, max_size, readline_read(prompt) );
 	}
 
 #endif

@@ -50,12 +50,6 @@ RCSID("@(#) $Id$")
 #endif
 #endif
 
-#if USE_EDITLINE
-extern "C" {
-	char *readline( const char * );
-}
-#endif
-
 const char *BuiltIn::Description() const
 	{
 	return description;
@@ -416,7 +410,7 @@ IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 
 	char *prompt = v->StringVal();
 
-	char *result = readline(prompt);
+	char *result = readline_read( prompt, 'A' );
 
 	free_memory( prompt );
 
@@ -431,7 +425,6 @@ IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 	ret->Polymorph( TYPE_STRING );
 	return ret;
 	}
-
 
 IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 	{

@@ -69,6 +69,7 @@ typedef struct _HISTORY {
     int		Pos;
     CHAR	*Lines[HIST_SIZE];
 } HISTORY;
+#define History (*history_pointer)
 
 /*
 **  Globals.
@@ -94,6 +95,8 @@ STATIC CHAR		*Yanked;
 STATIC char		*Screen;
 STATIC char		NEWLINE[]= CRLF;
 STATIC HISTORY		H;
+STATIC HISTORY		ALT_H;
+STATIC HISTORY		*history_pointer = &H;
 STATIC int		Repeat;
 STATIC int		End;
 STATIC int		Mark;
@@ -549,16 +552,32 @@ toggle_meta_mode()
 }
 
 
+/*
+** perhaps this should be expanded to have an arbitrary number
+** of histories... currently one alternative suffices...
+*/
+char set_history( char mode )
+{
+    char last_history = history_pointer == &ALT_H ? 'A' : '\0';
+
+    if ( mode == 'A' )
+        history_pointer = &ALT_H;
+    else
+        history_pointer = &H;
+
+    return last_history;
+}
+
 STATIC CHAR *
 next_hist()
 {
-    return H.Pos >= H.Size - 1 ? NULL : H.Lines[++H.Pos];
+    return History.Pos >= History.Size - 1 ? NULL : History.Lines[++History.Pos];
 }
 
 STATIC CHAR *
 prev_hist()
 {
-    return H.Pos == 0 ? NULL : H.Lines[--H.Pos];
+    return History.Pos == 0 ? NULL : History.Lines[--History.Pos];
 }
 
 STATIC STATUS
@@ -604,13 +623,13 @@ h_prev()
 STATIC STATUS
 h_first()
 {
-    return do_insert_hist(H.Lines[H.Pos = 0]);
+    return do_insert_hist(History.Lines[History.Pos = 0]);
 }
 
 STATIC STATUS
 h_last()
 {
-    return do_insert_hist(H.Lines[H.Pos = H.Size - 1]);
+    return do_insert_hist(History.Lines[History.Pos = History.Size - 1]);
 }
 
 /*
@@ -666,10 +685,10 @@ search_hist(search, move)
     }
     len = strlen(pat);
 
-    for (pos = H.Pos; (*move)() != NULL; )
-	if ((*match)((char *)H.Lines[H.Pos], pat, len) == 0)
-            return H.Lines[H.Pos];
-    H.Pos = pos;
+    for (pos = History.Pos; (*move)() != NULL; )
+	if ((*match)((char *)History.Lines[History.Pos], pat, len) == 0)
+            return History.Lines[History.Pos];
+    History.Pos = pos;
     return NULL;
 }
 
@@ -1082,15 +1101,15 @@ hist_add(p)
 
     if ((p = (CHAR *)strdup((char *)p)) == NULL)
 	return;
-    if (H.Size < HIST_SIZE)
-	H.Lines[H.Size++] = p;
+    if (History.Size < HIST_SIZE)
+	History.Lines[History.Size++] = p;
     else {
-	DISPOSE(H.Lines[0]);
+	DISPOSE(History.Lines[0]);
 	for (i = 0; i < HIST_SIZE - 1; i++)
-	    H.Lines[i] = H.Lines[i + 1];
-	H.Lines[i] = p;
+	    History.Lines[i] = History.Lines[i + 1];
+	History.Lines[i] = p;
     }
-    H.Pos = H.Size - 1;
+    History.Pos = History.Size - 1;
 }
 
 /*
@@ -1117,7 +1136,7 @@ readline_cleanup()
 {
     rl_ttyset(1);
     DISPOSE(Screen);
-    DISPOSE(H.Lines[--H.Size]);
+    DISPOSE(History.Lines[--History.Size]);
 }
 
 char *
@@ -1266,7 +1285,7 @@ add_history(p)
 	return;
 
 #if	defined(UNIQUE_HISTORY)
-    if (H.Size && strcmp(p, H.Lines[H.Size - 1]) == 0)
+    if (History.Size && strcmp(p, History.Lines[History.Size - 1]) == 0)
         return;
 #endif	/* defined(UNIQUE_HISTORY) */
     hist_add((CHAR *)p);
@@ -1583,7 +1602,7 @@ last_argument()
     STATUS	s;
     int		ac;
 
-    if (H.Size == 1 || (p = H.Lines[H.Size - 2]) == NULL)
+    if (History.Size == 1 || (p = History.Lines[History.Size - 2]) == NULL)
 	return ring_bell();
 
     if ((p = (CHAR *)strdup((char *)p)) == NULL)

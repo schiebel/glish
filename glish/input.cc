@@ -13,6 +13,12 @@ RCSID("@(#) $Id$")
 #include "input.h"
 #include "Sequencer.h"
 
+char *readline_read( const char *prompt, char history )
+	{
+	// currently not implemented outside interpreter...
+	return 0;
+	}
+
 int interactive_read( FILE* file, const char prompt[], char buf[],
 			int max_size )
 	{
