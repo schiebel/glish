@@ -19,7 +19,7 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
 	cd $$ARCH; $(MAKE) $$FLGS install;			\
-	cd clients; $(MAKE) $$FLGS PFX= install-all
+	cd ../clients; $(MAKE) $$FLGS PFX= install-all
 
 install-all:
 	@echo Installing glish ...
@@ -30,7 +30,7 @@ install-all:
 	if test "$(PFX)" = "1"; then				\
 		cd $$ARCH; $(MAKE) $$FLGS prefix-install;	\
 	else	cd $$ARCH; $(MAKE) $$FLGS install; fi;		\
-	cd clients; $(MAKE) $$FLGS PFX=$(PFX) install-all
+	cd ../clients; $(MAKE) $$FLGS PFX=$(PFX) install-all
 
 build: all
 
