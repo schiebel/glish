@@ -579,6 +579,30 @@ void ProxyTask::AbnormalExit( int status )
 	sequencer->NewEvent( task, event, 0 );
 	}
 
+
+SystemAgent::SystemAgent( Sequencer *s ) : Agent(s) { SetActive( ); }
+
+IValue* SystemAgent::SendEvent( const char* event_name, parameter_list*, int is_request, int, Expr * )
+	{
+	if ( ! strcmp( event_name, "memory" ) )
+		{
+		int *ivec = alloc_int( 2 );
+		ivec[0] = sequencer->info.MemoryUsed( );
+		ivec[1] = sequencer->info.MemoryFree( );
+		return new IValue( ivec, 2 );
+		}
+
+	if ( ! strcmp( event_name, "swap" ) )
+		{
+		int *ivec = alloc_int( 2 );
+		ivec[0] = sequencer->info.SwapUsed( );
+		ivec[1] = sequencer->info.SwapFree( );
+		return new IValue( ivec, 2 );
+		}		
+
+	return (IValue*) Fail( "unknown event, \"", event_name, "\"" );
+	}
+
 class uagent_await_info GC_FINAL_CLASS {
     public:
 	uagent_await_info( const char *n, UserAgent *a ) : name_(n), agent_(a), result_(0) { }

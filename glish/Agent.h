@@ -260,6 +260,13 @@ class ProxyTask : public Agent {
 	ProxyId id;
 };
 
+class SystemAgent : public Agent {
+    public:
+	SystemAgent( Sequencer *s );
+	IValue* SendEvent( const char* event_name, parameter_list* args,
+				int is_request, int log, Expr *from_subsequence=0 );
+};
+
 class uagent_await_info;
 glish_declare(PList,uagent_await_info);
 typedef PList(uagent_await_info) uagent_await_list;

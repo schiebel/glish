@@ -10,6 +10,7 @@
 #include "Agent.h"
 #include "Regex.h"
 #include "Select.h"
+#include "Sysinfo.h"
 
 class UserAgent;
 class GlishEvent;
@@ -253,6 +254,7 @@ class await_type GC_FINAL_CLASS {
 
 class Sequencer GC_FINAL_CLASS {
 friend class LoadedProxyStore;
+friend class SystemAgent;
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -621,7 +623,8 @@ protected:
 	unsigned int system_change_count;
 	SystemInfo system;
 
-	UserAgent* system_agent;
+	Sysinfo info;
+	Agent* system_agent;
 
 	Expr *script_expr;
 	ScriptClient* script_client;

@@ -1335,6 +1335,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	sys_value->SetField( "limits", limits_val );
 	Unref(limits_val);
 
+	IValue *cpus_val = new IValue( info.NumCpus( ) );
+	sys_value->SetField( "cpus", cpus_val );
+	Unref( cpus_val );
+
 	recordptr output = create_record_dict();
 	recordptr pager = create_record_dict();
 	char *envpager = getenv( "PAGER" );
@@ -1486,7 +1490,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 
 	// Create the "system" global variable.
-	system_agent = new UserAgent( this );
+	system_agent = new SystemAgent( this );
 	sys_val = system_agent->AgentRecord();
 
 	Expr* system_expr = InstallID( string_dup( "system" ), GLOBAL_SCOPE );
