@@ -3209,8 +3209,8 @@ void TkScale::SetValue( double d )
 		}
 	}
 
-void TkScale::SetStart( double d ) { to_ = d; }
-void TkScale::SetEnd( double d ) { from_ = d; }
+void TkScale::SetStart( double d ) { from_ = d; }
+void TkScale::SetEnd( double d ) { to_ = d; }
 
 void TkScale::Create( ProxyStore *s, Value *args )
 	{
