@@ -16,15 +16,6 @@ RCSID("@(#) $Id$")
 // This determines how many slots buckets have initially
 #define INITIAL_BUCKET_CHUNK  2
 
-class DictEntry {
-public:
-	DictEntry( const char* k, void* val )
-		{ key = k; value = val; }
-
-	const char* key;
-	void* value;
-	};
-
 // The value of an iteration cookie is the bucket and offset within the
 // bucket at which to start looking for the next value to return.
 class IterCookie {
@@ -110,16 +101,6 @@ void* Dictionary::Lookup( const char* key ) const
 		}
 
 	return NotFound;
-	}
-
-void* Dictionary::NthEntry( int n, const char*& key ) const
-	{
-	if ( ! order || n < 0 || n >= Length() )
-		return 0;
-
-	DictEntry* entry = (*order)[n];
-	key = entry->key;
-	return entry->value;
 	}
 
 int Dictionary::Sizeof( ) const
@@ -302,7 +283,7 @@ int Dictionary::Hash( const char* str_, int hash_size ) const
 		2782, 57668, 59323, 3422, 52944, 28390, 29302, 10883, 47521,
 		44699, 54822, 52838 };
 
-	while ( *str )
+	for ( register int i=0; *str && i < 16; i++ )
 		hashval = (hashval << 2) + char_hash[*str++];
 
 	return (int)(hashval % (unsigned int) hash_size);

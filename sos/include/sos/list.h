@@ -40,14 +40,17 @@ class BaseList : public SosRef {
 	void clear();		// remove all entries
 	int length() const	{ return num_entries; }
 	int curlen() const	{ return max_entries; }
-	int resize(int = 0);	// 0 => size to fit current number of entries
 
     protected:
+	int resize( );
+
 	BaseList(int = 0, PFC = 0);
 	BaseList(BaseList&);
 
+	void append( ent a )  { if ( num_entries == max_entries ) resize( );
+				entry[num_entries++] = a; }
+
 	void insert(ent);	  // add at head of list
-	void append(ent);	  // add to end of list
 	ent remove(ent);	  // delete entry from list
 	void insert_nth(int,ent); // add at nth slot in list
 	ent remove_nth(int);	  // delete nth entry from list
@@ -60,7 +63,8 @@ class BaseList : public SosRef {
 	ent replace(int, ent);	// replace entry #i with a new value
 
 	// return nth ent of list (do not remove).
-	ent operator[](int) const;
+	ent operator[]( int i ) const
+		{ return i < 0 || i >= num_entries ? 0 : entry[i]; }
 
 	void operator=(BaseList&);
 
@@ -111,7 +115,6 @@ class BaseListIterator {
 #define Listdeclare(type)						\
 struct List(type) : BaseList						\
 	{								\
-	List(type)(type ...);						\
 	List(type)(PFC eh =0) : BaseList(0,eh) {}			\
 	List(type)(int sz, PFC eh =0) : BaseList(sz,eh) {}		\
 	List(type)(List(type)& l) : BaseList((BaseList&)l) {}		\
@@ -144,17 +147,6 @@ struct ListIterator(type) : BaseListIterator				\
 	void reset()		{ BaseListIterator::reset(); }		\
 	type operator()()						\
 		{ return PASTE(void_to_,type)(BaseListIterator::operator()()); } \
-	}
-
-#define Listimplement(type)						\
-List(type)::List(type)(type e1 ...) : BaseList()			\
-	{								\
-	append(e1);							\
-	va_list ap;							\
-	va_start(ap,e1);						\
-	for ( type e = va_arg(ap,type); e != 0; e = va_arg(ap,type) )	\
-		append(e);						\
-	resize();							\
 	}
 
 #define PListdeclare(type)						\
@@ -192,18 +184,6 @@ struct PListIterator(type) : BaseListIterator				\
 	void reset()		{ BaseListIterator::reset(); }		\
 	type* operator()()						\
 		{ return (type*)(BaseListIterator::operator()()); }	\
-	}
-
-#define PListimplement(type)						\
-PList(type)::PList(type)(type* ep1 ...) : BaseList()			\
-	{								\
-	append(ep1);							\
-	va_list ap;							\
-	va_start(ap,ep1);						\
-	for ( type* ep = va_arg(ap,type*); ep != 0;			\
-	      ep = va_arg(ap,type*) )					\
-		append(ep);						\
-	resize();							\
 	}
 
 #endif /* list_h_ */

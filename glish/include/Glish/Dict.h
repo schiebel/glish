@@ -7,8 +7,16 @@
 #include "Glish/List.h"
 
 class Dictionary;
-class DictEntry;
 class IterCookie;
+
+class DictEntry {
+public:
+	DictEntry( const char* k, void* val )
+		{ key = k; value = val; }
+
+	const char* key;
+	void* value;
+	};
 
 glish_declare(PList,DictEntry);
 
@@ -43,11 +51,12 @@ class Dictionary {
 	// Returns nil if the dictionary is not ordered or if "n" is out
 	// of range.
 	void* NthEntry( int n ) const
-		{
-		const char* key;
-		return NthEntry( n, key );
-		}
-	void* NthEntry( int n, const char*& key ) const;
+		{ return ! order || n < 0 || n >= num_entries ? 0 : (*order)[n]->value; }
+
+	void* NthEntry( int n, const char*& key ) const
+		{ register DictEntry* entry;
+	  	  return ! order || n < 0 || n >= num_entries ? 0 :
+		         (key = ((entry=(*order)[n])->key)), entry->value; }
 
 	// Removes the given element.  Returns a (char*) version of the key
 	// in case it needs to be deleted.  Returns 0 if no such entry exists.

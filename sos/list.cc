@@ -101,10 +101,7 @@ void BaseList::operator=(BaseList& b)
 void BaseList::insert(ent a)
 	{
 	if ( num_entries == max_entries )
-		{
-		resize(max_entries+chunk_size);	// make more room
-		chunk_size *= 2;
-		}
+		resize( );	// make more room
 
 	for ( int i = num_entries; i > 0; i-- )	
 		entry[i] = entry[i-1];	// move all pointers up one
@@ -116,10 +113,7 @@ void BaseList::insert(ent a)
 void BaseList::insert_nth(int off, ent a)
 	{
 	if ( num_entries == max_entries )
-		{
-		resize(max_entries+chunk_size);	// make more room
-		chunk_size *= 2;
-		}
+		resize( );	// make more room
 
 	if ( off > num_entries )
 		off = num_entries + 1;
@@ -157,17 +151,6 @@ ent BaseList::remove_nth(int n)
 	return old_ent;
 	}
 
-void BaseList::append(ent a)
-	{
-	if ( num_entries == max_entries )
-		{
-		resize(max_entries+chunk_size);	// make more room
-		chunk_size *= 2;
-		}
-
-	entry[num_entries++] = a;
-	}
-
 // Get and remove from the end of the list.
 ent BaseList::get()
 	{
@@ -189,16 +172,6 @@ void BaseList::clear()
 	chunk_size = DEFAULT_CHUNK_SIZE;
 	}
 
-ent BaseList::operator[](int i) const
-	{
-	if ( i < 0 || i > num_entries-1 )
-		{
-		return 0;
-		}
-	else
-		return entry[i];
-	}
-
 ent BaseList::replace(int ent_index,ent new_ent)
 	{
 	if ( ent_index < 0 || ent_index > num_entries-1 )
@@ -213,23 +186,11 @@ ent BaseList::replace(int ent_index,ent new_ent)
 		}
 	}
 
-int BaseList::resize(int new_size)
+int BaseList::resize( )
 	{
-	if ( new_size < num_entries )
-		new_size = num_entries;	// do not lose any entries
-
-	if ( new_size != num_entries )
-		{
-		entry = (ent*) sos_realloc_memory( (void*) entry,
-					sizeof( ent ) * new_size );
-		if ( entry == 0 )
-			{
-			}
-
-		if ( new_size > max_entries )
-			max_entries = new_size;
-		}
-
+	max_entries += chunk_size;
+	chunk_size *= 2;
+	entry = (ent*) sos_realloc_memory( (void*) entry, sizeof( ent ) * max_entries );
 	return max_entries;
 	}
 
