@@ -1092,8 +1092,13 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 
 	if ( tlead )
 		{
-		Ref( tlead );
-		tpos = strdup(tpos_);
+		if ( tlead->Self() )
+			{
+			Ref( tlead );
+			tpos = strdup(tpos_);
+			}
+		else
+			HANDLE_CTOR_ERROR("Frame creation failed, bad transient leader");
 		}
 
 	if ( top_created )
@@ -1409,7 +1414,8 @@ void TkFrameP::UnMap()
 
 	if ( RefCount() > 0 ) Ref(this);
 
-	Tk_DeleteEventHandler(self, StructureNotifyMask, glishtk_resizeframe_cb, this );
+	if ( self )
+		Tk_DeleteEventHandler(self, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	if ( grab && grab == Id() )
 		Release();
