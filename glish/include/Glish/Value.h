@@ -214,7 +214,8 @@ public:
 	//
 	// Returns a new string, which should be delete'd when done with.
 	virtual char* StringVal( char sep = ' ', int max_elements = 0, 
-				 int use_attr = 0, const char *prefix=0,
+				 int use_attr = 0, int evalable = 0,
+				 const char *prefix=0,
 				 Str &err = glish_errno ) const;
 
 	// Returns the limit on the number elements to be printed given
@@ -655,7 +656,8 @@ protected:
 
 	// returns a new string
 	char* RecordStringVal( char sep = ' ', int max_elements = 0, 
-			int use_attr = 0, Str &err = glish_errno ) const;
+			int use_attr = 0, int evalable=0,
+			Str &err = glish_errno ) const;
 
 	// Increase array size from present value to given size.
 	// If successful, true is returned.  If this can't be done for
@@ -663,7 +665,7 @@ protected:
 	int Grow( unsigned int new_size );
 
 	// Get a description of a non-standard (i.e. interpreter specific) type
-	virtual char *GetNSDesc( ) const;
+	virtual char *GetNSDesc( int evalable = 0 ) const;
 
 	ValueKernel kernel;
 	Value* attributes;

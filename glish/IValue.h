@@ -139,7 +139,8 @@ public:
 	//
 	// Returns a new string, which should be delete'd when done with.
 	char* StringVal( char sep = ' ', int max_elements = 0, 
-			 int use_attr = 0, const char *prefix=0,
+			 int use_attr = 0, int evalable = 0,
+			 const char *prefix=0,
 			 Str &err = glish_errno ) const;
 
 	// The following accessors return pointers to the underlying value
@@ -224,7 +225,7 @@ public:
 	int FailMarked( );
 
 	// Get a description of a non-standard (i.e. interpreter specific) type
-	char *GetNSDesc( ) const;
+	char *GetNSDesc( int evalable = 0 ) const;
 
 #ifdef GGC
 	virtual void TagGC( );

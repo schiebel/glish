@@ -640,7 +640,7 @@ unsigned int Value::PrintLimit( ) const
 	}
 
 char* Value::RecordStringVal( char sep, int max_elements, 
-			int use_attr, Str &err ) const
+			int use_attr, int evalable, Str &err ) const
 	{
 	static value_list been_there;
 
@@ -679,7 +679,7 @@ char* Value::RecordStringVal( char sep, int max_elements,
 			fatal->Report(
 				"bad record in Value::RecordStringVal()" );
 
-		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, 0, err );
+		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, evalable, 0, err );
 		total_len += strlen( element_strs[i] ) + strlen( key_strs[i] );
 		}
 
@@ -2630,7 +2630,7 @@ int Value::Grow( unsigned int new_size )
 	}
 
 
-char *Value::GetNSDesc( ) const
+char *Value::GetNSDesc( int ) const
 	{
 	glish_type type = Type();
 	if ( type == TYPE_AGENT )

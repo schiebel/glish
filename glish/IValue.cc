@@ -1899,13 +1899,35 @@ int IValue::Describe( OStream& s, const ioOpt &opt ) const
 	}
 
 
-char *IValue::GetNSDesc( ) const
+char *IValue::GetNSDesc( int evalable ) const
 	{
 	glish_type type = Type();
+
 	if ( type == TYPE_AGENT )
-		return strdup( AgentVal()->AgentID() );
+		{
+		if ( evalable )
+			{
+			char *buf = (char*) alloc_memory(strlen(AgentVal()->AgentID())+3);
+			sprintf(buf,"'%s'",AgentVal()->AgentID());
+			return buf;
+			}
+		else
+			return strdup( AgentVal()->AgentID() );
+		}
+
 	if ( type == TYPE_FUNC )
-		return strdup( "<function>" );
+		{
+		if ( evalable )
+			{
+			static SOStream *srpt = new SOStream;
+			srpt->reset();
+			Describe( *srpt );
+			return strdup( srpt->str() );
+			}
+		else
+			return strdup( "<function>" );
+		}
+
 	return 0;
 	}
 

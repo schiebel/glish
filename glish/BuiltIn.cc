@@ -2367,6 +2367,13 @@ IValue* as_byte_built_in( const IValue* arg )
 	}
 
 
+IValue* as_evalstr_built_in( const IValue* arg )
+	{
+	charptr *res = (charptr*) alloc_memory(sizeof(charptr));
+	res[0] = arg->StringVal( ' ', 0, 0, 1 );
+	return new IValue( res, 1 );
+	}
+
 IValue* as_string_built_in( const IValue* arg )
 	{
 	if ( arg->Type() == TYPE_STRING )
@@ -2678,6 +2685,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	add_one_arg_built_in( s, as_complex_built_in, "as_complex" );
 	add_one_arg_built_in( s, as_dcomplex_built_in, "as_dcomplex" );
 	add_one_arg_built_in( s, as_string_built_in, "as_string" );
+	add_one_arg_built_in( s, as_evalstr_built_in, "as_evalstr" );
 
 	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
 	add_one_arg_built_in( s, is_fail_built_in, "is_fail", 0, 1 );

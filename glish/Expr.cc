@@ -1800,6 +1800,9 @@ int AttributeRefExpr::Describe( OStream &s, const ioOpt &opt ) const
 		right->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		s << "]";
 		}
+	else
+		s << "::";
+
 	return 1;
 	}
 

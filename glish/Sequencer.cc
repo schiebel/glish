@@ -1227,8 +1227,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	min->Insert( strdup("integer"), new IValue( (int) INT_MIN ) );
 	min->Insert( strdup("byte"), new IValue( (int) 0 ) );
 	min->Insert( strdup("short"), new IValue( (int) SHRT_MIN ) );
-	min->Insert( strdup("float"), new IValue( (float) FLT_MAX ) );
-	min->Insert( strdup("double"), new IValue( (double) DBL_MAX ) );
+	min->Insert( strdup("float"), new IValue( (float) FLT_MIN ) );
+	min->Insert( strdup("double"), new IValue( (double) DBL_MIN ) );
 
 	recordptr limits = create_record_dict();
 	limits->Insert( strdup("max"), new IValue( max ) );
@@ -2383,7 +2383,7 @@ void Sequencer::UnhandledFail( const IValue *val )
 	{
 	if ( cur_sequencer->VERB_FAIL(cur_sequencer->verbose_mask) && val->Type() == TYPE_FAIL )
 		{
-		char *str = val->StringVal(' ',0,0,"vf ");
+		char *str = val->StringVal(' ',0,0,0,"vf ");
 		cerr << str << endl;
 		free_memory(str);
 		}
