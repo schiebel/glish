@@ -2379,6 +2379,13 @@ IValue* MissingBuiltIn::DoCall( evalOpt &, const_args_list * )
 	return copy_value( cur->Missing() );
 	}
 
+IValue* ParametersBuiltIn::DoCall( evalOpt &, const_args_list * )
+	{
+	Frame* cur = sequencer->FuncFrame();
+	if ( ! cur ) return empty_ivalue();
+	return copy_value( cur->Parameters( ) );
+	}
+
 #if defined(ENABLE_GC)
 IValue* CollectGarbageBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
@@ -2890,6 +2897,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new IsModifiableBuiltIn );
 	s->AddBuiltIn( new TrBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
+	s->AddBuiltIn( new ParametersBuiltIn( s ) );
 
 #if defined(ENABLE_GC)
 	s->AddBuiltIn( new CollectGarbageBuiltIn( s ) );

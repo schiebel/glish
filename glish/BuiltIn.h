@@ -173,6 +173,7 @@ class name : public BuiltIn {						\
 DERIVE_SEQUENCER_BUILTIN(ReadlineBuiltIn,1,"internal_readline")
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
+DERIVE_SEQUENCER_BUILTIN(ParametersBuiltIn,0,"parameters")
 
 #if defined(ENABLE_GC)
 DERIVE_SEQUENCER_BUILTIN(CollectGarbageBuiltIn,0,"collect_garbage")
