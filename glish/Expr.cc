@@ -987,7 +987,8 @@ void ArrayRefExpr::Assign( Value* new_value )
 		lhs_value->AssignElements( &val_list, new_value );
 		}
 
-	else if ( indx_attr && (indx_shape = (*indx_attr)["shape"]) &&
+	else if ( index->Type() != TYPE_BOOL && indx_attr && 
+		  (indx_shape = (*indx_attr)["shape"]) &&
 		  indx_shape->IsNumeric() )
 		// Single element pick assign operation.
 		lhs_value->PickAssign( index, new_value );
