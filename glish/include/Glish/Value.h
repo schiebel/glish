@@ -507,6 +507,8 @@ public:
 
 	// Returns a new Value with the selected attributes.
 	Value* AttributeRef( const Value* index ) const;
+	Value* AttributeRef( ) const
+		{ if ( attributes ) Ref(attributes); return attributes; }
 
 	// Returns a modifiable existing Value.  If the given field does
 	// not exist, it is added, with an initial value of F.

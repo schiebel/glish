@@ -1750,10 +1750,7 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 		}
 
 	else
-		{
-		warn->Report( this, " invalid attribute access" );
-		value = error_ivalue();
-		}
+		value = (IValue*) value->AttributeRef( );
 
 	Unref( value_ref );
 
