@@ -8,6 +8,8 @@
 #include <string.h>
 #include <iostream.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <errno.h>
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif
@@ -307,13 +309,13 @@ val		return TOK_VAL;
 whenever	return TOK_WHENEVER;
 while		return TOK_WHILE;
 
-"$agent"	RETURN_LAST_EVENT( EVENT_AGENT );
-"$name"		RETURN_LAST_EVENT( EVENT_NAME );
-"$value"	RETURN_LAST_EVENT( EVENT_VALUE );
-"$m"		RETURN_LAST_REGEX( REGEX_MATCH );
+"$agent"	RETURN_LAST_EVENT( EVENT_AGENT )
+"$name"		RETURN_LAST_EVENT( EVENT_NAME )
+"$value"	RETURN_LAST_EVENT( EVENT_VALUE )
+"$m"		RETURN_LAST_REGEX( REGEX_MATCH )
 
-F		RETURN_CONSTANT( glish_false );
-T		RETURN_CONSTANT( glish_true );
+F		RETURN_CONSTANT( glish_false )
+T		RETURN_CONSTANT( glish_true )
 
 InClUdE		BEGIN(INCL); break;
 include		return TOK_INCLUDE;
@@ -343,15 +345,17 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <SCAN_EVENT_NAME>[*\[]	BEGIN(INITIAL); return yytext[0];
 
-{D}+		RETURN_CONSTANT( atoi( yytext ) );
-
-{FLOAT}		{
-		RETURN_CONSTANT( atof( yytext ) );
+{D}+		{
+		long longv = strtol( yytext, 0, 10 );
+		if ( errno == ERANGE )
+			RETURN_CONSTANT( strtod( yytext, 0 ) )
+		else
+			RETURN_CONSTANT( (int) longv )
 		}
 
-{FLOAT}i	{
-		RETURN_CONSTANT( atodcpx( yytext ) );
-		}
+{FLOAT}		RETURN_CONSTANT( strtod( yytext, 0 ) )
+
+{FLOAT}i	RETURN_CONSTANT( atodcpx( yytext ) )
 
 ["']		{
 		clear_literal();
@@ -419,7 +423,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 				}
 
 			else
-				RETURN_CONSTANT( literal() );
+				RETURN_CONSTANT( literal() )
 			}
 
 		break;
