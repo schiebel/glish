@@ -11,7 +11,7 @@
 #define SOS_HEADER_SIZE		24
 #define SOS_VERSION		0
 
-class ostream;
+#include <iostream.h>
 
 struct sos_header_kernel {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0 ) :

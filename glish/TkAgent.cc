@@ -939,7 +939,8 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, IValue *str_v, 
 	argv[0] = 0;
 	argv[1] = (char*) cmd;
 	argv[2] = (char*) a->IndexCheck( where );
-	for ( int c=0; c < len; ++c )
+	int c=0;
+	for ( ; c < len; ++c )
 		argv[c+3] = (char *) strs[c];
 		
 	rivet_cmd(a->Self(), c+3, argv);

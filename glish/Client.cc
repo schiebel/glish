@@ -62,7 +62,7 @@ static int did_init = 0;
 
 static int suspend = 0;
 
-inline streq( const char* s1, const char* s2 )
+inline int streq( const char* s1, const char* s2 )
 	{
 	return ! strcmp( s1, s2 );
 	}

@@ -3107,7 +3107,6 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 
 void ScriptClient::AddEventSources()
 	{
-	int read_fd = fileno( stdin );
 	int got_src = 0;
 
 	if ( event_src_list.length() == event_sources.length() )

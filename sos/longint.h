@@ -6,7 +6,7 @@
 //======================================================================
 #ifndef sos_longint_h
 #define sos_longint_h
-class ostream;
+#include <iostream.h>
 
 //
 // Indicates if this machine is big endian

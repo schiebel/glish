@@ -103,7 +103,7 @@ class ValueKernel {
 
 	glish_type otherType() const;
 	unsigned int otherLength() const;
-	unsigned int ValueKernel::otherBytes( int addPerValue = 0 ) const;
+	unsigned int otherBytes( int addPerValue = 0 ) const;
 
 	void unrefArray(int del=0);
 	void unrefRecord(int del=0);
