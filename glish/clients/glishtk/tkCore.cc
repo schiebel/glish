@@ -924,7 +924,7 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 		rec->Insert( strdup("type"), new Value( "unknown" ) );
 
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
-	if ( argv[5][0] != '?' )
+	if ( type == 2 || type == 3 )
 		{
 		// KeyPress/Release event
 		rec->Insert( strdup("sym"), new Value(argv[5]) );
