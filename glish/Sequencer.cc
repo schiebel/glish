@@ -1132,6 +1132,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 			}
 		}
 
+	IValue *emptystr = empty_ivalue();
+	emptystr->Polymorph(TYPE_STRING);
+	path->Insert( strdup("include"), emptystr );
+
 	sys_value->SetField( "path", new IValue( path ) );
 
 	recordptr max = create_record_dict();
