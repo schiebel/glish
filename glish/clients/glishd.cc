@@ -1059,6 +1059,8 @@ int dServer::AddInputMask( fd_set *mask )
 		FD_SET( accept_sock.FD(), mask );
 		++count;
 		}
+
+	return count;
 	}
 
 dServer::~dServer()
@@ -1216,7 +1218,7 @@ void Interp::CreateClient( Value* argv, dUser *hub )
 
 	charptr* client_argv = (charptr*) alloc_memory(sizeof(charptr) * (argc + 1));
 
-	for ( LOOPDECL i = 0; i < argc; ++i )
+	for ( int i = 0; i < argc; ++i )
 		client_argv[i] = argv_ptr[i];
 
 	client_argv[argc] = 0;
