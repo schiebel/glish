@@ -11,7 +11,7 @@ class BaseQueue;
 #define Queue(type) glish_name2(type,Queue)
 #define PQueue(type) glish_name2(type,PQueue)
 
-class QueueElement : public gc_cleanup {
+class QueueElement GC_FINAL_CLASS {
     protected:
     friend BaseQueue;
 	QueueElement( void* element )
@@ -20,7 +20,7 @@ class QueueElement : public gc_cleanup {
 	void* elem;
 	};
 
-class BaseQueue : public gc_cleanup {
+class BaseQueue GC_FINAL_CLASS {
     public:
 	BaseQueue();
 	void EnQueue( void* element );

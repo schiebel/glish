@@ -218,10 +218,6 @@ int main( int argc, char** argv )
 
 	seed_random_number_generator();
 
-#ifdef GGC
-	Garbage::init();
-#endif
-
 	s = new Sequencer( argc, argv );
 
 	s->Exec();
@@ -232,9 +228,6 @@ int main( int argc, char** argv )
 
 #ifdef LINT
 	delete srpt;
-#ifdef GGC
-	Garbage::finalize();
-#endif
 #endif
 
 	return 0;
@@ -655,16 +648,5 @@ void glish_sigfpe( )
 static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
 #endif
 
-#if defined(TKPGPLOT)
-extern "C" int grexec_();
-void *grexec__ = grexec_;
-#endif
-
-extern "C" void free( void * ) { }
-extern "C" void *malloc( size_t s ) { return alloc_memory(s); }
-extern "C" void *calloc( size_t n, size_t s) { return alloc_zero_memory( n*s ); }
-extern "C" void *realloc( void *p, size_t s ) { return realloc_memory(p,s); }
-
-
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
-static char copyright2[]  = "Copyright (c) 1997,1998 Associated Universities Inc.";
+static char copyright2[]  = "Copyright (c) 1997,1998,1999 Associated Universities Inc.";

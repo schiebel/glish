@@ -16,7 +16,7 @@
 
 #include <iostream.h>
 
-struct sos_header_kernel : public gc_cleanup {
+struct sos_header_kernel GC_FINAL_CLASS {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0 ) :
 		buf_((unsigned char*)b), type_(t), length_(l), count_(1), freeit_(freeit) { }
 	unsigned int count() { return count_; }
@@ -48,7 +48,7 @@ struct sos_header_kernel : public gc_cleanup {
 //
 //	( should provide a way for user control info... )
 //
-class sos_header : public gc_cleanup {
+class sos_header GC_FINAL_CLASS {
 public:
 	//
 	// information from the buffer

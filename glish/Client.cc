@@ -226,7 +226,7 @@ ProxyId::ProxyId( const Value *val )
 	}
 
 
-class EventLink : public gc_cleanup {
+class EventLink GC_FINAL_CLASS {
 public:
 	EventLink( char* task_id, char* new_name, int initial_activity )
 		{

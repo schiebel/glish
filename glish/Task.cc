@@ -23,7 +23,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Reporter.h"
 
 
-class Serialize : public gc_cleanup {
+class Serialize GC_FINAL_CLASS {
     public:
 	Serialize( const_args_list &argv_, int start = 0 ) : argv(argv_),
 			list_element(start), str_element(0) { }

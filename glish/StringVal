@@ -48,7 +48,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		return 0;
 
 	if ( ! attr )
-		return strdup( "<fail>" );
+		return string_dup( "<fail>" );
 
 	const Value *value1;
 	const Value *lnval;
@@ -119,7 +119,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 			}
 		if ( len )
 			{
-			msg[x] = strdup("\t\t...");
+			msg[x] = string_dup("\t\t...");
 			cnt += 7;
 			}
 		}
@@ -168,16 +168,16 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 		if ( length == 0 )
 			{
 			if ( type == TYPE_STRING )
-				return strdup("\"\"");
+				return string_dup("\"\"");
 			else 
-				return strdup( "[]" );
+				return string_dup( "[]" );
 			}
 		else if ( length == 1 && type == TYPE_STRING && ! *StringPtr(0)[0] )
-			return strdup( "''" );
+			return string_dup( "''" );
 		}
 	else
 		if ( length == 0 )
-			return strdup( "" );
+			return string_dup( "" );
 
 	char *ns_desc = GetNSDesc( evalable );
 	if ( ns_desc ) return ns_desc;
@@ -364,7 +364,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 				{					\
 				err = strFail( "invalid sub-vector" );	\
 				free_memory( alloced );			\
-				return strdup( " " );			\
+				return string_dup( " " );		\
 				}					\
 			switch ( ref->Type() )				\
 				{					\

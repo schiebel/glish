@@ -42,7 +42,7 @@ inline int streq( const char* a, const char* b )
 //              "list" are dynamically allocated and are to
 //              be freed by this class.
 //
-class TimeDesc : public gc_cleanup
+class TimeDesc
     {
     public:
 	TimeDesc( double delay_v ) :
@@ -82,7 +82,7 @@ typedef PList(TimeDesc) time_list;
 //  TimeList just holds all of the time intervals this client
 //  is handling
 //
-class TimeList : public gc_cleanup
+class TimeList
     {
     public:
 	TimeList() { }
@@ -164,7 +164,7 @@ TimeList::~TimeList( )
 // This is essentially one element of the "display list" for the
 // timer events.
 //
-class Interval : public gc_cleanup
+class Interval
     {
     public:
 
@@ -216,7 +216,7 @@ enum elapse_options { INIT, USE };
 //
 // This is the "display list" for the timer client
 //
-class IntervalList : public gc_cleanup
+class IntervalList
     {
     public:
 	IntervalList( TimeList &tl_ ) : cur(0), start_interval(0),

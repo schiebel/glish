@@ -19,9 +19,6 @@ typedef void* voidptr;
 extern recordptr copy_record_dict( recordptr );
 extern recordptr create_record_dict();
 void delete_record( recordptr r );
-#ifdef MEMFREE
-unsigned int count_references( recordptr from, recordptr to );
-#endif
 
 typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
 typedef void (*KernelZeroFunc)( void *, unsigned int len );
@@ -49,7 +46,7 @@ extern void register_type_funcs( glish_type, KernelCopyFunc c=0,
 //
 // Copy-on-write semantics
 //
-class ValueKernel : public gc_cleanup {
+class ValueKernel GC_FINAL_CLASS {
 
     public:
 
@@ -57,7 +54,7 @@ class ValueKernel : public gc_cleanup {
 	// These structures need to be public for some compilers, e.g.
 	// Sun's native compiler
 	//
-	class array_t : public gc_cleanup {
+	class array_t GC_FINAL_CLASS {
 	    public:
 		glish_type type;
 
@@ -95,7 +92,7 @@ class ValueKernel : public gc_cleanup {
 
 	};
 
-	class record_t : public gc_cleanup {
+	class record_t GC_FINAL_CLASS {
 	    public:
 		recordptr record;
 		unsigned long ref_count;

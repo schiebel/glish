@@ -5,6 +5,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
+#include "input.h"
 #include <string.h>
 #include <iostream.h>
 #include <strstream.h>
@@ -26,28 +27,6 @@ RCSID("@(#) $Id$")
 {for( int XIX=count-1; XIX>=0; --XIX ) (to)[XIX]=(from)[XIX];}
 
 const char *glish_charptrdummy = 0;
-
-#ifdef MEMFREE
-ivalue_list *IValue::finalize_list = 0;
-
-int IValue::Finalize( )
-	{
-	if ( ! finalize_list )
-		finalize_list = new ivalue_list;
-
-	if ( finalize_list->is_member(this) )
-		return 0;
-
-	int top = finalize_list->length() == 0;
-	finalize_list->append(this);
-
-	glish_type type = Type();
-	if ( type == TYPE_FUNC || type == TYPE_RECORD )
-		kernel.unref(1);
-
-	return top ? 1 : 0;
-	}
-#endif
 
 void copy_agents( void *to_, void *from_, unsigned int len )
 	{
@@ -126,60 +105,8 @@ int IValue::FailMarked( )
 	return rptr->Lookup("HANDLED") ? 1 : 0;
 	}
 
-#ifdef MEMFREE
-unsigned int IValue::CountRefs( recordptr r ) const
+IValue::IValue( ) : Value( )
 	{
-	//
-	// here we lie because if we are counting kernel structure
-	// (recordptr) ref count, we must protect the kernel for other
-	// values referencing us when our count is greater than 1
-	//
-	if ( RefCount() > 1 ) return 0;
-
-	if ( Type() == TYPE_FUNC )
-		return FuncPtr(0)[0]->CountRefs(r);
-	else
-		return Value::CountRefs(r);
-
-	return 0;
-	}
-
-int IValue::CountRefs( Frame *f ) const
-	{
-	static value_list been_there;
-
-	if ( been_there.is_member( (Value*)this ) )
-		return 0;
-
-	int count = 0;
-
-	if ( Type() == TYPE_FUNC )
-		count = FuncPtr(0)[0]->CountRefs(f);
-
-	else if ( Type() == TYPE_RECORD )
-		{
-		been_there.append( (Value*)this );
-
-		recordptr rec = RecordPtr(0);
-		IterCookie* c = rec->InitForIteration();
-		Value* member;
-		const char* key;
-
-		while ( (member = rec->NextEntry( key, c )) )
-			if ( member->RefCount() == 1 )
-				count += ((IValue*)member)->CountRefs(f);
-		
-		been_there.remove( (Value*)this );
-		}
-
-	return count;
-	}
-#endif
-
-extern int interactive;
-IValue::IValue( ) : Value( ) GGCTOR
-	{
-	MARKFINAL
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( (other = FailStmt::GetFail()) )
@@ -199,7 +126,7 @@ IValue::IValue( ) : Value( ) GGCTOR
 	else
 		{
 		recordptr rptr = kernel.modRecord();
-		if ( file_name && ! interactive && glish_files )
+		if ( file_name && ! interactive( ) && glish_files )
 			{
 			rptr->Insert( string_dup("file"), new IValue( (*glish_files)[file_name] ) );
 			Unref((IValue*)attr->Insert( string_dup("file" ),new IValue( (*glish_files)[file_name] )));
@@ -221,9 +148,8 @@ IValue::IValue( ) : Value( ) GGCTOR
 		}
 	}
 
-IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ) GGCTOR
+IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne )
 	{
-	MARKFINAL
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( !message && (other = FailStmt::GetFail()) )
@@ -243,7 +169,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 	else
 		{
 		recordptr rptr = kernel.modRecord();
-		if ( ! fle && file_name && ! interactive && glish_files )
+		if ( ! fle && file_name && ! interactive( ) && glish_files )
 			{
 			rptr->Insert( string_dup("file"), new IValue( (*glish_files)[file_name] ) );
 			Unref((IValue*)attr->Insert( string_dup("file" ),new IValue( (*glish_files)[file_name] )));
@@ -265,54 +191,47 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		}
 	}
 
-IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
+IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	{
-	MARKFINAL
 	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
-IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
+IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC)
 	{
-	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
+IValue::IValue( regexptr value ) : Value(TYPE_REGEX)
 	{
-	MARKFINAL
 	regexptr *ary = alloc_regexptr( 1 );
 	copy_array(&value,ary,1,regexptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
 	}
 
-IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX) GGCTOR
+IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX)
 	{
-	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
+IValue::IValue( fileptr value ) : Value(TYPE_FILE)
 	{
-	MARKFINAL
 	fileptr *ary = alloc_fileptr( 1 );
 	copy_array(&value,ary,1,fileptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
 	}
 
-IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE) GGCTOR
+IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE)
 	{
-	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_FILE, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
+IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 	{
-	MARKFINAL
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
 		agentptr *ary = alloc_agentptr( 1 );
@@ -323,9 +242,8 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1 );
 	}
 
-IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
+IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT)
 	{
-	MARKFINAL
 	value->Insert( string_dup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
 
@@ -342,18 +260,6 @@ void IValue::DeleteValue()
 
 IValue::~IValue()
 	{
-#ifdef MEMFREE
-	if ( finalize_list && finalize_list->length() > 0 )
-		{
-		finalize_list->remove(this);
-		for (int len; (len=finalize_list->length()) > 0;)
-			{
-			IValue *cur = finalize_list->remove_nth(len-1);
-			delete cur;
-			}
-		}
-#endif
-
 	if ( Type() == TYPE_FAIL &&
 	     kernel.RefCount() == 1 && 
 	     ! FailMarked( ) )
@@ -2023,40 +1929,6 @@ char *IValue::GetNSDesc( int evalable ) const
 
 	return 0;
 	}
-
-
-#ifdef GGC
-void IValue::TagGC( )
-	{
-	if ( gc.isTaged() ) return;
-	gc.tag();
-
-	if ( attributes )
-		((IValue*)attributes)->TagGC();
-
-	switch( Type() )
-		{
-		case TYPE_FUNC:
-			FuncVal()->TagGC();
-			break;
-		case TYPE_RECORD:
-			{
-			recordptr rec = RecordPtr(0);
-			IterCookie* c = rec->InitForIteration();
-			Value* member;
-			const char* key;
-
-			while ( (member = rec->NextEntry( key, c )) )
-				((IValue*)member)->TagGC();
-			}
-			break;
-		case TYPE_REF:
-		case TYPE_SUBVEC_REF:
-			((IValue*)VecRefDeref())->TagGC();
-			break;
-		}
-	}
-#endif
 
 void init_ivalues( )
 	{

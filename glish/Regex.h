@@ -11,7 +11,7 @@ class OStream;
 
 extern int glish_dummy_int;
 
-class regxsubst : public gc_cleanup {
+class regxsubst GC_FINAL_CLASS {
     public:
 	regxsubst() : subst(0), reg(0),	startp(0), endp(0),
 			pcnt(0), psze(0), refs(0), rcnt(0),
@@ -135,7 +135,7 @@ typedef PList(match_node) match_node_list;
 // Class which manages the match information across
 // multiple Regex applications.
 //
-class RegexMatch : public gc_cleanup {
+class RegexMatch GC_FINAL_CLASS {
     public:
 	RegexMatch( ) : last(0) { }
 	~RegexMatch( );

@@ -19,7 +19,7 @@ char* strdup( const char* );
 //  used for maintaining the correspondence between glish objects and file
 //  names.
 //
-class StrKernel : public gc_cleanup {
+class StrKernel GC_FINAL_CLASS {
 public:
 	StrKernel( ) : str(0), cnt(1) { }
 	StrKernel( const char *s ) : str( s && s[0] ? string_dup( s ) : 0 ),
@@ -35,7 +35,7 @@ private:
 	unsigned int cnt;
 };
 
-class Str : public gc_cleanup {
+class Str GC_FINAL_CLASS {
 public:
 	Str( ) : kernel( 0 ) { }
 	Str( const char *s ) : kernel( new StrKernel(s) ) { }

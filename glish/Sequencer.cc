@@ -309,35 +309,13 @@ stack_type::~stack_type( )
 		for ( int i=frames_->length()-1;i >= 0; i-- )
 			{
 			Frame *cur = frames_->remove_nth(i);
-#ifdef MEMFREE
-			if ( cur && cur->RefCount() > 1 &&
-			     ! been_there.is_member( cur ) &&
-			     cur->CountRefs(cur)+1 == cur->RefCount() )
-				{
-				been_there.append(cur);
-				cur->clear();
-				Unref(cur);
-				been_there.remove(cur);
-				}
-			else
-#endif
-				Unref(cur);
+			Unref(cur);
 			}
 		}
 
 	Unref( frames_ );
 	Unref( offsets_ );
 	}
-
-#ifdef GGC
-void stack_type::TagGC( )
-	{
-	if ( ! frames_ ) return;
-	loop_over_list( *frames_, i )
-		if ( (*frames_)[i] )
-			(*frames_)[i]->TagGC();
-	}
-#endif
 
 // A special type of Client used for script clients.  It overrides
 // FD_Change() to create or delete ScriptSelectee's as needed.
@@ -501,7 +479,7 @@ protected:
 	};
 
 
-class awaitinfo : public gc_cleanup {
+class awaitinfo GC_FINAL_CLASS {
 public:
 	awaitinfo( await_type &aw ) : await(aw), value(0), agent(0), name(0) {}
 	~awaitinfo();
@@ -1637,6 +1615,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		}
 
 	int do_interactive = 1;
+
+// 	release_explicit( );
+
 	if ( argc > 0 && strcmp( argv[0], "--" ) && (run_file = which_include(argv[0])) )
 		{
 		do_interactive = 0;
@@ -2672,7 +2653,7 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 
 IValue *Sequencer::Exec( int startup_script, int value_needed )
 	{
-	if ( interactive )
+	if ( interactive( ) )
 		return 0;
 
 	if ( error->Count() > 0 )
@@ -3471,10 +3452,10 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
-		interactive = 1;
+		interactive_set( 1 );
 		}
 	else
-		interactive = 0;
+		interactive_set( 0 );
 
 	unsigned short old_file_name = file_name;
 	if ( filename )
@@ -3488,7 +3469,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 
 	if ( ret )
 		{
-		error->Report( "syntax errors parsing input" );
+		if ( ! in_evaluation( ) ) error->Report( "syntax errors parsing input" );
 		SetErrorResult( ret );
 
 		if ( stmts )
@@ -3542,14 +3523,17 @@ IValue *Sequencer::Eval( const char* strings[] )
 	{
 	void *old_buf = current_flex_buffer();
 	void *new_buf = new_flex_buffer( 0 );
-	int is_interactive = interactive;
+	int is_interactive = interactive( );
+	int is_in_eval = in_evaluation( );
+	in_evaluation_set(1);
 	set_flex_buffer(new_buf);
 	ClearStmt();
 	scan_strings( strings );
 	IValue *ret = Parse( 0, "glish eval", 1 );
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
-	interactive = is_interactive;
+	interactive_set(is_interactive);
+	in_evaluation_set(is_in_eval);
 	return ret;
 	}
 
@@ -3597,14 +3581,14 @@ IValue *Sequencer::Include( const char *file )
 
 	void *old_buf = current_flex_buffer();
 	void *new_buf = new_flex_buffer( fptr );
-	int is_interactive = interactive;
+	int is_interactive = interactive( );
 	set_flex_buffer(new_buf);
 	unsigned short old_line_num = line_num;
 	line_num = 1;
 
 
 	error->SetCount(0);
-	interactive = 0;
+	interactive_set( 0 );
 
 	NodeUnref( stmts );
 	IValue *ret = glish_parser( stmts );
@@ -3677,7 +3661,7 @@ IValue *Sequencer::Include( const char *file )
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
 	fclose( fptr );
-	interactive = is_interactive;
+	interactive_set( is_interactive );
 	return ret;
 	}
 
@@ -3971,32 +3955,6 @@ void Sequencer::ClearWhenevers( )
 	while ( len > 0 )
 		cur_whenever.remove_nth(--len);
 	}
-
-#ifdef GGC
-void Sequencer::CollectGarbage( )
-	{
-	((IValue*)false_value)->TagGC();
-	loop_over_list( global_frame, i )
-		if ( global_frame[i] )
-			global_frame[i]->TagGC();
-	loop_over_list( registered_stmts, j )
-		if ( registered_stmts[j] )
-			registered_stmts[j]->TagGC();
-	loop_over_list( registered_values, k )
-		if ( registered_values[k] )
-			registered_values[k]->TagGC();
-
-	loop_over_list( notes_inuse, k )
-		if ( notes_inuse[k] ) notes_inuse[k]->TagGC();
-
-	Notification *n = 0;
-	notification_queue.InitForIteration();
-	while( n = notification_queue.Next() )
-		n->TagGC();
-
-	Garbage::collect( 1 );
-	}
-#endif
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
     : Selectee( t->GetChannel()->Source().fd() )

@@ -157,7 +157,7 @@ class TkProxy : public Proxy {
 	int is_graphic;
 	};
 
-class TkProc : public gc_cleanup {
+class TkProc GC_FINAL_CLASS {
     public:
 
 	TkProc( TkProxy *a, TkStrToValProc cvt = 0 );

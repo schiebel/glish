@@ -443,10 +443,7 @@ IValue* ValExpr::RefEval( value_type val_type )
 
 ConstExpr::~ConstExpr()
 	{
-#ifdef GGC
-	if ( ! glish_collecting_garbage )
-#endif
-		Unref((GlishObject*)const_value);
+	Unref((GlishObject*)const_value);
 	}
 
 const char *ConstExpr::Description() const

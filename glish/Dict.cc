@@ -18,7 +18,7 @@ RCSID("@(#) $Id$")
 
 // The value of an iteration cookie is the bucket and offset within the
 // bucket at which to start looking for the next value to return.
-class IterCookie : public gc_cleanup {
+class IterCookie GC_FINAL_CLASS {
 public:
 	IterCookie( int b, int o ) : bucket(b), offset(o) { }
 	void Set( int b, int o )

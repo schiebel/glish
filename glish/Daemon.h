@@ -20,7 +20,7 @@ typedef enum
 // This includes the Channel used to communicate with the daemon and
 // modifiable state indicating whether we're currently waiting for
 // a probe response from the daemon.
-class RemoteDaemon : public gc_cleanup {
+class RemoteDaemon GC_FINAL_CLASS {
 public:
 	RemoteDaemon( const char* daemon_host, Channel* channel )
 		{

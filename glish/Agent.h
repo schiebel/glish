@@ -14,10 +14,9 @@ class Agent;
 class NotifyTrigger;
 class stack_type;
 
-#define string_to_void void_ptr
-#define void_to_string string
-glish_declare(List,string);
-typedef List(string) string_list;
+typedef const char const_char;
+glish_declare(PList,const_char);
+typedef PList(const_char) string_list;
 
 glish_declare(PList,Agent);
 typedef PList(Agent) agent_list;

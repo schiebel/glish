@@ -97,10 +97,10 @@ void sos_header::scratch( )
 	if ( kernel->count() > 1 )
 		{
 		kernel->unref();
-		kernel = new sos_header_kernel((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel = new sos_header_kernel(alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 		}
 	else
-		kernel->set( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel->set( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	}
 
 void sos_header::useti( unsigned int i )

@@ -89,10 +89,6 @@ class Stmt : public ParseNode {
 	//
 	virtual void CollectUnref( stmt_list & );
 
-#ifdef GGC
-	virtual void TagGC( );
-#endif
-
     protected:
 	// DoExec() does the real work of executing the statement.
 	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
@@ -156,9 +152,6 @@ class WheneverStmt : public Stmt {
 
 	const char *Description() const;
 
-#ifdef GGC
-	void TagGC( );
-#endif
     protected:
 	event_dsg_list* trigger;
 	Stmt* stmt;

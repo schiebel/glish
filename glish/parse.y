@@ -141,7 +141,7 @@ glish:
 			{
 			first_line = 1;
 			glish_regex_matched = 0;
-			if ( interactive )
+			if ( interactive( ) )
 				status = 0;
         		static int *lookahead = & ( yyclearin );
 			static int empty = *lookahead;
@@ -158,13 +158,17 @@ glish:
 			{
 			first_line = 1;
 			status = 1;
-			if ( interactive )
+			if ( interactive( ) )
 				{
 				// Try to throw away the rest of the line.
 				statement_can_end = 1;
 				first_line = 1;
+				YYACCEPT;
 				}
-			YYACCEPT;
+			else
+				{
+				YYABORT;
+				}
 			}
 	|
 			{
@@ -360,7 +364,7 @@ expression:
 
 	|	TOK_LT expression TOK_GT
 			{
-			Expr* id = current_sequencer->LookupID( strdup("_"), LOCAL_SCOPE, 1, 0, 0 );
+			Expr* id = current_sequencer->LookupID( string_dup("_"), LOCAL_SCOPE, 1, 0, 0 );
 			Ref(id);
 			$$ = compound_assignment( id, 0, new GenerateExpr($2) );
 			}
@@ -388,8 +392,8 @@ expression:
 
 	|	TOK_APPLYRX expression  %prec '!'
 			{
-			Expr* id = current_sequencer->LookupID( strdup("_"), ANY_SCOPE, 0, 0 );
-			if ( ! id ) id = current_sequencer->InstallID( strdup("_"), LOCAL_SCOPE, 0 );
+			Expr* id = current_sequencer->LookupID( string_dup("_"), ANY_SCOPE, 0, 0 );
+			if ( ! id ) id = current_sequencer->InstallID( string_dup("_"), LOCAL_SCOPE, 0 );
 			Ref(id);
 
 			if ( $1 == '!' )
@@ -520,7 +524,7 @@ wider_list:	wider_list ',' wider_item
 wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 			{
 			Expr* id =
-				current_sequencer->LookupID( strdup($1), ANY_SCOPE, 0, 0 );
+				current_sequencer->LookupID( string_dup($1), ANY_SCOPE, 0, 0 );
 
 			if ( ! id )
 				{
@@ -539,7 +543,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 	|	TOK_ID
 			{
 			Expr* id =
-				current_sequencer->LookupID( strdup($1), ANY_SCOPE, 0, 0 );
+				current_sequencer->LookupID( string_dup($1), ANY_SCOPE, 0, 0 );
 
 			if ( ! id )
 				{
@@ -663,7 +667,7 @@ function_head:	TOK_FUNCTION
 	|	TOK_SUBSEQUENCE
 			{
 			current_sequencer->PushScope( FUNC_SCOPE );
-			$$ = current_sequencer->InstallID( strdup( "self" ), LOCAL_SCOPE );
+			$$ = current_sequencer->InstallID( string_dup( "self" ), LOCAL_SCOPE );
 			glish_current_subsequence->append($$);
 #ifdef GGC
 			gc_registry_offset->append( gc_registry->length() );
@@ -701,7 +705,7 @@ formal_params:	formal_params ',' formal_param
 
 formal_param:	formal_param_class TOK_ID formal_param_default
 			{
-			Expr* id = current_sequencer->LookupID( strdup($2), LOCAL_SCOPE, 0, 0 );
+			Expr* id = current_sequencer->LookupID( string_dup($2), LOCAL_SCOPE, 0, 0 );
 			if ( id )
 				{
 				yyerror("multiple parameters with same name");
@@ -715,7 +719,7 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 
 	|	TOK_ELLIPSIS formal_param_default
 			{
-			Expr* ellipsis = current_sequencer->LookupID(strdup("..."), LOCAL_SCOPE, 1, 0 );
+			Expr* ellipsis = current_sequencer->LookupID(string_dup("..."), LOCAL_SCOPE, 1, 0 );
 
 			Ref(ellipsis);
 			$$ = new FormalParameter( VAL_CONST, ellipsis, 1, $2 );
@@ -764,7 +768,7 @@ actual_param:	scoped_expr
 			{
 			Expr* ellipsis =
 				current_sequencer->LookupID(
-					strdup( "..." ), LOCAL_SCOPE, 0 );
+					string_dup( "..." ), LOCAL_SCOPE, 0 );
 
 			if ( ! ellipsis )
 				{
@@ -821,7 +825,7 @@ array_record_param:	scoped_expr
 			{
 			Expr* ellipsis =
 				current_sequencer->LookupID(
-					strdup( "..." ), LOCAL_SCOPE, 0 );
+					string_dup( "..." ), LOCAL_SCOPE, 0 );
 
 			if ( ! ellipsis )
 				{
@@ -890,7 +894,7 @@ opt_actual_param:	scoped_expr
 			{
 			Expr* ellipsis =
 				current_sequencer->LookupID(
-					strdup( "..." ), LOCAL_SCOPE, 0 );
+					string_dup( "..." ), LOCAL_SCOPE, 0 );
 
 			if ( ! ellipsis )
 				{
@@ -951,7 +955,7 @@ func_body:	'{' statement_list '}'
 
 var:		TOK_ID
 			{
-			$$ = current_sequencer->LookupID( strdup($1), LOCAL_SCOPE, 0 );
+			$$ = current_sequencer->LookupID( string_dup($1), LOCAL_SCOPE, 0 );
 
 			if ( ! $$ )
 				$$ = CreateVarExpr( $1, current_sequencer );
@@ -1017,7 +1021,7 @@ void error_reset( )
 	{
 	current_sequencer->ClearWhenevers();
 
-	if ( interactive )
+	if ( interactive( ) )
 		while ( current_sequencer->ScopeDepth() > scope_depth )
 			current_sequencer->PopScope();
 	}
@@ -1025,7 +1029,7 @@ void error_reset( )
 extern "C"
 void yyerror( char msg[] )
 	{
-	if ( ! status )
+	if ( ! status && ! in_evaluation( ) )
 		{
 		if ( glish_regex_matched )
 			{
@@ -1067,12 +1071,12 @@ IValue *glish_parser( Stmt *&stmt )
 	error->SetCount(0);
 	status = 0;
 
-	if ( interactive )
+	if ( interactive( ) )
 		scope_depth = current_sequencer->ScopeDepth();
 
 	while ( ! (ret = yyparse()) )
 		{
-		if ( ! interactive )
+		if ( ! interactive( ) )
 			stmt = merge_stmts( stmt, cur_stmt );
 
 		else
@@ -1114,6 +1118,7 @@ IValue *glish_parser( Stmt *&stmt )
 		}
 
 	if ( ! status ) return 0;
+	status = 0;
 	IValue *tmp = parse_error;
 	parse_error = 0;
 	return tmp ? tmp : error_ivalue( "parse error" );

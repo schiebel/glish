@@ -62,17 +62,13 @@ MKHIER = $(top)/config/mkhier
 
 KEYDIR = @KEYDIR@
 
-OBJS = \
-	auth.o \
-	md5c.o \
-	npd.o \
-	util.o
+OBJS = auth.o md5c.o npd.o util.o
 
-OBJS_PROXY = \
-	$(D)auth.o \
-	$(D)md5c.o \
-	$(D)npd.o \
-	$(D)util.o
+OBJS_PROXY = $(D)auth.o $(D)md5c.o $(D)npd.o $(D)util.o
+
+GCOBJS = gcauth.o gcmd5c.o gcnpd.o gcutil.o
+
+GCOBJS_PROXY = $(D)gcauth.o $(D)gcmd5c.o $(D)gcnpd.o $(D)gcutil.o
 
 TAR_FILE = npd.tar
 
@@ -80,11 +76,11 @@ all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(INCDIR_P)/Npd/npd.h
+lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX) $(INCDIR_P)/Npd/npd.h
 
 bin_tgt: $(BINDIR_P)/glishkey
 
-INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX)
+INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX) $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
 	if test ! -d $(KEYDIR)/hosts; then	\
 	    $(MKHIER) "$(KEYDIR)/hosts";	\
 	    chmod -f 750 "$(KEYDIR)/hosts";	\
@@ -105,14 +101,26 @@ libnpd$(LIB_SUFFIX): $(OBJS_PROXY)
 	$(RANLIB) libnpd$(LIB_SUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
+libnpdgc$(LIB_SUFFIX): $(GCOBJS_PROXY)
+	$(RM) libnpdgc$(LIB_SUFFIX)
+	$(MK_LIB) libnpdgc$(LIB_SUFFIX) $(GCOBJS) $(LD_LIBS)
+	$(RANLIB) libnpdgc$(LIB_SUFFIX)
+	$(MINSPACE_RM) $(OBJS)
+
 glishkey: libnpd$(LIB_SUFFIX) genkey.o
-	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) ${LIBDIR_P}/libgcmem.a -lm @LIBS@
+	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) -lm @LIBS@
 
 $(LIBDIR_P)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/Npd
 	$(INSTALL_LIBRARY) libnpd$(LIB_SUFFIX) $(LIBDIR_P)
 	$(RANLIB) $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
+
+$(LIBDIR_P)/libnpdgc$(LIB_SUFFIX):libnpdgc$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(MKHIER) $(INCDIR_P)/Npd
+	$(INSTALL_LIBRARY) libnpdgc$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX)
 
 $(BINDIR_P)/glishkey:glishkey
 	$(MKHIER) $(BINDIR_P)
@@ -122,6 +130,11 @@ $(LIBDIR)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR)
 	$(INSTALL_LIBRARY) libnpd$(LIB_SUFFIX) $(LIBDIR)
 	$(RANLIB) $(LIBDIR)/libnpd$(LIB_SUFFIX)
+
+$(LIBDIR)/libnpdgc$(LIB_SUFFIX):libnpdgc$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) libnpdgc$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
 
 $(BINDIR)/glishkey:glishkey
 	$(MKHIER) $(BINDIR)
@@ -153,15 +166,27 @@ distclean: clean
 $(D)auth.o: $(SRC)/auth.c $(SRC)/md5.h $(SRC)/util.h $(SRC)/auth.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/auth.c	$(T)
 
+$(D)gcauth.o: $(SRC)/auth.c $(SRC)/md5.h $(SRC)/util.h $(SRC)/auth.h
+	$(CC) $(INC) $(CFLAGS) -DENABLE_GC -c -o gcauth.o $(SRC)/auth.c	$(T)
+
 $(D)npd.o: $(SRC)/npd.c $(SRC)/version.h $(SRC)/auth.h $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" -c $(SRC)/npd.c	$(T)
+
+$(D)gcnpd.o: $(SRC)/npd.c $(SRC)/version.h $(SRC)/auth.h $(SRC)/util.h
+	$(CC) $(INC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" -DENABLE_GC -c -o gcnpd.o $(SRC)/npd.c	$(T)
 
 $(D)md5c.o: $(SRC)/md5c.c $(SRC)/md5.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/md5c.c $(T)
 
+$(D)gcmd5c.o: $(SRC)/md5c.c $(SRC)/md5.h
+	$(CC) $(INC) $(CFLAGS) -DENABLE_GC -c -o gcmd5c.o $(SRC)/md5c.c $(T)
+
 $(D)util.o: $(SRC)/util.c $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/util.c $(T)
 #	$(CC) $(INC) $(CFLAGS) -DLOG_FMT=\"$(LOGDIR)/%s.%s@%s.log\" -c $(SRC)/util.c
+
+$(D)gcutil.o: $(SRC)/util.c $(SRC)/util.h
+	$(CC) $(INC) $(CFLAGS) -DENABLE_GC -c -o gcutil.o $(SRC)/util.c $(T)
 
 $(INCDIR_P)/Npd/npd.h: $(HEADERDIR)/npd.h
 	rm -f $@ 

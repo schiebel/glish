@@ -22,7 +22,7 @@ typedef const char* charptr;
 
 typedef void (*final_func)(void*);
 
-class sos_status : public gc_cleanup {
+class sos_status GC_FINAL_CLASS {
     public:
 	enum Type { WRITE, READ, UNKNOWN };
 
@@ -62,7 +62,7 @@ struct sos_fd_buf_kernel;
 sos_declare(PList,sos_fd_buf_kernel);
 typedef PList(sos_fd_buf_kernel) sos_buf_list;
 
-class sos_fd_buf : public gc_cleanup {
+class sos_fd_buf GC_FINAL_CLASS {
     public:
 	sos_fd_buf();
 	~sos_fd_buf();
@@ -135,7 +135,7 @@ class sos_fd_source : public sos_source {
 	int fd_;
 };
 
-class sos_out : public gc_cleanup {
+class sos_out GC_FINAL_CLASS {
 public:
 	sos_out( sos_sink *out_ = 0, int integral_header = 0 );
 	void set( sos_sink *out_ ) { out = out_; }
@@ -185,7 +185,7 @@ private:
 	sos_sink *out;
 };
 
-class sos_in : public gc_cleanup {
+class sos_in GC_FINAL_CLASS {
 public:
 	sos_in( sos_source *in_ = 0, int use_str_ = 0, int integral_header = 0 );
 	void set( sos_source *in_ ) { in = in_; }

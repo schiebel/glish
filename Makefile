@@ -45,7 +45,6 @@ install_r:
 	@$(MAKE) install.regx
 	@$(MAKE) install.editline
 	@$(MAKE) install.npd
-	@$(MAKE) install.tk
 	@$(MAKE) install.glish
 
 clean_r:
@@ -55,7 +54,6 @@ clean_r:
 	@$(MAKE) clean.regx
 	@$(MAKE) clean.editline
 	@$(MAKE) clean.npd
-	@$(MAKE) clean.tk
 	@$(MAKE) clean.glish
 
 distclean_r:
@@ -65,7 +63,6 @@ distclean_r:
 	@$(MAKE) distclean.regx
 	@$(MAKE) distclean.editline
 	@$(MAKE) distclean.npd
-	@$(MAKE) distclean.tk
 	@$(MAKE) distclean.glish
 	@rm -rf $(ARCH)
 
@@ -274,77 +271,6 @@ distclean.npd_r_r: distclean-$(BUILD_NPD)
 
 distclean-BUILD_NPD: 
 	@cd npd; $(MAKE) distclean
-
-##
-## Building TK
-##
-build.tk: 
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	$(MAKE) $$FLGS $@_r
-
-build.tk_r: 
-	@if test -z "$(BUILD_TK)"; then 		\
-		FLGS="BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
-	else 	FLGS=""; fi;				\
-	$(MAKE) $$FLGS $@_r
-
-build.tk_r_r: $(BUILD_TK)
-
-BUILD_TK: 
-	@cd rivet; $(MAKE)
-
-install.tk: 
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	$(MAKE) $$FLGS $@_r
-
-install.tk_r: 
-	@if test -z "$(BUILD_TK)"; then 		\
-		FLGS="BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
-	else 	FLGS=""; fi;				\
-	$(MAKE) $$FLGS $@_r
-
-install.tk_r_r: install-$(BUILD_TK)
-
-install-BUILD_TK: 
-	@cd rivet; $(MAKE) install
-
-clean.tk: 
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;		 		\
-	$(MAKE) $$FLGS $@_r
-
-clean.tk_r: 
-	@if test -z "$(BUILD_TK)"; then 		\
-		FLGS="BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
-	else 	FLGS=""; fi;				\
-	$(MAKE) $$FLGS $@_r
-
-clean.tk_r_r: clean-$(BUILD_TK)
-
-clean-BUILD_TK: 
-	@cd tk; $(MAKE) clean
-
-distclean.tk: 
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	$(MAKE) $$FLGS $@_r
-
-distclean.tk_r: 
-	@if test -z "$(BUILD_TK)"; then 		\
-		FLGS="BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
-	else 	FLGS=""; fi;				\
-	$(MAKE) $$FLGS $@_r
-
-distclean.tk_r_r: distclean-$(BUILD_TK)
-
-distclean-BUILD_TK: 
-	@cd rivet; $(MAKE) distclean
 
 ##
 ## Dummy targets

@@ -15,7 +15,7 @@ RCSID("@(#) $Id$")
 #define PXGETID		"*proxy-id*"
 #define PXCREATE	"*proxy-create*"
 
-class pxy_store_cbinfo : public gc_cleanup {
+class pxy_store_cbinfo GC_FINAL_CLASS {
     public:
 	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), cb3(0), data(data_) { }
 	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), cb3(0), data(data_) { }
@@ -37,7 +37,7 @@ void pxy_store_cbinfo::invoke( ProxyStore *s, Value *v, GlishEvent *e )
 	if ( s->ReplyPending() ) s->Reply(true_reply);
 	}
 
-class event_queue_item : public gc_cleanup {
+class event_queue_item GC_FINAL_CLASS {
     public:
 	event_queue_item( GlishEvent *e, char *&rn ) : event(e), reply_name(rn)
 		{ rn = 0; }

@@ -26,7 +26,7 @@ extern Str glish_errno;
 typedef const char* charptr;
 typedef GcRef GlishRef;
 
-class ioOpt : public gc_cleanup {
+class ioOpt GC_FINAL_CLASS {
     public:
 	inline static unsigned short SHORT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
 	inline static unsigned short NO_NEWLINE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }

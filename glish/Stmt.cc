@@ -75,12 +75,6 @@ int Stmt::GetActivity( ) const
 	return 1;
 	}
 
-#ifdef GGC
-void Stmt::TagGC( )
-	{
-	}
-#endif
-
 const char *SeqStmt::Description() const
 	{
 	return "sequence";
@@ -352,17 +346,6 @@ IValue* WheneverStmt::DoExec( int, stmt_flow_type& )
 	{
 	return 0;
 	}
-
-#ifdef GGC
-void WheneverStmt::TagGC( )
-	{
-	if ( stack ) stack->TagGC( );
-	if ( misc )
-		loop_over_list( *misc, i )
-			if ( (*misc)[i] )
-				(*misc)[i]->TagGC( );
-	}
-#endif
 
 WheneverStmt::~WheneverStmt()
 	{

@@ -401,7 +401,7 @@ int Agent::IsPseudo( ) const
 	return 0;
 	}
 
-class uagent_await_info : public gc_cleanup {
+class uagent_await_info GC_FINAL_CLASS {
     public:
 	uagent_await_info( const char *n, UserAgent *a ) : name_(n), agent_(a), result_(0) { }
 	void set_result( IValue *v ) { result_ = copy_value(v); }

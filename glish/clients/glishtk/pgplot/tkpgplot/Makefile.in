@@ -1,7 +1,7 @@
 ## $Id$
 ##
 
-# Current Rivet version;  used in various names.
+# Current version;  used in various names.
 VERSION = 0.0
 
 INSTALL = @INSTALL@
@@ -94,7 +94,7 @@ SECURITY_FLAGS =
 EXTRA = $(PROTO_FLAGS) $(SECURITY_FLAGS)
 
 ##
-## Rivet objects
+## objects
 ##
 $(D)grexec.o: $(SRC)/grexec.c
 	$(CC) $(CINCLUDE) $(CFLAGS) $(EXTRA) -c $(SRC)/grexec.c $(T)
@@ -104,13 +104,6 @@ $(D)pgxwin.o: $(SRC)/pgxwin.c
 
 $(D)tkpgplot.o: $(SRC)/tkpgplot.c
 	$(CC) $(CINCLUDE) $(CFLAGS) $(EXTRA) -c $(SRC)/tkpgplot.c $(T)
-
-##
-## include files
-##
-$(INCDIR_P)/Rivet/rvpgplot.h: $(SRC)/rvpgplot.h
-	rm -f $@ 
-	cp $(SRC)/rvpgplot.h $@
 
 INSTALL_:
 

@@ -14,7 +14,7 @@
 struct complex;
 struct dcomplex;
 
-struct complex {
+struct complex GC_FREE_CLASS {
 	complex() {}
 	complex( float rv, float iv ) : r(rv), i(iv) {}
 	complex( float rv ) : r(rv), i(float(0)) {}
@@ -25,7 +25,7 @@ struct complex {
 	float i;
 };
 
-struct dcomplex {
+struct dcomplex GC_FREE_CLASS {
 	dcomplex() {}
 	dcomplex( double rv, double iv ) : r(rv), i(iv) {}
 	dcomplex( double rv ) : r(rv), i(double(0)) {}
@@ -36,10 +36,10 @@ struct dcomplex {
 	double i;
 };
 
-#define alloc_complex( num ) (complex*) GC_malloc_atomic( sizeof(complex) * num )
-#define alloc_complexptr( num ) (complex**) GC_malloc( sizeof(complex*) * num )
-#define alloc_dcomplex( num ) (dcomplex*) GC_malloc_atomic( sizeof(dcomplex) * num )
-#define alloc_dcomplexptr( num ) (dcomplex**) GC_malloc( sizeof(dcomplex*) * num )
+#define alloc_complex( num ) (complex*) alloc_memory_atomic( sizeof(complex) * num )
+#define alloc_complexptr( num ) (complex**) alloc_memory( sizeof(complex*) * num )
+#define alloc_dcomplex( num ) (dcomplex*) alloc_memory_atomic( sizeof(dcomplex) * num )
+#define alloc_dcomplexptr( num ) (dcomplex**) alloc_memory( sizeof(dcomplex*) * num )
 
 inline complex::complex( const dcomplex& cv )
 	{

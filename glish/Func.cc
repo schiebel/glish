@@ -17,10 +17,6 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
-#ifdef GGC
-void Func::TagGC() { }
-#endif
-
 Parameter::~Parameter()
 	{
 	NodeUnref( arg );
@@ -210,62 +206,6 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	return kernel->Describe(s, opt);
 	}
-
-
-#ifdef MEMFREE
-unsigned int UserFunc::CountRefs( recordptr r ) const
-	{
-	static func_list been_there;
-
-	if ( been_there.is_member( (UserFunc*) this ) )
-		return 0;
-
-	been_there.append( (UserFunc*) this );
-
-	unsigned int count = 0;
-	if ( stack )
-		{
-		frame_list *frames = stack->frames();
-		if ( frames )
-			{
-			loop_over_list( *frames, j )
-				{
-				Frame *f = (*frames)[j];
-				if ( f ) count += f->CountRefs(r);
-				}
-			}
-		}
-
-	been_there.remove( (UserFunc*) this );
-
-	return count;
-	}
-
-int UserFunc::CountRefs( Frame *f ) const
-	{
-	int count = 0;
-	if ( stack )
-		{
-		frame_list *frames = stack->frames();
-		if ( frames )
-			loop_over_list( *frames, j )
-				if ( (*frames)[j] == f )
-					count += 1;
-		}
-	return count;
-	}
-#endif
-
-#ifdef GGC
-void UserFunc::TagGC( )
-	{
-	if ( stack ) stack->TagGC( );
-	if ( misc )
-		loop_over_list( *misc, i )
-			if ( (*misc)[i] )
-				(*misc)[i]->TagGC( );
-	}
-#endif
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 				Sequencer* arg_sequencer, Expr* arg_subsequence_expr,

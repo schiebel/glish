@@ -35,7 +35,7 @@ typedef struct regexp {
 	U16 naughty;		/* how exponential is this pattern? */
 	char reganch;		/* Internal use only. */
 	char exec_tainted;	/* Tainted information used by regexec? */
-	char program[1];	/* Unwarranted chumminess with compiler. */
+	char *program;		/* Unwarranted chumminess with compiler. */
 } regexp;
 
 EXT regexp *regxcomp(char *exp, char *xend, PMOP *pm);

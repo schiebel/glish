@@ -31,16 +31,11 @@ Frame::~Frame() { clear(); }
 
 void Frame::clear()
 	{
-#ifdef GGC
-	if ( ! glish_collecting_garbage )
-#endif
-		{
-		Unref( missing );
-		missing = 0;
+	Unref( missing );
+	missing = 0;
 
-		for ( int i = 0; i < size; ++i )
-			Unref( values[i] );
-		}
+	for ( int i = 0; i < size; ++i )
+		Unref( values[i] );
 
 	free_memory( values );
 	values = 0;
@@ -54,42 +49,3 @@ IValue*& Frame::FrameElement( int offset )
 
 	return values[offset];
 	}
-
-#ifdef MEMFREE
-unsigned int Frame::CountRefs( recordptr r ) const
-	{
-	//
-	// here we lie because if some other function is
-	// pointing to us we must protect our values...
-	//
-	if ( RefCount() > 1 ) return 0;
-
-	unsigned int count = 0;
-	for ( int i = 0; i < size; ++i )
-		if ( values[i] )
-			count += values[i]->CountRefs(r);
-
-	return count;
-	}
-	
-int Frame::CountRefs( Frame *f ) const
-	{
-	int count = 0;
-	for ( int i = 0; i < size; ++i )
-		if ( values[i] )
-			count += values[i]->CountRefs(f);
-
-	return count;
-	}
-#endif
-	
-#ifdef GGC
-void Frame::TagGC( )
-	{
-	for ( int i = 0; i < size; ++i )
-		if ( values[i] )
-			values[i]->TagGC( );
-	if ( missing)
-		missing->TagGC( );
-	}
-#endif

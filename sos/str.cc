@@ -13,11 +13,11 @@ RCSID("@(#) $Id$")
 str_kernel::str_kernel( const char *s ) : cnt(1), size(1)
 	{
 	ary = (char**) alloc_zero_memory(size*sizeof(char*));
-	len = (unsigned int*) alloc_zero_memory(size*sizeof(unsigned int));
+	len = (unsigned int*) alloc_zero_memory_atomic(size*sizeof(unsigned int));
 	if ( s && *s )
 		{
 		len[0] = ::strlen(s);
-		ary[0] = (char*) alloc_memory(len[0]+1);
+		ary[0] = alloc_char(len[0]+1);
 		memcpy(ary[0],s,len[0]+1);
 		}
 	}
@@ -33,7 +33,7 @@ void str_kernel::set( unsigned int off, const char *s )
 				ary[off] = (char*) realloc_memory(ary[off],s_len+1);
 			}
 		else
-			ary[off] = (char*) alloc_memory(s_len+1);
+			ary[off] = alloc_char(s_len+1);
 
 		len[off] = s_len;
 		memcpy(ary[off],s,s_len+1);
@@ -70,7 +70,7 @@ str_kernel *str_kernel::clone() const
 	for ( unsigned int i=0; i < size; i++ )
 		if ( ary[i] && len[i] )
 			{
-			nk->ary[i] = (char*) alloc_memory(len[i]+1);
+			nk->ary[i] = alloc_char(len[i]+1);
 			memcpy(nk->ary[i],ary[i],len[i]+1);
 			nk->len[i] = len[i];
 			}

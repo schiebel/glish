@@ -4,9 +4,7 @@
 #ifndef tkcore_h_
 #define tkcore_h_
 
-#define GC XGC
 #include "tk.h"
-#undef GC
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
 #include "config.h"

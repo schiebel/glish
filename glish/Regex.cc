@@ -548,7 +548,7 @@ Regex::~Regex()
 //
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 //
-struct str_node {
+struct str_node GC_FINAL_CLASS {
 	str_node( char *s ) : base(s) { }
 	~str_node( );
 	void update( Regex *reg );
@@ -622,7 +622,7 @@ IValue *str_node::get( Regex *reg )
 glish_declare(PList,str_node);
 typedef PList(str_node) str_node_list;
 
-struct match_node {
+struct match_node GC_FINAL_CLASS {
 	match_node( Regex *r ) : reg(r) { Ref(reg); }
 	~match_node( );
 	void update( char * );

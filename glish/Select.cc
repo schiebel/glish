@@ -169,9 +169,9 @@ Selector::Selector() : await_done(0), break_selection(0)
 	nuke_current_selectee = 0;
 	selectee_count = 0;
 
-	r_fdset = new fd_set;
+	r_fdset = (fd_set*) alloc_memory_atomic( sizeof(fd_set) );
 	FD_ZERO( r_fdset );
-	w_fdset = new fd_set;
+	w_fdset = (fd_set*) alloc_memory_atomic( sizeof(fd_set) );
 	FD_ZERO( w_fdset );
 	}
 
@@ -181,8 +181,8 @@ Selector::~Selector()
 		delete selectees[i];
 
 	free_memory( selectees );
-	delete r_fdset;
-	delete w_fdset;
+	free_memory( r_fdset );
+	free_memory( w_fdset );
 	}
 
 void Selector::AddSelectee( Selectee* s )

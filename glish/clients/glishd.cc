@@ -109,7 +109,7 @@ glish_declare(PDict,LocalExec);
 //  These are the intrepreter connections which talk only
 //  to 'dUser'.
 //
-class Interp : public gc_cleanup {
+class Interp {
     public:
 	Interp( Client *c ) : interpreter( c ), work_dir(string_dup("/")), binpath(0), ldpath(0) {  }
 	~Interp();

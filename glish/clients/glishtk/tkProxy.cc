@@ -127,7 +127,7 @@ char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	return Tcl_GetStringResult(tcl);
 	}
 
-class glishtk_event : public gc_cleanup {
+class glishtk_event {
     public:
 	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
 			agent(a_), nme(n_ ? string_dup(n_) : string_dup(" ")), val(v_)
@@ -349,9 +349,6 @@ void TkProxy::FlushGlishEvents()
 		hold_glish_events = 0;
 		while ( (e = tk_queue->DeQueue()) )
 			{
-#ifdef GGC
-			ProxyStore::CurSeq()->UnregisterValue(e->value());
-#endif
 			e->Post();
 			delete e;
 			}

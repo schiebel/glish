@@ -10,11 +10,7 @@ class Sequencer;
 class Stmt;
 class stack_type;
 
-typedef IValue* value_ptr;
-#define value_ptr_to_void void_ptr
-#define void_to_value_ptr value_ptr
-glish_declare(List,value_ptr);
-typedef List(value_ptr) args_list;
+typedef PList(IValue) args_list;
 
 class Parameter;
 glish_declare(PList,Parameter);
@@ -25,17 +21,8 @@ class Func : public GlishObject {
     public:
 	virtual IValue* Call( parameter_list* args, eval_type etype ) = 0;
 
-#ifdef MEMFREE
-	virtual unsigned int CountRefs( recordptr r ) const = 0;
-	virtual int CountRefs( Frame *f ) const = 0;
-#endif
-
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
-
-#ifdef GGC
-	virtual void TagGC();
-#endif
 
     protected:
 	int mark;
@@ -188,15 +175,6 @@ class UserFunc : public Func {
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
-
-#ifdef MEMFREE
-	unsigned int CountRefs( recordptr r ) const;
-	int CountRefs( Frame *f ) const;
-#endif
-
-#ifdef GGC
-	void TagGC();
-#endif
 
     protected:
 	Sequencer* sequencer;

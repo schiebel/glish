@@ -16,28 +16,24 @@ typedef ValueKernel::record_t our_recordptr;
 glish_declare(PList,our_recordptr);
 typedef PList(our_recordptr) recordptr_list;
 
-#ifdef GGC
-extern int glish_collecting_garbage;
-#endif
-
 glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
-	{ { 0, 0, 0, 0, 0, 0 },						/* TYPE_ERROR */
-	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_REF */
-	  { 0, 0, 0, 0, 0, 0 },  					/* TYPE_SUBVEC_REF */
-	  { sizeof(glish_bool), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_BOOL */
-	  { sizeof(byte), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_BYTE */
-	  { sizeof(short), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_SHORT */
-	  { sizeof(int), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_INT */
-	  { sizeof(float), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_FLOAT */
-	  { sizeof(double), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_DOUBLE */
-	  { sizeof(charptr), copy_strings, 0, 0, GC_malloc, 0 },	/* TYPE_STRING */
-	  { sizeof(void*), 0, 0, 0, 0, 0 },				/* TYPE_AGENT */
-	  { sizeof(void*), 0, 0, 0, 0, 0 },				/* TYPE_FUNC */
-	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_RECORD */
-	  { sizeof(complex), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_COMPLEX */
-	  { sizeof(dcomplex), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_DCOMPLEX */
-	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_FAIL */
-	  { sizeof(void*), 0, 0, 0, 0, 0 }				/* TYPE_REGEX */
+	{ { 0, 0, 0, 0, 0, 0 },							/* TYPE_ERROR */
+	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_REF */
+	  { 0, 0, 0, 0, 0, 0 },  						/* TYPE_SUBVEC_REF */
+	  { sizeof(glish_bool), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_BOOL */
+	  { sizeof(byte), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_BYTE */
+	  { sizeof(short), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_SHORT */
+	  { sizeof(int), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_INT */
+	  { sizeof(float), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_FLOAT */
+	  { sizeof(double), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_DOUBLE */
+	  { sizeof(charptr), copy_strings, 0, 0, alloc_memory_func, 0 },	/* TYPE_STRING */
+	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_AGENT */
+	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_FUNC */
+	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_RECORD */
+	  { sizeof(complex), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_COMPLEX */
+	  { sizeof(dcomplex), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_DCOMPLEX */
+	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_FAIL */
+	  { sizeof(void*), 0, 0, 0, 0, 0 }					/* TYPE_REGEX */
 	};
 
 void register_type_funcs( glish_type t, KernelCopyFunc c,
@@ -254,41 +250,7 @@ void ValueKernel::unrefRecord(int del)
 				record->clear();
 		else
 			if ( del )
-				{
-#ifdef MEMFREE
-				static recordptr_list been_there;
-				if ( ! been_there.is_member( record ) &&
-				     record->ref_count == count_references(record->record,record->record) )
-					{
-					recordptr r = record->record;
-					been_there.append(record);
-					IterCookie* c = r->InitForIteration();
-					Value* member;
-					const char* key;
-
-					//** we decremented it above **
-					++record->ref_count;
-
-#ifdef GGC
-					if ( glish_collecting_garbage )
-						while ( (member = r->NextEntry( key, c )) )
-							free_memory( (void*) key );
-					else
-#endif
-						while ( (member = r->NextEntry( key, c )) )
-							{
-							free_memory( (void*) key );
-							Unref( member );
-							}
-
-					delete record->record;
-					record->record = 0;
-					delete record;
-					been_there.remove(record);
-					}
-#endif
 				record = 0;
-				}
 			else
 				record = new record_t();
 		}
@@ -463,11 +425,7 @@ void ValueKernel::refOthers()
 
 void ValueKernel::unrefOthers()
 	{
-	if ( mVALUE(mode) 
-#ifdef GGC
-	     && ! glish_collecting_garbage
-#endif
-	     )
+	if ( mVALUE(mode) )
 		Unref( value );
 	else if ( mREF(mode) )
 		Unref( vecref );
@@ -582,28 +540,10 @@ recordptr create_record_dict()
 	return new PDict(Value)( ORDERED );
 	}
 
-#ifdef MEMFREE
-unsigned int count_references( recordptr from, recordptr to )
-	{
-	unsigned int count = 0;
-
-	if ( from && to )
-		{
-		IterCookie* c = from->InitForIteration();
-
-		Value* member;
-		const char* key;
-
-		while ( (member = from->NextEntry( key, c )) )
-		  count += member->CountRefs(to);
-		}
-
-	return count;
-	}
-#endif
-
 void delete_record( recordptr r )
 	{
+// 	hold_garbage( );
+
 	if ( r )
 		{
 		IterCookie* c = r->InitForIteration();
@@ -611,20 +551,16 @@ void delete_record( recordptr r )
 		Value* member;
 		const char* key;
 
-#ifdef GGC
-		if ( glish_collecting_garbage )
-			while ( (member = r->NextEntry( key, c )) )
-				free_memory( (void*) key );
-		else
-#endif
-			while ( (member = r->NextEntry( key, c )) )
-				{
-				free_memory( (void*) key );
-				Unref( member );
-				}
+		while ( (member = r->NextEntry( key, c )) )
+			{
+			free_memory( (void*) key );
+			Unref( member );
+			}
 
 		delete r;
 		}
+
+// 	release_garbage( );
 	}
 
 recordptr copy_record_dict( recordptr rptr )

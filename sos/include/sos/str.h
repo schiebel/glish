@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <string.h>
 
-class str_kernel : public gc_cleanup {
+class str_kernel GC_FINAL_CLASS {
 public:
 	str_kernel( unsigned int size_ = 0 ) : cnt(1), size(size_ ? size_ : 1)
 		{ ary = (char**) alloc_zero_memory(size*sizeof(char*));
@@ -50,7 +50,7 @@ protected:
 	unsigned int *len;
 };
 
-class str_ref : public gc_cleanup {
+class str_ref GC_FINAL_CLASS {
 friend class str;
 friend unsigned int strlen( const str_ref & );
 public:
@@ -68,7 +68,7 @@ private:
 	unsigned int off;
 };
 
-class str : public gc_cleanup {
+class str GC_FINAL_CLASS {
 friend class str_ref;
 friend unsigned int strlen( const str_ref & );
 public:

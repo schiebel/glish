@@ -17,7 +17,7 @@ class ProxyTask;
 glish_declare(PList,ProxyTask);
 typedef PList(ProxyTask) proxytask_list;
 
-class TaskAttr : public gc_cleanup {
+class TaskAttr GC_FINAL_CLASS {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
 		  int async_flag=0, int ping_flag=0, int suspend_flag=0, int force_sockets=0,

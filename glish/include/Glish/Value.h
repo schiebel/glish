@@ -37,11 +37,9 @@ extern int lookup_print_limit( );
 glish_declare(PList,Value);
 typedef PList(Value) value_list;
 
-typedef const Value* const_value;
-#define const_value_to_void void_ptr
-#define void_to_const_value const_value
-glish_declare(List,const_value);
-typedef List(const_value) const_value_list;
+typedef const Value const_value;
+glish_declare(PList,const_value);
+typedef PList(const_value) const_value_list;
 
 // Classes for subvector references.
 class VecRef;
@@ -577,11 +575,6 @@ public:
 			return copy;
 			}
 		}
-
-#ifdef MEMFREE
-	virtual unsigned int CountRefs( recordptr r ) const;
-	int CountRefs( Value *val ) const;
-#endif
 
 	int Sizeof( ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;

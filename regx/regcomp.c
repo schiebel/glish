@@ -193,8 +193,9 @@ PMOP* pm;
 	FAIL("regexp too big");
 
     /* Allocate space and initialize. */
-    Newc(1001, r, sizeof(regexp) + (unsigned)regsize, char, regexp);
-    if (r == NULL)
+    Newc(1001, r, sizeof(regexp), char, regexp);
+    r->program =  alloc_char(regsize);
+    if (r == NULL || r->program == NULL)
 	FAIL("regexp out of space");
     r->prelen = xend - exp;
     r->precomp = regprecomp;
@@ -1784,6 +1785,7 @@ struct regexp *r;
     }
     Safefree(r->startp);
     Safefree(r->endp);
+    Safefree(r->program);
     Safefree(r);
 }
 

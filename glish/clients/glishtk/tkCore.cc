@@ -2010,12 +2010,7 @@ TkButton::~TkButton( )
 		}
 
 	if ( value )
-		{
-#ifdef GGC
-		sequencer->UnregisterValue( value );
-#endif
 		Unref(value);
-		}
 
 	UnMap();
 	}
@@ -2233,9 +2228,6 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 
 	value = val ? copy_value( val ) : 0;
-#ifdef GGC
-	if ( value ) sequencer->RegisterValue( value );
-#endif
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = string_dup(fill_);
@@ -2424,9 +2416,6 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	if ( bitmap ) free_memory(bitmap);
 
 	value = val ? copy_value( val ) : 0;
-#ifdef GGC
-	if ( value ) sequencer->RegisterValue( value );
-#endif
 
 	tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
 	menu_index = string_dup( Tcl_GetStringResult(tcl) );

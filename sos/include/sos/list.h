@@ -42,6 +42,9 @@ class BaseList : public GcRef {
 	int curlen() const	{ return max_entries; }
 
     protected:
+
+	virtual void *allocate( unsigned int s ) { return alloc_memory( s ); }
+
 	int resize( );
 
 	BaseList(int = 0, PFC = 0);
@@ -77,7 +80,7 @@ class BaseList : public GcRef {
 	friend class BaseListIterator;
 	};
 
-class BaseListIterator : public gc_cleanup {
+class BaseListIterator GC_FINAL_CLASS {
     public:
 	BaseListIterator(BaseList& l)	{ lp = &l; pos = 0; }
 
@@ -138,6 +141,8 @@ struct List(type) : BaseList						\
 									\
 	type operator[](int i) const					\
 		{ return PASTE(void_to_,type)(BaseList::operator[](i)); } \
+    protected:								\
+	void *allocate( unsigned int s ) { return alloc_memory_atomic( s ); } \
 	};								\
 									\
 struct ListIterator(type) : BaseListIterator				\

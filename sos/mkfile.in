@@ -63,6 +63,10 @@ OBJS = convert.o header.o io.o longint.o types.o list.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
 	$(D)types.o $(D)list.o
 
+GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o
+GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
+	$(D)gctypes.o $(D)gclist.o
+
 HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h \
 	$(H)/header.h $(H)/mdep.h $(H)/list.h $(H)/generic.h
 
@@ -76,14 +80,14 @@ all: $(LIBTGT)
 
 install: $(INSTALL_LIBTGT)
 
-lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libsosgc$(LIB_SUFFIX) $(HDRS_P)
 
-INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX)
+INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX) $(LIBDIR)/libsosgc$(LIB_SUFFIX)
 	$(MKHIER) $(INCDIR)/sos
 	@rm -f $(INCDIR)/sos/*.h
 	cp $(HDRS) $(INCDIR)/sos
 
-libs: libsos$(LIB_SUFFIX)
+libs: libsos$(LIB_SUFFIX) libsosgc$(LIB_SUFFIX)
 
 libsos$(LIB_SUFFIX): $(OBJS_PROXY)
 	$(RM) libsos$(LIB_SUFFIX)
@@ -101,6 +105,23 @@ $(LIBDIR)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR)
 	$(INSTALL_LIBRARY) libsos$(LIB_SUFFIX) $(LIBDIR)
 	$(RANLIB) $(LIBDIR)/libsos$(LIB_SUFFIX)
+
+libsosgc$(LIB_SUFFIX): $(GCOBJS_PROXY)
+	$(RM) libsosgc$(LIB_SUFFIX)
+	$(MK_LIB) libsosgc$(LIB_SUFFIX) $(GCOBJS) $(LD_LIBS)
+	$(RANLIB) libsosgc$(LIB_SUFFIX)
+	$(MINSPACE_RM) $(GCOBJS)
+
+$(LIBDIR_P)/libsosgc$(LIB_SUFFIX): libsosgc$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(MKHIER) $(INCDIR_P)/sos
+	$(INSTALL_LIBRARY) libsosgc$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libsosgc$(LIB_SUFFIX)
+
+$(LIBDIR)/libsosgc$(LIB_SUFFIX): libsosgc$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) libsosgc$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libsosgc$(LIB_SUFFIX)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -128,20 +149,38 @@ distclean: clean
 $(D)convert.o: $(SRC)/convert.cc $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/convert.cc $(T)
 
+$(D)gcconvert.o: $(SRC)/convert.cc $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcconvert.o $(SRC)/convert.cc $(T)
+
 $(D)header.o: $(SRC)/header.cc $(H)/header.h $(H)/mdep.h $(H)/types.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/header.cc $(T)
+
+$(D)gcheader.o: $(SRC)/header.cc $(H)/header.h $(H)/mdep.h $(H)/types.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcheader.o $(SRC)/header.cc $(T)
 
 $(D)io.o: $(SRC)/io.cc $(H)/io.h $(H)/header.h $(H)/mdep.h $(H)/types.h $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/io.cc $(T)
 
+$(D)gcio.o: $(SRC)/io.cc $(H)/io.h $(H)/header.h $(H)/mdep.h $(H)/types.h $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcio.o $(SRC)/io.cc $(T)
+
 $(D)longint.o: $(SRC)/longint.cc $(SRC)/longint.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/longint.cc $(T)
+
+$(D)gclongint.o: $(SRC)/longint.cc $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gclongint.o $(SRC)/longint.cc $(T)
 
 $(D)types.o: $(SRC)/types.cc $(H)/types.h $(H)/mdep.h $(H)/sos.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/types.cc $(T)
 
+$(D)gctypes.o: $(SRC)/types.cc $(H)/types.h $(H)/mdep.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gctypes.o $(SRC)/types.cc $(T)
+
 $(D)list.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/list.cc $(T)
+
+$(D)gclist.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gclist.o $(SRC)/list.cc $(T)
 
 ##
 ## Include files

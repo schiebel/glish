@@ -24,15 +24,15 @@ typedef enum { glish_false, glish_true } glish_bool;
 typedef const char* string;
 typedef unsigned char byte;
 
-#define alloc_glish_bool( num ) (glish_bool*) GC_malloc_atomic( sizeof(glish_bool) * num )
-#define alloc_glish_boolptr( num ) (glish_bool**) GC_malloc( sizeof(glish_bool*) * num )
-#define alloc_byte( num ) (byte*) GC_malloc_atomic( sizeof(byte) * num )
-#define alloc_byteptr( num ) (byte**) GC_malloc( sizeof(byte*) * num )
+#define alloc_glish_bool( num ) (glish_bool*) alloc_memory_atomic( sizeof(glish_bool) * num )
+#define alloc_glish_boolptr( num ) (glish_bool**) alloc_memory( sizeof(glish_bool*) * num )
+#define alloc_byte( num ) (byte*) alloc_memory_atomic( sizeof(byte) * num )
+#define alloc_byteptr( num ) (byte**) alloc_memory( sizeof(byte*) * num )
 
-#define realloc_glish_bool( ptr, num ) (glish_bool*) GC_realloc( ptr, sizeof(glish_bool) * num )
-#define realloc_glish_boolptr( ptr, num ) (glish_bool**) GC_realloc( ptr, sizeof(glish_bool*) * num )
-#define realloc_byte( ptr, num ) (byte*) GC_realloc( ptr, sizeof(byte) * num )
-#define realloc_byteptr( ptr, num ) (byte**) GC_realloc( ptr, sizeof(byte*) * num )
+#define realloc_glish_bool( ptr, num ) (glish_bool*) realloc_memory( ptr, sizeof(glish_bool) * num )
+#define realloc_glish_boolptr( ptr, num ) (glish_bool**) realloc_memory( ptr, sizeof(glish_bool*) * num )
+#define realloc_byte( ptr, num ) (byte*) realloc_memory( ptr, sizeof(byte) * num )
+#define realloc_byteptr( ptr, num ) (byte**) realloc_memory( ptr, sizeof(byte*) * num )
 
 
 #define loop_over_list(list, iterator)	\

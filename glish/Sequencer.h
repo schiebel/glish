@@ -58,10 +58,6 @@ public:
 	NotifyTrigger *trigger;
 	int valid;
 	Type type_;
-
-#ifdef GGC
-	void TagGC( ) { if ( value ) value->TagGC(); }
-#endif
 	};
 
 class Task;
@@ -116,10 +112,6 @@ class stack_type : public GlishRef {
 	// returns the stack which this copy was cloned from, or 0
 	const stack_type *delete_on_spot() const { return delete_on_spot_; }
 
-#ifdef GGC
-	void TagGC( );
-#endif
-
     protected:
 	stack_type &operator=( const stack_type & );
 	frame_list *frames_;
@@ -135,7 +127,7 @@ typedef PList(stack_type) stack_list;
 extern void system_change_function(IValue *, IValue *);
 class Sequencer;
 
-class SystemInfo : public gc_cleanup {
+class SystemInfo GC_FINAL_CLASS {
 public:
 	inline unsigned int TRACE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -217,7 +209,7 @@ private:
 
 };
 
-class EnvHolder : public gc_cleanup {
+class EnvHolder GC_FINAL_CLASS {
     public:
 	void put( const char *var, char *string );
 	IterCookie* InitForIteration() const
@@ -228,7 +220,7 @@ class EnvHolder : public gc_cleanup {
 	PDict(char) strings;
 };
 
-class await_type : public gc_cleanup {
+class await_type GC_FINAL_CLASS {
     public:
 	await_type() : stmt_(0), except_(0), only_(0), dict_(0),
 		       agent_(0), name_(0) { }
@@ -258,7 +250,7 @@ class await_type : public gc_cleanup {
 	const char *name_;
 };
 
-class Sequencer : public gc_cleanup {
+class Sequencer GC_FINAL_CLASS {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -531,22 +523,6 @@ public:
 	//
 	void UpdatePath( const char *host = 0 );
 
-#ifdef GGC
-	//
-	// go through all values and delete any which aren't
-	// referenced via the globals
-	//
-	void CollectGarbage( );
-
-	//
-	// register ivalues to be preserved
-	//
-	void RegisterValue( IValue *v )
-		{ registered_values.append(v); }
-	void UnregisterValue( IValue *v )
-		{ registered_values.remove(v); }
-#endif
-
 	//
 	// register current whenever ctor, for use in
 	// activate/deactivate stmts local to the whenever
@@ -633,10 +609,6 @@ protected:
 	PList(Stmt) registered_stmts;
 	Dict(int) include_once;
 	char *expanded_name;
-
-#ifdef GGC
-	ivalue_list registered_values;
-#endif
 
 	await_type await;
 	awaitinfo_list await_list;

@@ -17,7 +17,7 @@ void set_executable_path( charptr *path, int len );
 // be executed.
 int can_execute( const char* name );
 
-class Exec : public gc_cleanup {
+class Exec GC_FINAL_CLASS {
     public:
 	friend class ExecMinder;
 	Exec( );
@@ -33,7 +33,7 @@ glish_declare(PList,ExecMinder);
 //
 // look after waiting on children
 //
-class ExecMinder : public gc_cleanup {
+class ExecMinder GC_FINAL_CLASS {
     public:
 	// look after this Exec
 	ExecMinder( Exec * );

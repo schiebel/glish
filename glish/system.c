@@ -220,6 +220,7 @@ int accept_local_connection( int connection_socket )
 
 int remote_connection( int sock, const char* hostname, int port )
 	{
+	static struct hostent *local_host;
 	struct hostent *target_host;
 	struct sockaddr_in target_addr;
 
@@ -230,9 +231,18 @@ int remote_connection( int sock, const char* hostname, int port )
 	** to hang unnecessarily...
 	*/
 	if ( ! strcmp( hostname, local_host_name() ) )
+		{
 		hostname = "localhost";
-
-	target_host = gethostbyname( (char*) hostname );
+		if ( ! local_host )
+			{
+			local_host = (struct hostent*) alloc_memory_atomic( sizeof(struct hostent) );
+			target_host = gethostbyname( (char*) hostname );
+			memcpy( local_host, target_host, sizeof(struct hostent) );
+			}
+		target_host = local_host;
+		}
+	else
+		target_host = gethostbyname( (char*) hostname );
 
 	if ( ! target_host )
 		return 0;

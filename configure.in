@@ -479,7 +479,7 @@ dnl##--------------------------------------------------------------------
 
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
-    NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
+    NPD_LIB='${LIBDIR_P}/libnpdgc${LIB_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in )
@@ -1097,7 +1097,7 @@ case $host_os in
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
 	if test "$have_dl" = yes; then
-	    SLIB_LD="\${CC} -shared"
+	    SLIB_LD="$CC -shared"
 	    DL_LIBS="-ldl"
 	    LD_FLAGS="-rdynamic"
 	else
@@ -1364,19 +1364,35 @@ case $host_os in
 esac
 
 dnl##
-dnl## These will typically be the same
-dnl##
-if test -z "$TK_CXX_RPATH"; then
-    TK_CXX_RPATH="$TK_LD_RPATH"
-fi
-
-dnl##
 dnl## If SLIB_CXXFLAGS is not set, set it to the same as SLIB_CFLAGS.
 dnl## This may need more work in the future since the C++ compilers
 dnl## are probably less uniform then the C compilers...
 dnl##
 if test -z "$SLIB_$CXXFLAGS"; then
     SLIB_CXXFLAGS="$SLIB_CFLAGS"
+fi
+
+dnl##
+dnl## Override C/CXXFLAGS if we are using GNU compilers
+dnl##
+if test $ac_cv_prog_gxx = yes; then
+    SLIB_CXXFLAGS='-fPIC'
+    SLIB_LD="$CXX -shared"
+else
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_LD="$CC -shared"
+fi
+fi
+
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_CFLAGS='-fPIC'
+fi
+
+dnl##
+dnl## These will typically be the same
+dnl##
+if test -z "$TK_CXX_RPATH"; then
+    TK_CXX_RPATH="$TK_LD_RPATH"
 fi
 
 dnl##
@@ -1413,22 +1429,22 @@ dnl##
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
-    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsosgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libeditgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregxgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
+    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
-	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpdgc$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx -lgcmem"
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos -lgcmem"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lgcmem"
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishgc -lsosgc -leditgc -lregxgc -lgcmem"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos"
     if test "$do_npd" = "yes"; then
-	GLISH_LIBS="$GLISH_LIBS -lnpd"
+	GLISH_LIBS="$GLISH_LIBS -lnpdgc"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd"
     fi
@@ -1457,17 +1473,6 @@ if test "$LIB_VERSIONS_OK" = "ok"; then
 else
     TCL_BUILD_LIB_SPEC="-L`pwd` -ltcl`echo ${VERSION} | tr -d .`"
     TCL_LIB_SPEC="-L${exec_prefix}/lib -ltcl`echo ${VERSION} | tr -d .`"
-fi
-
-dnl##
-dnl## Override C/CXXFLAGS if we are using GNU compilers
-dnl##
-if test $ac_cv_prog_gcc = yes; then
-    SLIB_CFLAGS='-fPIC'
-fi
-
-if test $ac_cv_prog_gxx = yes; then
-    SLIB_CXXFLAGS='-fPIC'
 fi
 
 dnl##
@@ -1565,8 +1570,6 @@ AC_SUBST(GC_LOW_OPT)
 dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
-$mkhier "gcmem/$ARCH/static"
-$mkhier "gcmem/$ARCH/dynamic"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/dynamic"
 $mkhier "npd/$ARCH/static"
@@ -1590,7 +1593,5 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in)
 PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
-PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/static.in)
-PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/static/Makefile:gcmem/$ARCH/static.in gcmem/$ARCH/dynamic/Makefile:gcmem/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/Makefile:gcmem/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

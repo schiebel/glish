@@ -44,7 +44,6 @@ extern void glish_gc_register( IValue * );
 // Whether the last token might be the end of a statement.
 int statement_can_end = 0;
 
-extern int interactive;
 extern int first_line;
 
 //Transition Variables
@@ -276,7 +275,7 @@ fail		statement_can_end = 1; return TOK_FAIL;
 ref		return TOK_REF;
 return		statement_can_end = 1; return TOK_RETURN;
 request		{
-		if ( interactive && yyin == stdin )
+		if ( interactive( ) && yyin == stdin )
 			{
 			warn->Report("'request' is deprecated, leave out this keyword");
 			request_cnt = 1;
@@ -289,7 +288,7 @@ request		{
 		break;
 		}
 send		{
-		if ( interactive && yyin == stdin )
+		if ( interactive( ) && yyin == stdin )
 			{
 			warn->Report("'send' is deprecated, leave out this keyword");
 			send_cnt = 1;
@@ -327,7 +326,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <INITIAL,NO_REGEX>{ID} {
 		statement_can_end = 1;
-		YYLVAL(id) = strdup( yytext );
+		YYLVAL(id) = string_dup( yytext );
 		BEGIN(INITIAL);
 		return TOK_ID;
 		}
@@ -338,7 +337,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 		BEGIN(INITIAL);
 		statement_can_end = 1;
-		YYLVAL(id) = strdup( yytext );
+		YYLVAL(id) = string_dup( yytext );
 		return TOK_ID;
 		}
 
@@ -436,7 +435,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			{
 			BEGIN(INITIAL);
 			statement_can_end = 1;
-			YYLVAL(id) = strdup( literal() );
+			YYLVAL(id) = string_dup( literal() );
 			return TOK_ID;
 			}
 
@@ -457,7 +456,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			}
 		else
 			{
-			match_regex_portion = strdup(literal());
+			match_regex_portion = string_dup(literal());
 			clear_literal();
 			break;
 			}
@@ -473,8 +472,8 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		statement_can_end = 1;
 		unput(yytext[0]);
 		IValue *v = 0;
-		Regex *r = regex_start == 'm' ? new Regex( strdup(literal()), regex_delimit, regex_flags ) :
-				new Regex(match_regex_portion, regex_delimit, regex_flags, strdup(literal()));
+		Regex *r = regex_start == 'm' ? new Regex( string_dup(literal()), regex_delimit, regex_flags ) :
+				new Regex(match_regex_portion, regex_delimit, regex_flags, string_dup(literal()));
 		if ( ! r->Error() )
 			v = new IValue( r );
 		else
@@ -562,7 +561,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		static Dict(int) unknown_pragma;
 		if ( ! unknown_pragma.Lookup(yytext) )
 			{
-			unknown_pragma.Insert(strdup(yytext),1);
+			unknown_pragma.Insert(string_dup(yytext),1);
 			warn->Report( "unknown pragma found:", yytext );
 			}
 		BEGIN(INITIAL);
@@ -623,7 +622,6 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			yyterminate();
 		}
 %%
-
 
 InputFileInfo::InputFileInfo( FILE *f, YY_BUFFER_STATE s )
 	{
@@ -710,7 +708,7 @@ int scanner_read( char buf[], int max_size )
 		return bufptr - buf;
 		}
 
-	if ( interactive && yyin == stdin )
+	if ( interactive( ) && yyin == stdin )
 		{
 		const char* prompt = first_line ? "- " : "+ ";
 		if ( Sequencer::CurSeq()->System().ILog() )
@@ -808,7 +806,7 @@ char *literal( const char *new_str, int clear )
 	return string;
 	}
 
-struct flex_buf {
+struct flex_buf : gc {
 	flex_buf( YY_BUFFER_STATE buf_, int putback_ ) : buf(buf_), putback(putback_) { }
 	YY_BUFFER_STATE buf;
 	int putback;

@@ -4,7 +4,7 @@
 #ifndef Socket_h
 #define Socket_h
 
-class Socket : public gc_cleanup {
+class Socket GC_FINAL_CLASS {
     public:
 	// The first parameter, if true, specifies that the socket
 	// will only be used locally (same host).  The second, if

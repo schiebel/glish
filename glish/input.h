@@ -16,7 +16,15 @@ extern Sequencer* current_sequencer;
 #define USE_EDITLINE 1
 
 extern FILE* yyin;
-extern int interactive;
+
+extern int interpreter_state;
+
+inline int interactive() { return interpreter_state & 1; }
+inline void interactive_set( int v ) { interpreter_state = (v ? interpreter_state | 1 : interpreter_state & ~1); }
+
+inline int in_evaluation() { return interpreter_state & (1<<1); }
+inline void in_evaluation_set( int v ) { interpreter_state = (v ? interpreter_state | (1<<1) : interpreter_state & ~(1<<1)); }
+
 extern int statement_can_end;
 extern int first_line;
 extern char* yytext;

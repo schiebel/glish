@@ -14,7 +14,7 @@ RCSID("@(#) $Id$")
 #include "input.h"
 #include "system.h"
 
-int interactive = 0;
+int interpreter_state = 0;
 SOStream *Reporter::sout = 0;
 
 extern void show_glish_stack( OStream& );
@@ -260,7 +260,7 @@ void Reporter::report( const ioOpt &opt, const RMessage& m0,
 
 void Reporter::Prolog( const ioOpt & )
 	{
-	if ( ! interactive )
+	if ( ! interactive( ) )
 		{
 		if ( file_name && glish_files )
 			{

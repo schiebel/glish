@@ -21,7 +21,7 @@ RCSID("@(#) $Id$")
 
 #define SPRINTF_ALLOC	20
 
-struct dynbuf {
+struct dynbuf GC_FINAL_CLASS {
 	dynbuf( int ary_size );
 	~dynbuf( );
 	char **take( ) 	{ char **tmp = ary; ary = 0; return tmp; }
