@@ -157,7 +157,7 @@ class ValueKernel {
 	void *constArray() const { return array->values; }
 	// Shouldn't return 0
 	void *modArray();
-	recordptr modArray() const { return (((ValueKernel*)this)->modRecord()); }
+	void *modArray() const { return (((ValueKernel*)this)->modArray()); }
 
 	void SetRecord( recordptr r );
 	// May return 0
