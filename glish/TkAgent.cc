@@ -1496,8 +1496,11 @@ const char **TkText::PackInstruction()
 		{
 		ret[c++] = "-fill";
 		ret[c++] = fill;
-		ret[c++] = "-expand";
-		ret[c++] = "true";
+		if ( ! strcmp(fill,"both") )
+			{
+			ret[c++] = "-expand";
+			ret[c++] = "true";
+			}
 		ret[c++] = 0;
 		return ret;
 		}
