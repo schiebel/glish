@@ -2839,8 +2839,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 
 TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_,
 		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
-		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr /*foreground*/,
-		    charptr /*background*/, int disabled, const IValue *val, charptr bitmap_,
+		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr foreground,
+		    charptr background, int disabled, const IValue *val, charptr bitmap_,
 		    TkRadioContainer *group )
 			: TkRadioContainer( s ), value(0), state(0), radio(group),
 			  menu_base(0), next_menu_entry(0), menu_index(0), unmapped(0)
@@ -2937,11 +2937,11 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	argv[c++] = (char*) relief;
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
-	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
 #endif
+	argv[c++] = "-foreground";
+	argv[c++] = (char*) foreground;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
