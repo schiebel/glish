@@ -17,15 +17,13 @@ RCSID("@(#) $Id$")
 //          regx_buffer
 static char *regx_buffer = 0;
 static int regx_buffer_size = 0;
+#define INIT_REGX_BUFFER()				\
+    if ( regx_buffer_size == 0 )			\
+	{						\
+	regx_buffer_size = 1024;			\
+	regx_buffer = alloc_char(regx_buffer_size);	\
+	}
 #define RESIZE_REGX_BUFFER(COUNT, OFFSET, INCREMENT)						\
-    if ( regx_buffer_size == 0 )								\
-	{											\
-	register int size = (OFFSET ? OFFSET : regx_buffer) - regx_buffer + INCREMENT;		\
-	for ( regx_buffer_size = 1024; size >= regx_buffer_size; regx_buffer_size *= 2 );	\
-	regx_buffer = alloc_char(regx_buffer_size);						\
-	OFFSET = regx_buffer;									\
-	}											\
-    else											\
 	{											\
 	register int size = (OFFSET ? OFFSET : regx_buffer) - regx_buffer + INCREMENT;		\
 	if ( size >= regx_buffer_size )								\
@@ -41,6 +39,7 @@ static jmp_buf regx_jmpbuf;
 
 void glish_regx_error_handler( const char *pat, va_list va )
 	{
+	INIT_REGX_BUFFER()
 	vsprintf( regx_buffer, pat, va );
 	longjmp( regx_jmpbuf, 1 );
 	}
@@ -117,6 +116,7 @@ void regxsubst::compile( regexp *reg_, char *subst_ )
 
 void regxsubst::compile( regexp *reg_ )
 	{
+	INIT_REGX_BUFFER()
 	reg = reg_;
 
 	split_count = 0;
@@ -209,6 +209,7 @@ void regxsubst::compile( regexp *reg_ )
 
 char *regxsubst::apply( char *dest )
 	{
+	INIT_REGX_BUFFER()
 	if ( err_ ) return 0;
 
 	int off = 0;
@@ -284,6 +285,7 @@ regxsubst::~regxsubst( )
 
 void Regex::compile( )
 	{
+	INIT_REGX_BUFFER()
 	if ( ! match ) return;
 
 	if ( setjmp(regx_jmpbuf) == 0 )
@@ -403,7 +405,7 @@ Regex::Regex( const Regex *o )
 int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, int &len, 
 		 IValue **error, int free_it, char **alt_src, int alt_len )
 	{
-
+	INIT_REGX_BUFFER()
 	if ( &len == &glish_dummy_int )
 		len = 1;
 
