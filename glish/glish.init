@@ -215,7 +215,7 @@ func sort(x)
 	return [sort(x[x < pivot]), x[x == pivot], sort(x[x > pivot])]
 	}
 
-func uniq( s, sorted=F )
+func unique( s, sorted=F )
 	{
 	if ( ! sorted ) s := sort(s)
 	l := len(s)
