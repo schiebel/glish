@@ -749,6 +749,8 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 		{
 		case ANY_SCOPE:
 			{
+			int gindex = global_scopes.length() - 1;
+			int goff = global_scopes[gindex];
 			int off = scopes.length()-1;
 			int cnt = off;
 			for ( ; ! result && cnt >= 0; cnt-- )
@@ -759,7 +761,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 				scopes[off]->MarkGlobalRef( id );
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
 					{
-					Expr *result = CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - off,
+					Expr *result = CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - goff,
 							((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
 					Expr *old = (Expr*) scopes[off]->Insert( id, result );
 					if ( old )
@@ -878,6 +880,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 		{
 		case ANY_SCOPE:
 			{
+			int gindex = global_scopes.length() - 1;
+			int goff = global_scopes[gindex];
 			int off = scopes.length()-1;
 			int cnt = off;
 			for ( ; ! result && cnt >= 0; cnt-- )
@@ -887,7 +891,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				{
 				scopes[off]->MarkGlobalRef( id );
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
-					return CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - off, ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
+					return CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - goff,
+						((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
 				}
 
 			if ( ! result )
