@@ -330,8 +330,8 @@ class TkButton : public TkRadioContainer {
 	TkButton( Sequencer *, TkFrame *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
-		  charptr background, int disabled, const IValue *val, charptr fill,
-		  TkRadioContainer *group );
+		  charptr background, int disabled, const IValue *val, charptr anchor,
+		  charptr fill, TkRadioContainer *group );
 	TkButton( Sequencer *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
@@ -455,7 +455,7 @@ class TkLabel : public TkAgent {
 	TkLabel( Sequencer *, TkFrame *, charptr text,
 		 charptr justify, charptr padx, charptr pady, int width,
 		 charptr font, charptr relief, charptr borderwidth,
-		 charptr foreground, charptr background, charptr fill );
+		 charptr foreground, charptr background, charptr anchor, charptr fill );
 
 	static IValue *Create( Sequencer *, const_args_list *);
 	~TkLabel();
@@ -504,7 +504,7 @@ class TkMessage : public TkAgent {
 	TkMessage( Sequencer *, TkFrame *, charptr text, charptr width,
 		   charptr justify, charptr font, charptr padx, charptr pady,
 		   charptr relief, charptr borderwidth,
-		   charptr foreground, charptr background, charptr fill );
+		   charptr foreground, charptr background, charptr anchor, charptr fill );
 
 	static IValue *Create( Sequencer *, const_args_list *);
 

@@ -2353,13 +2353,14 @@ void TkButton::Enable( int force )
 TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
-		    charptr background, int disabled, const IValue *val, charptr fill_, TkRadioContainer *group )
+		    charptr background, int disabled, const IValue *val, charptr anchor,
+		    charptr fill_, TkRadioContainer *group )
 			: TkRadioContainer( s ), value(0), state(0), menu(0), radio(group),
 			  menu_base(0),  next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
 	type = PLAIN;
 	frame = frame_;
-	char *argv[32];
+	char *argv[34];
 
 	agent_ID = "<graphic:button>";
 	if ( frame && radio && frame != radio ) Ref( radio );
@@ -2403,6 +2404,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	argv[c++] = (char*) justify;
 	argv[c++] = "-text";
 	argv[c++] = (char*) label;
+	argv[c++] = "-anchor";
+	argv[c++] = (char*) anchor;
 
 	if ( font[0] )
 		{
@@ -2475,6 +2478,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -2646,8 +2650,8 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
-	if ( args_val->length() != 18 )
-		return InvalidNumberOfArgs(18);
+	if ( args_val->length() != 19 )
+		return InvalidNumberOfArgs(19);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2665,6 +2669,7 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETINT( disabled )
 	SETVAL( val, 1 )
+	SETSTR( anchor )
 	SETSTR( fill )
 	SETVAL( group, group->IsAgentRecord() )
 
@@ -2683,7 +2688,7 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
-					     disabled, val, fill, (TkRadioContainer*) grp );
+					     disabled, val, anchor, fill, (TkRadioContainer*) grp );
 		}
 	else
 		return (IValue*) generate_error("bad parent (or group) type");
@@ -3262,11 +3267,12 @@ DEFINE_DTOR(TkLabel)
 
 TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
-		  charptr borderwidth, charptr foreground, charptr background, charptr fill_ )
+		  charptr borderwidth, charptr foreground, charptr background,
+		  charptr anchor, charptr fill_ )
 			: TkAgent( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[22];
+	char *argv[24];
 	char width[30];
 
 	agent_ID = "<graphic:label>";
@@ -3300,6 +3306,8 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = (char*) background;
 	argv[c++] = "-width";
 	argv[c++] = width;
+	argv[c++] = "-anchor";
+	argv[c++] = (char*) anchor;
 
 	self = rivet_create(LabelClass, frame->Self(), c, argv);
 
@@ -3316,6 +3324,7 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	procs.Insert("height", new TkProc("-height", glishtk_oneint));
 	procs.Insert("width", new TkProc("-width", glishtk_oneint));
 	procs.Insert("text", new TkProc("-text", glishtk_onestr));
+	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
@@ -3326,8 +3335,8 @@ IValue *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkLabel *ret;
 
-	if ( args_val->length() != 13 )
-		return InvalidNumberOfArgs(13);
+	if ( args_val->length() != 14 )
+		return InvalidNumberOfArgs(14);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3341,12 +3350,13 @@ IValue *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
+	SETSTR( anchor )
 	SETSTR( fill )
 
 	Agent *agent = parent->AgentVal();
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkLabel( s, (TkFrame*)agent, text, justify, padx, pady, width,
-				    font, relief, borderwidth, foreground, background, fill );
+				    font, relief, borderwidth, foreground, background, anchor, fill );
 	else
 		return (IValue*) generate_error("bad parent type");
 
@@ -3520,11 +3530,11 @@ DEFINE_DTOR(TkMessage)
 
 TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
-		      charptr foreground, charptr background, charptr fill_ )
+		      charptr foreground, charptr background, charptr anchor, charptr fill_ )
 			: TkAgent( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[22];
+	char *argv[24];
 
 	agent_ID = "<graphic:message>";
 
@@ -3555,6 +3565,8 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	argv[c++] = (char*) foreground;
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background;
+	argv[c++] = "-anchor";
+	argv[c++] = (char*) anchor;
 
 	self = rivet_create(MessageClass, frame->Self(), c, argv);
 
@@ -3574,14 +3586,15 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
 	}
 
 IValue *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkMessage *ret;
 
-	if ( args_val->length() != 13 )
-		return InvalidNumberOfArgs(13);
+	if ( args_val->length() != 14 )
+		return InvalidNumberOfArgs(14);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3595,11 +3608,12 @@ IValue *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
+	SETSTR( anchor )
 	SETSTR( fill )
 
 	Agent *agent = parent->AgentVal();
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, fill );
+		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, anchor, fill );
 	else
 		return (IValue*) generate_error("bad parent type");
 
