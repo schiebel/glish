@@ -473,6 +473,12 @@ void Notification::Describe( OStream& s ) const
 	notifiee->stmt()->DescribeSelf( s );
 	}
 
+void Notification::ClearNotifier( )
+	{
+	if ( notifier && notifier->IsPseudo() && notifier->RefCount() == 1 )
+		((TkAgent*)notifier)->UnMap();
+	}
+
 #define LOG_CLEANUP_ONE(VAR)						\
 	{								\
 	if ( VAR##_file ) { fclose( VAR##_file ); VAR##_file = 0; }	\
@@ -3496,6 +3502,8 @@ void Sequencer::RunQueue()
 		Unref( n->notifiee );
 		Unref( n );
 		}
+
+	if ( last_notification ) last_notification->ClearNotifier( );
 	}
 
 int Sequencer::CurWheneverIndex( )

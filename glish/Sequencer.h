@@ -46,6 +46,11 @@ public:
 
 	void invalid( ) { valid = 0; }
 
+	// needed to get rid of Tk widgets which would
+	// otherwise be hanging around... i.e. they would be
+	// deleted if not for 'last_notification' in Sequencer
+	void ClearNotifier( );
+
 	Agent* notifier;
 	char* field;
 	IValue* value;
