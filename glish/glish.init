@@ -114,8 +114,8 @@ func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, heig
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value )
 
 func scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
-		 relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
-	create_graphic( 'scale', parent, start, end, length, text, orient, relief, borderwidth, foreground, background )
+		 relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='' )
+	create_graphic( 'scale', parent, start, end, length, text, orient, relief, borderwidth, foreground, background, fill )
 
 func text ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
 	create_graphic( 'text', parent, width, height, wrap, font, disabled, text, relief, borderwidth, foreground, background, fill )
@@ -126,14 +126,14 @@ func scrollbar ( parent, orient='vertical', foreground='black', background='ligh
 func label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
 	create_graphic( 'label', parent, text, justify, padx, pady, font, width, relief, borderwidth, foreground, background )
 
-func entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=F )
-	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection )
+func entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=F, fill='x' )
+	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection, fill )
 
 func message ( parent, text='message', width=180, justify='left', font='', padx=4, pady=2, relief='flat', borderwidth=3, foreground='black', background='lightgrey' )
 	create_graphic( 'message', parent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background )
 
-func listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=F )
-	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection )
+func listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=F, fill='x' )
+	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection, fill )
 
 func canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
 	create_graphic( 'canvas', parent, width, height, region, relief, borderwidth, background, fill )

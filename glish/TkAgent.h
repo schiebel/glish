@@ -208,7 +208,7 @@ class TkFrame : public TkAgent {
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id_ ) { radio_id = id_; }
 
-	int ExpandNum() const;
+	int ExpandNum(const TkAgent *except=0) const;
 
 	int NumChildren() const { return elements.length() - 1; }
     protected:
@@ -282,11 +282,16 @@ class TkScale : public TkAgent {
     public:
 	TkScale ( Sequencer *, TkFrame *, int from, int to, charptr len,
 		  charptr text, charptr orient, charptr relief, charptr borderwidth,
-		  charptr foreground, charptr background );
+		  charptr foreground, charptr background, charptr fill );
 
 	void ValueSet( double );
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkScale();
+
+	const char **PackInstruction();
+
+    protected:
+	char *fill;
 	};
 
 class TkText : public TkAgent {
@@ -337,7 +342,7 @@ class TkEntry : public TkAgent {
 	TkEntry( Sequencer *, TkFrame *, int width,
 		 charptr justify, charptr font, charptr relief, 
 		 charptr borderwidth, charptr foreground, charptr background,
-		 int disabled, int show, int exportselection );
+		 int disabled, int show, int exportselection, charptr fill );
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 
@@ -345,7 +350,13 @@ class TkEntry : public TkAgent {
 
 	void ReturnHit( );
 	void xScrolled( const double *firstlast );
+
+	const char **PackInstruction();
+
 	~TkEntry();
+    protected:
+	char *fill;
+
 	};
 
 class TkMessage : public TkAgent {
@@ -364,7 +375,7 @@ class TkListbox : public TkAgent {
     public:
 	TkListbox( Sequencer *, TkFrame *, int width, int height, charptr mode,
 		   charptr font, charptr relief, charptr borderwidth,
-		  charptr foreground, charptr background, int exportselection );
+		  charptr foreground, charptr background, int exportselection, charptr fill );
 
 	charptr IndexCheck( charptr );
 
@@ -373,7 +384,13 @@ class TkListbox : public TkAgent {
 	void elementSelected( );
   
 	static TkAgent *Create( Sequencer *, const_args_list *);
+
+	const char **PackInstruction();
+
 	~TkListbox();
+
+    protected:
+	char *fill;
 	};
 
 

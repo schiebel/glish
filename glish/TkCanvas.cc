@@ -849,25 +849,36 @@ void TkCanvas::xScrolled( const double *d )
 	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
-const char **TkCanvas::PackInstruction()
-	{
-	static char *ret[5];
-	int c = 0;
-	if ( fill )
-		{
-		ret[c++] = "-fill";
-		ret[c++] = fill;
-		if ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) )
-			{
-			ret[c++] = "-expand";
-			ret[c++] = "true";
-			}
-		ret[c++] = 0;
-		return ret;
-		}
-	else
-		return 0;
+#define STD_EXPAND_PACKINSTRUCTION(CLASS)		\
+const char **CLASS::PackInstruction()			\
+	{						\
+	static char *ret[5];				\
+	int c = 0;					\
+	if ( fill )					\
+		{					\
+		ret[c++] = "-fill";			\
+		ret[c++] = fill;			\
+		if ( ! strcmp(fill,"both") ||		\
+		     ! strcmp(fill, frame->Expand()) ||	\
+		     frame->NumChildren() == 1 &&	\
+		     ! strcmp(fill,"y") )		\
+			{				\
+			ret[c++] = "-expand";		\
+			ret[c++] = "true";		\
+			}				\
+		else					\
+			{				\
+			ret[c++] = "-expand";		\
+			ret[c++] = "false";		\
+			}				\
+		ret[c++] = 0;				\
+		return ret;				\
+		}					\
+	else						\
+		return 0;				\
 	}
+
+STD_EXPAND_PACKINSTRUCTION(TkCanvas)
 
 int TkCanvas::CanExpand() const
 	{
