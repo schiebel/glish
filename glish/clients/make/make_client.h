@@ -19,19 +19,19 @@ extern "C" {
 	/**
 	 **  define a variable
 	 **/
-	void bMake_Define( char *var, char *val );
+	void bMake_Define( const char *var, const char *val );
 	/**
 	 **  define a makefile target
 	 **/
-	void bMake_TargetDef( char *tag, char **cmd, int cmd_len, char **depend, int depend_len);
+	void bMake_TargetDef( const char *tag, const char **cmd, int cmd_len, const char **depend, int depend_len);
 	/**
 	 **  define a suffix rule
 	 **/
-	void bMake_SuffixDef( char *tag, char **cmd, int cmd_len );
+	void bMake_SuffixDef( const char *tag, const char **cmd, int cmd_len );
 	/**
          **  set root targets
 	 **/
-	void bMake_SetMain( char **tgt, int len );
+	void bMake_SetMain( const char **tgt, int len );
 	/**
 	 **  check to see if root targets have been
 	 **  established

@@ -928,18 +928,18 @@ PrintAddr(a, b)
 
 void
 bMake_Define( var, val )
-    char *var;
-    char *val;
+    const char *var;
+    const char *val;
 {
-    Var_Set( var, val, VAR_GLOBAL );
+    Var_Set( (char*)var, (char*)val, VAR_GLOBAL );
 }
 
 void
 bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
-    char *tag;
-    char **cmd;
+    const char *tag;
+    const char **cmd;
     int cmd_len;
-    char **depend;
+    const char **depend;
     int depend_len;
 {
     int i = 0;
@@ -948,14 +948,14 @@ bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
     if ( ! tag || ! *tag ) return;
     /*** do we have a command? ***/
     if ( ! cmd || cmd_len <= 0 ) return;
-    gn = Targ_FindNode( tag, TARG_CREATE );
+    gn = Targ_FindNode( (char*)tag, TARG_CREATE );
     if ( cmd && cmd_len > 0 )
         for ( i=0; i < cmd_len; ++i )
             Cmd_AtEnd( gn, strdup(cmd[i]) );
     if ( depend && depend_len > 0 ) {
         gn->type |= OP_DEPENDS;
 	for ( i=0; i < depend_len; ++i ) {
-            dep = Targ_FindNode (depend[i], TARG_CREATE);
+            dep = Targ_FindNode ((char*)depend[i], TARG_CREATE);
             if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
                 (void)Lst_AtEnd (gn->children, (ClientData)dep);
                 gn->unmade += 1;
@@ -966,14 +966,14 @@ bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
 
 void
 bMake_SuffixDef( tag, cmd, cmd_len )
-    char *tag;
-    char **cmd;
+    const char *tag;
+    const char **cmd;
     int cmd_len;
 {
     int i = 0;
     int dot_count = 0;
     GNode *gn;
-    char *end;
+    const char *end;
     char buf[256];
     char *bp = buf;
 
@@ -989,9 +989,9 @@ bMake_SuffixDef( tag, cmd, cmd_len )
     *bp++ = '.';
     for ( end = tag+1; *end && *end != '.'; *bp++ = *end++ );
     *bp = '\0';
-    Suff_AddSuffix(buf);
-    Suff_AddSuffix(end);
-    gn = Suff_AddTransform(tag);
+    Suff_AddSuffix((char*)buf);
+    Suff_AddSuffix((char*)end);
+    gn = Suff_AddTransform((char*)tag);
 
     if ( cmd && cmd_len > 0 )
         for ( i=0; i < cmd_len; ++i )
@@ -1000,7 +1000,7 @@ bMake_SuffixDef( tag, cmd, cmd_len )
 
 void
 bMake_SetMain( tgt, len )
-    char **tgt;
+    const char **tgt;
     int len;
 {
     int i=0;
@@ -1017,29 +1017,4 @@ int
 bMake_HasMain( )
 {
     return Lst_IsEmpty(create) ? 0 : 1;
-}
-
-int main( argc, argv )
-    int argc;
-    char **argv;
-{
-    int ret = 0;
-    char *foocmd[] = { "this is FOO #1", "this is FOO #2" };
-    char *foodep[] = { "BAR", "BAZ" };
-    char *barcmd[] = { "this is BAR", "${FOOBAR}" };
-    char *bazcmd[] = { "this is BAZ" };
-    char *suffcmd[] = { "making crap from bull: $@ $? $> $< $*" };
-    char *cocmd[] = { "making o from c: $@ $? $> $< $*" };
-    char *maintgts[] = { "FOO" };
-    bMake_Init( argc, argv );
-    bMake_Define( "FOOBAR", "foo and bar" );
-    bMake_TargetDef( "FOO", foocmd, 2, foodep, 2 );
-    bMake_TargetDef( "BAR", barcmd, 2, 0, 0 );
-    bMake_TargetDef( "BAZ", bazcmd, 1, 0, 0 );
-    bMake_SuffixDef( ".bull.crap", suffcmd, 1 );
-    bMake_SuffixDef( ".c.o", cocmd, 1 );
-    bMake_SetMain( maintgts, 1 );
-    bMake( );
-    bMake( );
-    return bMake_Finish( );
 }
