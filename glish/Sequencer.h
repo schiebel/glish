@@ -201,7 +201,13 @@ private:
 	Sequencer *sequencer;
 
 };
-	
+
+class EnvHolder {
+    public:
+	void put( const char *var, char *string );
+    private:
+	PDict(char) strings;
+};
 
 extern int glish_dummy_int;
 
@@ -603,6 +609,8 @@ protected:
 	// Called from Sequencer::TopLevelReset()
 	void toplevelreset();
 	int doing_pager;
+
+	EnvHolder env;
 	};
 
 extern IValue *glish_parser( Stmt *&stmt );

@@ -71,6 +71,7 @@ void nb_reset_term( int );
 
 #define GLISH_RC_FILE ".glishrc"
 #define RCDIR_VAR "GLISHROOT"
+const char * const LD_PATH = "LD_LIBRARY_PATH";
 
 // Time to wait until probing a remote daemon, in seconds.
 #define PROBE_DELAY 5
@@ -853,30 +854,29 @@ void Sequencer::UpdateLocalPath( )
 				}
 			}
 
-		char *string = 0;
 		path = (IValue*) system.LdPath();
 		if ( path && (path = (IValue*) path->Deref()) )
 			{
 			const IValue *v1;
 			if ( path && path->Type() == TYPE_STRING )
-				putenv( string=join_path(path->StringPtr(0),path->Length(),"LD_LIBRARY_PATH") );
+				env.put( LD_PATH, join_path(path->StringPtr(0),path->Length(),LD_PATH) );
 			else if ( path && path->Type() == TYPE_RECORD )
 				{
 				if ( path->HasRecordElement( "localhost" ) &&
 				     (v1 = (IValue*) path->ExistingRecordElement("localhost")) &&
 				     v1 != false_value && v1->Type() == TYPE_STRING )
-					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+					env.put( LD_PATH, join_path(v1->StringPtr(0),v1->Length(),LD_PATH) );
 				else if ( path->HasRecordElement( connection_host ) &&
 					  (v1 = (IValue*) path->ExistingRecordElement( connection_host )) &&
 					   v1 != false_value && v1->Type() == TYPE_STRING )
-					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+					env.put( LD_PATH, join_path(v1->StringPtr(0),v1->Length(),LD_PATH) );
 				else if ( path->HasRecordElement( "default" ) &&
 					  (v1 = (IValue*) path->ExistingRecordElement( "default" )) &&
 					   v1 != false_value && v1->Type() == TYPE_STRING )
-					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+					env.put( LD_PATH, join_path(v1->StringPtr(0),v1->Length(),LD_PATH) );
 				}
 			}
-		if ( string ) free_memory(string);
+
 		}
 	count = system_change_count;
 	}
@@ -930,7 +930,7 @@ void Sequencer::UpdateRemotePath( )
 			{
 			if ( path && path->Type() == TYPE_STRING )
 				{
-				string = join_path(path->StringPtr(0),path->Length(),"LD_LIBRARY_PATH");
+				string = join_path(path->StringPtr(0),path->Length(),LD_PATH);
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
@@ -947,7 +947,7 @@ void Sequencer::UpdateRemotePath( )
 					if ( dflt == false_value || dflt->Type() != TYPE_STRING )
 						dflt = 0;
 					else
-						dflt_str = join_path(dflt->StringPtr(0),dflt->Length(),"LD_LIBRARY_PATH");
+						dflt_str = join_path(dflt->StringPtr(0),dflt->Length(),LD_PATH);
 					}
 
 				const IValue *v1;
@@ -960,7 +960,7 @@ void Sequencer::UpdateRemotePath( )
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
 					     v1 != false_value && v1->Type() == TYPE_STRING )
 						{
-						string = join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH");
+						string = join_path(v1->StringPtr(0),v1->Length(),LD_PATH);
 						daemon->UpdateLdPath( string );
 						free_memory( string );
 						}
@@ -1006,7 +1006,7 @@ void Sequencer::UpdatePath( const char *host )
 			     (v1 = (IValue*) path->ExistingRecordElement( host )) &&
 			     v1 != false_value && v1->Type() == TYPE_STRING )
 				{
-				char *string = join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH");
+				char *string = join_path(v1->StringPtr(0),v1->Length(),LD_PATH);
 				d->UpdateLdPath(string);
 				free_memory( string );
 				}
@@ -1118,7 +1118,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 			}
 		}
 
-	envpath = getenv( "LD_LIBRARY_PATH" );
+	envpath = getenv( LD_PATH );
 	if ( envpath )
 		{
 		int len = 0;
@@ -1430,11 +1430,15 @@ Sequencer::~Sequencer()
 	shutting_glish_down = 1;
 
 #ifdef LINT
-	IterCookie* c = include_once.InitForIteration();
 	int x;
 	const char* key;
-
+	IterCookie* c = include_once.InitForIteration();
 	while ( (x = include_once.NextEntry( key, c )) )
+		free_memory((char*)key);
+
+	char *xs = 0;
+	c = env.InitForIteration();
+	while ( (xs = env.NextEntry( key, c )) )
 		free_memory((char*)key);
 
 	Unref( last_notification );
@@ -3739,6 +3743,14 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 		selector->AddSelectee( new ScriptSelectee( this, agent, fd ) );
 	else
 		selector->DeleteSelectee( fd );
+	}
+
+void EnvHolder::put( const char *var, char *string )
+	{
+	char *old = strings.Lookup( var );
+	strings.Insert( old ? var : strdup( var ), string );
+	if ( old ) free_memory( old );
+	putenv( string );
 	}
 
 char* which_include( const char* filename )
