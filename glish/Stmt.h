@@ -100,8 +100,8 @@ class SeqStmt : public Stmt {
 	SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~SeqStmt();
 
@@ -133,7 +133,7 @@ class WheneverStmt : public Stmt {
 	int IsActiveFor( Agent* agent, const char* field, IValue* value ) const;
 	void SetActivity( int activate );
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	int canDelete() const;
 
@@ -152,7 +152,7 @@ class LinkStmt : public Stmt {
 	LinkStmt( event_list* source, event_list* sink, Sequencer* sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~LinkStmt();
 
@@ -187,7 +187,7 @@ class AwaitStmt : public Stmt {
 		   Sequencer* arg_sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~AwaitStmt();
 
@@ -207,7 +207,7 @@ class ActivateStmt : public Stmt {
 	ActivateStmt( int activate, Expr* e, Sequencer* sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~ActivateStmt();
 
@@ -226,8 +226,8 @@ class IfStmt : public Stmt {
 		Stmt* arg_false_branch );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~IfStmt();
 
@@ -246,8 +246,8 @@ class ForStmt : public Stmt {
 		 Stmt* body_stmt );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ForStmt();
 
@@ -265,7 +265,7 @@ class WhileStmt : public Stmt {
 	WhileStmt( Expr* test_expr, Stmt* body_stmt );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~WhileStmt();
 
@@ -286,8 +286,8 @@ class PrintStmt : public Stmt {
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~PrintStmt();
 
@@ -305,7 +305,7 @@ class FailStmt : public Stmt {
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~FailStmt();
 
@@ -329,7 +329,7 @@ class IncludeStmt : public Stmt {
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~IncludeStmt();
 
@@ -347,8 +347,8 @@ class ExprStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	int DoesTrace( ) const;
 
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ExprStmt();
 
@@ -368,7 +368,7 @@ class ExitStmt : public Stmt {
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~ExitStmt();
 
@@ -407,8 +407,8 @@ class ReturnStmt : public Stmt {
 		{ description = "return"; retval = arg_retval; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~ReturnStmt();
 
@@ -423,8 +423,8 @@ class StmtBlock : public Stmt {
 
 	IValue *DoExec( int value_needed, stmt_flow_type &flow );
 
-	void Describe( ostream& s ) const;
-	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	void Describe( OStream& s ) const;
+	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~StmtBlock();
 

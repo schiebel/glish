@@ -11,12 +11,12 @@ int line_num = 0;
 Str *file_name = 0;
 Str glish_errno( (const char*) "" );
 
-void GlishObject::Describe( ostream& s ) const
+void GlishObject::Describe( OStream& s ) const
 	{
 	DescribeSelf( s );
 	}
 
-int GlishObject::DescribeSelf( ostream& s, charptr prefix ) const
+int GlishObject::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << (description ? description : "<*unknown*>");

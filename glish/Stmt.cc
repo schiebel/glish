@@ -37,8 +37,8 @@ IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	flow = FLOW_NEXT;
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( ! DoesTrace() && DescribeSelf(cout, "\t|-> ") )
-			cout << endl;
+		if ( ! DoesTrace() && DescribeSelf(message->Stream(), "\t|-> ") )
+			message->Stream() << endl;
 
 	IValue* result = DoExec( value_needed, flow );
 
@@ -106,7 +106,7 @@ void SeqStmt::CollectUnref( stmt_list &del_list )
 	}
 
 static int cnt = 0;
-void SeqStmt::Describe( ostream& s ) const
+void SeqStmt::Describe( OStream& s ) const
 	{
 	s << "{\n";
 	lhs->Describe( s );
@@ -115,7 +115,7 @@ void SeqStmt::Describe( ostream& s ) const
 	s << "}\n";
 	}
 
-int SeqStmt::DescribeSelf( ostream &, charptr ) const
+int SeqStmt::DescribeSelf( OStream &, charptr ) const
 	{
 	return 0;
 	}
@@ -208,7 +208,7 @@ void WheneverStmt::SetActivity( int activate )
 	active = activate;
 	}
 
-void WheneverStmt::Describe( ostream& s ) const
+void WheneverStmt::Describe( OStream& s ) const
 	{
 	DescribeSelf( s );
 	s << " ";
@@ -333,7 +333,7 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return err;
 	}
 
-void LinkStmt::Describe( ostream& s ) const
+void LinkStmt::Describe( OStream& s ) const
 	{
 	DescribeSelf( s );
 	s << " ";
@@ -447,7 +447,7 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
-void AwaitStmt::Describe( ostream& s ) const
+void AwaitStmt::Describe( OStream& s ) const
 	{
 	s << "await ";
 
@@ -531,7 +531,7 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	return 0;
 	}
 
-void ActivateStmt::Describe( ostream& s ) const
+void ActivateStmt::Describe( OStream& s ) const
 	{
 	if ( activate )
 		s << "activate";
@@ -599,7 +599,7 @@ IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	return result;
 	}
 
-void IfStmt::Describe( ostream& s ) const
+void IfStmt::Describe( OStream& s ) const
 	{
 	s << "if ";
 	expr->Describe( s );
@@ -617,7 +617,7 @@ void IfStmt::Describe( ostream& s ) const
 		}
 	}
 
-int IfStmt::DescribeSelf( ostream &s, charptr prefix ) const
+int IfStmt::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << "if ";
@@ -694,7 +694,7 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return result;
 	}
 
-void ForStmt::Describe( ostream& s ) const
+void ForStmt::Describe( OStream& s ) const
 	{
 	s << "for ( ";
 	index->Describe( s );
@@ -704,7 +704,7 @@ void ForStmt::Describe( ostream& s ) const
 	body->Describe( s );
 	}
 
-int ForStmt::DescribeSelf( ostream& s, charptr prefix ) const
+int ForStmt::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << "for ( ";
@@ -775,7 +775,7 @@ IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return result;
 	}
 
-void WhileStmt::Describe( ostream& s ) const
+void WhileStmt::Describe( OStream& s ) const
 	{
 	s << "while ( ";
 	test->Describe( s );
@@ -808,7 +808,7 @@ IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
-void PrintStmt::Describe( ostream& s ) const
+void PrintStmt::Describe( OStream& s ) const
 	{
 	s << "print ";
 
@@ -818,7 +818,7 @@ void PrintStmt::Describe( ostream& s ) const
 	}
 
 
-int PrintStmt::DescribeSelf( ostream &s, charptr prefix ) const
+int PrintStmt::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	Describe(s);
@@ -844,7 +844,7 @@ IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return ret;
 	}
 
-void FailStmt::Describe( ostream& s ) const
+void FailStmt::Describe( OStream& s ) const
 	{
 	s << "fail ";
 
@@ -891,7 +891,7 @@ IValue* IncludeStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ 
 	return ret;
 	}
 
-void IncludeStmt::Describe( ostream& s ) const
+void IncludeStmt::Describe( OStream& s ) const
 	{
 	s << "include ";
 
@@ -920,13 +920,13 @@ int ExprStmt::DoesTrace( ) const
 	return expr->DoesTrace();
 	}
 
-void ExprStmt::Describe( ostream& s ) const
+void ExprStmt::Describe( OStream& s ) const
 	{
 	expr->Describe( s );
 	s << ";";
 	}
 
-int ExprStmt::DescribeSelf( ostream& s, charptr prefix ) const
+int ExprStmt::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	expr->DescribeSelf( s );
@@ -955,7 +955,7 @@ IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
-void ExitStmt::Describe( ostream& s ) const
+void ExitStmt::Describe( OStream& s ) const
 	{
 	s << "exit";
 
@@ -1000,7 +1000,7 @@ IValue* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 		return 0;
 	}
 
-void ReturnStmt::Describe( ostream& s ) const
+void ReturnStmt::Describe( OStream& s ) const
 	{
 	s << "return";
 
@@ -1011,7 +1011,7 @@ void ReturnStmt::Describe( ostream& s ) const
 		}
 	}
 
-int ReturnStmt::DescribeSelf( ostream &s, charptr prefix ) const
+int ReturnStmt::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	Describe(s);
@@ -1071,14 +1071,14 @@ IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
 	return result;
 	}
 
-void StmtBlock::Describe( ostream& s ) const
+void StmtBlock::Describe( OStream& s ) const
 	{
 	s << "{{ ";
 	stmt->Describe( s );
 	s << " }}";
 	}
 
-int StmtBlock::DescribeSelf( ostream &, charptr ) const
+int StmtBlock::DescribeSelf( OStream &, charptr ) const
 	{
 	return 0;
 	}

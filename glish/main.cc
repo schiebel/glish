@@ -105,8 +105,21 @@ void glish_sigint( )
 	kill(getpid(), SIGINT);
 	}
 
+class StringReporter : public Reporter {
+    public:
+	StringReporter( OStream* reporter_stream ) :
+		Reporter( reporter_stream ) { loggable = 0; }
+	void Epilog();
+	void Prolog();
+	};
+
+void StringReporter::Epilog() { }
+void StringReporter::Prolog() { }
+static StringReporter *srpt = 0;
+
 int main( int argc, char** argv )
 	{
+	srpt = new StringReporter( new SOStream );
 	install_terminate_handlers();
 
 	(void) install_signal_handler( SIGINT, glish_sigint );
@@ -124,6 +137,7 @@ int main( int argc, char** argv )
 	glish_cleanup();
 
 	delete s;
+	delete srpt;
 
 	return 0;
 	}
@@ -178,7 +192,7 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 			to_buf = strcpy( to_buf, from_buf_start );
 		else
 			{
-			cerr << "Not enough buffer size (in fmt_readline_str)"
+			error->Stream() << "Not enough buffer size (in fmt_readline_str)"
 			     << endl;
 			free_memory( (void*) from_buf );
 			return 0;
@@ -253,17 +267,6 @@ int lookup_print_limit( )
 	return Sequencer::CurSeq()->System().PrintLimit();
 	}
 
-class StringReporter : public Reporter {
-    public:
-	StringReporter( ostream& reporter_stream ) :
-		Reporter( reporter_stream ) { }
-	void Epilog();
-	void Prolog();
-	};
-
-void StringReporter::Epilog() { }
-void StringReporter::Prolog() { }
-
 Value *generate_error( const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,
@@ -275,17 +278,14 @@ Value *generate_error( const RMessage& m0,
 		       const RMessage& m15, const RMessage& m16
 		    )
 	{
-	strstream sout;
-	StringReporter srpt( sout );
-
-	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	sout << '\0';
-	IValue *ret = error_ivalue( sout.str() );
+	srpt->Stream().reset();
+	srpt->Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
 	if ( allwarn )
 		{
-		cerr << "E[" << ++error_count << "]: ";
-		ret->Describe( cerr );
-		cerr << endl;
+		error->Stream() << "E[" << ++error_count << "]: ";
+		ret->Describe( error->Stream() );
+		error->Stream() << endl;
 		}
 	return ret;
 	}
@@ -302,17 +302,14 @@ Value *generate_error( const char *file, int line,
 		       const RMessage& m15, const RMessage& m16
 		    )
 	{
-	strstream sout;
-	StringReporter srpt( sout );
-
-	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	sout << '\0';
-	IValue *ret = error_ivalue( sout.str(), file, line );
+	srpt->Stream().reset();
+	srpt->Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
 	if ( allwarn )
 		{
-		cerr << "E[" << ++error_count << "]: ";
-		ret->Describe( cerr );
-		cerr << endl;
+		error->Stream() << "E[" << ++error_count << "]: ";
+		ret->Describe( error->Stream() );
+		error->Stream() << endl;
 		}
 	return ret;
 	}
@@ -328,15 +325,12 @@ const Str generate_error_str( const RMessage& m0,
 		       const RMessage& m15, const RMessage& m16
 		    )
 	{
-	strstream sout;
-	StringReporter srpt( sout );
-
-	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	sout << '\0';
+	srpt->Stream().reset();
+	srpt->Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	if ( allwarn )
-		cerr << "E[" << ++error_count << "]: " <<
-		  sout.str() << endl;
-	return Str( (const char *) sout.str() );
+		error->Stream() << "E[" << ++error_count << "]: " <<
+		  ((SOStream&)srpt->Stream()).str() << endl;
+	return Str( (const char *) ((SOStream&)srpt->Stream()).str() );
 	}
 
 void report_error( const RMessage& m0,
@@ -350,17 +344,14 @@ void report_error( const RMessage& m0,
 		       const RMessage& m15, const RMessage& m16
 		    )
 	{
-	strstream sout;
-	StringReporter srpt( sout );
-
-	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	sout << '\0';
-	IValue *ret = error_ivalue( sout.str() );
+	srpt->Stream().reset();
+	srpt->Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
 	if ( allwarn )
 		{
-		cerr << "E[" << ++error_count << "]: ";
-		ret->Describe( cerr );
-		cerr << endl;
+		error->Stream() << "E[" << ++error_count << "]: ";
+		ret->Describe( error->Stream() );
+		error->Stream() << endl;
 		}
 	Sequencer::SetErrorResult( ret );
 	}
@@ -377,22 +368,30 @@ void report_error( const char *file, int line,
 		       const RMessage& m15, const RMessage& m16
 		    )
 	{
-	strstream sout;
-	StringReporter srpt( sout );
-
-	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	sout << '\0';
-	IValue *ret = error_ivalue( sout.str(), file, line );
+	srpt->Stream().reset();
+	srpt->Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
 	if ( allwarn )
 		{
-		cerr << "E[" << ++error_count << "]: ";
-		ret->Describe( cerr );
-		cerr << endl;
+		error->Stream() << "E[" << ++error_count << "]: ";
+		ret->Describe( error->Stream() );
+		error->Stream() << endl;
 		}
 	Sequencer::SetErrorResult( ret );
 	}
 
-void show_glish_stack( ostream &s )
+void log_output( const char *s )
+	{
+	if ( Sequencer::CurSeq()->System().OLog() )
+		Sequencer::CurSeq()->System().DoOLog( s );
+	}
+
+int do_output_log()
+	{
+	return Sequencer::CurSeq()->System().OLog();
+	}
+
+void show_glish_stack( OStream &s )
 	{
 	Sequencer::CurSeq()->DescribeFrames( s );
 	s << endl;

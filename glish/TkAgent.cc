@@ -18,8 +18,6 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Expr.h"
 
-#include <iostream.h>
-
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;

@@ -896,9 +896,6 @@ IValue *glish_parser( Stmt *&stmt )
 				}
 			else if ( val )
 				{
-				if ( Sequencer::CurSeq()->System().OLog() )
-					Sequencer::CurSeq()->System().DoOLog( val );
-
 				message->Report( val );
 				Unref( val );
 				}

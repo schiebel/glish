@@ -22,7 +22,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Frame.h"
 
-#include <strstream.h>
+#include "Glish/Stream.h"
 
 #ifdef GLISHTK
 #include "TkAgent.h"
@@ -175,7 +175,7 @@ void BuiltIn::DoSideEffectsCall( const_args_list* args_vals,
 	Unref( DoCall( args_vals ) );
 	}
 
-int BuiltIn::DescribeSelf( ostream& s, charptr prefix ) const
+int BuiltIn::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << description << "()";
@@ -1879,9 +1879,9 @@ IValue* as_string_built_in( const IValue* arg )
 	//
 	if ( arg->Type() == TYPE_FUNC )
 		{
-		strstream sout;
+		static SOStream sout;
+		sout.reset();
 		arg->Describe( sout );
-		sout << '\0';
 		return new IValue( (const char *) sout.str() );
 		}
 

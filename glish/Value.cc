@@ -4108,7 +4108,7 @@ int Value::Grow( unsigned int new_size )
 	}
 
 
-int Value::DescribeSelf( ostream& s, charptr prefix ) const
+int Value::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	if ( IsRef() )

@@ -99,7 +99,7 @@ const IValue* Parameter::NthEllipsisVal( int n ) const
 	return result;
 	}
 
-void Parameter::Describe( ostream& s ) const
+void Parameter::Describe( OStream& s ) const
 	{
 	if ( name )
 		s << name;
@@ -132,7 +132,7 @@ FormalParameter::FormalParameter( value_type parm_type_,
 	{
 	}
 
-void FormalParameter::Describe( ostream& s ) const
+void FormalParameter::Describe( OStream& s ) const
 	{
 	if ( parm_type == VAL_CONST )
 		s << "const";
@@ -193,7 +193,7 @@ void UserFunc::EstablishScope()
 		}
 	}
 
-void UserFunc::Describe( ostream& s ) const
+void UserFunc::Describe( OStream& s ) const
 	{
 	kernel->Describe(s);
 	}
@@ -557,7 +557,7 @@ IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* m
 	}
 
 
-void UserFuncKernel::Describe( ostream& s ) const
+void UserFuncKernel::Describe( OStream& s ) const
 	{
 	s << "function (";
 	describe_parameter_list( formals, s );
@@ -692,7 +692,7 @@ IValue *UserFuncKernel::ArgOverFlow( Expr* arg, int num_args, int num_formals,
 	}
 
 
-void describe_parameter_list( parameter_list* params, ostream& s )
+void describe_parameter_list( parameter_list* params, OStream& s )
 	{
 	loop_over_list( *params, i )
 		{

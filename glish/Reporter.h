@@ -5,7 +5,8 @@
 
 #include "Glish/Object.h"
 
-class ostream;
+class OStream;
+class SOStream;
 class Value;
 
 class RMessage {
@@ -23,7 +24,7 @@ class RMessage {
 	//  The character returned is that *last* character written, if
 	// known (it will be known in the string case but not in the
 	// GlishObject case), or '\0' if not known.
-	char Write( ostream&, int leading_space, int trailing_space ) const;
+	char Write( OStream&, int leading_space, int trailing_space ) const;
 
 	// Returns the *first* character which would be written, if
 	// known (it will be known in the string case but not in the
@@ -43,7 +44,8 @@ extern RMessage EndMessage;
 
 class Reporter {
     public:
-	Reporter( ostream& reporter_stream );
+	Reporter( OStream *reporter_stream );
+	~Reporter( );
 
 	void Report( const RMessage&,
 		     const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -60,13 +62,18 @@ class Reporter {
 	int Count()			{ return count; }
 	void SetCount( int new_count )	{ count = new_count; }
 
+	OStream &Stream() { return stream; }
+
     protected:
+	int loggable;
+	int do_log;
+	static SOStream *sout;
 	virtual void Prolog();
 	virtual void Epilog();
 
 	int count;
 
-	ostream& stream;
+	OStream& stream;
 	};
 
 

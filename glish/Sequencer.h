@@ -44,7 +44,7 @@ public:
 			Notifiee* notifiee, NotifyTrigger *t=0 );
 	~Notification();
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	Agent* notifier;
 	char* field;
@@ -206,7 +206,7 @@ public:
 	// is the only way to get rid of a 'const' value.
 	void DeleteVal( const char* id );
 
-	void DescribeFrames( ostream& s ) const;
+	void DescribeFrames( OStream& s ) const;
 	void PushFrame( Frame* new_frame );
 	void PushFrames( stack_type *new_stack );
 	// Note that only the last frame popped is returned (are the others leaked?).

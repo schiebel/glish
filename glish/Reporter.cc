@@ -7,30 +7,35 @@ RCSID("@(#) $Id$")
 #include <string.h>
 
 #include "Reporter.h"
+#include "Glish/Stream.h"
+#include <iostream.h>
 #include "input.h"
 
 int interactive = 0;
 extern Str *file_name;
+SOStream *Reporter::sout = 0;
 
-extern void show_glish_stack( ostream& );
+extern void show_glish_stack( OStream& );
+extern void log_output( const char * );
+extern int do_output_log();
 
 class WarningReporter : public Reporter {
     public:
-	WarningReporter() : Reporter( cerr )	{ }
+	WarningReporter() : Reporter( new ProxyStream(cerr) )	{ }
 	virtual void Prolog();
 	};
 
 
 class ErrorReporter : public Reporter {
     public:
-	ErrorReporter() : Reporter( cerr )	{ }
+	ErrorReporter() : Reporter( new ProxyStream(cerr) )	{ }
 	virtual void Prolog();
 	};
 
 
 class FatalReporter : public Reporter {
     public:
-	FatalReporter() : Reporter( cerr )	{ }
+	FatalReporter() : Reporter( new ProxyStream(cerr) )	{ }
 	virtual void Prolog();
 	virtual void Epilog();
 	};
@@ -38,7 +43,7 @@ class FatalReporter : public Reporter {
 
 class MessageReporter : public Reporter {
     public:
-	MessageReporter() : Reporter( cout )	{ }
+	MessageReporter() : Reporter( new ProxyStream(cout) )	{ }
 	virtual void Prolog();
 	};
 
@@ -83,7 +88,7 @@ RMessage::RMessage( int message_int )
 	int_val = message_int;
 	}
 
-char RMessage::Write( ostream& s, int leading_space, int trailing_space ) const
+char RMessage::Write( OStream& s, int leading_space, int trailing_space ) const
 	{
 	if ( object )
 		{
@@ -149,9 +154,21 @@ char RMessage::FirstChar() const
 	}
 
 
-Reporter::Reporter( ostream& reporter_stream ) : stream( reporter_stream )
+Reporter::Reporter( OStream *reporter_stream ) : stream( *reporter_stream )
 	{
 	count = 0;
+	loggable = 1;
+	do_log = 0;
+	if ( ! sout )
+		sout = new SOStream;
+	else
+		Ref(sout);
+	}
+
+Reporter::~Reporter( )
+	{
+	Unref( &stream );
+	Unref( sout );
 	}
 
 void Reporter::Report( const RMessage& m0,
@@ -187,6 +204,9 @@ void Reporter::Report( const RMessage& m0,
 	messages[16] = &m16;
 	messages[11] = &EndMessage;
 
+	if ( do_log = loggable && do_output_log() )
+		sout->reset();
+
 	Prolog();
 
 	const char* suppress_following_blank = " ([{#@$%-`'\"";
@@ -215,9 +235,14 @@ void Reporter::Report( const RMessage& m0,
 			}
 
 		c = messages[i]->Write( stream, leading_space, trailing_space );
+		if ( do_log )
+			messages[i]->Write( *sout, leading_space, trailing_space );
 
 		leading_space = ! (c && strchr( suppress_following_blank, c ));
 		}
+
+	if ( do_log )
+		log_output( sout->str() );
 
 	Epilog();
 
@@ -229,10 +254,18 @@ void Reporter::Prolog()
 	if ( ! interactive )
 		{
 		if ( file_name && file_name->chars() )
+			{
 			stream << "\"" << file_name->Chars() << "\", ";
+			if ( do_log )
+				*sout << "\"" << file_name->Chars() << "\", ";
+			}
 
 		if ( line_num > 0 )
+			{
 			stream << "line " << line_num << ": ";
+			if ( do_log )
+				*sout << "line " << line_num << ": ";
+			}
 		}
 	}
 
@@ -247,6 +280,7 @@ void WarningReporter::Prolog()
 	{
 	Reporter::Prolog();
 	stream << "warning, ";
+	if ( do_log ) *sout << "warning, ";
 	}
 
 
@@ -254,6 +288,7 @@ void ErrorReporter::Prolog()
 	{
 	Reporter::Prolog();
 	stream << "error, ";
+	if ( do_log ) *sout << "error, ";
 	}
 
 
@@ -262,6 +297,7 @@ void FatalReporter::Prolog()
 	show_glish_stack( stream );
 	Reporter::Prolog();
 	stream << "fatal internal error, ";
+	if ( do_log ) *sout << "fatal internal error, ";
 	}
 
 void FatalReporter::Epilog()

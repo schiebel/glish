@@ -219,7 +219,7 @@ Task* Agent::AgentTask()
 	return 0;
 	}
 
-int Agent::DescribeSelf( ostream& s, charptr prefix ) const
+int Agent::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	if ( agent_ID )

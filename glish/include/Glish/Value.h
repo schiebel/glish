@@ -619,7 +619,7 @@ public:
 		return a;
 		}
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	// Provide the rudiments of copy on write... i.e. it copies
 	// when necessary.

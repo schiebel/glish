@@ -201,7 +201,7 @@ Task* Task::AgentTask()
 	return this;
 	}
 
-int Task::DescribeSelf( ostream& s, charptr prefix ) const
+int Task::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << "task " << Name();

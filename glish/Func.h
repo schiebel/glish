@@ -58,7 +58,7 @@ class Parameter : public GlishObject {
 	// value is indexed using n=0.
 	const IValue* NthEllipsisVal( int n ) const;
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
 	~Parameter();
 
@@ -82,7 +82,7 @@ class FormalParameter : public Parameter {
 	FormalParameter( value_type parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 	};
 
 class ActualParameter : public Parameter {
@@ -124,7 +124,7 @@ class UserFuncKernel : public GlishObject {
 	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
 	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing, stack_type *stack = 0 );
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
     protected:
 	IValue* EvalParam( Parameter* p, Expr* actual, IValue *&fail );
@@ -165,7 +165,7 @@ class UserFunc : public Func {
 	void EstablishScope();
 	UserFunc *clone() { return new UserFunc(this); }
 
-	void Describe( ostream& s ) const;
+	void Describe( OStream& s ) const;
 
     protected:
 	Sequencer* sequencer;
@@ -175,6 +175,6 @@ class UserFunc : public Func {
 	};
 
 
-extern void describe_parameter_list( parameter_list* params, ostream& s );
+extern void describe_parameter_list( parameter_list* params, OStream& s );
 
 #endif /* func_h */

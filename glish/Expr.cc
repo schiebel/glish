@@ -366,7 +366,7 @@ IValue* ConstExpr::Eval( eval_type etype )
 	return CopyOrRefValue( const_value, etype );
 	}
 
-int ConstExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int ConstExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	return const_value->DescribeSelf( s, prefix );
 	}
@@ -389,7 +389,7 @@ IValue* FuncExpr::Eval( eval_type etype )
 	return new IValue( ret );
 	}
 
-int FuncExpr::DescribeSelf( ostream& s, charptr prefix ) const
+int FuncExpr::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	func->Describe( s );
@@ -406,7 +406,7 @@ UnaryExpr::UnaryExpr( Expr* operand, const char* desc ) : Expr(desc)
 	op = operand;
 	}
 
-int UnaryExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int UnaryExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	GlishObject::DescribeSelf( s, prefix );
 	op->Describe( s );
@@ -433,7 +433,7 @@ BinaryExpr::BinaryExpr( Expr* op1, Expr* op2, const char* desc )
 	}
 
 
-int BinaryExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int BinaryExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << "(";
@@ -662,7 +662,7 @@ IValue* ConstructExpr::Eval( eval_type /* etype */ )
 		return BuildRecord();
 	}
 
-int ConstructExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int ConstructExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	s << "[";
@@ -1314,7 +1314,7 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-int ArrayRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int ArrayRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	op->Describe( s );
@@ -1408,7 +1408,7 @@ IValue *RecordRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-int RecordRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int RecordRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	op->Describe( s );
@@ -1588,7 +1588,7 @@ IValue *AttributeRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-int AttributeRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int AttributeRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	left->Describe( s );
@@ -1665,7 +1665,7 @@ IValue *RefExpr::Assign( IValue* new_value )
 	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}
 
-int RefExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int RefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	if ( type == VAL_CONST )
@@ -1754,8 +1754,8 @@ IValue* CallExpr::Eval( eval_type etype )
 	Func* func_val = func->FuncVal();
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( DescribeSelf(cout, "\t|-> ") )
-			cout << endl;
+		if ( DescribeSelf(message->Stream(), "\t|-> ") )
+			message->Stream() << endl;
 
 	IValue* result = 0;
 
@@ -1795,7 +1795,7 @@ IValue *CallExpr::SideEffectsEval()
 	return 0;
 	}
 
-int CallExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int CallExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	op->Describe( s );
@@ -1885,7 +1885,7 @@ IValue *SendEventExpr::SideEffectsEval()
 	return 0;
 	}
 
-int SendEventExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int SendEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( is_request_reply )
 		s << "request ";
@@ -1980,7 +1980,7 @@ IValue* LastEventExpr::RefEval( value_type val_type )
 	return result;
 	}
 
-int LastEventExpr::DescribeSelf( ostream &s, charptr prefix ) const
+int LastEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 
@@ -1998,7 +1998,7 @@ int LastEventExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	}
 
 
-void describe_expr_list( const expr_list* list, ostream& s )
+void describe_expr_list( const expr_list* list, OStream& s )
 	{
 	if ( list )
 		loop_over_list( *list, i )

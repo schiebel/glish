@@ -57,7 +57,7 @@ public:
 	// list is returned.
 	name_list* EventNames();
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 protected:
 	Expr* agent;
@@ -68,6 +68,6 @@ protected:
 
 extern void delete_name_list( name_list* nl );
 
-extern void describe_event_list( const event_list* list, ostream& s );
+extern void describe_event_list( const event_list* list, OStream& s );
 
 #endif /* event_h */

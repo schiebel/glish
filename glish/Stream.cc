@@ -17,13 +17,18 @@ MACRO(unsigned long)		\
 MACRO(unsigned short)		\
 MACRO(unsigned char)		\
 MACRO(void*)			\
-MACRO(char*)
+MACRO(const char*)
 
 int OStream::reset() { return 0; }
 
 OStream &OStream::operator<<( OStream &(*f)(OStream&) )
 	{
 	return (*f)(*this);
+	}
+
+OStream &OStream::flush( )
+	{
+	return *this;
 	}
 
 char *DBuf::tmpbuf = 0;
@@ -86,3 +91,8 @@ OStream &ProxyStream::operator<<( TYPE v )	\
 
 DEFINE_FUNCS(PROXYSTREAM_PUT)
 
+OStream &ProxyStream::flush( )
+	{
+	s.flush( );
+	return *this;
+	}

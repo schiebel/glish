@@ -251,7 +251,7 @@ class ConstExpr : public Expr {
 	ConstExpr( const IValue* const_value );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ConstExpr();
 
@@ -265,7 +265,7 @@ class FuncExpr : public Expr {
 	FuncExpr( UserFunc* f );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~FuncExpr();
 
@@ -279,7 +279,7 @@ class UnaryExpr : public Expr {
 	UnaryExpr( Expr* operand, const char* desc );
 
 	IValue* Eval( eval_type etype ) = 0;
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -295,7 +295,7 @@ class BinaryExpr : public Expr {
 	BinaryExpr( Expr* op1, Expr* op2, const char* desc );
 
 	IValue* Eval( eval_type etype ) = 0;
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -357,7 +357,7 @@ class ConstructExpr : public Expr {
 	ConstructExpr( ParameterPList* args );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ConstructExpr();
 
@@ -393,7 +393,7 @@ class ArrayRefExpr : public UnaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ArrayRefExpr();
 
@@ -412,7 +412,7 @@ class RecordRefExpr : public UnaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~RecordRefExpr();
 
@@ -432,7 +432,7 @@ class AttributeRefExpr : public BinaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -450,7 +450,7 @@ class RefExpr : public UnaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
     protected:
 	value_type type;
@@ -473,7 +473,7 @@ class CallExpr : public UnaryExpr {
 	IValue *SideEffectsEval();
 	int DoesTrace( ) const;
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~CallExpr();
 
@@ -499,7 +499,7 @@ class SendEventExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	IValue* SideEffectsEval();
 
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~SendEventExpr();
 
@@ -518,7 +518,7 @@ class LastEventExpr : public Expr {
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
-	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
     protected:
 	Sequencer* sequencer;
@@ -526,7 +526,7 @@ class LastEventExpr : public Expr {
 	};
 
 
-extern void describe_expr_list( const expr_list* list, ostream& s );
+extern void describe_expr_list( const expr_list* list, OStream& s );
 
 
 #endif /* expr_h */

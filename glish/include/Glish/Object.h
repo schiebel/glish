@@ -12,7 +12,7 @@
 //
 extern int line_num;
 extern Str *file_name;
-class ostream;
+class OStream;
 class Value;
 class RMessage;
 extern RMessage EndMessage;
@@ -49,21 +49,21 @@ class GlishObject : public GlishRef {
 	// Generate a long description of the object to the
 	// given stream.  This typically includes descriptions of
 	// subobjects as well as this object.
-	virtual void Describe( ostream& ) const;
+	virtual void Describe( OStream& ) const;
 
 	// Generate a short description of the object to the
 	// given stream. Returns non-zero if something was actually
 	// written to the stream.
-	virtual int DescribeSelf( ostream&, charptr prefix = 0 ) const;
+	virtual int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	// Non-virtual, non-const versions of Describe() and DescribeSelf().
 	// We add it here so that if when deriving a subclass of GlishObject we
 	// forget the "const" declaration on the Describe/DescribeSelf
 	// member functions, we'll hopefully get a warning message that
 	// we're shadowing a non-virtual function.
-	void Describe( ostream& stream )
+	void Describe( OStream& stream )
 		{ ((const GlishObject*) this)->Describe( stream ); }
-	int DescribeSelf( ostream& stream, charptr prefix = 0 )
+	int DescribeSelf( OStream& stream, charptr prefix = 0 )
 		{ return ((const GlishObject*) this)->DescribeSelf( stream, prefix ); }
 	// Get a quick (minimal) description of the object. This is
 	// used in CallExpr::Eval() to get the name of the function.

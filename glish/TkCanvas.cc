@@ -13,8 +13,6 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Expr.h"
 
-#include <iostream.h>
-
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
 

@@ -3,7 +3,7 @@
 #ifndef complex_h
 #define complex_h
 
-#include <iostream.h>
+#include "Glish/Stream.h"
 #include <math.h>
 
 //
@@ -202,12 +202,12 @@ extern dcomplex pow(const dcomplex x, const dcomplex y);
 
 inline dcomplex tan(const dcomplex v) {return div(sin(v),cos(v));}
 
-inline ostream &operator<<(ostream &ios, complex x) {
+inline OStream &operator<<(OStream &ios, complex x) {
   ios << x.r << (x.i>=0?"+":"") << x.i << "i";
   return ios;
 }
 
-inline ostream &operator<<(ostream &ios, dcomplex x) {
+inline OStream &operator<<(OStream &ios, dcomplex x) {
   ios << x.r << (x.i>=0?"+":"") << x.i << "i";
   return ios;
 }

@@ -313,7 +313,7 @@ Notification::~Notification()
 	Unref( trigger );
 	}
 
-void Notification::Describe( ostream& s ) const
+void Notification::Describe( OStream& s ) const
 	{
 	s << "notification of ";
 	notifier->DescribeSelf( s );
@@ -360,10 +360,7 @@ const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	for (ptr = (char*)buf; *ptr; charcount++)
 		if ( *ptr++ == '\n' ) ++nlcount;
 
-	if ( nlcount <= 0 )
-		return buf;
-
-	unsigned int outsize = charcount + (nlcount + 1) * strlen(prefix) + 2;
+	unsigned int outsize = charcount + (nlcount + 1) * strlen(prefix) + 3;
 	if ( outsize > size )
 		{
 		while ( outsize > size ) size *= 2;
@@ -383,7 +380,9 @@ const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 			for (pp=(char*)prefix; *pp; *pp++)
 				*optr++ = *pp;
 		}
-	*optr++ = '\n';
+
+	if ( *optr != '\n' ) *optr++ = '\n';
+	else optr++;
 	*optr = '\0';
 
 	return outbuf;
@@ -424,8 +423,8 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
 			error->Report("in trace function (disconnecting):");	\
-			ret->DescribeSelf( cerr );				\
-			cerr << endl;						\
+			ret->DescribeSelf( error->Stream() );			\
+			error->Stream() << endl;				\
 			Unref(VAR##_val);					\
 			VAR##_val = 0;						\
 			done = 0;						\
@@ -447,9 +446,13 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 	DOLOG_ACTION(log, if (!input) DOLOG_FIXBUF ) 
 	if ( ! done )
 		if ( input )
+			{
 			DOLOG_ACTION(ilog,)
+			}
 		else
+			{
 			DOLOG_ACTION(olog,DOLOG_FIXBUF)
+			}
 	}
 
 void SystemInfo::AbortOccurred()
@@ -1367,12 +1370,12 @@ void Sequencer::DeleteVal( const char* id )
 		}
 	}
 
-void Sequencer::DescribeFrames( ostream& s ) const
+void Sequencer::DescribeFrames( OStream& s ) const
 	{
 	loop_over_list( stack, X )
 		{
 		stack_type *S = stack[X];
-		s << "[" << X << "]" << (void*) s;
+		s << "[" << X << "]" << (void*) S;
 		if ( (*S->frames).length() )
 			{
 			s << "\tframes:\t\t";
@@ -1744,8 +1747,8 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 			{
 			if ( ret && ret->Type() == TYPE_FAIL )
 				{
-				ret->Describe( cerr );
-			        cerr << endl;
+				ret->Describe( error->Stream() );
+			        error->Stream() << endl;
 				}
 			Unref( ret );
 			ret = 0;

@@ -1,9 +1,10 @@
-#if !defined(strstream_h_)
-#define strstream_h_
+#if !defined(stream_h_)
+#define stream_h_
+#include "Glish/Object.h"
 
 class ostream;
 
-class OStream {
+class OStream : public GlishRef {
     public:
 
 	virtual OStream &operator<<(float) = 0;
@@ -20,9 +21,11 @@ class OStream {
 	virtual OStream &operator<<(unsigned char) = 0;
 
 	virtual OStream &operator<<(void*) = 0;
-	virtual OStream &operator<<(char*) = 0;
+	virtual OStream &operator<<(const char*) = 0;
 
 	OStream &operator<<( OStream &(*f)(OStream&) );
+
+	virtual OStream &flush( );
 
 	// may or may not do anything... returns non-zero
 	// if it actually does something.
@@ -50,7 +53,7 @@ class DBuf {
 	int put(unsigned short s, const char *format="%u");
 
 	int put(void *v, const char *format="%x");
-	int put(char *s, const char *format="%s");
+	int put(const char *s, const char *format="%s");
 
 	unsigned int len() const { return len_; }
 	unsigned int size() const { return size_; }
@@ -80,7 +83,7 @@ class SOStream : public OStream {
 	OStream &operator<<(unsigned char);
 	
 	OStream &operator<<(void*);
-	OStream &operator<<(char*);
+	OStream &operator<<(const char*);
 
 	int reset();
 
@@ -108,7 +111,9 @@ class ProxyStream : public OStream {
 	OStream &operator<<(unsigned char);
 	
 	OStream &operator<<(void*);
-	OStream &operator<<(char*);
+	OStream &operator<<(const char*);
+
+	OStream &flush( );
 
     private:
 	ostream &s;

@@ -15,6 +15,7 @@ RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream.h>
 #include "Glish/Client.h"
 
 declare(PDict,name_list);

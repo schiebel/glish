@@ -172,7 +172,7 @@ name_list* EventDesignator::EventNames()
 	return result;
 	}
 
-int EventDesignator::DescribeSelf( ostream& s, charptr prefix ) const
+int EventDesignator::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
 	EventAgentExpr()->DescribeSelf( s );
@@ -206,7 +206,7 @@ void delete_name_list( name_list* nl )
 	}
 
 
-void describe_event_list( const event_list* list, ostream& s )
+void describe_event_list( const event_list* list, OStream& s )
 	{
 	if ( list )
 		loop_over_list( *list, i )

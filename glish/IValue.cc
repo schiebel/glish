@@ -550,7 +550,7 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 		}
 	}
 
-int IValue::DescribeSelf( ostream& s, charptr prefix ) const
+int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 	{
 	if ( Type() == TYPE_FUNC )
 		{
