@@ -2100,7 +2100,7 @@ int IValue::SetUnref( NodeList *r, int propagate_only )
 
 void IValue::ClearUnref( )
 	{
-	if ( unref )
+	if ( (NodeList*) unref )
 		{
 		if ( mUNREF(mask) ) Unref( unref );
 		mask &= ~ (mUNREF() | mPROPAGATE());
