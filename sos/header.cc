@@ -103,10 +103,10 @@ void sos_header::scratch( )
 void sos_header::useti( unsigned int i )
 	{
 	int off = 2 + user_offset( );
-	kernel->buf_[24 + off ] = i & 0xff; i >>= 8;
-	kernel->buf_[25 + off ] = i & 0xff; i >>= 8;
-	kernel->buf_[26 + off ] = i & 0xff; i >>= 8;
-	kernel->buf_[27 + off ] = i & 0xff; i >>= 8;
+	kernel->buf_[ off++ ] = i & 0xff; i >>= 8;
+	kernel->buf_[ off++ ] = i & 0xff; i >>= 8;
+	kernel->buf_[ off++ ] = i & 0xff; i >>= 8;
+	kernel->buf_[ off   ] = i & 0xff; i >>= 8;
 	}
 
 void sos_header::stamp( struct timeval &initial )
