@@ -194,19 +194,32 @@ void TkProxy::init_tk( int visible_root )
 	{
 	if ( ! root )
 		{
-		tcl = Tcl_CreateInterp();
-		Tcl_Init( tcl );
-		Tk_Init(tcl);
-		root = Tk_MainWindow(tcl);
-		
-		glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
-		static char tk_follow[] = "tk_focusFollowsMouse";
-		Tcl_Eval(tcl, tk_follow);
-
-		if ( ! visible_root )
+		if ( ! tcl )
 			{
-			root_unmapped = 1;
-			tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), 0 );
+			tcl = Tcl_CreateInterp();
+			Tcl_Init( tcl );
+			}
+
+		static int tk_started = TCL_ERROR;
+
+		if ( tcl && tk_started == TCL_ERROR )
+			{
+			tk_started = Tk_Init(tcl);
+
+			if ( tk_started == TCL_OK )
+				{
+				root = Tk_MainWindow(tcl);
+				glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
+
+				static char tk_follow[] = "tk_focusFollowsMouse";
+				Tcl_Eval(tcl, tk_follow);
+
+				if ( ! visible_root )
+					{
+					root_unmapped = 1;
+					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), 0 );
+					}
+				}
 			}
 		}
 
