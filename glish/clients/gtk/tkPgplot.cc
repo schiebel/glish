@@ -2,7 +2,6 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#ifdef GLISHTK
 #ifdef TKPGPLOT
 
 #include "tkPgplot.h"
@@ -571,7 +570,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
 // 				  (ClientData)this, 0);
 
   // JAU: Make rivet-less.
-  Tk_VarEval( tcl, c, argv );
+  tcl_ArgEval( tcl, c, argv );
   self = Tk_NameToWindow( tcl, argv[1], root );
 
   if (!self) {
@@ -579,11 +578,11 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
     return;
   }
   // JAU: Make rivet-less.
-  id = rvp_device_id (self);
+  id = tkpg_device_id (self);
 
   // JAU: Make rivet-less.
   if ( id <= 0 ) {
-    id = cpgopen (rvp_device_name (self));
+    id = cpgopen (tkpg_device_name (self));
   } else {
     cpgslct (id);
   }
@@ -790,7 +789,7 @@ char *TkPgplot::Cursor (Value *args)
 	else
 		item[0] = args->StringVal();
 
-	Tk_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
+	Tcl_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
 		    item[2], SP, item[3], 0 );
 	return (char *)item[0];
 	}
@@ -2505,7 +2504,7 @@ TkPgplot::CursorEvent (const char *name, const char *type, const char *key,
 {
   float world[2];
 
-  rvp_xwin2world (self, device[0], device[1], &world[0], &world[1]);
+  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
 
   recordptr rec = create_record_dict ();
 
@@ -2523,7 +2522,7 @@ TkPgplot::CursorEvent (const char *name, const char *type, int button,
 {
   float world[2];
 
-  rvp_xwin2world (self, device[0], device[1], &world[0], &world[1]);
+  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
 
   recordptr rec = create_record_dict ();
 
@@ -2540,7 +2539,7 @@ TkPgplot::CursorEvent (const char *name, const char *type, int *device)
 {
   float world[2];
 
-  rvp_xwin2world (self, device[0], device[1], &world[0], &world[1]);
+  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
 
   recordptr rec = create_record_dict ();
 
@@ -2560,5 +2559,4 @@ TkPgplot::CursorEvent (const char *name, const char *type)
   PostTkEvent (name, new Value (rec));
 }
 
-#endif
 #endif

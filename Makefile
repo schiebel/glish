@@ -35,7 +35,6 @@ all_r:
 	@$(MAKE) build.regx
 	@$(MAKE) build.editline
 	@$(MAKE) build.npd
-	@$(MAKE) build.tk
 	@$(MAKE) build.glish
 
 install_r: 

@@ -3,9 +3,8 @@
 //
 
 #ifndef tkcanvas_h
-#define tkcanvas_h
+#define tkcanvas_
 
-#ifdef GLISHTK
 #include "tkAgent.h"
 //
 //  For glish_declare(Dict,int)
@@ -45,5 +44,4 @@ class TkCanvas : public TkAgent {
 	tkagent_list frame_list;
 	};
 
-#endif
 #endif

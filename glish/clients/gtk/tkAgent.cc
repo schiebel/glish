@@ -4,7 +4,6 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#ifdef GLISHTK
 #include "tkAgent.h"
 #include "tkCanvas.h"
 
@@ -4340,5 +4339,3 @@ int TkHaveGui()
 
 	return ret;
 	}
-
-#endif

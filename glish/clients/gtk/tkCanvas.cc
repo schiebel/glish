@@ -1,10 +1,8 @@
 // $Id$
 // Copyright (c) 1997 Associated Universities Inc.
 //
-
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#ifdef GLISHTK
 
 #include "tkCanvas.h"
 
@@ -1173,5 +1171,3 @@ void TkCanvas::Create( ProxyStore *s, Value *args, void * )
 
 	CREATE_RETURN
 	}
-
-#endif

@@ -89,7 +89,7 @@ char *File::read_chars( int num )
 	     ! in || feof(in) ) return 0;
 
 
-	char *ret = alloc_memory( num+1 );
+	char *ret = (char*) alloc_memory( num+1 );
 	int len = 0;
 
 	if ( (len = read( fileno(in), ret, num )) > 0 )

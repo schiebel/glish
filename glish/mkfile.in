@@ -79,10 +79,6 @@ INTERP_OBJS = \
 	Select.o \
 	Stmt.o \
 	Task.o \
-	TkAgent.o \
-	TkCanvas.o \
-	TkSelect.o \
-	TkPgplot.o \
 	glish_init.o \
 	parse.o \
 	sprintf.o \
@@ -126,10 +122,6 @@ INTERP_OBJS_PROXY = \
 	$(D)Select.o \
 	$(D)Stmt.o \
 	$(D)Task.o \
-	$(D)TkAgent.o \
-	$(D)TkCanvas.o \
-	$(D)TkSelect.o \
-	$(D)TkPgplot.o \
 	$(D)glish_init.o \
 	$(D)parse.o \
 	$(D)sprintf.o \
@@ -174,14 +166,11 @@ BINDIR = @bindir@
 MKHIER = $(top)/config/mkhier
 
 RCDIR = @RCDIR@
-TK_LIB = @TK_LIB@ 
-XLIB = @XLIBSW@
-XINC = @XINCLUDES@
 
-INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) $(PLUSINC)
+CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-GLIBS = $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) @NPD_LIB@ $(TK_LIB)
+GLIBS = $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) @NPD_LIB@
 
 TAR_FILE = glish.tar
 
@@ -204,7 +193,7 @@ INSTALL_lib_tgt: $(LIBDIR)/libglish$(LIB_SUFFIX) $(LIBDIR)/libglishp$(LIB_SUFFIX
 INSTALL_bin_tgt: $(BINDIR)/glish
 
 glish: main.o malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libglishp$(LIB_SUFFIX) $(GLIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o malloc.o $(GLISH_LIBS) $(XLIB) @LIBS@
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o malloc.o $(GLISH_LIBS) @LIBS@
 
 libglish$(LIB_SUFFIX): $(CLIENT_OBJS_PROXY)
 	rm -f libglish$(LIB_SUFFIX)
@@ -282,7 +271,7 @@ $(D)Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
 $(D)BinOpExpr.o: $(SRC)/BinOpExpr.cc $(SRC)/BinOpExpr.h $(KEY_HEADERS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/BinOpExpr.cc $(T)
 
-$(D)BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(SRC)/TkAgent.h $(KEY_HEADERS)
+$(D)BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(KEY_HEADERS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/BuiltIn.cc $(T)
 
 $(D)Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
@@ -369,18 +358,6 @@ $(D)Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
 $(D)Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
     $(SRC)/BuiltIn.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Task.cc $(T)
-
-$(D)TkAgent.o: $(SRC)/Agent.h $(SRC)/TkAgent.cc $(SRC)/TkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/TkAgent.cc $(T)
-
-$(D)TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanvas.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/TkCanvas.cc $(T)
-
-$(D)TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/TkSelect.cc $(T)
-
-$(D)TkPgplot.o: $(SRC)/TkPgplot.cc $(SRC)/TkPgplot.h $(SRC)/TkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/TkPgplot.cc $(T)
 
 $(D)ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValKern.cc $(T)

@@ -4,7 +4,6 @@
 #ifndef tkpgplot_h_
 #define tkpgplot_h_
 
-#ifdef GLISHTK
 #ifdef TKPGPLOT
 #include "tkAgent.h"
 
@@ -143,6 +142,5 @@ protected:
   char *fill;
 };
 
-#endif
 #endif
 #endif
