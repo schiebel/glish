@@ -345,7 +345,7 @@ Value *glishtk_strary_to_value( char *s )
 	}
 char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 	{
-	char *event_name = "one-or-two index function";
+	char *event_name = "one-or-two index array function";
 
 	strary_ret *ret = 0;
 
@@ -412,7 +412,7 @@ char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 			      Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one-or-two index function";
+	char *event_name = "listbox select function";
 
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
@@ -442,7 +442,7 @@ char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one-or-two index function";
+	char *event_name = "string-and-index function";
 
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
@@ -450,13 +450,15 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 		{
 		HASARG( args, > 1 )
 		EXPRINIT( event_name)
-		EXPRSTR( str, event_name );
+		EXPRVAL( strv, event_name );
 		EXPRSTR( where, event_name )
+		char *str = strv->StringVal( ' ', 0, 1 );
 		a->EnterEnable();
 		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " {", str, "}", 0);
 		a->ExitEnable();
+		free_memory( str );
 		EXPR_DONE( where )
-		EXPR_DONE( str )
+		EXPR_DONE( strv )
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
