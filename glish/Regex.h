@@ -127,6 +127,22 @@ class Regex : public GlishObject {
 	char *desc;
 };
 
+struct match_node;
+glish_declare(PList,match_node);
+typedef PList(match_node) match_node_list;
+
+class MatchMgr {
+    public:
+	MatchMgr( ) { }
+	~MatchMgr( );
+	void clear( );
+	void add( Regex * );
+	void update( Regex * );
+	IValue *get( );
+    private:
+	match_node_list list;
+};
+
 extern void copy_regexs( void *to_, void *from_, unsigned int len );
 
 #endif

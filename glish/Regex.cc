@@ -670,3 +670,18 @@ Regex::~Regex()
 	if ( match ) free_memory( match );
 	if ( error_string ) free_memory( error_string );
 	}
+
+struct match_node {
+	match_node( Regex *r ) : reg(r) { Ref(reg); }
+	~match_node( );
+	Regex *reg;
+};
+
+match_node::~match_node( ) { Unref(reg); }
+
+MatchMgr::~MatchMgr( ) { }
+
+void MatchMgr::clear( ) { }
+void MatchMgr::add( Regex* ) { }
+void MatchMgr::update( Regex* ) { }
+IValue *MatchMgr::get( ) { return 0; }
