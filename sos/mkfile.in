@@ -1,0 +1,157 @@
+## $Id$
+##
+## Makefile for sos library.
+##
+
+#IF DYNAMIC
+MK_LIB = @MAKE_SLIB@
+LD_LIBS = @SLIB_LD_LIBS@
+CXXFLAGS = @CXXFLAGS@ @SLIB_CXXFLAGS@
+LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+RANLIB = :
+LIBTGT = @DYNAMIC_LIB@
+INSTALL_LIBTGT = INSTALL_@DYNAMIC_LIB@
+#ELSE
+MK_LIB = @MAKE_LIB@
+LD_LIBS = 
+CXXFLAGS = @CXXFLAGS@
+LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+RANLIB = @RANLIB@
+LIBTGT = @STATIC_LIB@
+INSTALL_LIBTGT = INSTALL_@STATIC_LIB@
+#FI
+
+CPLUS = @CXX@
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+LIBS = @LIBS@
+
+D = @DOT@
+T = @TOUCH_PROXY@
+MINSPACE_RM = @MINSPACE_RM@
+
+SHELL = /bin/sh
+
+RM = rm -f
+
+SRC = ../..
+H = $(SRC)/include/sos
+SDSINC = -I$(SRC)/include
+
+top = @top_srcdir@@top_off@
+INCDIR_P = $(top)/include
+LIBDIR_P = $(top)/lib/$(ARCH)
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+INCDIR = @includedir@
+LIBDIR = @libdir@
+
+MKHIER = $(top)/config/mkhier
+
+INCLUDE = -I.. -I$(SRC) -I$(SRC)/include
+
+OBJS = convert.o header.o io.o longint.o types.o
+OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o $(D)types.o
+
+HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h \
+	$(H)/header.h $(H)/mdep.h
+
+HDRS_P = $(INCDIR_P)/sos/io.h $(INCDIR_P)/sos/sos.h $(INCDIR_P)/sos/types.h \
+	$(INCDIR_P)/sos/header.h $(INCDIR_P)/sos/mdep.h
+
+TAR_FILE = sos.tar
+
+all: $(LIBTGT)
+
+install: $(INSTALL_LIBTGT)
+
+lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(HDRS_P)
+
+INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX)
+	$(MKHIER) $(INCDIR)/sos
+	@rm -f $(INCDIR)/sos/*.h
+	cp $(HDRS) $(INCDIR)/sos
+
+libs: libsos$(LIB_SUFFIX)
+
+libsos$(LIB_SUFFIX): $(OBJS_PROXY)
+	$(RM) libsos$(LIB_SUFFIX)
+	$(MK_LIB) libsos$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
+	$(RANLIB) libsos$(LIB_SUFFIX)
+
+$(LIBDIR_P)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(MKHIER) $(INCDIR_P)/sos
+	$(INSTALL_DATA) libsos$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+
+$(LIBDIR)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libsos$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libsos$(LIB_SUFFIX)
+
+tar:
+	@rm -f $(TAR_FILE).Z tar-files
+	@$(MAKE) $(MFLAGS) tar-list >tar-files
+	tar cf $(TAR_FILE) -I tar-files
+	compress $(TAR_FILE)
+	@rm -f tar-files
+
+tar-list:
+	@echo sds >&2
+	@ls Makefile.in *.cc include/Sds/*.h Doc/*
+
+rcsinfo:
+	@echo sds
+	@rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
+	@echo sds/include/Sds
+	@cd include/Sds;rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
+
+clean:
+	@rm -f errs $(OBJS_PROXY) *.o *~* $(APPS) core a.out *$(LIB_SUFFIX) ../$(TAR_FILE).Z
+
+distclean: clean
+	rm -f config.status config.cache config.h Makefile
+
+$(D)convert.o: $(SRC)/convert.cc $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/convert.cc $(T)
+
+$(D)header.o: $(SRC)/header.cc $(H)/header.h $(H)/mdep.h $(H)/types.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/header.cc $(T)
+
+$(D)io.o: $(SRC)/io.cc $(H)/io.h $(H)/header.h $(H)/mdep.h $(H)/types.h $(SRC)/convert.h $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/io.cc $(T)
+
+$(D)longint.o: $(SRC)/longint.cc $(SRC)/longint.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/longint.cc $(T)
+
+$(D)types.o: $(SRC)/types.cc $(H)/types.h $(H)/mdep.h $(H)/sos.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/types.cc $(T)
+
+##
+## Include files
+##
+$(INCDIR_P)/sos/io.h: $(H)/io.h
+	rm -f $@ 
+	cp $(H)/io.h $@
+
+$(INCDIR_P)/sos/sos.h: $(H)/sos.h
+	rm -f $@ 
+	cp $(H)/sos.h $@
+
+$(INCDIR_P)/sos/types.h: $(H)/types.h
+	rm -f $@ 
+	cp $(H)/types.h $@
+
+$(INCDIR_P)/sos/header.h: $(H)/header.h
+	rm -f $@ 
+	cp $(H)/header.h $@
+
+$(INCDIR_P)/sos/mdep.h: $(H)/mdep.h
+	rm -f $@ 
+	cp $(H)/mdep.h $@
+
+INSTALL_:
+
