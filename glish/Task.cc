@@ -243,7 +243,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 	}
 
 IValue *Task::SendEvent( const char* event_name, parameter_list* args,
-			 int is_request, int log, int /* from_subsequence */ )
+			 int is_request, int log, Expr */* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{
@@ -1177,7 +1177,7 @@ ProxyTask::~ProxyTask( )
 	}
 
 IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
-			      int is_request, int log, int /* from_subsequence */ )
+			      int is_request, int log, Expr */* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{

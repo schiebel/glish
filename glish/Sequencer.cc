@@ -473,7 +473,7 @@ public:
 	ScriptAgent( Sequencer* s, Client* c ) : Agent(s)	{ client = c; }
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int /* is_request */, int /* log */, int from_subsequence=0 )
+			int /* is_request */, int /* log */, Expr *from_subsequence=0 )
 		{
 		IValue* event_val = BuildEventValue( args, 1 );
 		client->PostEvent( event_name, event_val, client->LastContext() );

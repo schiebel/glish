@@ -27,7 +27,7 @@ public:
 	// true than this is a request/response event, and the value of
 	// the response is returned; otherwise the function returns nil.
 	IValue* SendEvent( ParameterPList* arguments, int is_request,
-			   int from_subsequence=0 );
+			   Expr *from_subsequence=0 );
 
 	// Used to register a "notifiee" (i.e., an event statement plus
 	// an associated Frame) as wanting to be notified of occurrences

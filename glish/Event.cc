@@ -59,7 +59,7 @@ void EventDesignator::EventAgentDone()
 	event_agent_ref = 0;
 	}
 
-IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, int from_subsequence )
+IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, Expr *from_subsequence )
 	{
 	Agent* a = EventAgent( VAL_REF );
 

@@ -122,7 +122,7 @@ void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 	}
 
 int Agent::CreateEvent( const char* event_name, IValue* event_value,
-			NotifyTrigger *t, int preserve, int from_subsequence )
+			NotifyTrigger *t, int preserve, Expr *from_subsequence )
 	{
 	if ( ! agent_value )
 		return 0;
@@ -306,7 +306,7 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	}
 
 int Agent::NotifyInterestedParties( const char* field, IValue* value, NotifyTrigger *t,
-				    int preserve, int from_subsequence )
+				    int preserve, Expr *from_subsequence )
 	{
 	notifiee_list* interested = interested_parties[field];
 	int there_is_interest = 0;
@@ -351,7 +351,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value, NotifyTrig
 	}
 
 int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
-			   NotifyTrigger *t, int from_subsequence )
+			   NotifyTrigger *t, Expr *from_subsequence )
 	{
 	Stmt* s = n->stmt();
 
@@ -405,7 +405,7 @@ int Agent::IsPseudo( ) const
 	}
 
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
-				int /* is_request */, int log, int from_subsequence )
+				int /* is_request */, int log, Expr *from_subsequence )
 	{
 	IValue* event_val = BuildEventValue( args, 0 );
 

@@ -61,7 +61,7 @@ void Stmt::Notify( Agent* /* agent */ )
 	}
 
 int Stmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
-		       IValue* /* value */, int /* from_subsequence */ ) const
+		       IValue* /* value */, Expr */* from_subsequence */ ) const
 	{
 	return 1;
 	}
@@ -309,26 +309,16 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 	}
 
 int WheneverStmt::IsActiveFor( Agent *agent, const char* /* field */,
-			       IValue* /* value */, int from_subsequence ) const
+			       IValue* /* value */, Expr *from_subsequence ) const
 	{
 	int ret = active;
 
 	if ( agent->IsSubsequence() )
 		{
-		if ( from_subsequence && in_subsequence && ! agent->ReflectEvents() )
-			{
-			IValue *agent_ref = in_subsequence->RefEval( VAL_REF );
-			IValue *agent_val = (IValue*)(agent_ref->Deref());
-
-			if ( agent_val->IsAgentRecord() )
-				{
-				Agent *sub = agent_val->AgentVal();
-				if ( from_subsequence && agent == sub )
-					ret = 0;
-				}
-
-			Unref(agent_ref);
-			}
+		if ( from_subsequence && in_subsequence &&
+		     from_subsequence == in_subsequence &&
+		     ! agent->ReflectEvents() )
+			ret = 0;
 
 		else if ( ! from_subsequence && ! in_subsequence  && agent->IsSubsequence() )
 			ret = 0;

@@ -2303,7 +2303,7 @@ SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
 
 IValue* SendEventExpr::Eval( eval_type etype )
 	{
-	IValue* result = sender->SendEvent( args, is_request_reply, in_subsequence != 0 );
+	IValue* result = sender->SendEvent( args, is_request_reply, in_subsequence );
 
 	if ( etype == EVAL_SIDE_EFFECTS )
 		{
