@@ -17,6 +17,7 @@
 #include "Expr.h"
 #include "BuiltIn.h"
 #include "Glish/Reporter.h"
+#include "Glish/List.h"
 #include "Sequencer.h"
 #include "Regex.h"
 #include "input.h"
@@ -44,7 +45,11 @@ extern void glish_gc_register( IValue * );
 #endif
 
 // Whether the last token might be the end of a statement.
-int statement_can_end = 0;
+#define SET_STATEMENT_CAN_END					\
+	if ( paren_count == 0 ) statement_can_end = 1
+static int statement_can_end = 0;
+static int paren_count = 0;
+static List(int) *paren_count_stack = 0;
 
 extern int first_line;
 
@@ -76,6 +81,7 @@ protected:
 	int save_first_line;
 	int save_bump_line_num;
 	int save_statement_can_end;
+	int save_paren_count;
 	FILE *file;
 	YY_BUFFER_STATE newbuf;
 	};
@@ -101,7 +107,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 
 #define RETURN_CONSTANT(value)					\
 	{							\
-	statement_can_end = 1;					\
+	SET_STATEMENT_CAN_END;					\
 	IValue *v = new IValue( value );			\
 	DO_GC_REGISTER						\
 	YYLVAL(expr) = new ConstExpr( v );			\
@@ -110,14 +116,14 @@ static char *literal( const char *s = 0, int clear = 0 );
 
 #define RETURN_LAST_EVENT(type)					\
 	{							\
-	statement_can_end = 1;					\
+	SET_STATEMENT_CAN_END;					\
 	YYLVAL(event_type) = type;				\
 	return TOK_LAST_EVENT;					\
 	}
 
 #define RETURN_LAST_REGEX(type)					\
 	{							\
-	statement_can_end = 1;					\
+	SET_STATEMENT_CAN_END;					\
 	YYLVAL(regex_type) = type;				\
 	return TOK_LAST_REGEX;					\
 	}
@@ -136,7 +142,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 
 #define RETURN_ACTIVATE(is_activate)				\
 	{							\
-	statement_can_end = 1;					\
+	SET_STATEMENT_CAN_END;					\
 	YYLVAL(ival) = is_activate;				\
 	return TOK_ACTIVATE;					\
 	}
@@ -198,11 +204,29 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 	statement_can_end = 0;
 
 
-[!:;,|&({[+*/%^=-]	return yytext[0];
+[!:;,|&[+*/%^=-]	return yytext[0];
 
-[)\]]		statement_can_end = 1; return yytext[0];
+[{]		{
+		paren_count_stack->append(paren_count);
+		paren_count = 0;
+		return yytext[0];
+		}
+
+[\]]		{
+		SET_STATEMENT_CAN_END;
+		return yytext[0];
+		}
+
+[(]		++paren_count; return yytext[0];
+
+[)]		{
+		if ( --paren_count < 0 ) paren_count = 0;
+		SET_STATEMENT_CAN_END;
+		return yytext[0];
+		}
 
 "}"		{
+		paren_count = paren_count_stack->remove_nth(paren_count_stack->length()-1);
 		if ( newline_is_semi )
 			{
 			unput( '}' );
@@ -327,7 +351,7 @@ pragma{WS}include{WS}once{OWS};?{OWS}\r?\n	PRAGMA_ONCE
 pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <INITIAL,NO_REGEX>{ID} {
-		statement_can_end = 1;
+		SET_STATEMENT_CAN_END;
 		YYLVAL(id) = string_dup( yytext );
 		BEGIN(INITIAL);
 		return TOK_ID;
@@ -338,7 +362,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		// that they can include reserved words.
 
 		BEGIN(INITIAL);
-		statement_can_end = 1;
+		SET_STATEMENT_CAN_END;
 		YYLVAL(id) = string_dup( yytext );
 		return TOK_ID;
 		}
@@ -412,7 +436,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 			if ( is_double_quote )
 				{
-				statement_can_end = 1;
+				SET_STATEMENT_CAN_END;
 				IValue *v = isplit( literal());
 #ifdef GGC
 				if ( glish_do_gc_register )
@@ -438,7 +462,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		else
 			{
 			BEGIN(INITIAL);
-			statement_can_end = 1;
+			SET_STATEMENT_CAN_END;
 			YYLVAL(id) = string_dup( literal() );
 			return TOK_ID;
 			}
@@ -473,7 +497,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <END_REGEX>\r?\n |
 <END_REGEX>. {
-		statement_can_end = 1;
+		SET_STATEMENT_CAN_END;
 		unput(yytext[0]);
 		IValue *v = 0;
 		Regex *r = regex_start == 'm' ? new Regex( string_dup(literal()), regex_delimit, regex_flags ) :
@@ -587,7 +611,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <ATTR>.		{ // Allow "bar:::=" to work.
 		unput( yytext[0] );
-		statement_can_end = 1;
+		SET_STATEMENT_CAN_END;
 		BEGIN(INITIAL);
 		break;
 		}
@@ -605,7 +629,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <*>.		{
 		error->Report( "unrecognized character '", yytext, "'" );
-		statement_can_end = 1;
+		SET_STATEMENT_CAN_END;
 		BEGIN(INITIAL);
 		return TOK_FLEX_ERROR;
 		}
@@ -634,6 +658,7 @@ InputFileInfo::InputFileInfo( FILE *f, YY_BUFFER_STATE s )
 	save_first_line = first_line;
 	save_bump_line_num = bump_line_num;
 	save_statement_can_end = statement_can_end;
+	save_paren_count = paren_count;
 	file = f;
 	newbuf = s;
 	}
@@ -645,6 +670,7 @@ InputFileInfo::~InputFileInfo()
 	first_line = save_first_line;
 	bump_line_num = save_bump_line_num;
 	statement_can_end = save_statement_can_end;
+	paren_count = save_paren_count;
 	if ( newbuf ) yy_delete_buffer( newbuf );
 	if ( file ) fclose( file );
 	}
@@ -779,6 +805,7 @@ void new_file()
 	first_line = 1;
 	bump_line_num = 0;
 	statement_can_end = 0;
+	paren_count = 0;
 	}
 
 char *literal( const char *new_str, int clear )
@@ -838,4 +865,19 @@ void delete_flex_buffer(void *old_buf)
 	flex_buf *buf = (flex_buf*) old_buf;
 	yy_delete_buffer(buf->buf);
 	delete buf;
+	}
+
+void init_scanner( )
+	{
+	paren_count_stack = new List(int);
+	}
+
+void set_statement_can_end( )
+	{
+	SET_STATEMENT_CAN_END;
+	}
+
+void clear_statement_can_end( )
+	{
+	statement_can_end = 0;
 	}

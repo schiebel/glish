@@ -78,6 +78,7 @@ const char * const LD_PATH = "LD_LIBRARY_PATH";
 
 extern int allwarn;
 extern void init_regex();
+extern void init_scanner();
 
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
@@ -1370,6 +1371,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	init_interp_reporters(this);
 	init_ivalues();
 	init_regex();
+	init_scanner( );
 
 	// Create the global scope.
 	PushScope( GLOBAL_SCOPE );

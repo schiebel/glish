@@ -1,7 +1,7 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
 // Copyright (c) 1997,1998 Associated Universities Inc.
-
+#include <stdio.h>
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
@@ -402,7 +402,10 @@ type Value::name( int modify ) const					\
 	if ( IsVecRef() ) 						\
 		return ((const Value*) VecRefPtr()->Val())->name( modify ); \
 	else if ( Type() != tag )					\
+{ \
+fprintf( stderr, "type: %s\n", type_names[Type()] ); \
 		fatal->Report( "bad use of const accessor" );		\
+} \
 	return (type) (modify ? kernel.MOD() : kernel.CONST()); 	\
 	}
 

@@ -154,7 +154,7 @@ glish:
 			if ( interactive( ) )
 				{
 				// Try to throw away the rest of the line.
-				statement_can_end = 1;
+				set_statement_can_end( );
 				first_line = 1;
 				YYACCEPT;
 				}
@@ -934,10 +934,10 @@ value_type:	TOK_REF
 	;
 
 
-cont:			{ statement_can_end = 0; }
+cont:			{ clear_statement_can_end( ); }
 	;
 
-no_cont:		{ statement_can_end = 1; }
+no_cont:		{ set_statement_can_end( ); }
 	;
 
 %%
