@@ -1,9 +1,9 @@
 /* $Header$ */
 
+#include "config_p.h"
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include "config_p.h"
 
 #include <stdio.h>
 #include <netdb.h>
@@ -31,6 +31,10 @@ RCSID("@(#) $Id$")
 
 #ifndef HAVE_GETHOSTNAME
 #include <sys/utsname.h>
+#endif
+
+#ifdef HAVE_VFORK_H
+#include <vfork.h>
 #endif
 
 typedef RETSIGTYPE (*correct_sig_handler)();
@@ -478,4 +482,10 @@ void pgripe( char msg[] )
 	fprintf( stderr, "system error: " );
 	perror( msg );
 	exit( 1 );
+	}
+
+
+int fork_process()
+	{
+	return (int) vfork();
 	}

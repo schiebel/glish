@@ -126,19 +126,7 @@ static void seed_random_number_generator()
 		{
 		struct timeval t;
 
-#ifdef HAVE_RANDOM
-		static long state[2];
-		extern char *initstate( unsigned seed, char *state, int n );
-
-		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
-			abort();
-
-		state[0] = (long) t.tv_sec;
-		state[1] = (long) t.tv_usec;
-
-		(void) initstate( (unsigned) getpid(),
-					(char *) state, sizeof state );
-#elif defined(HAVE_LRAND48)
+#if defined(HAVE_LRAND48)
 		static unsigned short state[3];
 		unsigned short int *seed48(unsigned short int seed16v[3]);
 
@@ -150,6 +138,18 @@ static void seed_random_number_generator()
 		state[2] = (unsigned short) getpid();
 
 		(void) seed48( state );
+#elif defined(HAVE_RANDOM)
+		static long state[2];
+		extern char *initstate( unsigned seed, char *state, int n );
+
+		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+			abort();
+
+		state[0] = (long) t.tv_sec;
+		state[1] = (long) t.tv_usec;
+
+		(void) initstate( (unsigned) getpid(),
+					(char *) state, sizeof state );
 #else
 		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
 			abort();
@@ -185,10 +185,10 @@ int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len )
 
 long random_long( )
 	{
-#ifdef HAVE_RANDOM
-	long l = (long) random();
-#elif defined(HAVE_LRAND48)
+#if defined(HAVE_LRAND48)
 	long l = (long) lrand48();
+#elif defined(HAVE_RANDOM)
+	long l = (long) random();
 #else
 	long l = (long) rand();
 #endif

@@ -3,9 +3,6 @@
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #undef HAVE_SYS_WAIT_H
 
-/* Define if you have <vfork.h>.  */
-#undef HAVE_VFORK_H
-
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef pid_t
 
@@ -14,9 +11,6 @@
 
 /* Define if you have the ANSI C header files.  */
 #undef STDC_HEADERS
-
-/* Define vfork as fork if vfork does not work.  */
-#undef vfork
 
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME

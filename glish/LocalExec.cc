@@ -25,10 +25,6 @@ RCSID("@(#) $Id$")
 #include <sys/wait.h>
 #endif
 
-#ifdef HAVE_VFORK_H
-#include <vfork.h>
-#endif
-
 #include "LocalExec.h"
 
 
@@ -65,7 +61,7 @@ void LocalExec::MakeExecutable( const char** argv )
 		return;
 
 
-	pid = int( vfork() );
+	pid = fork_process();
 
 	if ( pid == 0 )
 		{ // child

@@ -111,6 +111,12 @@ extern "C" {
 	void* realloc_memory( void* ptr, unsigned int new_size );
 	void free_memory( void* ptr );
 
+	/*
+	 * Use the right fork(), without worring about the differences
+	 * between C & C++ includes.
+	 */
+	int fork_process();
+
 #ifndef HAVE_STRDUP
 	char *strdup( const char *str );
 #endif
