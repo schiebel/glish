@@ -12,25 +12,29 @@
 class long_int {
     public:
 	// higher order followed by lower order
-	long_int(unsigned int i1, unsigned int i0) { data[0] = i0; data[1] = i1; }
-	long_int(const long_int &other) { data[0] = other.data[0]; data[1] = other.data[1]; }
+	long_int(unsigned int i1, unsigned int i0) : LOW(0), HIGH(1)
+			{ data[LOW] = i0; data[HIGH] = i1; }
+	long_int(const long_int &other) : LOW(0), HIGH(1)
+			{ data[LOW] = other.data[LOW]; data[HIGH] = other.data[HIGH]; }
 
-	unsigned int operator[](int i) const { return data[(i ? 1 : 0)]; }
-	unsigned int &operator[](int i) { return data[(i ? 1 : 0)]; }
+	unsigned int operator[](int i) const { return data[(i ? HIGH : LOW)]; }
+	unsigned int &operator[](int i) { return data[(i ? HIGH : LOW)]; }
 
-	long_int &operator=(const long_int &other)  { data[0] = other.data[0];
-						      data[1] = other.data[1]; return *this; }
-	long_int &operator|=(const long_int &other) { data[0] |= other.data[0];
-						      data[1] |= other.data[1]; return *this; }
-	long_int &operator&=(const long_int &other) { data[0] &= other.data[0];
-						      data[1] &= other.data[1]; return *this; }
+	long_int &operator=(const long_int &other)  { data[LOW] = other.data[LOW];
+						      data[HIGH] = other.data[HIGH]; return *this; }
+	long_int &operator|=(const long_int &other) { data[LOW] |= other.data[LOW];
+						      data[HIGH] |= other.data[HIGH]; return *this; }
+	long_int &operator&=(const long_int &other) { data[LOW] &= other.data[LOW];
+						      data[HIGH] &= other.data[HIGH]; return *this; }
 
-	long_int &operator|=(unsigned int other)    { data[0] |= other; return *this; }
-	long_int &operator&=(unsigned int other)    { data[0] &= other; return *this; }
+	long_int &operator|=(unsigned int other)    { data[LOW] |= other; return *this; }
+	long_int &operator&=(unsigned int other)    { data[LOW] &= other; return *this; }
 
-	int operator==( const long_int &other ) const { return data[0] == other.data[0] && data[1] == other.data[1]; }
+	int operator==( const long_int &other ) const { return data[LOW] == other.data[LOW] && data[HIGH] == other.data[HIGH]; }
 	
     private:
+	const int LOW;
+	const int HIGH;
 	unsigned int data[2];
 };
 
