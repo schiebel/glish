@@ -1,4 +1,4 @@
-# $Id$
+# @(#) $Id$
 
 function is_defined( const x )	length( symbol_value( x ) ) > 0
 
