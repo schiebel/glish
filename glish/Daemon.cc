@@ -24,7 +24,7 @@ RCSID("@(#) $Id$")
 #include <sys/wait.h>
 #endif
 
-#define DAEMON_NAME "glishd2"
+#define DAEMON_NAME "glishd"
 
 //
 //  parameters:		-id <NAME> -host <HOSTNAME> -port <PORTNUM>
