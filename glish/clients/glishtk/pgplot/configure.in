@@ -170,22 +170,6 @@ if test "$prefix" != "$tmp_prefix"; then
 fi
 ])
 
-dnl##
-dnl##   This macro takes care of appending things to
-dnl##   the ld search path...
-dnl##
-dnl##   parameters are:   prefix, path, variable
-dnl##
-AC_DEFUN(ADD_LD_SEARCH,[
-    if test -n "$2"; then
-        if test -z "$$3"; then
-            $3="$1$2"
-        else
-            $3="$$3:$2"
-        fi
-    fi]
-)
-
 dnl##--------------------------------------------------------------------
 dnl##
 dnl## Initialize basic variables
@@ -679,11 +663,6 @@ dnl##			applications in order for the "load" command to work.
 dnl##	LD_FLAGS -	Flags to pass to the compiler when linking object
 dnl##			files into an executable application binary such
 dnl##			as tclsh.
-dnl##   TK_LD_SEARCH
-dnl##	GLISH_LD_SEARCH - Flags to pass to ld, such as "-R /usr/local/tcl/lib",
-dnl##			that tell the run-time dynamic linker where to look
-dnl##			for shared libraries such as libtcl.so.  Depends on
-dnl##			the variable LIB_INSTALL_DIR in the Makefile.
 dnl##	SLIB_LD -	Base command to use for combining object files
 dnl##			into a shared library.
 dnl##	SLIB_SUFFIX -	Suffix to use for the names of dynamically loadable
@@ -705,8 +684,6 @@ dnl##
 GLISH_SLIB_SUFFIX=""
 LIB_VERSIONS_OK=ok
 SLIB_CXXFLAGS=""
-GLISH_LD_SEARCH=""
-TK_LD_SEARCH=""
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
@@ -715,60 +692,16 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-lld"
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	fi
-	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-        if test -n "$x_libraries"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
-	fi
-        if test -n "$tcl_library"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
-	fi
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	;;
-    hpux8.*)
+    hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LD="ld -b"
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".sl"
 	DL_LIBS="-ldld"
 	LD_FLAGS="-Wl,-E"
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
-	fi
-
-	TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
-
-	if test -n "$TK_LD_SEARCH"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH:."
-	fi
-	;;
-    hpux9.*|hpux10.*)
-	SLIB_CFLAGS="+z"
-	SLIB_LD="ld -b"
-	SLIB_LD_LIBS='${LIBS}'
-	SLIB_SUFFIX=".sl"
-	DL_LIBS="-ldld"
-	LD_FLAGS="-Wl,-E"
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="+b $full_libdir_p:$full_libdir:."
-	fi
-
-	TK_LD_SEARCH="+b $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([+b ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([+b ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([+b ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
-
-	if test -n "$TK_LD_SEARCH"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH:."
-	fi
 	;;
     irix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -777,8 +710,6 @@ case $host_os in
 	SLIB_LD_LIBS=""
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     irix5.*)
 	SLIB_CFLAGS=""
@@ -787,14 +718,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -808,14 +731,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -823,17 +738,17 @@ case $host_os in
 	    case $_cv_sgiabi in
 		-o32)
 		    if test -f /usr/lib/c++init.o; then
-			DL_LIBS=/usr/lib/c++init.o
+			SLIB_LD_LIBS=/usr/lib/c++init.o
 		    fi
 		    ;;
 		-n32)
 		    if test -f /usr/lib32/c++init.o; then
-			DL_LIBS=/usr/lib32/c++init.o
+			SLIB_LD_LIBS=/usr/lib32/c++init.o
 		    fi
 		    ;;
 		-64)
 		    if test -f /usr/lib64/c++init.o; then
-			DL_LIBS=/usr/lib64/c++init.o
+			SLIB_LD_LIBS=/usr/lib64/c++init.o
 		    fi;
 	    esac
 	fi
@@ -852,14 +767,6 @@ case $host_os in
 		DL_LIBS="-ldld"
 		LD_FLAGS=""])
 	fi
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -868,8 +775,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     MP-RAS-*)
 	SLIB_CFLAGS="-K PIC"
@@ -878,8 +783,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS="-Wl,-Bexport"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     netbsd*|freebsd*)
 	# Not available on all versions:  check for include file.
@@ -896,8 +799,6 @@ case $host_os in
 	])
 	DL_LIBS=""
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 
 	# FreeBSD doesn't handle version numbers with dots.  Also, have to
 	# append a dummy version number to .so file names.
@@ -912,8 +813,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     osf1.[[012]])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
@@ -924,8 +823,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
@@ -935,10 +832,8 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
-    osf3.*)
+    osf4.*|osf3.*)
         # Digital OSF/1
 	SLIB_CFLAGS=""
 	SLIB_LD='ld -shared -expect_unresolved "*"'
@@ -946,33 +841,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
-	;;
-    osf4.*)
-        # Digital OSF/1
-	SLIB_CFLAGS=""
-	SLIB_LD='ld -shared -expect_unresolved "*"'
-	SLIB_LD_LIBS=""
-	SLIB_SUFFIX=".so"
-	DL_LIBS=""
-	LD_FLAGS=""
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     riscos*)
 	SLIB_CFLAGS="-G 0"
@@ -981,8 +849,6 @@ case $host_os in
 	SLIB_SUFFIX="..o"
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     sco_sv3.2*)
         # Note, dlopen is available only on SCO 3.2.5 and greater.  However,
@@ -994,8 +860,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS="-belf -Wl,-Bexport"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
      sinix*5.4*)
 	SLIB_CFLAGS="-K PIC"
@@ -1004,8 +868,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     sunos4*)
 	SLIB_CFLAGS="-PIC"
@@ -1014,16 +876,6 @@ case $host_os in
 	SLIB_SUFFIX=".so.$_cv_version"
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	fi
-	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-        if test -n "$x_libraries"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
-	fi
-        if test -n "$tcl_library"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
-	fi
 
 	# SunOS can't handle version numbers with dots in them in library
 	# specs, like -ltcl7.5, so use -ltcl75 instead.  Also, it
@@ -1048,15 +900,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-	fi
-
-	TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1065,8 +908,6 @@ case $host_os in
 	SLIB_LD_LIBS=""
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
     unix_sv*)
 	SLIB_CFLAGS="-K PIC"
@@ -1075,8 +916,6 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS="-Wl,-Bexport"
-	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
 	;;
 esac
 
@@ -1112,12 +951,12 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi

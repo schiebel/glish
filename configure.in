@@ -912,7 +912,8 @@ dnl##			dependent libraries should not be specified (as on
 dnl##			SunOS 4.x, where they cause the link to fail, or in
 dnl##			general if Tcl and Tk aren't themselves shared
 dnl##			libraries), then this symbol has an empty string
-dnl##			as its value.
+dnl##			as its value. Also used for objects the C++ compiler
+dnl##			would add automatically.
 dnl##	GLISH_SLIB_SUFFIX - the suffix to stick onto all of the shared libraries
 dnl##			which are a part of a given Glish release.
 dnl##	GLISH_LIB_SUFFIX - the suffix to stick onto all of the static libraries
@@ -987,7 +988,7 @@ case $host_os in
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	;;
-    hpux8.*)
+    hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LD="ld -b"
 	SLIB_LD_LIBS='${LIBS}'
@@ -1003,27 +1004,6 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
-
-	if test -n "$TK_LD_SEARCH"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH:."
-	fi
-	;;
-    hpux9.*|hpux10.*)
-	SLIB_CFLAGS="+z"
-	SLIB_LD="ld -b"
-	SLIB_LD_LIBS='${LIBS}'
-	SLIB_SUFFIX=".sl"
-	DL_LIBS="-ldld"
-	LD_FLAGS="-Wl,-E"
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="+b $full_libdir_p:$full_libdir:."
-	fi
-
-	TK_LD_SEARCH="+b $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([+b ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([+b ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([+b ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 
 	if test -n "$TK_LD_SEARCH"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH:."
@@ -1082,17 +1062,17 @@ case $host_os in
 	    case $_cv_sgiabi in
 		-o32)
 		    if test -f /usr/lib/c++init.o; then
-			DL_LIBS=/usr/lib/c++init.o
+			SLIB_LD_LIBS=/usr/lib/c++init.o
 		    fi
 		    ;;
 		-n32)
 		    if test -f /usr/lib32/c++init.o; then
-			DL_LIBS=/usr/lib32/c++init.o
+			SLIB_LD_LIBS=/usr/lib32/c++init.o
 		    fi
 		    ;;
 		-64)
 		    if test -f /usr/lib64/c++init.o; then
-			DL_LIBS=/usr/lib64/c++init.o
+			SLIB_LD_LIBS=/usr/lib64/c++init.o
 		    fi;
 	    esac
 	fi
