@@ -1,6 +1,6 @@
 /* $Id$
 ** Copyright (c) 1993 The Regents of the University of California.
-** Copyright (c) 1997 Associated Universities Inc.
+** Copyright (c) 1997,2002 Associated Universities Inc.
 */
 
 /***************************************************************/
@@ -50,6 +50,9 @@
 
 /* Define if you have the <sys/filio.h> header file.  */
 #undef HAVE_SYS_FILIO_H
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H
 
 /* Define if you have the <sys/time.h> header file.  */
 #undef HAVE_SYS_TIME_H

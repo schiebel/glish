@@ -1,13 +1,15 @@
 /* $Id$
 ** Copyright (c) 1993 The Regents of the University of California.
-** Copyright (c) 1997,1998 Associated Universities Inc.
+** Copyright (c) 1997,1998,2002 Associated Universities Inc.
 */
 
 #ifndef system_h
 #define system_h
 #include "Glish/glish.h"
 #include "config.h"
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 
 #include <stdio.h>
 #include <math.h>
