@@ -4,7 +4,7 @@
 
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
-#include "gcmem/gcmem.h"
+#include "gcmem/alloc.h"
 
 #include <stdlib.h>
 #include <iostream.h>

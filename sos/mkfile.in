@@ -29,6 +29,11 @@ INSTALL_LIBTGT = INSTALL_@STATIC_LIB@
 INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
+#IF GC
+GCLIB_P = $(LIBDIR_P)/libsosgc$(LIB_SUFFIX)
+GCLIB = $(LIBDIR)/libsosgc$(LIB_SUFFIX)
+#FI
+
 CC = @CC@
 CPLUS = @CXX@
 LIBS = @LIBS@
@@ -80,9 +85,9 @@ all: $(LIBTGT)
 
 install: $(INSTALL_LIBTGT)
 
-lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libsosgc$(LIB_SUFFIX) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(GCLIB_P) $(HDRS_P)
 
-INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX) $(LIBDIR)/libsosgc$(LIB_SUFFIX)
+INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX) $(GCLIB)
 	$(MKHIER) $(INCDIR)/sos
 	@rm -f $(INCDIR)/sos/*.h
 	cp $(HDRS) $(INCDIR)/sos

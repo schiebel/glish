@@ -8,7 +8,7 @@
 /*
 ** use the allocation routines declared here
 */
-#include "gcmem/gcmem.h"
+#include "gcmem/alloc.h"
 
 #include "sos/generic.h"
 #define glish_name2		sos_name2

@@ -2,7 +2,7 @@
 **
 **  Internal header file for editline library.
 */
-#include "gcmem/gcmem.h"
+#include "gcmem/alloc.h"
 #include <stdio.h>
 #if	defined(HAVE_STDLIB_H)
 #include <stdlib.h>

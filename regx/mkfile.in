@@ -9,7 +9,7 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 #IF SHARED
 MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
-CFLAGS = @CFLAGS@ @SLIB_CFLAGS@ -DENABLE_GC
+CFLAGS = @CFLAGS@ @SLIB_CFLAGS@
 LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
 RANLIB = :
 LIBTGT = @SHARED_LIB@
@@ -18,12 +18,19 @@ INSTALL_LIBRARY = $(INSTALL_PROGRAM)
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
-CFLAGS = @CFLAGS@ -DENABLE_GC
+CFLAGS = @CFLAGS@
 LIB_SUFFIX = @GLISH_LIB_SUFFIX@
 RANLIB = @RANLIB@
 LIBTGT = @STATIC_LIB@
 INSTALL_LIBTGT = INSTALL_@STATIC_LIB@
 INSTALL_LIBRARY = $(INSTALL_DATA)
+#FI
+
+#IF GC
+CFLAGS = $(CFLAGS) -DENABLE_GC
+NAME = regxgc
+#ELSE
+NAME = regx
 #FI
 
 CC = @CC@
@@ -50,7 +57,7 @@ LIBDIR = @libdir@
 SRC = ../..
 H = $(SRC)/include/regx
 INC = -I.. -I$(SRC)/include -I$(SRC) -I$(INCDIR_P)
-EDITLIB = $(ISTKLIBS)/libregxgc$(LIB_SUFFIX)
+EDITLIB = $(ISTKLIBS)/lib$(NAME)$(LIB_SUFFIX)
 
 MKHIER = $(top)/config/mkhier
 
@@ -77,31 +84,31 @@ all: $(LIBTGT)
 
 install: $(INSTALL_LIBTGT)
 
-lib_tgt: $(LIBDIR_P)/libregxgc$(LIB_SUFFIX) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/lib$(NAME)$(LIB_SUFFIX) $(HDRS_P)
 
-INSTALL_lib_tgt: $(LIBDIR)/libregxgc$(LIB_SUFFIX)
+INSTALL_lib_tgt: $(LIBDIR)/lib$(NAME)$(LIB_SUFFIX)
 	$(MKHIER) $(INCDIR)/regx
 	@rm -f $(INCDIR)/regx/*.h
 	cp $(HDRS) $(INCDIR)/regx
 
-libs: libregxgc$(LIB_SUFFIX)
+libs: lib$(NAME)$(LIB_SUFFIX)
 
-libregxgc$(LIB_SUFFIX): $(OBJS_PROXY)
-	$(RM) libregxgc$(LIB_SUFFIX)
-	$(MK_LIB) libregxgc$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
-	$(RANLIB) libregxgc$(LIB_SUFFIX)
+lib$(NAME)$(LIB_SUFFIX): $(OBJS_PROXY)
+	$(RM) lib$(NAME)$(LIB_SUFFIX)
+	$(MK_LIB) lib$(NAME)$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
+	$(RANLIB) lib$(NAME)$(LIB_SUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
-$(LIBDIR_P)/libregxgc$(LIB_SUFFIX): libregxgc$(LIB_SUFFIX)
+$(LIBDIR_P)/lib$(NAME)$(LIB_SUFFIX): lib$(NAME)$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/regx
-	$(INSTALL_LIBRARY) libregxgc$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libregxgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) lib$(NAME)$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/lib$(NAME)$(LIB_SUFFIX)
 
-$(LIBDIR)/libregxgc$(LIB_SUFFIX): libregxgc$(LIB_SUFFIX)
+$(LIBDIR)/lib$(NAME)$(LIB_SUFFIX): lib$(NAME)$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libregxgc$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libregxgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) lib$(NAME)$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/lib$(NAME)$(LIB_SUFFIX)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

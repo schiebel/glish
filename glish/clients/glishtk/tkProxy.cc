@@ -478,7 +478,7 @@ void TkProxy::SetLoadPath( ProxyStore *, Value *v )
 		if ( load_path ) Unref( load_path );
 		load_path = v;
 		Ref( load_path );
-		char *libpath = join_path(load_path->StringPtr(),load_path->Length(),"LD_LIBRARY_PATH=");
+		char *libpath = join_path(load_path->StringPtr(),load_path->Length(),"LD_LIBRARY_PATH");
 		putenv(libpath);	// here we leak libpath, because putenv
 		}			// depends on it sticking around
 	}

@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "regx/common.h"
-#include "gcmem/gcmem.h"
+#include "gcmem/alloc.h"
 
 #ifdef __cplusplus
 extern "C" {

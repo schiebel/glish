@@ -31,6 +31,11 @@ INSTALL_BINTGT = INSTALL_bin_tgt
 INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
+#IF GC
+GCLIB_P = $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX)
+GCLIB = $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
+#FI
+
 CC = @CC@
 LIBS = @LIBS@
 
@@ -76,11 +81,11 @@ all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX) $(INCDIR_P)/Npd/npd.h
+lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(GCLIB_P) $(INCDIR_P)/Npd/npd.h
 
 bin_tgt: $(BINDIR_P)/glishkey
 
-INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX) $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
+INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX) $(GCLIB)
 	if test ! -d $(KEYDIR)/hosts; then	\
 	    $(MKHIER) "$(KEYDIR)/hosts";	\
 	    chmod -f 750 "$(KEYDIR)/hosts";	\
