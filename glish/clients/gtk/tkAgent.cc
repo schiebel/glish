@@ -1443,12 +1443,12 @@ charptr TkAgent::NewName( Tk_Window parent ) const
 		{
 		charptr pp = Tk_PathName(parent);
 		if ( ! pp || pp[0] == '.' && pp[1] == '\0' )
-			sprintf( buf, ".gtk%x", ++index );
+			sprintf( buf, ".g%x", ++index );
 		else
-			sprintf( buf, "%s.gtk%x", pp, ++index );
+			sprintf( buf, "%s.g%x", pp, ++index );
 		}
 	else
-		sprintf( buf, ".gtk%x", ++index );
+		sprintf( buf, ".g%x", ++index );
 
 	return buf;
 	}
@@ -1737,7 +1737,8 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = (char*) height;
 		argv[c++] = "-background";
 		argv[c++] = (char*) background;
-		tcl_ArgEval( tcl, c, argv );
+
+		Tk_ToplevelCmd( root, tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
 			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " \"", title, "\"", 0 );
@@ -1805,7 +1806,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = (char*) cursor;
 		}
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_FrameCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -1923,7 +1924,7 @@ TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_
 		argv[c++] = (char*) cursor;
 		}
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_FrameCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -1996,7 +1997,7 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_FrameCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -2736,7 +2737,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = "-height";
 		argv[c++] = height_;
 		argv[c++] = "-text";
-		argv[c++] = glishtk_quote_string(label);
+		argv[c++] = label;
 		}
 
 	argv[c++] = "-anchor";
@@ -2770,17 +2771,17 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		{
 		case RADIO:
 			argv[0] = "radiobutton";
-			tcl_ArgEval( tcl, c, argv );
+			Tk_RadiobuttonCmd( root, tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case CHECK:
 			argv[0] = "checkbutton";
-			tcl_ArgEval( tcl, c, argv );
+			Tk_CheckbuttonCmd( root, tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case MENU:
 			argv[0] = "menubutton";
-			tcl_ArgEval( tcl, c, argv );
+			Tk_MenubuttonCmd( root, tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2788,7 +2789,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			argv[1] = NewName(self);
 			argv[2] = "-tearoff";
 			argv[3] = "0";
-			tcl_ArgEval( tcl, 4, argv );
+			Tk_MenuCmd( root, tcl, 4, argv );
 			menu_base = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2796,7 +2797,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			break;
 		default:
 			argv[0] = "button";
-			tcl_ArgEval( tcl, c, argv );
+			Tk_ButtonCmd( root, tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		}
@@ -2875,7 +2876,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		radio = 0;
 
 	int c = 3;
-	argv[0] = Tk_PathName(Menu());
+	argv[0] = 0;		// not available yet for cascaded menues
 	argv[1] = "add";
 	argv[2] = 0;
 
@@ -2950,33 +2951,37 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	switch ( type )
 		{
 		case RADIO:
+			argv[0] = Tk_PathName(Menu());
 			argv[2] = "radio";
 			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
 			break;
 		case CHECK:
+			argv[0] = Tk_PathName(Menu());
 			argv[2] = "check";
 			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
 			break;
 		case MENU:
 			{
-			argv[2] = "cascade";
 			char *av[10];
 			av[0] = "menu";
 			av[1] = NewName(menu->Menu());
 			av[2] = "-tearoff";
 			av[3] = "0";
-			tcl_ArgEval( tcl, 4, argv );
+			Tk_MenuCmd( root, tcl, 4, av );
 			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
+			argv[0] = Tk_PathName(Menu());
+			argv[2] = "cascade";
 			argv[c++] = "-menu";
 			argv[c++] = Tk_PathName(self);
 			tcl_ArgEval( tcl, c, argv );
 			}
 			break;
 		default:
+			argv[0] = Tk_PathName(Menu());
 			argv[2] = "command";
 			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
@@ -3233,7 +3238,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	if ( text && *text )
 		{
 		argv[c++] = "-label";
-		argv[c++] = glishtk_quote_string(text);
+		argv[c++] = (char*) text;
 		}
 	argv[c++] = "-width";
 	argv[c++] = (char*) width_;
@@ -3253,7 +3258,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = "-variable";
 	argv[c++] = var_name;
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_ScaleCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	// Can't set command as part of initialization...
@@ -3638,7 +3643,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_ScrollbarCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 	
 	if ( ! self )
@@ -3745,7 +3750,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "label";
 	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-text";
-	argv[c++] = glishtk_quote_string(text);
+	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-padx";
@@ -3770,7 +3775,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_LabelCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -3908,7 +3913,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	argv[c++] = "-xscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, entry_xscrollcb, this );
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_EntryCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -4020,7 +4025,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[0] = "message";
 	argv[1] = NewName( frame->Self() );
 	argv[c++] = "-text";
-	argv[c++] = glishtk_quote_string(text);
+	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-width";
@@ -4045,7 +4050,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_MessageCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -4190,7 +4195,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = "-xscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, listbox_xscrollcb, this );
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_ListboxCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )

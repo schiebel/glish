@@ -740,7 +740,7 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	EXPRINT2( x, event_name )
 	EXPRINT2( y, event_name )
 	TkFrame *frame = new TkFrame(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
-	Tcl_VarEval( agent->Interp(), Tk_PathName(canvas->Self()), " create window ", x, SP, y, "- anchor nw -tag ", tag,
+	Tcl_VarEval( agent->Interp(), Tk_PathName(canvas->Self()), " create window ", x, SP, y, " -anchor nw -tag ", tag,
 		     " -window ", Tk_PathName(frame->Self()), 0 );
 	EXPR_DONE( y )
 	EXPR_DONE( x )
@@ -815,7 +815,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 		region = region_->CoerceToIntArray( region_is_copy, 4 );
 
 	if ( region )
-		sprintf(region_str ,"{%d %d %d %d}", region[0], region[1], region[2], region[3]);
+		sprintf(region_str ,"%d %d %d %d", region[0], region[1], region[2], region[3]);
 
 	int c = 0;
 	argv[c++] = "canvas";
@@ -845,7 +845,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	if ( region_is_copy )
 		free_memory( region );
 
-	tcl_ArgEval( tcl, c, argv );
+	Tk_CanvasCmd( root, tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	agent_ID = "<graphic:canvas>";
