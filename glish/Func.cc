@@ -211,6 +211,8 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	return kernel->Describe(s, opt);
 	}
 
+
+#ifdef MEMFREE
 unsigned int UserFunc::CountRefs( recordptr r ) const
 	{
 	static func_list been_there;
@@ -252,6 +254,7 @@ int UserFunc::CountRefs( Frame *f ) const
 		}
 	return count;
 	}
+#endif
 
 #ifdef GGC
 void UserFunc::TagGC( )

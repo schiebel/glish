@@ -125,6 +125,7 @@ int IValue::FailMarked( )
 	return rptr->Lookup("HANDLED") ? 1 : 0;
 	}
 
+#ifdef MEMFREE
 unsigned int IValue::CountRefs( recordptr r ) const
 	{
 	//
@@ -172,6 +173,7 @@ int IValue::CountRefs( Frame *f ) const
 
 	return count;
 	}
+#endif
 
 extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR

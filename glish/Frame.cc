@@ -55,6 +55,7 @@ IValue*& Frame::FrameElement( int offset )
 	return values[offset];
 	}
 
+#ifdef MEMFREE
 unsigned int Frame::CountRefs( recordptr r ) const
 	{
 	//
@@ -80,6 +81,7 @@ int Frame::CountRefs( Frame *f ) const
 
 	return count;
 	}
+#endif
 	
 #ifdef GGC
 void Frame::TagGC( )

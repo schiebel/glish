@@ -48,8 +48,10 @@ class BuiltIn : public Func {
 
 	const char *Description() const;
 
+#ifdef MEMFREE
 	unsigned int CountRefs( recordptr r ) const;
 	int CountRefs( Frame *f ) const;
+#endif
 
     protected:
 	// returns 0 if everything is OK

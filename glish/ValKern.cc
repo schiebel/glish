@@ -249,6 +249,7 @@ void ValueKernel::unrefRecord(int del)
 		else
 			if ( del )
 				{
+#ifdef MEMFREE
 				static recordptr_list been_there;
 				if ( ! been_there.is_member( record ) &&
 				     record->ref_count == count_references(record->record,record->record) )
@@ -279,7 +280,7 @@ void ValueKernel::unrefRecord(int del)
 					delete record;
 					been_there.remove(record);
 					}
-
+#endif
 				record = 0;
 				}
 			else
@@ -575,6 +576,7 @@ recordptr create_record_dict()
 	return new PDict(Value)( ORDERED );
 	}
 
+#ifdef MEMFREE
 unsigned int count_references( recordptr from, recordptr to )
 	{
 	unsigned int count = 0;
@@ -592,6 +594,7 @@ unsigned int count_references( recordptr from, recordptr to )
 
 	return count;
 	}
+#endif
 
 void delete_record( recordptr r )
 	{

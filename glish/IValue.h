@@ -229,9 +229,11 @@ public:
 	void MarkFail( );
 	int FailMarked( );
 
+#ifdef MEMFREE
 	unsigned int CountRefs( recordptr r ) const;
 	int CountRefs( IValue *val ) const { return Value::CountRefs((Value*)val); }
 	int CountRefs( Frame *f ) const;
+#endif
 
 	int Finalize( );
 

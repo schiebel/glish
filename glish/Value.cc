@@ -2644,6 +2644,7 @@ int Value::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
+#ifdef MEMFREE
 unsigned int Value::CountRefs( recordptr r ) const
 	{
 	static value_list been_there;
@@ -2717,6 +2718,7 @@ int Value::CountRefs( Value *val ) const
 
 	return 0;
 	}
+#endif
 
 
 int Value::Sizeof( ) const

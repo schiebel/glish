@@ -576,8 +576,10 @@ public:
 			}
 		}
 
+#ifdef MEMFREE
 	virtual unsigned int CountRefs( recordptr r ) const;
 	int CountRefs( Value *val ) const;
+#endif
 
 	int Sizeof( ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;

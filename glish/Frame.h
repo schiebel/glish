@@ -37,8 +37,10 @@ friend class stack_type;
 
 	const char *Description() const;
 
+#ifdef MEMFREE
 	unsigned int CountRefs( recordptr r ) const;
 	int CountRefs( Frame *f ) const;
+#endif
 
 #ifdef GGC
 	void TagGC( );

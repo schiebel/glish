@@ -282,6 +282,7 @@ stack_type::~stack_type( )
 		for ( int i=frames_->length()-1;i >= 0; i-- )
 			{
 			Frame *cur = frames_->remove_nth(i);
+#ifdef MEMFREE
 			if ( cur && cur->RefCount() > 1 &&
 			     ! been_there.is_member( cur ) &&
 			     cur->CountRefs(cur)+1 == cur->RefCount() )
@@ -292,6 +293,7 @@ stack_type::~stack_type( )
 				been_there.remove(cur);
 				}
 			else
+#endif
 				Unref(cur);
 			}
 		}
@@ -2411,6 +2413,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 	if ( prev_value )
 		{
+#ifdef FREEMEM
 		int rcnt = prev_value->RefCount();
 		if ( rcnt > 1 && prev_value->Type() == TYPE_RECORD &&
 		     rcnt == prev_value->CountRefs(prev_value)+1 )
@@ -2433,6 +2436,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				}
 
 			}
+#endif
 
 		Unref( prev_value );
 		}
