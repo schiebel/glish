@@ -56,16 +56,7 @@ int TkSelector::DoSelection( int )
 		return 1;
 		}
 
-	struct timeval min_t;
-	struct timeval timeout_buf;
-	struct timeval *timeout = &timeout_buf;
-
 	glish_select = 0;
-	FindTimerDelta( timeout, min_t );
-
-	if ( timeout && (timeout->tv_sec || timeout->tv_usec) )
-		Tk_CreateTimerHandler( timeout->tv_sec * 1000 + timeout->tv_usec / 1000,
-				       TkTimerProc, (ClientData) this );
 
 	while ( ! glish_select && ! s->NotificationQueueLength() )
 		TkAgent::DoOneTkEvent( );
