@@ -15,6 +15,7 @@ CPLUS = @CXX@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_DATA = @INSTALL_DATA@
+INSTALL_LIBRARY = $(INSTALL_PROGRAM)
 
 SHELL = /bin/sh
 SH = $(SHELL)
@@ -46,13 +47,21 @@ INCLUDE = -I. -I$(SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 
 OBJS = tkPgplot.o
 
-all: gPgplot$(SUFFIX)
+SCRIPTS = $(SCRIPTDIR_P)/pgplot.g
 
-make-bindir_p:
-	$(MKHIER) $(BINDIR_P)
+INSTALLED_SCRIPTS = $(SCRIPTDIR)/pgplot.g
 
-make-bindir:
-	$(MKHIER) $(BINDIR)
+LOADABLES = $(LIBDIR_P)/gPgplot$(SUFFIX)
+
+INSTALLED_LOADABLES = $(LIBDIR)/gPgplot$(SUFFIX)
+
+all: make-libdir_p $(LOADABLES) make-scriptdir_p $(SCRIPTS)
+
+make-libdir_p:
+	$(MKHIER) $(LIBDIR_P)
+
+make-libdir:
+	$(MKHIER) $(LIBDIR)
 
 make-scriptdir_p:
 	$(MKHIER) $(SCRIPTDIR_P)
@@ -60,7 +69,7 @@ make-scriptdir_p:
 make-scriptdir:
 	$(MKHIER) $(SCRIPTDIR)
 
-install:
+install:  make-libdir $(INSTALLED_LOADABLES) make-scriptdir $(INSTALLED_SCRIPTS)
 
 tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 	@if test -d $(SRC)/tkpgplot; then						\
@@ -79,6 +88,20 @@ gPgplot$(SUFFIX): $(OBJS)
 	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	fi
+
+$(SCRIPTDIR_P)/pgplot.g: $(SRC)/pgplot.g
+	$(INSTALL_DATA) $(SRC)/pgplot.g $(SCRIPTDIR_P)
+
+$(SCRIPTDIR)/pgplot.g: $(SRC)/pgplot.g
+	$(INSTALL_DATA) $(SRC)/pgplot.g $(SCRIPTDIR)
+
+$(LIBDIR_P)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) gPgplot$(SUFFIX) $(LIBDIR_P)
+
+$(LIBDIR)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) gPgplot$(SUFFIX) $(LIBDIR)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
