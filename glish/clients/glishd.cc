@@ -14,6 +14,7 @@
 #endif
 
 #include "Glish/Dict.h"
+#include "Npd/npd.h"
 #include "Glish/Client.h"
 
 #include "LocalExec.h"
@@ -68,6 +69,7 @@ protected:
 	void SetWD( Value* wd );
 	void PingClient( Value* client_id );
 	void CreateClient( Value* argv );
+	void ClientRunning( Value* client );
 	void ShellCommand( Value* cmd );
 	void KillClient( Value* client_id );
 	void Probe( Value* probe_val );
@@ -90,13 +92,14 @@ declare(PList,Client);
 
 
 void internal_request( GlishEvent* event );
-char* get_prog_name( char* full_path );
+const char* get_prog_name( const char* full_path );
 const char* prog_name;
 
 PList(Client) mpcs;
 PList(GlishDaemon) threads;
 PList(Client) transition;
 name_list mpc_names;
+extern Client *CreateIncomingConnection( int, const char * );
 
 int main( int /* argc */, char** argv )
 	{
@@ -105,6 +108,10 @@ int main( int /* argc */, char** argv )
 			local_host_name(), int( getpid() ) );
 
 	prog_name = prog_name_buf;
+
+#ifdef AUTHENTICATE
+	init_log(argv[0]);
+#endif
 
 	// First, try to grab the glishd daemon port; possession indicates
 	// we're the sole daemon for this host.
@@ -127,8 +134,8 @@ int main( int /* argc */, char** argv )
 	// it to go away when we do.
 	mark_close_on_exec( a.FD() );
 
-// 	int suspend = 1;
-// 	while ( suspend ) sleep( 1 );
+//	int suspend = 1;
+//	while ( suspend ) sleep( 1 );
 
 	for ( ; ; )
 		{
@@ -227,8 +234,8 @@ int main( int /* argc */, char** argv )
 			// and detect out exit.
 			mark_close_on_exec( s );
 
-			c = new Client( s, s, prog_name );
-			transition.append( c );
+			if ( c = CreateIncomingConnection( s, prog_name ) )
+				transition.append( c );
 			}
 
 		for ( i=0 ; i<transition.length() ; ++i )
@@ -285,6 +292,21 @@ int main( int /* argc */, char** argv )
 	}
 
 
+Client *CreateIncomingConnection( int sock, const char *name )
+	{
+
+#ifdef AUTHENTICATE
+	if ( authenticate_client( sock ) )
+		return new Client( sock, sock, name );
+	else
+		close( sock );
+
+	return 0;
+#else
+	return new Client(sock, sock, name);
+#endif
+	}
+	
 void internal_request( GlishEvent* event )
 	{
 	const char* name = event->name;
@@ -301,7 +323,7 @@ void internal_request( GlishEvent* event )
 	}
 
 
-char* get_prog_name( char* full_path )
+const char *get_prog_name(const char* full_path )
 {
 	if ( strchr( full_path, '/' ) == (char*) NULL )
 		return full_path;
@@ -340,6 +362,9 @@ int GlishDaemon::NextRequest( GlishEvent* e, GlishEvent*& internal_event )
 
 	else if ( streq( e->name, "client" ) )
 		CreateClient( e->value );
+
+	else if ( streq( e->name, "client-up" ) )
+		ClientRunning( e->value );
 
 	else if ( streq( e->name, "shell" ) )
 		ShellCommand( e->value );
@@ -425,7 +450,7 @@ void GlishDaemon::CreateClient( Value* argv )
 		return;
 		}
 
-	char *prog_str = get_prog_name( name_str );
+	const char *prog_str = get_prog_name( name_str );
 
 	loop_over_list( mpcs, i )
 		{
@@ -473,6 +498,38 @@ void GlishDaemon::CreateClient( Value* argv )
 	delete client_argv;
 	}
 
+
+void GlishDaemon::ClientRunning( Value* client )
+	{
+	client->Polymorph( TYPE_STRING );
+
+	int argc = client->Length();
+
+	if ( argc < 1 )
+		{
+		error->Report(
+			"no client name given" );
+		interpreter->PostEvent( "client-up-reply", false_value );
+		return;
+		}
+
+	charptr *strs = client->StringPtr();
+	const char *name_str = strs[0];
+	const char *prog_str = get_prog_name( name_str );
+
+	loop_over_list( mpcs, i )
+		{
+		if ( streq( prog_str, mpc_names[i] ) ||
+		     streq( name_str, mpc_names[i] ) )
+			{
+			Value true_value( glish_true );
+			interpreter->PostEvent( "client-up-reply", &true_value );
+			return;
+			}
+		}
+	
+	interpreter->PostEvent( "client-up-reply", false_value );
+	}
 
 void GlishDaemon::ShellCommand( Value* cmd )
 	{
