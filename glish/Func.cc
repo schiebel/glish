@@ -218,8 +218,13 @@ unsigned int UserFunc::CountRefs( recordptr r ) const
 		{
 		frame_list *frames = stack->frames();
 		if ( frames )
+			{
 			loop_over_list( *frames, j )
-				count += (*frames)[j]->CountRefs(r);
+				{
+				Frame *f = (*frames)[j];
+				if ( f ) count += f->CountRefs(r);
+				}
+			}
 		}
 	return count;
 	}
