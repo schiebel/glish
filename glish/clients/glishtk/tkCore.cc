@@ -18,8 +18,6 @@ extern Value *glishtk_valcast( char * );
 
 extern ProxyStore *global_store;
 
-unsigned long TkFrameP::top_created = 0;
-unsigned long TkFrameP::tl_count = 0;
 unsigned long TkFrameP::grab = 0;
 
 Value *glishtk_splitnl( char *str )
@@ -1082,7 +1080,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		  charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
 		  charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_ ) :
 		  TkFrame( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
-		  is_tl( 1 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
+		  topwin( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
 		  icon(0)
 
 	{
@@ -1095,7 +1093,27 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
-	tl_count++;
+	int c = 0;
+	argv[c++] = "toplevel";
+	argv[c++] = (char*) NewName();
+	argv[c++] = "-borderwidth";
+	argv[c++] = "0";
+	argv[c++] = "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background_;
+	if ( new_cmap )
+		{
+		argv[c++] = "-colormap";
+		argv[c++] = "new";
+		}
+
+	tcl_ArgEval( tcl, c, argv );
+	topwin = Tk_NameToWindow( tcl, argv[1], root );
+	if ( title && title[0] )
+		tcl_VarEval( tcl, "wm title ", Tk_PathName( topwin ), " {", title, "}", 0 );
 
 	if ( tlead )
 		{
@@ -1106,6 +1124,16 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 			}
 		else
 			HANDLE_CTOR_ERROR("Frame creation failed, bad transient leader");
+
+		tcl_VarEval( tcl, "wm transient ", Tk_PathName(topwin), SP,
+			     Tk_PathName(tlead->Self()), 0 );
+		tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(topwin), " true", 0 );
+
+		const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+		tcl_VarEval( tcl, "wm geometry ", Tk_PathName(topwin), SP, geometry, 0 );
+
+		Tk_Window top = tlead->TopLevel();
+		Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
 		}
 
 	side = strdup(side_);
@@ -1113,15 +1141,9 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	pady = strdup(pady_);
 	expand = strdup(expand_);
 
-	int c = 0;
-	argv[c++] = "toplevel";
-	argv[c++] = (char*) NewName( );
-
-	if ( new_cmap )
-		{
-		argv[c++] = "-colormap";
-		argv[c++] = "new";
-		}
+	c = 0;
+	argv[c++] = "frame";
+	argv[c++] = (char*) NewName( topwin );
 
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief_;
@@ -1150,19 +1172,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	if ( title && title[0] )
 		tcl_VarEval( tcl, "wm title ", Tk_PathName( self ), " {", title, "}", 0 );
 
-	if ( tlead )
-		{
-		tcl_VarEval( tcl, "wm transient ", Tk_PathName(self), SP,
-			     Tk_PathName(tlead->Self()), 0 );
-		tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(self), " true", 0 );
-			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-		tcl_VarEval( tcl, "wm geometry ", Tk_PathName(self), SP, geometry, 0 );
-
-		Tk_Window top = tlead->TopLevel();
-		Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
-		}
-
-	tcl_VarEval( tcl, "wm protocol ", Tk_PathName(self), " WM_DELETE_WINDOW ",
+	tcl_VarEval( tcl, "wm protocol ", Tk_PathName(topwin), " WM_DELETE_WINDOW ",
 		     glishtk_make_callback( tcl, glishtk_delframe_cb, this ), 0 );
 
 	if ( icon && strlen( icon ) )
@@ -1172,7 +1182,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 			{
 			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
 			sprintf(icon_," @%s",expanded);
-			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(self), icon_, 0);
+			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(topwin), icon_, 0);
 			free_memory( expanded );
 			free_memory( icon_ );
 			}
@@ -1224,7 +1234,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, int new_cmap ) : TkFrame( s ),
-		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), is_tl( 0 ),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), topwin( 0 ),
 		  reject_first_resize(0), tlead(0), tpos(0), unmapped(0), icon(0)
 
 	{
@@ -1311,7 +1321,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
-		  padx(0), pady(0), expand(0), is_tl( 0 ), reject_first_resize(0),
+		  padx(0), pady(0), expand(0), topwin( 0 ), reject_first_resize(0),
 		  tlead(0), tpos(0), unmapped(0), icon(0)
 
 	{
@@ -1427,6 +1437,12 @@ void TkFrameP::UnMap()
 	frame = 0;
 	self = 0;
 
+	if ( topwin )
+		{
+		Tk_DestroyWindow( topwin );
+		topwin = 0;
+		}
+
 	if ( tlead )
 		{
 		Tk_Window top = tlead->TopLevel();
@@ -1445,9 +1461,6 @@ TkFrameP::~TkFrameP( )
 		frame->RemoveElement( this );
 	if ( canvas )
 		canvas->Remove( this );
-
-	if ( is_tl )
-		--tl_count;
 
 	free_memory( side );
 	free_memory( padx );
@@ -1472,7 +1485,7 @@ char *TkFrameP::SetIcon( Value *args )
 			icon = strdup(iconx);
 			char *icon_ = (char*) alloc_memory(strlen(icon)+3);
 			sprintf(icon_," @%s",icon);
-			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(self), icon_, 0 );
+			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(topwin), icon_, 0 );
 			free_memory( icon_ );
 			}
 		}
@@ -1776,8 +1789,8 @@ void TkFrameP::LeaderMoved( )
 	if ( ! tlead ) return;
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-	tcl_VarEval( tcl, "wm geometry ", Tk_PathName(self), SP, geometry, 0 );
-	tcl_VarEval( tcl, "raise ", Tk_PathName(self), 0 );
+	tcl_VarEval( tcl, "wm geometry ", Tk_PathName(topwin), SP, geometry, 0 );
+	tcl_VarEval( tcl, "raise ", Tk_PathName(topwin), 0 );
 	}
 
 void TkFrameP::Create( ProxyStore *s, Value *args )
@@ -1884,7 +1897,7 @@ int TkFrameP::CanExpand() const
 
 Tk_Window TkFrameP::TopLevel( )
 	{
-	return frame ? frame->TopLevel() : canvas ? canvas->TopLevel() : self;
+	return frame ? frame->TopLevel() : canvas ? canvas->TopLevel() : topwin;
 	}
 
 Value *FmeProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)

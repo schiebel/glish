@@ -61,8 +61,6 @@ class TkFrameP : public TkFrame {
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, const char *tag_ );
 
-	static unsigned long TopLevelCount() { return tl_count; }
-
 	// Called when the frame is killed via the window manager
 	void KillFrame( );
 	void ResizeEvent( );
@@ -117,11 +115,9 @@ class TkFrameP : public TkFrame {
 	char *tag;
 	TkCanvas *canvas;
   	tkagent_list elements;
-	static unsigned long top_created;
-	static unsigned long tl_count;
 	static unsigned long grab;
 
-	char is_tl;
+	Tk_Window topwin;
 
 	unsigned char reject_first_resize;
 
