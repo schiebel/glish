@@ -21,8 +21,40 @@ unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
 unsigned long TkFrame::grab = 0;
+PQueue(glishtk_event) *TkAgent::tk_queue = 0;
+int TkAgent::hold_events = 0;
 
 extern IValue *glishtk_valcast( char * );
+
+class glishtk_event {
+    public:
+	glishtk_event(Sequencer *s_, TkAgent *a_, const char *n_, IValue *v_,
+			  int complain_if_no_interest_=0, NotifyTrigger *t_=0 ) :
+			s(s_), agent(a_), nme(n_ ? strdup(n_) : strdup(" ")),
+			val(v_), t(t_), complain(complain_if_no_interest_)
+			{ Ref(agent); Ref(val); }
+	void Post();
+	~glishtk_event();
+    protected:
+	Sequencer *s;
+	TkAgent *agent;
+	char *nme;
+	IValue *val;
+	NotifyTrigger *t;
+	int complain;
+};
+
+void glishtk_event::Post()
+	{
+	glish_event_posted( s->NewEvent( agent, nme, val, complain, t ) );
+	}
+
+glishtk_event::~glishtk_event()
+	{
+	Unref(val);
+	Unref(agent);
+	delete nme;
+	}
 
 class ScrollbarTrigger : public NotifyTrigger {
     public:
@@ -1027,9 +1059,34 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		return new IValue( glish_true );
 	}
 
+void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest,
+			   NotifyTrigger *t )
+	{
+	if ( hold_events )
+		tk_queue->EnQueue( new glishtk_event( sequencer, this, s, v, complain_if_no_interest, t ) );
+	else
+		glish_event_posted( sequencer->NewEvent( this, s, v, complain_if_no_interest, t ) );
+	}
+
+void TkAgent::ReleaseEvents()
+	{
+	glishtk_event* e;
+
+	if ( hold_events && ! --hold_events )
+		while ( (e = tk_queue->DeQueue()) )
+			{
+			e->Post();
+			delete e;
+			}
+	}
+
+
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
+
+	if ( tk_queue == 0 )
+		tk_queue = new PQueue(glishtk_event)();
 
 	self = 0;
 	frame = 0;
@@ -1121,6 +1178,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	char *argv[15];
 
 	agent_ID = "<graphic:frame>";
+
+	HoldEvents();
 
 	if ( ! root )
 		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
@@ -1617,7 +1676,7 @@ void TkFrame::RemoveElement( TkAgent *obj )
 
 void TkFrame::KillFrame( )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "killed", new IValue( glish_true ) ));
+	PostTkEvent( "killed", new IValue( glish_true ) );
 	UnMap();
 	}
 
@@ -2012,7 +2071,7 @@ void TkButton::ButtonPressed( )
 		attr->Insert( strdup("state"), type != CHECK || state ? new IValue( glish_true ) :
 							    new IValue( glish_false ) ) ;
 
-		glish_event_posted(sequencer->NewEvent( this, "press", v ));
+		PostTkEvent( "press", v );
 		}
 	else
 		dont_invoke_button = 0;
@@ -2215,7 +2274,7 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 
 void TkScale::ValueSet( double d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "value", new IValue( d ) ));
+	PostTkEvent( "value", new IValue( d ) );
 	}
 
 TkAgent *TkScale::Create( Sequencer *s, const_args_list *args_val )
@@ -2373,12 +2432,12 @@ TkAgent *TkText::Create( Sequencer *s, const_args_list *args_val )
 
 void TkText::yScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 void TkText::xScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 charptr TkText::IndexCheck( charptr s )
@@ -2486,7 +2545,7 @@ TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 
 void TkScrollbar::Scrolled( IValue *data )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "scroll", data, 0, new ScrollbarTrigger( this ) ));
+	PostTkEvent( "scroll", data, 0, new ScrollbarTrigger( this ) );
 	}
 
 
@@ -2677,13 +2736,13 @@ void TkEntry::ReturnHit( )
 	if ( strcmp("disabled", rivet_va_cmd(self, "cget", "-state", 0)) )
 		{
 		IValue *ret = new IValue( rivet_va_cmd( self, "get", 0 ) );
-		glish_event_posted(sequencer->NewEvent( this, "return", ret ));
+		PostTkEvent( "return", ret );
 		}
 	}
 
 void TkEntry::xScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 TkAgent *TkEntry::Create( Sequencer *s, const_args_list *args_val )
@@ -2943,17 +3002,17 @@ charptr TkListbox::IndexCheck( charptr s )
 
 void TkListbox::yScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 void TkListbox::xScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 void TkListbox::elementSelected(  )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "select", glishtk_splitsp_int(rivet_va_cmd( self, "curselection", 0 )) ));
+	PostTkEvent( "select", glishtk_splitsp_int(rivet_va_cmd( self, "curselection", 0 )) );
 	}
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)

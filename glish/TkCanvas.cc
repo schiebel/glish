@@ -749,7 +749,7 @@ void TkCanvas::UnMap()
 
 void TkCanvas::ButtonEvent( const char *event, IValue *rec )
 	{
-	glish_event_posted(sequencer->NewEvent( this, event, rec ));
+	PostTkEvent( event, rec );
 	}
 
 TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height, const Value *region_,
@@ -856,12 +856,12 @@ int TkCanvas::NewItemCount(const char *name)
 
 void TkCanvas::yScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 void TkCanvas::xScrolled( const double *d )
 	{
-	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
+	PostTkEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
 #define STD_EXPAND_PACKINSTRUCTION(CLASS)		\

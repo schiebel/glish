@@ -6,6 +6,7 @@
 #ifdef GLISHTK
 #include "Agent.h"
 #include "BuiltIn.h"
+#include "Queue.h"
 
 struct _Rivetstruct;
 typedef struct _Rivetstruct *Rivetobj;
@@ -135,6 +136,9 @@ class TkProc {
 	TkStrToValProc convert;
 	};
 
+class glishtk_event;
+declare(PQueue,glishtk_event);
+
 class TkAgent : public Agent {
     public:
 	TkAgent( Sequencer *s );
@@ -158,11 +162,24 @@ class TkAgent : public Agent {
 
 	virtual const char **PackInstruction();
 	virtual int CanExpand() const;
+
+	// Used to post events which *originate* from Tk. This is important
+	// because of scrollbar/canvas initialization, i.e. the Tk events
+	// must be queued and sent after the "whenever"s are in place.
+	void PostTkEvent( const char *, IValue *,
+			  int complain_if_no_interest = 0, NotifyTrigger *t=0 );
+	static int QueuedEvents() { return hold_events; }
+	static void HoldEvents() { hold_events++; }
+	static void ReleaseEvents();
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;
 	Rivetobj self;
 	TkFrame *frame;
+
+	static int hold_events;
+	static PQueue(glishtk_event) *tk_queue;
 	};
 
 class TkFrame : public TkAgent {

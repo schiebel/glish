@@ -1534,10 +1534,35 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 #endif
 	}
 
-IValue* HaveGuiBuiltIn::DoCall( const_args_list* args_val )
+IValue* TkBuiltIns::DoCall( const_args_list* args_val )
 	{
 #ifdef GLISHTK
-	return new IValue( TkHaveGui() ? glish_true : glish_false );
+	int len = args_val->length();
+
+	if ( args_val->length() != 1 )
+		return (IValue*) Fail( this, " requires one argument");
+
+	const IValue* arg = (*args_val)[0];
+	if ( arg->Type() != TYPE_INT )
+		return (IValue*) Fail( this, " requires one integer argument");
+
+	IValue *ret = 0;
+	switch( arg->IntVal() )
+		{
+		case 1:
+			ret = new IValue( TkHaveGui() ? glish_true : glish_false );
+			break;
+		case 2:
+			TkAgent::HoldEvents();
+			break;
+		case 3:
+			TkAgent::ReleaseEvents();
+			break;
+		default:
+			ret = new IValue( glish_false );
+		}
+
+	return ret ? ret : new IValue( glish_true );
 #else
 	return new IValue( glish_false );
 #endif
@@ -2178,7 +2203,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
 
 	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );
-	s->AddBuiltIn( new HaveGuiBuiltIn );
+	s->AddBuiltIn( new TkBuiltIns );
 
 	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );

@@ -103,6 +103,10 @@ func shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
 func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F, shm=F )
  	create_task( id, host, T, async, ping, suspend, input, shm, ... )
 
+func have_gui( )   { return tk_builtin_funcs( 1 ) }
+func tk_hold( )    { return tk_builtin_funcs( 2 ) }
+func tk_release( ) { return tk_builtin_funcs( 3 ) }
+
 func frame ( parent=F, relief='flat',
 		 borderwidth=2, side='top',
 		 padx=0, pady=0, expand='both',

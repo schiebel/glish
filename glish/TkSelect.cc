@@ -5,6 +5,7 @@ RCSID("@(#) $Id$")
 
 #ifdef GLISHTK
 #include "Sequencer.h"
+#include "TkAgent.h"
 #include "Rivet/tk.h"
 
 static int selector_status = 0;
@@ -46,6 +47,10 @@ void TkSelector::DeleteSelectee( int selectee_fd )
 
 int TkSelector::DoSelection( int )
 	{
+
+	if ( TkAgent::QueuedEvents() )
+		TkAgent::ReleaseEvents();
+
 	struct timeval min_t;
 	struct timeval timeout_buf;
 	struct timeval *timeout = &timeout_buf;
