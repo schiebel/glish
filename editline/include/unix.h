@@ -9,13 +9,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if	defined(USE_DIRENT)
+#if	defined(HAVE_DIRENT_H)
 #include <dirent.h>
 typedef struct dirent	DIRENTRY;
 #else
 #include <sys/dir.h>
 typedef struct direct	DIRENTRY;
-#endif	/* defined(USE_DIRENT) */
+#endif	/* defined(HAVE_DIRENT_H) */
 
 #if	!defined(S_ISDIR)
 #define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)
