@@ -1,3 +1,5 @@
+// $Id$
+// Copyright (c) 2000 Associated Universities Inc.
 #ifndef reflex_h
 #define reflex_h
 #include "Glish/Object.h"
@@ -64,12 +66,11 @@ class ReflexPtr(type) : ReflexPtrBase {					\
 class CycleNode : public ReflexObj { };
 
 glish_declare(ReflexPtr,CycleNode);
-/* glish_declare(PList,ReflexPtr(CycleNode)); */
-/* typedef PList(ReflexPtr(CycleNode)) node_list; */
+glish_declare(PList,CycleNode);
+typedef PList(CycleNode) cyclenode_list;
 
 struct node_list : BaseList
 	{
-	int ISLIST( );
 	node_list(FINAL fh=0) : BaseList(0,fh) {}
 	node_list(int sz, FINAL fh=0) : BaseList(sz,fh) {}
 	node_list(node_list &l) : BaseList((BaseList&)l) {}
@@ -108,7 +109,6 @@ class NodeList : public CycleNode {
 	int SoftDelete( );
 
 	int isList( ) const;
-	int ISLIST( );
 
 	~NodeList( );
 

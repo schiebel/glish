@@ -1,15 +1,8 @@
+// $Id$
+// Copyright (c) 2000 Associated Universities Inc.
+
 #include <stdio.h>
 #include "Reflex.h"
-
-int NodeList::ISLIST( )
-	{
-	return 1;
-	}
-
-int node_list::ISLIST( )
-	{
-	return 0;
-	}
 
 ReflexPtrBase::~ReflexPtrBase( )
 	{
@@ -88,9 +81,28 @@ ReflexPtr(CycleNode) *node_list::remove(CycleNode *a)
 
 ReflexPtr(CycleNode) *node_list::is_member(const CycleNode *e)
 	{
-	int i = 0;
-	for ( ; i < length() && e != ((ReflexPtr(CycleNode)*)entry[i])->ptr(); i++ );
-	return (i == length()) ? 0 : (ReflexPtr(CycleNode)*)entry[i];
+	ReflexPtr(CycleNode) *ret = 0;
+	for ( int i = 0; i < length() && ! ret; i++ )
+		{
+		CycleNode *cur = ((ReflexPtr(CycleNode)*)entry[i])->ptr();
+		if ( ! cur ) continue;
+		if ( cur->isList( ) )
+			{
+			static cyclenode_list been_there;
+			if ( ! been_there.is_member( cur ) )
+				{
+				//
+				// How do we get these cycles?!!
+				//
+				been_there.append( cur );
+				ret = ((NodeList*)cur)->is_member( e );
+				been_there.remove( cur );
+				}
+			}
+		else if ( e == cur )
+			ret = (ReflexPtr(CycleNode)*)entry[i];
+		}
+	return ret;
 	}
 
 int ReflexObj::isList( ) const { return 0; }
