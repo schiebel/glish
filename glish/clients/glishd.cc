@@ -475,7 +475,7 @@ void GlishDaemon::CreateClient( Value* argv )
 
 	charptr* client_argv = new charptr[argc + 1];
 
-	for ( i = 0; i < argc; ++i )
+	for ( LOOPDECL i = 0; i < argc; ++i )
 		client_argv[i] = argv_ptr[i];
 
 	client_argv[argc] = 0;
