@@ -138,7 +138,7 @@ int main( int argc, char** argv ) {
 		    Value r(glish_false);
 		    c.Reply(&r);
 		}
-		if ( completion_event && ! skip_completion_event ) {
+		if ( completion_event && *completion_event && ! skip_completion_event ) {
 		    Value result( glish_true );
 		    c.PostEvent( completion_event, &result );
 		}
@@ -157,11 +157,20 @@ int main( int argc, char** argv ) {
 			if ( completion_event ) free_memory( completion_event );
 			completion_event = strdup(binding->StringPtr(0)[0]);
 		    } else {
-			c.Error( "unknown binding event type" );
+		        c.Error( "unknown binding event type" );
 		    }
+		} else
+		    c.Error( "bind takes one or two string arguments" );
+	    } else if ( val->Type() == TYPE_STRING && val->Length() == 1 ) {
+		if ( ! strcasecmp( val->StringPtr(0)[0], "<completion>" ) ) {
+		    if ( completion_event ) free_memory( completion_event );
+		    completion_event = 0;
+		} else {
+		    c.Error( "unknown binding event type" );
 		}
+	    } else {
+		c.Error( "bind takes one or two arguments" );
 	    }
-
 	} else {
 	    c.Error( "unknown event ('%s') or bad value", e->name );
 	    continue;
