@@ -3457,7 +3457,7 @@ test -n "$TCLSH" || TCLSH="tclsh"
             tcl_ext=`echo 'puts stdout [info tclversion]' | $TCLSH`
             echo "$ac_t""$tcl_ext" 1>&6
             echo $ac_n "checking for tcl lib path""... $ac_c" 1>&6
-            tcl_path=`echo 'puts stdout [info library]' | tclsh | sed 's/\/lib\/.*$/\/lib/'`
+            tcl_path=`echo 'puts stdout [info library]' | $TCLSH | sed 's/\/lib\/.*$/\/lib/'`
             echo "$ac_t""$tcl_path" 1>&6
         fi
 

@@ -88,7 +88,7 @@ killpg(pid, sig)
 
 void
 srandom(seed)
-    long seed;
+    unsigned int seed;
 {
     srand48(seed);
 }
@@ -214,8 +214,8 @@ char    *sys_siglist[] = {
 
 int
 utimes(file, tvp)
-    char *file;
-    struct timeval tvp[2];
+    const char *file;
+    const struct timeval tvp[2];
 {
     struct utimbuf t;
 

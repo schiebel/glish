@@ -499,7 +499,7 @@ if test -z "$NO_TK"; then
             tcl_ext=`echo 'puts stdout [[info tclversion]]' | $TCLSH`
             AC_MSG_RESULT($tcl_ext)
             AC_MSG_CHECKING(for tcl lib path)
-            tcl_path=`echo 'puts stdout [[info library]]' | tclsh | sed ['s/\/lib\/.*$/\/lib/']`
+            tcl_path=`echo 'puts stdout [[info library]]' | $TCLSH | sed ['s/\/lib\/.*$/\/lib/']`
             AC_MSG_RESULT($tcl_path)
         fi
 
