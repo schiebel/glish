@@ -27,7 +27,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Frame.h"
 #include "File.h"
-#include "printf.h"
+#include "sprintf.h"
 
 #include "Glish/Stream.h"
 #include "glishlib.h"
@@ -1780,7 +1780,7 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( glish_true );
 	}
 
-IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
+IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 	if ( len < 1 )
@@ -1790,13 +1790,10 @@ IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( pat_val->Type() != TYPE_STRING || len == 1 )
 		{
+		char **ary = (char**) alloc_memory( sizeof(char*) * len );
 		for ( int j=0; j < len; ++j )
-			{
-			char *str = (*args_val)[j]->StringVal();
-			printf("%s",str);
-			free_memory( str );
-			}
-		return new IValue( glish_true );
+			ary[j] = (*args_val)[j]->StringVal();
+		return new IValue( (charptr*) ary, len );
 		}
 
 
@@ -1807,21 +1804,23 @@ IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( minlen <= 0 )
 		{
+		char **ary = (char**) alloc_memory( sizeof(char*) * len );
 		for ( int j=0; j < len; ++j )
-			{
-			char *str = (*args_val)[j]->StringVal();
-			printf("%s",str);
-			free_memory( str );
-			}
-		return new IValue( glish_true );
+			ary[j] = (*args_val)[j]->StringVal();
+		return new IValue( (charptr*) ary, len );
 		}
 
 
 	char *pat = pat_val->StringVal();
 
-	gprintf( pat, args_val );
+	char *err = 0;
+	char **ary = 0;
+	len = gsprintf( ary, pat, args_val, err );
 
-	return new IValue( glish_true );
+	if ( len )
+		return new IValue( (charptr*) ary, len );
+	else
+		return (IValue*) Fail( err );
 	}
 
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
@@ -2684,7 +2683,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new OpenBuiltIn );
 	s->AddBuiltIn( new ReadBuiltIn );
 	s->AddBuiltIn( new WriteBuiltIn );
-	s->AddBuiltIn( new PrintfBuiltIn );
+	s->AddBuiltIn( new SprintfBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

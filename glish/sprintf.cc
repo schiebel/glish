@@ -14,25 +14,23 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include "printf.h"
+#include "sprintf.h"
 #include <ctype.h>
 #include <string.h>
 #include <BuiltIn.h>
-
-#define IS_PRINTF	(type==1)
-#define IS_FPRINTF	(type==2)
-#define IS_SPRINTF	(type==3)
 
 #define SPRINTF_ALLOC	20
 
 struct dynbuf {
 	dynbuf( int ary_size );
+	~dynbuf( );
+	char **take( ) 	{ char **tmp = ary; ary = 0; return tmp; }
 	void size( int incr ) { if ( scur + incr >= slen ) _size(scur+incr); }
 	void _size( int new_size ); 
 	char *start( ) { return &ary[acur][scur]; }
 	void putch( char c ) { size(1); ary[acur][scur++] = c; ary[acur][scur] = '\0'; }
-	void chars_added( int x ) { slen += x; }
-	void next( ) { ++acur; }
+	void added( int x ) { scur += x; }
+	void next( );
 	int slen;
 	int scur;
 	int alen;
@@ -40,10 +38,31 @@ struct dynbuf {
 	char **ary;
 };
 
-dynbuf::dynbuf( int ary_size ) : slen(20), scur(0), alen(ary_size), acur(0)
+dynbuf::dynbuf( int ary_size ) : slen(SPRINTF_ALLOC+1), scur(0), alen(ary_size), acur(0)
 	{
 	ary = (char**) alloc_memory(sizeof(char*)*alen);
 	ary[acur] = (char*) alloc_memory(slen);
+	}
+
+dynbuf::~dynbuf( )
+	{
+	if ( ary )
+		{
+		for (int i=0; i <= acur; ++i)
+			free_memory( ary[i] );
+		free_memory(ary);
+		}
+	}
+
+void dynbuf::next( )
+	{
+	if ( acur+1 < alen )
+		{
+		++acur;
+		scur = 0;
+		slen = SPRINTF_ALLOC+1;
+		ary[acur] = (char*) alloc_memory(slen);
+		}
 	}
 
 void dynbuf::_size( int new_size )
@@ -53,30 +72,21 @@ void dynbuf::_size( int new_size )
 	}
 
 static char	*ctor(int,int);
-static char	*doit( int, char*, char*, const_args_list*, int&, int, int, int, int, dynbuf*, FILE*);
+static char	*doit( dynbuf&, char*, char*, const_args_list*, int&, int, int, int, int );
 static void	ctrl( char * );
 static int	digit( char *, int );
 static char	*illfmt( char*, char*, int, char* );
 
-#define gputchar(c)			\
-	if ( IS_SPRINTF )		\
-		outbuf->putch(c);	\
-	else if ( IS_FPRINTF )		\
-		putc(c,file);		\
-	else				\
-		putchar(c);
+#define gputchar(c)	outbuf.putch(c);
 
-char *_do_gprintf( int type, char *format, const_args_list *args,
-		   int arg_off, FILE *file, char *&buffer )
+int gsprintf( char **&out, char *format, const_args_list *args, char *&error, int arg_off )
 {
 	register char *cp, *convp;
 	register int ch, ndyn, flags;
 	char cbuf[BUFSIZ];	// separates each conversion
 	static char hasmod[] = "has integer length modifier";
 	int index;
-	char *err = 0;		// trap errors returned
 	char ebuf[512];
-	dynbuf *outbuf = 0;
 
 	// find the minimum argument length
 	int len = args->length();
@@ -85,16 +95,15 @@ char *_do_gprintf( int type, char *format, const_args_list *args,
 		if ( (*args)[i]->Length() < elemlen )
 			elemlen = (*args)[i]->Length();
 
-	if ( IS_SPRINTF )
-		outbuf = new dynbuf(elemlen);
-
 	// flags
 #define	LONGF	1
 #define	SHORTF	2
 
+	dynbuf outbuf(elemlen);
+
 	ctrl(format);	// backslash interpretation of fmt string
 
-	for ( int i=0; i < elemlen; ++i ) {
+	for ( int i=0; i < elemlen; outbuf.next(), ++i ) {
 
 		cp = format;
 		index = arg_off;
@@ -104,8 +113,7 @@ char *_do_gprintf( int type, char *format, const_args_list *args,
 		// off the right.)
 scan:
 		while ((ch = *cp++) != '%') {
-			if (ch == 0)
-				goto loop;
+			if (ch == 0) goto loop;
 			gputchar(ch);
 		}
 
@@ -124,34 +132,46 @@ cvt:
 		// string or character format
 		case 'c': case 's':
 			if (flags)
-				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, ch, outbuf, file) )
-				return err;
+				{
+				error = illfmt(cbuf, convp, ch, hasmod);
+				return 0;
+				}
+			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, ch) )
+				return 0;
 			goto scan;
 
 		// integer formats
 			case 'd': case 'i': case 'o': case 'u': case 'x': case 'X':
 			if ((flags & (LONGF|SHORTF)) == (LONGF|SHORTF))
-				return illfmt(cbuf, convp, ch, "is both long and short");
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch,
-				      flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i', outbuf, file) )
-				return err;
+				{
+				error = illfmt(cbuf, convp, ch, "is both long and short");
+				return 0;
+				}
+			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch,
+					flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i') )
+				return 0;
 			goto scan;
 
 		// floating point formats
 		case 'e': case 'E': case 'f': case 'g': case 'G':
 			if (flags)
-				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, 'f', outbuf, file) )
-				return err;
+				{
+				error = illfmt(cbuf, convp, ch, hasmod);
+				return 0;
+				}
+			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, 'f') )
+				return 0;
 			goto scan;
 
 		// Roman (well, why not?)
 		case 'r': case 'R':
 			if (flags)
-				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, 's', ch, outbuf, file) )
-				return err;
+				{
+				error = illfmt(cbuf, convp, ch, hasmod);
+				return 0;
+				}
+			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, 's', ch) )
+				return 0;
 			goto scan;
 
 		case '%':	// boring
@@ -184,19 +204,23 @@ cvt:
 				sprintf( ebuf, "illegal conversion character `%c'", ch );
 			else
 				(void) sprintf(ebuf, "illegal conversion character `\\%03o'", (unsigned char)ch);
-			return strdup(ebuf);
+			error = strdup(ebuf);
+			return 0;
 			// NOTREACHED
 		}
 
 		// 2 leaves room for ultimate conversion char and for \0
 		if (convp >= &cbuf[sizeof(cbuf) - 2]) {
-			return strdup("conversion string too long");
+			error = strdup("conversion string too long");
+			return 0;
 		}
 		*convp++ = ch;
 		goto cvt;
 loop:		continue;
 	}
-	return 0;
+
+	out = outbuf.take();
+	return elemlen;
 }
 
 static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
@@ -260,8 +284,8 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 // Emit a conversion.  cch holds the printf format character for
 // this conversion; cty holds a simplified version (all integer
 // conversions, e.g., are represented as 'i').
-static char *doit( int type, char *cbuf, char *convp, const_args_list *ap, int &index,
-		   int off, int ndyn, int cch, int cty, dynbuf *outbuf, FILE *file )
+static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap, int &index,
+		   int off, int ndyn, int cch, int cty )
 {
 	register char *s;
 	const IValue *val;
@@ -271,7 +295,6 @@ static char *doit( int type, char *cbuf, char *convp, const_args_list *ap, int &
 		double d;
 		char *str;
 	} arg;
-	char *tsrt;
 	int a1, a2;	// dynamic width and/or precision
 	char ebuf[512];	// to report errors
 
@@ -299,28 +322,17 @@ static char *doit( int type, char *cbuf, char *convp, const_args_list *ap, int &
 	}
 
 
-#define GPRINTF(what)							\
-	if ( IS_SPRINTF )						\
-		{							\
-		outbuf->size( SPRINTF_ALLOC );				\
-		outbuf->chars_added(sprintf( outbuf->start(), what ));	\
-		}							\
-	else if ( IS_FPRINTF )						\
-		fprintf( file, what );					\
-	else								\
-		printf( what );
-
-#define ARG1(what) s,what
-#define ARG2(what) s,a1,what
-#define ARG3(what) s,a1,a2,what
-
-#define	PRINTF(what)				\
-	if (ndyn == 0)				\
-		GPRINTF(ARG1(what))		\
-	else if (ndyn == 1)			\
-		GPRINTF(ARG2(what))		\
-	else					\
-		GPRINTF(ARG3(what))
+#define	PRINTF(what)							\
+if (ndyn == 0) {							\
+	outbuf.size( SPRINTF_ALLOC );					\
+	outbuf.added(sprintf( outbuf.start(), s, what ));		\
+} else if (ndyn == 1) {							\
+	outbuf.size( SPRINTF_ALLOC );					\
+	outbuf.added(sprintf( outbuf.start(), s, a1, what ));		\
+} else {								\
+	outbuf.size( SPRINTF_ALLOC );					\
+	outbuf.added(sprintf( outbuf.start(), s, a1, a2, what ));	\
+}
 
 	// emit the appropriate conversion
 	switch (cty) {
@@ -362,7 +374,17 @@ string:
 	case 'i':
 		INT(arg.i)
 integer:
-		PRINTF(arg.i)
+if (ndyn == 0) {
+	outbuf.size( SPRINTF_ALLOC );
+	outbuf.added(sprintf( outbuf.start(), s, arg.i ));
+} else if (ndyn == 1) {
+	outbuf.size( SPRINTF_ALLOC );
+	outbuf.added(sprintf( outbuf.start(), s, a1, arg.i ));
+} else {
+	outbuf.size( SPRINTF_ALLOC );
+	outbuf.added(sprintf( outbuf.start(), s, a1, a2, arg.i ));
+}
+//		PRINTF(arg.i)
 		break;
 
 	// long integer

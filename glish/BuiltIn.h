@@ -131,7 +131,7 @@ DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
 DERIVE_BUILTIN(OpenBuiltIn,NUM_ARGS_VARIES,"open",)
 DERIVE_BUILTIN(WriteBuiltIn,NUM_ARGS_VARIES,"internal_write",)
 DERIVE_BUILTIN(ReadBuiltIn,2,"internal_read",)
-DERIVE_BUILTIN(PrintfBuiltIn,NUM_ARGS_VARIES,"printf",)
+DERIVE_BUILTIN(SprintfBuiltIn,NUM_ARGS_VARIES,"sprintf",)
 
 DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)
