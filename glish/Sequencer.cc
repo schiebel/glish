@@ -3458,7 +3458,11 @@ void Sequencer::RunQueue()
 
 		IValue* notifier_val = n->notifier->AgentRecord();
 
-		if ( ! notifier_val ) continue;
+		if ( ! notifier_val )
+			{
+			Unref( n );
+			continue;
+			}
 
 		if ( notifier_val->Type() == TYPE_RECORD &&
 		     notifier_val->HasRecordElement( n->field ) != n->value )
@@ -3476,6 +3480,7 @@ void Sequencer::RunQueue()
 		Ref( n->notifiee );
 		Ref(notifier_val);
 		Ref(n->notifiee->stmt());
+
 		n->notifiee->stmt()->Notify( n->notifier );
 
 		// This extra check is necessary because a 'whenever' stmt which
