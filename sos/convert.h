@@ -85,22 +85,22 @@ class ieee_double {
 	enum {BIAS=0x3ff};
 
 	ieee_double(double *d) : buf((unsigned int*)d) { }
-	ieee_double &operator++() { buf+=2; return *this; }
-	ieee_double &operator++(int) { buf+=2; return *this; }
-	unsigned int sign() const { return ((*buf) & 0x80000000) >> 31; }
-	void sign(unsigned int val) { *buf &= ~0x80000000; *buf |= 0x80000000 & val << 31; }
-	unsigned int exp() const { return ((*buf) & 0x7ff00000) >> 20; }
-	void exp(unsigned int val) { *buf &= ~0x7ff00000; *buf |= 0x7ff00000 & val << 20; }
-	long_int mantissa() const { return long_int((*buf) & 0x000fffff, *(buf+1)); }
-	void mantissa(const long_int &val) { *buf &= ~0x000fffff; *buf |= 0x000fffff & val[1]; *(buf+1) = val[0]; }
+	ieee_double &operator++() { ++buf; return *this; }
+	ieee_double &operator++(int) { ++buf; return *this; }
+	unsigned int sign() const { return (buf[0] & 0x80000000) >> 31; }
+	void sign(unsigned int val) { buf[0] &= ~0x80000000; buf[0] |= 0x80000000 & val << 31; }
+	unsigned int exp() const { return (buf[0] & 0x7ff00000) >> 20; }
+	void exp(unsigned int val) { buf[0] &= ~0x7ff00000; buf[0] |= 0x7ff00000 & val << 20; }
+	long_int mantissa() const { return long_int(buf[0] & 0x000fffff, buf[1]); }
+	void mantissa(const long_int &val) { buf[0] &= ~0x000fffff; buf[0] |= 0x000fffff & val[1]; buf[1] = val[0]; }
 
 	unsigned int maxExp() const { return 0x7ff; }
 	long_int maxMantissa() const { return long_int( 0xfffff, 0xffffffff ); }
 
-	double operator*() const { return *((double*)buf); }
+	double operator*() const { return *((double*)*buf); }
 
     private:
-	unsigned int *buf;
+	long_int buf;
 };
 
 //
@@ -138,21 +138,21 @@ class vax_double {
 		exp_off(type == 'D' ? 7 : 4),
 		exp_max(type == 'D' ? 0xff : 0x7ff),
 		mantissa_max(type == 'D' ? 0x7fffff : 0xfffff) { }
-	vax_double &operator++() { buf+=2; return *this; }
-	vax_double &operator++(int) { buf+=2; return *this; }
+	vax_double &operator++() { ++buf; return *this; }
+	vax_double &operator++(int) { ++buf; return *this; }
 
-	unsigned int sign() const { return ((*buf) & 0x00008000) >> 15; }
-	void sign(unsigned int val) { *buf &= ~0x00008000; *buf |= 0x00008000 & val << 15; }
-	unsigned int exp() const { return ((*buf) & exp_mask) >> exp_off; }
-	void exp(unsigned int val) { *buf &= ~exp_mask; *buf |= exp_mask & val << exp_off; }
-	long_int mantissa() const { return long_int(((*buf) & 0xffff0000) >> 16 | ((*buf) & mantissa_mask) << 16,*(buf+1)); }
-	void mantissa(const long_int &val) { *buf &= ~(0xffff0000 | mantissa_mask);
-					     *buf |= (0x0000ffff & val[1]) << 16 | ((mantissa_mask << 16) & val[1]) >> 16;
-					     *(buf+1) = val[0]; }
+	unsigned int sign() const { return (buf[0] & 0x00008000) >> 15; }
+	void sign(unsigned int val) { buf[0] &= ~0x00008000; buf[0] |= 0x00008000 & val << 15; }
+	unsigned int exp() const { return (buf[0] & exp_mask) >> exp_off; }
+	void exp(unsigned int val) { buf[0] &= ~exp_mask; buf[0] |= exp_mask & val << exp_off; }
+	long_int mantissa() const { return long_int((buf[0] & 0xffff0000) >> 16 | (buf[0] & mantissa_mask) << 16,buf[1]); }
+	void mantissa(const long_int &val) { buf[0] &= ~(0xffff0000 | mantissa_mask);
+					     buf[0] |= (0x0000ffff & val[1]) << 16 | ((mantissa_mask << 16) & val[1]) >> 16;
+					     buf[1] = val[0]; }
 	unsigned int maxExp() const { return exp_max; }
 	long_int maxMantissa() const { return long_int( mantissa_max, 0xffffffff ); }
 
-	double operator*() const { return *((double*)buf); }
+	double operator*() const { return *((double*)*buf); }
 
     private:
 	unsigned int exp_mask;
@@ -160,7 +160,7 @@ class vax_double {
 	unsigned int exp_max;
 	unsigned int mantissa_mask;
 	unsigned int mantissa_max;
-	unsigned int *buf;
+	long_int buf;
 };
 
 extern void vax2ieee_single(float *, unsigned int);
@@ -172,5 +172,3 @@ extern void swap_abcd_dcba(char *, unsigned int);
 extern void swap_abcdefgh_hgfedcba(char *, unsigned int);
 
 #endif;
-
-
