@@ -523,8 +523,6 @@ class TkListbox : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	void UnMap();
-
 	~TkListbox();
 
     protected:

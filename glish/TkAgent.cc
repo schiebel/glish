@@ -1264,23 +1264,33 @@ void TkAgent::FlushGlishEvents()
 
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
+	int ret = 0;
+	rivet_hold_destroy();
+
 	if ( hold_tk_events )
 		{
 		if ( flags & TK_FILE_EVENTS )
-			return Tk_DoOneEvent( TK_FILE_EVENTS | (hold_wait ? 0 : TK_DONT_WAIT) );
-		else
-			return 0;
+			ret = Tk_DoOneEvent( TK_FILE_EVENTS | (hold_wait ? 0 : TK_DONT_WAIT) );
 		}
+	else
+		ret = Tk_DoOneEvent( flags );
 
-	return Tk_DoOneEvent( flags );
+	rivet_release_destroy();
+	return ret;
 	}
 
 int TkAgent::DoOneTkEvent( )
 	{
-	if ( hold_tk_events )
-		return Tk_DoOneEvent( TK_FILE_EVENTS | TK_TIMER_EVENTS );
+	int ret = 0;
+	rivet_hold_destroy();
 
-	return Tk_DoOneEvent( 0 );
+	if ( hold_tk_events )
+		ret = Tk_DoOneEvent( TK_FILE_EVENTS | TK_TIMER_EVENTS );
+	else
+		ret = Tk_DoOneEvent( 0 );
+
+	rivet_release_destroy();
+	return ret;
 	}
 
 static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
@@ -3555,18 +3565,6 @@ int listbox_button1cb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientD
 	return TCL_OK;
 	}
 
-extern "C" void listbox_created();
-extern "C" void listbox_deleted();
-
-void TkListbox::UnMap()
-	{
-	if ( self )
-		{
-		listbox_deleted();
-		TkAgent::UnMap();
-		}
-	}
-
 TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, charptr mode,
 		      charptr font, charptr relief, charptr borderwidth,
 		      charptr foreground, charptr background, int exportselection, charptr fill_ )
@@ -3622,8 +3620,6 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
-
-	listbox_created();
 
 	frame->AddElement( this );
 	frame->Pack();
