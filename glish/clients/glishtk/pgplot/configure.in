@@ -853,6 +853,7 @@ case $host_os in
 	;;
     irix5.*)
 	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
 	SLIB_LD="ld -shared -rdata_shared"
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
@@ -897,6 +898,7 @@ case $host_os in
 	;;
     irix6.*)
 	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
 	SLIB_LD="ld -shared -rdata_shared"
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
