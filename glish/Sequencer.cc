@@ -270,6 +270,17 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 	frames_ = new frame_list;
 	offsets_ = new offset_list;
 
+	// This allows the garbage collector to NIL out the frame list pointer
+	// allowing it to collect cycles created when a record contains a function
+	// whose stack references the record, e.g. :
+	//
+	//     func test() {
+	//         pub := [=]
+	//         pub.fun := func() { print 'hello' }
+	//         return pub
+	//     }
+	//     root := test()
+	//
 	GC_register_disappearing_link((void**)&frames_);
 
 	int len = clip && other.frame_len() >= 0 ? other.frame_len() : other.frames()->length();
