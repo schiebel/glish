@@ -1124,7 +1124,6 @@ char *glishtk_listbox_insert(TkAgent *a, const char *cmd, parameter_list *args,
 	return "";
 	}
 
-
 char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, IValue *val )
 	{
 	int len = val->Length();
@@ -1192,6 +1191,25 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, parameter_list *args,
 		error->Report("invalid argument type");
 
 	EXPR_DONE( val )
+	return ret;
+	}
+
+char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, parameter_list *args,
+				int, int )
+	{
+	char *ret = 0;
+	char *event_name = "listbox nearest function";
+
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRINT( val, event_name )
+	char ycoord[40];
+
+	sprintf(ycoord,"%d", val);
+	ret = rivet_va_cmd( a->Self(), "nearest", ycoord, 0 );
+
+	EXPR_DONE( val )
+
 	return ret;
 	}
 
@@ -4043,6 +4061,7 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("nearest", new TkProc(this, "", glishtk_listbox_nearest, glishtk_strtoint));
 	}
 
 IValue *TkListbox::Create( Sequencer *s, const_args_list *args_val )
