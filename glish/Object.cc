@@ -70,21 +70,6 @@ const Str GlishObject::strFail( const RMessage& m0,
 				   m10,m11,m12,m13,m14,m15,m16 );
 	}
 
-Value *GlishObject::Fail( Value *err ) const
-	{
-	if ( err && file && glish_files )
-		{
-		err->AssignAttribute( "file", create_value( (*glish_files)[file] ) );
-		err->AssignAttribute( "line", create_value(line) );
-		}
-	else
-		{
-		err->DeleteAttribute( "file" );
-		err->DeleteAttribute( "line" );
-		}
-	return err;
-	}
-
 Value *GlishObject::Fail( ) const
 	{
 	if ( file && glish_files )

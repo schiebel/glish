@@ -41,13 +41,11 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 	}
 
 
-static char *format_error( const Value *val, char sep, 
-				   int max_elements, int useAttributes )
+static char *format_error( const recordptr attr, char sep, int max_elements,
+			   int useAttributes, const char *prefix )
 	{
-	if ( ! val || val->Type() != TYPE_FAIL )
+	if ( ! attr )
 		return 0;
-
-	const attributeptr attr = val->AttributePtr();
 
 	if ( ! attr )
 		return strdup( "<fail>" );
@@ -57,6 +55,7 @@ static char *format_error( const Value *val, char sep,
 	char *intro = "<fail>";
 	char *msg[9];
 	int cnt = 7;
+	int lines = 2;
 
 	msg[0] = msg[1] = msg[2] = msg[3] = msg[4] = msg[5] = msg[6] = msg[7] = msg[8] = 0;
 	if ( (value1 = (*attr)["message"]) )
@@ -92,6 +91,7 @@ static char *format_error( const Value *val, char sep,
 		cnt += l + 13;
 		for (int x=4; x < 8 && len; x++)
 			{
+			++lines;
 			l = strlen(stack[--len]);
 			msg[x] = (char*) alloc_memory( sizeof(char)*(l+4) );
 			strcpy(msg[x],"\t");
@@ -106,20 +106,41 @@ static char *format_error( const Value *val, char sep,
 			}
 		}
 
+	if ( prefix ) cnt += lines * strlen(prefix);
+
 	// Add some for line feeds etc...
 	char *result = (char*) alloc_memory( sizeof(char)*(cnt + 24) );
 
-	strcpy(result, intro);
+	result[0] = '\0';
+	if ( prefix ) strcat( result, prefix );
+	strcat(result, intro);
 	if ( msg[0] ) { strcat(result, ": "); strcat(result, msg[0]); }
-	if ( msg[1] ) { strcat(result, "\n\tFile: "); strcat(result, msg[1]); }
+	if ( msg[1] )
+		{
+		strcat(result, "\n");
+		if ( prefix ) strcat(result, prefix);
+		strcat(result,"\tFile: ");
+		strcat(result, msg[1]);
+		}
 	if ( msg[2] )
 		{
 		if ( msg[1] ) strcat( result, ", ");
-		else strcat( result, "\n\t");
+		else
+			{
+			strcat( result, "\n" );
+			if ( prefix ) strcat( result, prefix );
+			strcat( result, "\t");
+			}
 		strcat( result, msg[2] );
 		}
 	for ( int x=3; x <= 8; x++ )
-		if ( msg[x] ) { strcat(result, "\n\t"); strcat(result, msg[x]); }
+		if ( msg[x] )
+			{
+			strcat(result, "\n");
+			if ( prefix ) strcat( result, prefix );
+			strcat( result, "\t");
+			strcat(result, msg[x]);
+			}
 
 	for ( int i=0; i < 8; i++ )
 		if ( msg[i] ) free_memory( msg[i] );
@@ -128,48 +149,55 @@ static char *format_error( const Value *val, char sep,
 	}
 
 
-char* CLASS::StringVal( char sep, int max_elements,
-				int useAttributes, Str &err ) const
+char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
+			const char *prefix, Str &err ) const
 	{
 	glish_type type = Type();
 	int length = kernel.Length();
+	int prefix_len = prefix ? strlen(prefix) : 0;
 
 	if ( IsRef() )
 		return Deref()->StringVal( sep, max_elements, useAttributes );
 	if ( type == TYPE_RECORD )
 		return RecordStringVal( sep, max_elements, useAttributes, err );
 	if ( type == TYPE_FAIL )
-		return format_error( this, sep, max_elements, useAttributes );
+		return format_error( kernel.constRecord(), sep, max_elements, useAttributes, prefix );
 	if ( length == 0 )
 		return strdup( "" );
 
 	char *ns_desc = GetNSDesc( );
 	if ( ns_desc ) return ns_desc;
 
-	unsigned int buf_size = 0;
+	unsigned int buf_size = prefix_len;
 
 	// Make a guess as to a probable good size for buf.
 	if ( type == TYPE_STRING )
 		{
-		buf_size = strlen( StringPtr(0)[0] ) * (length + 1);
+		buf_size += strlen( StringPtr(0)[0] ) * (length + 1);
 		if ( buf_size == 0 )
 			buf_size = 8;
 		}
 
 	else if ( type == TYPE_COMPLEX  || type == TYPE_DCOMPLEX )
-		buf_size = length * 16 * 2 + 1;
+		buf_size += length * 16 * 2 + 1;
 
 	else if ( type == TYPE_FLOAT  || type == TYPE_DOUBLE )
-		buf_size = length * 16;
+		buf_size += length * 16;
 
 	else
-		buf_size = length * 8;
+		buf_size += length * 8;
 
 	char* buf = (char*) alloc_memory( sizeof(char)*buf_size );
 	if ( ! buf )
 		fatal->Report( "out of memory in Value::StringVal()" );
 
 	char* buf_ptr = buf;
+
+	if ( prefix )
+		{
+		strcpy(buf,prefix);
+		buf_ptr += prefix_len;
+		}
 
 	if ( type != TYPE_STRING && length > 1 )
 		{
@@ -446,7 +474,10 @@ char* CLASS::StringVal( char sep, int max_elements,
 			if ( i < shape_len - 1 )
 				strcat( numeric_buf, "," );
 			else
+				{
 				strcat( numeric_buf, "]\n" );
+				if ( prefix ) strcat( numeric_buf, prefix );
+				}
 
 			append_buf( buf, buf_ptr, buf_size, i==0 ? "[" : 0,
 					numeric_buf );
@@ -507,6 +538,7 @@ char* CLASS::StringVal( char sep, int max_elements,
 					{
 					affix[0] = '\n';
 					affix[1] = '\0';
+					if ( prefix ) strcat(affix, prefix);
 					}
 				else
 					affix[0] = '\0';

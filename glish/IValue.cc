@@ -88,29 +88,41 @@ void delete_files( void *ary_, unsigned int len )
 		Unref(ary[i]);
 	}
 
+void IValue::MarkFail()
+	{
+	if ( Type() == TYPE_FAIL )
+		{
+		recordptr rptr = kernel.constRecord();
+		rptr->Insert(strdup("HANDLED"), new IValue( glish_true ));
+		}
+	}
+
+int IValue::FailMarked( )
+	{
+	if ( Type() != TYPE_FAIL ) return 1;
+	recordptr rptr = kernel.constRecord();
+	return rptr->Lookup("HANDLED") ? 1 : 0;
+	}
+
 extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{
 	const IValue *other = 0;
 	if ( (other = FailStmt::GetFail()) )
-		{
-		Unref( attributes );
 		kernel = other->kernel;
-		attributes = other->CopyAttributePtr();
-		}
 	else
 		{
-
+		recordptr rptr = kernel.constRecord();
 		if ( file_name && ! interactive && glish_files )
 			{
-			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
+			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
 			if ( line_num > 0 )
-				AssignAttribute( "line", new IValue( (int) line_num ));
+				rptr->Insert( strdup("line"), new IValue( (int) line_num ));
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack )
-			AssignAttribute( "stack", stack );
+			rptr->Insert( strdup("stack"), stack );
 
 		FailStmt::SetFail( this );
 		}
@@ -120,23 +132,20 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 	{
 	const IValue *other = 0;
 	if ( !message && (other = FailStmt::GetFail()) )
-		{
-		Unref( attributes );
 		kernel = other->kernel;
-		attributes = other->CopyAttributePtr();
-		}
 	else
 		{
+		recordptr rptr = kernel.constRecord();
 		if ( ! fle && file_name && ! interactive && glish_files )
 			{
-			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
+			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
 			if ( lne <= 0 && line_num > 0 )
-				AssignAttribute( "line", new IValue( (int) line_num ));
+				rptr->Insert( strdup("line"), new IValue( (int) line_num ) );
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack  )
-			AssignAttribute( "stack", stack );
+			rptr->Insert( strdup("stack"), stack );
 
 		FailStmt::SetFail( this );
 		}
@@ -211,6 +220,11 @@ void IValue::DeleteValue()
 
 IValue::~IValue()
 	{
+	if ( Type() == TYPE_FAIL && ! FailMarked( ) )
+		{
+		Sequencer::UnhandledFail(this);
+		MarkFail( );
+		}
 	DeleteValue();
 	}
 

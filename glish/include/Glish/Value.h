@@ -207,7 +207,8 @@ public:
 	//
 	// Returns a new string, which should be delete'd when done with.
 	virtual char* StringVal( char sep = ' ', int max_elements = 0, 
-				 int use_attr = 0, Str &err = glish_errno ) const;
+				 int use_attr = 0, const char *prefix=0,
+				 Str &err = glish_errno ) const;
 
 	// Returns the limit on the number elements to be printed given
 	// the state of the "system" value, and the attributes of this

@@ -62,7 +62,7 @@ Value::Value( )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
 	INIT_VALUE_ACTION
-	kernel.SetFail( );
+	kernel.SetFail( create_record_dict() );
 	}
 
 Value::Value( glish_type )
@@ -74,17 +74,18 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
 	INIT_VALUE_ACTION
-	kernel.SetFail( );
+	kernel.SetFail( create_record_dict() );
 
+	recordptr rptr = kernel.constRecord();
 	if ( xfile && xfile[0] )
 		{
-		AssignAttribute( "file", create_value( xfile ));
+		rptr->Insert( strdup("file"), create_value( xfile ) );
 		if ( lineNum > 0 )
-			AssignAttribute( "line", create_value( lineNum ));
+			rptr->Insert( strdup("line"), create_value( lineNum ) );
 		}
 
 	if ( message )
-		AssignAttribute( "message", create_value( message ));
+		rptr->Insert( strdup("message"), create_value( message ) );
 	}
 
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
@@ -599,7 +600,7 @@ char* Value::RecordStringVal( char sep, int max_elements,
 			fatal->Report(
 				"bad record in Value::RecordStringVal()" );
 
-		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, err );
+		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, 0, err );
 		total_len += strlen( element_strs[i] ) + strlen( key_strs[i] );
 		}
 

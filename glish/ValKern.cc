@@ -102,11 +102,13 @@ void ValueKernel::SetValue( Value *v )
 	refOthers();
 	}
 
-void ValueKernel::SetFail( )
+void ValueKernel::SetFail( recordptr r )
 	{
-	unref(1);
+	DIAG2( (void*) this, "\tValueKernel::SetFail recordptr")
+	unref( RECORD(mode) || FAIL(mode) ? 0 : 1 );
 	mode = FAIL();
-	array = 0;
+	if ( ! record ) record = new record_t();
+	record->record = r;
 	}
 
 void ValueKernel::SetVecRef( VecRef *v )
@@ -163,7 +165,7 @@ unsigned int ValueKernel::otherBytes(int addPerValue) const
 void ValueKernel::SetRecord( recordptr r )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetRecord recordptr")
-	unref( RECORD(mode) ? 0 : 1 );
+	unref( RECORD(mode) || FAIL(mode) ? 0 : 1 );
 	mode = RECORD();
 	if ( ! record ) record = new record_t();
 	record->record = r;
@@ -377,7 +379,7 @@ void *ValueKernel::modArray( )
 
 recordptr ValueKernel::modRecord( )
 	{
-	if ( ! RECORD(mode) || ! record || record->ref_count < 1 )
+	if ( ! RECORD(mode) && ! FAIL(mode) || ! record || record->ref_count < 1 )
 		return 0;
 	if ( record->ref_count == 1 )
 		return record->record;
@@ -427,7 +429,7 @@ int ValueKernel::Sizeof( ) const
 			return cnt + array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
 			}
 		}
-	else if ( RECORD(mode) )
+	else if ( RECORD(mode) || FAIL(mode) )
 		return sizeof(record_t) + record->Sizeof( );
 	else
 		return otherSizeof();
@@ -448,7 +450,7 @@ int ValueKernel::Bytes( int addPerValue ) const
 			return cnt;
 			}
 		}
-	else if ( RECORD(mode) )
+	else if ( RECORD(mode) || FAIL(mode) )
 		return record->bytes( addPerValue );
 	else
 		return otherBytes();
@@ -487,7 +489,7 @@ int ValueKernel::ToMemBlock(char *memory, int offset, int have_attributes) const
 				}
 			}
 		}
-	else if ( RECORD(mode) )
+	else if ( RECORD(mode) || FAIL(mode) )
 		{
 		h.type = type;
 		h.len = record->record->Length();

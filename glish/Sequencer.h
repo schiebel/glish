@@ -220,6 +220,7 @@ class EnvHolder {
 class Sequencer {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
+	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 
 	friend class SystemInfo;
 	Sequencer( int& argc, char**& argv );
@@ -286,6 +287,8 @@ public:
 	void PushFuncName( char *name );
 	void PopFuncName( );
 	static IValue *FuncNameStack( );
+
+	static void UnhandledFail( const IValue * );
 
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame *CurrentFrame();

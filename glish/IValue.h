@@ -137,7 +137,8 @@ public:
 	//
 	// Returns a new string, which should be delete'd when done with.
 	char* StringVal( char sep = ' ', int max_elements = 0, 
-			 int use_attr = 0, Str &err = glish_errno ) const;
+			 int use_attr = 0, const char *prefix=0,
+			 Str &err = glish_errno ) const;
 
 	// The following accessors return pointers to the underlying value
 	// array.  The "const" versions complain with a fatal error if the
@@ -213,6 +214,9 @@ public:
 				const char *&err = glish_charptrdummy );
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+
+	void MarkFail( );
+	int FailMarked( );
 
 	// Get a description of a non-standard (i.e. interpreter specific) type
 	char *GetNSDesc( ) const;

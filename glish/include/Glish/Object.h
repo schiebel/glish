@@ -80,7 +80,6 @@ class GlishObject : public GlishRef {
 		const RMessage& = EndMessage 
 		) const;
 
-	Value *Fail( Value * ) const;
 	Value *Fail( ) const;
 
     protected:

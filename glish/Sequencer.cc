@@ -1308,6 +1308,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		else if ( ! strcmp( argv[0], "-vi" ) )
 			verbose_mask |= VERB_INCL();
 
+		else if ( ! strcmp( argv[0], "-vf" ) )
+			verbose_mask |= VERB_FAIL();
+
 		else if ( ! strcmp( argv[0], "-w" ) )
 			++allwarn;
 
@@ -2204,7 +2207,16 @@ IValue *Sequencer::FuncNameStack( )
 
 	return new IValue( strs, len );
 	}
-		
+
+void Sequencer::UnhandledFail( const IValue *val )
+	{
+	if ( cur_sequencer->VERB_FAIL(cur_sequencer->verbose_mask) && val->Type() == TYPE_FAIL )
+		{
+		char *str = val->StringVal(' ',0,0,"vf ");
+		cerr << str << endl;
+		free_memory(str);
+		}
+	}		
 
 char* Sequencer::RegisterTask( Task* new_task )
 	{

@@ -126,7 +126,7 @@ class ValueKernel {
 	void unref( int del=0 )
 		{
 		if ( ARRAY(mode) ) unrefArray(del);
-		else if ( RECORD(mode) ) unrefRecord(del);
+		else if ( RECORD(mode) || FAIL(mode) ) unrefRecord(del);
 		else unrefOthers();
 		}
 
@@ -136,7 +136,7 @@ class ValueKernel {
 	void ref()
 		{ 
 		if ( ARRAY(mode) ) refArray();
-		else if ( RECORD(mode) ) refRecord();
+		else if ( RECORD(mode) || FAIL(mode) ) refRecord();
 		else refOthers();
 		}
 
@@ -194,7 +194,7 @@ class ValueKernel {
 	recordptr modRecord();
 	recordptr modRecord() const { return (((ValueKernel*)this)->modRecord()); }
 
-	void SetFail( );
+	void SetFail( recordptr r );
 
 	void SetValue( Value *v );
 	Value *GetValue() const { return value; }
@@ -211,7 +211,7 @@ class ValueKernel {
 	int Length() const
 		{
 		return ARRAY(mode) ? (int) array->length :
-		       RECORD(mode) ? record->record->Length() :
+		       RECORD(mode) || FAIL(mode) ? record->record->Length() :
 		       otherLength();
 		}
 

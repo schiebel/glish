@@ -2455,6 +2455,7 @@ IValue* as_string_built_in( const IValue* arg )
 IValue* type_name_built_in( const IValue* arg )
 	{
 	glish_type t = arg->Type();
+	((IValue*)arg)->MarkFail();
 
 	if ( arg->IsRef() )
 		{
@@ -2480,6 +2481,7 @@ IValue* type_name_built_in( const IValue* arg )
 
 IValue* is_fail_built_in( const IValue* arg )
 	{
+	((IValue*)arg)->MarkFail();
 	return new IValue( arg->Type() == TYPE_FAIL ? glish_true : glish_false );
 	}
 
