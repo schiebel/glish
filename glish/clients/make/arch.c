@@ -1013,7 +1013,7 @@ Arch_FindLib (gn, path)
     Var_Set (TARGET, gn->name, gn);
 #else
     Var_Set (TARGET, gn->path == (char *) NULL ? gn->name : gn->path, gn);
-#endif LIBRARIES
+#endif
 }
 
 /*-

@@ -1100,7 +1100,7 @@ JobExec(job, argv)
 	 */
 	
 	(void) setpgrp(0, getpid());
-#endif USE_PGRP
+#endif
 
 	(void) execv (shellPath, argv);
 	(void) write (2, "Could not execute shell\n",

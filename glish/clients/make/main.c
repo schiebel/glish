@@ -97,7 +97,7 @@ static char *rcsid = "$Id$";
 
 #ifndef	DEFMAXLOCAL
 #define	DEFMAXLOCAL DEFMAXJOBS
-#endif	DEFMAXLOCAL
+#endif
 
 #define	MAKEFLAGS	".MAKEFLAGS"
 

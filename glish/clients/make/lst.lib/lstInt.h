@@ -108,4 +108,4 @@ typedef struct	{
  */
 #define LstIsEmpty(l)	(((List)l)->firstPtr == NilListNode)
 
-#endif _LSTINT_H_
+#endif
