@@ -7,6 +7,11 @@
 #include "tk.h"
 #include "Glish/Proxy.h"
 #include "Queue.h"
+#include "config.h"
+
+#if ! defined(HAVE_TCL_GETSTRINGRESULT)
+#define Tcl_GetStringResult(tcl) (tcl)->result
+#endif
 
 extern int TkHaveGui();
 

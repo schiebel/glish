@@ -140,3 +140,6 @@
 
 /* Define if you're running 4.3 BSD Reno */
 #undef HAVE_BSD_RENO
+
+/* If your version of TCL defines Tcl_GetSetringResult().  */
+#undef HAVE_TCL_GETSTRINGRESULT
