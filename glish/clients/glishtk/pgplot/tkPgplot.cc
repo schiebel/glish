@@ -403,9 +403,9 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	recordptr rec = create_record_dict();
 
 	float *wpt = (float*) alloc_memory( sizeof(float)*2 );
-	tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], (char *)NULL );
 	wpt[0] = (float) atof(Tcl_GetStringResult(tcl));
-	tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], (char *)NULL );
 	wpt[1] = (float) atof(Tcl_GetStringResult(tcl));
 	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
@@ -446,7 +446,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 		EXPRSTR(button, event_name);
 		EXPRSTR(event, event_name);
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, 0 );
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
 		char last_buffer[50];
 		char *last = 0;
@@ -470,7 +470,8 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, list);
 			(*glishtk_pgplot_table).Insert( strdup(cback), list );
 			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
-				     " {", cback, " %x %y %b %T }", 0 );
+				     " {", cback, " %x %y %b %T }", (char *)NULL );
+
 			}
 
 		list->append(binfo);
@@ -517,7 +518,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 						{
 						free_memory( (*glishtk_pgplot_table).Remove(cback) );
 						tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
-							     info->tk_event_name, " {}", 0 );
+							     info->tk_event_name, " {}", (char *)NULL );
 						Unref(list);
 						}
 					delete info;
@@ -528,7 +529,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 
 		else if ( glishtk_pgplot_table )
 			{
-			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, 0 );
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, (char *)NULL );
 
 			const char *current = Tcl_GetStringResult(agent->Interp());
 			char last_buffer[50];
@@ -549,7 +550,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 				glishtk_pgplot_bindinfo *info = (*list)[0];
 				if ( info )
 					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
-						     info->tk_event_name, " {}", 0 );
+						     info->tk_event_name, " {}", (char *)NULL );
 				loop_over_list( (*list), x )
 					delete (*list)[x];
 				(*list).clear();
@@ -575,7 +576,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		EXPRINIT(event_name)
 		EXPRDIM(dim, event_name);
 
-		tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, (char *)NULL );
 
 		EXPR_DONE(dim);
 
@@ -583,7 +584,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		}
 	else
 		{
-		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, (char *)NULL );
 		return Tcl_GetStringResult(tcl);
 		}
 }
@@ -675,12 +676,12 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 		return;
 		}
 
-	tcl_VarEval( tcl, Tk_PathName(self)," id", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self)," id", (char *)NULL );
 	id = atoi(Tcl_GetStringResult(tcl));
 
 	if ( id <= 0 )
 		{
-		tcl_VarEval( tcl, Tk_PathName(self)," device", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self)," device", (char *)NULL );
 		id = cpgopen(Tcl_GetStringResult(tcl));
 		}
 	else
@@ -1026,7 +1027,7 @@ char *TkPgplot::Cursor( Value *args ) {
 			item[0] = args->StringVal();
 
 		tcl_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
-			    item[2], SP, item[3], 0 );
+			    item[2], SP, item[3], (char *)NULL );
 		return (char *)item[0];
 		}
 	else
