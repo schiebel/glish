@@ -949,6 +949,8 @@ void error_reset( )
 	if ( interactive( ) )
 		while ( current_sequencer->ScopeDepth() > scope_depth )
 			current_sequencer->PopScope();
+
+	if ( in_evaluation( ) ) scan_strings( 0 );
 	}
 
 extern "C"
