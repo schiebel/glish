@@ -119,7 +119,7 @@ func frame ( parent=F, relief='flat', borderwidth=2, side='top', padx=0, pady=0,
 	     title='glish/tk', icon='', newcmap=F, tlead=F, tpos='sw' )
 	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title, icon, newcmap, tlead, tpos )
 
-func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T, anchor='c', fill='none', bitmap='', group=parent )
+func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=0, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T, anchor='c', fill='none', bitmap='', group=parent )
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value, anchor, fill, bitmap, group )
 
 func scale ( parent, start=0.0, end=100.0, length=110, text='', resolution=1.0, orient='horizontal', width=15,
