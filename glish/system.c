@@ -290,14 +290,18 @@ int send_fd( int pipe, int fd )
 	msg.msg_accrights = (caddr_t) &fd;
 	msg.msg_accrightslen = sizeof(int);
 #else
-	if ( cmptr == 0 && (cmptr = malloc(CONTROLLEN)) == NULL )
+	if ( cmptr == 0 && (cmptr = (struct cmsghdr *) malloc(CONTROLLEN)) == NULL )
 		return -1;
 	cmptr->cmsg_level = SOL_SOCKET;
 	cmptr->cmsg_type = SCM_RIGHTS;
 	cmptr->cmsg_len = CONTROLLEN;
 	msg.msg_control = (caddr_t) cmptr;
 	msg.msg_controllen = CONTROLLEN;
+#ifdef CMSG_DATA
 	*(int*)CMSG_DATA(cmptr) = fd;
+#else
+	*(int*)cmptr->cmsg_data = fd;
+#endif
 #endif
 	if ( sendmsg(pipe, &msg, 0) != 1 )
 		return -1;
@@ -324,7 +328,7 @@ int recv_fd( int pipe )
 	msg.msg_accrights = (caddr_t) &newfd;
 	msg.msg_accrightslen = sizeof(int);
 #else
-	if ( ! cmptr && ! (cmptr = malloc(CONTROLLEN)) )
+	if ( ! cmptr && ! (cmptr = (struct cmsghdr *) malloc(CONTROLLEN)) )
 		return -1;
 	msg.msg_control = (caddr_t) cmptr;
 	msg.msg_controllen = CONTROLLEN;
@@ -345,7 +349,11 @@ int recv_fd( int pipe )
 	if ( msg.msg_accrightslen != sizeof(int) )
 #else
 	if ( msg.msg_controllen == CONTROLLEN )
-		newfd = *(int*)CMSG_DATA(cmptr);
+#ifdef CMSG_DATA
+	newfd = *(int*)CMSG_DATA(cmptr);
+#else
+	newfd = *(int*)cmptr->cmsg_data;
+#endif
 	else
 #endif
 		{

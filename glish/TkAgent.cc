@@ -1639,7 +1639,16 @@ void TkFrame::UnMap()
 		}
 
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
-	TkAgent::UnMap();
+
+	if ( canvas )
+		{
+		rivet_va_cmd( canvas->Self(), "delete", tag, 0 );
+		frame = 0;
+		self = 0;
+		}
+	else
+		TkAgent::UnMap();
+
 	canvas = 0;
 
 	if ( pseudo )
