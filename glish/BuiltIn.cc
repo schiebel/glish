@@ -921,7 +921,7 @@ Value* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	char* file_name = (*args_val)[0]->StringVal();
 
-	int sds = (int) sds_use( file_name, SDS_FILE, SDS_READ );
+	int sds = (int) sds_access( file_name, SDS_FILE, SDS_READ );
 
 	Value* result;
 
@@ -933,7 +933,7 @@ Value* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 		}
 
 	else
-		result = read_value_from_SDS( sds, SDS_EVENT );
+		result = read_value_from_SDS( sds );
 
 	delete file_name;
 
@@ -952,7 +952,7 @@ Value* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 		{
 		int sds = v->SDS_IndexVal();
 
-		if ( sds_assemble( sds, file_name, SDS_FILE ) != sds )
+		if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
 			{
 			error->Report( "could not save opaque value to \"",
 					file_name, "\"" );
@@ -962,7 +962,7 @@ Value* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 
 	else
 		{
-		int sds = (int) sds_new_index( (char*) "" );
+		int sds = (int) sds_new( (char*) "" );
 
 		if ( sds < 0 )
 			{
@@ -977,7 +977,7 @@ Value* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 
 			(*args_val)[0]->AddToSds( sds, &d );
 
-			if ( sds_assemble( sds, file_name, SDS_FILE ) != sds )
+			if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
 				{
 				error->Report( "could not save value to \"",
 						file_name, "\"" );

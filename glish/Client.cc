@@ -51,6 +51,62 @@ void Client_signal_handler()
 	}
 
 
+GlishEvent::GlishEvent( const char* arg_name, const Value* arg_value )
+	{
+	name = arg_name;
+	value = (Value*) arg_value;
+	flags = 0;
+	delete_name = delete_value = 0;
+	}
+
+GlishEvent::GlishEvent( const char* arg_name, Value* arg_value )
+	{
+	name = arg_name;
+	value = arg_value;
+	flags = 0;
+	delete_name = 0;
+	delete_value = 1;
+	}
+
+GlishEvent::GlishEvent( char* arg_name, Value* arg_value )
+	{
+	name = arg_name;
+	value = arg_value;
+	flags = 0;
+	delete_name = delete_value = 1;
+	}
+
+GlishEvent::~GlishEvent()
+	{
+	if ( delete_name )
+		delete (char*) name;
+
+	if ( delete_value )
+		Unref( (Value*) value );
+	}
+
+
+int GlishEvent::IsRequest() const
+	{
+	return flags & GLISH_REQUEST_EVENT;
+	}
+
+int GlishEvent::IsReply() const
+	{
+	return flags & GLISH_REPLY_EVENT;
+	}
+
+void GlishEvent::SetIsRequest()
+	{
+	flags |= GLISH_REQUEST_EVENT;
+	}
+
+void GlishEvent::SetIsReply()
+	{
+	flags |= GLISH_REPLY_EVENT;
+	}
+
+
 class EventLink {
 public:
 	EventLink( char* task_id, char* new_name, int initial_activity )
@@ -329,12 +385,13 @@ void Client::Error( const char* fmt, const char* arg )
 
 void Client::PostEvent( const char* event_name, const Value* event_value )
 	{
-	SendEvent( event_name, event_value, 0 );
+	GlishEvent e( event_name, event_value );
+	SendEvent( &e );
 	}
 
-void Client::PostEvent( GlishEvent* event )
+void Client::PostEvent( const GlishEvent* event )
 	{
-	PostEvent( event->name, event->value );
+	SendEvent( event );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_value )
@@ -361,13 +418,15 @@ void Client::PostEvent( const char* event_name, const char* event_fmt,
 
 void Client::Reply( const Value* event_value )
 	{
-	if ( ! pending_reply )
+	if ( ! ReplyPending() )
 		error->Report( prog_name,
 	" issued Reply without having received a corresponding request" );
 
 	else
 		{
-		PostEvent( pending_reply, event_value );
+		GlishEvent e( (const char*) pending_reply, event_value );
+		e.SetIsReply();
+		PostEvent( &e );
 		delete pending_reply;
 		pending_reply = 0;
 		}
@@ -375,19 +434,31 @@ void Client::Reply( const Value* event_value )
 
 void Client::PostOpaqueSDS_Event( const char* event_name, int sds )
 	{
-	SendEvent( event_name, 0, sds );
+	GlishEvent e( event_name, (const Value*) 0 );
+	SendEvent( &e, sds );
 	}
 
-void Client::AddInputMask( fd_set* mask )
+int Client::AddInputMask( fd_set* mask )
 	{
 	if ( no_glish )
-		return;
+		return 0;
 
-	FD_SET( read_fd, mask );
+	int num_added = 0;
+	if ( ! FD_ISSET( read_fd, mask ) )
+		{
+		FD_SET( read_fd, mask );
+		++num_added;
+		}
 
 	// Now add in any fd's due to event links.
 	loop_over_list( input_links, i )
-		FD_SET( input_links[i], mask );
+		if ( ! FD_ISSET( input_links[i], mask ) )
+			{
+			FD_SET( input_links[i], mask );
+			++num_added;
+			}
+
+	return num_added;
 	}
 
 int Client::HasClientInput( fd_set* mask )
@@ -461,9 +532,8 @@ GlishEvent* Client::GetEvent( int fd )
 			input_links.remove( fd );
 			FD_Change( fd, 0 );
 
-			last_event =
-				new GlishEvent( strdup( "*dummy*" ),
-						error_value() );
+			last_event = new GlishEvent( (const char*) "*dummy*",
+							error_value() );
 			}
 
 		if ( last_event )
@@ -819,10 +889,13 @@ void Client::RendezvousAsResponder( Value* v )
 	remote_sources.Insert( source_id, input_fd );
 	}
 
-void Client::SendEvent( const char* name, const Value* value, int sds )
+void Client::SendEvent( const GlishEvent* e, int sds )
 	{
 	if ( no_glish )
 		return;
+
+	const char* name = e->name;
+	const Value* value = e->value;
 
 	if ( have_interpreter_connection )
 		{
@@ -839,7 +912,7 @@ void Client::SendEvent( const char* name, const Value* value, int sds )
 				if ( el->Active() )
 					{
 					send_event( el->FD(), el->Name(),
-							value, sds );
+							e, sds );
 					did_send = 1;
 					}
 				}
@@ -848,10 +921,10 @@ void Client::SendEvent( const char* name, const Value* value, int sds )
 			// all of the links are inactive.  Forward to
 			// the interpreter instead.
 			if ( ! did_send )
-				send_event( write_fd, name, value, sds );
+				send_event( write_fd, e->name, e, sds );
 			}
 		else
-			send_event( write_fd, name, value, sds );
+			send_event( write_fd, e->name, e, sds );
 		}
 
 	else if ( value )
@@ -910,12 +983,12 @@ GlishEvent* recv_event( int fd )
 	if ( ! read_buffer( fd, (char*) &hdr, sizeof( hdr ) ) )
 		return 0;
 
-	hdr.code = ntohl( hdr.code );
+	hdr.flags = ntohl( hdr.flags );
 	int size = (int) ntohl( hdr.event_length );
 
 	Value* result;
 
-	if ( hdr.code == STRING_EVENT )
+	if ( hdr.flags & GLISH_STRING_EVENT )
 		{
 		char* value = new char[size+1];
 		if ( size > 0 && ! read_buffer( fd, value, size ) )
@@ -938,9 +1011,7 @@ GlishEvent* recv_event( int fd )
 
 	else
 		{
-		sds_cleanup();
-
-		int sds = (int) sds_read_open_fd( fd, size,0,0 );
+		int sds = (int) sds_read_open_fd( fd, size );
 
 		if ( sds <= 0 )
 			{
@@ -952,20 +1023,23 @@ GlishEvent* recv_event( int fd )
 			}
 
 		else
-			result = read_value_from_SDS( sds, int( hdr.code ) );
+			result = read_value_from_SDS( sds,
+					int( hdr.flags & GLISH_OPAQUE_EVENT ) );
 		}
 
-	return new GlishEvent( strdup( hdr.event_name ), result );
+	GlishEvent* e = new GlishEvent( strdup( hdr.event_name ), result );
+	e->SetFlags( int( hdr.flags ) );
+	return e;
 	}
 
 
-static int send_event_header( int fd, int code, int length, const char* name )
+static int send_event_header( int fd, int flags, int length, const char* name )
 	{
 	// The following is static so that we don't wind up copying
 	// uninitialized memory; makes Purify happy.
 	static struct event_header hdr;
 
-	hdr.code = htonl( (u_long) code );
+	hdr.flags = htonl( (u_long) flags );
 	hdr.event_length = htonl( (u_long) length );
 
 	if ( strlen( name ) >= MAX_EVENT_NAME_SIZE )
@@ -982,8 +1056,11 @@ static int send_event_header( int fd, int code, int length, const char* name )
 	return 1;
 	}
 
-void send_event( int fd, const char* name, const Value* value, int sds )
+void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 	{
+	const Value* value = e->value;
+	int event_flags = e->Flags();
+
 	if ( value )
 		value = value->Deref();
 
@@ -995,8 +1072,9 @@ void send_event( int fd, const char* name, const Value* value, int sds )
 		char* string_val = paste( &a );
 
 		int size = strlen( string_val );
+		event_flags |= GLISH_STRING_EVENT;
 
-		if ( send_event_header( fd, STRING_EVENT, size, name ) )
+		if ( send_event_header( fd, event_flags, size, name ) )
 			(void) write_buffer( fd, string_val, size );
 
 		delete string_val;
@@ -1010,12 +1088,17 @@ void send_event( int fd, const char* name, const Value* value, int sds )
 			value = 0;
 			}
 
-		int event_type;
 		del_list d;
 
-		if ( value )
+		if ( sds >= 0 )
+			event_flags |= GLISH_OPAQUE_EVENT;
+
+		else
 			{
-			sds = (int) sds_new_index( (char*) "" );
+			if ( ! value )
+				value = new Value( glish_false );
+
+			sds = (int) sds_new( (char*) "" );
 
 			if ( sds < 0 )
 				error->Report( prog_name,
@@ -1023,18 +1106,13 @@ void send_event( int fd, const char* name, const Value* value, int sds )
 						sds );
 
 			value->AddToSds( sds, &d );
-
-			event_type = SDS_EVENT;
 			}
 
-		else
-			event_type = SDS_OPAQUE_EVENT;
+		int size = (int) sds_fullsize( sds );
 
-		int size = (int) sds_dataset_size( sds );
-
-		if ( send_event_header( fd, event_type, size, name ) )
+		if ( send_event_header( fd, event_flags, size, name ) )
 			{
-			if ( write_sds2socket( fd, sds ) != sds &&
+			if ( sds_write2fd( fd, sds ) != sds &&
 			     sds_error != SDS_FILE_WR )
 				error->Report( prog_name,
 			": problem sending event on socket, SDS error code = ",

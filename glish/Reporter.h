@@ -64,9 +64,12 @@ class Reporter {
 	};
 
 
-// Unfortunately "fatal" is a popular name and its use has led to a
-// number of hard-to-debug name clashes.
+// Unfortunately "error", "fatal", and "warn" are popular names and their
+// use has led to a number of hard-to-debug name clashes.
+#define error glish_error
+#define warn glish_warn
 #define fatal glish_fatal
+#define message glish_message
 
 extern Reporter* error;
 extern Reporter* warn;

@@ -22,8 +22,7 @@
 Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	{
 	attrs = task_attrs;
-	pending_event_names = 0;
-	pending_event_values = 0;
+	pending_events = 0;
 	channel = 0;
 	local_channel = 0;
 	selector = 0;
@@ -35,6 +34,7 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	pipes_used = 0;
 
 	active = 0;	// not true till we get a .established event
+	protocol = 0;	// not set until Client establishes itself
 
 	id = sequencer->RegisterTask( this );
 
@@ -50,8 +50,7 @@ Task::~Task()
 
 	CloseChannel();
 
-	delete pending_event_names;
-	delete pending_event_values;
+	delete pending_events;
 
 	delete attrs;
 	delete name;
@@ -88,14 +87,15 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 
 	if ( ! channel )
 		{
-		if ( ! pending_event_names )
-			{
-			pending_event_names = new name_list;
-			pending_event_values = new value_list;
-			}
+		if ( ! pending_events )
+			pending_events = new glish_event_list;
 
-		pending_event_names->append( strdup( event_name ) );
-		pending_event_values->append( copy_value( event_val ) );
+		GlishEvent* e = new GlishEvent( strdup( event_name ),
+						copy_value( event_val ) );
+		if ( is_request )
+			e->SetIsRequest();
+
+		pending_events->append( e );
 		}
 
 	else
@@ -120,14 +120,20 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 			Unref( event_val );
 			event_val = new_val;
 
-			send_event( fd, event_name, event_val );
+			GlishEvent e( event_name, event_val );
+			e.SetIsRequest();
+			send_event( fd, &e );
 
 			result = sequencer->AwaitReply( this, event_name,
 							reply_name );
+			delete reply_name;
 			}
 
 		else
-			send_event( fd, event_name, event_val );
+			{
+			GlishEvent e( event_name, (const Value*) event_val );
+			send_event( fd, &e );
+			}
 		}
 
 	Unref( event_val );
@@ -140,22 +146,19 @@ void Task::SetChannel( Channel* c, Selector* s )
 	channel = c;
 	selector = s;
 
-	if ( pending_event_names )
+	if ( pending_events )
 		{
-		loop_over_list( *pending_event_names, i )
+		loop_over_list( *pending_events, i )
 			{
-			char* n = (*pending_event_names)[i];
-			Value* value = (*pending_event_values)[i];
+			GlishEvent* e = (*pending_events)[i];
 
-			sequencer->LogEvent( id, name, n, value, 0 );
-			send_event( channel->WriteFD(), n, value );
+			sequencer->LogEvent( id, name, e, 0 );
+			send_event( channel->WriteFD(), e );
 
-			delete n;
-			Unref( value );
+			Unref( e );
 			}
 
-		pending_event_names = 0;
-		pending_event_values = 0;
+		pending_events = 0;
 		}
 	}
 
@@ -625,7 +628,6 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 		r->SetField( "input", input );
 
 	send_event( fd, "shell", r );
-
 	Unref( r );
 
 	GlishEvent* e = recv_event( attrs->daemon_channel->ReadFD() );

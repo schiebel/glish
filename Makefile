@@ -15,8 +15,6 @@ all:
 	-@cp install-sh editline
 	-@cp install-sh glish
 	-@cp install-sh glish/clients
-	@echo "Configuring ..."
-	@./configure
 	@$(MAKE) $(MFLAGS) build.sds
 	@$(MAKE) $(MFLAGS) build.editline
 	@$(MAKE) $(MFLAGS) build.glish
@@ -44,7 +42,7 @@ dist2:
 	@rm $(DIST_NAME).tar tar-files
 
 tar-list:
-	@ls Makefile README NEWS configure.in configure install-sh
+	@ls -d Makefile README NEWS configure.in configure install-sh contrib
 	@for i in $(SUBDIRS); do \
 		(cd $$i; $(MAKE) $(MFLAGS) tar-list | sed "s,^,$$i/,"); done
 

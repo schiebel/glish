@@ -47,6 +47,25 @@ class SDS_ValueManager : public GlishObject {
 	};
 
 
+class DelObj : public GlishObject {
+public:
+	DelObj( GlishObject* arg_obj )	{ obj = arg_obj; ptr = 0; }
+	DelObj( void* arg_ptr )		{ obj = 0; ptr = arg_ptr; }
+
+	~DelObj();
+
+protected:
+	GlishObject* obj;
+	void* ptr;
+};
+
+DelObj::~DelObj()
+	{
+	Unref( obj );
+	delete ptr;
+	}
+
+
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\
@@ -3787,13 +3806,21 @@ DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray)
 void Value::AddToSds( int sds, del_list* dlist, const char* name,
 			struct record_header* rh, int level ) const
 	{
+	if ( IsVecRef() )
+		{
+		Value* copy = copy_value( this );
+		dlist->append( new DelObj( copy ) );
+		copy->AddToSds( sds, dlist, name, rh, level );
+		return;
+		}
+
 	if ( IsRef() )
 		{
 		Deref()->AddToSds( sds, dlist, name, rh, level );
 		return;
 		}
 
-        const attributeptr attr = AttributePtr();
+	const attributeptr attr = AttributePtr();
 	if ( type == TYPE_RECORD || attr )
 		{
 		if ( level > 1 )
@@ -3857,7 +3884,7 @@ void Value::AddToSds( int sds, del_list* dlist, const char* name,
 			sds_record_entry( rh, SDS_type, Length(),	\
 					(char*) array, (char*) name );	\
 		else							\
-			(void) sds_declare_object( sds, (char*) array,	\
+			(void) sds_declare_structure( sds, (char*) array,	\
 						   (char*) name, Length(),\
 						   SDS_type );		\
 		break;							\
@@ -3898,10 +3925,10 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),SDS_DOUBLE_COMPLEX)
 				sds_record_entry( rh, SDS_STRING, total_size,
 							heap, (char*) name );
 			else
-				(void) sds_declare_object( sds, heap,
+				(void) sds_declare_structure( sds, heap,
 					(char*) name, total_size, SDS_STRING );
 
-			dlist->append( (void*) heap );
+			dlist->append( new DelObj( (void*) heap ) );
 
 			break;
 			}
@@ -4282,6 +4309,7 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 			copy = new Value( tmp );
 			}
 			break;
+
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
 			switch ( value->VecRefPtr()->Type() )
@@ -4317,23 +4345,23 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 
 
 static charptr* make_string_array( char* heap, int len, int& result_len )
-        {
+	{
 	result_len = 0;
-        for ( char* heap_ptr = heap; heap_ptr < &heap[len]; ++heap_ptr )
-                if ( *heap_ptr == '\0' )
-                        ++result_len;
+	for ( char* heap_ptr = heap; heap_ptr < &heap[len]; ++heap_ptr )
+		if ( *heap_ptr == '\0' )
+			++result_len;
 
-        charptr* result = new charptr[result_len];
+	charptr* result = new charptr[result_len];
 
-        heap_ptr = heap;
-        for ( int i = 0; i < result_len; ++i )
-                {
-                result[i] = strdup( heap_ptr );
-                heap_ptr += strlen( heap_ptr ) + 1;
-                }
+	heap_ptr = heap;
+	for ( int i = 0; i < result_len; ++i )
+		{
+		result[i] = strdup( heap_ptr );
+		heap_ptr += strlen( heap_ptr ) + 1;
+		}
 
-        return result;
-        }
+	return result;
+	}
 
 static Value* read_single_value_from_SDS( GlishObject* manager,
 						struct sds_odesc* odesc )
@@ -4482,13 +4510,14 @@ static Value* traverse_record( Value* record, Value*& attr,
 	return record;
 	}
 
-Value* read_value_from_SDS( int sds, int event_type )
+Value* read_value_from_SDS( int sds, int is_opaque_sds )
 	{
 	SDS_ValueManager* manager = new SDS_ValueManager( sds );
 
+	sds_cleanup( sds );
 	Value* result;
 
-	if ( event_type == SDS_OPAQUE_EVENT )
+	if ( is_opaque_sds )
 		{
 		result = new Value( (SDS_Index&) SDS_Index(sds) );
 		Ref( manager );
@@ -4544,7 +4573,7 @@ Value* read_value_from_SDS( int sds, int event_type )
 
 	Unref( manager );
 
-	sds_cleanup();
+	sds_cleanup( sds );
 
 	return result;
 	}
@@ -4624,7 +4653,7 @@ void delete_list( del_list* dlist )
 	{
 	if ( dlist )
 		loop_over_list( *dlist, i )
-			delete (*dlist)[i];
+			Unref( (*dlist)[i] );
 	}
 
 

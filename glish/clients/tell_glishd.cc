@@ -52,8 +52,7 @@ int main( int argc, char** argv )
 		exit( 1 );
 		}
 
-	Value dummy_val( 1 );
-	send_event( daemon_socket, "*terminate-daemon*", &dummy_val );
+	send_event( daemon_socket, "*terminate-daemon*", (const Value*) 0 );
 
 	return 0;
 	}

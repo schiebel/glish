@@ -9,6 +9,10 @@
 class Executable;
 class Channel;
 class Selector;
+class GlishEvent;
+
+declare(PList,GlishEvent);
+typedef PList(GlishEvent) glish_event_list;
 
 
 class TaskAttr {
@@ -58,6 +62,9 @@ class Task : public Agent {
 	void CloseChannel();
 	Channel* GetChannel() const	{ return channel; }
 
+	int Protocol() const	{ return protocol; }
+	void SetProtocol( int arg_protocol )	{ protocol = arg_protocol; }
+
 	Task* AgentTask();
 
 	void DescribeSelf( ostream& s ) const;
@@ -83,15 +90,15 @@ class Task : public Agent {
 	int no_such_program;
 	Selector* selector;
 
-	// Parallel lists holding event name/value pairs that we haven't
-	// been able to send out yet because our associated task hasn't
-	// yet connected to the Sequencer.
-	name_list* pending_event_names;
-	value_list* pending_event_values;
+	// Events that we haven't been able to send out yet because
+	// our associated task hasn't yet connected to the interpreter.
+	glish_event_list* pending_events;
 
 	Executable* executable;
 	int task_error;	// true if any problems occurred
 	int active;
+
+	int protocol;	// which protocol the client speaks, or 0 if not known
 
 	// Pipes used for local connections.
 	int pipes_used;

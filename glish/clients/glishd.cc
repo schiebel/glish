@@ -92,7 +92,7 @@ void internal_request( GlishEvent* event );
 const char* prog_name;
 
 
-int main( int argc, char** argv )
+int main( int /* argc */, char** argv )
 	{
 	static char prog_name_buf[1024];
 	sprintf( prog_name_buf, "%s @ %s [%d]", argv[0],
