@@ -12,6 +12,7 @@
 #include "Sequencer.h"
 #include "input.h"
 #include "y.tab.h"
+#include "system.h"
 
 #if ! defined(PURE_PARSER)
 extern YYSTYPE yylval;
@@ -67,6 +68,14 @@ PList(InputFileInfo) file_list;
 static int scanner_read( char buf[], int max_size );
 static void new_file();
 
+//
+// This handles intermediate storage of literals. Each time
+// it is called it returns a pointer to the beginning of the
+// literal. 'clear_literal()' resets the buffer.
+//
+static char *literal( const char *s = 0, int clear = 0 );
+#define clear_literal() literal(0,1)
+
 #undef YY_INPUT
 #define YY_INPUT(buf,result,max_size)	\
 	result = scanner_read( buf, max_size );
@@ -111,7 +120,6 @@ static void new_file();
 
 %x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL PRAGMA ATTR ATTR_QUOTE
 
-	static char literal[512];
 	static int is_double_quote;
 
 
@@ -253,7 +261,7 @@ include		BEGIN(INCL); break;
 		}
 
 ["']		{
-		literal[0] = '\0';
+		clear_literal();
 		is_double_quote = yytext[0] == '"';
 		BEGIN(QUOTE);
 		break;
@@ -265,25 +273,25 @@ include		BEGIN(INCL); break;
 		}
 
 <ATTR>["']	{
-		literal[0] = '\0';
+		clear_literal();
 		is_double_quote = yytext[0] == '"';
 		BEGIN(ATTR_QUOTE);
 		break;
 		}
 
-<QUOTE,ATTR_QUOTE>[^'"\n\\]+	strcat( literal, yytext ); break;
-<QUOTE,ATTR_QUOTE>"\\n"		strcat( literal, "\n" ); break;
-<QUOTE,ATTR_QUOTE>"\\t"		strcat( literal, "\t" ); break;
-<QUOTE,ATTR_QUOTE>"\\r"		strcat( literal, "\r" ); break;
-<QUOTE,ATTR_QUOTE>"\\f"		strcat( literal, "\f" ); break;
+<QUOTE,ATTR_QUOTE>[^'"\n\\]+	literal( yytext ); break;
+<QUOTE,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
+<QUOTE,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
+<QUOTE,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
+<QUOTE,ATTR_QUOTE>"\\f"		literal( "\f" ); break;
 <QUOTE,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
-<QUOTE,ATTR_QUOTE>"\\".		strcat( literal, &yytext[1] ); break;
+<QUOTE,ATTR_QUOTE>"\\".		literal( &yytext[1] ); break;
 
 <QUOTE>\"	|
 <QUOTE>\'	{
 		if ( (is_double_quote && yytext[0] == '\'') ||
 		     (! is_double_quote && yytext[0] == '"') )
-			strcat( literal, &yytext[0] );
+			literal( &yytext[0] );
 
 		else
 			{
@@ -292,12 +300,12 @@ include		BEGIN(INCL); break;
 			if ( is_double_quote )
 				{
 				statement_can_end = 1;
-				YYLVAL(expr) = new ConstExpr( isplit( literal ) );
+				YYLVAL(expr) = new ConstExpr( isplit( literal() ) );
 				return TOK_CONSTANT;
 				}
 
 			else
-				RETURN_CONSTANT( literal );
+				RETURN_CONSTANT( literal() );
 			}
 
 		break;
@@ -307,13 +315,13 @@ include		BEGIN(INCL); break;
 <ATTR_QUOTE>\'	{
 		if ( (is_double_quote && yytext[0] == '\'') ||
 		     (! is_double_quote && yytext[0] == '"') )
-			strcat( literal, &yytext[0] );
+			literal( &yytext[0] );
 
 		else
 			{
 			BEGIN(INITIAL);
 			statement_can_end = 1;
-			YYLVAL(id) = strdup( literal );
+			YYLVAL(id) = strdup( literal() );
 			return TOK_ID;
 			}
 
@@ -573,6 +581,36 @@ void new_file()
 	bump_line_num = 0;
 	statement_can_end = 0;
 	}
+
+char *literal( const char *new_str, int clear )
+	{
+	static unsigned int len = 512;
+	static unsigned int curlen = 0;
+	static char *string = new char[len];
+
+	if ( clear )
+		curlen = 0;
+
+	if ( ! new_str )
+		{
+		string[curlen] = '\0';
+		return string;
+		}
+
+	int newlen = strlen(new_str);
+
+	if ( curlen + newlen + 1 > len )
+		{
+		while ( curlen + newlen + 1 > len )
+			len *= 2;
+		string = (char*) realloc_memory( (void*) string, len );
+		}
+
+	memcpy( &string[curlen], new_str, newlen + 1 );
+	curlen += newlen;
+	return string;
+	}
+
 
 void *current_flex_buffer()
 	{
