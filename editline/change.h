@@ -1,1 +1,1 @@
-#define EDITLINE_CHANGE 1
+#define EDITLINE_CHANGE 0

@@ -1,1 +1,1 @@
-#define SOS_CHANGE 3
+#define SOS_CHANGE 0

@@ -1,1 +1,1 @@
-#define NPD_CHANGE 1
+#define NPD_CHANGE 0
