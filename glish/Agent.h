@@ -117,8 +117,11 @@ class Agent : public GlishObject {
 	//
 	void UnRegisterUnref( Stmt *s );
 
-	// True if the given statement has expressed interested in
-	// this Agent for the given field (or for all fields).
+	// Returns non-null if the given statement has expressed
+	// interested in this Agent for the given field (or for
+	// all fields). If this Agent is interested in the given
+	// field, the result will be 1, but if this Agent is
+	// interested in all fields, the result will be 2.
 	int HasRegisteredInterest( Stmt* stmt, const char* field );
 
 	// Returns a Value object listing this agent's "whenever"

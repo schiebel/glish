@@ -232,6 +232,7 @@ int await_type::SetValue( Agent *agent_, const char *name_x, IValue *val, int fo
 	{
 	agent_list *al = 0;
 	if ( filled_value || filled_name || filled_agent ) return 0;
+
 	if ( ! force && dict() && ( !(al = (*dict())[name_x]) || !al->is_member(agent_) ) )
 		return 0;
 
@@ -3769,6 +3770,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 		loop_over_list( await_list, X )
 			{
 			Agent *la = 0;
+			int match_type = 0;
 			if ( (la=await_list[X]->agent()) && la == agent &&
 			     ! strcmp( await_list[X]->name(), event_name ) )
 				{
@@ -3778,9 +3780,9 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 					break;
 					}
 				}
-			else if ( agent->HasRegisteredInterest( await_list[X]->stmt(), event_name ) )
+			else if ( (match_type = agent->HasRegisteredInterest( await_list[X]->stmt(), event_name )) )
 				{
-				if ( (found_match = await_list[X]->SetValue( agent, event_name, value, 0 )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value, match_type > 1 ? 1 : 0 )) )
 					break;
 				}
 			}

@@ -431,7 +431,14 @@ IValue *RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 		// but not other operations.
 		if ( op == OP_EQ || op == OP_NE )
 			{
-			element_by_element = 0;
+			//
+			// setting this for string comparisons give mismatched comparisons,
+			// e.g. "system == symbol_names()", a free shot to comparing elements
+			// of different lengths, usually resulting in a SEGV; the non
+			// element-by-element comparison only applies to records, I believe
+			//
+			if ( lhs->Type() != TYPE_STRING && rhs->Type() != TYPE_STRING )
+				element_by_element = 0;
 			return 0;
 			}
 

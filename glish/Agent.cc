@@ -209,7 +209,7 @@ int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
 	interest = interested_parties[INTERESTED_IN_ALL];
 
 	if ( interest && SearchNotificationList( interest, stmt ) )
-		return 1;
+		return 2;
 
 	return 0;
 	}
