@@ -787,7 +787,6 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 				parameter_list *args, int is_request, int log )
 	{
-	char *ret = 0;
 	char *event_name = "text append function";
 
 	HASARG( args, > 0 )
@@ -812,13 +811,13 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 		argv[3] = argv[2];
 		argv[2] = tmp;
 		}
-	ret = rivet_cmd(a->Self(), argc, argv);
+	rivet_cmd(a->Self(), argc, argv);
 	if ( param ) rivet_va_cmd(a->Self(), "see", a->IndexCheck(param), 0);
 	a->ExitEnable();
 	for ( LOOPDECL i = start; i < argc; ++i )
 		free_memory(argv[i]);
 	free_memory( argv );
-	return ret;
+	return 0;
 	}
 
 char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
