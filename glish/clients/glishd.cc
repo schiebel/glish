@@ -55,7 +55,7 @@ public:
 	// Upon return, "internal_event" will be non-zero if the received
 	// event was directed to glishd itself; otherwise, "internal_event"
 	// will be set to zero upon return.
-	int NextRequest( fd_set* mask, GlishEvent*& internal_event );
+	int NextRequest( GlishEvent* e, GlishEvent*& internal_event );
 
 	Client* Interpreter() const	{ return interpreter; }
 
@@ -86,11 +86,17 @@ protected:
 
 
 declare(PList,GlishDaemon);
+declare(PList,Client);
 
 
 void internal_request( GlishEvent* event );
+char* get_prog_name( char* full_path );
 const char* prog_name;
 
+PList(Client) mpcs;
+PList(GlishDaemon) threads;
+PList(Client) transition;
+name_list mpc_names;
 
 int main( int /* argc */, char** argv )
 	{
@@ -121,7 +127,8 @@ int main( int /* argc */, char** argv )
 	// it to go away when we do.
 	mark_close_on_exec( a.FD() );
 
-	PList(GlishDaemon) threads;
+	int suspend = 1;
+	while ( suspend ) sleep( 1 );
 
 	for ( ; ; )
 		{
@@ -132,7 +139,19 @@ int main( int /* argc */, char** argv )
 		FD_SET( a.FD(), mask );
 
 		loop_over_list( threads, i )
+			{
 			threads[i]->Interpreter()->AddInputMask( mask );
+			}
+
+		for ( i=0 ; i < transition.length() ; ++i )
+			{
+			transition[i]->AddInputMask( mask );
+			}
+
+		for ( i=0 ; i < mpcs.length() ; ++i )
+			{
+			mpcs[i]->AddInputMask( mask );
+			}
 
 		while ( select( FD_SETSIZE, mask, 0, 0, 0 ) < 0 )
 			{
@@ -144,28 +163,49 @@ int main( int /* argc */, char** argv )
 				}
 			}
 
+		Client* c;
+		GlishDaemon* d;
+		GlishEvent* e;
+
 		// Look for any threads that have activity.
 		for ( i = 0; i < threads.length(); ++i )
 			{
-			GlishDaemon* d = threads[i];
+			d = threads[i];
 
 			if ( d->Interpreter()->HasClientInput( mask ) )
 				{
-				GlishEvent* internal;
-				if ( ! d->NextRequest( mask, internal ) )
+				GlishEvent* internal = 0;
+
+				e = d->Interpreter()->NextEvent( mask );
+				d->NextRequest( e, internal );
+
+				if ( ! e )
 					{ // Delete this thread.
-					threads.remove_nth( i );
-					delete d;
-
-					// Balance the loop increment since
-					// we've now shortened the list.
-					--i;
-
+					delete threads.remove_nth( i-- );
 					continue;
 					}
 
 				if ( internal )
 					internal_request( internal );
+				}
+			}
+
+		for ( i=0 ; i<mpcs.length() ; ++i )
+			{
+			c = mpcs[i];
+
+			if ( c->HasClientInput( mask ) ) // read and drop
+				{
+				e = c->NextEvent( mask );
+				if ( ! e ) // mpc has exited
+					{
+					delete mpcs.remove_nth( i );
+					delete mpc_names.remove_nth( i-- );
+					}
+				else
+					{
+					// ignore non-null mpc events for now
+					}
 				}
 			}
 
@@ -187,9 +227,49 @@ int main( int /* argc */, char** argv )
 			// and detect out exit.
 			mark_close_on_exec( s );
 
-			Client* c = new Client( s, s, prog_name );
-			GlishDaemon* d = new GlishDaemon( c );
-			threads.append( d );
+			c = new Client( s, s, prog_name );
+			transition.append( c );
+			}
+
+		for ( i=0 ; i<transition.length() ; ++i )
+			{
+			c = transition[i];
+
+			if ( c->HasClientInput( mask ) )
+				{
+				e = c->NextEvent( mask );
+
+				if ( e )
+					{
+					if ( streq( e->name, "*register-persistent*" ) )
+						{ // transition to mpc
+
+						char* mpc_name = e->value->StringVal();
+						mpcs.append( transition.remove_nth( i-- ) );
+						mpc_names.append( mpc_name );
+						continue;
+						}
+
+					if ( streq( e->name, "established" ) )
+						{
+						continue;
+						}
+
+					d = new GlishDaemon( transition.remove_nth( i-- ) );
+					threads.append( d );
+
+					GlishEvent* internal;
+					if ( ! d->NextRequest( e, internal ) )
+						{
+						delete threads.remove_nth( threads.length() );
+						continue;
+						}
+					}
+				else // transient exited
+					{
+					delete transition.remove_nth( i-- );
+					}
+				}
 			}
 
 		// Pick up any clients that have exited.
@@ -221,6 +301,17 @@ void internal_request( GlishEvent* event )
 	}
 
 
+char* get_prog_name( char* full_path )
+{
+	if ( strchr( full_path, '/' ) == (char*) NULL )
+		return full_path;
+
+	int i = 0;
+	while ( full_path[i] != '\0' ) ++i;
+	while ( full_path[i] != '/'  ) --i;
+	return full_path + (i+1) * sizeof( char );
+}
+
 GlishDaemon::GlishDaemon( Client* client )
 	{
 	interpreter = client;
@@ -234,11 +325,9 @@ GlishDaemon::~GlishDaemon()
 	delete work_dir;
 	}
 
-int GlishDaemon::NextRequest( fd_set* mask, GlishEvent*& internal_event )
+int GlishDaemon::NextRequest( GlishEvent* e, GlishEvent*& internal_event )
 	{
 	internal_event = 0;
-
-	GlishEvent* e = interpreter->NextEvent( mask );
 
 	if ( ! e )
 		return 0;
@@ -324,6 +413,32 @@ void GlishDaemon::CreateClient( Value* argv )
 		return;
 		}
 
+	char* client_str = argv->StringVal(); // copy here for good reason
+	char* name_str;
+
+	if ( !strtok( client_str, " " ) ||
+	     !strtok( NULL, " " ) ||
+	     !strtok( NULL, " " ) ||
+	     !(name_str = strtok( NULL, " " )) )
+		{
+		error->Report( "bad arguments for creating remote client" );
+		return;
+		}
+
+	char *prog_str = get_prog_name( name_str );
+
+	loop_over_list( mpcs, i )
+		{
+		if ( streq( prog_str, mpc_names[i] ) ||
+		     streq( name_str, mpc_names[i] ) )
+			{
+			mpcs[i]->PostEvent( "client", argv );
+			delete client_str;
+			return;
+			}
+		}
+	delete client_str;
+
 	// First strip off the id.
 	charptr* argv_ptr = argv->StringPtr();
 	char* client_id = strdup( argv_ptr[0] );
@@ -333,7 +448,7 @@ void GlishDaemon::CreateClient( Value* argv )
 
 	charptr* client_argv = new charptr[argc + 1];
 
-	for ( int i = 0; i < argc; ++i )
+	for ( i = 0; i < argc; ++i )
 		client_argv[i] = argv_ptr[i];
 
 	client_argv[argc] = 0;

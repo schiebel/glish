@@ -1532,6 +1532,12 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
 	agent = a;
+	int read_fd = fileno( stdin );
+	loop_over_list( event_sources, i )
+		{
+		if ( ! strcmp( event_sources[i]->Context().id(), interpreter_tag ) )
+			read_fd = event_sources[i]->Read_FD();
+		}
 	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
 	}
 

@@ -106,7 +106,7 @@ BinOpExpr.o: $(SRC)/BinOpExpr.cc $(SRC)/BinOpExpr.h $(KEY_HEADERS)
 BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(KEY_HEADERS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/BuiltIn.cc
 Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
-		$(SRC)/Reporter.h
+		$(SRC)/Reporter.h $(SRC)/ports.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Client.cc
 Complex.o: $(SRC)/Complex.cc $(H)/Complex.h $(H)/glish.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Complex.cc
@@ -132,7 +132,7 @@ Object.o: $(SRC)/Object.cc $(H)/Object.h
 Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Queue.cc
 RemoteExec.o: $(SRC)/RemoteExec.cc $(SRC)/RemoteExec.h $(SRC)/Executable.h \
-		$(SRC)/Channel.h
+		$(SRC)/Channel.h $(H)/Client.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/RemoteExec.cc
 Reporter.o: $(SRC)/Reporter.cc $(SRC)/Reporter.h $(H)/Object.h $(SRC)/input.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Reporter.cc
@@ -140,7 +140,7 @@ Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Select.cc
 Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
-    $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h
+    $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
 	$(CPLUS) '-DRSH="@RSH@"' $(CFLAGS) $(INCLUDE) -c $(SRC)/Sequencer.cc
 Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc

@@ -29,7 +29,7 @@ char* strdup( const char* );
 #include "Socket.h"
 #include "glish_event.h"
 #include "system.h"
-
+#include "ports.h"
 
 typedef RETSIGTYPE (*SigHandler)(int);
 
@@ -49,6 +49,32 @@ void Client_signal_handler()
 	{
 	current_client->HandlePing();
 	}
+
+
+EventContext::~EventContext() 
+	{ 
+	if (context) delete (char *) context;
+	if (client_name) delete (char *) client_name;
+	}
+
+EventContext &EventContext::operator=(const EventContext &c) { 
+		if ( &c != this ) {
+			if ( context ) delete (char *) context;
+			context = c.id() ? strdup(c.id()) : 0;
+			if ( client_name ) delete (char *) client_name;
+			client_name = c.name() ? strdup(c.name()) : 0;
+		}
+		return *this;
+	}
+
+EventContext::EventContext(const char *context_, const char *client_name_) :
+		context(context_ ? strdup(context_) : 0),
+		client_name(client_name_ ? strdup(client_name_) : 0)
+	{ }	
+EventContext::EventContext(const EventContext &c) : 
+			context( c.id() ? strdup(c.id()) : 0), 
+			client_name( c.name() ? strdup(c.name()) : 0)
+	{ }
 
 
 GlishEvent::GlishEvent( const char* arg_name, const Value* arg_value )
@@ -144,9 +170,12 @@ private:
 	};
 
 
-Client::Client( int& argc, char** argv )
+Client::Client( int& argc, char** argv, int arg_multithreaded ) :
+	last_context( "<unknown>", 0 )
 	{
 	char** orig_argv = argv;
+
+	multithreaded = arg_multithreaded;
 
 	prog_name = argv[0];
 	--argc, ++argv;	// remove program name from argument list
@@ -154,6 +183,8 @@ Client::Client( int& argc, char** argv )
 	ClientInit();
 
 	int suspend = 0;
+	int read_fd;
+	int write_fd;
 
 	no_glish = 0;
 	interpreter_tag = "*no-interpreter*";
@@ -164,7 +195,7 @@ Client::Client( int& argc, char** argv )
 		// so that we receive "events" from stdin and send them
 		// to stdout.
 		have_interpreter_connection = 0;
-		client_name = prog_name;
+		initial_client_name = prog_name;
 
 		if ( argc == 0 || (argc >= 1 && !streq( argv[0], "-glish" )) )
 			{
@@ -182,6 +213,15 @@ Client::Client( int& argc, char** argv )
 			read_fd = fileno( stdin );
 			write_fd = fileno( stdout );
 
+			interpreter_tag = "*stdio*";
+
+			last_context = EventContext(interpreter_tag,initial_client_name);
+
+			EventSource* es = new EventSource( read_fd,
+				write_fd, STDIO, last_context );
+
+			event_sources.append( es );
+
 			if ( argc >= 1 && streq( argv[0], "-glish" ) )
 				// Eat up -glish argument.
 				--argc, ++argv;
@@ -191,7 +231,7 @@ Client::Client( int& argc, char** argv )
 	else
 		{
 		have_interpreter_connection = 1;
-		client_name = argv[1];
+		initial_client_name = argv[1];
 		argc -= 2, argv += 2;
 
 		if ( argc < 2 ||
@@ -235,6 +275,8 @@ Client::Client( int& argc, char** argv )
 			argc -= 2, argv += 2;
 			}
 
+		interpreter_tag = "<unknown>";
+
 		if ( argc > 1 && streq( argv[0], "-interpreter" ) )
 			{
 			interpreter_tag = argv[1];
@@ -246,6 +288,13 @@ Client::Client( int& argc, char** argv )
 			suspend = 1;
 			--argc, ++argv;
 			}
+
+		last_context = EventContext(interpreter_tag, initial_client_name);
+
+		EventSource* es = new EventSource( read_fd, write_fd,
+					INTERP, last_context );
+
+		event_sources.append( es );
 		}
 
 	if ( suspend )
@@ -259,8 +308,14 @@ Client::Client( int& argc, char** argv )
 			sleep( 1 );	// allow debugger to attach
 		}
 
+
+	if ( multithreaded && ReRegister() )
+		{
+		fatal->Report("multithreaded client with no glishd present");
+		}
+
 	if ( have_interpreter_connection )
-		SendEstablishedEvent();
+		SendEstablishedEvent( EventContext(last_context) );
 
 	CreateSignalHandler();
 
@@ -276,19 +331,62 @@ Client::Client( int& argc, char** argv )
 	}
 
 
-Client::Client( int client_read_fd, int client_write_fd, const char* name )
+Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
+	last_context( "<unknown>", name )
 	{
-	client_name = prog_name = name;
+	initial_client_name = prog_name = name;
+
+	multithreaded = 0;
 
 	ClientInit();
 
 	no_glish = 0;
 	have_interpreter_connection = 1;
 
-	read_fd = client_read_fd;
-	write_fd = client_write_fd;
+	interpreter_tag = strdup( last_context.id() );
 
-	SendEstablishedEvent();
+	EventSource* es = new EventSource( client_read_fd, client_write_fd,
+		INTERP, last_context );
+
+	event_sources.append( es );
+
+	if ( multithreaded && ReRegister() )
+		{
+		fatal->Report("multithreaded client with no glishd present");
+		}
+
+	SendEstablishedEvent( last_context );
+
+	CreateSignalHandler();
+	}
+
+Client::Client( int client_read_fd, int client_write_fd, const char* name,
+	const EventContext &arg_context, int arg_multithreaded ) : 
+	last_context( arg_context )
+	{
+	// BUG HERE -- name (argument) could go away...
+	initial_client_name = prog_name = name;
+
+	multithreaded = arg_multithreaded;
+
+	ClientInit();
+
+	no_glish = 0;
+	have_interpreter_connection = 1;
+
+	interpreter_tag = strdup( last_context.id() );
+
+	EventSource* es = new EventSource( client_read_fd, client_write_fd,
+		INTERP, last_context );
+
+	event_sources.append( es );
+
+	if ( multithreaded && ReRegister() )
+		{
+		fatal->Report("multithreaded client with no glishd present");
+		}
+
+	SendEstablishedEvent( last_context );
 
 	CreateSignalHandler();
 	}
@@ -298,23 +396,32 @@ Client::~Client()
 	(void) install_signal_handler( SIGIO, former_handler );
 
 	if ( have_interpreter_connection )
-		PostEvent( "done", client_name );
-
-	if ( ! no_glish )
 		{
-		close( read_fd );
-		close( write_fd );
+		loop_over_list( event_sources, i )
+			{
+			if ( event_sources[i]->Type() == INTERP )
+				{
+				PostEvent( "done", event_sources[i]->Context().name(),
+					event_sources[i]->Context() );
+				RemoveInterpreter( event_sources[i] );
+
+				// restart at beginning since links may be
+				// gone too!
+				i = 0;
+				}
+			}
 		}
+
+	// clean up extraneous event_sources, if any...
+	// links were cleaned with RemoveInterpreter() calls
+	for ( int j = event_sources.length() ; j >= 1 ; j-- )
+		delete event_sources[j];
 	}
 
 GlishEvent* Client::NextEvent()
 	{
 	if ( no_glish )
 		return 0;
-
-	if ( input_links.length() == 0 )
-		// Only one input channel, okay to block reading it.
-		return GetEvent( read_fd );
 
 	fd_set input_fds;
 
@@ -339,15 +446,12 @@ GlishEvent* Client::NextEvent( fd_set* mask )
 	if ( no_glish )
 		return 0;
 
-	if ( FD_ISSET( read_fd, mask ) )
-		return GetEvent( read_fd );
-
-	loop_over_list( input_links, i )
+	loop_over_list( event_sources, i )
 		{
-		int fd = input_links[i];
+		int fd = event_sources[i]->Read_FD();
 
 		if ( FD_ISSET( fd, mask ) )
-			return GetEvent( fd );
+			return GetEvent( event_sources[i] );
 		}
 
 	PostEvent( "error", "bad call to Client::NextEvent" );
@@ -383,39 +487,42 @@ void Client::Error( const char* fmt, const char* arg )
 	Error( buf );
 	}
 
-void Client::PostEvent( const char* event_name, const Value* event_value )
+void Client::PostEvent( const GlishEvent* event, const EventContext &context )
+	{
+	SendEvent( event, -1, context );
+	}
+
+void Client::PostEvent( const char* event_name, const Value* event_value,
+    const EventContext &context )
 	{
 	GlishEvent e( event_name, event_value );
-	SendEvent( &e );
+	SendEvent( &e, -1, context );
 	}
 
-void Client::PostEvent( const GlishEvent* event )
-	{
-	SendEvent( event );
-	}
-
-void Client::PostEvent( const char* event_name, const char* event_value )
+void Client::PostEvent( const char* event_name, const char* event_value,
+    const EventContext &context )
 	{
 	Value val( event_value );
-	PostEvent( event_name, &val );
+	PostEvent( event_name, &val, context );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
-    const char* event_arg )
+    const char* event_arg, const EventContext &context )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, event_arg );
-	PostEvent( event_name, buf );
+	PostEvent( event_name, buf, context );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
-    const char* arg1, const char* arg2 )
+    const char* arg1, const char* arg2, const EventContext &context )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, arg1, arg2 );
-	PostEvent( event_name, buf );
+	PostEvent( event_name, buf, context );
 	}
 
+//*** TJS - Client::Reply() might need some work to avoid race.  Probably ok tho'
 void Client::Reply( const Value* event_value )
 	{
 	if ( ! ReplyPending() )
@@ -432,10 +539,11 @@ void Client::Reply( const Value* event_value )
 		}
 	}
 
-void Client::PostOpaqueSDS_Event( const char* event_name, int sds )
+void Client::PostOpaqueSDS_Event( const char* event_name, int sds,
+    const EventContext &context )
 	{
 	GlishEvent e( event_name, (const Value*) 0 );
-	SendEvent( &e, sds );
+	SendEvent( &e, sds, context );
 	}
 
 int Client::AddInputMask( fd_set* mask )
@@ -444,19 +552,18 @@ int Client::AddInputMask( fd_set* mask )
 		return 0;
 
 	int num_added = 0;
-	if ( ! FD_ISSET( read_fd, mask ) )
-		{
-		FD_SET( read_fd, mask );
-		++num_added;
-		}
 
-	// Now add in any fd's due to event links.
-	loop_over_list( input_links, i )
-		if ( ! FD_ISSET( input_links[i], mask ) )
+	// Now add in any fd's due to event sources
+	loop_over_list( event_sources, i )
+		{
+		int this_fd = event_sources[i]->Read_FD();
+
+		if ( (this_fd >=0 ) && ! FD_ISSET( this_fd, mask ) )
 			{
-			FD_SET( input_links[i], mask );
+			FD_SET( this_fd, mask );
 			++num_added;
 			}
+		}
 
 	return num_added;
 	}
@@ -466,14 +573,52 @@ int Client::HasClientInput( fd_set* mask )
 	if ( no_glish )
 		return 0;
 
-	if ( FD_ISSET( read_fd, mask ) )
-		return 1;
-
-	loop_over_list( input_links, i )
+	loop_over_list( event_sources, i )
 		{
-		if ( FD_ISSET( input_links[i], mask ) )
+		int this_fd = event_sources[i]->Read_FD();
+		if ( (this_fd >= 0 ) && FD_ISSET( this_fd, mask ) )
 			return 1;
 		}
+
+	return 0;
+	}
+
+
+int Client::ReRegister( char* registration_name )
+	{
+	if ( ! multithreaded || no_glish )
+		return 0;
+
+	loop_over_list( event_sources, i )
+		{
+		if ( event_sources[i]->Type() == GLISHD )
+			// already got a glishd event source
+			return 0;
+		}
+
+	Socket* mysock = new AcceptSocket( 0, DAEMON_PORT, 0 );
+	int glishd_running = ! mysock->Port(); // Port()==0 if glishd running
+	delete mysock;
+
+	if ( ! glishd_running )
+		return 1; // no glishd
+
+	// connect and register with glishd
+
+	int socket = get_tcp_socket();
+
+	if ( ! remote_connection( socket, local_host, DAEMON_PORT ) )
+		return 1; // connect failed
+
+	EventSource* es = new EventSource( socket, GLISHD,
+		EventContext("*glishd*", ( registration_name == 0 ) ?
+				prog_name : registration_name  ));
+	event_sources.append( es );
+
+	GlishEvent e( (const char *) "*register-persistent*",
+		new Value( ( registration_name == 0 ) ? prog_name :
+		registration_name ) );
+	send_event( socket, &e, 0 );
 
 	return 0;
 	}
@@ -502,64 +647,43 @@ void Client::CreateSignalHandler()
 	former_handler = install_signal_handler( SIGIO, Client_signal_handler );
 	}
 
-void Client::SendEstablishedEvent()
+void Client::SendEstablishedEvent( const EventContext &context )
 	{
 	Value* r = create_record();
 
-	r->SetField( "name", client_name );
+	r->SetField( "name", context.name() ? context.name() : initial_client_name );
 	r->SetField( "protocol", GLISH_CLIENT_PROTO_VERSION );
 
-	PostEvent( "established", r );
+	PostEvent( "established", r, context );
 
 	Unref( r );
 	}
 
-GlishEvent* Client::GetEvent( int fd )
+
+GlishEvent* Client::GetEvent( EventSource* source )
 	{
 	Unref( last_event );
 
-	if ( have_interpreter_connection )
-		{
-		last_event = recv_event( fd );
+	int fd = source->Read_FD();
+	EventContext context = source->Context();
+	event_src_type type = source->Type();
 
-		if ( ! last_event && fd != read_fd )
-			{
-			// A link has gone away; but don't return a nil
-			// event, that'll cause us to go away too.  Instead,
-			// remove this fd from the list of input links and
-			// cobble together a dummy event.
-
-			input_links.remove( fd );
-			FD_Change( fd, 0 );
-
-			last_event = new GlishEvent( (const char*) "*dummy*",
-							error_value() );
-			}
-
-		if ( last_event )
-			{
-			Value* v = last_event->value;
-
-			if ( v->FieldVal( "*reply*", pending_reply ) )
-				{ // Request/reply event; unwrap the request.
-				Value* request = v->Field( "*request*" );
-
-				if ( ! request )
-					fatal->Report(
-						"bad request/reply event" );
-
-				Ref( request );
-				Unref( v );
-				last_event->value = request;
-				}
-			}
-		}
-
-	else
+	if ( type == STDIO )
 		{
 		char buf[512];
 		if ( ! fgets( buf, sizeof( buf ), stdin ) )
-			return 0;
+			{
+			// stdio context exited
+			if ( ! multithreaded )
+				return 0;
+			else
+				{
+				RemoveInterpreter( source );
+				FD_Change( fd, 0 );
+				return new GlishEvent( (const char *) "*end-context*",
+					new Value("*stdio*") );
+				}
+			}
 
 		// Nuke final newline, if present.
 		char* delim = strchr( buf, '\n' );
@@ -581,6 +705,109 @@ GlishEvent* Client::GetEvent( int fd )
 			}
 
 		last_event = new GlishEvent( strdup( buf ), result );
+
+		last_context = context;
+		}
+
+	else if ( have_interpreter_connection )
+		{
+		last_context = context;
+
+		last_event = recv_event( fd );
+
+		if ( last_event && multithreaded && type == GLISHD )
+			{
+			// Caught glishd request in multithreaded context
+			//
+			// Should only be forwarded interpreter client request
+			//
+			// Create new event source, create back-connection to
+			//	interpreter, and create "*new-context*" event
+			//	to pass back to client.
+			//
+			// Change last_context to the context of the entering
+			//	interpreter.
+
+			char* info = last_event->value->StringVal();
+
+			if ( streq( last_event->name, "client" ) )
+				{
+				int port;
+				char c_name[256];
+				char host[256];
+				char interp_tag[256];
+				sscanf(info, "remote task %*d %*s -id %s -host %s -port %d -interpreter %s",
+						c_name, host, &port, interp_tag);
+
+				int my_socket = get_tcp_socket();
+				if ( ! remote_connection( my_socket, host, port ) )
+					{
+					fatal->Report( "could not establish Client"
+						"connection to interpreter" );
+					}
+
+				static Dict(int) mult_connect;
+				int count = mult_connect[interp_tag];
+				char context_str[256];
+				sprintf(context_str,"%s#%d",interp_tag,++count);
+				mult_connect.Insert(interp_tag,count);
+
+				last_context = EventContext(context_str, c_name);
+
+				EventSource* es = new EventSource( my_socket,
+					INTERP,	last_context );
+
+				event_sources.append( es );
+
+				SendEstablishedEvent( last_context );
+
+				last_event = new GlishEvent( (const char *) "*new-context*",
+					new Value( context_str ) );
+
+				return last_event;
+				}
+			else
+				{
+				// ignore
+				}
+			}
+
+		if ( ! last_event )
+			{
+			// event source has gone away.  Can't be *stdio*.
+			// Could be *glishd*, link or interpreter.
+			// Only worry about links here.
+
+			loop_over_list( event_sources, i )
+				{
+				if ( event_sources[i]->Read_FD() == fd &&
+				    type == I_LINK )
+					{
+					RemoveIncomingLink( i );
+					last_event = new GlishEvent( (const char *) "*dummy*",
+						error_value() );
+					FD_Change( fd, 0 );
+					// context_sources,sinks?
+					}
+				}
+			}
+		else
+			{
+			Value* v = last_event->value;
+
+			if ( v->FieldVal( "*reply*", pending_reply ) )
+				{ // Request/reply event; unwrap the request.
+				Value* request = v->Field( "*request*" );
+
+				if ( ! request )
+					fatal->Report(
+						"bad request/reply event" );
+
+				Ref( request );
+				Unref( v );
+				last_event->value = request;
+				}
+			}
 		}
 
 	if ( last_event )
@@ -612,6 +839,23 @@ GlishEvent* Client::GetEvent( int fd )
 			else if ( streq( name, "*unlink-sink*" ) )
 				UnlinkSink( v );
 			}
+		}
+
+	if ( ! last_event && multithreaded && type != I_LINK )
+		{
+		// Interpreter context has exited for multithreaded client
+		//
+		// Don't pass back null events; instead return an
+		// *end-context* event for the interpreter context that
+		// exited.  Do this event for *stdio* and *glishd* contexts -
+		// the client can then do whatever they like such as exiting
+		// or restarting the glishd with a call to ReRegister().
+
+		RemoveInterpreter( source );
+		FD_Change( fd, 0 );
+
+		last_event = new GlishEvent( (const char *) "*end-context*",
+			new Value( last_context.id() ) );		
 		}
 
 	return last_event;
@@ -657,7 +901,15 @@ void Client::BuildLink( Value* v )
 	if ( ! v->FieldVal( "sink_id", sink_id ) )
 		fatal->Report( "bad internal link event" );
 
-	int fd = remote_sinks[sink_id];
+	sink_id_list* remote_sinks = context_sinks[ last_context.id() ];
+
+	if ( ! remote_sinks )
+		{
+		remote_sinks = new sink_id_list;
+		context_sinks.Insert( strdup( last_context.id() ), remote_sinks );
+		}
+
+	int fd = (*remote_sinks)[sink_id];
 	delete sink_id;
 
 	// Minor-league bug here.  fd=0 is legal, though it means that
@@ -717,12 +969,20 @@ EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 	     ! v->FieldVal( "sink_id", task_id ) )
 		fatal->Report( "bad internal link event" );
 
-	event_link_list* l = output_links[event_name];
+	event_link_context_list* cl = context_links[ last_context.id() ];
+
+	if ( ! cl )
+		{
+		cl = new event_link_context_list;
+		context_links.Insert( strdup( last_context.id() ), cl );
+		}
+
+	event_link_list* l = (*cl)[event_name];
 
 	if ( ! l )
 		{ // Event link doesn't exist yet.
 		l = new event_link_list;
-		output_links.Insert( event_name, l );
+		(*cl).Insert( event_name, l );
 		}
 
 	else
@@ -773,7 +1033,16 @@ void Client::RendezvousAsOriginator( Value* v )
 	if ( ! v->FieldVal( "sink_id", sink_id ) )
 		fatal->Report( "bad internal link event" );
 
-	int sink_fd = remote_sinks[sink_id];
+	sink_id_list* remote_sinks = context_sinks[ last_context.id() ];
+
+	if ( ! remote_sinks )
+		{
+		remote_sinks = new sink_id_list;
+		context_sinks.Insert( strdup( last_context.id() ), remote_sinks );
+		}
+
+	int sink_fd = (*remote_sinks)[sink_id];
+
 	if ( sink_fd )
 		{
 		// Already have a socket connection to this remote sink.
@@ -813,7 +1082,7 @@ void Client::RendezvousAsOriginator( Value* v )
 		if ( output_fd < 0 )
 			fatal->Report( "socket accept for link failed" );
 
-		remote_sinks.Insert( sink_id, output_fd );
+		(*remote_sinks).Insert( sink_id, output_fd );
 		}
 
 	close( accept_fd );
@@ -828,7 +1097,15 @@ void Client::RendezvousAsResponder( Value* v )
 	if ( ! v->FieldVal( "source_id", source_id ) )
 		fatal->Report( "bad internal link event" );
 
-	if ( remote_sources[source_id] )
+	sink_id_list* remote_sources = context_sources[ last_context.id() ];
+
+	if ( ! remote_sources )
+		{
+		remote_sources = new sink_id_list;
+		context_sources.Insert( strdup(last_context.id() ), remote_sources );
+		}
+
+	if ( (*remote_sources)[source_id] )
 		{
 		// We're all set, we already select on this input source.
 		delete source_id;
@@ -883,13 +1160,13 @@ void Client::RendezvousAsResponder( Value* v )
 		delete host;
 		}
 
-	input_links.append( input_fd );
+	event_sources.append( new EventSource( input_fd, I_LINK, last_context ) );
 	FD_Change( input_fd, 1 );
 
-	remote_sources.Insert( source_id, input_fd );
+	(*remote_sources).Insert( strdup(source_id), input_fd );
 	}
 
-void Client::SendEvent( const GlishEvent* e, int sds )
+void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &context )
 	{
 	if ( no_glish )
 		return;
@@ -897,41 +1174,104 @@ void Client::SendEvent( const GlishEvent* e, int sds )
 	const char* name = e->name;
 	const Value* value = e->value;
 
-	if ( have_interpreter_connection )
+	if ( ! have_interpreter_connection || streq( context.id(), "*stdio*" ) )
 		{
-		event_link_list* l = output_links[name];
-
-		if ( l )
-			{
-			int did_send = 0;
-
-			loop_over_list( *l, i )
-				{
-				EventLink* el = (*l)[i];
-
-				if ( el->Active() )
-					{
-					send_event( el->FD(), el->Name(),
-							e, sds );
-					did_send = 1;
-					}
-				}
-
-			// If we didn't send any events then it means that
-			// all of the links are inactive.  Forward to
-			// the interpreter instead.
-			if ( ! did_send )
-				send_event( write_fd, e->name, e, sds );
-			}
+		if ( value )
+			message->Report( name, " ", value );
 		else
-			send_event( write_fd, e->name, e, sds );
+			message->Report( name, " <no value>" );
+		return;
 		}
 
-	else if ( value )
-		message->Report( name, " ", value );
+	int did_send = 0;
 
-	else
-		message->Report( name, " <no value>" );
+	event_link_context_list* cl = context_links[ context.id() ];
+	event_link_list* l;
+	EventLink* el;
+
+	if ( cl && ( l = (*cl)[name] ) )
+		{
+		loop_over_list( *l, i )
+			{
+			el = (*l)[i];
+
+			if ( el->Active() )
+				{
+				GlishEvent e( el->Name(), value );
+				send_event( el->FD(), &e, sds );
+				did_send = 1;
+				}
+			}
+
+		// if linked and sent, can return now
+		if ( did_send )
+			return;
+		}
+
+	// If we didn't send any events, all of the appropriate existing links,
+	// if any, are inactive.  Forward to the appropriate interpreter.
+
+	loop_over_list( event_sources, j )
+		{
+		if ( streq( event_sources[j]->Context().id(), context.id() ) &&
+		    event_sources[j]->Write_FD() >= 0 &&
+		    event_sources[j]->Type() == INTERP )
+			{
+			GlishEvent e( name, value );
+			send_event( event_sources[j]->Write_FD(), &e, sds );
+			return; // should only be one match
+			}
+		}
+	}
+
+void Client::RemoveIncomingLink( int dead_event_source )
+	{
+	int read_fd = event_sources[dead_event_source]->Read_FD();
+	const char* context = event_sources[dead_event_source]->Context().id();
+
+	sink_id_list* remote_sources = context_sources[ context ];
+
+	if ( read_fd && remote_sources ) // don't worry 'bout stdin
+		{
+		// go through and remote this read_fd from the FD list
+		IterCookie* c = remote_sources->InitForIteration();
+		const char* key;
+		int this_fd;
+
+		while ( this_fd = remote_sources->NextEntry( key, c ) )
+			{
+			if ( this_fd == read_fd )
+				{
+				remote_sources->Remove( key );
+				return;
+				}
+			}
+		}
+
+	delete event_sources.remove_nth( dead_event_source );
+	}
+
+void Client::RemoveInterpreter( EventSource* source )
+	{
+	const char* context = source->Context().id();
+
+	// delete all event sources for links associated with this interpreter
+	loop_over_list( event_sources, i )
+		{
+		if ( streq( event_sources[i]->Context().id(), context ) &&
+		    event_sources[i]->Type() == I_LINK )
+			{
+			delete event_sources.remove_nth( i-- );
+			}
+		}
+
+	// delete all links associated with this interpreter
+	// how wonderful to be so profound!
+	delete context_links[ strdup(context) ];
+	delete context_sinks[ strdup(context) ];
+	delete context_sources[ strdup(context) ];
+
+	delete event_sources.remove( source );
 	}
 
 static int read_buffer( int fd, char* buffer, int buf_size )
