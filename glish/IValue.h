@@ -8,7 +8,7 @@
 #include "Garbage.h"
 #endif
 
-extern char *glish_charptrdummy;
+extern const char *glish_charptrdummy;
 
 class Agent;
 class Func;

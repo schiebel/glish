@@ -79,7 +79,7 @@ static char	*illfmt( char*, char*, int, char* );
 
 #define gputchar(c)	outbuf.putch(c);
 
-int gsprintf( char **&out, char *format, const_args_list *args, char *&error, int arg_off )
+int gsprintf( char **&out, char *format, const_args_list *args, const char *&error, int arg_off )
 {
 	register char *cp, *convp;
 	register int ch, ndyn, flags;

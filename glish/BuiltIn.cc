@@ -1817,7 +1817,7 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 
 	char *pat = pat_val->StringVal();
 
-	char *err = 0;
+	const char *err = 0;
 	char **ary = 0;
 	len = gsprintf( ary, pat, args_val, err );
 

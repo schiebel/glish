@@ -5,6 +5,6 @@
 #include <stdio.h>
 #include "IValue.h"
 
-int gsprintf( char **&out, char *format, const_args_list *args, char *&error=glish_charptrdummy, int arg_off=1 );
+int gsprintf( char **&out, char *format, const_args_list *args, const char *&error=glish_charptrdummy, int arg_off=1 );
 
 #endif

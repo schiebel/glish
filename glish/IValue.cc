@@ -25,7 +25,7 @@ RCSID("@(#) $Id$")
 #define move_ptrs(to,from,count)					\
 {for( int XIX=count-1; XIX>=0; --XIX ) (to)[XIX]=(from)[XIX];}
 
-char *glish_charptrdummy = 0;
+const char *glish_charptrdummy = 0;
 
 void copy_agents( void *to_, void *from_, unsigned int len )
 	{
