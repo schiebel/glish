@@ -1386,10 +1386,9 @@ Value *read_value( int fd );
 static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	{
 	sos_code type;
-	static sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
 	unsigned int xlen;
 
-	charptr *fields = (charptr*) sos.get( xlen, type, head );
+	charptr *fields = (charptr*) sos.get( xlen, type );
 	if ( type != SOS_STRING )
 		fatal->Report("field names expected first when reading record");
 
@@ -1422,10 +1421,11 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	{
 	sos_code type;
 	unsigned int len;
-	sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
+	static sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
 	Value *val = 0;
 
 	void *ary = sos.get( len, type, head );
+	unsigned int name_len = head.ugeti();
 
 	flags = head.ugetc(1);
 
@@ -1458,8 +1458,7 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 			fatal->Report( "bad type in 'read_value( sos_in &, char *&, unsigned char &)'" );
 		}
 
-	unsigned int name_len = 0;
-	if ( name_len = head.ugeti() )
+	if ( name_len )
 		{
 		name = (char*) alloc_memory( name_len + 1 );
 		sos.read(name,name_len);
