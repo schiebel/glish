@@ -1,0 +1,19 @@
+/* custom config.h template - do not recreate using autoheader */
+
+/* Define if you have <stdlib.h>.  */
+#undef HAVE_STDLIB_H
+
+/* Define if you have <dirent.h>.  */
+#undef HAVE_DIRENT_H
+
+/* Define if you have <termio.h>.  */
+#undef HAVE_TERMIO_H
+
+/* Define if the tcgetattr() function is available. */
+#undef HAVE_TCGETATTR
+
+/* Define if compiler does not support const keyword */
+#undef const
+
+/* Define if compiler size_t is not defined */
+#undef size_t
