@@ -235,15 +235,22 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 {									\
 	val = (*ap)[index];						\
 	if ( val->Type() != TYPE_STRING )				\
-		return string_dup("bad type, non-string");			\
-	lhs = (char*) string_dup(val->StringPtr(0)[off]);			\
+		{							\
+		if ( val->IsVecRef() == TYPE_SUBVEC_REF &&		\
+		     val->VecRefDeref()->Type() == TYPE_STRING )	\
+			lhs = (char*) string_dup(val->StringRef()[off]); \
+		else							\
+			return string_dup("bad type, non-string");	\
+		}							\
+	else								\
+		lhs = (char*) string_dup(val->StringPtr(0)[off]);	\
 	++index;							\
 }
 #define INT(lhs)							\
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return string_dup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");		\
 	lhs = val->IntVal(off+1);					\
 	++index;							\
 }
@@ -251,7 +258,7 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return string_dup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");		\
 	lhs = val->ShortVal(off+1);					\
 	++index;							\
 }
@@ -269,14 +276,14 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 		free_memory( tstr );					\
 		}							\
 	else								\
-		return string_dup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");		\
 	++index;							\
 }
 #define FLOAT(lhs)							\
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return string_dup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");		\
 	lhs = val->DoubleVal(off+1);					\
 	++index;							\
 }
@@ -503,7 +510,7 @@ static char *ctor( int x, int caps) {
 	register char *outp = buf;
 	register unsigned n = x;
 	register int u, v;
-	register char *p, *q;
+	register const char *p, *q;
 
 	if ((int)n < 0) {
 		*outp++ = '-';
