@@ -10,8 +10,9 @@ class VecRef : public GlishObject {
 
 	Value* Val()		{ return val; }
 	int Length() const 	{ return len; }
-	glish_type Type() const
-		{ return is_subvec_ref ? subtype : val->Type(); }
+	glish_type Type() const		// SGI's DCC thinks the type of
+					// this ternary expression is int
+		{ return glish_type(is_subvec_ref ? subtype : val->Type()); }
 
 	// In: Zero Based
 	// Out: Zero Based
