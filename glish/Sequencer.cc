@@ -306,6 +306,10 @@ void Sequencer::InitScriptClient()
 		sys_val->SetField( "is_script_client", val );
 		Unref(val);
 
+		// Don't print messages and dump core when we receive
+		// a SIGTERM, because it means our interpreter has exited.
+		(void) install_signal_handler( SIGTERM, glish_cleanup );
+
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
 		++num_active_processes;

@@ -60,10 +60,6 @@ void LocalExec::MakeExecutable( const char** argv )
 	if ( access( executable, X_OK ) < 0 )
 		return;
 
-	/*
-	** Ignore ^C coming from parent
-	*/
-	signal_handler old_sigint = install_signal_handler( SIGINT, (signal_handler) SIG_IGN );
 
 	pid = fork_process();
 
@@ -81,10 +77,6 @@ void LocalExec::MakeExecutable( const char** argv )
 		_exit( -1 );
 		}
 
-	/*
-	** Restore ^C
-	*/
-	install_signal_handler( SIGINT, (signal_handler) old_sigint );
 
 	if ( pid > 0 )
 		exec_error = 0;
