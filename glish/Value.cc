@@ -713,22 +713,30 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt )
 	{
-	unsigned int limit = 0, tmp = 0;
+	unsigned int limit = 0;
+	int tmp = 0;
 	const Value *val;
+	const Value *precv;
+	const Value *printv;
 	static char prec[64];
-	if ( attr && (val = (*attr)["print_decimal_prec"]) && val->IsNumeric() &&
-			(tmp = val->IntVal()) >= 0 )
+	if ( attr && (val = (*attr)["print"]) && val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "precision" ) &&
+			(precv=val->ExistingRecordElement( "precision" )) &&
+			precv != false_value && precv->IsNumeric() &&
+			(tmp = precv->IntVal()) > 0 )
 		limit = tmp;
-	else
-		if ( (val = Sequencer::LookupVal( "system" )) && 
+	else if ( (val = Sequencer::LookupVal( "system" )) && 
 			val->Type() == TYPE_RECORD &&
-			val->HasRecordElement( "print_decimal_prec" ) )
-			{
-			const Value *limitVal = val->ExistingRecordElement( "print_decimal_prec" );
-			if ( limitVal != false_value && limitVal->IsNumeric() &&
-					(tmp = limitVal->IntVal()) >= 0 )
-				limit = tmp;
-			}
+			val->HasRecordElement( "print" ) &&
+			(printv = val->ExistingRecordElement( "print" )) &&
+			printv != false_value &&
+			printv->Type() == TYPE_RECORD &&
+			printv->HasRecordElement( "precision" ) &&
+			(precv = printv->ExistingRecordElement("precision")) &&
+			precv != false_value && precv->IsNumeric() &&
+			(tmp = precv->IntVal()) > 0)
+		limit = tmp;
+
 	if ( limit )
 		sprintf(prec,"%%.%df",limit);
 
@@ -1121,22 +1129,29 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 
 unsigned int Value::PrintLimit( ) const
 	{
-	unsigned int limit = 0, tmp = 0;
+	unsigned int limit = 0;
+	int tmp = 0;
 	const attributeptr attr = AttributePtr();
 	const Value *val;
-	if ( attr && (val = (*attr)["print_limit"]) && val->IsNumeric() &&
-			(tmp = val->IntVal()) >= 0 )
+	const Value *printv;
+	const Value *limitv;
+	if ( attr && (val = (*attr)["print"]) && val->Type() == TYPE_RECORD &&
+	     		val->HasRecordElement( "limit" ) && 
+			(limitv  = val->ExistingRecordElement( "limit" )) &&
+			limitv != false_value && limitv->IsNumeric() &&
+			(tmp = limitv->IntVal()) > 0 )
 		limit = tmp;
-	else
-		if ( (val = Sequencer::LookupVal( "system" )) && 
+	else if ( (val = Sequencer::LookupVal( "system" )) &&
 			val->Type() == TYPE_RECORD &&
-			val->HasRecordElement( "print_limit" ) )
-			{
-			const Value *limitVal = val->ExistingRecordElement( "print_limit" );
-			if ( limitVal != false_value && limitVal->IsNumeric() &&
-					(tmp = limitVal->IntVal()) >= 0 )
-				limit = tmp;
-			}
+			val->HasRecordElement( "print" ) && 
+			(printv = val->ExistingRecordElement( "print" )) &&
+			printv != false_value &&
+			printv->Type() == TYPE_RECORD &&
+			printv->HasRecordElement( "limit" ) &&
+			(limitv = printv->ExistingRecordElement("limit")) &&
+			limitv != false_value && limitv->IsNumeric() &&
+			(tmp = limitv->IntVal()) > 0 )
+		limit = tmp;
 
 	return limit;
 	}

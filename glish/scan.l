@@ -316,18 +316,16 @@ include		BEGIN(INCL); break;
 
 <INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote
-		char* filename = &yytext[1];	// skip leading quote
-		FILE* file = fopen( filename, "r" );
+		char* filename = which_include( &yytext[1] );	// skip leading quote
 
-		if ( ! file )
+		if ( ! filename )
 			error->Report( "can't open include file \"",
-					filename, "\"" );
-
+					&yytext[1], "\"" );
 		else
 			{
 			// Save current file information.
 			file_list.append( new InputFileInfo() );
-			input_file_name = strdup( filename );
+			input_file_name = filename;
 			YY_BUFFER_STATE incl_buf =
 				yy_create_buffer( file, YY_BUF_SIZE );
 			yy_switch_to_buffer( incl_buf );

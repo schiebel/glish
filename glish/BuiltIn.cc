@@ -9,6 +9,7 @@
 #include <values.h>
 
 #include "Sds/sdsgen.h"
+#include "Npd/npd.h"
 #include "glish_event.h"
 #include "BuiltIn.h"
 #include "Reporter.h"
@@ -1498,7 +1499,7 @@ dcomplex atan( const dcomplex )
 	return dcomplex( 0, 0 );
 	}
 
-void create_built_ins( Sequencer* s )
+void create_built_ins( Sequencer* s, const char *program_name )
 	{
 	add_one_arg_built_in( s, as_boolean_built_in, "as_boolean" );
 	add_one_arg_built_in( s, as_byte_built_in, "as_byte" );
@@ -1554,4 +1555,8 @@ void create_built_ins( Sequencer* s )
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 
 	sds_init();
+
+#ifdef AUTHENTICATE
+	init_log( program_name );
+#endif
 	}
