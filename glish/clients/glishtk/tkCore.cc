@@ -782,16 +782,14 @@ char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 
 char *glishtk_scrollbar_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
 	{
-	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
+	if ( ! val->IsNumeric() || val->Length() < 2 )
 		{
 		global_store->Error("scrollbar update function");
 		return 0;
 		}
 
-	double *firstlast = val->DoublePtr(0);
-
 	char args[75];
-	sprintf( args," set %f %f", firstlast[0], firstlast[1] );
+	sprintf( args," set %f %f", val->DoubleVal(1), val->DoubleVal(2) );
 	tcl_VarEval( tcl, Tk_PathName(self), args, (char *)NULL );
 	return 0;
 	}
