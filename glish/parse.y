@@ -569,7 +569,7 @@ block_head:	'{'
 			}
 	;
 
-function:	function_head opt_id '(' formal_param_list ')' cont func_attributes func_body
+function:	function_head opt_id '(' formal_param_list ')' cont func_attributes cont func_body
 		no_cont
 			{
 			IValue *attributes = $7 ? $7->CopyEval() : 0;
@@ -601,7 +601,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes fu
 					gc_list->append( (*gc_registry)[off] );
 				}
 #endif
-			UserFunc* ufunc = new UserFunc( $4, $8, frame_size, current_sequencer,
+			UserFunc* ufunc = new UserFunc( $4, $9, frame_size, current_sequencer,
 							$1, err, attributes, gc_list );
 
 			if ( ! err )
