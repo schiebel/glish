@@ -690,9 +690,7 @@ formal_param_list:
 	;
 
 formal_params:	formal_params ',' formal_param
-			{
-			$1->append( $3 );
-			}
+			{ $1->append( $3 ); }
 
 	|	formal_param
 			{
