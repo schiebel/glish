@@ -654,5 +654,10 @@ void glish_sigfpe( )
 static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
 #endif
 
+#if defined(TKPGPLOT)
+extern "C" int grexec_();
+void *grexec__ = grexec_;
+#endif
+
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
 static char copyright2[]  = "Copyright (c) 1997,1998 Associated Universities Inc.";

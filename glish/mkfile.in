@@ -82,6 +82,7 @@ INTERP_OBJS = \
 	TkAgent.o \
 	TkCanvas.o \
 	TkSelect.o \
+	TkPgplot.o \
 	glish_init.o \
 	parse.o \
 	sprintf.o \
@@ -128,6 +129,7 @@ INTERP_OBJS_PROXY = \
 	$(D)TkAgent.o \
 	$(D)TkCanvas.o \
 	$(D)TkSelect.o \
+	$(D)TkPgplot.o \
 	$(D)glish_init.o \
 	$(D)parse.o \
 	$(D)sprintf.o \
@@ -376,6 +378,9 @@ $(D)TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanv
 
 $(D)TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/TkSelect.cc $(T)
+
+$(D)TkPgplot.o: $(SRC)/TkPgplot.cc $(SRC)/TkPgplot.h $(SRC)/TkAgent.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/TkPgplot.cc $(T)
 
 $(D)ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValKern.cc $(T)

@@ -363,38 +363,41 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 				int howmany, Value *args )
 	{
-	char *event_name = "tag function";
 	if ( args->Length() <= 0 )
-		return 0;
-	CANVAS_FUNC_REALLOC(5)
-	EXPRINIT( event_name)
-	EXPRSTRVAL(str_v, event_name)
-	int argc = 0;
-	Argv[argc++] = 0;
-	Argv[argc++] = (char*) cmd;
-	Argv[argc++] = (char*)(str_v->StringPtr(0)[0]);
-	if ( subcmd )
-		Argv[argc++] = (char*) subcmd;
-	if ( str_v->Length() > 1 && str_v->Length() >= howmany )
-		for ( int i=1; i < str_v->Length(); i++ )
-			{
-			Argv[argc] = (char*)(str_v->StringPtr(0)[i]);
-			rivet_cmd(self, argc+1, Argv);
-			}
-	else if ( args->Length() > 1 && args->Length() >= howmany )
+		global_store->Error("zero length value");
+	if ( args->Type() == TYPE_RECORD && args->Length() >= howmany )
 		{
-		for (int i=0; i < args->Length(); i++)
+		recordptr rptr = args->RecordPtr(0);
+		const Value *strv = rptr->NthEntry( 0 );
+		if ( strv->Type() != TYPE_STRING )
 			{
-			EXPRSTR(str, event_name)
-			Argv[argc] = (char*)str;
-			rivet_cmd(self, argc+1, Argv);
-			EXPR_DONE(str)
+			global_store->Error("wrong type, string expected for argument 1");
+			return 0;
+			}
+		const char *str = strv->StringPtr(0)[0];
+		for ( int i=1; i < args->Length(); ++i )
+			{
+			const Value *val = rptr->NthEntry( i );
+			if ( val->Type() == TYPE_STRING )
+				if ( subcmd )
+					rivet_va_cmd( self, cmd, str, subcmd, val->StringPtr(0)[0], 0 );
+				else
+					rivet_va_cmd( self, cmd, str, val->StringPtr(0)[0], 0 );
 			}
 		}
-	else if ( howmany == 1 )
-		rivet_cmd( self, argc, Argv );
+	else if ( args->Type() == TYPE_STRING && args->Length() >= howmany )
+		{
+		charptr *ary = args->StringPtr(0);
+		if ( args->Length() == 1 )
+			rivet_va_cmd( self, cmd, ary[0], 0 );
+		else
+			for ( int i=1; i < args->Length(); ++i )
+				if ( subcmd )
+					rivet_va_cmd( self, cmd, ary[0], subcmd, ary[i], 0 );
+				else
+					rivet_va_cmd( self, cmd, ary[0], ary[i], 0 );
+		}
 
-	EXPR_DONE(str_v)
 	return 0;
 	}
 
@@ -557,19 +560,29 @@ else									\
 char *glishtk_canvas_delete(Rivetobj self, const char *, Value *args )
 	{
 	char *event_name = "canvas delete function";
-	EXPRINIT( event_name)
-	if ( args->Length() > 0 )
-		for (int i = 0; i < (*args).Length(); i++)
+
+	if ( args->Type() == TYPE_RECORD )
+		{
+		recordptr rptr = args->RecordPtr(0);
+		for ( int i=0; i < (*rptr).Length(); ++i )
 			{
-			EXPRSTR( tag, event_name )
-			rivet_va_cmd( self, "delete", tag, 0 );
-			EXPR_DONE( tag )
+			const Value *val = rptr->NthEntry( i );
+			if ( val->Type() == TYPE_STRING )
+				rivet_va_cmd( self, "delete", val->StringPtr(0)[0], 0 );
 			}
+		}
+	else if ( args->Type() == TYPE_STRING )
+		{
+		charptr *ary = args->StringPtr(0);
+		for ( int i=0; i < (*args).Length(); ++i )
+			rivet_va_cmd( self, "delete", ary[i], 0 );
+		}
 	else
 		{
 		rivet_va_cmd( self, "addtag", "*NUKEM-ALL", "all", 0 );
 		return rivet_va_cmd( self, "delete", "*NUKEM-ALL", 0 );
 		}
+
 	return 0;
 	}
 
@@ -739,9 +752,13 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	EXPR_DONE( y )
 	EXPR_DONE( x )
 
-	if ( frame ) canvas->Add(frame);
+	if ( frame )
+		{
+		canvas->Add(frame);
+		frame->SendCtor("newtk");
+		}
 
-	return (char*) frame;
+	return 0;
 	}
 
 int canvas_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)

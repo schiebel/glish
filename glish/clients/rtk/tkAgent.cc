@@ -8,7 +8,7 @@ RCSID("@(#) $Id$")
 #include "tkAgent.h"
 #include "tkCanvas.h"
 
-#if defined(TKPGPLOT)
+#if defined(XTKPGPLOT)
 #include "TkPgplot.h"
 #endif
 
@@ -1293,7 +1293,7 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 		val = (*iproc)(s, cmdstr, i, arg);
 	else if ( iproc1 )
 		val = (*iproc1)(s, cmdstr, param, i, arg);
-#if defined(TKPGPLOT)
+#if defined(XTKPGPLOT)
 	else if ( pgproc && pgplot )
 		val = (pgplot->*pgproc)( arg);
 #endif
