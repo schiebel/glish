@@ -539,7 +539,7 @@ void glish_fpe_enter( type *lhs, type *rhs, void (*func)(type*,type*) )	\
 	sigfpe_array[1].item = rhs;					\
 	sigfpe_func.item = func;					\
 	sigfpe_type = T;						\
-	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);			\
+	sigfpe(FPE_INTDIV, (void(*)())glish_sigfpe_intdiv);		\
 	}
 #else
 #define DEFINE_FPE_ENTER( type, item, T )				\
