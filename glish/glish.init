@@ -147,8 +147,8 @@ func listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunke
 func canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
 	create_graphic( 'canvas', parent, width, height, region, relief, borderwidth, background, fill )
 
-func pgplot ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2, nxsub=1, nysub=1, relief='sunken', borderwidth=2, foreground='white', background='black', fill='both', mincolors=2, maxcolors=100, cmapfail=F )
-	create_graphic( 'pgplot', parent, width, height, region, axis, nxsub, nysub, relief, borderwidth, foreground, background, fill, mincolors, maxcolors, cmapfail )
+func pgplot ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2, nxsub=1, nysub=1, relief='sunken', borderwidth=2, padx=20, pady=20, foreground='white', background='black', fill='both', mincolors=2, maxcolors=100, cmapshare=F, cmapfail=F )
+	create_graphic( 'pgplot', parent, width, height, region, axis, nxsub, nysub, relief, borderwidth, padx, pady, foreground, background, fill, mincolors, maxcolors, cmapshare, cmapfail )
 
 func full_type_name( const x )
 	{
