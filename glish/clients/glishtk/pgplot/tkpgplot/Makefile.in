@@ -28,7 +28,7 @@ XINC = @XINCLUDES@
 
 CINCLUDE = -I$(SRC) -I$(SRC)/tkpgplot @TK_INCL@ $(XINC)
 
-LIBS = $(XLIB) @LIBS@ @MATH_LIBS@ $(DL_LIBS)
+LIBS = $(XLIB) @LIBS@ $(DL_LIBS)
 
 OBJS=grexec.o pgxwin.o tkpgplot.o
 

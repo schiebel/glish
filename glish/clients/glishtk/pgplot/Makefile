@@ -27,7 +27,7 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	if test -d tkpgplot; then				\
-		(cd tkpgplot; $(MAKE) $$FLGS all); fi;		\
+		(cd tkpgplot; $(MAKE) $$FLGS install); fi;	\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
 
 build: all
