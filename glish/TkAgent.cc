@@ -1928,8 +1928,8 @@ void TkFrame::RemoveElement( TkAgent *obj )
 
 void TkFrame::KillFrame( )
 	{
-	PostTkEvent( "killed", new IValue( glish_true ) );
 	UnMap();
+	PostTkEvent( "killed", new IValue( glish_true ) );
 	}
 
 void TkFrame::ResizeEvent( )
