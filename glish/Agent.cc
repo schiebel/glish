@@ -177,6 +177,13 @@ void Agent::UnRegisterInterest( Stmt* s, const char* field )
 	if ( element >= 0 )
 		Unref( list->remove_nth(element) );
 
+	if ( list->length() == 0 )
+		{
+		char *store = interested_parties.Remove(field);
+		if ( string_copies ) string_copies->remove(store);
+		free_memory(store);
+		delete list;
+		}
 	}
 
 int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )

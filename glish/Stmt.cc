@@ -617,8 +617,19 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 void AwaitStmt::Notify( Agent* /* agent */ )
 	{
 	Notification *note = sequencer->LastNotification();
-	Ref(note);
-	cached_notes.append(note);
+	// can get notifications for whenever stmts
+	if ( note->type() == Notification::AWAIT )
+		{
+		// with re-entrant whenever stmts, can get
+		// duplicate notifications
+		int curlen = cached_notes.length();
+		if ( curlen <= 0 || ! cached_notes[curlen-1] ||
+		     cached_notes[curlen-1]->value != note->value )
+			{
+			Ref(note);
+			cached_notes.append(note);
+			}
+		}
 	}
 
 void AwaitStmt::ClearCachedNote()
