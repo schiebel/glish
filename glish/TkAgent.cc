@@ -2282,8 +2282,10 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	if ( ! strcmp( agent->AgentID(), "<graphic:button>") &&
 	     ((TkButton*)agent)->IsMenu() )
 		ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
-	else
+	else if ( ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}
