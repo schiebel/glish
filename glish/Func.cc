@@ -576,21 +576,32 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	//
 	// need to set "file_name" for errors during execution
 	//
+	static int top_func_initialized = 0;
+	int top_func = 0;
+	if ( ! top_func_initialized )
+		{
+		top_func = 1;
+		top_func_initialized = 1;
+		}
 	unsigned short old_file_name = file_name;
 	file_name = file;
 	IValue* result = body->Exec( value_needed, flow );
 
-	if ( cycle_roots )
+	if ( top_func )
 		{
-		if ( result )
+		top_func_initialized = 0;
+		if ( cycle_roots )
 			{
-			cycle_roots->set_finalize_handler( list_element_unref );
-			result->PropagateCycles( cycle_roots );
-			result->SetUnref( cycle_roots );
-			}
+			if ( result )
+				{
+				cycle_roots->set_finalize_handler( list_element_unref );
+				result->PropagateCycles( cycle_roots );
+				result->SetUnref( cycle_roots );
+				}
 
-		Unref( cycle_roots );
-		cycle_roots = 0;
+			Unref( cycle_roots );
+			cycle_roots = 0;
+			}
 		}
 
 	file_name = old_file_name;

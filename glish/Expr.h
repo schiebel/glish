@@ -65,7 +65,7 @@ typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 // Expr::ReadOnlyDone); or evaluate for side effects only, and return
 // nothing.
 typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS,
-	       EVAL_READ_ONLY_PRESERVE, EVAL_COPY_PRESERVE, EVAL_RETURN } eval_type;
+	       EVAL_READ_ONLY_PRESERVE, EVAL_COPY_PRESERVE } eval_type;
 
 
 typedef void (*change_var_notice)(IValue*,IValue*);
@@ -81,13 +81,6 @@ class Expr : public ParseNode {
 	// would otherwise be harmless) should be done.
 	IValue* CopyEval( int preserve = 0 )
 		{ return Eval( preserve ? EVAL_COPY_PRESERVE : EVAL_COPY ); }
-
-	// Used with return statements to get the "raw" value because much
-	// state can be tied to the value as a result of the function call
-	// so the value must be returned with as little manipulation as
-	// possible, e.g. we need the actual value from the call frame.
-	IValue *ReturnEval( )
-		{ return Eval( EVAL_RETURN ); }
 
 	// Returns a read-only copy (i.e., the original) of the present
 	// value of the event expression.  The caller is responsible for

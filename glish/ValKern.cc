@@ -16,8 +16,6 @@ typedef ValueKernel::record_t our_recordptr;
 glish_declare(PList,our_recordptr);
 typedef PList(our_recordptr) recordptr_list;
 
-static void find_record_mirror_values( recordptr, value_list *& );
-
 glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
 	{ { 0, 0, 0, 0, 0, 0 },							/* TYPE_ERROR */
 	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_REF */
@@ -98,14 +96,6 @@ int ValueKernel::record_t::bytes( int addPerValue ) const
 	return size;
 	}
 
-void ValueKernel::record_t::ForceMirrorCheck( unsigned short num, ref_list *others )
-	{
-	flags |= mMIRRORCHECK();
-	mirror_num = num;
-	unref = others;
-	fprintf( stderr, "force=> %u/%u\n", ref_count, mirror_num );
-	}
-
 ValueKernel::array_t::~array_t()
 	{
 	if ( values ) 
@@ -123,34 +113,6 @@ void ValueKernel::array_t::clear()
 	length = 0;
 	ref_count = 1;
 	}
-
-void ValueKernel::ForceMirrorCheck( unsigned short num, ref_list *others )
-	{
-	if ( mRECORD(mode) )
-		record->ForceMirrorCheck( num, others );
-	}
-
-void ValueKernel::DoMirrorCheck( )
-	{
-	if ( mRECORD(mode) && record && record->MirrorCheck() && record->ref_count < record->mirror_num )
-		{
-		record->ClearMirrorCheck( );
-		value_list *lst = 0;
-		find_record_mirror_values( record->record, lst );
-		fprintf( stderr, "=====> %hu/%hu/%d\n", record->ref_count, record->mirror_num, lst ? lst->length() : 0 );
-		if ( record->unref ) Unref( record->unref );
-		if ( lst )
-			{
-			loop_over_list ( *lst, i )
-				{
-				fprintf( stderr, "- - -> 0x%x[0x%x] 0x%x\n", this, record, (*lst)[i] );
-				(*lst)[i]->CycleUnref( );
-				}
-			delete lst;
-			}
-		}
-	}
-
 
 void ValueKernel::SetValue( Value *v )
 	{
@@ -294,14 +256,9 @@ void ValueKernel::unrefArray(int del)
 void ValueKernel::unrefRecord(int del)
 	{
 	DIAG7((void*) this, "\t\trecord unref c:",record->ref_count,"r:",(void*)record,"d:",del)
-	static recordptr_list recordlist;
 
 	if ( record )
 		{
-		if ( recordlist.is_member(record) )
-			fprintf( stderr, "!!!!!!>>>> been here before (0x%x[0x%x])\n", record, this );
-		recordlist.append(record);
-
 		if ( --record->ref_count == 0 )
 			if ( del )
 				{
@@ -311,35 +268,10 @@ void ValueKernel::unrefRecord(int del)
 			else
 				record->clear();
 		else
-			{
-			if ( record->MirrorCheck( ) && record->ref_count <= record->mirror_num )
-				{
-				record->ClearMirrorCheck( );
-				value_list *lst = 0;
-				find_record_mirror_values( record->record, lst );
-				fprintf( stderr, "=====> %hu/%hu/%d\n", record->ref_count, record->mirror_num, lst ? lst->length() : 0 );
-				if ( record->unref ) Unref( record->unref );
-				if ( lst )
-					{
-					loop_over_list ( *lst, i )
-						{
-						fprintf( stderr, "- - -> 0x%x[0x%x] 0x%x\n", this, record, (*lst)[i] );
-						(*lst)[i]->CycleUnref( );
-						}
-					delete lst;
-					}
-
-				}
-			else
-				fprintf( stderr, "=====> %hu/%hu\n", record->ref_count, record->mirror_num );
-
-
 			if ( del )
 				record = 0;
 			else
 				record = new record_t();
-			}
-		recordlist.remove_nth(recordlist.length()-1);
 		}
 	}
 
@@ -513,10 +445,7 @@ void ValueKernel::refOthers()
 void ValueKernel::unrefOthers()
 	{
 	if ( mVALUE(mode) )
-		{
-		value->DoMirrorCheck( );
 		Unref( value );
-		}
 	else if ( mREF(mode) )
 		Unref( vecref );
 	}
@@ -663,28 +592,6 @@ void delete_record( recordptr r )
 // 	release_garbage( );
 	}
 
-void find_record_mirror_values( recordptr r, value_list *&values )
-	{
-	if ( r )
-		{
-		IterCookie* c = r->InitForIteration();
-
-		Value* member;
-		const char* key;
-
-		while ( (member = r->NextEntry( key, c )) )
-			{
-			if ( member->Deref()->MirrorSet( ) )
-				{
-				if ( ! values ) values = new value_list;
-				values->append( member );
-				}
-			else if ( member->Type() == TYPE_RECORD )
-				find_record_mirror_values( member->RecordPtr(0), values );
-			}
-		}
-	}
-
 recordptr copy_record_dict( recordptr rptr )
 	{
 	int ordered = rptr->IsOrdered();
@@ -700,11 +607,6 @@ recordptr copy_record_dict( recordptr rptr )
 			{
 			member = rptr->NthEntry(i,key);
 			new_member = copy_value( member );
-			if ( member->MirrorSet() )
-				{
-				new_member->SetUnref( (GcRef*) member );
-				((GcRef*)member)->ClearMirror( );
-				}
 			if ( member->IsConst() )
 				new_member->MakeConst();
 			if ( member->IsModConst() )

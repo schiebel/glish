@@ -109,7 +109,7 @@ Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 
 IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 	{
-	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE || etype == EVAL_RETURN )
+	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		{
 		IValue *result = 0;
 		if ( value->IsRef() && etype == EVAL_COPY_PRESERVE )
@@ -233,12 +233,10 @@ IValue* VarExpr::Eval( eval_type etype )
 						frame_offset, value );
 		}
 
-	if ( etype != EVAL_READ_ONLY_PRESERVE &&
-	     etype != EVAL_COPY_PRESERVE  &&
-	     etype != EVAL_RETURN )
+	if ( etype != EVAL_READ_ONLY_PRESERVE && etype != EVAL_COPY_PRESERVE )
 		value = (IValue*) value->Deref();
 
-	return etype == EVAL_RETURN ? value : CopyOrRefValue( value, etype );
+	return CopyOrRefValue( value, etype );
 	}
 
 IValue* VarExpr::RefEval( value_type val_type )

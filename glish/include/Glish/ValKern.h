@@ -98,21 +98,13 @@ class ValueKernel GC_FINAL_CLASS {
 
 	class record_t GC_FINAL_CLASS {
 	    public:
-		inline vkmode_t mMIRRORCHECK( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<0; }
-		vkmode_t flags;
-		unsigned short mirror_num;
-		GcRef *unref;
 		recordptr record;
 		unsigned long ref_count;
 		void clear();
-		record_t() : flags(0), mirror_num(0), unref(0),
-				record(0), ref_count(1) { DIAG2((void*)this,"\t\trecord_t alloc") }
+		record_t() : record(0), ref_count(1) { DIAG2((void*)this,"\t\trecord_t alloc") }
 		~record_t() { clear(); }
 		int bytes( int AddPerValue = 0 ) const;
 		int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab=0, int skip_first=0 ) const;
-		void ForceMirrorCheck( unsigned short num, ref_list *others );
-		int MirrorCheck( ) const { return mMIRRORCHECK(flags); }
-		int ClearMirrorCheck( ) { flags &= ~mMIRRORCHECK(); }
 	};
 
     protected:
@@ -160,9 +152,6 @@ class ValueKernel GC_FINAL_CLASS {
 		int 		len;
 		char 		have_attr;
 	};
-
-	void ForceMirrorCheck( unsigned short num, ref_list * );
-	void DoMirrorCheck( );
 
 	void MakeConst() { mode |= mCONST(); }
 	void MakeModConst() { mode |= mMOD_CONST(); }

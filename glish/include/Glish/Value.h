@@ -582,9 +582,6 @@ public:
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
 	int ToMemBlock(char *memory, int offset = 0) const;
 
-	virtual void CycleUnref( );
-	void DoMirrorCheck( ) { kernel.DoMirrorCheck(); }
-
 protected:
 
 	Value( glish_type );
