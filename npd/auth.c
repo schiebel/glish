@@ -29,6 +29,12 @@ int create_userkeyfile( const char *dir )
 	FILE *key_f;
 	int owner;
 
+	if ( ! user )
+		{
+		strcpy( errmsg, "couldn't get user name" );
+		return 0;
+		}
+
 	n = strlen( user_fmt ) +
 		strlen( dir ) + strlen( user ) + SLOP;
 
