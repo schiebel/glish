@@ -4,12 +4,14 @@
 ## Makefile for gtk
 ##
 
-SUFFIX = @GLISH_SLIB_SUFFIX@
 MK_LIB = @MAKE_SLIB@
+LD_LIBS = @SLIB_LD_LIBS@
+CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
+LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+
 TK_LIB = @TK_LIB@
 CLIENT_LIBS = @TKCLIENT_LIBS@
-
-CXXFLAGS = @SLIB_CFLAGS@ @TK_FLAGS@ @CXXFLAGS@
 
 CPLUS = @CXX@
 INSTALL = @INSTALL@
@@ -19,7 +21,9 @@ INSTALL_DATA = @INSTALL_DATA@
 SHELL = /bin/sh
 SH = $(SHELL)
 
-SRC = ..
+SRC = ../..
+H = $(SRC)/include/Glish
+GLISH_SRC = $(SRC)/../..
 
 top = @top_srcdir@@top_off@
 INCDIR_P = $(top)/include
@@ -36,49 +40,40 @@ SCRIPTDIR = @SCRIPTDIR@
 
 MKHIER = $(top)/config/mkhier
 
-LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
-
+RCDIR = @RCDIR@
+TK_LIB = @TK_LIB@ 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 
-OBJS = tkPgplot.o
+OBJS = tkProxy.o
 
-all: gPgplot$(SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libgtk$(LIB_SUFFIX)
 
-make-bindir_p:
-	$(MKHIER) $(BINDIR_P)
+make-libdir_p:
+	$(MKHIER) $(LIBDIR_P)
 
-make-bindir:
-	$(MKHIER) $(BINDIR)
+make-libdir:
+	$(MKHIER) $(LIBDIR)
 
-make-scriptdir_p:
-	$(MKHIER) $(SCRIPTDIR_P)
+install:  make-libdir $(LIBDIR)/libgtk$(LIB_SUFFIX)
 
-make-scriptdir:
-	$(MKHIER) $(SCRIPTDIR)
+libgtk$(LIB_SUFFIX): $(OBJS)
+	rm -f libgtk$(LIB_SUFFIX)
+	$(MK_LIB) libgtk$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
 
-install:
+$(LIBDIR_P)/libgtk$(LIB_SUFFIX): libgtk$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) libgtk$(LIB_SUFFIX) $(LIBDIR_P)
 
-tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
-	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc; \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc;	\
-	else										\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
-	fi
+$(LIBDIR)/libgtk$(LIB_SUFFIX): libgtk$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) libgtk$(LIB_SUFFIX) $(LIBDIR)
 
-gPgplot$(SUFFIX): $(OBJS)
-	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	else										\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
-	fi
+tkProxy.o: $(SRC)/tkProxy.cc $(H)/gtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkProxy.cc
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -103,7 +98,9 @@ rcsinfo:
 	@cd clients; $(MAKE) $(MFLAGS) rcsinfo
 
 clean:
-	@rm -f $(OBJS) gPgplot$(SUFFIX)
+	@rm -f $(CLIENT_OBJS) $(CLIENT_OBJS_PROXY) $(INTERP_OBJS) $(INTERP_OBJS_PROXY) \
+			libglishp$(LIB_SUFFIX) libglish$(LIB_SUFFIX) main.o glish errs \
+			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
 
 distclean: clean
 	rm -f config.status config.cache config.h config_p.h Makefile

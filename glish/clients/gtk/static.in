@@ -12,8 +12,6 @@ CFLAGS = @TK_FLAGS@ @CFLAGS@
 CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@
 LIB_SUFFIX = @GLISH_LIB_SUFFIX@
 
-SLIB_CFLAGS = @SLIB_CFLAGS@
-
 CC = @CC@
 CPLUS = @CXX@
 INSTALL = @INSTALL@
@@ -23,7 +21,7 @@ INSTALL_DATA = @INSTALL_DATA@
 SHELL = /bin/sh
 SH = $(SHELL)
 
-SRC = ..
+SRC = ../..
 H = $(SRC)/include/Glish
 GLISH_SRC = $(SRC)/../..
 
@@ -46,16 +44,14 @@ MKHIER = $(top)/config/mkhier
 GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkProxy.o tkCore.o tkCanvas.o malloc.o
+OBJS = main.o tkCore.o tkCanvas.o malloc.o
 
-RCDIR = @RCDIR@
-TK_LIB = @TK_LIB@ 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
 CLIENTS = $(BINDIR_P)/gtk
 
@@ -91,9 +87,6 @@ make-incdir:
 
 install:  make-bindir make-scriptdir make-incdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
 
-tkProxy.o: $(SRC)/tkProxy.cc $(H)/gtk.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(SLIB_CFLAGS) -c $(SRC)/tkProxy.cc
-
 tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/gtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
 
@@ -107,7 +100,7 @@ main.o: $(SRC)/main.cc $(H)/gtk.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
 gtk: $(OBJS) $(GLISH_LIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS)
 
 $(BINDIR_P)/gtk: gtk
 	$(INSTALL_PROGRAM) gtk $(BINDIR_P)

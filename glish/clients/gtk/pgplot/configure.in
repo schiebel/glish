@@ -706,10 +706,13 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
@@ -724,9 +727,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
-	    TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
@@ -754,9 +757,9 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
@@ -782,9 +785,9 @@ case $host_os in
 	fi
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
@@ -877,9 +880,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
@@ -926,10 +929,13 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 
 	# SunOS can't handle version numbers with dots in them in library
@@ -958,9 +964,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_SEARCH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
@@ -1019,12 +1025,12 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="$TK_LD_SEARCH"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="$TK_LD_SEARCH"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi

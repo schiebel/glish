@@ -965,10 +965,13 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
@@ -983,9 +986,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
-	    TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
 
@@ -1012,9 +1015,9 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_SEARCH)
 
@@ -1039,9 +1042,9 @@ case $host_os in
 	fi
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_SEARCH)
 	;;
@@ -1134,9 +1137,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_SEARCH)
 	;;
@@ -1182,10 +1185,14 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 
 	# SunOS can't handle version numbers with dots in them in library
@@ -1215,9 +1222,9 @@ case $host_os in
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_SEARCH)
 	;;
@@ -1288,7 +1295,7 @@ if test "$static_binary" = "yes"; then
     STATIC_BIN=bin_tgt
     GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="$TK_LD_SEARCH \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -1299,7 +1306,7 @@ else
     STATIC_BIN=
     GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
     CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
@@ -1428,6 +1435,8 @@ $mkhier "regx/$ARCH/static"
 $mkhier "regx/$ARCH/dynamic"
 $mkhier "glish/$ARCH/static"
 $mkhier "glish/$ARCH/dynamic"
+$mkhier "glish/clients/gtk/$ARCH/static"
+$mkhier "glish/clients/gtk/$ARCH/dynamic"
 
 PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in)
 PREPROCESS(glish/mkfile.in,glish/$ARCH/dynamic.in,[DYNAMIC="yes"])
@@ -1440,4 +1449,4 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/gtk/$ARCH/Makefile:glish/clients/gtk/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/gtk/$ARCH/dynamic/Makefile:glish/clients/gtk/dynamic.in glish/clients/gtk/$ARCH/static/Makefile:glish/clients/gtk/static.in)

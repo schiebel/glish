@@ -2540,10 +2540,13 @@ case $host_os in
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 	cat >> $confdefs.h <<\EOF
 #define NO_DLFCN_H 1
@@ -2561,9 +2564,9 @@ EOF
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
-	    TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
         
     if test -n "$tcl_library"; then
         if test -z "$TK_LD_SEARCH"; then
@@ -2615,9 +2618,9 @@ EOF
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         
     if test -n "$tcl_library"; then
         if test -z "$TK_LD_SEARCH"; then
@@ -2655,7 +2658,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 2659 "configure"
+#line 2662 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -2692,12 +2695,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2696 "configure"
+#line 2699 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2701: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2704: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -2722,9 +2725,9 @@ fi
 	fi
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
         
     if test -n "$tcl_library"; then
         if test -z "$TK_LD_SEARCH"; then
@@ -2781,12 +2784,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2785 "configure"
+#line 2788 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2790: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2793: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -2871,9 +2874,9 @@ fi
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
         
     if test -n "$tcl_library"; then
         if test -z "$TK_LD_SEARCH"; then
@@ -2944,10 +2947,13 @@ fi
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
-	    TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
+	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	fi
+        if test -n "$tcl_library"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
 	fi
 
 	# SunOS can't handle version numbers with dots in them in library
@@ -2976,9 +2982,9 @@ fi
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-	    TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
 	fi
 
+	TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
         
     if test -n "$tcl_library"; then
         if test -z "$TK_LD_SEARCH"; then
@@ -3047,12 +3053,12 @@ MAKE_SLIB="$SLIB_LD -o"
 MAKE_LIB="ar cru"
 
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="$TK_LD_SEARCH"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="$TK_LD_SEARCH"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
@@ -3079,7 +3085,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3083 "configure"
+#line 3089 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3087,7 +3093,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3091: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3097: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3110,7 +3116,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3114 "configure"
+#line 3120 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3118,7 +3124,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3122: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3128: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
