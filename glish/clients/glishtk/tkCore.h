@@ -53,7 +53,8 @@ class TkFrameP : public TkFrame {
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, charptr title,
 		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
-		  charptr hlcolor, charptr hlbackground, charptr hlthickness );
+		  charptr hlcolor, charptr hlbackground, charptr hlthickness,
+		  charptr visual, int visualdepth );
 	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,

@@ -1233,8 +1233,8 @@ void TkFrameP::Enable( int force )
 TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth, charptr padx_,
 		    charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
 		    charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
-		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) :
-		  TkFrame( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
+		    charptr hlcolor, charptr hlbackground, charptr hlthickness, charptr visual_, int visualdepth ) : TkFrame( s ),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
 		  topwin( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
 		  icon(0)
 
@@ -1244,11 +1244,54 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	char *background_ = glishtk_quote_string(background);
 	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
 	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
+	char *visual = 0;
 
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
+
+	if ( visual_ && *visual_ )
+		{
+		if ( visualdepth > 0 )
+			{
+			visual = (char*) alloc_memory( strlen(visual_) + 20 );
+			sprintf(visual, "{%s %d}", visual_, visualdepth);
+			tcl_VarEval( tcl, "winfo visualsavailable ", Tk_PathName(root), (char *)NULL );
+			if ( ! strstr( Tcl_GetStringResult(tcl), visual ) )
+				{
+				static char buf[1024];
+				sprintf( buf, "invalid visual or visualdepth, '%s'", visual );
+				free_memory( visual );
+				HANDLE_CTOR_ERROR(buf)
+				}
+			}
+		else
+			{
+			tcl_VarEval( tcl, "winfo visualsavailable ", Tk_PathName(root), (char *)NULL );
+			char *cur = strstr( Tcl_GetStringResult(tcl), visual_ );
+			int max = 0;
+			while ( cur )
+				{
+				cur += strlen(visual_);
+				int t = strtol( cur, 0, 10 );
+				if ( t > max ) max = t;
+				cur = strstr( cur, visual_ );
+				}
+			if ( max > 0 )
+				{
+				visual = (char*) alloc_memory( strlen(visual_) + 20 );
+				sprintf(visual, "{%s %d}", visual_, max);
+				}
+			else
+				{
+				static char buf[1024];
+				sprintf( buf, "invalid visual or visualdepth, '%s'", visual );
+				free_memory( visual );
+				HANDLE_CTOR_ERROR(buf)
+				}
+			}
+		}
 
 	int c = 0;
 	argv[c++] = "toplevel";
@@ -1266,12 +1309,17 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		argv[c++] = "-colormap";
 		argv[c++] = "new";
 		}
+	if ( visual )
+		{
+		argv[c++] = "-visual";
+		argv[c++] = visual;
+		}
 
 	tcl_ArgEval( tcl, c, argv );
 	char *ctor_error = Tcl_GetStringResult(tcl);
 	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
-
 	topwin = Tk_NameToWindow( tcl, argv[1], root );
+	
 	if ( title && title[0] )
 		tcl_VarEval( tcl, "wm title ", Tk_PathName( topwin ), " {", title, "}", (char *)NULL );
 
@@ -2008,8 +2056,8 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	{
 	TkFrameP *ret = 0;
 
-	if ( args->Length() != 19 )
-		InvalidNumberOfArgs(19);
+	if ( args->Length() != 21 )
+		InvalidNumberOfArgs(21);
 
 	SETINIT
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -2031,6 +2079,8 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	SETSTR( hlcolor )
 	SETSTR( hlbackground )
 	SETDIM( hlthickness )
+	SETSTR( visual )
+	SETINT( visualdepth )
 
 	if ( parent->Type() == TYPE_BOOL )
 		{
@@ -2045,7 +2095,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 
 		ret =  new TkFrameP( s, relief, side, borderwidth, padx, pady, expand, background,
 				     width, height, cursor, title, icon, new_cmap, (TkProxy*) tl, tpos,
-				     hlcolor, hlbackground, hlthickness );
+				     hlcolor, hlbackground, hlthickness, visual, visualdepth );
 		}
 	else
 		{

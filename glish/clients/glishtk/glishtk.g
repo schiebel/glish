@@ -12,11 +12,11 @@ func init_glishtk( ) {
     ret.frame := func ( parent=F, relief='flat', borderwidth=2, side='top', padx=0,
 			pady=0, expand='both', background='lightgrey', width=70,
 			height=50, cursor='', title='glish/tk', icon='', newcmap=F,
-			tlead=F, tpos='sw', hlcolor='', hlbackground='', hlthickness='' )
+			tlead=F, tpos='sw', hlcolor='', hlbackground='', hlthickness='', visual='', visualdepth=0 )
 				gtk->frame( parent, relief, side, borderwidth, padx,
 					    pady, expand, background, width, height,
 					    cursor, title, icon, newcmap, tlead, tpos,
-					    hlcolor, hlbackground, hlthickness )
+					    hlcolor, hlbackground, hlthickness, visual, visualdepth )
 
     ret.button := func ( parent, text='button', type='plain', padx=7, pady=3, width=0,
 			 height=0, justify='center', font='',  relief='raised', borderwidth=2,
