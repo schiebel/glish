@@ -104,7 +104,7 @@ class ValueKernel GC_FINAL_CLASS {
 		record_t() : record(0), ref_count(1) { DIAG2((void*)this,"\t\trecord_t alloc") }
 		~record_t() { clear(); }
 		int bytes( int AddPerValue = 0 ) const;
-		int Sizeof( ) const;
+		int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab=0, int skip_first=0 ) const;
 	};
 
     protected:
@@ -223,7 +223,7 @@ class ValueKernel GC_FINAL_CLASS {
 		       otherLength();
 		}
 
-	int Sizeof( ) const;
+	int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab=0, int skip_first=0 ) const;
 	int Bytes( int addPerValue = 0 ) const;
 	int ToMemBlock(char *memory, int offset = 0, int have_attributes = 0) const;
 

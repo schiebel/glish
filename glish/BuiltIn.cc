@@ -1629,8 +1629,16 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 	{
+	if ( args_val->length() <= 0 )
+		return (IValue*) Fail( this, " requires one or two arguments" );
+
 	const Value* val = (*args_val)[0];
-	return new IValue( val->Sizeof() );
+	const Value* verbose = 0;
+
+	if ( args_val->length() > 1 )
+		verbose = (*args_val)[1];
+
+	return new IValue( val->Sizeof( verbose && verbose->IsNumeric() ? verbose->IntVal() : 0 ) );
 	}
 
 IValue* AllocInfoBuiltIn::DoCall( const_args_list* )

@@ -576,7 +576,7 @@ public:
 			}
 		}
 
-	int Sizeof( ) const;
+	int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab="  ", int skip_first=0 ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
 	int ToMemBlock(char *memory, int offset = 0) const;
 

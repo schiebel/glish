@@ -65,7 +65,7 @@ class Dictionary GC_FINAL_CLASS {
 	int Length() const
 		{ return num_entries; }
 
-	int Sizeof( ) const;
+	int Sizeof( int verbose=0, const char *id=0 ) const;
 
 	// To iterate through the dictionary, first call InitForIteration()
 	// to get an "iteration cookie".  The cookie can then be handed

@@ -2644,8 +2644,21 @@ int Value::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
-int Value::Sizeof( ) const
+int Value::Sizeof( int verbose, const char *id, int tab_count, const char *tab, int skip_first ) const
 	{
+	if ( verbose )
+		{
+		if ( ! skip_first ) for (int i=0; i < tab_count; ++i) fprintf(stdout,tab?tab:"\t");
+		int total = sizeof( GlishObject ) + 4;
+		if ( ! skip_first )
+			fprintf( stdout, "<%s> %d {Value}", id ? id : " ", total );
+		else
+			fprintf( stdout, " + %d {Value}", total );
+		total += kernel.Sizeof(verbose,0,tab_count+1,tab,1);
+		if ( attributes ) total += attributes->Sizeof(verbose,"::",tab_count+1,tab);
+		return total;
+		}
+
 	return kernel.Sizeof( ) + sizeof( GlishObject ) + 4 + (attributes ? attributes->Sizeof() : 0);
 	}
 		  

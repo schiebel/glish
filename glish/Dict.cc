@@ -5,6 +5,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <string.h>
+#include <stdio.h>
 #include "Glish/Dict.h"
 #include "config.h"
 
@@ -91,7 +92,7 @@ void* Dictionary::Lookup( const char* key ) const
 	return NotFound;
 	}
 
-int Dictionary::Sizeof( ) const
+int Dictionary::Sizeof( int verbose, const char *id ) const
 	{
 	int size = 0;
 	
@@ -103,8 +104,22 @@ int Dictionary::Sizeof( ) const
 			       chain->length() * sizeof(DictEntry);
 		}
 
-	return sizeof(Dictionary) + (order ? sizeof(BaseList) + order->curlen() * sizeof(void*) : 0)
+	int total = sizeof(Dictionary) + (order ? sizeof(BaseList) + order->curlen() * sizeof(void*) : 0)
 				  + num_buckets * sizeof(void*) + size;
+	if ( verbose )
+		{
+		fprintf( stdout, "%d {%s size(%d)/buckets(%d", total, id?id:"Dict", Length(), num_buckets );
+		for ( int i = 0; i < num_buckets; ++i )
+			{
+			PList(DictEntry) *chain = tbl[i];
+			if ( chain ) fprintf( stdout, " %d:%d", chain->curlen(), chain->length() );
+			}
+		fprintf( stdout, ")" );
+		if ( order ) fprintf( stdout, "/order(%d)", order->curlen() );
+		fprintf( stdout, "}" );
+		}
+
+	return total;
 	}
 
 

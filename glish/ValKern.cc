@@ -52,7 +52,7 @@ void ValueKernel::record_t::clear()
 	ref_count = 1;
 	}
 
-int ValueKernel::record_t::Sizeof( ) const
+int ValueKernel::record_t::Sizeof( int verbose, const char *id, int tab_count, const char *tab, int skip_first ) const
 	{
 	int size = 0;
 	IterCookie* c = record->InitForIteration();
@@ -60,8 +60,26 @@ int ValueKernel::record_t::Sizeof( ) const
 	Value* member;
 	const char* key;
 
+	if ( verbose )
+		{
+		if ( ! skip_first ) for (int i=0; i < tab_count; ++i) fprintf(stdout,"%s",tab?tab:"\t");
+		fprintf( stdout, " + " );
+		record->Sizeof( verbose, "Dict(Value)" );
+		fprintf( stdout, " + %d {ValueKernel}\n", sizeof(ValueKernel) );
+		}
+
 	while ( (member = record->NextEntry( key, c )) )
-		size += strlen(key) + 1 + member->Sizeof( );
+		{
+		if ( verbose )
+			{
+			for (int i=0; i < tab_count; ++i) fprintf(stdout,tab?tab:"\t");
+			int keysize = strlen(key) + 1;
+			fprintf(stdout, "<%s> %d {key}", key, keysize);
+			size += keysize + member->Sizeof( verbose, key, tab_count+1, tab, 1 );
+			}
+		else
+			size += strlen(key) + 1 + member->Sizeof( );
+		}
 	return size + record->Sizeof() + sizeof(ValueKernel);
 	}
 
@@ -432,22 +450,32 @@ void ValueKernel::unrefOthers()
 		Unref( vecref );
 	}
 
-int ValueKernel::Sizeof( ) const
+int ValueKernel::Sizeof( int verbose, const char *id, int tab_count, const char *tab, int skip_first ) const
 	{
+	if ( verbose && ! skip_first ) for (int i=0; i < tab_count; ++i) fprintf(stdout,tab?tab:"\t");
 	if ( mARRAY(mode) )
 		{
 		if ( Type() != TYPE_STRING )
+			{
+			if ( verbose ) fprintf( stdout, " + %d {array_t} + %d {ValueKernel} + %d {vector}\n",
+						sizeof(array_t), sizeof(ValueKernel), array->bytes() );
 			return (int) array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
+			}
 		else
 			{
 			int cnt = 0;
 			for ( unsigned int i = 0; i < array->length; i++ )
 				cnt += strlen(((char**)array->values)[i])+1;
+			if ( verbose ) fprintf( stdout, " + %d {array_t} + %d {ValueKernel} + %d {vector}\n",
+						 sizeof(array_t), sizeof(ValueKernel), cnt + array->bytes() );
 			return cnt + array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
 			}
 		}
 	else if ( mRECORD(mode) || mFAIL(mode) )
-		return sizeof(record_t) + record->Sizeof( );
+		{
+		if ( verbose ) fprintf( stdout, " + %d {record_t}", sizeof(record_t) );
+		return sizeof(record_t) + record->Sizeof( verbose, 0, tab_count+1, tab, 1 );
+		}
 	else
 		return otherSizeof();
 	}
