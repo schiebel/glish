@@ -49,7 +49,7 @@ EventDesignator::~EventDesignator( )
 		}
 	}
 
-Agent* EventDesignator::EventAgent( value_type val_type )
+Agent* EventDesignator::EventAgent( value_reftype val_type )
 	{
 	evalOpt opt;
 	event_agent_ref = agent->RefEval( opt, val_type );

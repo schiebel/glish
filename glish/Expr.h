@@ -224,7 +224,7 @@ class Expr : public ParseNode {
 	// otherwise a "const" reference.
 	//
 	// The reference should be Unref()'d once done using it.
-	virtual IValue* RefEval( evalOpt &opt, value_type val_type );
+	virtual IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
 
 	// Assigns a new value to the variable (LHS) corresponding
@@ -307,7 +307,7 @@ class VarExpr : public Expr {
 	const char *Description() const;
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
@@ -408,7 +408,7 @@ class ValExpr : public Expr {
 	const char *Description() const;
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
     protected:
 	IValue *val;
@@ -593,7 +593,7 @@ class ArrayRefExpr : public UnaryExpr {
 	ArrayRefExpr( Expr* op1, expr_list* a );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
 	IValue *Assign( evalOpt &opt, IValue* new_value );
 	IValue *ApplyRegx( regexptr *ptr, int len, RegexMatch &match );
@@ -617,7 +617,7 @@ class RecordRefExpr : public UnaryExpr {
 	RecordRefExpr( Expr* op, char* record_field );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
 	IValue *Assign( evalOpt &opt, IValue* new_value );
 
@@ -641,7 +641,7 @@ class AttributeRefExpr : public BinaryExpr {
 	AttributeRefExpr( Expr* op, char* attribute );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
 	IValue *Assign( evalOpt &opt, IValue* new_value );
 
@@ -662,7 +662,7 @@ class AttributeRefExpr : public BinaryExpr {
 
 class RefExpr : public UnaryExpr {
     public:
-	RefExpr( Expr* op, value_type type );
+	RefExpr( Expr* op, value_reftype type );
 
 	IValue* Eval( evalOpt &opt );
 	IValue *Assign( evalOpt &opt, IValue* new_value );
@@ -676,7 +676,7 @@ class RefExpr : public UnaryExpr {
 	int LhsIs( const Expr * ) const;
 
     protected:
-	value_type type;
+	value_reftype type;
 	};
 
 
@@ -766,7 +766,7 @@ class LastEventExpr : public Expr {
 	LastEventExpr( Sequencer* sequencer, last_event_type type );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -785,7 +785,7 @@ class LastRegexExpr : public Expr {
 	LastRegexExpr( Sequencer* sequencer, last_regex_type type );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( evalOpt &opt, value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }

@@ -27,7 +27,7 @@ Parameter::~Parameter()
 		free_memory( name );
 	}
 
-Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
+Parameter::Parameter( const char* arg_name, value_reftype arg_parm_type,
 			Expr* arg_arg, int arg_is_ellipsis,
 			Expr* arg_default_value, int arg_is_empty )
 	{
@@ -40,7 +40,7 @@ Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
 	can_delete = 0;
 	}
 
-Parameter::Parameter( char* arg_name, value_type arg_parm_type,
+Parameter::Parameter( char* arg_name, value_reftype arg_parm_type,
 			Expr* arg_arg, int arg_is_ellipsis,
 			Expr* arg_default_value, int arg_is_empty )
 	{
@@ -53,7 +53,7 @@ Parameter::Parameter( char* arg_name, value_type arg_parm_type,
 	can_delete = 1;
 	}
 
-Parameter::Parameter( value_type arg_parm_type,
+Parameter::Parameter( value_reftype arg_parm_type,
 			Expr* arg_arg, int arg_is_ellipsis,
 			Expr* arg_default_value, int arg_is_empty )
 	{
@@ -118,19 +118,19 @@ int Parameter::Describe( OStream& s, const ioOpt &opt ) const
 	}
 
 
-FormalParameter::FormalParameter( const char* name_, value_type parm_type_,
+FormalParameter::FormalParameter( const char* name_, value_reftype parm_type_,
 			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
     : Parameter(name_, parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
 	}
 
-FormalParameter::FormalParameter( char* name_, value_type parm_type_,
+FormalParameter::FormalParameter( char* name_, value_reftype parm_type_,
 			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
     : Parameter(name_, parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
 	}
 
-FormalParameter::FormalParameter( value_type parm_type_,
+FormalParameter::FormalParameter( value_reftype parm_type_,
 			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
     : Parameter(parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
@@ -827,7 +827,7 @@ int UserFuncKernel::Describe( OStream& s, const ioOpt &opt ) const
 IValue* UserFuncKernel::EvalParam( evalOpt &opt, Parameter* p, Expr* actual, IValue *&fail )
 	{
 	fail = 0;
-	value_type param_type = p->ParamType();
+	value_reftype param_type = p->ParamType();
 
 	if ( param_type == VAL_CONST )
 		{

@@ -20,7 +20,6 @@
 
 typedef enum { glish_false, glish_true } glish_bool;
 
-typedef const char* string;
 typedef unsigned char byte;
 
 #define alloc_glish_bool( num ) (glish_bool*) alloc_memory_atomic( sizeof(glish_bool) * num )

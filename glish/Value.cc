@@ -184,14 +184,14 @@ Value::Value( recordptr value )
 	}
 
 
-Value::Value( Value* ref_value, value_type val_type )
+Value::Value( Value* ref_value, value_reftype val_type )
 	{
-	DIAG2( (void*) this, "Value( Value*, value_type )" )
+	DIAG2( (void*) this, "Value( Value*, value_reftype )" )
 	INIT_VALUE_ACTION
 
 	int is_const = ref_value->IsConst() | ref_value->IsRefConst();
 // 	if ( val_type != VAL_CONST && val_type != VAL_REF )
-// 		fatal->Report( "bad value_type in Value::Value" );
+// 		fatal->Report( "bad value_reftype in Value::Value" );
 
 	ref_value = ref_value->Deref();
 	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst() |
@@ -209,9 +209,9 @@ Value::Value( Value* ref_value, value_type val_type )
 	}
 
 Value::Value( Value* ref_value, int index[], int num_elements,
-		value_type val_type, int take_index )
+		value_reftype val_type, int take_index )
 	{
-	DIAG2( (void*) this, "Value( Value*, int[], int, value_type )" )
+	DIAG2( (void*) this, "Value( Value*, int[], int, value_reftype )" )
 	INIT_VALUE_ACTION
 	SetValue( ref_value, index, num_elements, val_type, take_index );
 	attributes = ref_value->CopyAttributePtr();
@@ -261,10 +261,10 @@ DEFINE_REF_SET_VALUE(charptrref)
 
 
 void Value::SetValue( Value* ref_value, int index[], int num_elements,
-			value_type val_type, int take_index )
+			value_reftype val_type, int take_index )
 	{
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
-		fatal->Report( "bad value_type in Value::Value" );
+		fatal->Report( "bad value_reftype in Value::Value" );
 
 	if ( ref_value->IsConst() && val_type == VAL_REF )
 		warn->Report(

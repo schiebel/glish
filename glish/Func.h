@@ -32,18 +32,18 @@ class Func : public CycleNode {
 
 class Parameter : public GlishObject {
     public:
-	Parameter( const char* name, value_type parm_type, Expr* arg,
+	Parameter( const char* name, value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0,
 			int is_empty = 0 );
-	Parameter( char* name, value_type parm_type, Expr* arg,
+	Parameter( char* name, value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0,
 			int is_empty = 0 );
-	Parameter( value_type parm_type, Expr* arg,
+	Parameter( value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0,
 			int is_empty = 0 );
 
 	const char* Name() const		{ return name; }
-	value_type ParamType() const		{ return parm_type; }
+	value_reftype ParamType() const		{ return parm_type; }
 	Expr* Arg() const			{ return arg; }
 	int IsEllipsis() const			{ return is_ellipsis; }
 	int IsEmpty() const			{ return is_empty; }
@@ -64,7 +64,7 @@ class Parameter : public GlishObject {
 
     protected:
 	char* name;
-	value_type parm_type;
+	value_reftype parm_type;
 	Expr* arg;
 	int can_delete;
 	int is_ellipsis;
@@ -75,11 +75,11 @@ class Parameter : public GlishObject {
 
 class FormalParameter : public Parameter {
     public:
-	FormalParameter( const char* name, value_type parm_type, Expr* arg,
+	FormalParameter( const char* name, value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
-	FormalParameter( char* name, value_type parm_type, Expr* arg,
+	FormalParameter( char* name, value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
-	FormalParameter( value_type parm_type, Expr* arg,
+	FormalParameter( value_reftype parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
@@ -89,21 +89,21 @@ class FormalParameter : public Parameter {
 
 class ActualParameter : public Parameter {
     public:
-	ActualParameter( const char* name_, value_type parm_type_, Expr* arg_,
+	ActualParameter( const char* name_, value_reftype parm_type_, Expr* arg_,
 			int is_ellipsis_ = 0, Expr* default_value_ = 0,
 			int is_empty_ = 0 )
 		: Parameter( name_, parm_type_, arg_, is_ellipsis_,
 				default_value_, is_empty_ )
 		{
 		}
-	ActualParameter( char* name_, value_type parm_type_, Expr* arg_,
+	ActualParameter( char* name_, value_reftype parm_type_, Expr* arg_,
 			int is_ellipsis_ = 0, Expr* default_value_ = 0,
 			int is_empty_ = 0 )
 		: Parameter( name_, parm_type_, arg_, is_ellipsis_,
 				default_value_, is_empty_ )
 		{
 		}
-	ActualParameter( value_type parm_type_, Expr* arg_,
+	ActualParameter( value_reftype parm_type_, Expr* arg_,
 			int is_ellipsis_ = 0, Expr* default_value_ = 0,
 			int is_empty_ = 0 )
 		: Parameter( parm_type_, arg_, is_ellipsis_,

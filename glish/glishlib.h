@@ -34,9 +34,9 @@
 		{ return new type( value ); }					\
 	Value *create_value( recordptr value )					\
 		{ return new type( value ); }					\
-	Value *create_value( Value* ref_value, value_type val_type )		\
+	Value *create_value( Value* ref_value, value_reftype val_type )		\
 		{ return new type( ref_value, val_type ); }			\
-	Value *create_value( Value* ref_value, int index[], int num_elements, value_type val_type, int take_index )\
+	Value *create_value( Value* ref_value, int index[], int num_elements, value_reftype val_type, int take_index )\
 		{ return new type( ref_value, index, num_elements, val_type, take_index ); }\
 	Value *create_value( glish_bool value[], int num_elements,		\
 		array_storage_type storage )					\

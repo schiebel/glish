@@ -79,7 +79,7 @@ IValue *Expr::SideEffectsEval( evalOpt &opt )
 	return 0;
 	}
 
-IValue* Expr::RefEval( evalOpt &opt, value_type val_type )
+IValue* Expr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	IValue* value = CopyEval(opt);
 	IValue* result;
@@ -273,7 +273,7 @@ IValue* VarExpr::Eval( evalOpt &opt )
 	return CopyOrRefValue( value, opt );
 	}
 
-IValue* VarExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* VarExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	access = USE_ACCESS;
 	IValue* var = 0;
@@ -476,7 +476,7 @@ IValue* ValExpr::Eval( evalOpt &opt )
 	return CopyOrRefValue( val, opt );
 	}
 
-IValue* ValExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* ValExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	return new IValue( val, val_type );
 	}
@@ -1352,7 +1352,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	IValue* array_ref = op->RefEval( opt, val_type );
 	IValue* array = (IValue*) array_ref->Deref();
@@ -1672,7 +1672,7 @@ IValue* RecordRefExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* RecordRefExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* RecordRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	IValue* value_ref = op->RefEval( opt, val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
@@ -1810,7 +1810,7 @@ IValue* AttributeRefExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	IValue* value_ref = left->RefEval( opt, val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
@@ -1960,7 +1960,7 @@ Expr *AttributeRefExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return this;
 	}
 
-RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_)
+RefExpr::RefExpr( Expr* op_, value_reftype arg_type ) : UnaryExpr(op_)
 	{
 	type = arg_type;
 	}
@@ -2524,7 +2524,7 @@ IValue* LastEventExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* LastEventExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* LastEventExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	Notification* n = sequencer->LastNotification();
 
@@ -2603,7 +2603,7 @@ IValue* LastRegexExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* LastRegexExpr::RefEval( evalOpt &opt, value_type val_type )
+IValue* LastRegexExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	{
 	RegexMatch &match = sequencer->GetMatch();
 

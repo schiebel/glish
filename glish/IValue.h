@@ -82,12 +82,12 @@ public:
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
-	IValue( Value* ref_value, value_type val_type ) : Value( ref_value, val_type )
+	IValue( Value* ref_value, value_reftype val_type ) : Value( ref_value, val_type )
 		{ if ( ref_value->doPropagate( ) ) SetUnref( ((IValue *)ref_value)->unref ); }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
-		value_type val_type, int take_index = 0 ) :
+		value_reftype val_type, int take_index = 0 ) :
 			Value( ref_value, index, num_elements,
 			       val_type, take_index ) { }
 
@@ -199,7 +199,7 @@ public:
 
 	// Return a new value holding a reference the specified subelement(s).
 	IValue* TrueArrayRef( int* indices, int num_indices, int take_indices = 0,
-			      value_type vtype = VAL_REF ) const;
+			      value_reftype vtype = VAL_REF ) const;
 
 	// Pick distinct elements from an array.
 	// Returns a newed value
@@ -214,8 +214,8 @@ public:
 
 	// Return a true sub-array reference.
 	// Both of the following return a newed value.
-	IValue* SubRef( const IValue* index, int &err, value_type vtype = VAL_REF );
-	IValue* SubRef( const_value_list *args_val, int &err, value_type vtype = VAL_REF );
+	IValue* SubRef( const IValue* index, int &err, value_reftype vtype = VAL_REF );
+	IValue* SubRef( const_value_list *args_val, int &err, value_reftype vtype = VAL_REF );
 
 	void Polymorph( glish_type new_type );
 

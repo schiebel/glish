@@ -46,7 +46,7 @@ public:
 	//
 	// The val_type argument indicates whether the agent is going
 	// to be used for modification (VAL_REF) or not (VAL_CONST).
-	Agent* EventAgent( value_type val_type );
+	Agent* EventAgent( value_reftype val_type );
 	void EventAgentDone();
 
 	// Returns the event agent expression, primarily for use

@@ -13,7 +13,7 @@
 
 // Different types of values: constant references, references, and
 // ordinary (non-indirect) values.
-typedef enum { VAL_CONST, VAL_REF, VAL_VAL } value_type;
+typedef enum { VAL_CONST, VAL_REF, VAL_VAL } value_reftype;
 
 // Different types of storage for an array used to construct a Value.
 typedef enum {
@@ -119,11 +119,11 @@ public:
 	Value( recordptr value );
 
 	// Reference constructor.
-	Value( Value* ref_value, value_type val_type );
+	Value( Value* ref_value, value_reftype val_type );
 
 	// Subref constructor.
 	Value( Value* ref_value, int index[], int num_elements,
-		value_type val_type, int take_index = 0 );
+		value_reftype val_type, int take_index = 0 );
 
 	Value( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
@@ -597,7 +597,7 @@ protected:
 	void SetValue( charptrref& value_ref );
 
 	void SetValue( Value *ref_value, int index[], int num_elements, 
-			value_type val_type, int take_index = 0 );
+			value_reftype val_type, int take_index = 0 );
 
 	virtual void DeleteValue();
 	void DeleteAttributes();
@@ -726,9 +726,9 @@ extern Value *create_value( glish_complex value );
 extern Value *create_value( glish_dcomplex value );
 extern Value *create_value( const char* value );
 extern Value *create_value( recordptr value );
-extern Value *create_value( Value* ref_value, value_type val_type );
+extern Value *create_value( Value* ref_value, value_reftype val_type );
 extern Value *create_value( Value* ref_value, int index[], int num_elements,
-			    value_type val_type, int take_index = 0 );
+			    value_reftype val_type, int take_index = 0 );
 extern Value *create_value( glish_bool value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
 extern Value *create_value( byte value[], int num_elements,

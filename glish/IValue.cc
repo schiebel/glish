@@ -985,7 +985,7 @@ ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(ne
 
 
 IValue* IValue::TrueArrayRef( int* indices, int num_indices, int take_indices,
-			      value_type vtype ) const
+			      value_reftype vtype ) const
 	{
 	if ( IsRef() )
 		return ((IValue*) Deref())->TrueArrayRef( indices, num_indices,
@@ -1358,7 +1358,7 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,
 	return;
 	}
 
-IValue* IValue::SubRef( const IValue* index, int &err, value_type vtype )
+IValue* IValue::SubRef( const IValue* index, int &err, value_reftype vtype )
 	{
 	err = 0;
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
@@ -1396,7 +1396,7 @@ IValue* IValue::SubRef( const IValue* index, int &err, value_type vtype )
 		return error_ivalue();
 	}
 
-IValue* IValue::SubRef( const_value_list *args_val, int &err, value_type VT )
+IValue* IValue::SubRef( const_value_list *args_val, int &err, value_reftype VT )
 	{
 	err = 0;
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )

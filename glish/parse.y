@@ -89,7 +89,7 @@
 	PDict(Expr)* record;
 	parameter_list* param_list;
 	Parameter* param;
-	value_type val_type;
+	value_reftype val_type;
 	int ival;
 	}
 
