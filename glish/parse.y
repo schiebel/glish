@@ -104,6 +104,7 @@ static IValue *parse_error = 0;
 
 /* Communication of status between glish_parser() and yyparse() */
 static int status;
+static int scope_depth = 0;
 static Stmt *cur_stmt = null_stmt;
 
 extern void putback_token( int );
@@ -841,6 +842,10 @@ void yyerror( char msg[] )
 		parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
 		error->Report( msg, " at or near '", yytext, "'" );
 		}
+
+	if ( interactive )
+		while ( current_sequencer->ScopeDepth() > scope_depth )
+			current_sequencer->PopScope();
 	}
 
 
@@ -856,6 +861,7 @@ IValue *glish_parser( Stmt *&stmt )
 
 	error->SetCount(0);
 	status = 0;
+	if ( interactive ) scope_depth = current_sequencer->ScopeDepth();
 	while ( ! (ret = yyparse()) )
 		{
 		if ( ! interactive )
@@ -895,6 +901,7 @@ IValue *glish_parser( Stmt *&stmt )
 
 			NodeUnref(loc_stmt);
 			first_line = 1;
+			scope_depth = current_sequencer->ScopeDepth();
 			}
 		}
 

@@ -1182,6 +1182,7 @@ int glishtk_xioerror_handler(Display *d)
 	if ( glishtk_dflt_xioerror_handler )
 		(*glishtk_dflt_xioerror_handler)(d);
 	exit(1);
+	return 1;
 	}
 
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )

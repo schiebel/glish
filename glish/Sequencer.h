@@ -183,6 +183,7 @@ public:
 	// For now returns the "global" scope. Later this may be modified
 	// to take a "scope_type" parameter.
 	Scope *GetScope( );
+	int ScopeDepth() const { return scopes.length(); }
 
 	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
 					int GlobalRef = 0, int FrameOffset = 0,
