@@ -12,22 +12,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <iostream.h>
 
-#define DEFINE_FUNCS_NO_CHARPTR(MACRO)	\
-MACRO(float)			\
-MACRO(double)			\
-MACRO(int)			\
-MACRO(long)			\
-MACRO(short)			\
-MACRO(char)			\
-MACRO(unsigned int)		\
-MACRO(unsigned long)		\
-MACRO(unsigned short)		\
-MACRO(unsigned char)		\
-MACRO(void*)
-
-#define DEFINE_FUNCS(MACRO)	\
-DEFINE_FUNCS_NO_CHARPTR(MACRO)	\
-MACRO(const char*)
+#include "iosmacros.h"
 
 int OStream::reset() { return 0; }
 
@@ -104,17 +89,3 @@ OStream &endl(OStream &s)
 	return s;
 	}
 
-#define PROXYSTREAM_PUT(TYPE)			\
-OStream &ProxyStream::operator<<( TYPE v )	\
-	{					\
-	s << (v);				\
-	return *this;				\
-	}
-
-DEFINE_FUNCS(PROXYSTREAM_PUT)
-
-OStream &ProxyStream::flush( )
-	{
-	s.flush( );
-	return *this;
-	}

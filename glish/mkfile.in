@@ -363,7 +363,7 @@ $(D)Queue.o: $(SRC)/Queue.cc $(H)/Queue.h
 $(D)gcQueue.o: $(SRC)/Queue.cc $(H)/Queue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcQueue.o $(SRC)/Queue.cc $(T)
 
-$(D)Reporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h $(SRC)/input.h
+$(D)Reporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h $(SRC)/input.h $(SRC)/iosmacros.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Reporter.cc $(T)
 
 $(D)gcReporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h $(SRC)/input.h
@@ -381,7 +381,7 @@ $(D)Str.o: $(SRC)/Str.cc $(H)/Str.h
 $(D)gcStr.o: $(SRC)/Str.cc $(H)/Str.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcStr.o $(SRC)/Str.cc $(T)
 
-$(D)Stream.o: $(SRC)/Stream.cc $(H)/Stream.h
+$(D)Stream.o: $(SRC)/Stream.cc $(H)/Stream.h $(SRC)/iosmacros.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Stream.cc $(T)
 
 $(D)gcStream.o: $(SRC)/Stream.cc $(H)/Stream.h

@@ -15,6 +15,8 @@ RCSID("@(#) $Id$")
 #include "input.h"
 #include "system.h"
 
+#include "iosmacros.h"
+
 int interpreter_state = 0;
 SOStream *Reporter::sout = 0;
 
@@ -22,6 +24,47 @@ extern void show_glish_stack( OStream& );
 extern void log_output( const char * );
 extern int do_output_log();
 extern int glish_silent;
+
+class ProxyStream : public OStream {
+    public:
+	ProxyStream( ostream &s_ ) : s(s_) { }
+
+	OStream &operator<<(float);
+	OStream &operator<<(double);
+	
+	OStream &operator<<(int);
+	OStream &operator<<(long);
+	OStream &operator<<(short);
+	OStream &operator<<(char);
+	
+	OStream &operator<<(unsigned int);
+	OStream &operator<<(unsigned long);
+	OStream &operator<<(unsigned short);
+	OStream &operator<<(unsigned char);
+	
+	OStream &operator<<(void*);
+	OStream &operator<<(const char*);
+
+	OStream &flush( );
+
+    private:
+	ostream &s;
+};
+
+#define PROXYSTREAM_PUT(TYPE)			\
+OStream &ProxyStream::operator<<( TYPE v )	\
+	{					\
+	s << (v);				\
+	return *this;				\
+	}
+
+DEFINE_FUNCS(PROXYSTREAM_PUT)
+
+OStream &ProxyStream::flush( )
+	{
+	s.flush( );
+	return *this;
+	}
 
 class WarningReporter : public Reporter {
     public:

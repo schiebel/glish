@@ -5,8 +5,6 @@
 #define stream_h_
 #include "Glish/Object.h"
 
-#include <iostream.h>
-
 class OStream : public GlishRef {
     public:
 
@@ -94,32 +92,6 @@ class SOStream : public OStream {
 	char *str() { return buf.str(); }
     private:
 	DBuf buf;
-};
-
-class ProxyStream : public OStream {
-    public:
-	ProxyStream( ostream &s_ ) : s(s_) { }
-
-	OStream &operator<<(float);
-	OStream &operator<<(double);
-	
-	OStream &operator<<(int);
-	OStream &operator<<(long);
-	OStream &operator<<(short);
-	OStream &operator<<(char);
-	
-	OStream &operator<<(unsigned int);
-	OStream &operator<<(unsigned long);
-	OStream &operator<<(unsigned short);
-	OStream &operator<<(unsigned char);
-	
-	OStream &operator<<(void*);
-	OStream &operator<<(const char*);
-
-	OStream &flush( );
-
-    private:
-	ostream &s;
 };
 
 #endif
