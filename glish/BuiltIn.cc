@@ -2707,7 +2707,7 @@ IValue* as_string_built_in( const IValue* arg )
 IValue* func( const IValue* arg )						\
 	{									\
 	((IValue*)arg)->MarkFail();						\
-	return new IValue( arg->Type() == type ? glish_true : glish_false );	\
+	return new IValue( arg->VecRefDeref()->Type() == type ? glish_true : glish_false ); \
 	}
 
 DEFINE_IS_X_BUILT_IN(is_boolean_built_in,TYPE_BOOL)
