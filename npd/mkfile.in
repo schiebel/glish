@@ -137,7 +137,7 @@ $(LIBDIR_P)/libnpdgc$(GSUFFIX):libnpdgc$(GSUFFIX)
 
 $(BINDIR_P)/glishkey:glishkey
 	$(MKHIER) $(BINDIR_P)
-	$(INSTALL_PROGRAM) -s glishkey $(BINDIR_P)
+	$(INSTALL_PROGRAM) @strip_binary@ glishkey $(BINDIR_P)
 
 $(LIBDIR)/libnpd$(GSUFFIX):libnpd$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)

@@ -218,7 +218,7 @@ libglishp$(GSUFFIX): $(INTERP_OBJS_PROXY)
 
 $(BINDIR_P)/glish: glish
 	$(MKHIER) $(BINDIR_P)
-	$(INSTALL_PROGRAM) -s glish $(BINDIR_P)
+	$(INSTALL_PROGRAM) @strip_binary@ glish $(BINDIR_P)
 
 $(LIBDIR_P)/libglish$(GSUFFIX): libglish$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
