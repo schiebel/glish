@@ -19,19 +19,19 @@ SRC = ..
 HEADERDIR = $(SRC)/include/Npd
 INC = -I. -I$(SRC)/include -I/usr/ucbinclude
 
-INSTALLDIR = @top_srcdir@
-INCDIR = $(INSTALLDIR)/include
-LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
-BINDIR = $(INSTALLDIR)/bin/$(ARCH)
+ROOT = @top_srcdir@
+INCDIR = $(ROOT)/include
+LIBDIR = $(ROOT)/lib/$(ARCH)
+BINDIR = $(ROOT)/bin/$(ARCH)
 
 ##
 ## prefix may be used as part of '@exec_prefix@'
 ##
 prefix = @prefix@
-PFX_INSTALLDIR = @exec_prefix@
+PFX_ROOT = @exec_prefix@
 PFX_INCDIR = @prefix@/include
-PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
-PFX_BINDIR = $(PFX_INSTALLDIR)/bin
+PFX_LIBDIR = $(PFX_ROOT)/lib
+PFX_BINDIR = $(PFX_ROOT)/bin
 
 KEYDIR = @KEYDIR@
 ##LOGDIR = /net/kochab/kochab_3/dschieb/glish/glish/log
