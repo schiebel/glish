@@ -1,5 +1,7 @@
 // $Header$
 
+#include "system.h"
+
 #include <string.h>
 #include <stream.h>
 #include <stdlib.h>
@@ -18,11 +20,19 @@
 #include "Frame.h"
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
+#if defined(HUGE_VAL)
+#define HUGE HUGE_VAL
+#else
 #define HUGE (infinity())
-#define MAXINT 0x7fffffff
+#endif
 
+#if !defined(MAXINT)
+#define MAXINT 0x7fffffff
+#endif
+#if !defined(MAXFLOAT)
 // Half-assed guess.
 #define MAXFLOAT 1e38
+#endif
 #endif
 
 

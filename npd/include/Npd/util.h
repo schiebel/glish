@@ -10,7 +10,6 @@
 /* A buffer for holding an error message. */
 extern char errmsg[512];
 
-extern const char *prog_name;
 extern FILE *log_file;
 
 
