@@ -2107,14 +2107,16 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 const char **TkScrollbar::PackInstruction()
 	{
-	static char *ret[3];
-	ret[0] = "-fill";
-	ret[2] = 0;
+	static char *ret[5];
+	ret[0] = "-expand";
+	ret[1] = "true";
+	ret[2] = "-fill";
+	ret[4] = 0;
 	char *orient = rivet_va_cmd(self, "cget", "-orient", 0);
 	if ( orient[0] == 'v' && ! strcmp(orient,"vertical") )
-		ret[1] = "y";
+		ret[3] = "y";
 	else
-		ret[1] = "x";
+		ret[3] = "x";
 	return ret;
 	}
 
