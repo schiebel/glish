@@ -102,6 +102,8 @@ void ProxyStore::removeProxy( Proxy *p )
 const ProxyId ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
+	GlishEvent *save_last = last_event;
+	Ref(save_last);
 
 	GlishEvent e( (const char*) PXGETID, (const Value*) v );
 	e.SetIsProxy( );
@@ -111,10 +113,15 @@ const ProxyId ProxyStore::getId( )
 	if ( ! reply || reply->Val()->Type() != TYPE_INT ||
 	     reply->Val()->Length() != ProxyId::len() )
 		{
+		Unref( last_event );
+		last_event = save_last;
 		return ProxyId();
 		}
 
-	return ProxyId(reply->Val()->IntPtr(0));
+	ProxyId result(reply->Val()->IntPtr(0));
+	Unref( last_event );
+	last_event = save_last;
+	return result;
 	}
 
 Proxy *ProxyStore::GetProxy( const ProxyId &proxy_id )

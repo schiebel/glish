@@ -277,7 +277,7 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
 		return strdup("bad type, non-numeric");			\
-	lhs = val->FloatVal(off+1);					\
+	lhs = val->DoubleVal(off+1);					\
 	++index;							\
 }
 

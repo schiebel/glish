@@ -632,7 +632,12 @@ void Client::Unrecognized( const ProxyId &proxy_id )
 	int tmp = do_quiet;
 	do_quiet = 0;
 	if ( ReplyPending() )
-		Reply( "unrecognized", last_event->name, proxy_id );
+		{
+		char buf[1024];
+		sprintf( buf, "unrecognized event: \"%s\"", last_event->name );
+		Value failv( buf, (const char*)0, 0 );
+		Reply( &failv, proxy_id );
+		}
 	else
 		PostEvent( "unrecognized", last_event->name, proxy_id );
 	do_quiet = tmp;
@@ -653,10 +658,17 @@ void Client::Error( const char* msg, const ProxyId &proxy_id )
 	else
 		{
 		if ( last_event )
-			Reply( "bad \"%s\" event: %s",
-			       last_event->name, msg, proxy_id );
+			{
+			char buf[1024];
+			sprintf( buf, "bad \"%s\" event: %s", last_event->name, msg );
+			Value failv( buf, (const char*)0, 0 );
+			Reply( &failv, proxy_id );
+			}
 		else
-			Reply( msg, proxy_id );
+			{
+			Value failv( msg, (const char*)0, 0 );
+			Reply( &failv, proxy_id );
+			}
 		}
 	do_quiet = tmp;
 	}
@@ -675,8 +687,16 @@ void Client::Error( const Value *v, const ProxyId &proxy_id )
 	if ( last_event )
 		{
 		char *msg = v->StringVal();
-		PostEvent( "error", "bad \"%s\" event: %s",
-				last_event->name, msg, proxy_id );
+		if ( ReplyPending() )
+			{
+			char buf[1024];
+			sprintf( buf, "bad \"%s\" event: %s", last_event->name, msg );
+			Value failv( buf, (const char*)0, 0 );
+			Reply( &failv, proxy_id );
+			}
+		else
+			PostEvent( "error", "bad \"%s\" event: %s",
+					last_event->name, msg, proxy_id );
 		free_memory(msg);
 		}
 	else
