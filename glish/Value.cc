@@ -1015,7 +1015,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 		char *ret = (char*) alloc_memory( sizeof(char)*(strlen(key)+7) );
 		strcpy(ret,"[");
 		strcat(ret,key);
-		strcat(ret,"=...]");
+		strcat(ret,"=***]");
 		return ret;
 		}
 	else
@@ -1026,7 +1026,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 	char** element_strs = (char**) alloc_memory( sizeof(char*)*len );
 	int total_len = 0;
 
-	for ( int i = 0; i < len; ++i )
+	for ( int i = 0; i < len && ( ! max_elements || i < max_elements ); ++i )
 		{
 		Value* nth_val = rptr->NthEntry( i, key_strs[i] );
 
@@ -1044,11 +1044,11 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 	// the []'s (we could steal these from the last element since it
 	// doesn't have a ", " at the end of it, but that seems a bit
 	// evil), and 1 more for the end-of-string.
-	char* result = (char*) alloc_memory( sizeof(char)*(total_len + 3 * len + 3) );
+	char* result = (char*) alloc_memory( sizeof(char)*(total_len + 3 * len + 10) );
 
 	strcpy( result, "[" );
 
-	for ( LOOPDECL i = 0; i < len; ++i )
+	for ( LOOPDECL i = 0; i < len && ( ! max_elements || i < max_elements ); ++i )
 		{
 		sprintf( &result[strlen( result )], "%s=%s, ",
 			 key_strs[i], element_strs[i] );
@@ -1057,7 +1057,10 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 
 	// Now add the final ']', taking care to wipe out the trailing
 	// ", ".
-	strcpy( &result[strlen( result ) - 2], "]" );
+	if ( max_elements && len > max_elements )
+		strcpy( &result[strlen( result ) - 2], " ... ]" );
+	else
+		strcpy( &result[strlen( result ) - 2], "]" );
 
 	been_there.remove( (Value*) VecRefDeref() );
 	free_memory( key_strs );
