@@ -59,9 +59,9 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include
 
-OBJS = convert.o header.o io.o longint.o types.o list.o alloc.o
+OBJS = convert.o header.o io.o longint.o types.o list.o alloc.o ref.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
-	$(D)types.o $(D)list.o $(D)alloc.o
+	$(D)types.o $(D)list.o $(D)alloc.o $(D)ref.o
 
 HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h $(H)/ref.h \
 	$(H)/header.h $(H)/mdep.h $(H)/list.h $(H)/alloc.h $(H)/generic.h
@@ -145,6 +145,9 @@ $(D)list.o: $(SRC)/list.cc $(H)/list.h $(H)/alloc.h $(H)/sos.h $(H)/generic.h
 
 $(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h $(H)/sos.h
 	$(CC) $(INCLUDE) $(CFLAGS) -c $(SRC)/alloc.c $(T)
+
+$(D)ref.o: $(SRC)/ref.cc $(H)/ref.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ref.cc $(T)
 
 ##
 ## Include files

@@ -27,6 +27,27 @@ RCSID("@(#) $Id$")
 
 const char *glish_charptrdummy = 0;
 
+ivalue_list *IValue::finalize_list = 0;
+
+int IValue::Finalize( )
+	{
+	if ( ! finalize_list )
+		finalize_list = new ivalue_list;
+
+	if ( finalize_list->is_member(this) )
+		return 0;
+
+	int top = finalize_list->length() == 0;
+	finalize_list->append(this);
+
+	glish_type type = Type();
+	if ( type == TYPE_FUNC || type == TYPE_RECORD )
+		kernel.unref(1);
+
+	return top ? 1 : 0;
+	}
+
+
 void copy_agents( void *to_, void *from_, unsigned int len )
 	{
 	agentptr *to = (agentptr*) to_;
@@ -121,33 +142,34 @@ int IValue::CountRefs( Frame *f ) const
 	if ( been_there.is_member( (Value*)this ) )
 		return 0;
 
+	int count = 0;
+
 	if ( Type() == TYPE_FUNC )
-		return FuncPtr(0)[0]->CountRefs(f);
+		count = FuncPtr(0)[0]->CountRefs(f);
 
 	else if ( Type() == TYPE_RECORD )
 		{
 		been_there.append( (Value*)this );
 
-		unsigned int count = 0;
 		recordptr rec = RecordPtr(0);
 		IterCookie* c = rec->InitForIteration();
 		Value* member;
 		const char* key;
 
 		while ( (member = rec->NextEntry( key, c )) )
-		  count += ((IValue*)member)->CountRefs(f);
+			if ( member->RefCount() == 1 )
+				count += ((IValue*)member)->CountRefs(f);
 		
 		been_there.remove( (Value*)this );
-
-		return count;
 		}
 
-	return 0;
+	return count;
 	}
 
 extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{
+	MarkFinal( );
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( (other = FailStmt::GetFail()) )
@@ -191,6 +213,7 @@ IValue::IValue( ) : Value( ) GGCTOR
 
 IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ) GGCTOR
 	{
+	MarkFinal( );
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( !message && (other = FailStmt::GetFail()) )
@@ -234,6 +257,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
+	MarkFinal( );
 	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
@@ -241,12 +265,14 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
 	{
+	MarkFinal( );
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 	{
+	MarkFinal( );
 	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
 	copy_array(&value,ary,1,regexptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
@@ -254,12 +280,14 @@ IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 
 IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX) GGCTOR
 	{
+	MarkFinal( );
 	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
 	{
+	MarkFinal( );
 	fileptr *ary = (fileptr*) alloc_memory( sizeof(fileptr) );
 	copy_array(&value,ary,1,fileptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
@@ -267,12 +295,14 @@ IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
 
 IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE) GGCTOR
 	{
+	MarkFinal( );
 	kernel.SetArray( (voidptr*) value, len, TYPE_FILE, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
+	MarkFinal( );
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
 		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
@@ -285,6 +315,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 
 IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
 	{
+	MarkFinal( );
 	value->Insert( strdup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
 
@@ -301,6 +332,16 @@ void IValue::DeleteValue()
 
 IValue::~IValue()
 	{
+	if ( finalize_list && finalize_list->length() > 0 )
+		{
+		finalize_list->remove(this);
+		for (int len; (len=finalize_list->length()) > 0;)
+			{
+			IValue *cur = finalize_list->remove_nth(len-1);
+			delete cur;
+			}
+		}
+
 	if ( Type() == TYPE_FAIL &&
 	     kernel.RefCount() == 1 && 
 	     ! FailMarked( ) )

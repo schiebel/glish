@@ -18,11 +18,15 @@ class File;
 class ArithExpr;
 class RelExpr;
 class Frame;
+class IValue;
 
 typedef Func* funcptr;
 typedef Regex* regexptr;
 typedef File* fileptr;
 typedef Agent* agentptr;
+
+glish_declare(PList,IValue);
+typedef PList(IValue) ivalue_list;
 
 extern void copy_agents( void *to_, void *from_, unsigned long len );
 extern void delete_agents( void *ary_, unsigned long len );
@@ -39,20 +43,20 @@ public:
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
 	IValue( const Value *val, const char *file, int lineNum ) :
-				Value( val, file, lineNum ) GGCTOR { }
+				Value( val, file, lineNum ) GGCTOR { MarkFinal( ); }
 
-	IValue( const Value &v ) : Value(v) GGCTOR { }
-	IValue( const IValue &v ) : Value(v) GGCTOR { }
+	IValue( const Value &v ) : Value(v) GGCTOR { MarkFinal( ); }
+	IValue( const IValue &v ) : Value(v) GGCTOR { MarkFinal( ); }
 
-	IValue( glish_bool v ) : Value( v ) GGCTOR { }
-	IValue( byte v ) : Value( v ) GGCTOR { }
-	IValue( short v ) : Value( v ) GGCTOR { }
-	IValue( int v ) : Value( v ) GGCTOR { }
-	IValue( float v ) : Value( v ) GGCTOR { }
-	IValue( double v ) : Value( v ) GGCTOR { }
-	IValue( complex v ) : Value( v ) GGCTOR { }
-	IValue( dcomplex v ) : Value( v ) GGCTOR { }
-	IValue( const char* v ) : Value( v ) GGCTOR { }
+	IValue( glish_bool v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( byte v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( short v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( int v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( float v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( double v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( complex v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( dcomplex v ) : Value( v ) GGCTOR { MarkFinal( ); }
+	IValue( const char* v ) : Value( v ) GGCTOR { MarkFinal( ); }
 	IValue( funcptr v );
 	IValue( regexptr v );
 	IValue( fileptr v );
@@ -62,46 +66,46 @@ public:
 	// "TAKE_OVER_ARRAY" it will simply be used.
 	IValue( agentptr value, array_storage_type storage = COPY_ARRAY );
 
-	IValue( recordptr v ) : Value( v ) GGCTOR { }
+	IValue( recordptr v ) : Value( v ) GGCTOR { MarkFinal( ); }
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
-			Value( ref_value, val_type ) GGCTOR { }
+			Value( ref_value, val_type ) GGCTOR { MarkFinal( ); }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
 		value_type val_type, int take_index = 0 ) :
 			Value( ref_value, index, num_elements,
-			       val_type, take_index ) GGCTOR { }
+			       val_type, take_index ) GGCTOR { MarkFinal( ); }
 
 	IValue( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( byte value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( short value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( int value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( float value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( double value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( complex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( charptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) GGCTOR { }
+			Value( value, num_elements, storage ) GGCTOR { MarkFinal( ); }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 	IValue( regexptr value[], int num_elements,
@@ -109,15 +113,15 @@ public:
 	IValue( fileptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
-	IValue( glish_boolref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( byteref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( shortref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( intref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( floatref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( doubleref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( complexref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( dcomplexref& value_ref ) : Value( value_ref ) GGCTOR { }
-	IValue( charptrref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( glish_boolref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( byteref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( shortref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( intref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( floatref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( doubleref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( complexref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( dcomplexref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
+	IValue( charptrref& value_ref ) : Value( value_ref ) GGCTOR { MarkFinal( ); }
 
 	~IValue();
 
@@ -229,6 +233,8 @@ public:
 	int CountRefs( IValue *val ) const { return Value::CountRefs((Value*)val); }
 	int CountRefs( Frame *f ) const;
 
+	int Finalize( );
+
 	// Get a description of a non-standard (i.e. interpreter specific) type
 	char *GetNSDesc( int evalable = 0 ) const;
 
@@ -246,6 +252,8 @@ protected:
 				Value* value, int rhs_len );
 	void AssignArrayElements( Value* value );
 
+	static ivalue_list *finalize_list;
+
 	// Note: if member variables are added, Value::TakeValue()
 	//       will need to be examined
 
@@ -262,9 +270,6 @@ typedef const IValue* const_ivalue;
 glish_declare(List,const_ivalue);
 typedef List(const_ivalue) const_ivalue_list;
 typedef List(const_ivalue) const_args_list;
-
-glish_declare(PList,IValue);
-typedef PList(IValue) ivalue_list;
 
 extern IValue* copy_value( const IValue* value );
 

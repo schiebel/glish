@@ -124,12 +124,6 @@ class ValueKernel {
 	void unrefArray(int del=0);
 	void unrefRecord(int del=0);
 	void unrefOthers();
-	void unref( int del=0 )
-		{
-		if ( mARRAY(mode) ) unrefArray(del);
-		else if ( mRECORD(mode) || mFAIL(mode) ) unrefRecord(del);
-		else unrefOthers();
-		}
 
 	void refArray() { if ( array ) ++array->ref_count; }
 	void refRecord() { if ( record ) ++record->ref_count; }
@@ -207,7 +201,8 @@ class ValueKernel {
 
 	glish_type Type() const
 		{
-		return mARRAY(mode) ? array->type :
+		return ! array ? TYPE_ERROR :
+		       mARRAY(mode) ? array->type :
 		       mRECORD(mode) ? TYPE_RECORD :
 		       otherType();
 		}
@@ -221,6 +216,13 @@ class ValueKernel {
 	int Sizeof( ) const;
 	int Bytes( int addPerValue = 0 ) const;
 	int ToMemBlock(char *memory, int offset = 0, int have_attributes = 0) const;
+
+	void unref( int del=0 )
+		{
+		if ( mARRAY(mode) ) unrefArray(del);
+		else if ( mRECORD(mode) || mFAIL(mode) ) unrefRecord(del);
+		else unrefOthers();
+		}
 
 	~ValueKernel( ) { unref(1); }
 };
