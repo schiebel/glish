@@ -5,12 +5,13 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 
-#if defined(__alpha) || defined(__alpha__)
+#ifdef __alpha
 
 #define DIV(NAME,TYPE)							\
 void NAME( TYPE *lhs, TYPE *rhs, int lhs_len, int rhs_incr )		\
 	{								\
-	for ( int i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )	\
+	int i,j;							\
+	for ( i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )		\
 		lhs[i] /= rhs[j];					\
 	}
 
