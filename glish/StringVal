@@ -171,7 +171,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	if ( type == TYPE_STRING )
 		{
 		charptr *sptr = StringPtr(0);
-		buf_size += strlen( sptr[0] + 10 ) * (length + 1);
+		buf_size += (strlen( sptr[0] ) + 10) * (length + 1);
 		if ( buf_size == 0 )
 			buf_size = 8;
 		if ( evalable )
