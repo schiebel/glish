@@ -960,7 +960,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
 
-	rivet_va_func(self, Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
+	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
 		      rivet_new_callback((int (*)()) glishtk_delframe_cb,(ClientData) this, 0), 0);
 
 	AddElement( this );
@@ -1126,7 +1126,7 @@ void TkFrame::UnMap()
 		a->UnMap( );
 		}
 
-	int unmap_root = ! pseudo && ! frame;
+	int unmap_root = ! pseudo && ! frame && ! canvas;
 	TkAgent::UnMap();
 
 	if ( pseudo )
@@ -1238,9 +1238,9 @@ char *TkFrame::Grab( int global_scope )
 	if ( grab ) return 0;
 
 	if ( global_scope )
-		rivet_va_func(self, Tk_GrabCmd, "set", "-global", rivet_path(self), 0);
+		rivet_va_func(self, (int(*)()) Tk_GrabCmd, "set", "-global", rivet_path(self), 0);
 	else
-		rivet_va_func(self, Tk_GrabCmd, "set", rivet_path(self), 0);
+		rivet_va_func(self, (int(*)()) Tk_GrabCmd, "set", rivet_path(self), 0);
 
 	grab = id;
 	return "";
@@ -1269,7 +1269,7 @@ char *TkFrame::Release( )
 	{
 	if ( ! grab || grab != id ) return 0;
 
-	rivet_va_func(self, Tk_GrabCmd, "release", rivet_path(self), 0);
+	rivet_va_func(self, (int(*)()) Tk_GrabCmd, "release", rivet_path(self), 0);
 
 	grab = 0;
 	return "";
