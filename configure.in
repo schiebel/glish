@@ -1757,6 +1757,7 @@ case $host_os in
 	SLIB_LD_LIBS_sos='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libsos$(GSUFFIX)'
 	SLIB_LD_LIBS_regx='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libregx$(GSUFFIX)'
 	SLIB_LD_LIBS_edit='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/lib$(NAME)$(GSUFFIX)'
+	SLIB_LD_LIBS_npd='-install_name $(LIBDIR)/libnpd$(GSUFFIX)'
 	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd -install_name $(LIBDIR)/libglish$(GSUFFIX)'
 	SLIB_LD_LIBS_glishp='-L${LIBDIR_P} -L${LIBDIR} -lglish -lregx -ledit -lsos -lnpd'
 	SLIB_LD_LIBS_glishtk='-lX11 -install_name $(LIBDIR)/libglishtk$(GSUFFIX)'
@@ -1995,6 +1996,7 @@ AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(SLIB_LD_LIBS_sos)
 AC_SUBST(SLIB_LD_LIBS_regx)
 AC_SUBST(SLIB_LD_LIBS_edit)
+AC_SUBST(SLIB_LD_LIBS_npd)
 AC_SUBST(SLIB_LD_LIBS_glish)
 AC_SUBST(SLIB_LD_LIBS_glishp)
 AC_SUBST(SLIB_LD_LIBS_glishtk)

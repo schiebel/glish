@@ -5326,6 +5326,7 @@ fi
 	SLIB_LD_LIBS_sos='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libsos$(GSUFFIX)'
 	SLIB_LD_LIBS_regx='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libregx$(GSUFFIX)'
 	SLIB_LD_LIBS_edit='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/lib$(NAME)$(GSUFFIX)'
+	SLIB_LD_LIBS_npd='-install_name $(LIBDIR)/libnpd$(GSUFFIX)'
 	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd -install_name $(LIBDIR)/libglish$(GSUFFIX)'
 	SLIB_LD_LIBS_glishp='-L${LIBDIR_P} -L${LIBDIR} -lglish -lregx -ledit -lsos -lnpd'
 	SLIB_LD_LIBS_glishtk='-lX11 -install_name $(LIBDIR)/libglishtk$(GSUFFIX)'
@@ -5511,7 +5512,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5515 "configure"
+#line 5516 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5519,7 +5520,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5523: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5524: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5542,7 +5543,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5546 "configure"
+#line 5547 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5550,7 +5551,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5554: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5555: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5614,6 +5615,7 @@ esac
     TKCLIENT_LIBS_expanded_end=`echo ${TKCLIENT_LIBS_expanded} | sed 's/^\([\.\/]*\)//'`
     TKCLIENT_LIBS_expanded=`echo "$TKCLIENT_LIBS_expanded_root/$TKCLIENT_LIBS_expanded_end" | sed 's/\/$//'`
 fi
+
 
 
 
@@ -6156,6 +6158,7 @@ s%@SLIB_LD_LIBS@%$SLIB_LD_LIBS%g
 s%@SLIB_LD_LIBS_sos@%$SLIB_LD_LIBS_sos%g
 s%@SLIB_LD_LIBS_regx@%$SLIB_LD_LIBS_regx%g
 s%@SLIB_LD_LIBS_edit@%$SLIB_LD_LIBS_edit%g
+s%@SLIB_LD_LIBS_npd@%$SLIB_LD_LIBS_npd%g
 s%@SLIB_LD_LIBS_glish@%$SLIB_LD_LIBS_glish%g
 s%@SLIB_LD_LIBS_glishp@%$SLIB_LD_LIBS_glishp%g
 s%@SLIB_LD_LIBS_glishtk@%$SLIB_LD_LIBS_glishtk%g
