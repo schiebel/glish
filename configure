@@ -608,7 +608,7 @@ fi
 
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
-    NPD_LIB="$(LIBDIR)/libnpd.a"
+    NPD_LIB='$(LIBDIR)/libnpd.a'
     GLISH_NPD="GLISH_NPD"
     
     if test -z "$KEYDIR"; then
@@ -2581,7 +2581,7 @@ fi
     #--------------------------------------------------------------------
     GLISH_FLAGS="$GLISH_FLAGS -DGLISHTK"
     TK_INCL="-I../../include/Rivet"
-    TK_LIB="$(LIBDIR)/librivet.a"
+    TK_LIB='$(LIBDIR)/librivet.a'
     GLISH_TK="GLISH_TK"
 
     #------propagate the hostname on down--------------------------------
