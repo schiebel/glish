@@ -22,7 +22,7 @@ class Frame : public GlishObject {
 friend class stack_type;
     public:
 	Frame( int frame_size, IValue* param_info, scope_type s );
-	~Frame() { clear(); }
+	~Frame();
 
 	IValue*& FrameElement( int offset );
 

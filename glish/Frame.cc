@@ -27,6 +27,8 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	}
 
 
+Frame::~Frame() { clear(); }
+
 void Frame::clear()
 	{
 #ifdef GGC
@@ -74,7 +76,7 @@ int Frame::CountRefs( Frame *f ) const
 	int count = 0;
 	for ( int i = 0; i < size; ++i )
 		if ( values[i] )
-		  count += values[i]->CountRefs(f);
+			count += values[i]->CountRefs(f);
 
 	return count;
 	}
