@@ -348,6 +348,7 @@ unsigned int sos_fd_source::read( char *buf, unsigned int len )
 	unsigned int needed = len;
 	unsigned int total = 0;
 
+	errno = 0;
 	register int cur = 0;
 	while ( needed && ((cur = ::read( fd_, buf, needed )) > 0 || errno == EAGAIN ) )
 		{
