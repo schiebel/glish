@@ -19,7 +19,7 @@ RCSID("@(#) $Id$")
 
 
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
-	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
+	sprintf(BUFFER,"c%x%s%x",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
 
 #define HANDLE_CTOR_ERROR(STR)					\
 		{						\
@@ -44,47 +44,6 @@ RCSID("@(#) $Id$")
 
 
 int TkCanvas::count = 0;
-
-static IValue *ScrollToValue( Scrollbar_notify_data *data )
-	{
-	recordptr rec = create_record_dict();
-
-	rec->Insert( strdup("vertical"), new IValue( data->scrollbar_is_vertical ) );
-	rec->Insert( strdup("op"), new IValue( data->scroll_op ) );
-	rec->Insert( strdup("newpos"), new IValue( data->newpos ) );
-
-	return new IValue( rec );
-	}
-
-static Scrollbar_notify_data *ValueToScroll( const IValue *data )
-	{
-	if ( data->Type() != TYPE_RECORD )
-		return 0;
-
-	IValue *vertical;
-	IValue *op;
-	IValue *newpos;
-	if ( ! (vertical = (IValue*) (data->HasRecordElement( "vertical" )) ) ||
-	     ! (op = (IValue*) (data->HasRecordElement( "op" ) )) ||
-	     ! (newpos = (IValue*) (data->HasRecordElement( "newpos" ) )) )
-		return 0;
-
-	if ( vertical->Type() != TYPE_INT ||
-	     ! vertical->Length() ||
-	     op->Type() != TYPE_INT ||
-	     ! op->Length() ||
-	     newpos->Type() != TYPE_DOUBLE ||
-	     ! newpos->Length() )
-		return 0;
-
-	Scrollbar_notify_data *ret = new Scrollbar_notify_data;
-
-	ret->scrollbar_is_vertical = vertical->IntVal();
-	ret->scroll_op = op->IntVal();
-	ret->newpos = newpos->DoubleVal();
-
-	return ret;
-	}
 
 #define InvalidArg( num )					\
 	(IValue*) generate_error("invalid type for argument ", num)
@@ -130,10 +89,10 @@ static Scrollbar_notify_data *ValueToScroll( const IValue *data )
 		return 0;						\
 		}
 
-#define EXPRSTRVAL(var,EVENT)						\
+#define EXPRSTRVALXX(var,EVENT,LINE)					\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var = var##_expr_ ->ReadOnlyEval();		\
-	const IValue *var##_val_ = var;					\
+	LINE								\
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
@@ -141,11 +100,15 @@ static Scrollbar_notify_data *ValueToScroll( const IValue *data )
 		var##_expr_ ->ReadOnlyDone(var);			\
 		return 0;						\
 		}
+
+#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,const IValue *var##_val_ = var;)
+
 #define EXPRSTR(var,EVENT)						\
 	charptr var = 0;						\
-	EXPRSTRVAL(var##_val_, EVENT)					\
+	EXPRSTRVALXX(var##_val_, EVENT,)				\
 	Expr *var##_expr_ = var##_val__expr_;				\
 	var = ( var##_val_ ->StringPtr(0) )[0];
+
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
@@ -168,10 +131,10 @@ static Scrollbar_notify_data *ValueToScroll( const IValue *data )
 			var = var##_char_;				\
 			}
 
-#define EXPRINTVAL(var,EVENT)                                           \
+#define EXPRINTVALXX(var,EVENT,LINE)                                    \
         Expr *var##_expr_ = (*args)[c++]->Arg();                        \
         const IValue *var = var##_expr_ ->ReadOnlyEval();               \
-	const IValue *var##_val_ = var;					\
+        LINE                                                            \
         if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )      \
                 {                                                       \
                 error->Report("bad value for ", EVENT);                 \
@@ -179,12 +142,13 @@ static Scrollbar_notify_data *ValueToScroll( const IValue *data )
                 return 0;                                   		\
                 }
 
+#define EXPRINTVAL(var,EVENT)  EXPRINTVALXX(var,EVENT, const IValue *var##_val_ = var;)
+
 #define EXPRINT(var,EVENT)                                              \
         int var = 0;                                                    \
-	EXPRINTVAL(var##_val_,EVENT)                                    \
+	EXPRINTVALXX(var##_val_,EVENT,)                                 \
 	Expr *var##_expr_ = var##_val__expr_;				\
         var = var##_val_ ->IntVal();
-
 
 #define EXPRINT2(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
@@ -273,7 +237,7 @@ IValue *glishtk_StrToInt( char *str )
 	}
 
 char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one dim function";
@@ -296,7 +260,7 @@ char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, parameter_list *
 	}
 
 char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -334,7 +298,7 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, para
 
 
 char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -365,7 +329,7 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parame
 	}
 
 char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
-				int howmany, parameter_list *args, int is_request, int log )
+				int howmany, parameter_list *args, int, int )
 	{
 	char *event_name = "tag function";
 	if ( args->length() <= 0 )
@@ -403,7 +367,7 @@ char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 	}
 
 char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char buf[50];
 	char *ret = 0;
@@ -431,9 +395,9 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		CANVAS_FUNC_REALLOC(elements*2+argc+2)
 
 #define POINTFUNC_TAG_APPEND(STR)					\
-if ( tagstr_cnt+strlen(STR)+5 >= tagstr_len )				\
+if ( tagstr_cnt+(int)strlen(STR)+5 >= tagstr_len )			\
 	{								\
-	while ( tagstr_cnt+strlen(STR)+5 >= tagstr_len ) tagstr_len *= 2; \
+	while ( tagstr_cnt+(int)strlen(STR)+5 >= tagstr_len ) tagstr_len *= 2; \
 	tagstr = (char*) realloc_memory( tagstr, tagstr_len * sizeof(char));\
 	}								\
 if ( tagstr_cnt ) { strcat(tagstr, " "); tagstr_cnt++; }		\
@@ -551,8 +515,8 @@ else									\
 	return tag;
 	}
 
-char *glishtk_canvas_delete(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_canvas_delete(Rivetobj self, const char *, parameter_list *args,
+				int, int )
 	{
 	char *event_name = "canvas delete function";
 	int c = 0;
@@ -571,8 +535,8 @@ char *glishtk_canvas_delete(Rivetobj self, const char *cmd, parameter_list *args
 	return 0;
 	}
 
-char *glishtk_canvas_move(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_canvas_move(Rivetobj self, const char *, parameter_list *args,
+				int, int )
 	{
 	char *event_name = "canvas move function";
 	int c = 0;
@@ -616,9 +580,8 @@ struct glishtk_canvas_bindinfo
 	char *tk_event_name;
 	char *tag;
 	glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
-			tk_event_name(strdup(tk_event)),
-			event_name(strdup(event)),
-			canvas(c) { tag = tag_arg ? strdup(tag_arg) : 0; }
+			canvas(c), event_name(strdup(event)), tk_event_name(strdup(tk_event))
+			{ tag = tag_arg ? strdup(tag_arg) : 0; }
 	~glishtk_canvas_bindinfo()
 		{
 		free_memory( tag );
@@ -627,7 +590,7 @@ struct glishtk_canvas_bindinfo
 		}
 	};
 
-int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysym, int callbacktype)
+int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysym, int)
 	{
 	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) assoc;
 	int dummy;
@@ -653,8 +616,8 @@ int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysy
 	return TCL_OK;
 	}
 
-char *glishtk_canvas_bind(TkAgent *agent, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_canvas_bind(TkAgent *agent, const char *, parameter_list *args,
+				int, int )
 	{
 	char *event_name = "canvas bind function";
 	int c = 0;
@@ -722,8 +685,8 @@ IValue *glishtk_valcast( char *val )
 	return v ? v : error_ivalue();
 	}
 
-char *glishtk_canvas_frame(TkAgent *agent, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_canvas_frame(TkAgent *agent, const char *, parameter_list *args,
+				int, int )
 	{
 	char *event_name = "canvas bind function";
 	TkCanvas *canvas = (TkCanvas*)agent;
@@ -745,14 +708,14 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *cmd, parameter_list *args
 	return (char*) frame;
 	}
 
-int canvas_yscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+int canvas_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkCanvas*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int canvas_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+int canvas_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkCanvas*)assoc)->xScrolled( firstlast );

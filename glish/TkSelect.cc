@@ -20,7 +20,7 @@ void glish_event_posted( int status )
 	selector_status = status;
 	}
 
-void TkFileProc ( ClientData data, int mask )
+void TkFileProc ( ClientData data, int )
 	{
 	glish_select = 1;
 	selector_status = ((TkSelector*)data)->Selector::DoSelection( 0 );

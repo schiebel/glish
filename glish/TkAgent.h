@@ -132,28 +132,32 @@ class TkProc {
 	IValue *operator()(Rivetobj s, parameter_list*arg, int x, int y);
     protected:
 	const char *cmdstr;
-	const char *param;
-	const char *param2;
-	int i;
+
 	TkEventProc proc;
 	TkOneParamProc proc1;
 	TkTwoParamProc proc2;
-	TkOneIntProc iproc;
-	TkTwoIntProc iproc1;
 
-	TkFrame *frame;
-	char *(TkFrame::*fproc)(parameter_list*, int, int);
 #if defined(TKPGPLOT)
 	TkPgplot *pgplot;
 	char *(TkPgplot::*pgproc)(parameter_list*, int, int);
 #endif
+	char *(TkFrame::*fproc)(parameter_list*, int, int);
+	TkFrame *frame;
 
-	TkAgent *agent;
 	TkEventAgentProc aproc;
+	TkAgent *agent;
 	TkEventAgentProc2 aproc2;
 	TkEventAgentProc3 aproc3;
 
+	TkOneIntProc iproc;
+	TkTwoIntProc iproc1;
+
+	const char *param;
+	const char *param2;
+
 	TkStrToValProc convert;
+
+	int i;
 	};
 
 class glishtk_event;
