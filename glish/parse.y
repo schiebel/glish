@@ -457,6 +457,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							current_sequencer, $1 );
 
 			$$ = new FuncExpr( ufunc );
+			Ref($$);
 
 			if ( $2 )
 				{
@@ -476,7 +477,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 					{
 					Expr *lhs = 
 						current_sequencer->LookupID( $2, LOCAL_SCOPE);
-
+					Ref(lhs);
 					$$ = compound_assignment( lhs, 0, $$ );
 					}
 				}

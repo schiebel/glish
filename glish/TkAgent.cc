@@ -905,7 +905,7 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr cursor, charptr title ) : TkAgent( s ), is_tl( 1 ),
-		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0), mark(0)
 
 	{
 	char *argv[15];
@@ -996,7 +996,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0), mark(0)
 	{
 	char *argv[14];
 	frame = frame_;
@@ -1059,7 +1059,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
-		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0)
+		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0), mark(0)
 	{
 	char *argv[12];
 	frame = 0;
@@ -1303,11 +1303,8 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	int i = 1;
 	argv[0] = 0;
 	argv[i++] = rivet_path( agent->Self() );
-	if ( NumChildren() > 1 || agent == this )
-		{
-		argv[i++] = "-side";
-		argv[i++] = side;
-		}
+	argv[i++] = "-side";
+	argv[i++] = side;
 	argv[i++] = "-padx";
 	argv[i++] = padx;
 	argv[i++] = "-pady";
@@ -1321,7 +1318,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	delete argv;
 	}
 
-int TkFrame::ExpandNum(const TkAgent *except) const
+int TkFrame::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
 	{
 	int cnt = 0;
 	loop_over_list( elements, i )
@@ -1329,6 +1326,8 @@ int TkFrame::ExpandNum(const TkAgent *except) const
 		if ( (! except || elements[i] != except) &&
 		     elements[i] != this && elements[i]->CanExpand() )
 			cnt++;
+		if ( grtOReqt && cnt >= grtOReqt )
+			break;
 		}
 	return cnt;
 	}
@@ -1349,12 +1348,8 @@ void TkFrame::Pack( )
 
 		if ( c > 1 )
 			{
-			if ( NumChildren() > 1 )
-				{
-				argv[c++] = "-side";
-				argv[c++] = side;
-				}
-
+			argv[c++] = "-side";
+			argv[c++] = side;
 			argv[c++] = "-padx";
 			argv[c++] = padx;
 			argv[c++] = "-pady";
@@ -1429,8 +1424,8 @@ const char **TkFrame::PackInstruction()
 		ret[c++] = expand;
 
 		if ( ! frame || ! strcmp(expand,"both") || 
-		     strcmp(frame->expand,"both") && ExpandNum() ||
-		     frame->CanExpand() && frame->ExpandNum(this) == 0 )
+		     strcmp(frame->expand,"both") && ExpandNum(0,1) ||
+		     frame->CanExpand() && frame->ExpandNum(this,1) == 0 )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";
@@ -1449,11 +1444,23 @@ const char **TkFrame::PackInstruction()
 
 int TkFrame::CanExpand() const
 	{
-	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") || 
-				strcmp(frame->expand,"both") && ExpandNum() ) ||
-				frame->CanExpand() && frame->ExpandNum(this) == 0 )
-		return 1;
+	if ( mark ) return 0;
 
+        ((TkFrame*)this)->mark = 1;
+	if ( strcmp(expand,"none") && 						// no expand
+	     ! canvas &&							// nested in a canvas
+	     ( ! frame || 							// top level frame
+	       ! strcmp(expand,"both") || 					// expands in both directions
+	       strcmp(frame->expand,"both") && ExpandNum(0,1) ||		// parent expansion is limited,
+										//	and we have expanding elements
+	       strcmp(frame->expand,"none") && frame->ExpandNum(this,1) == 0 ))	// parent expansion and
+										// 	we're the only expanding child
+		{
+		((TkFrame*)this)->mark = 0;
+		return 1;
+		}
+
+	((TkFrame*)this)->mark = 0;
 	return 0;
 	}
 
@@ -2204,7 +2211,7 @@ const char **TkScrollbar::PackInstruction()
 	else
 		ret[1] = "x";
 	ret[2] = ret[4] = 0;
-	if ( frame->ExpandNum(this) == 0 || ! strcmp(frame->Expand(),ret[1]) )
+	if ( frame->ExpandNum(this,1) == 0 || ! strcmp(frame->Expand(),ret[1]) )
 		{
 		ret[2] = "-expand";
 		ret[3] = "true";

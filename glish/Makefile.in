@@ -103,7 +103,7 @@ all: libglish.a libinterp.a glish
 
 glish: main.o libinterp.a libglish.a $(LIBS)
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
-		 $(LIBS) $(XLIB) -lm @LIBS@
+		 $(LIBS) $(XLIB) @LIBS@
 
 libglish.a: $(CLIENT_OBJS)
 	rm -f libglish.a

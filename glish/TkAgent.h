@@ -210,7 +210,7 @@ class TkFrame : public TkAgent {
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id_ ) { radio_id = id_; }
 
-	int ExpandNum(const TkAgent *except=0) const;
+	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
 
 	int NumChildren() const { return elements.length() - 1; }
     protected:
@@ -228,6 +228,7 @@ class TkFrame : public TkAgent {
 	unsigned long id;
 	char is_tl;
 	Rivetobj pseudo;
+	int mark;
 
 	unsigned long radio_id;
 	};
