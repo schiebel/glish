@@ -1107,7 +1107,7 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		return error_ivalue();
 
 	Sequencer::HoldQueue();
-	while ( TkAgent::DoOneTkEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
+	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) ) ;
 	Sequencer::ReleaseQueue();
 
 	if ( convert && val )
@@ -1152,7 +1152,12 @@ void TkAgent::FlushGlishEvents()
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
 	if ( hold_tk_events )
-		return Tk_DoOneEvent( TK_FILE_EVENTS | (hold_wait ? 0 : TK_DONT_WAIT) );
+		{
+		if ( flags & TK_FILE_EVENTS )
+			return Tk_DoOneEvent( TK_FILE_EVENTS | (hold_wait ? 0 : TK_DONT_WAIT) );
+		else
+			return 0;
+		}
 
 	return Tk_DoOneEvent( flags );
 	}
@@ -1160,7 +1165,7 @@ int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 int TkAgent::DoOneTkEvent( )
 	{
 	if ( hold_tk_events )
-		return Tk_DoOneEvent( TK_FILE_EVENTS );
+		return Tk_DoOneEvent( TK_FILE_EVENTS | TK_TIMER_EVENTS );
 
 	return Tk_DoOneEvent( 0 );
 	}
@@ -1545,7 +1550,7 @@ TkFrame::~TkFrame( )
 
 	if ( ! tl_count )
 		// Empty queue
-		while( DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) != 0 );
+		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )

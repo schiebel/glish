@@ -465,6 +465,9 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 	for ( argp = first_arg_pos; argp < first_arg_pos + num_args; ++argp )
 		delete ((char**) argv)[argp];
 
+	if ( name && agent_value )
+		agent_value->AssignRecordElement("name",new IValue((const char*) name));
+
 	delete argv;
 	}
 
