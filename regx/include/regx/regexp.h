@@ -10,6 +10,7 @@
 #ifndef regexp_h_
 #define regexp_h_
 
+#include <stdarg.h>
 #include "regx/common.h"
 
 #ifdef __cplusplus
@@ -39,6 +40,7 @@ typedef struct regexp {
 
 EXT regexp *regxcomp(char *exp, char *xend, PMOP *pm);
 EXT I32 regxexec(regexp*, char *stringarg, char *strend, char *strbeg, I32 minend, SV *screamer, I32 safebase);
+void regxseterror( void (*hdlr)(const char *, va_list) );
 
 #ifdef __cplusplus
 	}

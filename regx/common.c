@@ -174,10 +174,24 @@ char *savepvn( char *sv, I32 len) {
     return newaddr;
 }
 
+static void (*regx_error_handler)( const char*, va_list) = 0;
+
+void regxseterror( void (*hdlr)( const char*, va_list ) )
+	{
+	regx_error_handler = hdlr;
+	}
+
 void
-croak(const char* pat, ...)
+croak( const char* pat, ... )
 {
-    printf("bye bye\n");
+    va_list ap;
+    va_start(ap, pat);
+
+    if ( regx_error_handler )
+	(*regx_error_handler)( pat, ap );
+
+    vprintf(pat,ap);
+    printf("\nno handler installed (or handler returned)\n");
     exit(1);
 }
 
