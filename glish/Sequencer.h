@@ -119,10 +119,18 @@ public:
 	static const IValue *LookupVal( const char *id );
 
 	void PushFrame( Frame* new_frame );
-	Frame* PopFrame();
+	void PushFrame( frame_list &new_frame );
+	// Note that only the last frame popped is returned (are the others leaked?).
+	Frame* PopFrame( unsigned int howmany=1 );
 
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame* CurrentFrame();
+	// Returns a list of the frames that are currently local, i.e. up to and
+	// and including the first non LOCAL_SCOPE frame. Returns 0 if there are
+	// no frames between the current frame and the GLOBAL_SCOPE frame. If this
+	// list is to be kept, the frames must be Ref()ed. The returned list is
+	// dynamically allocated, though.
+	frame_list* LocalFrames();
 
 	IValue* FrameElement( scope_type scope, int scope_offset, int frame_offset );
 	void SetFrameElement( scope_type scope, int scope_offset, int frame_offset,

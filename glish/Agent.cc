@@ -19,7 +19,13 @@ RCSID("@(#) $Id$")
 agent_list agents;
 
 
-Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame )
+Notifiee::Notifiee( Stmt* arg_stmt ) : frames(0), frame(0)
+	{
+	stmt = arg_stmt;
+	Ref( stmt );
+	}
+
+Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame ) : frames(0)
 	{
 	stmt = arg_stmt;
 	frame = arg_frame;
@@ -30,10 +36,31 @@ Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame )
 		Ref( frame );
 	}
 
+Notifiee::Notifiee( Stmt* arg_stmt, PList(Frame)* arg_frames ) : frame(0)
+	{
+	stmt = arg_stmt;
+	frames = arg_frames;
+
+	Ref( stmt );
+
+	if ( frames )
+		{
+		loop_over_list( *frames, i )
+			if ( (*frames)[i] )
+				Ref( (*frames)[i] );
+		}
+	}
+
 Notifiee::~Notifiee()
 	{
 	Unref( stmt );
 	Unref( frame );
+	if ( frames )
+		{
+		loop_over_list( *frames, i )
+			Unref( (*frames)[i] );
+		delete frames;
+		}
 	}
 
 Agent::Agent( Sequencer* s )

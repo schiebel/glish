@@ -37,6 +37,7 @@ RCSID("@(#) $Id$")
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+#include <setjmp.h>
 
 #include "input.h"
 #include "glishlib.h"
@@ -49,10 +50,14 @@ RCSID("@(#) $Id$")
 #endif
 
 static Sequencer* s;
+int glish_jmpbuf_set = 0;
+jmp_buf glish_top_level;
 
 #if USE_EDITLINE
 extern "C" void nb_readline_cleanup();
 #endif
+
+static void install_terminate_handlers();
 
 void glish_cleanup( )
 	{
@@ -67,9 +72,10 @@ void glish_signal_cleanup(int sig)
 
 	glish_cleanup( );
 
-#define GLISH_CLEANUP_ACTION(SIGNAL,SIGNAL_STR)						\
-	case SIGNAL:									\
-		fprintf(stderr,"\n[received '%s' (%d), exiting]\n",SIGNAL_STR,sig);	\
+#define GLISH_CLEANUP_ACTION(SIGNAL,SIGNAL_STR)					\
+	case SIGNAL:								\
+		fprintf(stderr,"\n[fatal error, '%s' (signal %d), exiting]\n",	\
+			SIGNAL_STR,sig);					\
 		break;
 
 	switch ( sig )
@@ -81,23 +87,37 @@ void glish_signal_cleanup(int sig)
 		GLISH_CLEANUP_ACTION(SIGBUS,"bus error")
 		GLISH_CLEANUP_ACTION(SIGILL,"illegal instruction")
 		GLISH_CLEANUP_ACTION(SIGSEGV,"segmentation violation")
+		GLISH_CLEANUP_ACTION(SIGEMT,"hardware fault")
+		GLISH_CLEANUP_ACTION(SIGFPE,"floating point exception")
+		GLISH_CLEANUP_ACTION(SIGQUIT,"quit signal")
+		GLISH_CLEANUP_ACTION(SIGSYS,"invalid system call")
+		GLISH_CLEANUP_ACTION(SIGTRAP,"hardware fault")
 		default:
-			fprintf(stderr,"\n[recieved signal %d, exiting]\n",sig);
+			fprintf(stderr,"\n[fatal error, signal %d, exiting]\n",sig);
 		}
 
-	exit( sig );
+	install_signal_handler( sig, SIG_DFL );
+	kill(getpid(), sig);
+	}
+
+void glish_sigint(int sig)
+	{
+	if ( glish_jmpbuf_set )
+		longjmp( glish_top_level, 1 );
+
+	install_signal_handler( sig, SIG_DFL );
+	kill(getpid(), sig);
 	}
 
 int main( int argc, char** argv )
 	{
-	(void) install_signal_handler( SIGINT, glish_signal_cleanup );
+	install_terminate_handlers();
+
+	(void) install_signal_handler( SIGINT, glish_sigint );
 	(void) install_signal_handler( SIGHUP, glish_signal_cleanup );
 	(void) install_signal_handler( SIGTERM, glish_signal_cleanup );
-
 	(void) install_signal_handler( SIGABRT, glish_signal_cleanup );
-	(void) install_signal_handler( SIGBUS, glish_signal_cleanup );
-	(void) install_signal_handler( SIGILL, glish_signal_cleanup );
-	(void) install_signal_handler( SIGSEGV, glish_signal_cleanup );
+	(void) install_signal_handler( SIGQUIT, glish_signal_cleanup );
 
 	s = new Sequencer( argc, argv );
 
@@ -109,6 +129,18 @@ int main( int argc, char** argv )
 
 	return 0;
 	}
+
+static void install_terminate_handlers()
+	{
+	(void) install_signal_handler( SIGSEGV, glish_signal_cleanup );
+	(void) install_signal_handler( SIGBUS, glish_signal_cleanup );
+	(void) install_signal_handler( SIGILL, glish_signal_cleanup );
+	(void) install_signal_handler( SIGEMT, glish_signal_cleanup );
+	(void) install_signal_handler( SIGFPE, glish_signal_cleanup );
+	(void) install_signal_handler( SIGTRAP, glish_signal_cleanup );
+	(void) install_signal_handler( SIGSYS, glish_signal_cleanup );
+	}
+
 
 #if USE_EDITLINE
 

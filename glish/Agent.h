@@ -11,6 +11,7 @@ class Frame;
 class Task;
 class Agent;
 class NotifyTrigger;
+class PList(Frame);
 
 declare(List,string);
 typedef List(string) string_list;
@@ -18,14 +19,17 @@ typedef List(string) string_list;
 declare(PList,Agent);
 typedef PList(Agent) agent_list;
 
-
 class Notifiee {
     public:
+	Notifiee( Stmt* arg_stmt );
 	Notifiee( Stmt* arg_stmt, Frame* arg_frame );
+	Notifiee( Stmt* arg_stmt, PList(Frame)* arg_frames );
+
 	~Notifiee();
 
 	Stmt* stmt;
 	Frame* frame;
+	PList(Frame)* frames;
 	};
 
 declare(PList,Notifiee);

@@ -908,16 +908,32 @@ void Sequencer::PushFrame( Frame* new_frame )
 		global_frames.append( frames.length() - 1 );
 	}
 
-Frame* Sequencer::PopFrame()
+void Sequencer::PushFrame( frame_list &new_frames )
+	{
+	loop_over_list( new_frames, i )
+		{
+		Frame *new_frame = new_frames[i];
+		frames.append( new_frame );
+
+		if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
+			global_frames.append( frames.length() - 1 );
+		}
+	}
+
+Frame* Sequencer::PopFrame( unsigned int howmany )
 	{
 	int top_frame_pos = frames.length() - 1;
-	if ( top_frame_pos < 0 )
+	if ( top_frame_pos < howmany - 1 )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
 
-	Frame *top_frame = frames.remove_nth( top_frame_pos );
-	if ( top_frame && top_frame->GetScopeType() != LOCAL_SCOPE )
-		global_frames.remove( top_frame_pos );
+	Frame *top_frame = 0;
+	for ( int i = top_frame_pos; howmany > 0; howmany-- )
+		{
+		top_frame = frames.remove_nth( i );
+		if ( top_frame && top_frame->GetScopeType() != LOCAL_SCOPE )
+			global_frames.remove( i );
+		}
 
 	return top_frame;
 	}
@@ -931,6 +947,24 @@ Frame* Sequencer::CurrentFrame()
 	return frames[top_frame];
 	}
 
+frame_list* Sequencer::LocalFrames()
+	{
+	int top_frame = frames.length() - 1;
+	if ( top_frame < 0 )
+		return 0;
+
+	int pos = 0;
+	frame_list *ret = new frame_list;
+	int len = global_frames.length() - 1;
+
+	if ( len >= 0 )
+		pos = global_frames[len];
+
+	while ( pos <= top_frame )
+		ret->append( frames[pos++] );
+
+	return ret;
+	}
 
 IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 					int frame_offset )
@@ -1826,7 +1860,9 @@ void Sequencer::RunQueue()
 		if ( verbose > 1 )
 			message->Report( "doing", n );
 
-		if ( n->notifiee->frame )
+		if ( n->notifiee->frames )
+			PushFrame( *n->notifiee->frames );
+		else if ( n->notifiee->frame )
 			PushFrame( n->notifiee->frame );
 
 		IValue* notifier_val = n->notifier->AgentRecord();
@@ -1846,7 +1882,9 @@ void Sequencer::RunQueue()
 		Ref( n );
 		n->notifiee->stmt->Notify( n->notifier );
 
-		if ( n->notifiee->frame )
+		if ( n->notifiee->frames )
+			(void) PopFrame( n->notifiee->frames->length() );
+		else if ( n->notifiee->frame )
 			(void) PopFrame();
 
 		if ( n->trigger )

@@ -127,10 +127,10 @@ int WheneverStmt::canDelete() const
 IValue* WheneverStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
-	Frame* frame = sequencer->CurrentFrame();
+	frame_list* frames = sequencer->LocalFrames();
 
 	loop_over_list( *trigger, i )
-		(*trigger)[i]->Register( new Notifiee( this, frame ) );
+		(*trigger)[i]->Register( new Notifiee( this, frames ) );
 
 	active = 1;
 
@@ -361,12 +361,12 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	loop_over_list( *await_list, i )
-		(*await_list)[i]->Register( new Notifiee( this, 0 ) );
+		(*await_list)[i]->Register( new Notifiee( this ) );
 
 	if ( except_list )
 		loop_over_list( *except_list, j )
 			(*except_list)[j]->Register(
-					new Notifiee( except_stmt, 0 ) );
+					new Notifiee( except_stmt ) );
 
 	sequencer->Await( this, only_flag, except_stmt );
 
