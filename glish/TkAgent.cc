@@ -1783,6 +1783,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		{
 		Ref( tlead );
 		tpos = strdup(tpos_);
+		while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
 		}
 
 	if ( top_created )
@@ -2556,7 +2557,7 @@ int TkFrame::CanExpand() const
 
 Rivetobj TkFrame::TopLevel( )
 	{
-	return frame ? frame->Self() : canvas ? canvas->Self() :
+	return frame ? frame->TopLevel() : canvas ? canvas->TopLevel() :
 		pseudo ? pseudo : root;
 	}
 
