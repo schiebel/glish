@@ -19,7 +19,7 @@ RCSID("@(#) $Id$")
 #define INTERESTED_IN_ALL "*"
 
 
-agent_list *agents;
+agent_list *agents = 0;
 
 
 Notifiee::Notifiee( Stmt* arg_stmt ) : frame_(0), stack_(0)
