@@ -815,8 +815,14 @@ char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
-		tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
-			     cmd, " {", args->StringPtr(0)[0], "}", 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ",
+			     Self->Index(), SP, cmd, " {", args->StringPtr(0)[0], "}", 0 );
+	else if ( args->Length() == 0 )
+		{
+		tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()),
+			     " entrycget ", Self->Index(), SP, cmd, 0 );
+		ret = Tcl_GetStringResult(a->Interp());
+		}
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -2432,11 +2438,11 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 
         menu->Add(this);
 
-	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr));
-	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr));
+	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr, glishtk_str));
+	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr, glishtk_str));
 	procs.Insert("bitmap", new TkProc(this, "-bitmap", glishtk_bitmap, glishtk_str));
-	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr));
-	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr));
+	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr, glishtk_str));
+	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr, glishtk_str));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
@@ -2640,6 +2646,44 @@ int scalecb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	return TCL_OK;
 	}
 
+char *glishtk_scale_ends(TkProxy *a, const char *cmd, Value *args )
+	{
+	char *ret = 0;
+	Tcl_Interp *tcl = a->Interp();
+	Tk_Window self = a->Self();
+	TkScale *s = (TkScale*)a;
+
+	if ( args->Length() > 0 )
+		{
+		double value = 0;
+		if ( args->IsNumeric() )
+			{
+			char buf[30];
+			sprintf(buf," %f",(value=args->DoubleVal()));
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, buf, 0 );
+			}
+		else if ( args->Type() == TYPE_STRING )
+			{
+			const char *str =  args->StringPtr(0)[0];
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, str, 0 );
+			value = strtod( str, 0 );
+			}
+
+		if ( cmd[1] == 't' )
+			s->SetEnd( value );
+		else
+			s->SetStart( value );
+
+		}
+	else
+		{
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
+		}
+
+	return ret;
+	}
+
 char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	{
 	TkScale *s = (TkScale*)a;
@@ -2649,6 +2693,55 @@ char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	tcl_VarEval( s->Interp(), Tk_PathName(s->Self()), " get", 0 );
 	return Tcl_GetStringResult(s->Interp());
 	}
+
+
+#define DEFINE_ENABLE_FUNCS(CLASS)				\
+void CLASS::EnterEnable()					\
+	{							\
+	if ( ! enable_state ) 					\
+		{						\
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 ); \
+		const char *curstate = Tcl_GetStringResult(tcl); \
+		if ( ! strcmp("disabled", curstate ) )		\
+			{					\
+			enable_state++;				\
+			tcl_VarEval( tcl, Tk_PathName(self),	\
+				     " config -state normal", 0 ); \
+			}					\
+		}						\
+	}							\
+								\
+void CLASS::ExitEnable()					\
+	{							\
+	if ( enable_state && --enable_state == 0 )		\
+		tcl_VarEval( tcl, Tk_PathName(self),		\
+			     " config -state disabled", 0 );	\
+	}							\
+								\
+void CLASS::Disable( )						\
+	{							\
+	disable_count++;					\
+	tcl_VarEval( tcl, Tk_PathName(self),			\
+		     " config -state disabled", 0 );		\
+	}							\
+								\
+void CLASS::Enable( int force )					\
+	{							\
+	if ( disable_count <= 0 ) return;			\
+								\
+	if ( force )						\
+		disable_count = 0;				\
+	else							\
+		disable_count--;				\
+								\
+	if ( disable_count ) return;				\
+								\
+	tcl_VarEval( tcl, Tk_PathName(self),			\
+		     " config -state normal", 0 );		\
+	}
+
+
+DEFINE_ENABLE_FUNCS(TkScale)
 
 TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, double value, charptr len,
 		   charptr text, double resolution, charptr orient, int width, charptr font,
@@ -2741,15 +2834,18 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	SetValue(value);
 
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-	procs.Insert("end", new TkProc("-to", glishtk_onedouble, glishtk_strtofloat));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
-	procs.Insert("start", new TkProc("-from", glishtk_onedouble, glishtk_strtofloat));
+	procs.Insert("end", new TkProc(this, "-to", glishtk_scale_ends, glishtk_strtofloat));
+	procs.Insert("start", new TkProc(this, "-from", glishtk_scale_ends, glishtk_strtofloat));
 	procs.Insert("text", new TkProc("-label", glishtk_onestr, glishtk_str));
 	procs.Insert("value", new TkProc(this, "", glishtk_scale_value, glishtk_strtofloat));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 void TkScale::ValueSet( double d )
@@ -2769,6 +2865,9 @@ void TkScale::SetValue( double d )
 		tcl_VarEval( tcl, Tk_PathName(self), " set ", val, 0 );
 		}
 	}
+
+void TkScale::SetStart( double d ) { to_ = d; }
+void TkScale::SetEnd( double d ) { from_ = d; }
 
 void TkScale::Create( ProxyStore *s, Value *args )
 	{
@@ -2841,50 +2940,6 @@ int text_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	return TCL_OK;
 	}
 
-#define DEFINE_ENABLE_FUNCS(CLASS)				\
-void CLASS::EnterEnable()					\
-	{							\
-	if ( ! enable_state ) 					\
-		{						\
-		tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 ); \
-		const char *curstate = Tcl_GetStringResult(tcl); \
-		if ( ! strcmp("disabled", curstate ) )		\
-			{					\
-			enable_state++;				\
-			tcl_VarEval( tcl, Tk_PathName(self),	\
-				     " config -state normal", 0 ); \
-			}					\
-		}						\
-	}							\
-								\
-void CLASS::ExitEnable()					\
-	{							\
-	if ( enable_state && --enable_state == 0 )		\
-		tcl_VarEval( tcl, Tk_PathName(self),		\
-			     " config -state disabled", 0 );	\
-	}							\
-								\
-void CLASS::Disable( )						\
-	{							\
-	disable_count++;					\
-	tcl_VarEval( tcl, Tk_PathName(self),			\
-		     " config -state disabled", 0 );		\
-	}							\
-								\
-void CLASS::Enable( int force )					\
-	{							\
-	if ( disable_count <= 0 ) return;			\
-								\
-	if ( force )						\
-		disable_count = 0;				\
-	else							\
-		disable_count--;				\
-								\
-	if ( disable_count ) return;				\
-								\
-	tcl_VarEval( tcl, Tk_PathName(self),			\
-		     " config -state normal", 0 );		\
-	}
 
 DEFINE_ENABLE_FUNCS(TkText)
 

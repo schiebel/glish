@@ -229,8 +229,16 @@ class TkScale : public TkProxy {
 	void ValueSet( double );
 	// set value
 	void SetValue( double );
+	void SetStart( double );
+	void SetEnd( double );
 	static void Create( ProxyStore *, Value * );
 	~TkScale();
+
+	void EnterEnable();
+	void ExitEnable();
+
+	void Disable( );
+	void Enable( int force = 1 );
 
 	const char **PackInstruction();
 	int CanExpand() const;
