@@ -105,12 +105,12 @@ distclean: clean
 	rm -f config.status config.cache config.h Makefile
 
 $(D)editline.o: $(SRC)/editline.c
-	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(INC) -c $(SRC)/editline.c $(T)
+	$(CC) $(INC) $(CFLAGS) $(LOCAL_CFLAGS) -c $(SRC)/editline.c $(T)
 
 $(D)complete.o: $(SRC)/complete.c
-	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(INC) -c $(SRC)/complete.c $(T)
+	$(CC) $(INC) $(CFLAGS) $(LOCAL_CFLAGS) -c $(SRC)/complete.c $(T)
 
 $(D)sysunix.o: $(SRC)/sysunix.c
-	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(INC) -c $(SRC)/sysunix.c $(T)
+	$(CC) $(INC) $(CFLAGS) $(LOCAL_CFLAGS) -c $(SRC)/sysunix.c $(T)
 
 INSTALL_:

@@ -111,7 +111,7 @@ libnpd$(LIB_SUFFIX): $(OBJS_PROXY)
 	$(MINSPACE_RM) $(OBJS)
 
 glishkey: libnpd$(LIB_SUFFIX) genkey.o
-	$(CC) $(CFLAGS) $(INC) -o glishkey genkey.o libnpd$(LIB_SUFFIX) -lm @LIBS@
+	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) -lm @LIBS@
 
 $(LIBDIR_P)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
@@ -155,19 +155,19 @@ distclean: clean
 	rm -f config.status config.cache config.h Makefile
 
 $(D)auth.o: $(SRC)/auth.c $(HEADERDIR)/md5.h $(HEADERDIR)/util.h $(HEADERDIR)/auth.h
-	$(CC) $(CFLAGS) $(INC) -c $(SRC)/auth.c	$(T)
+	$(CC) $(INC) $(CFLAGS) -c $(SRC)/auth.c	$(T)
 
 $(D)npd.o: $(SRC)/npd.c $(SRC)/version.h $(HEADERDIR)/auth.h $(HEADERDIR)/util.h
-	$(CC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" $(INC) -c $(SRC)/npd.c	$(T)
+	$(CC) $(INC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" -c $(SRC)/npd.c	$(T)
 
 $(D)md5c.o: $(SRC)/md5c.c $(HEADERDIR)/md5.h
-	$(CC) $(CFLAGS) $(INC) -c $(SRC)/md5c.c $(T)
+	$(CC) $(INC) $(CFLAGS) -c $(SRC)/md5c.c $(T)
 
 $(D)util.o: $(SRC)/util.c $(HEADERDIR)/util.h
-	$(CC) $(CFLAGS) $(INC) -c $(SRC)/util.c $(T)
-#	$(CC) $(CFLAGS) -DLOG_FMT=\"$(LOGDIR)/%s.%s@%s.log\" $(INC) -c $(SRC)/util.c
+	$(CC) $(INC) $(CFLAGS) -c $(SRC)/util.c $(T)
+#	$(CC) $(INC) $(CFLAGS) -DLOG_FMT=\"$(LOGDIR)/%s.%s@%s.log\" -c $(SRC)/util.c
 
 genkey.o: $(SRC)/genkey.c $(HEADERDIR)/util.h
-	$(CC) $(CFLAGS) $(INC) -c $(SRC)/genkey.c
+	$(CC) $(INC) $(CFLAGS) -c $(SRC)/genkey.c
 
 INSTALL_:
