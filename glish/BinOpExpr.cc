@@ -1,5 +1,7 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include <string.h>
 #include <math.h>
 #include "Reporter.h"

@@ -1,4 +1,4 @@
-# $Header$
+# $Id$
 
 function is_boolean( const x )	type_name(x) == "boolean"
 function is_byte( const x )	type_name(x) == "byte"

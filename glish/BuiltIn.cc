@@ -1,5 +1,9 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
+#include "system.h"
+
 #include <string.h>
 #include <stream.h>
 #include <stdlib.h>
@@ -9,6 +13,7 @@
 #include <values.h>
 
 #include "Sds/sdsgen.h"
+#include "Npd/npd.h"
 #include "glish_event.h"
 #include "BuiltIn.h"
 #include "Reporter.h"
@@ -17,11 +22,19 @@
 #include "Frame.h"
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
+#if defined(HUGE_VAL)
+#define HUGE HUGE_VAL
+#else
 #define HUGE (infinity())
-#define MAXINT 0x7fffffff
+#endif
 
+#if !defined(MAXINT)
+#define MAXINT 0x7fffffff
+#endif
+#if !defined(MAXFLOAT)
 // Half-assed guess.
 #define MAXFLOAT 1e38
+#endif
 #endif
 
 
@@ -888,15 +901,83 @@ Value* NthArgBuiltIn::DoCall( const_args_list* args_val )
 	return copy_value( (*args_val)[n] );
 	}
 
-Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 	{
-	Frame* cur = sequencer->CurrentFrame();
-	if ( ! cur )
-		return empty_value();
+	int len = args_val->length();
+	const Value *val = 0;
+	int arg1 = 0;
+	int arg2 = 0;
 
-	return copy_value( cur->Missing() );
+	if ( len > 2 )
+		{
+		error->Report( this, " takes from zero to two arguments" );
+		return error_value();
+		}
+
+	if ( len >= 1 )
+		{
+		val = (*args_val)[0];
+
+		if ( ! val->IsNumeric() )
+			{
+			error->Report( "non-numeric parameter invalid for",
+						this );
+			return error_value();
+			}
+
+		arg1 = val->IntVal();
+		}
+
+	if ( len == 2 ) 
+		{
+		val = (*args_val)[1];
+
+		if ( ! val->IsNumeric() )
+			{
+			error->Report( "non-numeric parameter invalid for",
+						this );
+			return error_value();
+			}
+
+		arg2 = val->IntVal();
+
+		if ( arg1 > arg2 )
+			{
+			int tmp = arg1;
+			arg1 = arg2;
+			arg2 = tmp;
+			}
+		}
+
+	Value *ret = 0;
+	if ( len <= 1 )
+		{
+		if ( arg1 < 1 )
+			ret = new Value( (int) random_long() );
+		else
+			{
+			int *ival = new int[arg1];
+			for ( int i = arg1 - 1; i >= 0; i-- )
+				ival[i] = (int) random_long();
+
+			ret = new Value( ival, arg1 );
+			}
+		}
+	else
+		{
+		int diff = arg2 - arg1;
+		if ( diff <= 0 )
+			{
+			error->Report( "invalid range for",
+						this );
+			return error_value();
+			}
+		ret =  new Value( (int)((unsigned long)random_long() % 
+						(diff+1)) + arg1 );
+		}
+
+	return ret;
 	}
-
 
 Value* PasteBuiltIn::DoCall( const_args_list* args_val )
 	{
@@ -1080,6 +1161,14 @@ Value* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return user_agent->AgentRecord();
 	}
 
+Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+	{
+	Frame* cur = sequencer->CurrentFrame();
+	if ( ! cur )
+		return empty_value();
+
+	return copy_value( cur->Missing() );
+	}
 
 Value* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -1498,7 +1587,7 @@ dcomplex atan( const dcomplex )
 	return dcomplex( 0, 0 );
 	}
 
-void create_built_ins( Sequencer* s )
+void create_built_ins( Sequencer* s, const char *program_name )
 	{
 	add_one_arg_built_in( s, as_boolean_built_in, "as_boolean" );
 	add_one_arg_built_in( s, as_byte_built_in, "as_byte" );
@@ -1535,6 +1624,7 @@ void create_built_ins( Sequencer* s )
 	s->AddBuiltIn( new RepBuiltIn );
 	s->AddBuiltIn( new NumArgsBuiltIn );
 	s->AddBuiltIn( new NthArgBuiltIn );
+	s->AddBuiltIn( new RandomBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
 
 	s->AddBuiltIn( new PasteBuiltIn );
@@ -1554,4 +1644,8 @@ void create_built_ins( Sequencer* s )
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 
 	sds_init();
+
+#ifdef AUTHENTICATE
+	init_log( program_name );
+#endif
 	}

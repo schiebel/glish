@@ -299,6 +299,19 @@ class ReturnStmt : public Stmt {
 	};
 
 
+class StmtBlock : public Stmt {
+    public:
+	StmtBlock( int fsize, Stmt *arg_stmt, Sequencer *arg_sequencer );
+
+	Value *DoExec( int value_needed, stmt_flow_type &flow );
+
+	void Describe( ostream& s ) const;
+    protected:
+	Sequencer *sequencer;
+	Stmt *stmt;
+	int frame_size;
+	};
+
 class NullStmt : public Stmt {
     public:
 	NullStmt()	{ description = ";"; }
