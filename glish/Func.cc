@@ -179,11 +179,11 @@ UserFunc::~UserFunc()
 		Unref( misc );
 	}
 
-IValue* UserFunc::Call( parameter_list* args, eval_type etype )
+IValue* UserFunc::Call( parameter_list* args, evalOpt &opt )
 	{
 	IValue *last = FailStmt::SwapFail(0);
 
-	IValue *ret = kernel->Call(args, etype,stack);
+	IValue *ret = kernel->Call(args, opt, stack);
 
 	if ( ret && ret->Type() != TYPE_FAIL )
 		FailStmt::SetFail(last);
@@ -254,7 +254,7 @@ UserFuncKernel::~UserFuncKernel()
 	NodeUnref( body );
 	}
 
-IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type *stack )
+IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *stack )
 	{
 	if ( ! valid )
 		return error_ivalue( "function not valid" );
@@ -522,7 +522,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 		if ( stack ) sequencer->PushFrames( stack );
 		sequencer->PushFrame( call_frame );
 
-		result = DoCall( etype, stack );
+		result = DoCall( opt, stack );
 		// No need to Unref() missing_val, Sequencer::PopFrame did
 		// that for us.
 
@@ -559,7 +559,7 @@ static void list_element_unref( void *vp )
 	Unref( (GcRef*) vp );
 	}
 
-IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
+IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 	{
 	if ( subsequence_expr )
 		{
@@ -570,8 +570,8 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 			self->SetReflect( );
 		}
 
-	int value_needed = etype != EVAL_SIDE_EFFECTS;
-	stmt_flow_type flow;
+	evalOpt flow;
+	if ( ! opt.side_effects() ) flow.set(evalOpt::VALUE_NEEDED);
 
 	//
 	// need to set "file_name" for errors during execution
@@ -585,7 +585,7 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 		}
 	unsigned short old_file_name = file_name;
 	file_name = file;
-	IValue* result = body->Exec( value_needed, flow );
+	IValue* result = body->Exec( flow );
 
 	if ( top_func )
 		{
@@ -631,7 +631,7 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 		result = subsequence_expr->RefEval( VAL_REF );
 		file_name = old_file_name;
 
-		if ( etype == EVAL_SIDE_EFFECTS )
+		if ( opt.side_effects() )
 			warn->Report( "agent returned by subsequence ignored" );
 		}
 

@@ -56,13 +56,6 @@ glish_declare(PDict,stmt_list);
 typedef PDict(stmt_list) stmt_list_dict;
 
 
-typedef enum {
-	FLOW_NEXT,		// continue on to next statement
-	FLOW_LOOP,		// go to top of loop
-	FLOW_BREAK,		// break out of loop
-	FLOW_RETURN		// return from function
-	} stmt_flow_type;
-
 class Stmt : public ParseNode {
     public:
 	Stmt()
@@ -84,7 +77,7 @@ class Stmt : public ParseNode {
 	// Exec() returns a value associated with the statement or 0
 	// if there is none, and in "flow" returns a stmt_flow_type
 	// indicating control flow information.
-	virtual IValue* Exec( int value_needed, stmt_flow_type& flow );
+	virtual IValue* Exec( evalOpt &opt );
 	// Returns true if this statement is going to do an echo of itself
 	// AS PART OF EVALUATION, I.E. "DoExec()", if trace is turned on.
 	virtual int DoesTrace( ) const;
@@ -125,7 +118,7 @@ class Stmt : public ParseNode {
 
     protected:
 	// DoExec() does the real work of executing the statement.
-	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
+	virtual IValue* DoExec( evalOpt &opt ) = 0;
 
 	int index;
 	};
@@ -135,7 +128,7 @@ class SeqStmt : public Stmt {
     public:
 	SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 
 	int Describe( OStream&, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -164,7 +157,7 @@ class WheneverStmt : public Stmt {
 
 	virtual ~WheneverStmt();
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	void Notify( Agent* agent );
 
 	Notification::Type NoteType( ) const;
@@ -214,7 +207,7 @@ class WheneverStmtCtor : public Stmt {
 
 	virtual ~WheneverStmtCtor();
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -240,7 +233,7 @@ class LinkStmt : public Stmt {
     public:
 	LinkStmt( event_dsg_list* source, event_dsg_list* sink, Sequencer* sequencer );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -281,7 +274,7 @@ class AwaitStmt : public Stmt {
 		   event_dsg_list* arg_except_list,
 		   Sequencer* arg_sequencer );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	void Notify( Agent* agent );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -313,7 +306,7 @@ class ActivateStmt : public Stmt {
     public:
 	ActivateStmt( int activate, Expr* e, Sequencer* sequencer );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -335,7 +328,7 @@ class IfStmt : public Stmt {
 		Stmt* arg_true_branch,
 		Stmt* arg_false_branch );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -358,7 +351,7 @@ class ForStmt : public Stmt {
 	ForStmt( Expr* index_expr, Expr* range_expr,
 		 Stmt* body_stmt );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -380,7 +373,7 @@ class WhileStmt : public Stmt {
     public:
 	WhileStmt( Expr* test_expr, Stmt* body_stmt );
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -401,7 +394,7 @@ class PrintStmt : public Stmt {
     public:
 	PrintStmt( parameter_list* arg_args ) {	args = arg_args; }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -419,7 +412,7 @@ class FailStmt : public Stmt {
     public:
 	FailStmt( Expr* arg_arg ) { arg = arg_arg; }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -445,7 +438,7 @@ class IncludeStmt : public Stmt {
 			sequencer( arg_sequencer )
 		{ arg = arg_arg; }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -464,7 +457,7 @@ class ExprStmt : public Stmt {
     public:
 	ExprStmt( Expr* arg_expr ) { expr = arg_expr; }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int DoesTrace( ) const;
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
@@ -489,7 +482,7 @@ class ExitStmt : public Stmt {
 		can_delete = 1;
 		}
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -511,7 +504,7 @@ class LoopStmt : public Stmt {
     public:
 	LoopStmt()	{ }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 
 	~LoopStmt();
 
@@ -523,7 +516,7 @@ class BreakStmt : public Stmt {
     public:
 	BreakStmt()	{ }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 
 	~BreakStmt();
 
@@ -536,7 +529,7 @@ class ReturnStmt : public Stmt {
 	ReturnStmt( Expr* arg_retval )
 		{ retval = arg_retval; }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -554,7 +547,7 @@ class StmtBlock : public Stmt {
     public:
 	StmtBlock( int fsize, Stmt *arg_stmt, Sequencer *arg_sequencer );
 
-	IValue *DoExec( int value_needed, stmt_flow_type &flow );
+	IValue *DoExec( evalOpt &opt );
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -574,7 +567,7 @@ class NullStmt : public Stmt {
     public:
 	NullStmt()	{ }
 
-	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	IValue* DoExec( evalOpt &opt );
 
 	~NullStmt();
 

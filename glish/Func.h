@@ -19,7 +19,7 @@ typedef PList(Parameter) parameter_list;
 
 class Func : public GlishObject {
     public:
-	virtual IValue* Call( parameter_list* args, eval_type etype ) = 0;
+	virtual IValue* Call( parameter_list* args, evalOpt &opt ) = 0;
 
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
@@ -123,8 +123,8 @@ class UserFuncKernel : public GlishObject {
 			const IValue *attributes, IValue *&err );
 	~UserFuncKernel();
 
-	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
-	IValue* DoCall( eval_type etype, stack_type *stack = 0 );
+	IValue* Call( parameter_list* args, evalOpt &opt, stack_type *stack = 0);
+	IValue* DoCall( evalOpt &opt, stack_type *stack = 0 );
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -167,7 +167,7 @@ class UserFunc : public Func {
 
 	~UserFunc();
 
-	IValue* Call( parameter_list* args, eval_type etype );
+	IValue* Call( parameter_list* args, evalOpt &opt );
 
 	void EstablishScope();
 	UserFunc *clone() { return new UserFunc(this); }

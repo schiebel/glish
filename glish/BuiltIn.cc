@@ -55,7 +55,7 @@ const char *BuiltIn::Description() const
 	return description;
 	}
 
-IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
+IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 	{
 	if ( num_args != NUM_ARGS_VARIES )
 		{
@@ -142,7 +142,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 
 	if ( do_call && ! fail )
 		{
-		if ( etype == EVAL_SIDE_EFFECTS )
+		if ( opt.side_effects() )
 			{
 			int side_effects_okay = 0;
 			DoSideEffectsCall( args_vals, side_effects_okay );
@@ -2175,7 +2175,8 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 				parameter_list p;
 				Parameter arg( VAL_CONST, (Expr*) member ); Ref( (Expr*) member );
 				p.append( &arg );
-				IValue *r = func->Call( &p, EVAL_COPY );
+				evalOpt opt(evalOpt::COPY);
+				IValue *r = func->Call( &p, opt );
 				if ( r && r->IsNumeric() )
 					flag = r->IntVal();
 				Unref( r );
@@ -2734,7 +2735,8 @@ char* paste( parameter_list* args )
 	loop_over_list( *args, i )
 		args2.append( (*args)[i] );
 
-	IValue* args_value = paste.Call( &args2, EVAL_COPY );
+	evalOpt opt(evalOpt::COPY);
+	IValue* args_value = paste.Call( &args2, opt );
 
 	// ### could save on some string copies here by returning the
 	// value instead, and using StringPtr() instead of StringVal()

@@ -73,18 +73,19 @@ Notification::Type Stmt::NoteType( ) const
 	return Notification::UNKNOWN;
 	}
 
-IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
+IValue* Stmt::Exec( evalOpt &flow )
 	{
 	unsigned short prev_line_num = line_num;
 
 	line_num = Line();
-	flow = FLOW_NEXT;
+	
+	flow.set(evalOpt::NEXT);
 
 	if ( Sequencer::CurSeq()->System().Trace() )
 		if ( ! DoesTrace() && Describe(message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
 			message->Stream() << endl;
 
-	IValue* result = DoExec( value_needed, flow );
+	IValue* result = DoExec( flow );
 
 	line_num = prev_line_num;
 
@@ -132,14 +133,19 @@ SeqStmt::SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs )
 	rhs = arg_rhs;
 	}
 
-IValue* SeqStmt::DoExec( int value_needed, stmt_flow_type& flow )
+IValue* SeqStmt::DoExec( evalOpt &flow )
 	{
-	IValue* result = lhs->Exec( 0, flow );
+	// Must preserve value_needed flag; it would be
+	// nice to have a more elegant way to do this...
+	int value_needed = flow.value_needed();
+	flow.clear(evalOpt::VALUE_NEEDED);
+	IValue* result = lhs->Exec( flow );
+	if ( value_needed ) flow.set(evalOpt::VALUE_NEEDED);
 
-	if ( flow == FLOW_NEXT )
+	if ( flow.Next() )
 		{
 		Unref( result );
-		result = rhs->Exec( value_needed, flow );
+		result = rhs->Exec( flow );
 		}
 
 	return result;
@@ -226,8 +232,7 @@ void WheneverStmtCtor::CollectUnref( stmt_list &del_list )
 		}
 	}
 
-IValue* WheneverStmtCtor::DoExec( int /* value_needed */,
-				stmt_flow_type& /* flow */ )
+IValue* WheneverStmtCtor::DoExec( evalOpt & )
 	{
 	if ( ! cur )
 		new WheneverStmt( trigger, stmt, sequencer, misc, in_subsequence );
@@ -328,7 +333,7 @@ int WheneverStmt::canDelete() const
 
 void WheneverStmt::Notify( Agent* /* agent */ )
 	{
-	stmt_flow_type flow;
+	evalOpt flow;
 
 	notify_count += 1;
 
@@ -337,12 +342,12 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 	//
 	unsigned short old_file_name = file_name;
 	file_name = file;
-	Unref( stmt->Exec( 0, flow ) );
+	Unref( stmt->Exec( flow ) );
 	file_name = old_file_name;
 
 	notify_count -= 1;
 
-	if ( flow != FLOW_NEXT )
+	if ( ! flow.Next() )
 		warn->Report( "loop/break/return does not make sense inside",
 				this );
 	}
@@ -387,7 +392,7 @@ int WheneverStmt::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
-IValue* WheneverStmt::DoExec( int, stmt_flow_type& )
+IValue* WheneverStmt::DoExec( evalOpt & )
 	{
 	return 0;
 	}
@@ -441,7 +446,7 @@ LinkStmt::LinkStmt( event_dsg_list* arg_source, event_dsg_list* arg_sink,
 	sequencer = arg_sequencer;
 	}
 
-IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* LinkStmt::DoExec( evalOpt & )
 	{
 	IValue *err = 0;
 	loop_over_list( *source, i )
@@ -625,7 +630,7 @@ AwaitStmt::AwaitStmt( event_dsg_list* arg_await_list, int arg_only_flag,
 	except_stmt = this;
 	}
 
-IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* AwaitStmt::DoExec( evalOpt & )
 	{
 	Notifiee *note = new Notifiee( this, sequencer );
 	loop_over_list( *await_list, i )
@@ -747,8 +752,7 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 	sequencer = arg_sequencer;
 	}
 
-IValue* ActivateStmt::DoExec( int /* value_needed */,
-				stmt_flow_type& /* flow */ )
+IValue* ActivateStmt::DoExec( evalOpt & )
 	{
 	if ( expr )
 		{
@@ -843,7 +847,7 @@ IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 	false_branch = arg_false_branch;
 	}
 
-IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
+IValue* IfStmt::DoExec( evalOpt &flow )
 	{
 	const IValue* test_value = expr->ReadOnlyEval();
 	Str err;
@@ -858,11 +862,11 @@ IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	if ( take_true_branch )
 		{
 		if ( true_branch )
-			result = true_branch->Exec( value_needed, flow );
+			result = true_branch->Exec( flow );
 		}
 
 	else if ( false_branch )
-		result = false_branch->Exec( value_needed, flow );
+		result = false_branch->Exec( flow );
 
 	return result;
 	}
@@ -920,7 +924,7 @@ ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
 	body = body_stmt;
 	}
 
-IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* ForStmt::DoExec( evalOpt &flow )
 	{
 	IValue* range_value = range->CopyEval();
 
@@ -952,19 +956,25 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 			index->Assign( iter_value );
 
 			Unref( result );
-			result = body->Exec( 0, flow );
+
+			// Must preserve value_needed flag; it would be
+			// nice to have a more elegant way to do this...
+			int value_needed = flow.value_needed();
+			flow.clear(evalOpt::VALUE_NEEDED);
+			result = body->Exec( flow );
+			if ( value_needed ) flow.set(evalOpt::VALUE_NEEDED);
 
 			Unref( loop_counter );
 
-			if ( flow == FLOW_BREAK || flow == FLOW_RETURN )
+			if ( flow.Break() || flow.Return() )
 				break;
 			}
 		}
 
 	Unref( range_value );
 
-	if ( flow != FLOW_RETURN )
-		flow = FLOW_NEXT;
+	if ( ! flow.Return() )
+		flow.set(evalOpt::NEXT);
 
 	return result;
 	}
@@ -1011,7 +1021,7 @@ WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
 	body = body_stmt;
 	}
 
-IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* WhileStmt::DoExec( evalOpt &flow )
 	{
 	Str err;
 	IValue* result = 0;
@@ -1031,8 +1041,15 @@ IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 		if ( do_test )
 			{
 			Unref( result );
-			result = body->Exec( 0, flow );
-			if ( flow == FLOW_BREAK || flow == FLOW_RETURN )
+
+			// Must preserve value_needed flag; it would be
+			// nice to have a more elegant way to do this...
+			int value_needed = flow.value_needed();
+			flow.clear(evalOpt::VALUE_NEEDED);
+			result = body->Exec( flow );
+			if ( value_needed ) flow.set(evalOpt::VALUE_NEEDED);
+
+			if ( flow.Break() || flow.Return() )
 				break;
 			}
 
@@ -1040,8 +1057,8 @@ IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 			break;
 		}
 
-	if ( flow != FLOW_RETURN )
-		flow = FLOW_NEXT;
+	if ( ! flow.Return() )
+		flow.set(evalOpt::NEXT);
 
 	return result;
 	}
@@ -1072,7 +1089,7 @@ PrintStmt::~PrintStmt()
 		}
 	}
 
-IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* PrintStmt::DoExec( evalOpt & )
 	{
 	if ( args )
 		{
@@ -1109,9 +1126,9 @@ FailStmt::~FailStmt()
 	if ( arg ) NodeUnref( arg );
 	}
 
-IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* FailStmt::DoExec( evalOpt &flow )
 	{
-	flow = FLOW_RETURN;
+	flow.set(evalOpt::RETURN);
 
 	if ( arg )
 		ClearFail();
@@ -1176,7 +1193,7 @@ IncludeStmt::~IncludeStmt()
 	if ( arg ) NodeUnref( arg );
 	}
 
-IValue* IncludeStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* IncludeStmt::DoExec( evalOpt & )
 	{
 	const IValue *str_val = arg->ReadOnlyEval();
 	char *str = str_val->StringVal();
@@ -1211,9 +1228,9 @@ ExprStmt::~ExprStmt()
 	NodeUnref( expr );
 	}
 
-IValue* ExprStmt::DoExec( int value_needed, stmt_flow_type& /* flow */ )
+IValue* ExprStmt::DoExec( evalOpt &flow )
 	{
-	if ( value_needed && ! expr->Invisible() )
+	if ( flow.value_needed() && ! expr->Invisible() )
 		return expr->CopyEval();
 	else
 		return expr->SideEffectsEval();
@@ -1244,7 +1261,7 @@ int ExitStmt::canDelete() const
 	return can_delete;
 	}
 
-IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* ExitStmt::DoExec( evalOpt & )
 	{
 	can_delete = 0;
 
@@ -1279,9 +1296,9 @@ const char *LoopStmt::Description() const
 
 LoopStmt::~LoopStmt() { }
 
-IValue* LoopStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* LoopStmt::DoExec( evalOpt &flow )
 	{
-	flow = FLOW_LOOP;
+	flow.set(evalOpt::LOOP);
 	return 0;
 	}
 
@@ -1293,9 +1310,9 @@ const char *BreakStmt::Description() const
 
 BreakStmt::~BreakStmt() { }
 
-IValue* BreakStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* BreakStmt::DoExec( evalOpt &flow )
 	{
-	flow = FLOW_BREAK;
+	flow.set(evalOpt::BREAK);
 	return 0;
 	}
 
@@ -1309,9 +1326,9 @@ ReturnStmt::~ReturnStmt()
 	NodeUnref( retval );
 	}
 
-IValue* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+IValue* ReturnStmt::DoExec( evalOpt &flow )
 	{
-	flow = FLOW_RETURN;
+	flow.set(evalOpt::RETURN);
 
 	if ( retval )
 		return retval->CopyEval();
@@ -1358,7 +1375,7 @@ StmtBlock::StmtBlock( int fsize, Stmt *arg_stmt,
 	sequencer = arg_sequencer;
 	}
 
-IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
+IValue* StmtBlock::DoExec( evalOpt &flow )
 	{
 	IValue* result = 0;
 
@@ -1368,7 +1385,7 @@ IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
 
 		sequencer->PushFrame( call_frame );
 
-		result = stmt->Exec( value_needed, flow );
+		result = stmt->Exec( flow );
 
 		if ( sequencer->PopFrame() != call_frame )
 			fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
@@ -1378,7 +1395,7 @@ IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
 	else
 		{
 		sequencer->PushFrame( 0 );
-		result = stmt->Exec( value_needed, flow );
+		result = stmt->Exec( flow );
 		sequencer->PopFrame();
 		}
 
@@ -1407,7 +1424,7 @@ int NullStmt::canDelete() const
 	return 0;
 	}
 
-IValue* NullStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+IValue* NullStmt::DoExec( evalOpt & )
 	{
 	return 0;
 	}

@@ -26,7 +26,7 @@ class BuiltIn : public Func {
 		}
 
 	const char* Name()				{ return description; }
-	IValue* Call( parameter_list* args, eval_type etype );
+	IValue* Call( parameter_list* args, evalOpt &opt );
 
 	virtual IValue* DoCall( const_args_list* args_vals ) = 0;
 

@@ -645,7 +645,8 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		ActualParameter *p = new ActualParameter( VAL_VAL, new ConstExpr( new IValue( buf ) ) ); \
 		param.append( p );						\
 		Func *func = ((IValue*)VAR##_val->Deref())->FuncPtr()[0];	\
-		IValue *ret = func->Call( &param, EVAL_COPY);			\
+		evalOpt opt(evalOpt::COPY);					\
+		IValue *ret = func->Call( &param, opt);				\
 		done = 1;							\
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
@@ -2682,12 +2683,12 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 	IValue *ret = 0;
 	if ( stmts )
 		{
-		stmt_flow_type flow;
+		evalOpt flow(evalOpt::VALUE_NEEDED);
 		Stmt *cur_stmts = stmts;	// do this dance with stmts to
 		Ref(cur_stmts);			// prevent stmts from being freed
 						// or reassigned as part of an eval()
 
-		ret = cur_stmts->Exec( 1, flow );
+		ret = cur_stmts->Exec( flow );
 
 		if ( ! value_needed )
 			{

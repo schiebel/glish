@@ -23,7 +23,7 @@ class BinOpExpr : public BinaryExpr {
     public:
 	BinOpExpr( binop op, Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype ) = 0;
+	IValue* Eval( evalOpt &opt ) = 0;
 
     protected:
 	// Returns 0 if the expression's operands type-check, otherwise
@@ -63,7 +63,7 @@ class ArithExpr : public BinOpExpr {
 	ArithExpr( binop op_, Expr* op1, Expr* op2 ) : BinOpExpr(op_, op1, op2)
 		{ }
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
@@ -134,7 +134,7 @@ class RelExpr : public BinOpExpr {
 	RelExpr( binop op_, Expr* op1, Expr* op2 )
 			: BinOpExpr(op_, op1, op2) { }
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }

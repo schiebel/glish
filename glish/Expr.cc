@@ -107,12 +107,12 @@ Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 	return this;
 	}
 
-IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
+IValue* Expr::CopyOrRefValue( const IValue* value, evalOpt &opt )
 	{
-	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+	if ( opt.copy() || opt.copy_preserve() )
 		{
 		IValue *result = 0;
-		if ( value->IsRef() && etype == EVAL_COPY_PRESERVE )
+		if ( value->IsRef() && opt.copy_preserve() )
 			result = new IValue( (IValue*) value->Deref(), VAL_REF );
 		else
 			result = copy_value( value );
@@ -124,7 +124,7 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 		return result;
 		}
 
-	else if ( etype == EVAL_READ_ONLY || etype == EVAL_READ_ONLY_PRESERVE )
+	else if ( opt.read_only() || opt.read_only_preserve() )
 		{
 		IValue* result = (IValue*) value;
 		Ref( result );
@@ -133,10 +133,10 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 
 	else
 		{
-		// EVAL_SIDE_EFFECTS should've been caught earlier; making it
+		// SIDE_EFFECTS should've been caught earlier; making it
 		// this far indicates that the function erroneously overrode
 		// SideEffectsEval().
-		fatal->Report( "bad eval_type in Expr::CopyOrRefValue" );
+		fatal->Report( "bad evalOpt::Type in Expr::CopyOrRefValue" );
 		return 0;
 		}
 	}
@@ -211,7 +211,7 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 	scope_offset = var_scope_offset;
 	}
 
-IValue* VarExpr::Eval( eval_type etype )
+IValue* VarExpr::Eval( evalOpt &opt )
 	{
 	access = USE_ACCESS;
 
@@ -233,10 +233,10 @@ IValue* VarExpr::Eval( eval_type etype )
 						frame_offset, value );
 		}
 
-	if ( etype != EVAL_READ_ONLY_PRESERVE && etype != EVAL_COPY_PRESERVE )
+	if ( ! opt.read_only_preserve() && ! opt.copy_preserve() )
 		value = (IValue*) value->Deref();
 
-	return CopyOrRefValue( value, etype );
+	return CopyOrRefValue( value, opt );
 	}
 
 IValue* VarExpr::RefEval( value_type val_type )
@@ -436,9 +436,9 @@ ValExpr::~ValExpr()
 	Unref(val);
 	}
 
-IValue* ValExpr::Eval( eval_type etype )
+IValue* ValExpr::Eval( evalOpt &opt )
 	{
-	return CopyOrRefValue( val, etype );
+	return CopyOrRefValue( val, opt );
 	}
 
 IValue* ValExpr::RefEval( value_type val_type )
@@ -462,9 +462,9 @@ ConstExpr::ConstExpr( const IValue* value )
 	const_value = value;
 	}
 
-IValue* ConstExpr::Eval( eval_type etype )
+IValue* ConstExpr::Eval( evalOpt &opt )
 	{
-	return CopyOrRefValue( const_value, etype );
+	return CopyOrRefValue( const_value, opt );
 	}
 
 int ConstExpr::Describe( OStream &s, const ioOpt &opt ) const
@@ -490,7 +490,7 @@ FuncExpr::FuncExpr( UserFunc* f, IValue *attr )
 	attributes = attr;
 	}
 
-IValue* FuncExpr::Eval( eval_type )
+IValue* FuncExpr::Eval( evalOpt & )
 	{
 	UserFunc *ret = func->clone();
 	ret->EstablishScope();
@@ -573,9 +573,9 @@ NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* NegExpr::Eval( eval_type etype )
+IValue* NegExpr::Eval( evalOpt &opt )
 	{
-	IValue* result = op->CopyEval( etype == EVAL_COPY_PRESERVE );
+	IValue* result = op->CopyEval( opt.copy_preserve() );
 	result->Negate();
 	return result;
 	}
@@ -589,9 +589,9 @@ NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* NotExpr::Eval( eval_type etype )
+IValue* NotExpr::Eval( evalOpt &opt )
 	{
-	IValue* result = op->CopyEval( etype == EVAL_COPY_PRESERVE );
+	IValue* result = op->CopyEval( opt.copy_preserve() );
 	result->Not();
 	return result;
 	}
@@ -605,7 +605,7 @@ GenerateExpr::GenerateExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* GenerateExpr::Eval( eval_type /* etype */ )
+IValue* GenerateExpr::Eval( evalOpt & )
 	{
 	const IValue* file_val = op->ReadOnlyEval();
 
@@ -654,7 +654,7 @@ AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
-IValue* AssignExpr::Eval( eval_type etype )
+IValue* AssignExpr::Eval( evalOpt &opt )
 	{
 	IValue *r_err = 0;
 	IValue *r = right->CopyEval( left->LhsIs(right) ? 1 : 0 );
@@ -668,11 +668,11 @@ IValue* AssignExpr::Eval( eval_type etype )
 	if ( l_err && l_err->Type() == TYPE_FAIL )
 		return (IValue*) Fail( l_err );
 
-	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+	if ( opt.copy() || opt.copy_preserve() )
 		return left->CopyEval();
 
-	else if ( etype == EVAL_READ_ONLY || etype == EVAL_READ_ONLY_PRESERVE )
-		return (IValue*) left->ReadOnlyEval( etype == EVAL_READ_ONLY_PRESERVE );
+	else if ( opt.read_only() || opt.read_only_preserve() )
+		return (IValue*) left->ReadOnlyEval( opt.read_only_preserve() );
 
 	else
 		return 0;
@@ -680,7 +680,8 @@ IValue* AssignExpr::Eval( eval_type etype )
 
 IValue *AssignExpr::SideEffectsEval()
 	{
-	IValue *ret = Eval( EVAL_SIDE_EFFECTS );
+	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	IValue *ret = Eval(opt);
 	if ( ret )
 		{
 		if ( ret->Type() == TYPE_FAIL )
@@ -728,7 +729,7 @@ OrExpr::OrExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
-IValue* OrExpr::Eval( eval_type etype )
+IValue* OrExpr::Eval( evalOpt &opt )
 	{
 	Str err;
 	const IValue* left_value = left->ReadOnlyEval();
@@ -743,7 +744,7 @@ IValue* OrExpr::Eval( eval_type etype )
 
 	if ( cond )
 		{
-		if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+		if ( opt.copy() || opt.copy_preserve() )
 			{
 			IValue* result = copy_value( left_value );
 			left->ReadOnlyDone( left_value );
@@ -757,7 +758,7 @@ IValue* OrExpr::Eval( eval_type etype )
 	else
 		{
 		left->ReadOnlyDone( left_value );
-		return right->Eval( etype );
+		return right->Eval( opt );
 		}
 	}
 
@@ -770,7 +771,7 @@ AndExpr::AndExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
-IValue* AndExpr::Eval( eval_type etype )
+IValue* AndExpr::Eval( evalOpt &opt )
 	{
 	Str err;
 	const IValue* left_value = left->ReadOnlyEval();
@@ -780,10 +781,10 @@ IValue* AndExpr::Eval( eval_type etype )
 	if ( err.chars() )
 		return (IValue*) Fail(err.chars());
 
-	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+	if ( opt.copy() || opt.copy_preserve() )
 		{
 		if ( left_is_true )
-			return right->CopyEval( etype == EVAL_COPY_PRESERVE );
+			return right->CopyEval( opt.copy_preserve() );
 		else
 			return false_ivalue();
 		}
@@ -845,7 +846,7 @@ ConstructExpr::ConstructExpr( parameter_list* arg_args )
 		}
 	}
 
-IValue* ConstructExpr::Eval( eval_type /* etype */ )
+IValue* ConstructExpr::Eval( evalOpt &opt )
 	{
 	if ( err )
 		return (IValue*) Fail( err, this );
@@ -1135,7 +1136,7 @@ ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1)
 	args = a;
 	}
 
-IValue* ArrayRefExpr::Eval( eval_type etype )
+IValue* ArrayRefExpr::Eval( evalOpt &opt )
 	{
 	const IValue* array = op->ReadOnlyEval();
 	IValue* result;
@@ -1163,10 +1164,11 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 					pl.append( new ActualParameter() );
 				}
 
-			result = CallFunc( func_val, EVAL_COPY, &pl );
+			evalOpt opt(evalOpt::COPY);
+			result = CallFunc( func_val, opt, &pl );
 			if ( ! result )
 				{
-				if ( etype != EVAL_SIDE_EFFECTS )
+				if ( opt.side_effects() )
 					result = error_ivalue();
 				}
 			else
@@ -1262,7 +1264,7 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 				array->ExistingRecordElement( index_val );
 
 			const_result = (const IValue *) (const_result->Deref());
-			result = CopyOrRefValue( const_result, etype );
+			result = CopyOrRefValue( const_result, opt );
 			}
 		else
 			{ // Array subscripting.
@@ -1314,7 +1316,8 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 				}
 
 			Unref( array_ref );
-			return CallFunc( func_val, EVAL_COPY, &pl );
+			evalOpt opt(evalOpt::COPY);
+			return CallFunc( func_val, opt, &pl );
 			}
 
 		if ( (*ptr)["shape"] && args->length() > 1 )
@@ -1391,14 +1394,14 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 	return result;
 	}
 
-IValue* ArrayRefExpr::CallFunc( Func *fv, eval_type etype,
+IValue* ArrayRefExpr::CallFunc( Func *fv, evalOpt &opt,
 				parameter_list *f_args )
 	{
 	// Mark the function so that a user-function definition for
 	// "op[]" that needs to apply array referencing doesn't endlessly
 	// loop.
 	fv->Mark( 1 );
-	IValue* ret = fv->Call( f_args, etype );
+	IValue* ret = fv->Call( f_args, opt );
 	fv->Mark( 0 );
 
 	return ret;
@@ -1453,7 +1456,8 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 					pl.append( new ActualParameter() );
 				}
 
-			IValue* vecref = CallFunc( func_val, EVAL_COPY, &pl );
+			evalOpt opt(evalOpt::COPY);
+			IValue* vecref = CallFunc( func_val, opt, &pl );
 
 			if ( ! do_assign )
 				vecref->Deref()->AssignElements( new_value );
@@ -1570,7 +1574,7 @@ RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
 	field = record_field;
 	}
 
-IValue* RecordRefExpr::Eval( eval_type etype )
+IValue* RecordRefExpr::Eval( evalOpt &opt )
 	{
 	const IValue* record = op->ReadOnlyEval();
 	const IValue* const_result = (const IValue*)(record->Deref()->ExistingRecordElement( field ));
@@ -1579,7 +1583,7 @@ IValue* RecordRefExpr::Eval( eval_type etype )
 
 	IValue* result;
 
-	result = CopyOrRefValue( const_result, etype );
+	result = CopyOrRefValue( const_result, opt );
 
 	op->ReadOnlyDone( record );
 
@@ -1673,7 +1677,7 @@ AttributeRefExpr::AttributeRefExpr( Expr* op1, Expr* op2 ) :
 	field = 0;
 	}
 
-IValue* AttributeRefExpr::Eval( eval_type etype )
+IValue* AttributeRefExpr::Eval( evalOpt &opt )
 	{
 	const IValue* val = left->ReadOnlyEval();
 	IValue* result = 0;
@@ -1713,7 +1717,7 @@ IValue* AttributeRefExpr::Eval( eval_type etype )
 		}
 
 	if ( ! result )
-		result = CopyOrRefValue( (const IValue*)(const_result->Deref()), etype );
+		result = CopyOrRefValue( (const IValue*)(const_result->Deref()), opt );
 
 	left->ReadOnlyDone( val );
 	return result;
@@ -1844,7 +1848,7 @@ RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_)
 	type = arg_type;
 	}
 
-IValue* RefExpr::Eval( eval_type /* etype */ )
+IValue* RefExpr::Eval( evalOpt & )
 	{
 	IValue *val = op->RefEval( type );
 
@@ -1919,7 +1923,7 @@ RangeExpr::RangeExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
-IValue* RangeExpr::Eval( eval_type /* etype */ )
+IValue* RangeExpr::Eval( evalOpt &opt )
 	{
 	const IValue* left_val = left->ReadOnlyEval();
 	const IValue* right_val = right->ReadOnlyEval();
@@ -1987,7 +1991,7 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) 
 	return fail ? fail : (IValue*) Fail( string );				\
 	}
 
-IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
+IValue* ApplyRegExpr::Eval( evalOpt &opt )
 	{
 	const IValue* strval = left->ReadOnlyEval();
 	const IValue* regval = right->ReadOnlyEval();
@@ -2175,7 +2179,7 @@ CallExpr::CallExpr( Expr* func, parameter_list* args_args, Sequencer* seq_arg )
 	args = args_args;
 	}
 
-IValue* CallExpr::Eval( eval_type etype )
+IValue* CallExpr::Eval( evalOpt &opt )
 	{
 	const IValue* func = op->ReadOnlyEval();
 	Func* func_val = func->FuncVal();
@@ -2188,9 +2192,9 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	sequencer->PushFuncName( string_dup(op->Description()) );
 
-	if ( ! func_val || ! (result = func_val->Call(args,etype)) )
+	if ( ! func_val || ! (result = func_val->Call(args,opt)) )
 		{
-		if ( etype != EVAL_SIDE_EFFECTS )
+		if ( ! opt.side_effects() )
 			result = false_ivalue();
 		}
 
@@ -2208,7 +2212,8 @@ int CallExpr::DoesTrace( ) const
 
 IValue *CallExpr::SideEffectsEval()
 	{
-	IValue* result = Eval( EVAL_SIDE_EFFECTS );
+	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	IValue* result = Eval( opt );
 
 	if ( result )
 		{
@@ -2247,7 +2252,7 @@ const char *IncludeExpr::Description() const
 IncludeExpr::IncludeExpr( Expr* fle, Sequencer* seq_arg )
     : UnaryExpr(fle), sequencer(seq_arg) { }
 
-IValue* IncludeExpr::Eval( eval_type etype )
+IValue* IncludeExpr::Eval( evalOpt &opt )
 	{
 	const IValue* file_val = op->ReadOnlyEval();
 	char *fle = file_val->StringVal();
@@ -2255,7 +2260,7 @@ IValue* IncludeExpr::Eval( eval_type etype )
 
 	IValue *ret = sequencer->Include( fle );
 
-	if ( etype == EVAL_SIDE_EFFECTS )
+	if ( opt.side_effects() )
 		{
 		Unref(ret);
 		ret = 0;
@@ -2298,11 +2303,11 @@ SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
 	in_subsequence =  sqlen ? (*glish_current_subsequence)[sqlen-1] : 0;
 	}
 
-IValue* SendEventExpr::Eval( eval_type etype )
+IValue* SendEventExpr::Eval( evalOpt &opt )
 	{
 	IValue* result = sender->SendEvent( args, is_request_reply, in_subsequence );
 
-	if ( etype == EVAL_SIDE_EFFECTS )
+	if ( opt.side_effects() )
 		{
 		Unref( result );
 		return 0;
@@ -2314,7 +2319,8 @@ IValue* SendEventExpr::Eval( eval_type etype )
 
 IValue *SendEventExpr::SideEffectsEval()
 	{
-	IValue *result = Eval( EVAL_SIDE_EFFECTS );
+	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	IValue *result = Eval(opt);
 	if ( result )
 		{
 		if ( result->Type() == TYPE_FAIL )
@@ -2347,7 +2353,7 @@ LastEventExpr::LastEventExpr( Sequencer* arg_sequencer,
 	type = arg_type;
 	}
 
-IValue* LastEventExpr::Eval( eval_type etype )
+IValue* LastEventExpr::Eval( evalOpt &opt )
 	{
 	Notification* n = sequencer->LastNotification();
 
@@ -2364,7 +2370,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 			if ( ! result )
 				return (IValue*) Fail( this, ": no events have been received" );
 
-			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+			if ( opt.copy() || opt.copy_preserve() )
 				result = copy_value( result );
 			else
 				Ref( result );
@@ -2377,7 +2383,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 		case EVENT_VALUE:
 			result = n->value;
 
-			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+			if ( opt.copy() || opt.copy_preserve() )
 				result = copy_value( result );
 			else
 				Ref( result );
@@ -2444,7 +2450,7 @@ LastRegexExpr::LastRegexExpr( Sequencer* arg_sequencer,
 	type = arg_type;
 	}
 
-IValue* LastRegexExpr::Eval( eval_type etype )
+IValue* LastRegexExpr::Eval( evalOpt &opt )
 	{
 	RegexMatch &match = sequencer->GetMatch();
 
@@ -2455,7 +2461,7 @@ IValue* LastRegexExpr::Eval( eval_type etype )
 		result = match.get( );
 		if ( result )
 			{
-			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
+			if ( opt.copy() || opt.copy_preserve() )
 				result = copy_value( result );
 			else
 				Ref( result );

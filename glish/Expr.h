@@ -59,14 +59,68 @@ typedef enum { PARSE_ACCESS, USE_ACCESS } access_type;
 //
 typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 
-// Different types of expression evaluation: evaluate and return a
-// modifiable copy of the result; evaluate and return a read-only
-// version of the result (which will subsequently be released using
-// Expr::ReadOnlyDone); or evaluate for side effects only, and return
-// nothing.
-typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS,
-	       EVAL_READ_ONLY_PRESERVE, EVAL_COPY_PRESERVE } eval_type;
+extern void eval_opt_created( );
 
+class evalOpt {
+    public:
+	// Different types of expression evaluation: evaluate and return a
+	// modifiable copy of the result; evaluate and return a read-only
+	// version of the result (which will subsequently be released using
+	// Expr::ReadOnlyDone); or evaluate for side effects only, and return
+	enum exprType { COPY=0, READ_ONLY=1, SIDE_EFFECTS=2,
+			READ_ONLY_PRESERVE=3, COPY_PRESERVE=4 };
+
+	// Different types of flags used in the evaluation of statements. These
+	// are primarily for flow control, e.g. continue with loop or stop.
+	// VALUE_NEEDED is included because it is the only outstanding statement
+	// evaluation flag, it indicates if a return value is expected or not.
+	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
+	enum returnType { VALUE_NEEDED=9 };
+
+	evalOpt( ) : mask(0) { }
+	evalOpt( exprType t ) : mask(1<<t) { }
+	evalOpt( flowType t ) : mask(1<<t) { }
+	evalOpt( returnType t ) : mask(1<<t) { }
+
+	void set( flowType t ) { mask = mask & ~0x1e0 | 1<<t; }
+	void set( exprType t ) { mask = mask & ~0x1f | 1<<t; }
+
+	void clear( returnType t ) { mask &= ~1<<t; }
+	void set( returnType t ) { mask |= 1<<t; }
+
+	// evaluation types/modes
+	inline static unsigned short mCOPY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
+	inline static unsigned short mREAD_ONLY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }
+	inline static unsigned short mSIDE_EFFECTS( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<2; }
+	inline static unsigned short mREAD_ONLY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<3; }
+	inline static unsigned short mCOPY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<4; }
+	// statement flow types
+	inline static unsigned short mNEXT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<5; }
+	inline static unsigned short mLOOP( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<6; }
+	inline static unsigned short mBREAK( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<7; }
+	inline static unsigned short mRETURN( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<8; }
+	// statement return mode
+	inline static unsigned short mVALUE_NEEDED( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<9; }
+
+	// evaluation types/modes
+	int copy() const { return mCOPY(mask); }
+	int read_only() const { return mREAD_ONLY(mask); }
+	int side_effects() const { return mSIDE_EFFECTS(mask); }
+	int read_only_preserve() const { return mREAD_ONLY_PRESERVE(mask); }
+        int copy_preserve() const { return mCOPY_PRESERVE(mask); }
+
+	// statement flow types
+	int Next() const { return mNEXT(mask); }		// continue on to next statement
+	int Loop() const { return mLOOP(mask); }		// go to top of loop
+	int Break() const { return mBREAK(mask); }		// break out of loop
+	int Return() const { return mRETURN(mask); }		// return from function
+
+	// statement return mode
+	int value_needed() const { return mVALUE_NEEDED(mask); }
+
+    protected:
+	unsigned short mask;
+};
 
 typedef void (*change_var_notice)(IValue*,IValue*);
 class Expr : public ParseNode {
@@ -80,7 +134,7 @@ class Expr : public ParseNode {
 	// If 'perserve' is true, it implies that no Deref()s etc. (which
 	// would otherwise be harmless) should be done.
 	IValue* CopyEval( int preserve = 0 )
-		{ return Eval( preserve ? EVAL_COPY_PRESERVE : EVAL_COPY ); }
+		{ evalOpt opt(preserve ? evalOpt::COPY_PRESERVE : evalOpt::COPY); return Eval(opt); }
 
 	// Returns a read-only copy (i.e., the original) of the present
 	// value of the event expression.  The caller is responsible for
@@ -89,7 +143,7 @@ class Expr : public ParseNode {
 	// If 'perserve' is true, it implies that no Deref()s etc. (which
 	// would otherwise be harmless) should be done.
 	const IValue* ReadOnlyEval( int preserve = 0 )
-		{ return Eval( preserve ? EVAL_READ_ONLY_PRESERVE : EVAL_READ_ONLY ); }
+		{ evalOpt opt(preserve ? evalOpt::READ_ONLY_PRESERVE : evalOpt::READ_ONLY); return Eval(opt); }
 
 	// Declares that the previously returned ReadOnlyEval() value
 	// is no longer needed.
@@ -100,7 +154,7 @@ class Expr : public ParseNode {
 	// Returns the present value of the event expression.  If
 	// "modifiable" is true then a modifiable version of the value is
 	// returned; otherwise, a read-only copy.
-	virtual IValue* Eval( eval_type etype ) = 0;
+	virtual IValue* Eval( evalOpt &opt ) = 0;
 
 	// Returns true if this expression is going to do an echo of itself
 	// AS PART OF EVALUATION, I.E. "Eval()", if trace is turned on.
@@ -180,9 +234,9 @@ class Expr : public ParseNode {
 
     protected:
 	// Return either a copy of the given value, or a reference to
-	// it, depending on etype.  If etype is EVAL_SIDE_EFFECTS, a
+	// it, depending on opt.  If opt is SIDE_EFFECTS, a
 	// warning is generated and 0 returned.
-	IValue* CopyOrRefValue( const IValue* value, eval_type etype );
+	IValue* CopyOrRefValue( const IValue* value, evalOpt &opt );
 	};
 
 
@@ -197,7 +251,7 @@ class VarExpr : public Expr {
 
 	const char *Description() const;
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 
 	const char* VarID()	{ return id; }
@@ -298,7 +352,7 @@ class ValExpr : public Expr {
 
 	const char *Description() const;
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 
     protected:
@@ -309,7 +363,7 @@ class ConstExpr : public Expr {
     public:
 	ConstExpr( const IValue* const_value );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -327,7 +381,7 @@ class FuncExpr : public Expr {
     public:
 	FuncExpr( UserFunc* f, IValue *attr=0 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -346,7 +400,7 @@ class UnaryExpr : public Expr {
     public:
 	UnaryExpr( Expr* operand );
 
-	IValue* Eval( eval_type etype ) = 0;
+	IValue* Eval( evalOpt &opt ) = 0;
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -364,7 +418,7 @@ class BinaryExpr : public Expr {
     public:
 	BinaryExpr( Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype ) = 0;
+	IValue* Eval( evalOpt &opt ) = 0;
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -384,7 +438,7 @@ class NegExpr : public UnaryExpr {
     public:
 	NegExpr( Expr* operand );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -394,7 +448,7 @@ class NotExpr : public UnaryExpr {
     public:
 	NotExpr( Expr* operand );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -403,7 +457,7 @@ class GenerateExpr : public UnaryExpr {
     public:
 	GenerateExpr( Expr* operand );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -413,7 +467,7 @@ class AssignExpr : public BinaryExpr {
     public:
 	AssignExpr( Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue *SideEffectsEval();
 	int Invisible() const;
 
@@ -427,7 +481,7 @@ class OrExpr : public BinaryExpr {
     public:
 	OrExpr( Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -437,7 +491,7 @@ class AndExpr : public BinaryExpr {
     public:
 	AndExpr( Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -447,7 +501,7 @@ class ConstructExpr : public Expr {
     public:
 	ConstructExpr( ParameterPList* args );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -483,7 +537,7 @@ class ArrayRefExpr : public UnaryExpr {
     public:
 	ArrayRefExpr( Expr* op1, expr_list* a );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
@@ -498,7 +552,7 @@ class ArrayRefExpr : public UnaryExpr {
 	const char *Description() const;
 
     protected:
-	IValue *CallFunc(Func *fv, eval_type etype, ParameterPList *);
+	IValue *CallFunc(Func *fv, evalOpt &opt, ParameterPList *);
 	expr_list* args;
 	};
 
@@ -507,7 +561,7 @@ class RecordRefExpr : public UnaryExpr {
     public:
 	RecordRefExpr( Expr* op, char* record_field );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
@@ -531,7 +585,7 @@ class AttributeRefExpr : public BinaryExpr {
 	AttributeRefExpr( Expr* op1, Expr* op2 );
 	AttributeRefExpr( Expr* op, char* attribute );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
@@ -555,7 +609,7 @@ class RefExpr : public UnaryExpr {
     public:
 	RefExpr( Expr* op, value_type type );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue *Assign( IValue* new_value );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
@@ -575,7 +629,7 @@ class RangeExpr : public BinaryExpr {
     public:
 	RangeExpr( Expr* op1, Expr* op2 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
 	};
@@ -585,7 +639,7 @@ class ApplyRegExpr : public BinaryExpr {
     public:
 	ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ = 0 );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 
 	const char *Description() const;
     protected:
@@ -598,7 +652,7 @@ class CallExpr : public UnaryExpr {
     public:
 	CallExpr( Expr* func, ParameterPList* args, Sequencer *seq_arg );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue *SideEffectsEval();
 	int DoesTrace( ) const;
 
@@ -618,7 +672,7 @@ class CallExpr : public UnaryExpr {
 class IncludeExpr : public UnaryExpr {
     public:
 	IncludeExpr( Expr* file, Sequencer *seq_arg );
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	const char *Description() const;
     protected:
 	Sequencer* sequencer;
@@ -629,7 +683,7 @@ class SendEventExpr : public Expr {
     public:
 	SendEventExpr( EventDesignator* sender, ParameterPList* args );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* SideEffectsEval();
 
 	void StandAlone( );
@@ -656,7 +710,7 @@ class LastEventExpr : public Expr {
     public:
 	LastEventExpr( Sequencer* sequencer, last_event_type type );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -675,7 +729,7 @@ class LastRegexExpr : public Expr {
     public:
 	LastRegexExpr( Sequencer* sequencer, last_regex_type type );
 
-	IValue* Eval( eval_type etype );
+	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( value_type val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const

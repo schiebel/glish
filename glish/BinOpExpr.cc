@@ -115,9 +115,9 @@ IValue *BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
 	}
 
 
-IValue* ArithExpr::Eval( eval_type etype )
+IValue* ArithExpr::Eval( evalOpt &opt )
 	{
-	IValue* result = left->CopyEval( etype == EVAL_COPY_PRESERVE );
+	IValue* result = left->CopyEval( opt.copy_preserve() );
 	const IValue* rhs = right->ReadOnlyEval();
 
 	const char *err_str = 0;
@@ -391,7 +391,7 @@ void PowerExpr::Compute( dcomplex lhs[], dcomplex rhs[],
 
 
 
-IValue* RelExpr::Eval( eval_type /* etype */ )
+IValue* RelExpr::Eval( evalOpt & )
 	{
 	const IValue* lhs = left->ReadOnlyEval();
 	const IValue* rhs = right->ReadOnlyEval();

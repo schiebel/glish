@@ -1088,9 +1088,9 @@ IValue *glish_parser( Stmt *&stmt )
 			if ( setjmp(glish_top_jmpbuf) == 0 )
 				{
 				glish_top_jmpbuf_set = 1;
-				stmt_flow_type flow;
-				val = loc_stmt->Exec( 1, flow );
-				if ( flow != FLOW_NEXT )
+				evalOpt flow(evalOpt::VALUE_NEEDED);
+				val = loc_stmt->Exec( flow );
+				if ( ! flow.Next() )
 					warn->Report("control flow (loop/break/return) ignored" );
 				}
 
