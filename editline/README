@@ -1,5 +1,8 @@
 $Id$
 
+*** THIS IS A MODIFIED VERSION OF THE ORIGINAL EDITLINE LIBRARY. ***
+*** It was modified to work in a non-blocking manner with Glish. ***
+
 This is a line-editing library.  It can be linked into almost any
 program to provide command-line editing and recall.
 
