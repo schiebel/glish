@@ -574,7 +574,11 @@ Client::~Client()
 	if ( interpreter_tag )
 		free_memory( interpreter_tag );
 
-	finalize_reporters();
+//
+//	How to know when to free these? glishd creates (and deletes) a
+//	series of clients; freeing the reporters really gums up the works.
+//
+// 	finalize_reporters();
 	}
 
 GlishEvent *Client::NextEvent(const struct timeval *timeout, int &timedout)
