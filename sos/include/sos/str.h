@@ -13,21 +13,24 @@
 
 class str_kernel {
 public:
-	str_kernel( unsigned int size = 0 ) : cnt(1), len(size ? size : 1)
-		{ ary = (char**) alloc_zero_memory(len*sizeof(char*)); }
+	str_kernel( unsigned int size_ = 0 ) : cnt(1), size(size_ ? size_ : 1)
+		{ ary = (char**) alloc_zero_memory(size*sizeof(char*));
+		  len = (unsigned int*) alloc_zero_memory(size*sizeof(unsigned int)); }
+
 	str_kernel( const char * );
 
 	unsigned int strlen( unsigned int off=0 ) const
-		{ return ary[off] ? *((unsigned int*)ary[off]) : 0; }
-	unsigned int length() const { return len; }
+		{ return len[off]; }
+	unsigned int length() const { return size; }
 
-	char *get( unsigned int off ) { return ary[off] ? &ary[off][4] : 0; }
-	char *Get( unsigned int off ) { return ary[off] ? &ary[off][4] : ""; }
+	char *get( unsigned int off ) { return ary[off]; }
+	char *Get( unsigned int off ) { return ary[off] ? ary[off] : ""; }
+
+	char **getary() { return ary; }
+	unsigned int *getlen() { return len; }
+
 	void set( unsigned int, const char * );
-
-	const char **raw_getary( ) { return (const char **) ary; }
-	char *raw_get( unsigned int off ) { return ary[off]; }
-	void raw_set( unsigned int, const char * );
+	void set( unsigned int, char *, int take_array );
 
 	void ref() { cnt++; }
 	unsigned int unref() { return --cnt; }
@@ -37,10 +40,12 @@ public:
 	void grow( unsigned int );
 
 	~str_kernel();
-private:
-	unsigned int len;
+
+protected:
 	unsigned int cnt;
+	unsigned int size;
 	char **ary;
+	unsigned int *len;
 };
 
 class str_ref {
@@ -93,12 +98,12 @@ public:
 		{ return kernel->get( off ); }
 	const char *Get( unsigned int off = 0 ) const
 		{ return kernel->Get( off ); }
-	
-	const char *raw_get( unsigned int off ) const
-		{ return kernel->raw_get( off ); }
-	const char **raw_getary( ) const
-		{ return kernel->raw_getary( ); }
 
+	char **getary()
+		{ return kernel->getary(); }
+	unsigned int *getlen()
+		{ return kernel->getlen(); }
+	
 	//
 	// make sure we have a modifiable version
 	//
@@ -122,7 +127,7 @@ inline str_ref::operator const char *() const
 inline str_ref &str_ref::operator=( const char *v )
 	{ s->mod(); s->kernel->set( off, v ); return *this; }
 inline str_ref &str_ref::operator=( const str_ref &o )
-	{ s->mod(); s->kernel->raw_set( off, o.s->kernel->raw_get(o.off) ); return *this; }
+	{ s->mod(); s->kernel->set( off, o.s->kernel->get(o.off) ); return *this; }
 
 inline unsigned int strlen( const str_ref &ref )
 	{ return ref.s->kernel->strlen(ref.off); }

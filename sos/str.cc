@@ -8,15 +8,15 @@
 RCSID("@(#) $Id$")
 #include "sos/str.h"
 
-str_kernel::str_kernel( const char *s ) : cnt(1), len(1)
+str_kernel::str_kernel( const char *s ) : cnt(1), size(1)
 	{
-	ary = (char**) alloc_zero_memory(len*sizeof(char*));
+	ary = (char**) alloc_zero_memory(size*sizeof(char*));
+	len = (unsigned int*) alloc_zero_memory(size*sizeof(unsigned int));
 	if ( s && *s )
 		{
-		unsigned int s_len = ::strlen(s);
-		ary[0] = (char*) alloc_memory(s_len+5);
-		*((unsigned int*)ary[0]) = s_len;
-		memcpy(&ary[0][4],s,s_len+1);
+		len[0] = ::strlen(s);
+		ary[0] = (char*) alloc_memory(len[0]+1);
+		memcpy(ary[0],s,len[0]+1);
 		}
 	}
 
@@ -24,69 +24,84 @@ void str_kernel::set( unsigned int off, const char *s )
 	{
 	if ( s && *s )
 		{
-		unsigned int s_len = ::strlen(s);
+		register unsigned int s_len = ::strlen(s);
 		if ( ary[off] )
 			{
-			if ( *((unsigned int*)ary[off]) < s_len )
-				ary[off] = (char*) realloc_memory(ary[off],s_len+5);
+			if ( len[off] < s_len )
+				ary[off] = (char*) realloc_memory(ary[off],s_len+1);
 			}
 		else
-			ary[off] = (char*) alloc_memory(s_len+5);
+			ary[off] = (char*) alloc_memory(s_len+1);
 
-		*((unsigned int*)ary[off]) = s_len;
-		memcpy(&ary[off][4],s,s_len+1);
+		len[off] = s_len;
+		memcpy(ary[off],s,s_len+1);
 		}
-	else if ( ary[off] )
-		*((unsigned int*)ary[off]) = 0;
+	else
+		{
+		len[off] = 0;
+		if ( ary[off] ) ary[off][0] = '\0';
+		}
 	}
 
-void str_kernel::raw_set( unsigned int off, const char *s )
+void str_kernel::set( unsigned int off, char *s, int take_array )
 	{
-	if ( s )
+	if ( ! take_array ) { set( off, (const char*) s ); return; }
+
+	if ( ary[off] )
+		free_memory( ary[off] );
+
+	if ( s && *s )
 		{
-		if ( ary[off] )
-
-			if ( *((unsigned int*)ary[off]) < *((unsigned int*)s) )
-				ary[off] = (char*) realloc_memory(ary[off],*((unsigned int*)s)+5);
-			else
-				ary[off] = (char*) alloc_memory(*((unsigned int*)s)+5);
-
-		memcpy(ary[off],s,*((unsigned int*)s)+5);
+		len[off] = ::strlen(s);
+		ary[off] = s;
 		}
-	else if ( ary[off] )
-		*((unsigned int*)ary[off]) = 0;
+	else
+		{
+		len[off] = 0;
+		ary[off] = 0;
+		}
 	}
 
 str_kernel *str_kernel::clone() const
 	{
-	str_kernel *nk = new str_kernel(len);
-	for ( unsigned int i=0; i < len; i++ )
-		if ( ary[i] && *((unsigned int*)ary[i]) )
+	str_kernel *nk = new str_kernel(size);
+	for ( unsigned int i=0; i < size; i++ )
+		if ( ary[i] && len[i] )
 			{
-			nk->ary[i] = (char*) alloc_memory(*((unsigned int*)ary[i])+5);
-			memcpy(nk->ary[i],ary[i],*((unsigned int*)ary[i])+5);
+			nk->ary[i] = (char*) alloc_memory(len[i]+1);
+			memcpy(nk->ary[i],ary[i],len[i]+1);
+			nk->len[i] = len[i];
 			}
 	return nk;
 	}
 
-void str_kernel::grow( unsigned int size )
+void str_kernel::grow( unsigned int new_size )
 	{
-	if ( size <= len )
-		len = size;
+	if ( new_size <= size )
+		{
+		for ( int i = new_size; i < size; i++ )
+			free_memory( ary[i] );
+		size = new_size;
+		}
 	else
 		{
-		ary = (char**) realloc_memory(ary,size*sizeof(char*));
-		for ( unsigned int i = len; i < size; i++ )
+		ary = (char**) realloc_memory(ary,new_size*sizeof(char*));
+		len = (unsigned int*) realloc_memory(len,new_size*sizeof(unsigned int));
+		for ( unsigned int i = size; i < new_size; i++ )
+			{
 			ary[i] = 0;
-		len = size;
+			len[i] = 0;
+			}
+		size = new_size;
 		}
 	}
 
 str_kernel::~str_kernel( )
 	{
-	for ( unsigned int x = 0; x < len; x++ )
+	for ( unsigned int x = 0; x < size; x++ )
 		if ( ary[x] ) free_memory( ary[x] );
 	free_memory(ary);
+	free_memory(len);
 	}
 
 void str::do_copy()

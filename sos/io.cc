@@ -23,7 +23,7 @@ void sos_sink::put( TYPE *a, unsigned int l, short U1, short U2 )	\
 	head.usets(U2,1);						\
 	head.stamp();							\
 									\
-	write(FD,head.iBuffer(), head.iLength() * sos_size(SOSTYPE) +	\
+	out.write(head.iBuffer(), head.iLength() * sos_size(SOSTYPE) +	\
 	      sos_header::iSize());					\
 	}
 
@@ -41,7 +41,7 @@ void sos_sink::put( TYPE *a, sos_code t, unsigned int l, short U1, short U2 ) \
 	head.usets(U2,1);						\
 	head.stamp();							\
 									\
-	write(FD, head.iBuffer(), head.iLength() * sos_size(t) +	\
+	out.write(head.iBuffer(), head.iLength() * sos_size(t) +	\
 	      sos_header::iSize());					\
 	}
 
@@ -61,7 +61,7 @@ void sos_sink::put( charptr *s, unsigned int len, short U1, short U2 )
 		total += lptr[i];
 		}
 
-	buf = (char*) realloc_memory( total + SOS_HEADER_SIZE );
+	buf = (char*) realloc_memory( buf, total + SOS_HEADER_SIZE );
 
 	head.set(buf,SOS_STRING,total);
 	head.usets(U1,0);
@@ -80,7 +80,7 @@ void sos_sink::put( charptr *s, unsigned int len, short U1, short U2 )
 			}
 		}
 
-	write( FD, buf, total + SOS_HEADER_SIZE );
+	out.write( buf, total + SOS_HEADER_SIZE );
 	free_memory( buf );
 	}
 
@@ -117,8 +117,21 @@ void sos_sink::put( const str &s, short U1, short U2 )
 			*lptr++ = 0;
 		}
 
-	write( FD, buf, total + SOS_HEADER_SIZE );
+	out.write( buf, total + SOS_HEADER_SIZE );
 	free_memory( buf );
+	}
+
+
+void sos_sink::put_record_start( unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 )
+	{
+	static char buf[SOS_HEADER_SIZE];
+
+	head.set(buf,SOS_RECORD,l);
+	head.usets(U1,0);
+	head.usets(U2,1);
+	head.stamp();
+
+	out.write( buf, SOS_HEADER_SIZE );
 	}
 
 
@@ -146,14 +159,17 @@ sos_sink::~sos_sink() { if ( FD >= 0 ) close(FD); }
 void *sos_source::get( sos_code &type, unsigned int &len )
 	{
 	type = SOS_UNKNOWN;
-	if ( read(FD,head.iBuffer(),sos_header::iSize()) <= 0 )
+	if ( in.read( head.iBuffer(),sos_header::iSize() ) <= 0 )
 		return 0;
 
 	type = head.type();
 	len = head.length();
 
 	if ( type == SOS_STRING )
-		return get_string( len, head );
+		if ( use_str )
+			return get_string( len, head );
+		else
+			return get_chars( len, head );
 	else
 		return get_numeric( type, len, head );
 	}
@@ -163,7 +179,7 @@ void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &hea
 	char *result_ = (char*) alloc_memory(len * head.typeLen() + sos_header::iSize());
 	memcpy(result_, head.iBuffer(), sos_header::iSize());
 	char *result  = result_ + sos_header::iSize();
-	read(FD, result, len * head.typeLen());
+	in.read( result, len * head.typeLen());
 	if ( ! (head.magic() & SOS_MAGIC) )
 		switch( type ) {
 		    case SOS_SHORT:
@@ -198,7 +214,7 @@ void *sos_source::get_string( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) alloc_memory(len);
-	read( FD, buf, len );
+	in.read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
 	len = *lptr++;
@@ -210,19 +226,49 @@ void *sos_source::get_string( unsigned int &len, sos_header &head )
 
 	char *cptr = (char*)(&lptr[len]);
 	str *ns = new str( len );
-	char **ary = (char **) ns->raw_getary();
+	char **ary = ns->getary();
+	unsigned int *lary = ns->getlen();
 	for ( unsigned int i = 0; i < len; i++ )
 		{
 		register unsigned int slen = *lptr++;
-		ary[i] = (char*) alloc_memory( slen + 5 );
-		*((unsigned int*)ary[i]) = slen;
-		memcpy(&ary[i][4],cptr,slen);
-		ary[i][slen+4] = '\0';
+		ary[i] = (char*) alloc_memory( slen + 1 );
+		lary[i] = slen;
+		memcpy(ary[i],cptr,slen);
+		ary[i][slen] = '\0';
 		cptr += slen;
 		}
 
 	free_memory( buf );
 	return ns;
+	}
+
+void *sos_source::get_chars( unsigned int &len, sos_header &head )
+	{
+	int swap = ! (head.magic() & SOS_MAGIC);
+	char *buf = (char*) alloc_memory(len);
+	in.read( buf, len );
+
+	unsigned int *lptr = (unsigned int*) buf;
+	len = *lptr++;
+	if ( swap )
+		{
+		swap_abcd_dcba((char*) &len, 1);
+		swap_abcd_dcba((char*) lptr, len );
+		}
+
+	char *cptr = (char*)(&lptr[len]);
+	char **ary = (char **) alloc_memory(len * sizeof(char*));
+	for ( unsigned int i = 0; i < len; i++ )
+		{
+		register unsigned int slen = *lptr++;
+		ary[i] = (char*) alloc_memory( slen + 1 );
+		memcpy(ary[i],cptr,slen);
+		ary[i][slen] = '\0';
+		cptr += slen;
+		}
+
+	free_memory( buf );
+	return ary;
 	}
 
 sos_source::~sos_source() { if ( FD >= 0 ) close(FD); }
