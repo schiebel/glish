@@ -806,7 +806,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 		}
 
 	Scope *cur_scope = scopes[scope_index];
-	
+
 	scope = cur_scope->GetScopeType();
 
 	int frame_offset = cur_scope->Length();
