@@ -37,6 +37,8 @@ BaseList::BaseList(int size, PFC handler)
 
 	if ( size <= 0 )
 		chunk_size = DEFAULT_CHUNK_SIZE;
+	else
+		chunk_size = size;
 
 	if ( size < 0 )
 		{
