@@ -154,8 +154,6 @@ class ProxyId GC_FINAL_CLASS {
 	int ary[3];
 };
 
-extern ostream &operator <<(ostream &o, const ProxyId &id);
-
 // Holds information regarding outbound "link" commands.
 class EventLink;
 

@@ -16,8 +16,6 @@
 #define SOS_HEADER_SIZE		SOS_HEADER_1_SIZE
 #define SOS_VERSION		1
 
-#include <iostream.h>
-
 struct sos_header_kernel GC_FINAL_CLASS {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0,
 			   int ver = SOS_VERSION ) : buf_((unsigned char*)b), type_(t),
@@ -194,6 +192,9 @@ private:
 	sos_header_kernel *kernel;
 };
 
+#ifdef SOS_DEBUG
+#include <iostream.h>
 extern ostream &operator<< (ostream &, const sos_header &);
+#endif
 
 #endif

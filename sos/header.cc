@@ -15,7 +15,6 @@ RCSID("@(#) $Id$")
 #include "sos/header.h"
 #include "sos/mdep.h"
 #include "sos/types.h"
-#include <iostream.h>
 #include <string.h>
 
 void sos_header_kernel::set( void *b, unsigned int l, sos_code t, int freeit )
@@ -182,6 +181,7 @@ void sos_header::adjust_version( )
 		}
 	}
 
+#ifdef SOS_DEBUG
 ostream &operator<< (ostream &ios, const sos_header &h)
 	{
 	unsigned int v = h.time();
@@ -221,3 +221,4 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 
 	return ios;
 	}
+#endif

@@ -11,7 +11,6 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <iostream.h>
 #include <time.h>
 
 #if HAVE_OSFCN_H
@@ -1693,7 +1692,9 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
 		case SOS_STRING: val = create_value( (charptr*) ary, len ); break;
 		case SOS_RECORD: val = read_record( sos, len, head.ugetc(0) == TYPE_FAIL ); break;
 		default:
+#ifdef SOS_DEBUG
 			cerr << "header: " << head << endl;
+#endif
 			fatal->Report( "bad type in 'read_value( sos_in &, char *&, unsigned char &)'" );
 		}
 
@@ -1922,12 +1923,6 @@ void write_value( sos_out &sos, const Value *v, const ProxyId &proxy_id )
 	{
 	write_value( sos, (Value*) v, 0, 0, 0, proxy_id );
 	sos.flush();
-	}
-
-ostream &operator <<(ostream &o, const ProxyId &id)
-	{
-	o << id.interp() << ":" << id.task() << ":" << id.id();
-	return o;
 	}
 
 const char *strip_path( const char *path )

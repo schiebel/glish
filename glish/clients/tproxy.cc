@@ -3,6 +3,12 @@
 #include <iostream.h>
 #include "Glish/Proxy.h"
 
+ostream &operator <<(ostream &o, const ProxyId &id)
+	{
+	o << id.interp() << ":" << id.task() << ":" << id.id();
+	return o;
+	}
+
 class ProxyA : public Proxy {
     public:
 	ProxyA( ProxyStore *s );
