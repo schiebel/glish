@@ -2137,7 +2137,9 @@ IValue* ApplyRegExpr::Eval( evalOpt &opt )
 					int *shape = alloc_int( 2 );
 					shape[0] = slen;
 					shape[1] = rlen;
-					result->AssignAttribute("shape", new IValue(shape,2));
+					IValue *shapev = new IValue(shape,2);
+					result->AssignAttribute("shape", shapev );
+					Unref( shapev );
 					}
 				}
 			else
@@ -2154,7 +2156,9 @@ IValue* ApplyRegExpr::Eval( evalOpt &opt )
 					int *shape = alloc_int( 2 );
 					shape[0] = slen;
 					shape[1] = rlen;
-					result->AssignAttribute("shape", new IValue(shape,2));
+					IValue *shapev = new IValue(shape,2);
+					result->AssignAttribute("shape", shapev );
+					Unref( shapev );
 					}
 				}
 

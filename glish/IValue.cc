@@ -674,8 +674,9 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 				if ( len[x] > 1 )				\
 					len[z++] = len[x];			\
 										\
-			result->AssignAttribute( "shape",			\
-						new IValue( len, z ) );		\
+			IValue *shape = new IValue( len, z );			\
+			result->AssignAttribute( "shape", shape );		\
+			Unref( shape );						\
 			}							\
 		else								\
 			free_memory( len );					\
@@ -1541,6 +1542,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 
 		Value* len_v = create_value( len, z );
 		result->AssignAttribute( "shape", len_v );
+		Unref( len_v );
 		}
 	else
 		free_memory( len );

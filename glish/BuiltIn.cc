@@ -1387,8 +1387,9 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		int *newshape = alloc_int( 2 );				\
 		newshape[ROWS] = rows;					\
 		newshape[COLS] = cols;					\
-		result_value->AssignAttribute( "shape", 		\
-					       new IValue(newshape,2) );	\
+		IValue *shape = new IValue(newshape,2);			\
+		result_value->AssignAttribute( "shape", shape );	\
+		Unref( shape );						\
 		return result_value;					\
 		}							\
 									\

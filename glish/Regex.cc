@@ -638,7 +638,9 @@ IValue *str_node::get( Regex *reg )
 		int *shape_i = alloc_int( 2 );
 		shape_i[0] = rows;
 		shape_i[1] = parens;
-		ret->AssignAttribute( "shape", new IValue( shape_i, 2 ) );
+		IValue *shape = new IValue( shape_i, 2 );
+		ret->AssignAttribute( "shape", shape );
+		Unref( shape );
 		}
 	else if ( len > 0 )
 		{
