@@ -7,6 +7,11 @@ AC_INIT(glish)
 ## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
 ## from ftp.ee.lbl.gov.
 ##
+## This autoconf input file was designed to work with a modified version of
+## autoconf which allows multiple compiles within the same source tree to
+## proceed in parallel. However, large parts will work with the stock
+## autoconf.
+##
 
 AC_CACHE_VAL(_cv_version,[_cv_version=`cat glish/version.h | head -1 | sed ['s/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/']`])
 
