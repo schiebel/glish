@@ -31,8 +31,6 @@
 		{ return new type( value ); }					\
 	Value *create_value( recordptr value )					\
 		{ return new type( value ); }					\
-	Value *create_value( SDS_Index& sds_index )				\
-		{ return new type( sds_index ); }				\
 	Value *create_value( Value* ref_value, value_type val_type )		\
 		{ return new type( ref_value, val_type ); }			\
 	Value *create_value( Value* ref_value, int index[], int num_elements, value_type val_type, int take_index )\

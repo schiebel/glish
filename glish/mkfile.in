@@ -163,7 +163,7 @@ XINC = @XINCLUDES@
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
-GLIBS = $(LIBDIR_P)/libsds$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) @NPD_LIB@ $(TK_LIB)
+GLIBS = $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) @NPD_LIB@ $(TK_LIB)
 
 TAR_FILE = glish.tar
 

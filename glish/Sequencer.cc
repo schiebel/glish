@@ -737,7 +737,7 @@ void Sequencer::InitScriptClient()
 	ScriptCreated( 1 );
 	}
 
-Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
+Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0)
 	{
 	cur_sequencer = this;
 
@@ -1013,7 +1013,7 @@ Sequencer::~Sequencer()
 	for ( int k=stack.length()-1; k >= 0; k-- )
 		Unref( stack.remove_nth(k) );
 
-	if ( ! script_client_active )
+	if ( ! script_client_active && script_client )
 		delete script_client;
 
 	free_memory( interpreter_tag );

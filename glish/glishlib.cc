@@ -38,15 +38,6 @@ Value *copy_value( const Value *value )
 			copy = create_value( *value );
 			break;
 
-		case TYPE_OPAQUE:
-			{
-			// _AIX requires a temporary
-			SDS_Index tmp(value->SDS_IndexVal());
-			copy = create_value( tmp );
-			copy->CopyAttributes( value );
-			}
-			break;
-
 		case TYPE_SUBVEC_REF:
 			switch ( value->VecRefPtr()->Type() )
 				{

@@ -45,8 +45,6 @@ public:
 	IValue( recordptr v ) : Value( v ) { }
 	IValue( recordptr v, Agent* agent );
 
-	IValue( SDS_Index& sds_index ) : Value( sds_index ) { }
-
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
 			Value( ref_value, val_type ) { }
@@ -199,8 +197,5 @@ extern IValue* dcomplex_rel_op_compute( const IValue* lhs, const IValue* rhs,
 				int lhs_len, RelExpr* expr );
 extern IValue* string_rel_op_compute( const IValue* lhs, const IValue* rhs,
 				int lhs_len, RelExpr* expr );
-
-inline IValue* read_ivalue_from_SDS( int sds, int is_opaque_sds = 0 )
-	{ return (IValue*) read_value_from_SDS( sds, is_opaque_sds ); }
 
 #endif /* ivalue_h */

@@ -250,7 +250,7 @@ dnl## Checks for header files.
 dnl##
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h)
+AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h sys/limits.h)
 AC_CHECK_HEADERS(sys/signal.h fp.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(stdlib.h)
@@ -274,6 +274,15 @@ AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr)
+
+AC_CHECK_FUNC(writev,[
+AC_DEFINE(HAVE_WRITEV)
+AC_MSG_CHECKING([for writev declaration])
+AC_EGREP_HEADER(writev, sys/uio.h, AC_MSG_RESULT(present), [
+    AC_MSG_RESULT(missing)
+    AC_DEFINE(WRITEV_NOT_DECLARED)])
+])
+
 AC_CHECK_FUNC(shmget,[
 AC_DEFINE(HAVE_SHMGET)
 AC_MSG_CHECKING([for shmget declaration])
@@ -281,6 +290,8 @@ AC_EGREP_HEADER(shmget, sys/shm.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
     AC_DEFINE(SHMGET_NOT_DECLARED)])
 ])
+
+AC_C_BIGENDIAN
 
 dnl##--------------------------------------------------------------------
 dnl##
@@ -293,7 +304,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
     if test -z "$GLISH_KEYDIR"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -305,7 +316,7 @@ else
     BUILD_NPD=""
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 fi
 
 
@@ -892,8 +903,8 @@ dnl##
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsds$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX"
-    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsds$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX"
+    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -904,8 +915,8 @@ if test "$static_binary" = "yes"; then
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsds -ledit"
-    CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsds"
+    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit"
+    CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
@@ -1023,8 +1034,8 @@ AC_SUBST(STATIC_BIN)
 dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
-$mkhier "sds/$ARCH/static"
-$mkhier "sds/$ARCH/dynamic"
+$mkhier "sos/$ARCH/static"
+$mkhier "sos/$ARCH/dynamic"
 $mkhier "npd/$ARCH/static"
 $mkhier "npd/$ARCH/dynamic"
 $mkhier "editline/$ARCH/static"
@@ -1038,8 +1049,8 @@ PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in)
 PREPROCESS(npd/mkfile.in,npd/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in)
 PREPROCESS(editline/mkfile.in,editline/$ARCH/dynamic.in,[DYNAMIC="yes"])
-PREPROCESS(sds/mkfile.in,sds/$ARCH/static.in)
-PREPROCESS(sds/mkfile.in,sds/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
+PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sds/$ARCH/static/Makefile:sds/$ARCH/static.in sds/$ARCH/dynamic/Makefile:sds/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
 

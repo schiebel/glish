@@ -7,15 +7,18 @@ RCSID("@(#) $Id$")
 #include "system.h"
 
 #include <string.h>
-#include <stream.h>
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 // For MAXINT, MAXFLOAT, HUGE.
 #include <values.h>
 
-#include "Sds/sdsgen.h"
+#include "sos/io.h"
 #include "Npd/npd.h"
 #include "glish_event.h"
 #include "BuiltIn.h"
@@ -1408,21 +1411,20 @@ case tag:						\
 	return new IValue( glish_false );
 	}
 
-
+extern Value *read_value( int );
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	char* filename = (*args_val)[0]->StringVal();
-
-	int sds = (int) sds_access( filename, SDS_FILE, SDS_READ );
-
 	IValue* result;
+	int fd = open(filename,O_RDONLY,0644);
+	
 
-	if ( sds < 0 )
-		result = (IValue*) Fail( "could not read value from \"", filename,
-				"\"" );
+	if ( fd < 0 )
+		result = (IValue*) Fail( "could not read value from \"", filename, "\"" );
 	else
-		result = read_ivalue_from_SDS( sds );
+		result = (IValue*) read_value( fd );
 
+	close(fd);
 	free_memory( filename );
 
 	return result;
@@ -1431,45 +1433,46 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	{
-	char* filename = (*args_val)[1]->StringVal();
-	const IValue* v = (*args_val)[0];
+// 	char* filename = (*args_val)[1]->StringVal();
+// 	const IValue* v = (*args_val)[0];
 
-	IValue *ret = 0;
+// 	IValue *ret = 0;
 
-	if ( v->Type() == TYPE_OPAQUE )
-		{
-		int sds = v->SDS_IndexVal();
+// 	if ( v->Type() == TYPE_OPAQUE )
+// 		{
+// 		int sds = v->SDS_IndexVal();
 
-		if ( sds_ass( sds, filename, SDS_FILE ) != sds )
-			ret = (IValue*) Fail( "could not save opaque value to \"",
-					filename, "\"" );
-		}
-	else
-		{
-		int sds = (int) sds_new( (char*) "" );
+// 		if ( sds_ass( sds, filename, SDS_FILE ) != sds )
+// 			ret = (IValue*) Fail( "could not save opaque value to \"",
+// 					filename, "\"" );
+// 		}
+// 	else
+// 		{
+// 		int sds = (int) sds_new( (char*) "" );
 
-		if ( sds < 0 )
-			ret = (IValue*) Fail( "problem saving value to \"", filename,
-					"\", SDS error code = ", sds );
-		else
-			{
-			del_list d;
+// 		if ( sds < 0 )
+// 			ret = (IValue*) Fail( "problem saving value to \"", filename,
+// 					"\", SDS error code = ", sds );
+// 		else
+// 			{
+// 			del_list d;
 
-			(*args_val)[0]->AddToSds( sds, &d );
+// 			(*args_val)[0]->AddToSds( sds, &d );
 
-			if ( sds_ass( sds, filename, SDS_FILE ) != sds )
-				ret = (IValue*) Fail( "could not save value to \"",
-						filename, "\"" );
+// 			if ( sds_ass( sds, filename, SDS_FILE ) != sds )
+// 				ret = (IValue*) Fail( "could not save value to \"",
+// 						filename, "\"" );
 
-			sds_destroy( sds );
+// 			sds_destroy( sds );
 
-			delete_list( &d );
-			}
-		}
+// 			delete_list( &d );
+// 			}
+// 		}
 
-	free_memory( filename );
+// 	free_memory( filename );
 
-	return ret ? ret : new IValue( 1 );
+// 	return ret ? ret : new IValue( 1 );
+	return 0;
 	}
 
 
@@ -2250,8 +2253,6 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 	s->AddBuiltIn( new EvalBuiltIn( s ) );
-
-	sds_init();
 
 #ifdef AUTHENTICATE
 	init_log( program_name );

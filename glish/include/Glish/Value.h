@@ -66,18 +66,6 @@ typedef SubVecRef(dcomplex) dcomplexref;
 typedef SubVecRef(charptr) charptrref;
 
 
-// Class used to differentiate integers that are SDS indices from
-// just plain integers.
-class SDS_Index {
-public:
-	SDS_Index( int ind )	{ index = ind; }
-	int Index() const	{ return index; }
-
-protected:
-	int index;
-	};
-
-
 // Used to create lists of objects or dynamic memory that should be freed.
 class DelObj;
 declare(PList,DelObj);
@@ -131,8 +119,6 @@ public:
 	Value( const char* value );
 
 	Value( recordptr value );
-
-	Value( SDS_Index& sds_index );
 
 	// Reference constructor.
 	Value( Value* ref_value, value_type val_type );
@@ -239,11 +225,6 @@ public:
 	// value. This may be useful when used with "StringVal()" as the
 	// "max_elements" parameter.
 	unsigned int PrintLimit() const;
-
-	// Returns the Value's SDS index, if TYPE_OPAQUE.  Returns
-	// SDS_NO_SUCH_SDS if the value is not TYPE_OPAQUE.
-	int SDS_IndexVal() const;
-
 
 	// The following accessors return pointers to the underlying value
 	// array.  The "const" versions complain with a fatal error if the
@@ -502,32 +483,11 @@ public:
 	void Negate();	// value <- -value
 	void Not();	// value <- ! value
 
-	// Add the Value to the sds designated by "sds" using the given
-	// name.  "dlist" is a del_list (PList of DelObj) that is used to
-	// record any objects or dynamic memory required by AddToSds in order
-	// to construct the SDS.  Once done with the SDS (and the SDS has
-	// been destroyed), "delete_list( dlist )" should be called to
-	// reclaim the memory that AddToSds needed.
-	//
-	// The "rh" argument is a pointer to the SDS record header
-	// describing the record we're inside.  If this Value object is
-	// not part of some larger record, then in the AddToSds call "rh"
-	// will be nil.  But if we're part of a record, then "rh" will
-	// give us a pointer to the SDS data structure corresponding to
-	// that record.
-	//
-	// Additionally, "level" indicates how deep we are into a
-	// record.  A level of 0 indicates we're at the top-level; 1
-	// indicates we're dealing with a subrecord, 2 a subsubrecord,
-	// etc.  We need to know this information because we do different
-	// things for the cases level=0, level=1, and level=n for n > 1.
-	void AddToSds( int sds, del_list* dlist, const char* name = 0,
-			struct record_header* rh = 0, int level = 0 ) const;
-
-
 	// Change from present type to given type.
 	virtual void Polymorph( glish_type new_type );
 	void VecRefPolymorph( glish_type new_type );
+
+	Value *GETATTRIBUTES() { return attributes; }
 
 	// Retrieve the non-modifiable set of attributes, possibly nil.
 	const attributeptr AttributePtr() const
@@ -646,8 +606,6 @@ protected:
 
 	Value ( glish_type ) { }		// for IValue
 
-	void SetValue( SDS_Index& array );
-
 	void SetValue( glish_boolref& value_ref );
 	void SetValue( byteref& value_ref );
 	void SetValue( shortref& value_ref );
@@ -740,8 +698,6 @@ protected:
 
 #include "VecRef.h"
 
-extern Value* read_value_from_SDS( int sds, int is_opaque_sds = 0 );
-
 extern int compatible_types( const Value* v1, const Value* v2,
 				glish_type& max_type );
 
@@ -797,7 +753,6 @@ extern Value *create_value( complex value );
 extern Value *create_value( dcomplex value );
 extern Value *create_value( const char* value );
 extern Value *create_value( recordptr value );
-extern Value *create_value( SDS_Index& sds_index );
 extern Value *create_value( Value* ref_value, value_type val_type );
 extern Value *create_value( Value* ref_value, int index[], int num_elements,
 			    value_type val_type, int take_index = 0 );

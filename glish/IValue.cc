@@ -11,7 +11,6 @@ RCSID("@(#) $Id$")
 #include <strstream.h>
 #include <stdlib.h>
 
-#include "Sds/sdsgen.h"
 #include "IValue.h"
 
 #include "glish_event.h"
@@ -596,14 +595,6 @@ IValue *copy_value( const IValue *value )
 				}
 			else
 				copy = new IValue( *value );
-			break;
-		case TYPE_OPAQUE:
-			{
-			// _AIX requires a temporary
-			SDS_Index tmp(value->SDS_IndexVal());
-			copy = new IValue( tmp );
-			copy->CopyAttributes( value );
-			}
 			break;
 
 		case TYPE_SUBVEC_REF:

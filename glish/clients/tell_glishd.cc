@@ -9,7 +9,6 @@ RCSID("@(#) $Id$")
 #include <osfcn.h>
 #include <string.h>
 
-#include "Sds/sdsgen.h"
 #include "Glish/Client.h"
 
 #include "Reporter.h"
@@ -44,7 +43,6 @@ int main( int argc, char** argv )
 
 	const char* host = (argc == 1) ? argv[0] : local_host_name();
 
-	sds_init();
 	init_reporters();
 	init_values();
 

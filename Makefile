@@ -29,7 +29,7 @@ distclean:
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
-	@$(MAKE) build.sds
+	@$(MAKE) build.sos
 	@$(MAKE) build.editline
 	@$(MAKE) build.npd
 	@$(MAKE) build.tk
@@ -37,7 +37,7 @@ all_r:
 
 install_r: 
 	@echo "Installing Glish for $(ARCH)"
-	@$(MAKE) install.sds
+	@$(MAKE) install.sos
 	@$(MAKE) install.editline
 	@$(MAKE) install.npd
 	@$(MAKE) install.tk
@@ -45,7 +45,7 @@ install_r:
 
 clean_r:
 	@echo "Cleaning Glish for $(ARCH)"
-	@$(MAKE) clean.sds
+	@$(MAKE) clean.sos
 	@$(MAKE) clean.editline
 	@$(MAKE) clean.npd
 	@$(MAKE) clean.tk
@@ -53,7 +53,7 @@ clean_r:
 
 distclean_r:
 	@echo "Removing Everything for $(ARCH)"
-	@$(MAKE) distclean.sds
+	@$(MAKE) distclean.sos
 	@$(MAKE) distclean.editline
 	@$(MAKE) distclean.npd
 	@$(MAKE) distclean.tk
@@ -61,31 +61,31 @@ distclean_r:
 	@rm -rf $(ARCH)
 
 ##
-## Building SDS
+## Building SOS
 ##
-build.sds:
+build.sos:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS="";  fi;			 	\
-	cd sds; $(MAKE) $$FLGS
+	cd sos; $(MAKE) $$FLGS
 
-install.sds:
+install.sos:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd sds; $(MAKE) $$FLGS install
+	cd sos; $(MAKE) $$FLGS install
 
-clean.sds:
+clean.sos:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd sds; $(MAKE) $$FLGS clean
+	cd sos; $(MAKE) $$FLGS clean
 
-distclean.sds:
+distclean.sos:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd sds; $(MAKE) $$FLGS distclean
+	cd sos; $(MAKE) $$FLGS distclean
 
 ##
 ## Building Editline

@@ -29,7 +29,7 @@ int shmdt(const void *); }
 #endif
 
 #include "Channel.h"
-
+#include <iostream.h>
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -45,7 +45,7 @@ char* strdup( const char* );
 #endif
 }
 
-#include "Sds/sdsgen.h"
+#include "sos/io.h"
 #include "Npd/npd.h"
 #include "Glish/Client.h"
 
@@ -726,7 +726,7 @@ void Client::ClientInit()
 	{
 	if ( ! did_init )
 		{
-		sds_init();
+// 		sds_init();
 		init_reporters();
 		init_values();
 
@@ -1381,208 +1381,237 @@ void Client::RemoveInterpreter( EventSource* source )
 	delete event_sources.remove( source );
 	}
 
-static int read_buffer( int fd, char* buffer, int buf_size )
+static Value *read_value( sos_in &, char *&, unsigned char & );
+Value *read_value( int fd );
+static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	{
-	int status = read( fd, buffer, buf_size );
+	sos_code type;
+	static sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
+	unsigned int xlen;
 
-	if ( status == 0 )
-		return 0;
+	charptr *fields = (charptr*) sos.get( xlen, type, head );
+	if ( type != SOS_STRING )
+		fatal->Report("field names expected first when reading record");
 
-	else if ( status < 0 )
+	recordptr nr = create_record_dict();
+
+	for ( int cnt = 0; cnt < len; cnt++ )
 		{
-		if ( errno != EPIPE && errno != ECONNRESET )
-			error->Report( prog_name,
-					": problem reading buffer, errno = ",
-					errno );
-		return 0;
+		char *dummy;
+		unsigned char f;
+		Value *val = read_value( sos, dummy, f );
+		nr->Insert( (char*) fields[cnt], val );
 		}
 
-	else if ( status < buf_size )
-		return read_buffer( fd, buffer + status, buf_size - status );
+	free_memory( fields );
 
-	return 1;
-	}
+	Value *ret = create_value( nr );
 
-static int write_buffer( int fd, char* buffer, int buf_size )
-	{
-	int status = write( fd, buffer, buf_size );
-
-	if ( status < 0 )
+	if ( is_fail )
 		{
-		if ( errno != EPIPE && errno != ECONNRESET )
-			error->Report( prog_name,
-					": problem writing buffer, errno = ",
-					errno );
-		return 0;
+		Value *tmp = create_value();
+		tmp->AssignAttributes( ret );
+		ret = tmp;
 		}
 
-	else if ( status < buf_size )
-		return write_buffer( fd, buffer + status, buf_size - status );
-
-	return 1;
+	return ret;
 	}
 
 
+static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
+	{
+	sos_code type;
+	unsigned int len;
+	sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
+	Value *val = 0;
+
+	void *ary = sos.get( len, type, head );
+
+	flags = head.ugetc(1);
+
+	switch ( type )
+		{
+		case SOS_INT: 
+			if ( head.ugetc(0) == TYPE_BOOL )
+				val = create_value( (glish_bool*) ary, len );
+			else
+				val = create_value( (int*) ary, len );
+			break;
+		case SOS_BYTE: val = create_value( (byte*) ary, len ); break;
+		case SOS_SHORT: val = create_value( (short*) ary, len ); break;
+		case SOS_FLOAT:
+			if ( head.ugetc(0) == TYPE_COMPLEX )
+				val = create_value( (complex*) ary, len / 2 );
+			else
+				val = create_value( (float*) ary, len );
+			break;
+		case SOS_DOUBLE:
+			if ( head.ugetc(0) == TYPE_DCOMPLEX )
+				val = create_value( (dcomplex*) ary, len / 2 );
+			else
+				val = create_value( (double*) ary, len );
+			break;
+		case SOS_STRING: val = create_value( (charptr*) ary, len ); break;
+		case SOS_RECORD: val = read_record( sos, len, head.ugetc(0) == TYPE_FAIL ); break;
+		default:
+			cerr << "header: " << head << endl;
+			fatal->Report( "bad type in 'read_value( sos_in &, char *&, unsigned char &)'" );
+		}
+
+	unsigned int name_len = 0;
+	if ( name_len = head.ugeti() )
+		{
+		name = (char*) alloc_memory( name_len + 1 );
+		sos.read(name,name_len);
+		name[name_len] = '\0';
+		}
+	else
+		name = 0;
+
+	if ( flags & GLISH_HAS_ATTRIBUTE )
+		{
+		char *dummy = 0;
+		unsigned char f;
+		Value *attr = read_value( sos, dummy, f );
+		val->AssignAttributes( attr );
+		}
+
+	return val;
+	}
+
+
+Value *read_value( int fd )
+	{
+	static sos_fd_source FD;
+	static sos_in sos( FD, 0, 0 );
+
+	FD.setFd( fd );
+
+	char *name = 0;
+	unsigned char flags;
+	Value *result = read_value( sos, name, flags );
+
+	cerr << "read_value: " << name << " (" << (void*) flags << ")" << endl;
+
+	return result;
+	}
+	
 GlishEvent* recv_event( int fd )
 	{
-	struct event_header hdr;
+	static sos_fd_source FD;
+	static sos_in sos( FD, 0, 0 );
 
-	if ( ! read_buffer( fd, (char*) &hdr, sizeof( hdr ) ) )
-		return 0;
+	FD.setFd( fd );
 
-	hdr.flags = ntohl( hdr.flags );
-	int size = (int) ntohl( hdr.event_length );
+	char *name = 0;
+	unsigned char flags;
+	Value *result = read_value( sos, name, flags );
 
-	Value* result;
+	if ( ! name )
+		fatal->Report("no event name found");
 
-	if ( hdr.flags & GLISH_STRING_EVENT )
-		{
-		char* value = (char*) alloc_memory( sizeof(char)*(size+1) );
-		if ( size > 0 && ! read_buffer( fd, value, size ) )
-			{
-			error->Report( prog_name,
-		": read only partial string event value from socket, errno = ",
-					errno );
-			free_memory( value );
-			return 0;
-			}
-
-		else
-			{
-			value[size] = '\0';
-			result = split( value );
-			}
-
-		free_memory( value );
-		}
-
-	else
-		{
-		int sds = (int) sds_read_open_fd( fd, size );
-
-		if ( sds <= 0 )
-			{
-			if ( sds != SDS_FILE_WR )
-				error->Report( prog_name,
-				": problem reading event, SDS error code = ",
-						sds );
-			return 0;
-			}
-
-		else
-			result = read_value_from_SDS( sds,
-					int( hdr.flags & GLISH_OPAQUE_EVENT ) );
-		}
-
-	
-	GlishEvent* e = 0;
-
-	if ( result && *hdr.event_name == '*' && ! strcmp(hdr.event_name,"*shm-event*") )
-		{
-		int shmid = result->IntVal();
-		Unref(result);
-		e = recv_shm_event(shmid);
-		}
-	else
-		e = new GlishEvent( strdup( hdr.event_name ), result );
-
-	if (e) e->SetFlags( int( hdr.flags ) );
+	GlishEvent *e = new GlishEvent( name, result );
+	e->SetFlags( flags );
 	return e;
 	}
 
 
-static int send_event_header( int fd, int flags, int length, const char* name )
+static void write_value( sos_out &sos, Value *val, const char *label, char *name = 0, unsigned char flags = 0 )
 	{
-	// The following is static so that we don't wind up copying
-	// uninitialized memory; makes Purify happy.
-	static struct event_header hdr;
+	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 
-	hdr.flags = htonl( (u_long) flags );
-	hdr.event_length = htonl( (u_long) length );
+	if ( val->IsVecRef() )
+		{
+		Value* copy = copy_value( val );
+//		dlist->append( new DelObj( copy ) );	/*!!! LEAK !!!*/
+		write_value( sos, copy, label, name, flags );
+		return;
+		}
 
-	if ( strlen( name ) >= MAX_EVENT_NAME_SIZE )
-		warn->Report( prog_name,
-				": event name \"", name, "\" truncated to ",
-				MAX_EVENT_NAME_SIZE - 1, " characters" );
+	if ( val->IsRef() )
+		{
+		write_value( sos, val->Deref(), label, name, flags );
+		return;
+		}
 
-	strncpy( hdr.event_name, name, MAX_EVENT_NAME_SIZE - 1 );
-	hdr.event_name[MAX_EVENT_NAME_SIZE - 1] = '\0';
+	glish_type type = val->Type();
 
-	if ( ! write_buffer( fd, (char*) &hdr, sizeof( hdr ) ) )
-		return 0;
+	head.useti( name ? strlen(name) : 0 );
+	head.usetc( type, 0 );
+	head.usetc( (val->AttributePtr() ? GLISH_HAS_ATTRIBUTE : 0) | flags, 1 );
 
-	return 1;
+	switch( type )
+		{
+#define WRITE_ACTION(TAG,ACCESSOR,CAST,MUL)					\
+	case TAG:								\
+		sos.put( CAST val->ACCESSOR(0), val->Length() MUL, head );	\
+		break;
+
+		WRITE_ACTION(TYPE_BOOL,BoolPtr, (int*), )
+		WRITE_ACTION(TYPE_BYTE,BytePtr,,)
+		WRITE_ACTION(TYPE_SHORT,ShortPtr,,)
+		WRITE_ACTION(TYPE_INT,IntPtr,,)
+		WRITE_ACTION(TYPE_FLOAT,FloatPtr,,)
+		WRITE_ACTION(TYPE_DOUBLE,DoublePtr,,)
+		WRITE_ACTION(TYPE_COMPLEX,ComplexPtr, (float*), *2 )
+		WRITE_ACTION(TYPE_DCOMPLEX,DcomplexPtr, (double*), *2 )
+		WRITE_ACTION(TYPE_STRING,StringPtr,,)
+		case TYPE_FAIL:
+			val = val->GETATTRIBUTES();
+			head.usetc( val->AttributePtr() ? 1 : 0, 1 );
+		case TYPE_RECORD:
+			{
+			unsigned int len = val->Length();
+			recordptr rec = val->RecordPtr( 0 );
+			IterCookie* c = rec->InitForIteration();
+			const Value* member;
+			const char* key;
+
+			sos.put_record_start( len, head );
+
+			char **fields = (char**) alloc_memory( sizeof(char*) * len );
+			unsigned int i = 0;
+			while ( (member = rec->NextEntry( key, c )) )
+				fields[i++] = (char*) key;
+			sos.put( fields, len );
+			free_memory( fields );
+
+			c = rec->InitForIteration();
+			while ( (member = rec->NextEntry( key, c )) )
+				write_value( sos, (Value*) member, key );
+			}
+			break;
+		case TYPE_AGENT:
+			warn->Report( "skipping agent value \"", (label ? label : "?"),
+					"\" in creation of dataset" );
+			write_value( sos, (Value*) false_value, label, name );
+			return;
+			break;
+		case TYPE_FUNC:
+			warn->Report( "skipping function value \"", (label ? label : "?"),
+					"\" in creation of dataset" );
+			write_value( sos, (Value*) false_value, label, name );
+			return;
+			break;
+                default:
+                        fatal->Report( "bad type in write_value()" );
+ 		}
+
+	if ( name ) sos.write( name, strlen(name) );
+
+	if ( val->AttributePtr() )
+		write_value( sos, val->GETATTRIBUTES(), name );
 	}
 
 void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 	{
-	const Value* value = e->value;
-	int event_flags = e->Flags();
+	static sos_fd_sink FD;
+	static sos_out sos( FD, 0 );
 
-	if ( value )
-		value = value->Deref();
+	FD.setFd( fd );
 
-	if ( value && value->Type() == TYPE_STRING && value->Length() == 1 &&
-	     ! value->AttributePtr() )
-		{
-		char* string_val = value->StringVal( );
-
-		int size = strlen( string_val );
-		event_flags |= GLISH_STRING_EVENT;
-
-		if ( send_event_header( fd, event_flags, size, name ) )
-			(void) write_buffer( fd, string_val, size );
-
-		free_memory( string_val );
-		}
-
-	else
-		{
-		if ( value && value->Type() == TYPE_OPAQUE )
-			{
-			sds = value->SDS_IndexVal();
-			value = 0;
-			}
-
-		del_list d;
-
-		if ( sds >= 0 )
-			event_flags |= GLISH_OPAQUE_EVENT;
-
-		else
-			{
-			if ( ! value )
-				value = create_value( glish_false );
-
-			sds = (int) sds_new( (char*) "" );
-
-			if ( sds < 0 )
-				error->Report( prog_name,
-				": problem posting event, SDS error code = ",
-						sds );
-
-			value->AddToSds( sds, &d );
-			}
-
-		int size = (int) sds_fullsize( sds );
-
-		if ( send_event_header( fd, event_flags, size, name ) )
-			{
-			if ( sds_write2fd( fd, sds ) != sds &&
-			     sds_error != SDS_FILE_WR )
-				error->Report( prog_name,
-			": problem sending event on socket, SDS error code = ",
-						(int) sds_error );
-			}
-
-		if ( value )
-			{
-			sds_destroy( sds );
-			sds_discard( sds );
-
-			delete_list( &d );
-			}
-		}
+	write_value( sos, e->value, name, (char*) name, e->Flags() );
+	sos.flush();
 	}
 
 #if ! defined(HAVE_SHMGET)

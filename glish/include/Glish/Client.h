@@ -44,18 +44,18 @@ public:
 
 	int IsRequest() const;
 	int IsReply() const;
-	int Flags() const		{ return flags; }
+	unsigned char Flags() const	{ return flags; }
 
 	void SetIsRequest();
 	void SetIsReply();
-	void SetFlags( int new_flags )	{ flags = new_flags; }
+	void SetFlags( unsigned char new_flags ) { flags = new_flags; }
 
 	// These are public for historical reasons.
 	const char* name;
 	Value* value;
 
 protected:
-	int flags;
+	unsigned char flags;
 	int delete_name;
 	int delete_value;
 	};
