@@ -285,6 +285,7 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
 "++"|"--"	{
 		error->Report( yytext, " is not a valid Glish operator" );
+		paren_count = 0;
 		return TOK_FLEX_ERROR;
 		}
 
@@ -564,6 +565,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;
 		BEGIN(INITIAL);
+		paren_count = 0;
 		return TOK_FLEX_ERROR;
 		}
 
@@ -617,6 +619,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		error->Report( "unrecognized character '", yytext, "'" );
 		SET_STATEMENT_CAN_END;
 		BEGIN(INITIAL);
+		paren_count = 0;
 		return TOK_FLEX_ERROR;
 		}
 
