@@ -2230,6 +2230,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 	{
 	restart_yylex( file );
 
+	int orig_scope_len = scopes.length();
 	yyin = file;
 	current_sequencer = this;
 	line_num = 1;
@@ -2263,6 +2264,8 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 			loop_over_list( del, i )
 				NodeUnref( del[i] );
 			stmts = 0;
+			while ( scopes.length() > orig_scope_len )
+				PopScope();
 			}
 		}
 	else
@@ -2316,6 +2319,7 @@ IValue *Sequencer::Eval( const char* strings[] )
 extern void clear_error();
 IValue *Sequencer::Include( const char *file )
 	{
+	int orig_scope_len = scopes.length();
 
 	char *expanded_name = which_include( file );
 
@@ -2363,6 +2367,8 @@ IValue *Sequencer::Include( const char *file )
 		loop_over_list( del, i )
 			NodeUnref( del[i] );
 		stmts = 0;
+		while ( scopes.length() > orig_scope_len )
+			PopScope();
 		}
 
 	line_num = old_line_num;
