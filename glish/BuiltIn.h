@@ -48,6 +48,9 @@ class BuiltIn : public Func {
 
 	const char *Description() const;
 
+	unsigned int CountRefs( recordptr r ) const;
+	int CountRefs( Frame *f ) const;
+
     protected:
 	// returns 0 if everything is OK
 	IValue *AllNumeric( const_args_list* args_vals, glish_type& max_type,

@@ -7,9 +7,14 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
+#include "Glish/List.h"
 #include "system.h"
 #include <string.h>
 #include <stdlib.h>
+
+typedef ValueKernel::record_t our_recordptr;
+glish_declare(PList,our_recordptr);
+typedef PList(our_recordptr) recordptr_list;
 
 #ifdef GGC
 extern int glish_collecting_garbage;
@@ -230,19 +235,56 @@ void ValueKernel::unrefArray(int del)
 void ValueKernel::unrefRecord(int del)
 	{
 	DIAG7((void*) this, "\t\trecord unref c:",record->ref_count,"r:",(void*)record,"d:",del)
-	if ( record && --record->ref_count == 0 )
-		if ( del )
-			{
-			delete record;
-			record = 0;
-			}
+
+	if ( record )
+		{
+		if ( --record->ref_count == 0 )
+			if ( del )
+				{
+				delete record;
+				record = 0;
+				}
+			else
+				record->clear();
 		else
-			record->clear();
-	else
-		if ( del )
-			record = 0;
-		else
-			record = new record_t();
+			if ( del )
+				{
+				static recordptr_list been_there;
+				if ( ! been_there.is_member( record ) &&
+				     record->ref_count == count_references(record->record,record->record) )
+					{
+					recordptr r = record->record;
+					been_there.append(record);
+					IterCookie* c = r->InitForIteration();
+					Value* member;
+					const char* key;
+
+					//** we decremented it above **
+					++record->ref_count;
+
+#ifdef GGC
+					if ( glish_collecting_garbage )
+						while ( (member = r->NextEntry( key, c )) )
+							free_memory( (void*) key );
+					else
+#endif
+						while ( (member = r->NextEntry( key, c )) )
+							{
+							free_memory( (void*) key );
+							Unref( member );
+							}
+
+					delete record->record;
+					record->record = 0;
+					delete record;
+					been_there.remove(record);
+					}
+
+				record = 0;
+				}
+			else
+				record = new record_t();
+		}
 	}
 
 ValueKernel::ValueKernel( glish_type t, unsigned int len ) : mode(mARRAY()), array(new array_t())
@@ -531,6 +573,24 @@ int ValueKernel::ToMemBlock(char *memory, int offset, int have_attributes) const
 recordptr create_record_dict()
 	{
 	return new PDict(Value)( ORDERED );
+	}
+
+unsigned int count_references( recordptr from, recordptr to )
+	{
+	unsigned int count = 0;
+
+	if ( from && to )
+		{
+		IterCookie* c = from->InitForIteration();
+
+		Value* member;
+		const char* key;
+
+		while ( (member = from->NextEntry( key, c )) )
+		  count += member->CountRefs(to);
+		}
+
+	return count;
 	}
 
 void delete_record( recordptr r )

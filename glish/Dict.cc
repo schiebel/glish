@@ -44,21 +44,9 @@ Dictionary::Dictionary( dict_order ordering, int initial_size )
 
 Dictionary::~Dictionary()
 	{
-	for ( int i = 0; i < num_buckets; ++i )
-		if ( tbl[i] )
-			{
-			while ( tbl[i]->length() )
-				delete tbl[i]->remove_nth( tbl[i]->length() - 1 );
-
-			delete tbl[i];
-			}
-
+	Clear();
 	delete [] tbl;
-
-	if ( order )
-		delete order;
-	if ( stale_cookie )
-		delete stale_cookie;
+	if ( order ) delete order;
 	}
 
 
@@ -210,6 +198,26 @@ void Dictionary::Init( int size )
 
 	for ( int i = 0; i < num_buckets; ++i )
 		tbl[i] = 0;
+
+	num_entries = 0;
+	}
+
+void Dictionary::Clear( )
+	{
+	for ( int i = 0; i < num_buckets; ++i )
+		if ( tbl[i] )
+			{
+			while ( tbl[i]->length() )
+				delete tbl[i]->remove_nth( tbl[i]->length() - 1 );
+
+			delete tbl[i];
+			tbl[i] = 0;
+			}
+
+	if ( order ) order->clear();
+
+	if ( stale_cookie ) delete stale_cookie;
+	stale_cookie = 0;
 
 	num_entries = 0;
 	}

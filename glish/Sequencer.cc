@@ -274,8 +274,23 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 
 stack_type::~stack_type( )
 	{
+	static frame_list been_there;
 	for ( int i=frames_->length()-1;i >= 0; i-- )
-		Unref(frames_->remove_nth(i));
+		{
+		Frame *cur = frames_->remove_nth(i);
+		if ( cur->RefCount() > 1 &&
+		     ! been_there.is_member( cur ) &&
+		     cur->CountRefs(cur)+1 == cur->RefCount() )
+			{
+			been_there.append(cur);
+			cur->clear();
+			Unref(cur);
+			been_there.remove(cur);
+			}
+		else
+			Unref(cur);
+		}
+
 	Unref( frames_ );
 	Unref( offsets_ );
 	}
@@ -2349,7 +2364,35 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 
 		}
-	Unref( prev_value );
+
+	if ( prev_value )
+		{
+		int rcnt = prev_value->RefCount();
+		if ( rcnt > 1 && prev_value->Type() == TYPE_RECORD &&
+		     rcnt == prev_value->CountRefs(prev_value)+1 )
+			{
+			recordptr r = prev_value->RecordPtr();
+			if ( r )
+				{
+				IterCookie* c = r->InitForIteration();
+
+				Value* member;
+				const char* key;
+
+				while ( (member = r->NextEntry( key, c )) )
+					{
+					free_memory( (void*) key );
+					Unref( member );
+					}
+
+				r->Clear();
+				}
+
+			}
+
+		Unref( prev_value );
+		}
+
 	return ret;
 	}
 

@@ -17,6 +17,7 @@ class RegexMatch;
 class File;
 class ArithExpr;
 class RelExpr;
+class Frame;
 
 typedef Func* funcptr;
 typedef Regex* regexptr;
@@ -223,6 +224,10 @@ public:
 
 	void MarkFail( );
 	int FailMarked( );
+
+	unsigned int CountRefs( recordptr r ) const;
+	int CountRefs( IValue *val ) const { return Value::CountRefs((Value*)val); }
+	int CountRefs( Frame *f ) const;
 
 	// Get a description of a non-standard (i.e. interpreter specific) type
 	char *GetNSDesc( int evalable = 0 ) const;

@@ -211,6 +211,33 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	return kernel->Describe(s, opt);
 	}
 
+unsigned int UserFunc::CountRefs( recordptr r ) const
+	{
+	unsigned int count = 0;
+	if ( stack )
+		{
+		frame_list *frames = stack->frames();
+		if ( frames )
+			loop_over_list( *frames, j )
+				count += (*frames)[j]->CountRefs(r);
+		}
+	return count;
+	}
+
+int UserFunc::CountRefs( Frame *f ) const
+	{
+	int count = 0;
+	if ( stack )
+		{
+		frame_list *frames = stack->frames();
+		if ( frames )
+			loop_over_list( *frames, j )
+				if ( (*frames)[j] == f )
+					count += 1;
+		}
+	return count;
+	}
+
 #ifdef GGC
 void UserFunc::TagGC( )
 	{

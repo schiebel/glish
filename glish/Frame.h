@@ -19,9 +19,10 @@ class IValue;
 typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
 
 class Frame : public GlishObject {
+friend class stack_type;
     public:
 	Frame( int frame_size, IValue* param_info, scope_type s );
-	~Frame();
+	~Frame() { clear(); }
 
 	IValue*& FrameElement( int offset );
 
@@ -36,11 +37,15 @@ class Frame : public GlishObject {
 
 	const char *Description() const;
 
+	unsigned int CountRefs( recordptr r ) const;
+	int CountRefs( Frame *f ) const;
+
 #ifdef GGC
 	void TagGC( );
 #endif
 
     protected:
+	void clear();
 	int size;
 	IValue** values;
 	IValue* missing;

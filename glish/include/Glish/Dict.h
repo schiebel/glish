@@ -76,6 +76,8 @@ class Dictionary {
 	IterCookie* InitForIteration() const;
 	void* NextEntry( const char*& key, IterCookie*& cookie ) const;
 
+	void Clear();		// remove all entries
+
     private:
 	void Init( int size );
 

@@ -67,12 +67,6 @@ typedef SubVecRef(dcomplex) dcomplexref;
 typedef SubVecRef(charptr) charptrref;
 
 
-// Used to create lists of objects or dynamic memory that should be freed.
-class DelObj;
-glish_declare(PList,DelObj);
-typedef PList(DelObj) del_list;
-
-
 #define copy_array(src,dest,len,type) \
 	memcpy( (void*) dest, (void*) src, sizeof(type) * len )
 
@@ -582,6 +576,9 @@ public:
 			}
 		}
 
+	virtual unsigned int CountRefs( recordptr r ) const;
+	int CountRefs( Value *val ) const;
+
 	int Sizeof( ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
 	int ToMemBlock(char *memory, int offset = 0) const;
@@ -681,8 +678,6 @@ extern int compatible_types( const Value* v1, const Value* v2,
 
 extern void init_values();
 extern void finalize_values();
-
-extern void delete_list( del_list* dlist );
 
 extern charptr *csplit( char* source, int &len, char* split_chars = " \t\n" );
 extern Value* split( char* source, char* split_chars = " \t\n" );

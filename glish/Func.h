@@ -25,6 +25,9 @@ class Func : public GlishObject {
     public:
 	virtual IValue* Call( parameter_list* args, eval_type etype ) = 0;
 
+	virtual unsigned int CountRefs( recordptr r ) const = 0;
+	virtual int CountRefs( Frame *f ) const = 0;
+
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
 
@@ -180,6 +183,9 @@ class UserFunc : public Func {
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
+
+	unsigned int CountRefs( recordptr r ) const;
+	int CountRefs( Frame *f ) const;
 
 #ifdef GGC
 	void TagGC();

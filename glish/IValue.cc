@@ -104,6 +104,47 @@ int IValue::FailMarked( )
 	return rptr->Lookup("HANDLED") ? 1 : 0;
 	}
 
+unsigned int IValue::CountRefs( recordptr r ) const
+	{
+	if ( Type() == TYPE_FUNC )
+		return FuncPtr(0)[0]->CountRefs(r);
+	else
+		return Value::CountRefs(r);
+
+	return 0;
+	}
+
+int IValue::CountRefs( Frame *f ) const
+	{
+	static value_list been_there;
+
+	if ( been_there.is_member( (Value*)this ) )
+		return 0;
+
+	if ( Type() == TYPE_FUNC )
+		return FuncPtr(0)[0]->CountRefs(f);
+
+	else if ( Type() == TYPE_RECORD )
+		{
+		been_there.append( (Value*)this );
+
+		unsigned int count = 0;
+		recordptr rec = RecordPtr(0);
+		IterCookie* c = rec->InitForIteration();
+		Value* member;
+		const char* key;
+
+		while ( (member = rec->NextEntry( key, c )) )
+		  count += ((IValue*)member)->CountRefs(f);
+		
+		been_there.remove( (Value*)this );
+
+		return count;
+		}
+
+	return 0;
+	}
+
 extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{

@@ -202,6 +202,12 @@ int BuiltIn::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
+unsigned int BuiltIn::CountRefs( recordptr ) const
+	{ return 0; }
+
+int BuiltIn::CountRefs( Frame * ) const
+	{ return 0; }
+
 IValue *BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 	int strings_okay )
 	{

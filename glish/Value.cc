@@ -39,28 +39,6 @@ const Value* false_value = 0;
 	attributes = 0;			\
 	++num_Values_created;
 
-class DelObj : public GlishObject {
-public:
-	DelObj( GlishObject* arg_obj )	{ obj = arg_obj; ptr = 0; cptr = 0; }
-	DelObj( void* arg_ptr )		{ obj = 0; ptr = arg_ptr; cptr = 0; }
-	DelObj( char* arg_ptr )		{ obj = 0; ptr = 0; cptr = arg_ptr; }
-
-	~DelObj();
-
-protected:
-	GlishObject* obj;
-	void* ptr;
-	char* cptr;
-};
-
-DelObj::~DelObj()
-	{
-	Unref( obj );
-	if ( ptr ) delete ptr;
-	if ( cptr ) free_memory( cptr );
-	}
-
-
 Value::Value( )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
@@ -2666,6 +2644,81 @@ int Value::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
+unsigned int Value::CountRefs( recordptr r ) const
+	{
+	static value_list been_there;
+
+	if ( been_there.is_member( (Value*)this ) )
+		return 0;
+
+// 	glish_type type = Type();
+// 	if ( type == TYPE_REF )
+// 		{
+// 		const Value *v = Deref();
+// 		if ( v->Type() == TYPE_RECORD &&
+// 		     v->RecordPtr(0) == r )
+// 			return 1;
+// 		}
+// 	else if ( type == TYPE_RECORD )
+// 		{
+// 		been_there.append( (Value*)this );
+// 		unsigned int count = RecordPtr(0) == r ? 1 : count_references( RecordPtr(0), r );
+// 		been_there.remove( (Value*)this );
+// 		return count;
+// 		}
+
+	if ( Type() == TYPE_RECORD )
+		{
+		been_there.append( (Value*)this );
+		unsigned int count = RecordPtr(0) == r ? 1 : count_references( RecordPtr(0), r );
+		been_there.remove( (Value*)this );
+		return count;
+		}
+
+	return 0;
+	}
+
+int Value::CountRefs( Value *val ) const
+	{
+	static value_list been_there;
+
+	if ( been_there.is_member( (Value*)this ) )
+		return 0;
+
+	glish_type type = Type();
+	if ( type == TYPE_REF )
+		{
+		const Value *v = Deref();
+		if ( v == val )
+			return 1;
+		else if ( v->Type() == TYPE_RECORD )
+			return v->CountRefs(val);
+		else
+			return 0;
+		}
+
+	else if ( type == TYPE_RECORD )
+		{
+		recordptr r = RecordPtr(0);
+		IterCookie* c = r->InitForIteration();
+		Value* member;
+		const char* key;
+
+		int count = 0;
+		while ( (member = r->NextEntry( key, c )) )
+			{
+			glish_type member_type = member->Type();
+			if ( member_type == TYPE_REF || member_type == TYPE_RECORD )
+				count += member->CountRefs(val);
+			}
+
+		return count;
+		}
+
+	return 0;
+	}
+
+
 int Value::Sizeof( ) const
 	{
 	return kernel.Sizeof( ) + sizeof( GlishObject ) + 4 + (attributes ? attributes->Sizeof() : 0);
@@ -2860,14 +2913,6 @@ void finalize_values()
 	{
 	delete (Value*) false_value;
 	}
-
-void delete_list( del_list* dlist )
-	{
-	if ( dlist )
-		loop_over_list( *dlist, i )
-			Unref( (*dlist)[i] );
-	}
-
 
 charptr *csplit( char* source, int &num_pieces, char* split_chars )
 	{

@@ -19,6 +19,7 @@ typedef void* voidptr;
 extern recordptr copy_record_dict( recordptr );
 extern recordptr create_record_dict();
 void delete_record( recordptr r );
+unsigned int count_references( recordptr from, recordptr to );
 
 typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
 typedef void (*KernelZeroFunc)( void *, unsigned int len );

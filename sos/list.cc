@@ -169,7 +169,6 @@ void BaseList::clear()
 	sos_free_memory( entry );
 	entry = 0;
 	num_entries = max_entries = 0;
-	chunk_size = DEFAULT_CHUNK_SIZE;
 	}
 
 ent BaseList::replace(int ent_index,ent new_ent)
