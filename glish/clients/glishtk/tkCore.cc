@@ -2950,7 +2950,7 @@ void CLASS::Disable( )						\
 	{							\
 	disable_count++;					\
 	tcl_VarEval( tcl, Tk_PathName(self),			\
-		     " config -state disabled", (char *)NULL );		\
+		     " config -state disabled", (char *)NULL );	\
 	}							\
 								\
 void CLASS::Enable( int force )					\
@@ -2965,7 +2965,7 @@ void CLASS::Enable( int force )					\
 	if ( disable_count ) return;				\
 								\
 	tcl_VarEval( tcl, Tk_PathName(self),			\
-		     " config -state normal", (char *)NULL );		\
+		     " config -state normal", (char *)NULL );	\
 	}
 
 
@@ -3390,6 +3390,29 @@ STD_EXPAND_CANEXPAND(TkText)
 
 DEFINE_DTOR(TkScrollbar,)
 
+void TkScrollbar::EnterEnable()
+	{
+	}
+
+void TkScrollbar::ExitEnable()
+	{
+	}
+
+void TkScrollbar::Disable( )
+	{
+	disable_count++;
+	}
+
+void TkScrollbar::Enable( int force )
+	{
+	if ( disable_count <= 0 ) return;
+
+	if ( force )
+		disable_count = 0;
+	else
+		disable_count--;
+	}
+
 void TkScrollbar::UnMap()
 	{
 	if ( self ) tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", (char *)NULL );
@@ -3400,7 +3423,12 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	{
 	char buf[256];
 	int vert = 0;
-	tcl_VarEval( tcl, Tk_PathName(((TkScrollbar*)data)->Self()), " cget -orient", (char *)NULL );
+	TkScrollbar *sb = (TkScrollbar*)data;
+
+	if ( ! sb->Enabled() )
+		return TCL_OK;
+
+	tcl_VarEval( tcl, Tk_PathName(sb->Self()), " cget -orient", (char *)NULL );
 	charptr res = Tcl_GetStringResult(tcl);
 	if ( *res == 'v' ) vert = 1;
 
@@ -3421,7 +3449,7 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 			sprintf( buf, "xview moveto 0.001" );
 
 	Value *v = new Value( buf );
-	((TkScrollbar*)data)->Scrolled( v );
+	sb->Scrolled( v );
 	Unref(v);
 
 	return TCL_OK;

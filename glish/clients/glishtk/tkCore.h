@@ -293,6 +293,11 @@ class TkScrollbar : public TkProxy {
 	void Scrolled( Value *data );
 	~TkScrollbar();
 
+	void EnterEnable();
+	void ExitEnable();
+	void Disable( );
+	void Enable( int force = 1 );
+
 	void UnMap();
 	};
 

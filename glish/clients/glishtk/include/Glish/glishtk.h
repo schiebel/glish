@@ -112,6 +112,7 @@ class TkProxy : public Proxy {
 
 	virtual void Disable( );
 	virtual void Enable( int force = 1 );
+	int Enabled( ) const { return disable_count == 0; }
 
 	void BindEvent(const char *event, Value *rec);
 
