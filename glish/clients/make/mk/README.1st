@@ -1,1 +1,8 @@
-The *.sys.mk files should be installed as sys.mk on the appropriate machine.
+None of these files are used by the "make_client". They are retained simply
+to provide examples of the sorts of suffix rules which are possible with
+BSD make...
+
+If these files were used, this README would read as follows:
+
+		The *.sys.mk files should be installed
+		as sys.mk on the appropriate machine.
