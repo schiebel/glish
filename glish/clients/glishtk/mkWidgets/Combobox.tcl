@@ -18,6 +18,7 @@ metawidget create Combobox {
     # on Linux and KDE, the <FocusOut> binding (see below) doesn't work
     our bKde [expr { $::tcl_platform(os) == "Linux" && ! [catch { exec ps -C kde }] }]
     our wToplevel [winfo toplevel $this]
+    our poppedUp 0
   }
 
   entry     $this.entr      -bg white -selectborder 0 -selectback black -selectfore white
@@ -34,7 +35,9 @@ metawidget create Combobox {
   # workaround in _showList and _hideList.
   wm overrideredirect $this.topl 1
   wm withdraw $this.topl
-  bind $this.topl <FocusOut> "$this _hideList"
+
+  bind $this.topl <Leave> "$this _leaveEvent"
+  bind $this.entr <Leave> "$this _leaveEvent"
 
   pack  $this.entr      -fill x -expand 1
   place $this.entr.arrb -relx 1 -y 0 -relh 1 -anchor ne
@@ -82,6 +85,7 @@ metawidget proc Combobox _showList {} {
   $this.topl.list selection clear 0 end
   $this.topl.list selection set [my iIndex]
 
+  our poppedUp 1
   raise $this.topl
   focus $this.topl.list
 
@@ -100,12 +104,26 @@ metawidget proc Combobox _showList {} {
 # args: -
 # releases the grab. lets the listbox toplevel disappear.
 metawidget proc Combobox _hideList {} {
+  our poppedUp 0
   wm withdraw  $this.topl
   focus        $this.entr
 
   # restore the original <Configure> bind script again!
   if { [our bKde] } {
     bind [our wToplevel] <Configure> [our sConfScript]
+  }
+}
+
+metawidget proc Combobox _leaveEvent { } {
+  if { [our poppedUp] > 0 } {
+    set px [winfo pointerx $this]
+    set py [winfo pointery $this]
+    if { $px <= [winfo rootx $this.entr] ||
+	 $py <= [winfo rooty $this.entr] ||
+	 $px >= [expr [winfo rootx $this.topl] + [winfo width $this.topl]] ||
+	 $py >= [expr [winfo rooty $this.topl] + [winfo height $this.topl]] } {
+      $this _hideList
+    }
   }
 }
 
@@ -192,10 +210,20 @@ metawidget proc Combobox see { {iIndex {}} } {
   }
 }
 
+# name: bind
+# args: args: as accepted by the bind command.
+# applies bindings to the main widget.
+metawidget proc Combobox bind_ { args } {
+  eval bind $this.entr $args
+}
+
+
 metawidget command Combobox _showList _showList
 metawidget command Combobox _hideList _hideList
+metawidget command Combobox _leaveEvent _leaveEvent
 
 metawidget command Combobox see       see
+metawidget command Combobox bind      bind_
 
 metawidget option  Combobox -lines   -lines
 metawidget option  Combobox -entries -entries -entries

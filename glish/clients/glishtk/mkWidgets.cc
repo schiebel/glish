@@ -7,84 +7,53 @@
 int MkWidget::initialized = 0;
 int MkTab::count = 0;
 
-const char *glishmk_tab_addtab( TkProxy *agent, const char *, Value *args )
-	{
-	const char *event_name = "tab add tab function";
-	MkTab *tab = (MkTab*) agent;
-
-	const char *name = 0;
-	const char *background = "lightgrey";
-	const char *row = "0";
-
-	if ( args->Type( ) == TYPE_STRING )
-		{
-		name = args->StringPtr(0)[0];
-		}
-	else
-		{
-		EXPRINIT( agent, event_name )
-		HASARG( agent, args, >= 1 )
-		EXPRSTRVAL( agent, nameval, event_name )
-		name = nameval->StringPtr(0)[0];
-		if ( args->Length() > 1 )
-			{
-			EXPRSTRVAL( agent, rowval, event_name );
-			row = rowval->StringPtr(0)[0];
-			if ( args->Length() > 2 )
-				{
-				EXPRSTRVAL( agent, backgroundval, event_name );
-				background = backgroundval->StringPtr(0)[0];
-				}
-			}
-		}
-
-	static char tabname[256];
-	GENERATE_TAG(tabname, tab, "tab")
-
-	TkFrame *frame = new TkFrameP(tab->seq(),tab,"flat","top","0","0","0","none",background,tab->Width( ),tab->Height( ),tabname);
-
-	if ( frame && frame->IsValid( ) )
-		{
-		//
-		// Is this single extra "pack" sufficient???
-		//
-		tcl_VarEval( agent, "pack ", Tk_PathName(frame->Self()), (char*)NULL );
-
-		char *text = glishtk_quote_string( name );
-		tcl_VarEval( agent, Tk_PathName(tab->Self()), " insert ", tabname, " ", row, " -text ", text, " -window ", Tk_PathName(frame->Self()), (char*)NULL );
-		free_memory( text );
-		EXPR_DONE( name );
-
-		if ( frame )
-			{
-			tab->Add( tabname, frame );
-			frame->SendCtor("newtk",tab);
-			}
-		}
-
-	else if ( frame )
-		{
-		Value *err = frame->GetError();
-		if ( err )
-			{
-			tab->Error( err );
-			Unref( err );
-			}
-		else
-			tab->Error( "tk widget creation failed" );
-		delete frame;
-		}
-		
-	return 0;
+#define STD_EXPAND_PACKINSTRUCTION(CLASS)		\
+const char **CLASS::PackInstruction()			\
+	{						\
+	static char *ret[5];				\
+	int c = 0;					\
+	if ( fill )					\
+		{					\
+		ret[c++] = (char*) "-fill";		\
+		ret[c++] = fill;			\
+		if ( ! strcmp(fill,"both") ||		\
+		     ! strcmp(fill, frame->Expand()) ||	\
+		     frame->NumChildren() == 1 &&	\
+		     ! strcmp(fill,"y") )		\
+			{				\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "true";	\
+			}				\
+		else					\
+			{				\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "false";	\
+			}				\
+		ret[c++] = 0;				\
+		return (const char **) ret;		\
+		}					\
+	else						\
+		return 0;				\
 	}
 
 void MkWidgets_init( ProxyStore *store )
 	{
-// 	store->Register( "combobox", MkCombobox::Create );
+	store->Register( "combobox", MkCombobox::Create );
 	store->Register( "tabbox", MkTab::CreateContainer );
 	store->Register( "tab", MkTab::CreateTab );
 	}
 
+#if 0
+char *glishtk_make_ocallback( Tcl_Interp *tcl, char *obj, Tcl_CmdProc *cmd, ClientData data, char *out )
+	{
+	static int index = 0;
+	static char buf[100];
+	if ( ! out ) out = buf;
+	sprintf( out, "gtkcb%x", ++index );
+	Tcl_CreateObjCommand( tcl, obj, out, cmd, data, 0 );
+	return out;
+	}
+#endif
 MkWidget::MkWidget( ProxyStore *s ) : TkProxy( s )
 	{
 	if ( ! initialized )
@@ -126,7 +95,6 @@ MkTab::MkTab( ProxyStore *s, TkFrame *frame_, charptr width_, charptr height_ ) 
 
 	frame->AddElement( this );
 	frame->Pack();
-	procs.Insert("addtab", new TkProc( this, "", glishmk_tab_addtab, glishtk_tkcast ));
 	}
 
 void MkTab::Raise( const char *tag )
@@ -304,3 +272,218 @@ void MkTab::CreateTab( ProxyStore *s, Value *args )
 	else
 		s->Error( "invalid tab container" );
 	}
+
+int combobox_returncb( ClientData data, Tcl_Interp *, int, char *[] )
+	{
+	((MkCombobox*)data)->Return();
+	return TCL_OK;
+	}
+
+int combobox_selectcb( ClientData data, Tcl_Interp *, int, char *[] )
+	{
+	((MkCombobox*)data)->Selection();
+	return TCL_OK;
+	}
+
+MkCombobox::MkCombobox( ProxyStore *s, TkFrame *frame_, charptr *entries_, int num, int width,
+			charptr justify, charptr font, charptr relief, charptr borderwidth,
+			charptr foreground, charptr background, charptr state,
+			charptr fill_ ) : MkWidget( s ), entries(finalize_string), fill(0)
+	{
+	frame = frame_;
+	char **argv = (char**) alloc_memory( sizeof(char*) * (num+30) );
+	char width_[30];
+	char lines_[30];
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
+	agent_ID = "<graphic:combobox>";
+	sprintf( width_, "%d", width );
+
+	int c = 0;
+	argv[c++] = (char*) "combobox";
+	argv[c++] = (char*) NewName(frame->Self());
+	if ( num > 0 )
+		{
+		argv[c++] = (char*) "-entries";
+		argv[c++] = (char*) "{";
+		for ( int i = 0; i < num; ++i )
+			{
+			char *s = glishtk_quote_string( entries_[i] );
+			entries.append( s );
+			argv[c++] = s;
+			}
+		argv[c++] = (char*) "}";
+		}
+	argv[c++] = (char*) "-width";
+	argv[c++] = width_;
+	argv[c++] = (char*) "-justify";
+	argv[c++] = (char*) justify;
+	if ( font && *font )
+		{
+		argv[c++] = (char*) "-font";
+		argv[c++] = (char*) font;
+		}
+	argv[c++] = (char*) "-relief";
+	argv[c++] = (char*) relief;
+	argv[c++] = (char*) "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = (char*) "-fg";
+	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) "-bg";
+	argv[c++] = (char*) background;
+	argv[c++] = (char*) "-state";
+	argv[c++] = (char*) state;
+	if ( ! strcmp( state, "disabled" ) ) disable_count++;
+
+	char *cback = glishtk_make_callback( tcl, combobox_selectcb, this );
+
+	argv[c++] = (char*) "-command";
+	argv[c++] = (char*) cback;
+
+	tcl_ArgEval( this, c, argv );
+
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	cback = glishtk_make_callback( tcl, combobox_returncb, this );
+
+	FILE *fle = Logfile();
+	if ( fle )
+		fprintf( fle, "proc %s { } { puts \"(comobox ret:%s) %s\" }\n", cback, cback, Tk_PathName(self) );
+
+	tcl_VarEval( this, Tk_PathName(self), " bind <Return> ", cback, (char*)NULL );
+	ctor_error = Tcl_GetStringResult(tcl);
+	fprintf( stderr, "\t\t=====> %s bind <Return> %s <%s>\n", Tk_PathName(self), cback, ctor_error );
+
+	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
+		fill = strdup(fill_);
+
+	frame->AddElement( this );
+	frame->Pack();
+
+	procs.Insert( "insert", new MkProc(this, &MkCombobox::Insert) );
+
+	free_memory(foreground_);
+	free_memory(background_);
+	free_memory( argv );
+	}
+
+void MkCombobox::Return( )
+	{
+	tcl_VarEval( this, Tk_PathName(self), " cget -state", (char *)NULL );
+	const char *curstate = Tcl_GetStringResult(tcl);
+	if ( strcmp("disabled", curstate) )
+		{
+		tcl_VarEval( this, Tk_PathName(self), " get", (char *)NULL );
+		Value *ret = new Value( Tcl_GetStringResult(tcl) );
+		PostTkEvent( "return", ret );
+		Unref(ret);
+		}
+	}
+void MkCombobox::Selection( )
+	{
+	tcl_VarEval( this, Tk_PathName(self), " cget -state", (char *)NULL );
+	const char *curstate = Tcl_GetStringResult(tcl);
+	if ( strcmp("disabled", curstate) )
+		{
+		tcl_VarEval( this, Tk_PathName(self), " get", (char *)NULL );
+		Value *ret = new Value( Tcl_GetStringResult(tcl) );
+		PostTkEvent( "select", ret );
+		Unref(ret);
+		}
+	}
+
+const char *MkCombobox::Insert( Value *val )
+	{
+
+	charptr *strs;
+	if ( val->Type() == TYPE_STRING && val->Length() > 0 &&
+	     (strs = val->StringPtr(0)) )
+	  	{
+		for ( int x=0; x < val->Length(); ++x )
+			if ( strs[x] ) entries.append( glishtk_quote_string(strs[x]) );
+		}
+
+	char **argv = (char**) alloc_memory( sizeof(char*) * (entries.length()+5) );
+
+	if ( entries.length() > 0 )
+		{
+		int c = 0;
+
+		argv[c++] = Tk_PathName(Self());
+		argv[c++] = (char*) " config -entries { ";
+		for ( int i = 0; i < entries.length(); ++i )
+			argv[c++] = entries[i];
+		argv[c++] = (char*) " }";
+
+		tcl_ArgEval( this, c, argv );
+		}
+	}
+
+void MkCombobox::finalize_string( void *s ) { free_memory( (char*) s ); }
+
+void MkCombobox::Create( ProxyStore *s, Value *args )
+	{
+	MkCombobox *ret;
+
+	if ( args->Length() != 11 )
+		InvalidNumberOfArgs(11);
+
+	SETINIT
+	SETVAL( parent, parent->IsAgentRecord() )
+	SETVAL( ev, ev->Type( ) == TYPE_STRING )
+	SETINT( width )
+	SETSTR( justify )
+	SETSTR( font )
+	SETSTR( relief )
+	SETDIM( borderwidth )
+	SETSTR( foreground )
+	SETSTR( background )
+	SETSTR( state )
+	SETSTR( fill )
+
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret =  new MkCombobox( s, (TkFrame*)agent, ev->StringPtr(0), ev->Length( ), width,
+				       justify, font, relief, borderwidth, foreground, background,
+				       state, fill );
+	else
+		{
+		SETDONE
+		s->Error("bad parent type");
+		return;
+		}
+
+	CREATE_RETURN
+	}
+
+STD_EXPAND_PACKINSTRUCTION(MkCombobox)
+
+Value *MkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg) {
+
+	const char *val = 0;
+
+	if ( agent ) {
+		if ( mktab )
+			val = (((MkTab*)agent)->*mktab)( arg);
+		else if ( mkcombo )
+			val = (((MkCombobox*)agent)->*mkcombo)( arg);
+		else
+			return TkProc::operator()( tcl, s, arg );
+	} else
+		return TkProc::operator()( tcl, s, arg );
+
+	if ( val != (void*) TCL_ERROR )
+		{
+		if ( convert && val )
+			return (*convert)(val);
+		else
+			return new Value( glish_true );
+		}
+	else
+		return new Value( glish_false );
+
+}

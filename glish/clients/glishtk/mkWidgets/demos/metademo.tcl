@@ -1,5 +1,9 @@
 #!/usr/local/bin/wish
 
+lappend auto_path /home/drs/dev/glish/glish/clients/glishtk
+
+tk_focusFollowsMouse
+
 package require mkWidgets
 
 proc metaDemo { lWidgets } {

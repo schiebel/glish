@@ -40,4 +40,40 @@ class MkTab : public MkWidget {
 	tkproxyhash elements;
 };
 
+class MkCombobox : public MkWidget {
+    public:
+	MkCombobox( ProxyStore *, TkFrame *, charptr *entries_, int num, int width,
+		    charptr justify, charptr font, charptr relief, charptr borderwidth,
+		    charptr foreground, charptr background, charptr state, charptr fill );
+	static void Create( ProxyStore *, Value * );
+
+	void Return( );
+	void Selection( );
+
+	const char **PackInstruction();
+
+	const char *Insert( Value * );
+
+    protected:
+	static void finalize_string( void * );
+	name_list entries;
+	char *fill;
+};
+
+class MkProc : public TkProc {
+    public:
+
+	MkProc(MkWidget *mk, const char *(MkTab::*p)(Value*), TkStrToValProc cvt = 0)
+			: TkProc(mk,cvt), mktab(p), mkcombo(0) { }
+
+	MkProc(MkWidget *mk, const char *(MkCombobox::*p)(Value*), TkStrToValProc cvt = 0)
+			: TkProc(mk,cvt), mktab(0), mkcombo(p) { }
+
+	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
+
+    protected:
+	const char *(MkTab::*mktab)(Value*);
+	const char *(MkCombobox::*mkcombo)(Value*);
+};
+
 #endif

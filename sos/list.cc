@@ -171,6 +171,9 @@ ent BaseList::get()
 
 void BaseList::clear()
 	{
+	if ( finalize_handler )
+		for ( int i = 0; i < num_entries; i++ )
+			finalize_handler(entry[i]);
 	num_entries = 0;
 	}
 
