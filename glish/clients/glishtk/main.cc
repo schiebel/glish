@@ -103,4 +103,5 @@ int main( int argc, char** argv )
 	stor.Register( "tk_loadpath", TkProxy::SetLoadPath );
 
 	stor.Loop();
+        return 0;
 	}
