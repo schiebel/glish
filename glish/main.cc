@@ -2,7 +2,7 @@
 //
 // Copyright (c) 1993 The Regents of the University of California.
 // All rights reserved.
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 // All rights reserved.
 //
 // This code is derived from software contributed to Berkeley by
@@ -629,4 +629,4 @@ static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
 #endif
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
-static char copyright2[]  = "Copyright (c) 1997 Associated Universities Inc.";
+static char copyright2[]  = "Copyright (c) 1997,1998 Associated Universities Inc.";
