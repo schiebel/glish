@@ -363,7 +363,7 @@ Main_ParseArgLine(line)
  *	The program exits when done. Targets are created. etc. etc. etc.
  */
 int
-Main_Init(argc, argv)
+bMake_Init(argc, argv)
 	int argc;
 	char **argv;
 {
@@ -602,13 +602,26 @@ MainStrDup( cmdp, lstp )
 }
 
 static int
+CleanTargs( gnp, lstp )
+    ClientData gnp;
+    ClientData lstp;
+{
+    GNode *gn = (GNode*) gnp;
+    if ( gn->type & OP_GENERATED ) Targ_Delete( gn );
+    return 0;
+}
+
+static int
 MainUnmake( gn, dummy )
     ClientData gn;
     ClientData dummy;
 {
+    int count = 0;
     GNode *targ = (GNode*) gn;
     targ->made = UNMADE;
     targ->childMade = FALSE;
+    Var_Set(">","",targ);
+    Var_Set("?","",targ);
     Lst_Destroy(targ->commands, NOFREE);
     targ->commands = Lst_Init (FALSE);
     Lst_ForEach( targ->orig_cmds, MainStrDup, (ClientData)targ->commands );
@@ -616,11 +629,11 @@ MainUnmake( gn, dummy )
 }
 
 int
-Main_Make( void )
+bMake( void )
 {
-	extern void Targ_ForEach __P(( int (*)(ClientData, ClientData), ClientData));
 	Lst targs;	/* target nodes to create -- passed to Make_Init */
 
+	Targ_FlagGNs ( );
 	/* print the initial graph, if the user requested it */
 	if (DEBUG(GRAPH1))
 		Targ_PrintGraph(1);
@@ -637,6 +650,9 @@ Main_Make( void )
 
 	Compat_Run(targs);
 
+	Targ_NoFlagGNs ( );
+	Targ_ForEach( CleanTargs, (ClientData)NULL );
+
 	Lst_Destroy(targs, NOFREE);
 
 	Targ_ForEach( MainUnmake, (ClientData)NULL );
@@ -645,7 +661,7 @@ Main_Make( void )
 }
 
 int
-Main_Finish( void )
+bMake_Finish( void )
 {
 	Lst_Destroy(makefiles, NOFREE);
 	Lst_Destroy(create, (void (*) __P((ClientData))) free);
@@ -917,23 +933,101 @@ PrintAddr(a, b)
     return b ? 0 : 0;
 }
 
-int main( argc, argv )
-     int argc;
-     char **argv;
+void
+bMake_Define( var, val )
+    char *var;
+    char *val;
 {
+    Var_Set( var, val, VAR_GLOBAL );
+}
 
+GNode *
+bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
+    char *tag;
+    char **cmd;
+    int cmd_len;
+    char **depend;
+    int depend_len;
+{
+    int i = 0;
+    GNode *gn,*dep;
+    /*** do we have a tag? ***/
+    if ( ! tag || ! *tag ) return;
+    /*** do we have a command? ***/
+    if ( ! cmd || cmd_len <= 0 ) return;
+    gn = Targ_FindNode( tag, TARG_CREATE );
+    if ( cmd && cmd_len > 0 )
+        for ( i=0; i < cmd_len; ++i )
+            Cmd_AtEnd( gn, strdup(cmd[i]) );
+    if ( depend && depend_len > 0 ) {
+        gn->type |= OP_DEPENDS;
+	for ( i=0; i < depend_len; ++i ) {
+            dep = Targ_FindNode (depend[i], TARG_CREATE);
+            if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
+                (void)Lst_AtEnd (gn->children, (ClientData)dep);
+                gn->unmade += 1;
+            }
+	}
+    }
+    return gn;
+}
+
+GNode *
+bMake_SuffixDef( tag, cmd, cmd_len )
+    char *tag;
+    char **cmd;
+    int cmd_len;
+{
+    int i = 0;
+    int dot_count = 0;
+    GNode *gn;
+    char *end;
+    char buf[256];
+    char *bp = buf;
+
+    /*** does it look like a suffix rule? ***/
+    if ( ! tag || *tag != '.' ) return;
+    /*** how many dots does it have? ***/
+    for ( end=tag; *end; ++end )
+        if ( *end == '.' ) ++dot_count;
+    if ( dot_count != 2 ) return;
+    /*** do we have a command? ***/
+    if ( ! cmd || cmd_len <= 0 ) return;
+    
+    *bp++ = '.';
+    for ( end = tag+1; *end && *end != '.'; *bp++ = *end++ );
+    *bp = '\0';
+    Suff_AddSuffix(buf);
+    Suff_AddSuffix(end);
+    gn = Suff_AddTransform(tag);
+
+    if ( cmd && cmd_len > 0 )
+        for ( i=0; i < cmd_len; ++i )
+            Cmd_AtEnd( gn, strdup(cmd[i]) );
+
+    return gn;
+}
+
+int main( argc, argv )
+    int argc;
+    char **argv;
+{
     int ret = 0;
-    ret = Main_Init( argc, argv );
-    if ( ret ) return ret;
-    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
-    Targ_PrintGraph(2);
-    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
-    ret = Main_Make( );
-    if ( ret ) return ret;
-    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
-    Targ_PrintGraph(2);
-    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
-    ret = Main_Make( );
-    if ( ret ) return ret;
-    return Main_Finish( );
+    GNode *foo, *bar, *baz, *suff, *co;
+    char *foocmd[] = { "this is FOO #1", "this is FOO #2" };
+    char *foodep[] = { "BAR", "BAZ" };
+    char *barcmd[] = { "this is BAR", "${FOOBAR}" };
+    char *bazcmd[] = { "this is BAZ" };
+    char *suffcmd[] = { "making crap from bull: $@ $? $> $< $*" };
+    char *cocmd[] = { "making o from c: $@ $? $> $< $*" };
+    bMake_Init( argc, argv );
+    bMake_Define( "FOOBAR", "foo and bar" );
+    foo = bMake_TargetDef( "FOO", foocmd, 2, foodep, 2 );
+    bar = bMake_TargetDef( "BAR", barcmd, 2, 0, 0 );
+    bar = bMake_TargetDef( "BAZ", bazcmd, 1, 0, 0 );
+    suff = bMake_SuffixDef( ".bull.crap", suffcmd, 1 );
+    suff = bMake_SuffixDef( ".c.o", cocmd, 1 );
+    bMake( );
+    bMake( );
+    return bMake_Finish( );
 }

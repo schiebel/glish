@@ -219,6 +219,8 @@ typedef struct GNode {
 				     * local variables. */
 #define OP_NOTMAIN	0x00008000  /* The node is exempt from normal 'main
 				     * target' processing in parse.c */
+#define OP_GENERATED  	0x01000000  /* Target was generated as part of make */
+
 /* Attributes applied by PMake */
 #define OP_TRANSFORM	0x80000000  /* The node is a transformation rule */
 #define OP_MEMBER 	0x40000000  /* Target is a member of an archive */

@@ -139,9 +139,7 @@ GlishRunCommand (cmdp, gnp)
     Boolean 	  silent,   	/* Don't print command */
 		  errCheck; 	/* Check errors */
     WAIT_T 	  reason;   	/* Reason for child's death */
-    int    	  status;   	/* Description of child's death */
     int	    	  cpid;	    	/* Child actually found */
-    ReturnStatus  stat;	    	/* Status of fork */
     LstNode 	  cmdNode;  	/* Node where current command is located */
     char    	  **av;	    	/* Argument vector for thing to exec */
     int	    	  argc;	    	/* Number of arguments in av or 0 if not
@@ -179,6 +177,7 @@ GlishRunCommand (cmdp, gnp)
     } else {
 	cmd = cmdStart;
     }
+
     Lst_Replace (cmdNode, (ClientData)cmdStart);
 
     if ((gn->type & OP_SAVE_CMDS) && (gn != ENDNode)) {
@@ -229,7 +228,7 @@ GlishRunCommand (cmdp, gnp)
 
     printf("glish event: %s\n",cmd);
 
-    return (status);
+    return (0);
 }
 
 /*-

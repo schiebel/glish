@@ -139,6 +139,18 @@ Targ_End ()
     Hash_DeleteTable(&targets);
 }
 
+static int targ_do_flag_gns = 0;
+void
+Targ_FlagGNs ( )
+{ 
+    targ_do_flag_gns = 1;
+}
+
+void
+Targ_NoFlagGNs ( )
+{ 
+    targ_do_flag_gns = 0;
+}
 /*-
  *-----------------------------------------------------------------------
  * Targ_NewGN  --
@@ -166,6 +178,9 @@ Targ_NewGN (name)
     } else {
 	gn->type = 0;
     }
+
+    if ( targ_do_flag_gns ) gn->type |= OP_GENERATED;
+
     gn->unmade =    	0;
     gn->make = 	    	FALSE;
     gn->made = 	    	UNMADE;
@@ -665,4 +680,17 @@ Targ_ForEach ( f, d )
     ClientData d;
 {
     Lst_ForEach( allTargets, f, d );
+}
+
+void
+Targ_Delete ( gn )
+    GNode *gn;
+{
+    LstNode node = NILLNODE;
+    LstNode allnode = NILLNODE;
+    if ( (node = Lst_Member( allTargets, (ClientData)gn)) == NILLNODE ) return;
+    Hash_DeleteEntry(&targets,Hash_FindEntry(&targets,gn->name));
+    Lst_Remove( allTargets, node );
+    if ((allnode = Lst_Member (allGNs, (ClientData)gn)) != NILLNODE)
+        Lst_Remove( allGNs, allnode );
 }
