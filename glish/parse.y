@@ -1048,7 +1048,8 @@ IValue *glish_parser( evalOpt &opt, Stmt *&stmt )
 
 			glish_top_jmpbuf_set = 0;
 
-			if ( current_sequencer->ErrorResult() )
+			if ( current_sequencer->ErrorResult() && current_sequencer->ErrorResult()->Type() == TYPE_FAIL &&
+			     ! current_sequencer->ErrorResult()->FailMarked() )
 				{
 				if ( Sequencer::CurSeq()->System().OLog() )
 					Sequencer::CurSeq()->System().DoOLog(current_sequencer->ErrorResult());

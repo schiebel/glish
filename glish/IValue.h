@@ -240,7 +240,7 @@ public:
 		{ return Describe( s, ioOpt() ); }
 
 	void MarkFail( );
-	int FailMarked( );
+	int FailMarked( ) const;
 
 	// Get a description of a non-standard (i.e. interpreter specific) type
 	char *GetNSDesc( int evalable = 0 ) const;

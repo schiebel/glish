@@ -98,7 +98,7 @@ void IValue::MarkFail()
 		}
 	}
 
-int IValue::FailMarked( )
+int IValue::FailMarked( ) const
 	{
 	if ( Type() != TYPE_FAIL ) return 1;
 	recordptr rptr = kernel.constRecord();
