@@ -165,7 +165,7 @@ clean:
 			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
 
 distclean: clean
-	rm -f config.status config.cache config.h Makefile
+	rm -f config.status config.cache config.h config_p.h Makefile
 
 Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc
