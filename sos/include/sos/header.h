@@ -39,8 +39,9 @@ struct sos_header_kernel {
 //		4 byte magic number				4
 //		4 byte length					8
 //		4 byte time stamp				12
-//		4 byte control info (future use/user data?)	16
-//		4 byte user info				20
+//		2 byte future use				16
+//		2 byte user data				18
+//		4 byte user data				20
 //
 //	( should provide a way for user control info... )
 //
@@ -123,8 +124,8 @@ public:
 	unsigned int ugeti( ) const { return kernel->buf_[20] + (kernel->buf_[21] << 8) +
 			(kernel->buf_[22] << 16) + (kernel->buf_[23] << 24); }
 
-	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[20 + (off % 4)] = c; }
-	void usets( unsigned short s, int off = 0 ) { off = 20 + (off % 2) * 2;
+	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[18 + (off % 6)] = c; }
+	void usets( unsigned short s, int off = 0 ) { off = 18 + (off % 3) * 2;
 			kernel->buf_[off] = s & 0xff; kernel->buf_[off+1] = (s >> 8) & 0xff; }
 	void useti( unsigned int i );
 

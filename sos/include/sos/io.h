@@ -29,10 +29,14 @@ class SOURCE {
 
 class FD_SINK : public SINK {
     public:
-	FD_SINK( int fd_ );
+	FD_SINK( int fd_ = -1 );
 	unsigned int write( const char *, unsigned int, buffer_type type = HOLD );
 	unsigned int flush( );
+
+	void setFd( int fd_ ) { fd = fd_; }
+
 	~FD_SINK();
+
     private:
 	void *iov;
 	unsigned int iov_cnt;
@@ -49,9 +53,13 @@ class FD_SINK : public SINK {
 
 class FD_SOURCE : public SOURCE {
     public:
-	FD_SOURCE( int fd_ ) : fd(fd_) { }
+	FD_SOURCE( int fd_ = -1 ) : fd(fd_) { }
 	unsigned int read( char *, unsigned int );
+
+	void setFd( int fd_ ) { fd = fd_; }
+
 	~FD_SOURCE();
+
     private:
 	int fd;
 };
@@ -60,19 +68,30 @@ class sos_sink {
 public:
 	sos_sink( SINK &out_, int integral_header = 1 );
 
-	void put( byte *a, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( short *a, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( int *a, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( float *a, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( double *a, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( char *a, unsigned int l, sos_code t, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( unsigned char *a, unsigned int l, sos_code t, unsigned short U1 = 0, unsigned short U2 = 0 );
+	void put( byte *a, unsigned int l );
+	void put( byte *a, unsigned int l, sos_header &h );
+	void put( short *a, unsigned int l );
+	void put( short *a, unsigned int l, sos_header &h );
+	void put( int *a, unsigned int l );
+	void put( int *a, unsigned int l, sos_header &h );
+	void put( float *a, unsigned int l );
+	void put( float *a, unsigned int l, sos_header &h );
+	void put( double *a, unsigned int l );
+	void put( double *a, unsigned int l, sos_header &h );
+	void put( char *a, unsigned int l, sos_code t );
+	void put( char *a, unsigned int l, sos_code t, sos_header &h );
+	void put( unsigned char *a, unsigned int l, sos_code t );
+	void put( unsigned char *a, unsigned int l, sos_code t, sos_header &h );
 
-	void put( charptr *cv, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
-	void put( char **cv, unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 )
-		{ put( (charptr*)cv, l, U1, U2 ); }
+	void put( charptr *cv, unsigned int l );
+	void put( charptr *cv, unsigned int l, sos_header &h );
+	void put( char **cv, unsigned int l )
+		{ put( (charptr*)cv, l ); }
+	void put( char **cv, unsigned int l, sos_header &h )
+		{ put( (charptr*)cv, l, h ); }
 
-	void put( const str &, unsigned short U1 = 0, unsigned short U2 = 0 );
+	void put( const str & );
+	void put( const str &, sos_header &h );
 
 	void put_record_start( unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
 

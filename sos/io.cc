@@ -43,6 +43,7 @@ FD_SINK::FD_SINK( int fd_ ) : fd(fd_)
 unsigned int FD_SINK::write( const char *buf, unsigned int len, buffer_type type )
 	{
 	struct iovec *iov_ = (struct iovec*) iov;
+	if ( fd < 0 ) return 0;
 	switch ( type )
 		{
 		case COPY:
@@ -88,6 +89,7 @@ FD_SINK::~FD_SINK()
 
 unsigned int FD_SOURCE::read( char *buf, unsigned int len )
 	{
+	if ( fd < 0 ) return 0;
 	return ::read( fd, buf, len );
 	}
 
@@ -107,15 +109,15 @@ sos_sink::sos_sink( SINK &out_, int integral_header ) : out(out_)
 		integral = 0;
 	}
 
-#define PUTACTION_A(TYPE,SOSTYPE)				\
-void sos_sink::put( TYPE *a, unsigned int l, unsigned short U1,	\
-		    unsigned short U2 )				\
+static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
+
+
+#define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )		\
 	{							\
 	if ( integral )						\
 		{						\
-		head.set(a,l);					\
-		head.usets(U1,0);				\
-		head.usets(U2,1);				\
+		head.set(a,l PARAM);				\
+		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
 		out.write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   SOS_HEADER_SIZE );			\
@@ -123,119 +125,117 @@ void sos_sink::put( TYPE *a, unsigned int l, unsigned short U1,	\
 	else							\
 		{						\
 		head.set(l,SOSTYPE);				\
-		head.usets(U1,0);				\
-		head.usets(U2,1);				\
+		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
 		out.write( head.iBuffer(), SOS_HEADER_SIZE );	\
 		out.write( a, l * sos_size(SOSTYPE) );		\
 		}						\
 	}
 
-PUTACTION_A(byte,SOS_BYTE)
-PUTACTION_A(short,SOS_SHORT)
-PUTACTION_A(int,SOS_INT)
-PUTACTION_A(float,SOS_FLOAT)
-PUTACTION_A(double,SOS_DOUBLE)
 
-#define PUTACTION_B(TYPE)					\
-void sos_sink::put( TYPE *a, unsigned int l, sos_code t,	\
-		    unsigned short U1, unsigned short U2 ) 	\
-	{							\
-	if ( integral )						\
-		{						\
-		head.set(a,l,t);				\
-		head.usets(U1,0);				\
-		head.usets(U2,1);				\
-		head.stamp();					\
-		out.write(head.iBuffer(), l * sos_size(t) +	\
-			  SOS_HEADER_SIZE);			\
-		}						\
-	else							\
-		{						\
-		head.set(l,t);					\
-		head.usets(U1,0);				\
-		head.usets(U2,1);				\
-		head.stamp();					\
-		out.write( head.iBuffer(), SOS_HEADER_SIZE );	\
-		out.write( a, l * sos_size(t) );		\
-		}						\
+#define PUTNUMERIC(TYPE,SOSTYPE)				\
+void sos_sink::put( TYPE *a, unsigned int l )			\
+PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)			\
+void sos_sink::put( TYPE *a, unsigned int l, sos_header &h ) 	\
+PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
+
+PUTNUMERIC(byte,SOS_BYTE)
+PUTNUMERIC(short,SOS_SHORT)
+PUTNUMERIC(int,SOS_INT)
+PUTNUMERIC(float,SOS_FLOAT)
+PUTNUMERIC(double,SOS_DOUBLE)
+
+#define COMMA(X) , X
+#define PUTCHAR(TYPE)						\
+void sos_sink::put( TYPE *a, unsigned int l, sos_code t )	\
+PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)		\
+void sos_sink::put( TYPE *a, unsigned int l, sos_code t, sos_header &h ) 	\
+PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
+
+PUTCHAR(char)
+PUTCHAR(unsigned char)
+
+
+#define PUTCHARPTR_BODY(SOURCE)						\
+	{								\
+	unsigned int total = (len+1) * 4;				\
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );	\
+	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
+									\
+	*lptr++ = len;							\
+	for ( unsigned int i = 0; i < len; i++ )			\
+		{							\
+		lptr[i] = s[i] ? ::strlen(s[i]) : 0;			\
+		total += lptr[i];					\
+		}							\
+									\
+	buf = (char*) realloc_memory( buf, total + SOS_HEADER_SIZE );	\
+									\
+	head.set(buf,total,SOS_STRING);					\
+	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	head.stamp();							\
+									\
+	char *cptr = (char*)(&lptr[len]);				\
+									\
+	for ( unsigned int j = 0; j < len; j++ )			\
+		{							\
+		register char *out = (char*) s[j];			\
+		if ( out )						\
+			{						\
+			memcpy( cptr, out, *lptr );			\
+			cptr += *lptr++;				\
+			}						\
+		}							\
+									\
+	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
+	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );		\
 	}
 
-PUTACTION_B(char)
-PUTACTION_B(unsigned char)
-
-void sos_sink::put( charptr *s, unsigned int len, unsigned short U1, unsigned short U2 )
-	{
-	unsigned int total = (len+1) * 4;
-	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );
-	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);
-
-	*lptr++ = len;
-	for ( unsigned int i = 0; i < len; i++ )
-		{
-		lptr[i] = s[i] ? ::strlen(s[i]) : 0;
-		total += lptr[i];
-		}
-
-	buf = (char*) realloc_memory( buf, total + SOS_HEADER_SIZE );
-
-	head.set(buf,total,SOS_STRING);
-	head.usets(U1,0);
-	head.usets(U2,1);
-	head.stamp();
-
-	char *cptr = (char*)(&lptr[len]);
-
-	for ( unsigned int j = 0; j < len; j++ )
-		{
-		register char *out = (char*) s[j];
-		if ( out )
-			{
-			memcpy( cptr, out, *lptr );
-			cptr += *lptr++;
-			}
-		}
-
-	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );
-	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );
+#define PUTSTR_BODY(SOURCE)						\
+	{								\
+	unsigned int len = s.length();					\
+	unsigned int total = (len+1) * 4;				\
+									\
+	for ( unsigned int i = 0; i < len; i++ )			\
+		total += s.strlen(i);					\
+									\
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );	\
+									\
+	head.set(buf,total,SOS_STRING);					\
+	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	head.stamp();							\
+									\
+	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
+	*lptr++ = len;							\
+	char *cptr = (char*)(&lptr[len]);				\
+									\
+	for ( unsigned int j = 0; j < len; j++ )			\
+		{							\
+		register char *out = (char*) s.get(j);			\
+		if ( out )						\
+			{						\
+			register unsigned int slen = s.strlen(j);	\
+			memcpy( cptr, out, slen );			\
+			*lptr++ = slen;					\
+			cptr += slen;					\
+			}						\
+		else							\
+			*lptr++ = 0;					\
+		}							\
+									\
+	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
+	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );		\
 	}
 
-void sos_sink::put( const str &s, unsigned short U1, unsigned short U2 )
-	{
-	unsigned int len = s.length();
-	unsigned int total = (len+1) * 4;
+void sos_sink::put( charptr *s, unsigned int len )
+	PUTCHARPTR_BODY(zero_user_area)
+void sos_sink::put( charptr *s, unsigned int len, sos_header &h )
+	PUTCHARPTR_BODY(h.iBuffer() + 18)
 
-	for ( unsigned int i = 0; i < len; i++ )
-		total += s.strlen(i);
-
-	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );
-
-	head.set(buf,total,SOS_STRING);
-	head.usets(U1,0);
-	head.usets(U2,1);
-	head.stamp();
-
-	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);
-	*lptr++ = len;
-	char *cptr = (char*)(&lptr[len]);
-
-	for ( unsigned int j = 0; j < len; j++ )
-		{
-		register char *out = (char*) s.get(j);
-		if ( out )
-			{
-			register unsigned int slen = s.strlen(j);
-			memcpy( cptr, out, slen );
-			*lptr++ = slen;
-			cptr += slen;
-			}
-		else
-			*lptr++ = 0;
-		}
-
-	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );
-	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );
-	}
+void sos_sink::put( const str &s )
+	PUTSTR_BODY(zero_user_area)
+void sos_sink::put( const str &s, sos_header &h )
+	PUTSTR_BODY(h.iBuffer() + 18)
 
 
 void sos_sink::put_record_start( unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 )
