@@ -115,6 +115,15 @@ static char *literal( const char *s = 0, int clear = 0 );
 	return TOK_ACTIVATE;					\
 	}
 
+#define PRAGMA_SHARED(type)					\
+	{							\
+	current_sequencer->MultiClientScript( Client::type );	\
+	fprintf(stderr,"%s\n",#type); \
+	++line_num;						\
+	BEGIN(INITIAL);						\
+	break;							\
+	}
+
 #undef YY_BREAK
 // The following makes actions by default fall through to the next
 // action.  We are careful then that every action ends in a "return"
@@ -126,7 +135,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL PRAGMA PRAGMA_SHARED ATTR ATTR_QUOTE
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE
 
 	static int is_double_quote;
 
@@ -265,7 +274,10 @@ T		RETURN_CONSTANT( glish_true );
 InClUdE		BEGIN(INCL); break;
 include		return TOK_INCLUDE;
 
-"pragma"	BEGIN(PRAGMA); break;
+pragma{WS}shared{WS}user{OWS}\n		PRAGMA_SHARED(USER)
+pragma{WS}shared{WS}group{OWS}\n	PRAGMA_SHARED(GROUP)
+pragma{WS}shared{WS}world{OWS}\n	PRAGMA_SHARED(WORLD)
+pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 {ID}		{
 		statement_can_end = 1;
@@ -371,33 +383,6 @@ include		return TOK_INCLUDE;
 		RETURN_CONSTANT( glish_false );
 		}
 
-<PRAGMA>shared	BEGIN(PRAGMA_SHARED); break;
-
-<PRAGMA_SHARED>user {
-		current_sequencer->MultiClientScript( Client::USER );
-		BEGIN(INITIAL);
-		break;
-		}
-
-<PRAGMA_SHARED>group {
-		current_sequencer->MultiClientScript( Client::GROUP );
-		BEGIN(INITIAL);
-		break;
-		}
-
-<PRAGMA_SHARED>world {
-		current_sequencer->MultiClientScript( Client::WORLD );
-		BEGIN(INITIAL);
-		break;
-		}
-
-<PRAGMA_SHARED>\n {
-		error->Report( "\"pragma shared\", type not found" );
-		++line_num;
-		BEGIN(INITIAL);
-		break;
-		}
-
 <INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote
 		char* filename = which_include( &yytext[1] );	// skip leading quote
@@ -431,11 +416,14 @@ include		return TOK_INCLUDE;
 		break;
 		}
 
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*		break; // comment
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,PRAGMA,PRAGMA_SHARED,ATTR>{WS}+	break; // eat whitespace
-<PRAGMA>.*	BEGIN(INITIAL); break; // eat unknown pragma
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*			break; // comment
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,UNKNOWN_PRAGMA,ATTR>{WS}	break; // eat whitespace
 
-
+<UNKNOWN_PRAGMA>.*	{
+		warn->Report( "unknown pragma found:", yytext );
+		BEGIN(INITIAL);
+		break;
+		}
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
 		++line_num;
