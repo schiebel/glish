@@ -1,0 +1,128 @@
+# $Header$
+
+function is_boolean( const x )	type_name(x) == "boolean"
+function is_integer( const x )	type_name(x) == "integer"
+function is_float( const x )	type_name(x) == "float"
+function is_double( const x )	type_name(x) == "double"
+function is_string( const x )	type_name(x) == "string"
+function is_record( const x )	type_name(x) == "record"
+function is_function( const x )	type_name(x) == "function"
+function is_agent( const x )	type_name(x) == "agent"
+
+function is_numeric( const x )
+	sum(type_name(x) == "boolean integer float double") > 0
+
+function min(...)		range(...)[1]
+function max(...)		range(...)[2]
+
+function abs(val x)
+	{
+	local mask
+
+	mask := x < 0
+	x[mask] := -x[mask]
+	return x
+	}
+
+function all(x) sum(!x) == 0
+function any(x) sum(as_boolean(x)) > 0
+
+len := length
+
+function ind(x) 1:len(x)
+
+function rep( const value, const count )
+	{
+	if ( ! is_numeric(value) || ! is_numeric(count) )
+		{
+		print "rep() called with non-numeric arguments:", value, count
+		return F
+		}
+
+	else if ( len(value) != 1 || len(count) != 1 )
+		{
+		print "rep() called with non-scalar arguments:", value, count
+		return F
+		}
+
+	else
+		return (1:count - 1:count) + value
+	}
+
+function paste(...,sep=' ')
+	internal_paste(sep, ...)
+
+function spaste(...)
+	paste(...,sep='')
+
+function has_field( const x, const field )
+	{
+	if ( is_record(x) )
+		sum(field_names(x) == field) > 0
+	else
+		F
+	}
+
+function shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
+ 	create_task( id, host, F, async, ping, suspend, input, ... )
+
+function client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
+ 	create_task( id, host, T, async, ping, suspend, input, ... )
+
+function full_type_name( const x )
+	{
+	if ( type_name(x) == "record" )
+		{
+		local full_name, first_field, f
+
+		full_name := 'record ['
+		first_field := field_names(x)[1]
+		for ( f in field_names(x) )
+			{
+			if ( f != first_field )
+				full_name := spaste(full_name, ', ')
+			full_name := spaste(full_name, f, "=",
+						full_type_name(x[f]))
+			}
+
+		spaste(full_name, "]")
+		}
+	else
+		{
+		if ( length(x) != 1 )
+			spaste(type_name(x), ' [', length(x), "]" )
+		else
+			type_name(x)
+		}
+	}
+
+function relay( src, src_name, ref dest, dest_name="*" )
+	{
+	if ( dest_name == "*" )
+		link src->[src_name] to dest->*
+	else
+		link src->[src_name] to dest->[dest_name]
+	}
+
+function relay_event( src, ref dest, name )
+	{
+	relay( src, name, dest, "*" )
+	}
+
+function relay_all( src, ref dest )
+	{
+	whenever src->* do
+		dest->[$name]( $value )
+	}
+
+function birelay_event( ref agent1, ref agent2, name )
+	{
+	relay( agent1, name, agent2 )
+	relay( agent2, name, agent1 )
+	}
+
+function birelay_all( ref agent1, ref agent2 )
+	{
+	relay_all( agent1, agent2 )
+	relay_all( agent2, agent1 )
+	}

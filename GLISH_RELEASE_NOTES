@@ -1,0 +1,119 @@
+This is Glish version 2.4.1, dated 13Oct93.
+
+This release includes Postscript for a new overview paper describing
+how Glish is used for accelerator control; support for "request/reply"
+events; and a couple of bug fixes.  See glish/Changes for details.
+
+There's a bug fix for InterViews 2.6 which you should apply if you use
+point-to-point links (even if not you should apply it, as it can bite you
+in other ways).  See the top-level file "InterViews-sensor.patch".  (This
+patch was first introduced with the 2.2.2 release, so you may have already
+made it.)
+
+------------------------------------------------------------------------
+
+Glish is a language, interpreter, and class library for building
+loosely-coupled distributed systems.  For an overview from a general
+computing perspective, see the paper ``Glish: A User-Level Software
+Bus for Loosely-Coupled Distributed Systems,'' in the Proceedings of
+the 1993 USENIX Winter Technical Conference.  For an overview from
+an accelerator control perspective, see the paper ``Glish: A Software
+Bus for High-Level Control,'' to appear in the proceedings of the
+1993 International Conference on Accelerator and Large Experimental
+Physics Control Systems.
+
+These papers are also available via anonymous ftp to ftp.ee.lbl.gov;
+retrieve glish/USENIX-93.ps.Z and glish/ICALEPCS-93.ps.Z, respectively.
+
+This release includes user documentation, which can also be retrieved
+separately from ftp.ee.lbl.gov as glish/USER-DOC-2.3.ps.Z.
+
+Glish users are encouraged to make themselves known by sending email to
+vern@ee.lbl.gov; that way we can keep you informed of bug fixes, new
+releases, and the like.
+
+
+Installing Glish
+----------------
+
+The Glish system comes in two directories, "sds" and "glish".  To build the
+system you need a C++ compiler, sockets, and an ANSI C compiler.
+
+1.  You need to set a number of environment variables to configure
+    the installation.  Source'ing the script "glish-env" sets these
+    to default values, which you may need to change.  The variables are:
+
+	ISTKPLACE
+		The directory where you want to install the system.
+		Default: "/usr/local/src/ISTK".  You will at some point
+		want to move the contents of the Glish release into
+		this directory, so that, for example, this file is 
+		$ISTKPLACE/GLISH_RELEASE_NOTES, and the glish sources
+		are $ISTKPLACE/glish.
+
+	CC
+		Name of an ANSI C compiler.  Default: "gcc"
+
+	CPLUS
+		Name of C++ compiler.  For example, "g++" or "CC".
+		Default: "g++"
+
+	LEX
+		Should be set to "flex".  If you do not have "flex"
+		you need to install it.  You can retrieve the latest
+		version from ftp.ee.lbl.gov (flex-2.3.7.tar.Z).
+
+	CFLAGS
+		Flags used for compilation.  Default: "-g".
+
+	ARCH
+		The architecture of the machine for which you're building
+		the system.  Default: "SUN4".
+
+	ISTKBIN
+		Where the glish executables will reside.  Should be
+		$ISTKPLACE/bin/$ARCH.
+
+	ISTKLIBS
+		Where the sds and glish libraries will reside.  Should
+		be $ISTKPLACE/lib/$ARCH.
+
+	AR
+		Set to "ar".
+
+	RANLIB
+		Set to "ranlib" for systems with "ranlib", "echo" otherwise.
+
+	CP
+		Set to "cp -p" for systems whose "cp" has a "-p" flag,
+		otherwise "cp".
+
+	MAKE
+		If your "make" tool does not automatically define the "MAKE"
+		variable, set it to "make".
+
+
+2.  Create the directory $ISTKPLACE and cd to it.  If not already there,
+    move the glish/ and and sds/ trees that came with the distribution
+    into $ISTKPLACE.
+
+
+3.  Create bin, lib, bin/$ARCH, lib/$ARCH, include, include/Glish,
+    and include/Sds directories.
+
+
+4.  Create glish/$ARCH, glish/clients/$ARCH, and sds/$ARCH subdirectories.
+
+
+5.  Change directory to $ISTKPLACE/sds and type "make install-all".
+
+
+6.  Change directory to $ISTKPLACE/glish and type "make install-all".
+
+
+7.  At this point Glish should be installed in $ISTKLIBS and $ISTKBIN.
+    You can test it by running it on the files demos/test{1,2,3}.g.
+    The first should just print the numbers from 1 to 10; the second
+    should print the current date; and the third should print the
+    numbers from 1 to 5, pausing after each the same number of seconds
+    (for example, after it prints 3 it should pause 3 seconds).

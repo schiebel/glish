@@ -1,0 +1,46 @@
+*** sensor.c.old	Thu Jun  3 11:33:22 1993
+--- sensor.c	Thu Jun  3 10:11:29 1993
+***************
+*** 35,41 ****
+  Sensor* noEvents;
+  Sensor* stdsensor;
+  
+! #if defined (__GCC_2__)
+  unsigned Sensor::channels = 0;
+  int Sensor::maxchannel = 0;
+  #endif
+--- 35,41 ----
+  Sensor* noEvents;
+  Sensor* stdsensor;
+  
+! #if defined (__GNUC__)
+  unsigned Sensor::channels = 0;
+  int Sensor::maxchannel = 0;
+  #endif
+***************
+*** 157,163 ****
+  
+  void Sensor::CatchChannel (int ch) {
+      channels |= (1 << ch);
+!     if (ch > maxchannel) {
+  	maxchannel = ch+1;
+      }
+  }
+--- 157,163 ----
+  
+  void Sensor::CatchChannel (int ch) {
+      channels |= (1 << ch);
+!     if (ch >= maxchannel) {
+  	maxchannel = ch+1;
+      }
+  }
+***************
+*** 256,261 ****
+--- 256,262 ----
+  	while ((channels & (1 << maxchannel)) == 0) {
+  	    --maxchannel;
+  	}
++ 	++maxchannel;
+      }
+  }
+  
