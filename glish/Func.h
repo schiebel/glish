@@ -160,7 +160,12 @@ class UserFuncKernel : public GlishObject {
 	int ellipsis_position;
 	};
 
+
+glish_declare(PList,NodeList);
+typedef PList(NodeList) nodelist_list;
+
 class UserFunc : public Func {
+    friend class UserFuncKernel;
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 		  back_offsets_type *back_refs, Sequencer* sequencer,
@@ -183,7 +188,18 @@ class UserFunc : public Func {
 	// everything possible freed...
 	int SoftDelete( );
 
+	static void PushRootList( );
+	static NodeList *PopRootList( );
+
     protected:
+	static nodelist_list *cycle_root_list;
+	static void AddCycleRoot( UserFunc *root );
+	static NodeList *SetRoots( NodeList *roots, int offset=0 )
+			{ return cycle_root_list ? cycle_root_list->replace(cycle_root_list->length()-1-offset, roots ) : 0; }
+	static NodeList *GetRoots( int offset=0 )
+			{ return cycle_root_list ? (*cycle_root_list)[cycle_root_list->length()-1-offset] : 0; }
+	static int GetRootsLen( ) { return cycle_root_list ? cycle_root_list->length() : 0; }
+
 	Sequencer* sequencer;
 	UserFuncKernel *kernel;
 	int scope_established;

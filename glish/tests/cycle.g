@@ -164,23 +164,23 @@
 #####
 ##### OK
 #####
-foobar := [=]
-func ten( ) {
-    private := [=]
-    public := [=]
-    private.xxx := frame()
-    public.frame := func( ) {
-        xxx := frame()
-        ## Test both global and wider references,
-        ## individually and together...
-        global foobar
-        foobar.f :=  func() { print 'hello' }
-        wider private
-        private.f := func() { print 'hello' }
-        return [=]
-    }
-    return public
-}
+#foobar := [=]
+#func ten( ) {
+#    private := [=]
+#    public := [=]
+#    private.xxx := frame()
+#    public.frame := func( ) {
+#        xxx := frame()
+#        ## Test both global and wider references,
+#        ## individually and together...
+#        global foobar
+#        foobar.f :=  func() { print 'hello' }
+#        wider private
+#        private.f := func() { print 'hello' }
+#        return [=]
+#    }
+#    return public
+#}
 #x := ten()
 #f := x.frame()
 #f := F

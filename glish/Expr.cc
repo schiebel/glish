@@ -2312,11 +2312,9 @@ IValue* IncludeExpr::Eval( evalOpt &opt )
 	char *fle = file_val->StringVal();
 	op->ReadOnlyDone( file_val );
 
-	extern NodeList *glish_func_cycle_roots;
-	NodeList *old_cycle_roots = glish_func_cycle_roots;
-	glish_func_cycle_roots = 0;
+	UserFunc::PushRootList( );
 	IValue *ret = sequencer->Include( opt, fle );
-	glish_func_cycle_roots = old_cycle_roots;
+	UserFunc::PopRootList( );
 
 	if ( lopt.side_effects() )
 		{

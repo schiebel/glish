@@ -17,13 +17,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
-NodeList *glish_func_cycle_roots;
-static void AddCycleRoot( UserFunc *root )
-	{
-	if ( ! root ) return;
-	if ( ! glish_func_cycle_roots ) glish_func_cycle_roots = new NodeList;
-	glish_func_cycle_roots->append( root );
-	}
+nodelist_list *UserFunc::cycle_root_list = 0;
 
 Parameter::~Parameter()
 	{
@@ -227,6 +221,30 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	return kernel->Describe(s, opt);
 	}
+
+void UserFunc::PushRootList( )
+	{
+	if ( ! cycle_root_list ) cycle_root_list = new nodelist_list;
+	cycle_root_list->append( 0 );
+	}
+
+NodeList *UserFunc::PopRootList( )
+	{
+	int len = 0;
+	NodeList *ret = 0;
+	if ( cycle_root_list && (len = cycle_root_list->length()) > 0 )
+		ret = cycle_root_list->remove_nth( len-1 );
+	return ret;
+	}
+
+void UserFunc::AddCycleRoot( UserFunc *root )
+	{
+	int len = 0;
+	if ( ! root || ! cycle_root_list || (len = cycle_root_list->length()) <= 0 ) return;
+	if ( ! (*cycle_root_list)[len-1] ) cycle_root_list->replace(len-1,new NodeList);
+	(*cycle_root_list)[len-1]->append( root );
+	}
+
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 				back_offsets_type *arg_back_refs, Sequencer* arg_sequencer,
@@ -628,8 +646,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	unsigned short old_file_name = file_name;
 	file_name = file;
 
-	NodeList *old_cycle_roots = glish_func_cycle_roots;
-	glish_func_cycle_roots = 0;
+	UserFunc::PushRootList( );
 
 	IValue* result = body->Exec( flow );
 
@@ -669,28 +686,29 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 
 	file_name = old_file_name;
 
-	if ( glish_func_cycle_roots && glish_func_cycle_roots->length() > 0 )
+	NodeList *current_roots = UserFunc::GetRoots( );
+	if ( current_roots && current_roots->length() > 0 )
 		{
-		glish_func_cycle_roots->set_finalize_handler( list_element_unref );
+		current_roots->set_finalize_handler( list_element_unref );
 
 		if ( opt.getfc() > 1 )
 			{
-			if ( ! old_cycle_roots )
+			if ( ! UserFunc::GetRoots( 1 ) )
 				{
-				old_cycle_roots = glish_func_cycle_roots;
-				Ref( glish_func_cycle_roots );
+				UserFunc::SetRoots( current_roots, 1 );
+				Ref( current_roots );
 				}
 			else
 				{
-				old_cycle_roots->append( glish_func_cycle_roots );
-				glish_func_cycle_roots->MarkSoftDel();
+				UserFunc::GetRoots( 1 )->append( current_roots );
+				current_roots->MarkSoftDel();
 				}
 			}
-		else if ( subsequence_expr || (result && result->PropagateCycles( glish_func_cycle_roots ) > 0) )
+		else if ( subsequence_expr || (result && result->PropagateCycles( current_roots ) > 0) )
 			{
-			result->SetUnref( glish_func_cycle_roots );
+			result->SetUnref( current_roots );
 			Frame *frame = sequencer->GetLocalFrame();
-			if ( frame ) frame->SetCycleRoots( glish_func_cycle_roots );
+			if ( frame ) frame->SetCycleRoots( current_roots );
 			}
 
 		// Check "ref" parameters
@@ -701,7 +719,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				if ( (*formals)[i]->ParamType( ) == VAL_REF )
 					{
 					IValue *&v = frame->FrameElement(((VarExpr*)(*formals)[i]->Arg())->offset( ));
-					if ( v->PropagateCycles( glish_func_cycle_roots ) > 0 )
+					if ( v->PropagateCycles( current_roots ) > 0 )
 						{
 						// Now this is a pain, the argument to the function was Ref()ed as part
 						// of creating the "ref" parameter, but now the stack is tied up by the
@@ -710,7 +728,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 						// Unref() it to undo the effect of the initial Ref()ing. This might
 						// come back to bite us when we're not paying attention, though...
 						IValue *X = (IValue*) v->Deref();
-						X->SetUnref( glish_func_cycle_roots );
+						X->SetUnref( current_roots );
 						X->MarkSoftDel();
 						if ( X->IsGlobalValue( ) ) Unref(X);
 						}
@@ -728,29 +746,35 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				if ( back_refs->type(X) == GLOBAL_SCOPE )
 					{
 					IValue *v = sequencer->GetGlobal( back_refs->offset(X) );
-					if ( v && v->PropagateCycles( glish_func_cycle_roots, 1 ) > 0 )
-						v->SetUnref( glish_func_cycle_roots );
+					if ( v && v->PropagateCycles( current_roots, 1 ) > 0 )
+						v->SetUnref( current_roots );
 					}
 				else
 					{
 					IValue *v = sequencer->GetFunc( off, back_refs->offset(X));
-					if ( v && v->PropagateCycles( glish_func_cycle_roots ) > 0 )
+					if ( v && v->PropagateCycles( current_roots ) > 0 )
 						{
 						Frame *frame = sequencer->FindCycleFrame( off );
 						NodeList *cyc = frame->GetCycleRoots( );
 						if ( cyc ) 
-							cyc->append( glish_func_cycle_roots );
+							cyc->append( current_roots );
 						else
-							v->SetUnref( glish_func_cycle_roots );
+							v->SetUnref( current_roots );
 						}
 					}
 				}
 			}
+		}
 
-		// Check varibles made global as a result of evaluation, e.g. with symbol_set()
-		if ( flow.HaveBackRefs() )
+	// Check varibles made global as a result of evaluation, e.g. with symbol_set()
+	if ( flow.HaveBackRefs() )
+		{
+		back_offsets_type *eval_backrefs = flow.TakeBackrefs( );
+		NodeList *cycle_roots = current_roots;
+		for ( int i=1; ! cycle_roots && i < UserFunc::GetRootsLen( ); cycle_roots = UserFunc::GetRoots( i++ ) );
+
+		if ( cycle_roots )
 			{
-			back_offsets_type *eval_backrefs = flow.TakeBackrefs( );
 			for ( int X=0; X < eval_backrefs->length(); ++X )
 				{
 				int flen = sequencer->FrameLen();
@@ -759,29 +783,29 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				if ( eval_backrefs->type(X) == GLOBAL_SCOPE )
 					{
 					IValue *v = sequencer->GetGlobal( eval_backrefs->offset(X) );
-					if ( v && v->PropagateCycles( glish_func_cycle_roots, 1 ) > 0 )
-						v->SetUnref( glish_func_cycle_roots );
+					if ( v && v->PropagateCycles( cycle_roots, 1 ) > 0 )
+						v->SetUnref( cycle_roots );
 					}
 				else
 					{
 					IValue *v = sequencer->GetFunc( off, eval_backrefs->offset(X));
-					if ( v && v->PropagateCycles( glish_func_cycle_roots ) > 0 )
+					if ( v && v->PropagateCycles( cycle_roots ) > 0 )
 						{
 						Frame *frame = sequencer->FindCycleFrame( off );
 						NodeList *cyc = frame->GetCycleRoots( );
 						if ( cyc ) 
-							cyc->append( glish_func_cycle_roots );
+							cyc->append( cycle_roots );
 						else
-							v->SetUnref( glish_func_cycle_roots );
+							v->SetUnref( cycle_roots );
 						}
 					}
 				}
-			Unref( eval_backrefs );
 			}
+
+		Unref( eval_backrefs );
 		}
 
-	Unref( glish_func_cycle_roots );
-	glish_func_cycle_roots = old_cycle_roots;
+	Unref( UserFunc::PopRootList( ) );
 
 	opt.decfc();
 	return result;
