@@ -170,7 +170,7 @@ char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 		char *expanded = a->which_bitmap(str);
 		if ( expanded )
 			{
-			char *bitmap = (char*) alloc_memory(strlen(expanded)+2);
+			char *bitmap = (char*) alloc_memory(strlen(expanded)+3);
 			sprintf(bitmap," @%s",expanded);
 			tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " config ", cmd, bitmap, 0 );
 			free_memory( expanded );
