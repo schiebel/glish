@@ -10,6 +10,12 @@ RCSID("@(#) $Id$")
 static int selector_status = 0;
 static int glish_select = 0;
 
+void glish_event_posted()
+	{
+	glish_select = 1;
+	selector_status = 1;
+	}
+
 void TkFileProc ( ClientData data, int mask )
 	{
 	glish_select = 1;

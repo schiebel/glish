@@ -20,6 +20,13 @@ class TkProc;
 declare(PDict,TkProc);
 typedef PDict(TkProc) tkprochash;
 
+//
+// This is somewhat of a hack to notify the TkSelector that a
+// glish event of interest has occurred. See TkSelector.cc for
+// more information
+//
+extern void glish_event_posted();
+
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
 extern IValue *glishtk_splitnl( char * );
@@ -139,6 +146,8 @@ class TkAgent : public Agent {
 	virtual IValue *Invoke(TkProc*,parameter_list*arg, int x, int y);
 
 	virtual charptr IndexCheck( charptr );
+
+	int CreateEvent( const char* event_name, IValue* event_value, NotifyTrigger *t=0 );
 
 	IValue *UnrecognizedEvent();
 	int IsValid() { return self != 0; }

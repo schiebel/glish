@@ -769,6 +769,15 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 			return new IValue( glish_true );
 		}
 
+int TkAgent::CreateEvent( const char* event_name, IValue* event_value, NotifyTrigger *t )
+	{
+	int is_interest = Agent::CreateEvent( event_name, event_value, t );
+
+	if ( is_interest ) glish_event_posted();
+
+	return is_interest;
+	}
+
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
