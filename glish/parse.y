@@ -1,4 +1,7 @@
-/* $Header$ */
+/* $Id$
+** Copyright (c) 1993 The Regents of the University of California.
+** Copyright (c) 1997 Associated Universities Inc.
+*/
 
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR

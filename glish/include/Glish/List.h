@@ -1,7 +1,9 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1993 The Regents of the University of California.
+// Copyright (c) 1997 Associated Universities Inc.
 #ifndef list_h
 #define list_h
+
 // BaseList.h --
 //	Interface for class BaseList, current implementation is as an
 //	array of ent's.  This implementation was chosen to optimize

@@ -1,5 +1,6 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 #ifndef tkagent_h
 #define tkagent_h
 

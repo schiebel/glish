@@ -1,4 +1,6 @@
-// $Header$
+// $Id$
+// Copyright (c) 1993 The Regents of the University of California.
+// Copyright (c) 1997 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
@@ -1437,6 +1439,7 @@ void Sequencer::DeleteVal( const char* id )
 
 void Sequencer::DescribeFrames( OStream& s ) const
 	{
+	if ( stack.length() ) s << endl;
 	loop_over_list( stack, X )
 		{
 		stack_type *S = stack[X];
@@ -1457,8 +1460,8 @@ void Sequencer::DescribeFrames( OStream& s ) const
 					s << (*S->frames)[j]->Size() << "\t\t";
 				else
 				  	s << "X" << "\t\t";
-			s << endl;
 			}
+		s << endl;
 		if ( (*S->offsets).length() )
 			{
 			s << "\t\toffsets:\t";

@@ -1,4 +1,6 @@
-// $Header$
+// $Id$
+// Copyright (c) 1993 The Regents of the University of California.
+// Copyright (c) 1997 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
@@ -10,6 +12,8 @@ RCSID("@(#) $Id$")
 #include "Glish/Stream.h"
 #include <iostream.h>
 #include "input.h"
+
+extern void glish_cleanup();
 
 int interactive = 0;
 extern Str *file_name;
@@ -303,6 +307,7 @@ void FatalReporter::Prolog()
 void FatalReporter::Epilog()
 	{
 	Reporter::Epilog();
+	glish_cleanup();
 	exit( 1 );
 	}
 

@@ -1,8 +1,8 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1993 The Regents of the University of California.
+// Copyright (c) 1997 Associated Universities Inc.
 #ifndef channel_h
 #define channel_h
-
 
 // Channels manage a communication channel to a process.  The channel
 // consists of two file descriptors, one for reading from the process

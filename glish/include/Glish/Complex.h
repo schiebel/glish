@@ -1,5 +1,6 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 #ifndef complex_h
 #define complex_h
 

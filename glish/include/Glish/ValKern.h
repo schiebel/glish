@@ -1,5 +1,6 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 #ifndef valkern_h
 #define valkern_h
 #include "Glish/GlishType.h"

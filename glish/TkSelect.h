@@ -1,5 +1,6 @@
-// $Header$
-
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 #ifndef tkselect_h
 #define tkselect_h
 

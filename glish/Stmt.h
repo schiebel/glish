@@ -1,14 +1,12 @@
-// $Header$
-
-
+// $Id$
+// Copyright (c) 1993 The Regents of the University of California.
+// Copyright (c) 1997 Associated Universities Inc.
 #ifndef stmt_h
 #define stmt_h
 
 #include "Glish/List.h"
-
 #include "Func.h"
 #include "Event.h"
-
 
 class Stmt;
 class EventDesignator;
@@ -451,8 +449,8 @@ class NullStmt : public Stmt {
 	};
 
 
-extern void glish_cleanup();
 extern Stmt* null_stmt;
 extern Stmt* merge_stmts( Stmt* stmt1, Stmt* stmt2 );
+extern void glish_cleanup();
 
 #endif /* stmt_h */

@@ -1,4 +1,6 @@
-// $Header$
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 
 #ifndef tkcanvas_h
 #define tkcanvas_h

@@ -1,4 +1,7 @@
-/* $Header$ */
+/* $Id$
+** Copyright (c) 1993 The Regents of the University of California.
+** Copyright (c) 1997 Associated Universities Inc.
+*/
 
 /* Port numbers used by Glish. */
 

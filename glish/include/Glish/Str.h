@@ -1,3 +1,6 @@
+// $Id$
+// Copyright (c) 1997 Associated Universities Inc.
+//
 #if ! defined(str_h_)
 #define str_h_
 #include <sys/types.h>
