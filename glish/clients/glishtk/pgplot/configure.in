@@ -1045,6 +1045,7 @@ case $host_os in
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
 	SLIB_CFLAGS=""
 	# Hack: make package name same as library name
+	SLIB_LABEL='-soname '
 	SLIB_LD='ld -R -export $@:'
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
@@ -1056,6 +1057,7 @@ case $host_os in
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
 	SLIB_CFLAGS="-fpic"
+	SLIB_LABEL='-soname '
 	SLIB_LD="ld -shared"
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
@@ -1067,6 +1069,7 @@ case $host_os in
     osf3.*)
         # Digital OSF/1
 	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
 	SLIB_LD='ld -shared -expect_unresolved "*"'
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
@@ -1085,6 +1088,7 @@ case $host_os in
     osf4.*)
         # Digital OSF/1
 	SLIB_CFLAGS=""
+	SLIB_LABEL='-soname '
 	SLIB_LD='ld -shared -expect_unresolved "*"'
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
