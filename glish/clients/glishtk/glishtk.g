@@ -82,7 +82,7 @@ func init_glishtk( ) {
 
     ret.tk_load := func ( module_name, init_func ) {
 			if ( is_function(init_func) && is_string(module_name) ) {
-			    gtk->tk_load( module_name )
+			    if ( is_fail(gtk->tk_load( module_name )) ) fail
 			    return init_func( gtk, ret )
 			}
 			fail 'bad parameter' }
