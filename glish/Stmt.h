@@ -12,6 +12,7 @@ class EventDesignator;
 class Agent;
 class Task;
 class Sequencer;
+class Notification;
 
 glish_declare(PList,Stmt);
 typedef PList(Stmt) stmt_list;
@@ -249,6 +250,7 @@ class AwaitStmt : public Stmt {
 		   Sequencer* arg_sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	void Notify( Agent* agent );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -261,12 +263,15 @@ class AwaitStmt : public Stmt {
 
 	const char *Description() const;
 
+	void ClearCachedNote( );
+
     protected:
 	event_dsg_list* await_list;
 	int only_flag;
 	event_dsg_list* except_list;
 	Sequencer* sequencer;
 	Stmt* except_stmt;
+	Notification *cached_note;
 	};
 
 

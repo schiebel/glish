@@ -2754,6 +2754,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 				            last_await_info->value, 0, 0, Notification::AWAIT ) );
 		delete last_await_info;
 		last_await_info = 0;
+		arg_await_stmt->ClearCachedNote();
 		}
 
 	current_await_done = 0;

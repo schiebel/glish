@@ -436,7 +436,7 @@ IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 
 int UserAgent::StickyNotes( ) const
 	{
-	return 1;
+	return 0;
 	}
 
 IValue *UserAgent::AwaitReply( const char *event_name )
