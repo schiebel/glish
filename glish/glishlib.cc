@@ -69,13 +69,13 @@ Value *copy_value( const Value *value )
 				COPY_REF(TYPE_STRING,StringRef())
 
 				default:
-					fatal->Report(
-						"bad type in copy_value()" );
+					fatal->Report( "bad type in copy_value(Value*) [",
+						       value->VecRefPtr()->Type(), "]" );
 				}
 			break;
 
 		default:
-			fatal->Report( "bad type in copy_value()" );
+			fatal->Report( "bad type in copy_value(Value*) [", value->Type(), "]" );
 		}
 
 	return copy;

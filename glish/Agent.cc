@@ -142,7 +142,7 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 		}
 	else if ( is_copy )
 		{
-		free_memory( field );
+		free_memory( (char*) field );
 		field = 0;
 		}
 

@@ -2000,13 +2000,13 @@ IValue *copy_value( const IValue *value )
 				COPY_REF(TYPE_STRING,StringRef())
 
 				default:
-					fatal->Report(
-						"bad type in copy_value ()" );
+					fatal->Report( "bad type in copy_value(IValue*) [",
+						       value->VecRefPtr()->Type(), "]" );
 				}
 			break;
 
 		default:
-			fatal->Report( "bad type in copy_value ()" );
+			fatal->Report( "bad type in copy_value(IValue*) [", value->Type(), "]" );
 		}
 
 	return copy;
