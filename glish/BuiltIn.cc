@@ -121,7 +121,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 		else
 			{
 			if ( do_ref_eval )
-				arg_val = arg->Arg()->RefEval( VAL_REF, 0 );
+				arg_val = arg->Arg()->RefEval( VAL_REF );
 			else
 				arg_val = arg->Arg()->ReadOnlyEval();
 

@@ -1032,7 +1032,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0),
 							system(this), system_change_count(1),
-							run_file(0)
+							run_file(0), doing_pager(0), expanded_name(0)
 	{
 	cur_sequencer = this;
 
@@ -1284,6 +1284,7 @@ Sequencer::~Sequencer()
 	{
 	shutting_glish_down = 1;
 
+#ifdef LINT
 	IterCookie* c = include_once.InitForIteration();
 	int x;
 	const char* key;
@@ -1309,15 +1310,18 @@ Sequencer::~Sequencer()
 	free_memory( interpreter_tag );
 	delete connection_socket;
 	free_memory( connection_port );
+#endif
 
 	while ( (*agents).length() )
 		Unref( (*agents).remove_nth( (*agents).length() - 1 ) );
 
+#ifdef LINT
 	Unref( selector );
 
 	finalize_values();
 	finalize_interp_reporters();
 	delete null_stmt;
+#endif
 	}
 
 

@@ -108,7 +108,7 @@ class Expr : public ParseNode {
 	// otherwise a "const" reference.
 	//
 	// The reference should be Unref()'d once done using it.
-	virtual IValue* RefEval( value_type val_type, int do_warn = 1 );
+	virtual IValue* RefEval( value_type val_type );
 
 
 	// Assigns a new value to the variable (LHS) corresponding
@@ -175,7 +175,7 @@ class VarExpr : public Expr {
 	~VarExpr();
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
@@ -270,7 +270,7 @@ class ValExpr : public Expr {
 	~ValExpr();
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 
     protected:
 	IValue *val;
@@ -419,7 +419,7 @@ class ArrayRefExpr : public UnaryExpr {
 	ArrayRefExpr( Expr* op1, expr_list* a );
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
 
@@ -438,7 +438,7 @@ class RecordRefExpr : public UnaryExpr {
 	RecordRefExpr( Expr* op, char* record_field );
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
 
@@ -458,7 +458,7 @@ class AttributeRefExpr : public BinaryExpr {
 	AttributeRefExpr( Expr* op, char* attribute );
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
 
@@ -548,7 +548,7 @@ class LastEventExpr : public Expr {
 	LastEventExpr( Sequencer* sequencer, last_event_type type );
 
 	IValue* Eval( eval_type etype );
-	IValue* RefEval( value_type val_type, int do_warn = 1 );
+	IValue* RefEval( value_type val_type );
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
     protected:

@@ -220,10 +220,12 @@ int main( int argc, char** argv )
 	glish_cleanup();
 
 	delete s;
-	delete srpt;
 
+#ifdef LINT
+	delete srpt;
 #ifdef GGC
 	Garbage::finalize();
+#endif
 #endif
 
 	return 0;
