@@ -133,6 +133,8 @@ void Expr::StandAlone( ) { }
 	
 int Expr::LhsIs( const Expr * ) const { return 0; }
 
+int Expr::FrameOffset( ) const { return -1; }
+
 Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 	{
 	return this;
@@ -411,6 +413,10 @@ int VarExpr::LhsIs( const Expr *e ) const
 	return e == this;
 	}
 
+int VarExpr::FrameOffset( ) const
+	{
+	return offset( );
+	}
 
 ScriptVarExpr::~ScriptVarExpr() { }
 
@@ -715,7 +721,15 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
 	//
 	if ( l_err && opt.result_perishable( ) )
-		return l_err;
+		{
+		if ( ! lopt.side_effects() )
+			return l_err;
+		else
+			{
+			Unref( l_err );
+			return 0;
+			}
+		}
 	else if ( r_err )
 		return r_err;
 	if ( l_err && l_err->Type() == TYPE_FAIL )
@@ -961,6 +975,11 @@ IValue* ConstructExpr::BuildArray( evalOpt &opt )
 
 	const_value_ptr* values = (const_value_ptr*) alloc_ivalueptr( num_values );
 
+	evalOpt nopt(opt);
+
+	if ( args->length() == 1 )
+		nopt.set( evalOpt::PRESERVE_FIELDNAMES );
+
 	int total_length = 0;
 	for ( LOOPDECL i = 0; i < args->length(); ++i )
 		{
@@ -978,17 +997,22 @@ IValue* ConstructExpr::BuildArray( evalOpt &opt )
 			}
 		else
 			{
-			values[i] = arg->Arg()->ReadOnlyEval( opt );
+			values[i] = arg->Arg()->ReadOnlyEval( nopt );
 			total_length += values[i]->Length();
 			}
 		}
 
 	glish_type max_type;
-	IValue *result = TypeCheck( values, num_values, max_type );
+	int records = 0;
+	IValue *result = TypeCheck( values, num_values, max_type, records );
 
 	if ( ! result )
-		result = ConstructArray( values, num_values, total_length,
-					max_type );
+		{
+		if ( records )
+			result = ConstructRecord( values, num_values );
+		else
+			result = ConstructArray( values, num_values, total_length, max_type );
+		}
 
 	for ( LOOPDECL i = 0; i < args->length(); ++i )
 		if ( ! (*args)[i]->IsEllipsis() )
@@ -1000,7 +1024,7 @@ IValue* ConstructExpr::BuildArray( evalOpt &opt )
 	}
 
 IValue *ConstructExpr::TypeCheck( const IValue* values[], int num_values,
-					glish_type& max_type )
+					glish_type& max_type, int &records )
 	{
 	if ( num_values == 0 )
 		{
@@ -1008,9 +1032,15 @@ IValue *ConstructExpr::TypeCheck( const IValue* values[], int num_values,
 		return 0;
 		}
 
+	int all_records = 1;
+	records = 0;
+
 	for ( int i = 0; i < num_values; ++i )
 		{
 		const IValue* v = values[i];
+
+		if ( all_records && v->Type() != TYPE_RECORD )
+			all_records = 0;
 
 		if ( v->Type() == TYPE_FAIL )
 			return copy_value(v);
@@ -1022,7 +1052,15 @@ IValue *ConstructExpr::TypeCheck( const IValue* values[], int num_values,
 	IValue *result = AllEquivalent( values, num_values, max_type );
 
 	if ( max_type == TYPE_RECORD )
-		return (IValue*) Fail( "arrays of records are not supported" );
+		{
+		if ( all_records )
+			{
+			records = 1;
+			return 0;
+			}
+		else
+			return (IValue*) Fail( "arrays of records are not supported" );
+		}
 
 	return result;
 	}
@@ -1057,7 +1095,7 @@ IValue *ConstructExpr::AllEquivalent( const IValue* values[], int num_values,
 	// First pick a candidate type.
 	for ( int i = 0; i < num_values; ++i )
 		// Ignore empty arrays, as they can be any type.
-		if ( values[i]->Length() > 0 )
+		if ( values[i]->Length() > 0 || values[i]->Deref()->Type() == TYPE_RECORD )
 			{
 			max_type = values[i]->VecRefDeref()->Type();
 			break;
@@ -1163,6 +1201,38 @@ BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY, twist
 		}
 
 	return result;
+	}
+
+IValue * ConstructExpr::ConstructRecord( const IValue* values[], int num_values )
+	{
+	recordptr newrec = create_record_dict();
+	int unique_count = 1;
+
+	for ( int i=0; i < num_values; ++i )
+		{
+		if ( values[i]->Type() != TYPE_RECORD )
+			fatal->Report( "bad value in ConstructExpr::ConstructRecord()" );
+		  
+		recordptr rptr = values[i]->RecordPtr(0);
+		IterCookie* c = rptr->InitForIteration();
+
+		Value* member;
+		const char* key;
+		while ( (member = rptr->NextEntry( key, c )) )
+			{
+			if ( newrec->Lookup( key ) )
+				{
+				char *buff = alloc_char( strlen(key)+30 );
+				sprintf( buff, "%s*%d", key, unique_count++ );
+				while ( newrec->Lookup( buff ) )
+					sprintf( buff, "%s*%d", key, unique_count++ );
+				newrec->Insert( buff, copy_value(member) );
+				}
+			else
+				newrec->Insert( string_dup(key), copy_value(member) );
+			}
+		}
+	return new IValue( newrec );
 	}
 
 IValue* ConstructExpr::BuildRecord( evalOpt &opt )
@@ -1335,7 +1405,10 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 			}
 		else
 			{ // Array subscripting.
-			result = (IValue *)(*array)[index_val];
+			if ( array->Type() == TYPE_RECORD && opt.preserve_fieldnames() )
+				result = ((IValue *)array)->subscript( index_val, 1 );
+			else
+				result = (IValue *)(*array)[index_val];
 
 			if ( result->IsRef() )
 				{
@@ -1444,7 +1517,26 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		// Single element pick operation
 		result = (IValue*)array->PickRef( index_val, err );
 	else
-		result = (IValue*)array->SubRef( index_val, err, val_type );
+		{
+		// Currently SubRef does not properly handle multi-element index
+		// vectors for record indexing. This causes problems in situations
+		// like:
+		//
+		//		- ec := client('echo_client')
+		//		- foo := [ a=1, b=2, c=3, d=4 ]
+		//		- foo[[2,3]]
+		//		[b=2, c=3]
+		//		- ec->hi(foo[[2,3]])
+		//		warning, event echo_client.hi (2) dropped
+		//
+		// It would be getter to fix SubRef(), but for now this
+		// suffices. It returns a copy rather than a reference, though.
+		//
+		if ( array->Type() == TYPE_RECORD && index_val->Length() > 1 )
+			result = (IValue*)(*array)[index_val];
+		else
+			result = (IValue*)array->SubRef( index_val, err, val_type );
+		}
 
 	arg->ReadOnlyDone( index_val );
 

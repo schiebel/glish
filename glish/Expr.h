@@ -102,7 +102,7 @@ class evalOpt {
 	// VALUE_NEEDED is included because it is the only outstanding statement
 	// evaluation flag, it indicates if a return value is expected or not.
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
-	enum returnType { VALUE_NEEDED=9, RESULT_PERISHABLE=10, RHS_RESULT=11 };
+	enum returnType { VALUE_NEEDED=9, RESULT_PERISHABLE=10, RHS_RESULT=11, PRESERVE_FIELDNAMES=12 };
 
 	evalOpt( ) : mask(0), fcount(0), backrefs(0) { }
 	evalOpt( exprType t ) : mask(1<<t), fcount(0), backrefs(0) { }
@@ -146,6 +146,7 @@ class evalOpt {
 	inline static unsigned short mVALUE_NEEDED( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<VALUE_NEEDED; }
 	inline static unsigned short mRESULT_PERISHABLE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RESULT_PERISHABLE; }
 	inline static unsigned short mRHS_RESULT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RHS_RESULT; }
+	inline static unsigned short mPRESERVE_FIELDNAMES( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<PRESERVE_FIELDNAMES; }
 
 	// evaluation types/modes
 	int copy() const { return mCOPY(mask); }
@@ -164,6 +165,7 @@ class evalOpt {
 	int value_needed() const { return mVALUE_NEEDED(mask); }
 	int result_perishable() const { return mRESULT_PERISHABLE(mask); }
 	int rhs_result() const { return mRHS_RESULT(mask); }
+	int preserve_fieldnames() const { return mPRESERVE_FIELDNAMES(mask); }
 
 	// References to global or wider values discovered while evaluating
 	back_offsets_type &Backrefs( );
@@ -278,6 +280,8 @@ class Expr : public ParseNode {
 	// from messing up the ref'ness of the RHS
 	virtual int LhsIs( const Expr * ) const;
 
+	virtual int FrameOffset( ) const;
+
 	// This should not be called outside of the Expr hierarchy. Use
 	// BuildFrameInfo() instead.
 	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -311,10 +315,11 @@ class VarExpr : public Expr {
 	IValue* Eval( evalOpt &opt );
 	IValue* RefEval( evalOpt &opt, value_reftype val_type );
 
-	const char* VarID()	{ return id; }
-	int offset()		{ return frame_offset; }
-	int soffset()		{ return scope_offset; }
-	scope_type Scope()	{ return scope; }
+	const char* VarID()	 { return id; }
+	int FrameOffset( ) const;
+	int offset() const	 { return frame_offset; }
+	int soffset() const	 { return scope_offset; }
+	scope_type Scope() const { return scope; }
 	change_var_notice change_func() const { return func; }
 	void set( scope_type scope, int scope_offset, int frame_offset );
 
@@ -577,12 +582,14 @@ class ConstructExpr : public Expr {
 	IValue *AllEquivalent( const IValue* values[], int num_values,
 				glish_type& max_type );
 	IValue *TypeCheck( const IValue* values[], int num_values,
-			       glish_type& max_type );
+			       glish_type& max_type, int &records );
 	IValue *MaxNumeric( const IValue* values[], int num_values,
 				glish_type& max_type );
 
 	IValue* ConstructArray( const IValue* values[], int num_values,
 				int total_length, glish_type max_type );
+
+	IValue* ConstructRecord( const IValue* values[], int num_values );
 
 	int is_array_constructor;
 	ParameterPList* args;
