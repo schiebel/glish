@@ -777,7 +777,7 @@ void init_log( const char *program_name )
 		len = strlen(program_name);
 		if ( len-- > 0 )
 			{
-			for (ptr = program_name + len; len && *ptr != '/'; --ptr, --len);
+			for (ptr = (char*) program_name + len; len && *ptr != '/'; --ptr, --len);
 			if ( len ) ++ptr;
 			strcpy(name,ptr);
 			}
