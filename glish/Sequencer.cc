@@ -2020,6 +2020,15 @@ Frame* Sequencer::CurrentFrame()
 	return frames()[top_frame];
 	}
 
+Frame* Sequencer::FuncFrame()
+	{
+	for ( int frame = frames().length() - 1; frame >= 0; --frame )
+		if ( frames()[frame] && frames()[frame]->GetScopeType() == FUNC_SCOPE )
+			return frames()[frame];
+
+	return 0;
+	}
+
 stack_type* Sequencer::LocalFrames()
 	{
 	if ( frames().length() )

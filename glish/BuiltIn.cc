@@ -2052,7 +2052,7 @@ IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
 
 IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
-	Frame* cur = sequencer->CurrentFrame();
+	Frame* cur = sequencer->FuncFrame();
 	if ( ! cur )
 		return empty_ivalue();
 

@@ -288,7 +288,9 @@ public:
 	static IValue *FuncNameStack( );
 
 	// The current evaluation frame, or 0 if there are no local frames.
-	Frame* CurrentFrame();
+	Frame *CurrentFrame();
+	Frame *FuncFrame();
+
 	// Returns a list of the frames that are currently local, i.e. up to and
 	// and including the first non LOCAL_SCOPE frame. Returns 0 if there are
 	// no frames between the current frame and the GLOBAL_SCOPE frame. If this
