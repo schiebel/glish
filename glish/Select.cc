@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 #include <sys/socket.h>
 #include <string.h>
 #include <stdlib.h>
+#include "Reporter.h"
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -204,6 +205,12 @@ void Selector::DeleteSelectee( int selectee_fd )
 	Selectee* s = selectees[selectee_fd];
 
 	selectees[selectee_fd] = 0;
+
+	if ( ! s )
+		{
+		error->Report( "bad fd in Selector::DeleteSelectee" );
+		return;
+		}
 
 	if ( s->type() == Selectee::READ )
 		FD_CLR( selectee_fd, r_fdset );

@@ -18,6 +18,7 @@ RCSID("@(#) $Id$")
 #include "Channel.h"
 #include "Socket.h"
 #include "LocalExec.h"
+#include "Sequencer.h"
 #include "ports.h"
 
 #if HAVE_SYS_WAIT_H
@@ -34,11 +35,20 @@ RCSID("@(#) $Id$")
 Channel *start_remote_daemon( const char *host )
 	{
 	char *argv[10];
-	char command_line[2048];
+	char command_line[3072];
+	const char *binpath = Sequencer::BinPath( host );
+	const char *ldpath = Sequencer::LdPath( host );
+
 	AcceptSocket connection_socket( 0, INTERPRETER_DEFAULT_PORT );
 	mark_close_on_exec( connection_socket.FD() );
 
-	sprintf(command_line, "%s %s -n %s -id glish-daemon -host %s -port %d -+- &",
+	//
+	// intro:	"PATH=",binpath,";export PATH;","LD_LIBRARY_PATH=",ldpath,";export LD_LIBRARY_PATH;"
+	//
+	//         >>>---------vvvvvvvvvvvv
+	sprintf(command_line, "%s%s%s%s%s%s %s %s -n %s -id glish-daemon -host %s -port %d -+- &",
+		binpath ? "PATH=" : "", binpath ? binpath : "", binpath ? ";export PATH;" : "",
+		ldpath ? "LD_LIBRARY_PATH=" : "", ldpath ? ldpath : "", ldpath ? ";export LD_LIBRARY_PATH;" : "",
 		RSH, host, DAEMON_NAME, local_host_name(), connection_socket.Port() );
 
 	message->Report( "activating Glish daemon on ", host, " ..." );

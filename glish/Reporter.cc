@@ -337,10 +337,10 @@ void finalize_reporters()
 	static int did_final = 0;
 	if ( ! did_final )
 		{
-		delete warn;
-		delete error;
-		delete fatal;
-		delete message;
+		if ( warn ) delete warn;
+		if ( error ) delete error;
+		if ( fatal ) delete fatal;
+		if ( message ) delete message;
 		did_final = 1;
 		}
 	}

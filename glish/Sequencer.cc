@@ -204,11 +204,12 @@ class LocalClientSelectee : public Selectee {
 // for some reason (likely the result of the pipe filling up).
 class SendSelectee : public Selectee {
     public:
-	SendSelectee( Selector *s, sos_status *ss_, Value *v );
+	SendSelectee( Selector *s, sos_status *ss_, Value *v, Selectee *old_ = 0 );
 	int NotifyOfSelection();
 
     protected:
 	Selector *selector;
+	Selectee *old;
 	sos_status *ss;
 	Value *val;
 	};
@@ -721,6 +722,8 @@ void SystemInfo::update_path( )
 	include = 0;
 	includelen = 0;
 	keydir = 0;
+	binpath = 0;
+	ldpath = 0;
 	if ( val && val->Type() == TYPE_RECORD &&
 	     val->HasRecordElement( "path" ) &&
 	     (v1 = (const IValue*)(val->ExistingRecordElement( "path" ))) &&
@@ -747,6 +750,13 @@ void SystemInfo::update_path( )
 		     ( v2->Type() == TYPE_STRING || v2->Type() == TYPE_RECORD ) &&
 		     v2->Length() )
 			binpath = v2;
+
+		if ( v1->HasRecordElement( "ld" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("ld"))) &&
+		     v2 != false_value &&
+		     ( v2->Type() == TYPE_STRING || v2->Type() == TYPE_RECORD ) &&
+		     v2->Length() )
+			ldpath = v2;
 
 		}
 
@@ -967,6 +977,26 @@ static char **split_path( char *path, int &count )
 	return ret;
 	}
 
+static char *join_path( const char **path, int len )
+	{
+	int count = len + 1;
+	if ( ! path ) return 0;
+
+	for ( int i = 0; i < len; ++i )
+		count += strlen(path[i]);
+
+	char *ret = (char*) alloc_memory( sizeof(char) * count );
+	ret[0] = '\0';
+
+	for ( LOOPDECL i=0; i < len; ++i )
+		{
+		strcat( ret, path[i] );
+		if ( i < len-1 ) strcat(ret, ":");
+		}
+
+	return ret;
+	}
+
 void Sequencer::SetupSysValue( IValue *sys_value )
 	{
 	IValue *ver = new IValue( GLISH_VERSION );
@@ -994,6 +1024,19 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 			recordptr bin = create_record_dict( );
 			bin->Insert( strdup(local_host_name()), new IValue(binpath,len) );
 			path->Insert( strdup("bin"), new IValue( bin ) );
+			}
+		}
+
+	envpath = getenv( "LD_LIBRARY_PATH" );
+	if ( envpath )
+		{
+		int len = 0;
+		charptr *ldpath = (charptr*) split_path(envpath,len);
+		if ( ldpath && len )
+			{
+			recordptr ld = create_record_dict( );
+			ld->Insert( strdup(local_host_name()), new IValue(ldpath,len) );
+			path->Insert( strdup("ld"), new IValue( ld ) );
 			}
 		}
 
@@ -1693,6 +1736,36 @@ const AwaitStmt *Sequencer::ActiveAwait ( )
 	{
 	return (const AwaitStmt*) cur_sequencer->await_stmt;
 	}
+
+#define DECLARE_PATHFUNC( NAME )					\
+const char *Sequencer::NAME( const char *host )				\
+	{								\
+	const IValue *pv = cur_sequencer->System().NAME();		\
+	const IValue *v = 0;						\
+	static char *string = 0;					\
+									\
+	if ( ! pv ) return 0;						\
+									\
+	if ( string )							\
+		{							\
+		free_memory(string);					\
+		string = 0;						\
+		}							\
+									\
+	if ( pv->Type() == TYPE_STRING )				\
+		string = join_path( pv->StringPtr(0), pv->Length() );	\
+	else if ( pv->Type() == TYPE_RECORD &&				\
+		  pv->HasRecordElement( host ) &&			\
+		  ( v = (const IValue*)(pv->ExistingRecordElement( host ))) && \
+		  v != false_value && v->Type() == TYPE_STRING && v->Length() ) \
+		string = join_path( v->StringPtr(0), v->Length() );	\
+									\
+	return string;							\
+	}
+
+DECLARE_PATHFUNC( BinPath )
+DECLARE_PATHFUNC( LdPath )
+
 
 void Sequencer::HoldQueue( )
 	{
@@ -2404,7 +2477,8 @@ IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 void Sequencer::SendSuspended( sos_status *ss, Value *v )
 	{
 	if ( ! ss ) return;
-	selector->AddSelectee( new SendSelectee( selector, ss, v ) );
+	Selectee *old_selectee = selector->FindSelectee( ss->fd() );
+	selector->AddSelectee( new SendSelectee( selector, ss, v, old_selectee ) );
 	}
 
 Channel* Sequencer::AddLocalClient( int read_fd, int write_fd )
@@ -3316,12 +3390,13 @@ int LocalClientSelectee::NotifyOfSelection()
 	}
 
 
-SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Value *v ) : 
+SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Value *v, Selectee *old_ ) : 
 				Selectee( ss_->fd(), Selectee::WRITE )
 	{
 	selector = s;
 	ss = ss_;
 	val = v;
+	old = old_;
 	}
 
 int SendSelectee::NotifyOfSelection()
@@ -3329,6 +3404,7 @@ int SendSelectee::NotifyOfSelection()
 	if ( ! ss->resume( ) )
 		{
 		selector->DeleteSelectee( ss->fd() );
+		selector->AddSelectee( old );
 		delete val;
 		}
 
