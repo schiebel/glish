@@ -1310,7 +1310,7 @@ RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
 IValue* RecordRefExpr::Eval( eval_type etype )
 	{
 	const IValue* record = op->ReadOnlyEval();
-	const IValue* const_result = (const IValue*)(record->ExistingRecordElement( field ));
+	const IValue* const_result = (const IValue*)(record->Deref()->ExistingRecordElement( field ));
 
 	const_result = (const IValue*)(const_result->Deref());
 
