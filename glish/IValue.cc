@@ -447,7 +447,7 @@ fileptr* IValue::CoerceToFileArray( int& is_copy, int size, fileptr* result ) co
 	}
 
 
-IValue* IValue::operator []( const IValue* index ) const
+IValue* IValue::subscript( const IValue* index, int always_preserve_fields ) const
 	{
 	if ( index->Type() == TYPE_STRING )
 		return (IValue*) RecordRef( index );
@@ -458,7 +458,7 @@ IValue* IValue::operator []( const IValue* index ) const
 
 	if ( indices )
 		{
-		IValue* result = ArrayRef( indices, num_indices );
+		IValue* result = ArrayRef( indices, num_indices, always_preserve_fields );
 
 		if ( indices_are_copy )
 			free_memory( indices );
@@ -876,7 +876,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 	}
 
 
-IValue* IValue::ArrayRef( int* indices, int num_indices )
+IValue* IValue::ArrayRef( int* indices, int num_indices, int always_preserve_fields )
 		const
 	{
 
@@ -893,7 +893,7 @@ IValue* IValue::ArrayRef( int* indices, int num_indices )
 		return (IValue*) Fail( "arrays of agents are not currently supported" );
 
 	if ( Type() == TYPE_RECORD )
-		return (IValue*) RecordSlice( indices, num_indices );
+		return (IValue*) RecordSlice( indices, num_indices, always_preserve_fields );
 
 	for ( int i = 0; i < num_indices; ++i )
 		if ( indices[i] < 1 || indices[i] > kernel.Length() )

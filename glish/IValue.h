@@ -188,14 +188,15 @@ public:
 			fileptr* result = 0 ) const;
 
 	// Both of the following return a newed value.
-	IValue* operator[]( const IValue* index ) const;
-	IValue* operator[]( const_value_list *index ) const;
+	IValue *subscript( const IValue *index, int always_preserve_fields = 0 ) const;
+	IValue *operator[]( const IValue *index ) const { return subscript(index); }
+	IValue *operator[]( const_value_list *index ) const;
 
 	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match );
 	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&indices, int &ilen );
 
 	// Return a new value holding the specified subelement(s).
-	IValue* ArrayRef( int* indices, int num_indices ) const;
+	IValue* ArrayRef( int* indices, int num_indices, int always_preserve_fields=0 ) const;
 
 	// Return a new value holding a reference the specified subelement(s).
 	IValue* TrueArrayRef( int* indices, int num_indices, int take_indices = 0,

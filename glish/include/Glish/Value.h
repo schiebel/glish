@@ -619,7 +619,7 @@ protected:
 				int check_size = 1 ) const;
 
 	// Returns a slice of a record at the given indices.
-	Value* RecordSlice( int* indices, int num_indices ) const;
+	Value* RecordSlice( int* indices, int num_indices, int always_preserve_fields=0 ) const;
 
 	// Assign the specified subelements to copies of the corresponding
 	// values.

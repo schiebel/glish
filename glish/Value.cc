@@ -1485,7 +1485,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 	}
 
 
-Value* Value::RecordSlice( int* indices, int num_indices ) const
+Value* Value::RecordSlice( int* indices, int num_indices, int always_preserve_fields ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		fatal->Report( "non-record type in Value::RecordSlice()" );
@@ -1500,7 +1500,7 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 		return Fail( "record index (=", max_index,
 			") out of range (> ", rptr->Length(), ")" );
 
-	if ( num_indices == 1 )
+	if ( num_indices == 1 && ! always_preserve_fields )
 		return copy_value( NthField( indices[0] ) );
 
 	recordptr new_record = create_record_dict();
