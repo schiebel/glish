@@ -730,6 +730,12 @@ void TkCanvas::UnMap()
 		a->UnMap( );
 		}
 
+	if ( self )
+		{
+		rivet_set( self, "-xscrollcommand", "" );
+		rivet_set( self, "-yscrollcommand", "" );
+		}
+
 	TkAgent::UnMap();
 	}
 

@@ -396,11 +396,13 @@ class TkScale : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
+	void UnMap();
+
     protected:
 	char *fill;
 	unsigned int id;
 	static unsigned int scale_count;
-	int from_, to_;
+	double from_, to_;
 	};
 
 class TkText : public TkAgent {
@@ -427,6 +429,8 @@ class TkText : public TkAgent {
 	void Disable( );
 	void Enable( int force = 1 );
 
+	void UnMap();
+
     protected:
 	char *fill;
 	};
@@ -442,6 +446,8 @@ class TkScrollbar : public TkAgent {
 	static IValue *Create( Sequencer *, const_args_list *);
 	void Scrolled( IValue *data );
 	~TkScrollbar();
+
+	void UnMap();
 	};
 
 class TkLabel : public TkAgent {
@@ -486,6 +492,8 @@ class TkEntry : public TkAgent {
 	void Disable( );
 	void Enable( int force = 1 );
 
+	void UnMap();
+
     protected:
 	char *fill;
 
@@ -528,6 +536,7 @@ class TkListbox : public TkAgent {
 	int CanExpand() const;
 
 	~TkListbox();
+	void UnMap();
 
     protected:
 	char *fill;

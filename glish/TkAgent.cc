@@ -310,10 +310,10 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		return 0;						\
 		}
 
-#define EXPRSTRVAL(var,EVENT)						\
+#define EXPRSTRVALXX(var,EVENT,LINE)					\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var = var##_expr_ ->ReadOnlyEval();		\
-	const IValue *var##_val_ = var;					\
+	LINE								\
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
@@ -321,11 +321,15 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		var##_expr_ ->ReadOnlyDone(var);			\
 		return 0;						\
 		}
+
+#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,const IValue *var##_val_ = var;)
+
 #define EXPRSTR(var,EVENT)						\
 	charptr var = 0;						\
-	EXPRSTRVAL(var##_val_, EVENT)					\
+	EXPRSTRVALXX(var##_val_, EVENT,)				\
 	Expr *var##_expr_ = var##_val__expr_;				\
 	var = ( var##_val_ ->StringPtr(0) )[0];
+
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
@@ -392,7 +396,7 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 #define EXPRDOUBLE(var,EVENT)                                           \
         Expr *var##_expr_ = (*args)[c++]->Arg();                        \
         const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();        \
-        int var = 0;                                                    \
+        double var = 0;                                                 \
         if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
                 var##_val_ ->Length() <= 0 )                            \
                 {                                                       \
@@ -485,14 +489,14 @@ CLASS::~CLASS( )					\
 		return ret->AgentRecord();
 
 
-char *glishtk_nostr(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_nostr(Rivetobj self, const char *cmd, parameter_list *,
+				int, int )
 	{
 	return rivet_va_cmd( self, cmd, 0 );
 	}
 
 char *glishtk_onestr(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one string function";
@@ -505,7 +509,7 @@ char *glishtk_onestr(Rivetobj self, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_onedim(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one dim function";
@@ -518,7 +522,7 @@ char *glishtk_onedim(Rivetobj self, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -550,7 +554,7 @@ char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_
 	}
 
 char *glishtk_oneint(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one int function";
@@ -563,7 +567,7 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_onedouble(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one double function";
@@ -576,7 +580,7 @@ char *glishtk_onedouble(Rivetobj self, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_onebinary(Rivetobj self, const char *cmd, const char *ptrue, const char *pfalse,
-				parameter_list *args, int is_request, int log )
+				parameter_list *args, int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one binary function";
@@ -595,7 +599,7 @@ char *glishtk_onebool(Rivetobj self, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_oneidx(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one index function";
@@ -611,7 +615,7 @@ char *glishtk_oneidx(TkAgent *a, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_disable_cb(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *event_name = "glishtk_disable_cb";
 	if ( ! *cmd )
@@ -636,7 +640,7 @@ char *glishtk_disable_cb(TkAgent *a, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -676,7 +680,7 @@ IValue *glishtk_strary_to_value( char *s )
 	return ret;
 	}
 char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *event_name = "one-or-two index function";
 
@@ -742,7 +746,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *ar
 	}
 
 char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
-			      parameter_list *args, int is_request, int log )
+			      parameter_list *args, int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -764,7 +768,7 @@ char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
 	}
 
 char *glishtk_strandidx(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -793,7 +797,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
-				parameter_list *args, int is_request, int log )
+				parameter_list *args, int, int )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -811,7 +815,7 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 	}
 
 char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
-				parameter_list *args, int is_request, int log )
+				parameter_list *args, int, int )
 	{
 	char *event_name = "text append function";
 
@@ -849,7 +853,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	}
 
 char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
-			   parameter_list *args, int is_request, int log )
+			   parameter_list *args, int, int )
 	{
 	char *event_name = "tag function";
 		
@@ -903,7 +907,7 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 	}
 
 char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
-			      parameter_list *args, int is_request, int log )
+			      parameter_list *args, int, int )
 	{
 	char *event_name = "tag function";
 	if ( args->length() < 2 )
@@ -945,7 +949,7 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 	}
 
 char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
-			      parameter_list *args, int is_request, int log )
+			      parameter_list *args, int, int )
 	{
 	char *event_name = "tag function";
 	if ( args->length() < 1 )
@@ -967,7 +971,7 @@ char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
 	}
 
 char *glishtk_no2str(TkAgent *a, const char *cmd, const char *param,
-				parameter_list *args, int is_request, int log )
+				parameter_list *, int, int )
 	{
 	return rivet_va_cmd( a->Self(), cmd, param, 0 );
 	}
@@ -990,10 +994,11 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, IValue *str_v, 
 		
 	rivet_cmd(a->Self(), c+3, argv);
 	free_memory( argv );
+	return "";
 	}
 
 char *glishtk_listbox_insert(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *event_name = "listbox insert function";
 
@@ -1057,7 +1062,7 @@ char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, IValue *val )
 	}
 
 char *glishtk_listbox_get(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "listbox get function";
@@ -1090,8 +1095,8 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, parameter_list *args,
 	}
 
 
-char *glishtk_scrolled_update(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_scrolled_update(Rivetobj self, const char *, parameter_list *args,
+				int, int )
 	{
 	static char ret[5];
 	char *event_name = "scrolled update function";
@@ -1110,8 +1115,8 @@ char *glishtk_scrolled_update(Rivetobj self, const char *cmd, parameter_list *ar
 	return ret;
 	}
 
-char *glishtk_scrollbar_update(Rivetobj self, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_scrollbar_update(Rivetobj self, const char *, parameter_list *args,
+				int, int )
 	{
 	static char ret[5];
 	char *event_name = "scrollbar update function";
@@ -1124,8 +1129,8 @@ char *glishtk_scrollbar_update(Rivetobj self, const char *cmd, parameter_list *a
 	return ret;
 	}
 
-char *glishtk_button_state(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_button_state(TkAgent *a, const char *, parameter_list *args,
+				int, int )
 	{
 	char *ret = 0;
 	char *event_name = "button state function";
@@ -1145,7 +1150,7 @@ char *glishtk_button_state(TkAgent *a, const char *cmd, parameter_list *args,
 extern "C" int rivet_menuentry_set(Rivetobj,char*,char*,char*);
 
 char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+				int, int )
 	{
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
@@ -1160,7 +1165,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
 	}
 
 char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, const char *pfalse,
-				parameter_list *args, int is_request, int log )
+				parameter_list *args, int, int )
 	{
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
@@ -1299,13 +1304,10 @@ int glishtk_xioerror_handler(Display *d)
 	return 1;
 	}
 
-char *glishtk_agent_map(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_agent_map(TkAgent *a, const char *cmd, parameter_list *, int, int)
 	{
-	char *ret = 0;
-	char *event_name = "button state function";
 	a->SetMap( *cmd == 'M' ? 1 : 0 );
-	return ret;
+	return 0;
 	}
 
 void TkAgent::SetMap( int do_map )
@@ -1434,9 +1436,8 @@ struct glishtk_bindinfo
 	char *event_name;
 	char *tk_event_name;
 	glishtk_bindinfo( TkAgent *c, const char *event, const char *tk_event ) :
-			tk_event_name(strdup(tk_event)),
-			event_name(strdup(event)),
-			agent(c) { }
+			agent(c), event_name(strdup(event)),
+			tk_event_name(strdup(tk_event)) { }
 	~glishtk_bindinfo()
 		{
 		free_memory( tk_event_name );
@@ -1444,7 +1445,7 @@ struct glishtk_bindinfo
 		}
 	};
 
-int glishtk_bindcb(Rivetobj agent, XEvent *xevent, ClientData assoc, int keysym, int callbacktype)
+int glishtk_bindcb(Rivetobj agent, XEvent *xevent, ClientData assoc, int keysym, int)
 	{
 	glishtk_bindinfo *info = (glishtk_bindinfo*) assoc;
 	int dummy;
@@ -1460,8 +1461,8 @@ int glishtk_bindcb(Rivetobj agent, XEvent *xevent, ClientData assoc, int keysym,
 	return TCL_OK;
 	}
 
-char *glishtk_bind(TkAgent *agent, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_bind(TkAgent *agent, const char *, parameter_list *args,
+				int, int )
 	{
 	char *event_name = "agent bind function";
 	int c = 0;
@@ -1486,7 +1487,7 @@ char *glishtk_bind(TkAgent *agent, const char *cmd, parameter_list *args,
 	return 0;
 	}
 
-int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, ClientData unused2)
+int glishtk_delframe_cb(Rivetobj, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkFrame*)assoc)->KillFrame();
 	return TCL_OK;
@@ -1518,7 +1519,7 @@ void TkFrame::Enable( int force )
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr cursor, charptr title, charptr icon ) : TkRadioContainer( s ),
-		  is_tl( 1 ), pseudo( 0 ), tag(0), canvas(0), side(0), padx(0), pady(0), expand(0),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), is_tl( 1 ), pseudo( 0 ),
 		  reject_first_resize(1)
 
 	{
@@ -1637,9 +1638,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor ) : TkRadioContainer( s ), is_tl( 0 ),
-		  pseudo( 0 ), tag(0), canvas(0), side(0), padx(0), pady(0), expand(0),
-		  reject_first_resize(0)
+		  charptr width, charptr height, charptr cursor ) : TkRadioContainer( s ), side(0),
+		  padx(0), pady(0), expand(0), tag(0), canvas(0), 
+		  is_tl( 0 ), pseudo( 0 ), reject_first_resize(0)
 
 	{
 	char *argv[14];
@@ -1708,8 +1709,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, const char *tag_ ) : TkRadioContainer( s ), is_tl( 0 ),
-		  pseudo( 0 ), side(0), padx(0), pady(0), expand(0), reject_first_resize(0)
+		  charptr width, charptr height, const char *tag_ ) : TkRadioContainer( s ), side(0),
+		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0)
 
 	{
 	char *argv[12];
@@ -1852,7 +1853,7 @@ TkFrame::~TkFrame( )
 		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
 	}
 
-char *TkFrame::SetIcon( parameter_list *args, int is_request, int log )
+char *TkFrame::SetIcon( parameter_list *args, int, int )
 	{
 	HASARG( args, > 0 )
 	int c = 0;
@@ -1869,7 +1870,7 @@ char *TkFrame::SetIcon( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
-char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
+char *TkFrame::SetSide( parameter_list *args, int, int )
 	{
 	HASARG( args, > 0 )
 	int c = 0;
@@ -1884,7 +1885,7 @@ char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
-char *TkFrame::SetPadx( parameter_list *args, int is_request, int log )
+char *TkFrame::SetPadx( parameter_list *args, int, int )
 	{
 	HASARG( args, > 0 )
 	int c = 0;
@@ -1899,7 +1900,7 @@ char *TkFrame::SetPadx( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
-char *TkFrame::SetPady( parameter_list *args, int is_request, int log )
+char *TkFrame::SetPady( parameter_list *args, int, int )
 	{
 	HASARG( args, > 0 )
 	int c = 0;
@@ -1914,12 +1915,12 @@ char *TkFrame::SetPady( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
-char *TkFrame::GetTag( parameter_list *args, int is_request, int log )
+char *TkFrame::GetTag( parameter_list *, int, int )
 	{
 	return tag;
 	}
 
-char *TkFrame::SetExpand( parameter_list *args, int is_request, int log )
+char *TkFrame::SetExpand( parameter_list *args, int, int )
 	{
 	HASARG( args, > 0 )
 	int c = 0;
@@ -2041,7 +2042,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 
 int TkFrame::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
 	{
-	int cnt = 0;
+	unsigned int cnt = 0;
 	loop_over_list( elements, i )
 		{
 		if ( (! except || elements[i] != except) &&
@@ -2236,7 +2237,10 @@ void TkButton::UnMap()
 		}
 
 	else
+		{
+		if ( self ) rivet_set( self, "-command", "" );
 		TkAgent::UnMap();
+		}
 
 	menu = 0;
 	frame = 0;
@@ -2269,13 +2273,13 @@ TkButton::~TkButton( )
 
 static unsigned char dont_invoke_button = 0;
 
-int buttoncb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData unused2)
+int buttoncb(Rivetobj, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkButton*)assoc)->ButtonPressed();
 	return TCL_OK;
 	}
 
-int tk_button_menupost(Rivetobj menu, XEvent *unused1, ClientData ignored, ClientData unused2)
+int tk_button_menupost(Rivetobj, XEvent *, ClientData, ClientData)
 	{
 	return TCL_OK;
 	}
@@ -2312,8 +2316,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val, charptr fill_, TkRadioContainer *group )
-			: value(0), TkRadioContainer( s ), state(0), next_menu_entry(0), menu(0),
-			  menu_base(0), fill(0), menu_index(0), unmapped(0), radio(group)
+			: TkRadioContainer( s ), value(0), state(0), menu(0), radio(group),
+			  menu_base(0),  next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
 	type = PLAIN;
 	frame = frame_;
@@ -2341,10 +2345,10 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 
 	if ( type == RADIO )
 		{
-		sprintf(var_name,"%s%x",type_,radio->Id());
+		sprintf(var_name,"%s%lx",type_,radio->Id());
 		argv[c++] = "-variable";
 		argv[c++] = var_name;
-		sprintf(val_name,"BVaLuE%x",Id());
+		sprintf(val_name,"BVaLuE%lx",Id());
 		argv[c++] = "-value";
 		argv[c++] = val_name;
 		}
@@ -2440,11 +2444,11 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	}
 
 TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_,
-		    charptr padx, charptr pady, int width, int height, charptr justify,
-		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
-		    charptr background, int disabled, const IValue *val, TkRadioContainer *group )
-			: value(0), TkRadioContainer( s ), state(0), next_menu_entry(0),
-			  menu_base(0), menu_index(0), unmapped(0), radio(group)
+		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
+		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr /*foreground*/,
+		    charptr /*background*/, int disabled, const IValue *val, TkRadioContainer *group )
+			: TkRadioContainer( s ), value(0), state(0), radio(group),
+			  menu_base(0), next_menu_entry(0), menu_index(0), unmapped(0)
 	{
 	type = PLAIN;
 
@@ -2479,10 +2483,10 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	if ( type == RADIO )
 		{
-		sprintf(var_name,"%s%x",type_,radio->Id());
+		sprintf(var_name,"%s%lx",type_,radio->Id());
 		argv[c++] = "-variable";
 		argv[c++] = var_name;
-		sprintf(val_name,"BVaLuE%x",Id());
+		sprintf(val_name,"BVaLuE%lx",Id());
 		argv[c++] = "-value";
 		argv[c++] = val_name;
 		}
@@ -2667,7 +2671,7 @@ void TkButton::State(unsigned char s)
 	if ( type == RADIO && s == 0 )
 		{
 		char var_name[256];
-		sprintf(var_name,"radio%x",radio->Id());
+		sprintf(var_name,"radio%lx",radio->Id());
 		radio->RadioID( 0 );
 		Tcl_SetVar( self->interp, var_name, "", TCL_GLOBAL_ONLY );
 		}
@@ -2724,17 +2728,22 @@ STD_EXPAND_CANEXPAND(TkButton)
 
 DEFINE_DTOR(TkScale)
 
+void TkScale::UnMap()
+	{
+	if ( self ) rivet_set( self, "-command", "" );
+	TkAgent::UnMap();
+	}
+
 unsigned int TkScale::scale_count = 0;
-int scalecb(Rivetobj scale, XEvent *unused1, ClientData assoc, ClientData calldata)
+int scalecb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	((TkScale*)assoc)->ValueSet( *((double*) calldata ) );
 	return TCL_OK;
 	}
 
-char *glishtk_scale_value(TkAgent *a, const char *cmd, parameter_list *args,
-				int is_request, int log )
+char *glishtk_scale_value(TkAgent *a, const char *, parameter_list *args,
+				int, int )
 	{
-	char *ret = 0;
 	char *event_name = "scale value function";
 
 	int c = 0;
@@ -2890,14 +2899,25 @@ STD_EXPAND_CANEXPAND(TkScale)
 
 DEFINE_DTOR(TkText)
 
-int text_yscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+void TkText::UnMap()
+	{
+	if ( self )
+		{
+		rivet_set( self, "-xscrollcommand", "" );
+		rivet_set( self, "-yscrollcommand", "" );
+		}
+
+	TkAgent::UnMap();
+	}
+
+int text_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkText*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int text_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+int text_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkText*)assoc)->xScrolled( firstlast );
@@ -3085,7 +3105,13 @@ STD_EXPAND_CANEXPAND(TkText)
 
 DEFINE_DTOR(TkScrollbar)
 
-int scrollbarcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+void TkScrollbar::UnMap()
+	{
+	if ( self ) rivet_set( self, "-command", "" );
+	TkAgent::UnMap();
+	}
+
+int scrollbarcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	Scrollbar_notify_data *data = (Scrollbar_notify_data*) calldata;
 	((TkScrollbar*)assoc)->Scrolled( ScrollToValue( data ) );
@@ -3295,13 +3321,19 @@ STD_EXPAND_CANEXPAND(TkLabel)
 
 DEFINE_DTOR(TkEntry)
 
-int entry_returncb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientData unused2)
+void TkEntry::UnMap()
+	{
+	if ( self ) rivet_set( self, "-xscrollcommand", "" );
+	TkAgent::UnMap();
+	}
+
+int entry_returncb(Rivetobj, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkEntry*)assoc)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientData calldata)
+int entry_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkEntry*)assoc)->xScrolled( firstlast );
@@ -3541,21 +3573,32 @@ STD_EXPAND_CANEXPAND(TkMessage)
 
 DEFINE_DTOR(TkListbox)
 
-int listbox_yscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+void TkListbox::UnMap()
+	{
+	if ( self )
+		{
+		rivet_set( self, "-xscrollcommand", "" );
+		rivet_set( self, "-yscrollcommand", "" );
+		}
+
+	TkAgent::UnMap();
+	}
+
+int listbox_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkListbox*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
+int listbox_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkListbox*)assoc)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_button1cb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientData unused2)
+int listbox_button1cb(Rivetobj, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkListbox*)assoc)->elementSelected();
 	return TCL_OK;
