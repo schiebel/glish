@@ -25,19 +25,23 @@ LIBS = $(GLISH_LIBS) $(SDS_LIB) @LIBS@ -lm
 
 CLIENTS = \
 	echo_client \
+	echo_mclient \
 	glishd \
 	shell_client \
 	tell_glishd \
 	test_client \
-	timer
+	timer \
+	multiplexer
 
 INSTALLED_CLIENTS = \
 	$(ISTKBIN)/echo_client \
+	$(ISTKBIN)/echo_mclient \
 	$(ISTKBIN)/glishd \
 	$(ISTKBIN)/shell_client \
 	$(ISTKBIN)/tell_glishd \
 	$(ISTKBIN)/test_client \
-	$(ISTKBIN)/timer
+	$(ISTKBIN)/timer \
+	$(ISTKBIN)/multiplexer
 
 TAR_FILE = glish-clients.tar
 
@@ -59,7 +63,8 @@ $(GLISH_SRC)/$(ARCH)/libglish.a:
 	cd $(GLISH_SRC)/$(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile
 
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
-		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h
+		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
+		$(GLISH_SRC)/ports.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/glishd.cc 
 
 glishd: glishd.o $(GLISH_LIBS)
@@ -77,6 +82,15 @@ $(ISTKBIN)/echo_client: echo_client
 	$(INSTALL_PROGRAM) echo_client $(ISTKBIN)
 #	strip $(ISTKBIN)/echo_client
 
+echo_mclient.o: $(SRC)/echo_mclient.cc $(GLISH_SRC)/include/Glish/Client.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/echo_mclient.cc 
+
+echo_mclient: echo_mclient.o $(GLISH_LIBS)
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -o echo_mclient echo_mclient.o $(LIBS)
+$(ISTKBIN)/echo_mclient: echo_mclient
+	$(INSTALL_PROGRAM) echo_mclient $(ISTKBIN)
+#	strip $(ISTKBIN)/echo_mclient
+
 shell_client.o: $(SRC)/shell_client.cc $(GLISH_SRC)/include/Glish/Client.h \
 		$(GLISH_SRC)/Channel.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/shell_client.cc 
@@ -87,7 +101,8 @@ $(ISTKBIN)/shell_client: shell_client
 	$(INSTALL_PROGRAM) shell_client $(ISTKBIN)
 #	strip $(ISTKBIN)/shell_client
 
-tell_glishd.o: $(SRC)/tell_glishd.cc $(GLISH_SRC)/include/Glish/Client.h
+tell_glishd.o: $(SRC)/tell_glishd.cc $(GLISH_SRC)/include/Glish/Client.h  \
+		$(GLISH_SRC)/ports.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -I$(ISTKPLACE)/include -c $(SRC)/tell_glishd.cc 
 
 tell_glishd: tell_glishd.o $(GLISH_LIBS)
@@ -113,6 +128,16 @@ timer: timer.o $(GLISH_LIBS)
 $(ISTKBIN)/timer: timer
 	$(INSTALL_PROGRAM) timer $(ISTKBIN)
 #	strip $(ISTKBIN)/timer
+
+multiplexer.o: $(SRC)/multiplexer.cc $(GLISH_SRC)/include/Glish/Client.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/multiplexer.cc 
+
+multiplexer: multiplexer.o $(GLISH_LIBS)
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -o multiplexer multiplexer.o $(LIBS)
+
+$(ISTKBIN)/multiplexer: multiplexer
+	$(INSTALL_PROGRAM) multiplexer $(ISTKBIN)
+#	strip $(ISTKBIN)/multiplexer
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
