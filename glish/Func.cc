@@ -537,7 +537,14 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type *stack )
 
 	int value_needed = etype != EVAL_SIDE_EFFECTS;
 	stmt_flow_type flow;
+
+	//
+	// need to set "file_name" for errors during execution
+	//
+	Str *old_file_name = file_name;
+	file_name = file;
 	IValue* result = body->Exec( value_needed, flow );
+	file_name = old_file_name;
 
 	if ( subsequence_expr )
 		{
@@ -556,7 +563,9 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type *stack )
 			Unref( result );
 			}
 
+		file_name = file;
 		result = subsequence_expr->RefEval( VAL_REF );
+		file_name = old_file_name;
 
 		if ( etype == EVAL_SIDE_EFFECTS )
 			warn->Report( "agent returned by subsequence ignored" );
