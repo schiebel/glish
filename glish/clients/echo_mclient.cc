@@ -11,7 +11,7 @@ RCSID("@(#) $Id$")
 
 int main( int argc, char** argv )
 	{
-	Client c( argc, argv, 1 );
+	Client c( argc, argv, Client::GROUP );
 
 	if ( argc > 1 )
 		{

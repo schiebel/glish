@@ -124,10 +124,21 @@ extern int glish_timedoutdummy;
 
 class Client {
     public:
+	//
+	//  The "Type" describes how the client is shared by glish users
+	//  on a particular machine:
+	//
+	//  NONSHARED => new client is started each time
+	//  USER => one client is shared for a particular user
+	//  GROUP => one client is shared for all members of a (unix) group
+	//  WORLD => one client is shared by all users
+	//
+	enum ShareType { NONSHARED=0, USER, GROUP, WORLD };
+
 	// Client's are constructed by giving them the program's
 	// argc and argv.  Any client-specific arguments are read
 	// and stripped off.
-	Client( int& argc, char** argv, int arg_multithreaded = 0 );
+	Client( int& argc, char** argv, ShareType arg_multithreaded = NONSHARED );
 
 	// Alternatively, a Client can be constructed from fd's for
 	// reading and writing events and a client name.  This version
@@ -135,7 +146,7 @@ class Client {
 	// event.
 	Client( int client_read_fd, int client_write_fd, const char* name );
 	Client( int client_read_fd, int client_write_fd, const char* name,
-		const EventContext &arg_context, int arg_multithreaded = 0 );
+		const EventContext &arg_context, ShareType arg_multithreaded = NONSHARED );
 
 	virtual ~Client();
 
@@ -157,6 +168,10 @@ class Client {
 	// returned by select() to aid in determining from where to
 	// read the next event.
 	GlishEvent* NextEvent( fd_set* mask );
+
+	// Returns the next event from the given event source.
+	GlishEvent* NextEvent( EventSource* source )
+		{ return GetEvent( source ); }
 
 	// Called by the main program (or whoever called NextEvent()) when
 	// the current event is unrecognized.
@@ -246,7 +261,7 @@ class Client {
 	int ReRegister( char* registration_name = 0 );
 
 	// 1 if multithreaded, 0 if not
-	int Multithreaded() { return multithreaded; }
+	ShareType Multithreaded() { return multithreaded; }
 
 	// return context of last event received
 	const EventContext &LastContext() { return last_context; }
@@ -356,7 +371,7 @@ class Client {
 	EventContext last_context;
 
 	// Multithreaded or not?
-	int multithreaded;
+	ShareType multithreaded;
 
 	// Use shared memory
 	int useshm;

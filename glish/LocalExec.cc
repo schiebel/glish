@@ -62,6 +62,10 @@ LocalExec::~LocalExec()
 	{
 	if ( Active( 1 ) )
 		{
+		//
+		//  remove the SIG_IGN in Client::ReRegister when
+		//  this is removed.
+		//
 		kill( pid, SIGTERM );
 		Active( 1 );
 		}
@@ -73,9 +77,10 @@ LocalExec::~LocalExec()
 		install_signal_handler( GLISH_SIGCHLD, (signal_handler) old );
 		}
 
+	// NEED TO REVISIT THIS. WHY AREN'T THESE BEING
+	// WAITED ON IN NORMAL COURSE?
 	int status;
-	wait_for_pid( pid, &status, 0 );	// NEED TO REVISIT THIS. WHY AREN'T THESE BEING
-						// WAITED ON IN NORMAL COURSE?
+	for (int X=0; X<3000 && ! wait_for_pid( pid, &status, WNOHANG); ++X );
 	}
 
 void LocalExec::MakeExecutable( const char** argv )

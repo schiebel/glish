@@ -43,10 +43,22 @@ RCSID("@(#) $Id$")
 
 /* Version of Network Probe Protocol. */
 #define NPP_VERSION 1
+static char *keys_dir = 0;
+
+void set_key_directory( const char *kd )
+	{
+	if ( keys_dir ) my_free( keys_dir );
+	keys_dir = kd ? strdup(kd) : 0;
+	}
+
+const char *get_key_directory( )
+	{
+	return (keys_dir ? keys_dir : KEYS_DIR);
+	}
 
 int create_keyfile()
 	{
-	return create_userkeyfile( KEYS_DIR );
+	return create_userkeyfile( keys_dir ? keys_dir : KEYS_DIR );
 	}
 
 /* Authenticate ourselves to the given peer.  Returns non-zero on success,
@@ -114,8 +126,8 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 		return to_log( "bad challenge from peer %s - %s", remote_host, errmsg );
 
 	fprintf( write_, "answer " );
-	if ( ! answer_challenge( KEYS_DIR, local_host, our_username, write_,
-					challenge, challenge_len ) )
+	if ( ! answer_challenge( (keys_dir ? keys_dir : KEYS_DIR), local_host,
+				 our_username, write_, challenge, challenge_len ) )
 		return to_log( "answering peer %s's challenge failed - %s",
 				remote_host, errmsg );
 	my_free( challenge );
@@ -225,7 +237,8 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 				s ? s : "<EOF>" );
 
 	fprintf( npd_out, "hello %d challenge\n", NPP_VERSION );
-	answer = compose_challenge( KEYS_DIR, peer_hostname, peer_username, npd_out, &answer_len );
+	answer = compose_challenge( (keys_dir ? keys_dir : KEYS_DIR), peer_hostname,
+				    peer_username, npd_out, &answer_len );
 	if ( ! answer )
 		return to_log( "couldn't compose challenge - %s", errmsg );
 	fflush( npd_out );

@@ -2237,7 +2237,6 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 	s->AddBuiltIn( new EvalBuiltIn( s ) );
 
-#ifdef AUTHENTICATE
+	// for libnpd
 	init_log( program_name );
-#endif
 	}

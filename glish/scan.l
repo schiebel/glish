@@ -126,7 +126,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL PRAGMA ATTR ATTR_QUOTE
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL PRAGMA PRAGMA_MULTI ATTR ATTR_QUOTE
 
 	static int is_double_quote;
 
@@ -371,20 +371,41 @@ include		return TOK_INCLUDE;
 		RETURN_CONSTANT( glish_false );
 		}
 
-<PRAGMA>multi	{
-		current_sequencer->MultiClientScript( 1 );
-		BEGIN(INITIAL);
-		break;
-		}
+<PRAGMA>multi	BEGIN(PRAGMA_MULTI); break;
 
 <PRAGMA>uni	{
-		current_sequencer->MultiClientScript( 0 );
+		current_sequencer->MultiClientScript( Client::NONSHARED );
 		BEGIN(INITIAL);
 		break;
 		}
 
 <PRAGMA>\n	{
 		error->Report( "pragma directive not found" );
+		++line_num;
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA_MULTI>user {
+		current_sequencer->MultiClientScript( Client::USER );
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA_MULTI>group {
+		current_sequencer->MultiClientScript( Client::GROUP );
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA_MULTI>world {
+		current_sequencer->MultiClientScript( Client::WORLD );
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA_MULTI>\n {
+		error->Report( "\"@pragma multi\", type not found" );
 		++line_num;
 		BEGIN(INITIAL);
 		break;

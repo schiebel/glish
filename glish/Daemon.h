@@ -3,6 +3,7 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef daemon_h
 #define daemon_h
+#include <system.h>
 
 class Channel;
 
@@ -22,7 +23,7 @@ class RemoteDaemon {
 public:
 	RemoteDaemon( const char* daemon_host, Channel* channel )
 		{
-		host = daemon_host;
+		host = strdup(daemon_host);
 		chan = channel;
 		SetState( DAEMON_OK );
 		}
@@ -32,16 +33,18 @@ public:
 	daemon_states State()		{ return state; }
 	void SetState( daemon_states s )	{ state = s; }
 
+	~RemoteDaemon() { free_memory(host); }
+
 protected:
-	const char* host;
+	char* host;
 	Channel* chan;
 	daemon_states state;
 	};
 
 
 
-int start_remote_daemon( const char *host );
-int start_local_daemon( );
+Channel *start_remote_daemon( const char *host );
+Channel *start_local_daemon( );
 RemoteDaemon *connect_to_daemon(const char *host, int &err);
 
 #endif

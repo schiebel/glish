@@ -5,58 +5,109 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
+#include <iostream.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <syslog.h>
+#include <fcntl.h>
 #include <errno.h>
 
-#if HAVE_OSFCN_H
-#include <osfcn.h>
-#endif
+#include <string.h>
 
-#if HAVE_SYS_SELECT_H
-#include <sys/select.h>
-#endif
-
-#if HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
-#include "Glish/Dict.h"
-#include "Npd/npd.h"
 #include "Glish/Client.h"
-
-#include "LocalExec.h"
-#include "Channel.h"
+#include "Glish/List.h"
 #include "Reporter.h"
 #include "Socket.h"
+#include "LocalExec.h"
+#include "Npd/npd.h"
 #include "ports.h"
-#include "config.h"
 
+
+#undef DAEMON_PORT
+#define DAEMON_PORT 4077
+
+inline int streq( const char* a, const char* b ) { return ! strcmp( a, b ); }
+const char* get_prog_name( const char* full_path );
+
+inline char* extract_prog_name( char *exec_line )
+	{ return (!strtok( exec_line, " " ) || !strtok( NULL, " " ) ||
+		  !strtok( NULL, " " )) ? 0 : strtok( NULL, " " ); }
+
+void glishd_sighup();
+void install_terminate_handlers();
 
 extern "C" {
 	extern char* sys_errlist[];
 	extern int chdir( const char* path );
 }
 
+//  --   --   --   --   --   --   --   --   --   --   --   --   --   --   --
+//		SIGHUP can be used to shut down glishd
+//  --   --   --   --   --   --   --   --   --   --   --   --   --   --   --
+//
+//  In this file, there are two daemons, "dServer" and "dUser", and there are
+//  two types of clients, "Interp" and shared (AKA multi-threaded) clients.
+//  Each of these represents processes.
+//
+//  "dServer" is only started by root. It listens to the published port,
+//  authenticates those who connect, and starts "dUser" for each unique
+//  user (in the unix sense) who connects.
+//
+//  "dUser" handles requests from the authenticated user, and chats with
+//  "dServer", its parent. "dUser" deals with the clients, "Interp" and
+//  shared clients, maintaining lists of both.
+//
+//  "Interp" represents the glish command interpreters who use "glishd" to
+//  start and control clients.
+//  --   --   --   --   --   --   --   --   --   --   --   --   --   --   --
 
-inline int streq( const char* a, const char* b )
-	{
-	return ! strcmp( a, b );
-	}
+//
+//  Base class for daemons
+//
+class GlishDaemon {
+    public:
+	GlishDaemon( int &argc, char **&argv );
+	GlishDaemon( );
+	virtual ~GlishDaemon();
+	virtual void loop() = 0;
+	int IsValid() const { return valid; }
+	virtual int AddInputMask( fd_set* mask );
+	void InitInterruptPipe( );
 
+	// shutdown functions:
+	// 	Invalidate()	--  leisurely shutdown
+	//	FatalError()	--  immediate shutdown
+	void Invalidate();
+	virtual void FatalError();
 
+    protected:
+	void close_on_fork( int fd );
+	int fork();
+	static char *hostname;
+	static char *name;
+	int interrupt_pipe[2];
+	int valid;
+	static List(int) *close_fds;
+};
+
+List(int) *GlishDaemon::close_fds = 0;
+static GlishDaemon *current_daemon = 0;
+class dUser;
 declare(PDict,LocalExec);
 
-
-// A GlishDaemon can be thought of as a "thread" inside the Glish
-// daemon which works on behalf of a particular Glish interpreter.
-
-class GlishDaemon {
-public:
-	GlishDaemon( Client* client );
-	~GlishDaemon();
+//
+//  These are the intrepreter connections which talk only
+//  to 'dUser'.
+//
+class Interp {
+    public:
+	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")) {  }
+	~Interp();
 
 	// Read and act on the next interpreter request.  Returns 0 to
 	// indicate that the interpreter exited, non-zero otherwise.
@@ -67,20 +118,23 @@ public:
 	// Upon return, "internal_event" will be non-zero if the received
 	// event was directed to glishd itself; otherwise, "internal_event"
 	// will be set to zero upon return.
-	int NextRequest( GlishEvent* e, GlishEvent*& internal_event );
+	int NextRequest( GlishEvent* e, dUser *hub, GlishEvent*& internal_event );
 
-	Client* Interpreter() const	{ return interpreter; }
+	Client* Interpreter()	{ return interpreter; }
 
-	// Informs the GlishDaemon that the given client has terminated.
-	// Returns non-zero if that client belonged to the GlishDaemon,
-	// zero if it didn't.
-	int ClientHasTerminated( int pid );
+	int AddInputMask( fd_set* mask )
+		{ return interpreter->AddInputMask(mask); }
+	int HasClientInput( fd_set* mask )
+		{ return interpreter->HasClientInput(mask); }
+	GlishEvent* NextEvent( fd_set* mask )
+		{ return interpreter->NextEvent( mask ); }
 
-protected:
+    protected:
+
 	void SetWD( Value* wd );
 	void PingClient( Value* client_id );
-	void CreateClient( Value* argv );
-	void ClientRunning( Value* client );
+	void CreateClient( Value* argv, dUser *hub );
+	void ClientRunning( Value* client, dUser *hub );
 	void ShellCommand( Value* cmd );
 	void KillClient( Value* client_id );
 	void Probe( Value* probe_val );
@@ -95,270 +149,940 @@ protected:
 
 	// Clients created on behalf of interpreter.
 	PDict(LocalExec) clients;
-	};
+};
 
-
-declare(PList,GlishDaemon);
 declare(PList,Client);
+declare(PDict,Client);
+declare(PList,Interp);
 
+//
+//  Daemon which operates on an individual user's behalf.
+//  There is one of these daemons running for each glish
+//  user on a given machine.
+//
+class dUser : public GlishDaemon {
+    public:
+	dUser( int &argc, char **&argv );
+	dUser( int sock, const char *user, const char *host );
+	~dUser();
 
-void internal_request( GlishEvent* event );
-const char* get_prog_name( const char* full_path );
-const char* prog_name;
+	//
+	// these functions are used by both master and slave processes
+	//
+  	int AddInputMask( fd_set* mask );
 
-PList(Client) mpcs;
-PList(GlishDaemon) threads;
-PList(Client) transition;
-name_list mpc_names;
-extern Client *CreateIncomingConnection( int, const char * );
+	//
+	// these functions are used only in the master process
+	//
+	int HasClientInput( fd_set* mask )
+		{ return slave ? slave->HasClientInput( mask ) : 0 ; }
+	int SendFd( int fd )
+		{ return ! fd_pipe ? -1 : send_fd( fd_pipe, fd ); }
+	GlishEvent* NextEvent( fd_set* mask )
+		{ return slave ? slave->NextEvent( mask ) : 0 ; }
+	void PostEvent( const char* event_name, const Value* event_value )
+		{ if ( slave ) slave->PostEvent(event_name, event_value); }
 
-int main( int /* argc */, char** argv )
+	//
+	// these functions are used only in the slave process or a dUser
+	// running without a master (dServer)
+	//
+	Client *LookupClient( const char *s );
+	int RecvFd( ) { return ! fd_pipe ? -1 : recv_fd( fd_pipe ); }
+	void ProcessConnect();			// connection, via dServer
+	void ProcessInterps( fd_set * );	// existing interpreters
+	void ProcessClients( fd_set * );	// existing shared clients
+	void ProcessMaster( fd_set * );		// events from dServer
+	void ProcessTransitions( fd_set * );	// clients which may be either
+						// interpreters or shared clients
+	void ProcessInternalReq( GlishEvent * );// requests to the daemon
+	void loop();				// handle requests
+
+    protected:
+	Client *LookupClientInMaster( const char *s );
+	char *new_name();
+
+	char *id;
+	PList(Client) transition;
+	PDict(Client) clients;
+	PList(Interp) interps;
+  
+	Client *master;
+	Client *slave;
+
+	int count;
+	int fd_pipe;
+	
+};
+
+declare(PDict,dUser);
+declare(PDict,char);
+typedef PDict(char) str_dict;
+declare(PDict,str_dict);
+
+//
+//  Master daemon. There is one master daemon per machine,
+//  and it must be started by root.
+//
+class dServer : public GlishDaemon {
+    public:
+	dServer( int &argc, char **&argv );
+	~dServer();
+
+	// select on our fds
+	void loop();
+
+	// process interpreter connection, on published port
+	void ProcessConnect();
+
+	// process events from our minions
+	void ProcessUsers( fd_set* mask );
+
+	int AddInputMask( fd_set* mask );
+
+	void FatalError();
+
+    protected:
+	void Register( Value *, const char *user_name );
+	void CreateClient( Value *, const char *user_name );
+	void ClientRunning( Value *, const char *user_name, dUser * );
+	void clear_clients_registered_to( const char *user );
+
+	char *id;
+	AcceptSocket accept_sock;
+	PDict(dUser) users;
+
+	// client name -> user who started it
+	str_dict world_clients;
+	// group name -> client name -> user who started it
+	PDict(str_dict) group_clients;
+};
+
+char *GlishDaemon::hostname = 0;
+char *GlishDaemon::name = 0;
+
+void GlishDaemon::InitInterruptPipe( )
 	{
-	static char prog_name_buf[1024];
-	sprintf( prog_name_buf, "%s @ %s [%d]", argv[0],
-			local_host_name(), int( getpid() ) );
-
-	prog_name = prog_name_buf;
-
-#ifdef AUTHENTICATE
-	init_log(argv[0]);
-#endif
-
-	// First, try to grab the glishd daemon port; possession indicates
-	// we're the sole daemon for this host.
-	AcceptSocket a( 0, DAEMON_PORT, 0 );
-
-	if ( a.Port() == 0 )
+	if ( pipe( interrupt_pipe ) < 0 )
 		{
-		// Didn't get it.
-		fprintf( stderr, "%s: daemon apparently already running\n",
-			prog_name );
-		exit( 1 );
+		syslog( LOG_ERR, "problem creating interrupt pipe" );
+		interrupt_pipe[0] = interrupt_pipe[1] = 0;
+		}
+	else
+		{
+		close_on_fork( interrupt_pipe[0] );
+		close_on_fork( interrupt_pipe[1] );
+		}
+	}
+
+GlishDaemon::GlishDaemon( ) : valid(1)
+	{
+	interrupt_pipe[0] = interrupt_pipe[1] = 0;
+	if ( close_fds == 0 ) close_fds = new List(int);
+	}
+
+GlishDaemon::GlishDaemon( int &argc, char **&argv ) : valid(0)
+	{
+	if ( close_fds == 0 ) close_fds = new List(int);
+
+	// fork() to:
+	//     o  allows the parent to exit signaling to any shell
+	//        that it's process has finished
+	//     o  get a new processed id so we're not a process
+	//        group leader
+	int pid;
+	if ( (pid = fork()) < 0 )
+		{
+		syslog( LOG_ERR, "problem forking server daemon" );
+		return;
+		}
+	else if ( pid != 0 )		// parent
+		exit(0);
+
+	// setsid() to:
+	//     o  become session leader of a new session
+	//     o  become process group leader
+	//     o  have no controlling terminal
+	setsid();
+
+	// change to the root directory, by default, to avoid keeping
+	// directories mounted unnecessarily
+	chdir("/");
+
+	// clear umask to prevent unexpected permission changes
+	umask(0);
+
+	// add bullet-proofing for common signals.
+	install_signal_handler( SIGINT, (signal_handler) SIG_IGN );
+	install_signal_handler( SIGTERM, (signal_handler) SIG_IGN );
+	install_signal_handler( SIGPIPE, (signal_handler) SIG_IGN );
+	// install terminate handlers to close accept socket
+	install_terminate_handlers();
+	// SIGHUP can be used to shutdown the daemon. "current_daemon"
+	// is the hook through which shutdown is accomplished.
+	install_signal_handler( SIGHUP, (signal_handler) glishd_sighup );
+	InitInterruptPipe();
+	current_daemon = this;
+
+	// store away our name
+	if ( ! name ) name = strdup(argv[0]);
+
+	// signals to children that all is OK
+	valid = 1;
+	}
+
+int GlishDaemon::AddInputMask( fd_set* mask )
+	{
+	if ( *interrupt_pipe > 0 && ! FD_ISSET( interrupt_pipe[0], mask ) )
+		{
+		FD_SET( interrupt_pipe[0], mask );
+		return 1;
 		}
 
-	// Add bullet-proofing for common signals.
-	(void) signal( SIGINT, SIG_IGN );
-	(void) signal( SIGTERM, SIG_IGN );
-	(void) signal( SIGPIPE, SIG_IGN );
+	return 0;
+	}
 
-	// Don't let our children inherit the accept socket fd; we want
-	// it to go away when we do.
-	mark_close_on_exec( a.FD() );
+void GlishDaemon::close_on_fork( int fd )
+	{
+	mark_close_on_exec( fd );
+	close_fds->append(fd);
+	}
 
-//	int suspend = 1;
-//	while ( suspend ) sleep( 1 );
+int GlishDaemon::fork()
+	{
+	int pid = ::fork();
 
-	for ( ; ; )
+	if ( pid == 0 )		// child
 		{
-		fd_set input_fds;
-		fd_set* mask = &input_fds;
+		for ( int len = close_fds->length(); len > 0; --len )
+			close( close_fds->remove_nth( len - 1 ) );
+		}
 
+	return pid;
+	}
+
+void GlishDaemon::Invalidate()
+	{
+	valid = 0;
+	if ( *interrupt_pipe )
+		close(interrupt_pipe[1]);
+	interrupt_pipe[0] = interrupt_pipe[1] = 0;
+	}
+
+void GlishDaemon::FatalError() { }
+
+GlishDaemon::~GlishDaemon() { }
+
+dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0),
+						fd_pipe(0), master(0), slave(0)
+	{
+	// it is assumed that GlishDaemon will set valid if all is OK
+	if ( ! valid ) return;
+
+	interps.append( new Interp( new Client( argc, argv )) );
+	}
+
+dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(0), fd_pipe(0), slave(0)
+	{
+	// it is assumed that GlishDaemon will set valid if all is OK
+	if ( ! valid ) return;
+
+	if ( ! hostname ) hostname = strdup(local_host_name());
+	id = (char*) alloc_memory( strlen(hostname) + strlen(name) + strlen(user) + strlen(host) + 35 );
+	sprintf( id, "%s @ %s [%d] (%s@%s)", name, hostname, int( getpid() ), user, host );
+
+	int read_pipe[2], write_pipe[2], fd_pipe_[2];
+
+	//	parent:	writes to write_pipe[1]
+	//		reads from read_pipe[0]
+	//		writes to fd_pipe_[1]
+	//	child:	reads from write_pipe[0]
+	//		writes to read_pipe[1]
+	//		reads from fd_pipe_[0]
+	if ( pipe( read_pipe ) < 0 || pipe( write_pipe ) < 0 || stream_pipe(fd_pipe_) < 0 )
+		{
+		valid = 0;
+		syslog( LOG_ERR, "problem creating pipe for user daemon" );
+		return;
+		}
+
+	// we now fork, the child will be owned by "user", and it will be
+	// responsible for forking, pinging, etc. for the clients "user"
+	// creates on this machine. this new "glishd" will create with
+	// the "root" "glishd" via the pipes.
+	int pid;
+	if ( (pid = fork()) < 0 )
+		{
+		valid = 0;
+		syslog( LOG_ERR, "problem forking user daemon" );
+		return;
+		}
+	else if ( pid == 0 )		// child
+		{
+		setuid(get_userid( user ));
+		setgid(get_user_group( user ));
+
+		close( read_pipe[0] );
+		close( write_pipe[1] );
+		close( fd_pipe_[1] );
+
+		InitInterruptPipe();
+
+		master = new Client( write_pipe[0], read_pipe[1], new_name() );
+		transition.append( new Client( sock, sock, new_name() ) );
+		fd_pipe = fd_pipe_[0];
+
+		loop();
+
+		exit (0);
+		}
+	else				// parent
+		{
+		close( read_pipe[1] );
+		close( write_pipe[0] );
+		close( fd_pipe_[0] );
+
+		slave = new Client( read_pipe[0], write_pipe[1], id );
+		fd_pipe = fd_pipe_[1];
+		}
+	}
+
+Client *dUser::LookupClientInMaster( const char *s )
+	{
+	if ( ! master ) return 0;
+
+	master->PostEvent( "client-up", s );
+	GlishEvent *e = master->NextEvent( );
+
+	if ( e && e->value->IsNumeric() && e->value->BoolVal() )
+		return master;
+
+	return 0;
+	}
+
+Client *dUser::LookupClient( const char *s )
+	{
+	Client *ret = clients[s];
+	if ( ret ) return ret;
+	const char *prog_str = get_prog_name( s );
+	ret = clients[prog_str];
+	if ( ret ) return ret;
+	return LookupClientInMaster( s );	
+	}
+
+int dUser::AddInputMask( fd_set* mask )
+	{
+	int count = GlishDaemon::AddInputMask( mask );
+	loop_over_list( transition, i)
+		count += transition[i]->AddInputMask( mask );
+
+	loop_over_list( interps, j)
+		count += interps[j]->AddInputMask( mask );
+
+	const char *key = 0;
+	Client *client = 0;
+	IterCookie* c = clients.InitForIteration();
+	while ( client = clients.NextEntry( key, c ) )
+		count += client->AddInputMask( mask );
+
+	if ( master )
+		{
+		count += master->AddInputMask( mask );
+		if ( fd_pipe > 0 && ! FD_ISSET( fd_pipe, mask ) )
+			{
+			FD_SET( fd_pipe, mask );
+			++count;
+			}
+		}
+
+	if ( slave )
+		count += slave->AddInputMask( mask );
+
+	return count;
+	}
+
+void dUser::loop( )
+	{
+	fd_set input_fds;
+	fd_set* mask = &input_fds;
+
+	// must do this for SIGHUP to work properly
+	current_daemon = this;
+
+	Client *c;
+	while ( valid && (interps.length() || clients.Length() || transition.length()) )
+		{
 		FD_ZERO( mask );
-		FD_SET( a.FD(), mask );
-
-		loop_over_list( threads, i )
-			{
-			threads[i]->Interpreter()->AddInputMask( mask );
-			}
-
-		for ( LOOPDECL i=0 ; i < transition.length() ; ++i )
-			{
-			transition[i]->AddInputMask( mask );
-			}
-
-		for ( LOOPDECL i=0 ; i < mpcs.length() ; ++i )
-			{
-			mpcs[i]->AddInputMask( mask );
-			}
+		AddInputMask( mask );
 
 		while ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) mask, 0, 0, 0 ) < 0 )
 			{
 			if ( errno != EINTR )
 				{
-				fprintf( stderr, "%s: ", prog_name );
-				perror( "error during select()" );
+				syslog( LOG_ERR,"error during select(), exiting" );
 				exit( 1 );
 				}
 			}
 
-		Client* c;
-		GlishDaemon* d;
-		GlishEvent* e;
+		if ( ! valid ) continue;
 
-		// Look for any threads that have activity.
-		for ( LOOPDECL i = 0; i < threads.length(); ++i )
+		// Process events from master
+		ProcessMaster( mask );
+
+		// Accept requests from our intrepreters
+		ProcessInterps( mask );
+
+		// See if anything is up with our shared clients
+		ProcessClients( mask );
+
+		// Now look for any new interpreters contacting us, via dServer.
+		if ( FD_ISSET( fd_pipe, mask ) )
+			ProcessConnect();
+
+		ProcessTransitions( mask );
+		}
+	}
+
+void dUser::ProcessTransitions( fd_set *mask )
+	{
+	Client *c = 0;
+	GlishEvent *internal = 0;
+
+	for ( int i=0; i < transition.length(); ++i )
+		{
+		c = transition[i];
+		if ( c->HasClientInput( mask ) )
 			{
-			d = threads[i];
+			GlishEvent *e = c->NextEvent( mask );
 
-			if ( d->Interpreter()->HasClientInput( mask ) )
+			// transient exiting
+			if ( ! e )
 				{
-				GlishEvent* internal = 0;
-
-				e = d->Interpreter()->NextEvent( mask );
-				d->NextRequest( e, internal );
-
-				if ( ! e )
-					{ // Delete this thread.
-					delete threads.remove_nth( i-- );
-					continue;
-					}
-
-				if ( internal )
-					internal_request( internal );
-				}
-			}
-
-		for ( LOOPDECL i=0 ; i<mpcs.length() ; ++i )
-			{
-			c = mpcs[i];
-
-			if ( c->HasClientInput( mask ) ) // read and drop
-				{
-				e = c->NextEvent( mask );
-				if ( ! e ) // mpc has exited
-					{
-					delete mpcs.remove_nth( i );
-					delete mpc_names.remove_nth( i-- );
-					}
-				else
-					{
-					// ignore non-null mpc events for now
-					}
-				}
-			}
-
-		// Now look for any new interpreters contacting us.
-		if ( FD_ISSET( a.FD(), mask ) )
-			{
-			int s = accept_connection( a.FD() );
-
-			if ( s < 0 )
-				{
-				fprintf( stderr, "%s: ", prog_name );
-				perror( "error when accepting connection" );
-				exit( 1 );
+				delete transition.remove_nth( i-- );
+				continue;
 				}
 
-			// Don't let our children inherit this socket fd; if
-			// they do, then when we exit our remote Glish-
-			// interpreter peers won't see select() activity
-			// and detect out exit.
-			mark_close_on_exec( s );
-
-			if ( c = CreateIncomingConnection( s, prog_name ) )
-				transition.append( c );
-			}
-
-		for ( LOOPDECL i=0 ; i<transition.length() ; ++i )
-			{
-			c = transition[i];
-
-			if ( c->HasClientInput( mask ) )
+			// perisitent client registering itself
+			if ( ! strcmp( e->name, "*register-persistent*" ) )
 				{
-				e = c->NextEvent( mask );
+				char *name = strdup(e->value->StringPtr(0)[0]);
+				clients.Insert( name, transition.remove_nth( i-- ) );
 
-				if ( e )
-					{
-					if ( streq( e->name, "*register-persistent*" ) )
-						{ // transition to mpc
+				const char *type = e->value->StringPtr(0)[1];
+				if ( master && (! strcmp( type, "GROUP") || ! strcmp( type, "WORLD" )) )
+					master->PostEvent(e);
 
-						char* mpc_name = e->value->StringVal();
-						mpcs.append( transition.remove_nth( i-- ) );
-						mpc_names.append( mpc_name );
-						continue;
-						}
-
-					if ( streq( e->name, "established" ) )
-						{
-						continue;
-						}
-
-					d = new GlishDaemon( transition.remove_nth( i-- ) );
-					threads.append( d );
-
-					GlishEvent* internal;
-					if ( ! d->NextRequest( e, internal ) )
-						{
-						delete threads.remove_nth( threads.length() );
-						continue;
-						}
-					}
-				else // transient exited
-					{
-					delete transition.remove_nth( i-- );
-					}
+				continue;
 				}
+
+			//      ???
+			if ( ! strcmp( e->name, "established" ) )
+				continue;
+
+			// process interpreter request
+			Interp *itp = new Interp( transition.remove_nth(i--) );
+			interps.append( itp );
+			if ( ! itp->NextRequest( e, this, internal ) )
+				{
+				delete interps.remove_nth( interps.length() );
+				continue;
+				}
+
+			if ( internal )
+				ProcessInternalReq( internal );
 			}
+		}
+	}
 
-		// Pick up any clients that have exited.
-		int pid;
+void dUser::ProcessInterps( fd_set *mask )
+	{
+	Client *c = 0;
+	GlishEvent *e = 0;
 
-		while ( (pid = reap_terminated_process()) )
-			{ // Remove terminated process from list of clients.
-			loop_over_list( threads, i )
-				if ( threads[i]->ClientHasTerminated( pid ) )
-					break;	// no need to look further
+	for ( int i = 0; i < interps.length(); ++i )
+		{
+		GlishEvent *internal = 0;
+		Interp *itp = interps[i];
+		if ( itp->HasClientInput(mask) )
+			{
+			e = itp->Interpreter()->NextEvent( mask );
+
+			if ( ! e )		// remove interpreter
+				{
+				delete interps.remove_nth( i-- );
+				continue;
+				}
+
+			itp->NextRequest( e, this, internal );
+
+			if ( internal )
+				ProcessInternalReq( internal );
 			}
 		}
 	}
 
 
-Client *CreateIncomingConnection( int sock, const char *name )
+void dUser::ProcessClients( fd_set *mask )
+	{
+	const char *key = 0;
+	Client *client = 0;
+	IterCookie* c = clients.InitForIteration();
+
+	while ( client = clients.NextEntry( key, c ) )
+		if ( client->HasClientInput( mask ) )
+			{
+			GlishEvent *e = client->NextEvent( mask );
+
+			if ( ! e )	// "shared" client exited
+				{
+				// free key
+				free_memory( clients.Remove( key ) );
+				delete client;
+				}
+			else
+				{
+				// ignore non-null events for now
+				}
+			}
+	}
+
+
+void dUser::ProcessConnect( )
+	{
+	int fd = RecvFd();
+
+	if ( fd > 0 )
+		transition.append( new Client( fd, fd, new_name() ) );
+	else
+		syslog( LOG_ERR, "attempted connect failed (or master exited), ignoring" );
+
+	}
+
+void dUser::ProcessMaster( fd_set *mask )
 	{
 
-#ifdef AUTHENTICATE
-	if ( authenticate_client( sock ) )
-		return new Client( sock, sock, name );
-	else
-		close( sock );
+	if ( master && master->HasClientInput( mask ) )
+		{
+		GlishEvent *e = master->NextEvent( mask );
 
-	return 0;
-#else
-	return new Client(sock, sock, name);
-#endif
+		if ( ! e )
+			{
+			syslog( LOG_ERR, "problems, master exited" );
+			if ( master ) delete master;
+			close( fd_pipe );
+			fd_pipe = 0;
+			master = 0;
+			}
+		else
+			{
+			if ( ! strcmp( e->name, "client" ) )
+				{
+				char *client_str = e->value->StringVal();
+				char* name_str = extract_prog_name(client_str);
+
+				if ( ! name_str )
+					{
+					syslog( LOG_ERR, "bad arguments for creating remote client" );
+					return;
+					}
+
+				Client *client = clients[name_str];
+				if ( ! client )
+					{
+					const char *prog_str = get_prog_name( name_str );
+					client = clients[prog_str];
+					}
+
+				if ( client ) client->PostEvent( "client", e->value );
+				}
+			}
+		}
 	}
-	
-void internal_request( GlishEvent* event )
+
+
+void dUser::ProcessInternalReq( GlishEvent* event )
 	{
 	const char* name = event->name;
 
 	if ( streq( name, "*terminate-daemon*" ) )
 		exit( 0 );
-
 	else
+		syslog( LOG_ERR,"bad internal event, \"%s\"", name );
+	}
+
+
+dUser::~dUser( )
+	{
+	if ( master )
+		delete master;
+
+	if ( slave )
+		delete slave;
+
+	if ( fd_pipe )
+		close( fd_pipe );
+
+	loop_over_list( transition, i )
+		delete transition[i];
+
+	loop_over_list( interps, j )
+		delete interps[j];
+
+	const char *key = 0;
+	Client *client = 0;
+	IterCookie* c = clients.InitForIteration();
+	while ( client = clients.NextEntry( key, c ) )
 		{
-		fprintf( stderr, "%s: bad internal event \"%s\"\n",
-				prog_name, name );
+		// free key
+		free_memory( clients.Remove( key ) );
+		delete client;
+		}
+
+	if ( id ) free_memory( id );
+	}
+
+char *dUser::new_name( )
+	{
+	char *name = (char*) alloc_memory(strlen(id)+20);
+	sprintf(name, "%s #%d", id, count++);
+	return name;
+	}
+
+dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
+						        accept_sock( 0, DAEMON_PORT, 0 )
+	{
+	// it is assumed that GlishDaemon will set valid if all is OK
+	if ( ! valid ) return;
+
+	if ( ! hostname ) hostname = strdup(local_host_name());
+	id = (char*) alloc_memory( strlen(hostname) + strlen(name) + 30 );
+	sprintf( id, "%s @ %s [%d]", name, hostname, int( getpid() ) );
+
+	// setup syslog facility
+	openlog(id,LOG_CONS,LOG_DAEMON);
+
+	if ( accept_sock.Port() == 0 )		// didn't get it.
+		{
+		syslog( LOG_ERR, "daemon apparently already running, exiting" );
 		exit( 1 );
+		}
+
+	// don't let our children inherit the accept socket fd; we want
+	// it to go away when we do.
+	mark_close_on_exec( accept_sock.FD() );
+
+	// init for npd and the md5 authentication code
+	init_log(argv[0]);
+
+	if ( argc == 2 )
+		{
+		struct stat stat_buf;
+		if ( stat( argv[1], &stat_buf ) < 0 )
+			syslog( LOG_ERR, "couldn't stat key directory \"%s\"", argv[1] );
+		else if ( S_ISDIR(stat_buf.st_mode) )
+			set_key_directory(argv[1]);
+		else
+			syslog( LOG_ERR, "key directory, \"%s\", invalid", argv[1] );
+		}		
+	}
+
+void dServer::loop()
+	{
+	fd_set input_fds;
+	fd_set* mask = &input_fds;
+
+	// must do this for SIGHUP to work properly
+	current_daemon = this;
+
+	while ( valid )
+		{
+		FD_ZERO( mask );
+		AddInputMask( mask );
+
+		while ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) mask, 0, 0, 0 ) < 0 )
+			{
+			if ( errno != EINTR )
+				{
+				syslog( LOG_ERR,"error during select(), exiting" );
+				exit( 1 );
+				}
+			}
+
+		if ( ! valid ) continue;
+
+		// check on our minions
+		ProcessUsers( mask );
+
+		// Now look for any new interpreters contacting us.
+		if ( FD_ISSET( accept_sock.FD(), mask ) )
+			ProcessConnect();
+
 		}
 	}
 
-
-const char *get_prog_name(const char* full_path )
-{
-	if ( strchr( full_path, '/' ) == (char*) NULL )
-		return full_path;
-
-	int i = 0;
-	while ( full_path[i] != '\0' ) ++i;
-	while ( full_path[i] != '/'  ) --i;
-	return full_path + (i+1) * sizeof( char );
-}
-
-GlishDaemon::GlishDaemon( Client* client )
+void dServer::ProcessConnect()
 	{
-	interpreter = client;
-	work_dir = 0;
-	did_wd_msg = 0;
+	int s = accept_connection( accept_sock.FD() );
+
+	if ( s < 0 )
+		{
+		syslog( LOG_ERR, "error when accepting connection, exiting" );
+		exit( 1 );
+		}
+
+	// Don't let our children inherit this socket fd; if
+	// they do, then when we exit our remote Glish-
+	// interpreter peers won't see select() activity
+	// and detect out exit.
+	mark_close_on_exec( s );
+
+	char **peer = 0;
+	if ( peer = authenticate_client( s ) )
+		{
+		dUser *user = users[peer[0]];
+		if ( user )
+			{
+			if ( user->SendFd( s ) < 0 )
+				syslog( LOG_ERR, "sendfd failed, %m" );
+			}
+		else
+			{
+			dUser *user = new dUser( s, peer[0], peer[1] );
+			if ( user && user->IsValid() )
+				users.Insert( strdup(peer[0]), user );
+			else
+				delete user;
+			}
+		}
+
+	close( s );
 	}
 
-GlishDaemon::~GlishDaemon()
+void dServer::clear_clients_registered_to( const char *user )
+	{
+	const char *key = 0, *key2 = 0;
+	str_dict *map = 0;
+	char *val = 0;
+	IterCookie* c = world_clients.InitForIteration();
+
+	while ( val = world_clients.NextEntry( key, c ) )
+		{
+		if ( ! strcmp(user, val) )
+			{
+			free_memory( world_clients.Remove(key) );
+			free_memory( val );
+			}
+		}
+
+	c = group_clients.InitForIteration();
+	while ( map = group_clients.NextEntry( key, c ) )
+		{
+		IterCookie *c2 = (*map).InitForIteration();
+		while ( val = (*map).NextEntry( key2, c2 ) )
+			{
+			if ( ! strcmp(user, val) )
+				{
+				free_memory( (*map).Remove(key2) );
+				free_memory( val );
+				}
+			}
+		if ( ! (*map).Length() )
+			{
+			free_memory( group_clients.Remove( key ) );
+			delete map;
+			}
+		}
+	}
+	
+
+void dServer::CreateClient( Value *value, const char *user_name )
+	{
+	const char *group = get_group_name( get_user_group( user_name ) );
+	char *client_str = value->StringVal();
+	char* name_str = extract_prog_name(client_str);
+
+	if ( ! name_str )
+		{
+		syslog( LOG_ERR, "bad arguments for creating remote client" );
+		return;
+		}
+
+	char *registered_user = 0;
+	const char *prog_str = get_prog_name( name_str );
+	str_dict *map = group_clients[group];
+	if ( map && (registered_user = (*map)[name_str]) ||
+		    (registered_user = (*map)[prog_str]) )
+		{
+		users[registered_user]->PostEvent( "client", value );
+		return;
+		}
+
+	if ( (registered_user = world_clients[name_str]) ||
+	     (registered_user = world_clients[prog_str]) )
+		{
+		users[registered_user]->PostEvent( "client", value );
+		return;
+		}
+	}
+
+void dServer::Register( Value *value, const char *user_name )
+	{
+	const char *name = value->StringPtr(0)[0];
+	const char *type = value->StringPtr(0)[1];
+
+	if ( ! strcmp( type, "WORLD" ) )
+		world_clients.Insert( strdup(name), strdup(user_name) );
+	else if ( ! strcmp( type, "GROUP" ) )
+		{
+		const char *group = get_group_name( get_user_group( user_name ) );
+		str_dict *map = group_clients[group];
+		if ( ! map )
+			{
+			map = new str_dict;
+			group_clients.Insert(strdup(group), map);
+			}
+		else
+			{
+			char *u = (*map)[name];
+			if ( u )
+				{
+				free_memory((*map).Remove(name));
+				free_memory(u);
+				}
+			}
+		(*map).Insert( strdup(name), strdup(user_name));
+		}
+	}
+
+void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
+	{
+	client->Polymorph( TYPE_STRING );
+
+	int argc = client->Length();
+
+	if ( argc < 1 )
+		{
+		syslog( LOG_ERR, "\"client-up\" event with no client name" );
+		user->PostEvent( "client-up-reply", false_value );
+		return;
+		}
+
+	charptr *strs = client->StringPtr();
+	const char *name_str = strs[0];
+	const char *prog_str = get_prog_name( name_str );
+
+	char *registering_user = 0;
+	const char *group = get_group_name( get_user_group( user_name ) );
+	str_dict *map = group_clients[group];
+	if ( map && ( (registering_user = (*map)[name_str]) ||
+		      (registering_user = (*map)[prog_str]) ) )
+		{
+		Value true_value( glish_true );
+		user->PostEvent( "client-up-reply", &true_value );
+		return;
+		}
+
+	if ( (registering_user = world_clients[name_str]) ||
+	     (registering_user = world_clients[prog_str]) )
+		{
+		Value true_value( glish_true );
+		user->PostEvent( "client-up-reply", &true_value );
+		return;
+		}
+
+	user->PostEvent( "client-up-reply", false_value );
+	}
+
+void dServer::ProcessUsers( fd_set *mask)
+	{
+	const char* key = 0;
+	dUser *user = 0;
+	IterCookie* c = users.InitForIteration();
+
+	while ( user = users.NextEntry( key, c ) )
+		if ( user->HasClientInput( mask ) )
+			{
+			GlishEvent *e = user->NextEvent( mask );
+
+			if ( ! e )	// dUser has exited
+				{
+				// At some point, we'll need to do "shared"
+				// client cleanup here too.
+				clear_clients_registered_to( key );
+				free_memory( users.Remove( key ) );
+				delete user;
+				}
+			else
+				{
+				if ( ! strcmp( e->name, "*register-persistent*" ) )
+					Register( e->value, key );
+				if ( ! strcmp( e->name, "client" ) )
+					CreateClient( e->value, key );
+				if ( ! strcmp( e->name, "client-up" ) )
+					ClientRunning( e->value, key, user );
+				}
+			}
+	}
+
+int dServer::AddInputMask( fd_set *mask )
+	{
+	int count = GlishDaemon::AddInputMask( mask );
+	const char* key = 0;
+	dUser *user = 0;
+	IterCookie* c = users.InitForIteration();
+
+	while ( user = users.NextEntry( key, c ) )
+		count += user->AddInputMask( mask );
+
+	if ( accept_sock.FD() > 0 && ! FD_ISSET( accept_sock.FD(), mask ) )
+		{
+		FD_SET( accept_sock.FD(), mask );
+		++count;
+		}
+	}
+
+dServer::~dServer()
+	{
+	closelog();
+
+	const char *key = 0;
+	dUser *user = 0;
+	IterCookie* c = users.InitForIteration();
+	while ( user = users.NextEntry( key, c ) )
+		{
+		// free key
+		free_memory( users.Remove( key ) );
+		delete user;
+		}
+
+	if ( id ) free_memory(id);
+	}
+
+void dServer::FatalError()
+	{
+	// close port so it is freed up otherwise it seems to
+	// take some time for the OS to realize the port is free.
+	close(accept_sock.FD());
+	}
+
+Interp::~Interp( )
 	{
 	delete interpreter;
-	delete work_dir;
+
+	const char *key = 0;
+	LocalExec *client = 0;
+	IterCookie* c = clients.InitForIteration();
+	while ( client = clients.NextEntry( key, c ) )
+		{
+		// free key
+		free_memory( clients.Remove( key ) );
+		delete client;
+		}
+
+	free_memory( work_dir );
 	}
 
-int GlishDaemon::NextRequest( GlishEvent* e, GlishEvent*& internal_event )
+int Interp::NextRequest( GlishEvent* e, dUser *hub, GlishEvent*& internal_event )
 	{
 	internal_event = 0;
 
@@ -372,10 +1096,10 @@ int GlishDaemon::NextRequest( GlishEvent* e, GlishEvent*& internal_event )
 		PingClient( e->value );
 
 	else if ( streq( e->name, "client" ) )
-		CreateClient( e->value );
+		CreateClient( e->value, hub );
 
 	else if ( streq( e->name, "client-up" ) )
-		ClientRunning( e->value );
+		ClientRunning( e->value, hub );
 
 	else if ( streq( e->name, "shell" ) )
 		ShellCommand( e->value );
@@ -396,47 +1120,32 @@ int GlishDaemon::NextRequest( GlishEvent* e, GlishEvent*& internal_event )
 	return 1;
 	}
 
-int GlishDaemon::ClientHasTerminated( int pid )
+void Interp::SetWD( Value* v )
 	{
-	IterCookie* c = clients.InitForIteration();
-
-	const char* key;
-	LocalExec* exec;
-	while ( (exec = clients.NextEntry( key, c )) )
-		if ( exec->PID() == pid )
-			{
-			char* client_key = clients.Remove( key );
-			delete client_key;
-			return 1;
-			}
-
-	return 0;
-	}
-
-void GlishDaemon::SetWD( Value* v )
-	{
-	delete work_dir;
+	free_memory( work_dir );
 	did_wd_msg = 0;
-	work_dir = v->StringVal();
 
+	work_dir = v->StringVal();
 	ChangeDir();	// try it out to see if it's okay
 	}
 
-void GlishDaemon::PingClient( Value* client_id )
+void Interp::PingClient( Value* client_id )
 	{
 	char* id = client_id->StringVal();
 	LocalExec* client = clients[id];
 
 	if ( ! client )
+		{
 		error->Report( "no such client ", id );
+		syslog( LOG_ERR, "no such client, \"%s\"", id );
+		}
 	else
 		client->Ping();
 
-	delete id;
+	free_memory( id );
 	}
 
-
-void GlishDaemon::CreateClient( Value* argv )
+void Interp::CreateClient( Value* argv, dUser *hub )
 	{
 	argv->Polymorph( TYPE_STRING );
 
@@ -450,30 +1159,23 @@ void GlishDaemon::CreateClient( Value* argv )
 		}
 
 	char* client_str = argv->StringVal(); // copy here for good reason
-	char* name_str;
+	char* name_str = extract_prog_name(client_str);
 
-	if ( !strtok( client_str, " " ) ||
-	     !strtok( NULL, " " ) ||
-	     !strtok( NULL, " " ) ||
-	     !(name_str = strtok( NULL, " " )) )
+	if ( ! name_str )
 		{
 		error->Report( "bad arguments for creating remote client" );
 		return;
 		}
 
-	const char *prog_str = get_prog_name( name_str );
-
-	loop_over_list( mpcs, i )
+	Client *persistent = hub->LookupClient(name_str);
+	if ( persistent )
 		{
-		if ( streq( prog_str, mpc_names[i] ) ||
-		     streq( name_str, mpc_names[i] ) )
-			{
-			mpcs[i]->PostEvent( "client", argv );
-			delete client_str;
-			return;
-			}
+		persistent->PostEvent( "client", argv );
+		free_memory( client_str );
+		return;
 		}
-	delete client_str;
+
+	free_memory( client_str );
 
 	// First strip off the id.
 	charptr* argv_ptr = argv->StringPtr();
@@ -482,7 +1184,7 @@ void GlishDaemon::CreateClient( Value* argv )
 	--argc;
 	++argv_ptr;
 
-	charptr* client_argv = new charptr[argc + 1];
+	charptr* client_argv = (charptr*) alloc_memory(sizeof(charptr) * (argc + 1));
 
 	for ( LOOPDECL i = 0; i < argc; ++i )
 		client_argv[i] = argv_ptr[i];
@@ -506,11 +1208,10 @@ void GlishDaemon::CreateClient( Value* argv )
 		clients.Insert( client_id, exec );
 		}
 
-	delete client_argv;
+	free_memory( client_argv );
 	}
 
-
-void GlishDaemon::ClientRunning( Value* client )
+void Interp::ClientRunning( Value* client, dUser *hub )
 	{
 	client->Polymorph( TYPE_STRING );
 
@@ -526,23 +1227,19 @@ void GlishDaemon::ClientRunning( Value* client )
 
 	charptr *strs = client->StringPtr();
 	const char *name_str = strs[0];
-	const char *prog_str = get_prog_name( name_str );
 
-	loop_over_list( mpcs, i )
+	if ( hub->LookupClient(name_str) )
 		{
-		if ( streq( prog_str, mpc_names[i] ) ||
-		     streq( name_str, mpc_names[i] ) )
-			{
-			Value true_value( glish_true );
-			interpreter->PostEvent( "client-up-reply", &true_value );
-			return;
-			}
+		Value true_value( glish_true );
+		interpreter->PostEvent( "client-up-reply", &true_value );
+		return;
 		}
 	
 	interpreter->PostEvent( "client-up-reply", false_value );
 	}
 
-void GlishDaemon::ShellCommand( Value* cmd )
+
+void Interp::ShellCommand( Value* cmd )
 	{
 	char* command;
 	if ( ! cmd->FieldVal( "command", command ) )
@@ -594,12 +1291,12 @@ void GlishDaemon::ShellCommand( Value* cmd )
 		Unref( status_val );
 		}
 
-	delete command;
-	delete input;
+	free_memory( command );
+	free_memory( input );
 	}
 
 
-void GlishDaemon::KillClient( Value* client_id )
+void Interp::KillClient( Value* client_id )
 	{
 	char* id = client_id->StringVal();
 	LocalExec* client = clients[id];
@@ -609,21 +1306,21 @@ void GlishDaemon::KillClient( Value* client_id )
 
 	else
 		{
+		// free key
+		free_memory(clients.Remove( id ));
 		delete client;
-		char* client_key = clients.Remove( id );
-		delete client_key;
 		}
 
-	delete id;
+	free_memory( id );
 	}
 
 
-void GlishDaemon::Probe( Value* /* probe_val */ )
+void Interp::Probe( Value* /* probe_val */ )
 	{
 	interpreter->PostEvent( "probe-reply", false_value );
 	}
 
-void GlishDaemon::ChangeDir()
+void Interp::ChangeDir()
 	{
 	if ( chdir( work_dir ) < 0 && ! did_wd_msg )
 		{
@@ -631,4 +1328,76 @@ void GlishDaemon::ChangeDir()
 					sys_errlist[errno] );
 		did_wd_msg = 1;
 		}
+	}
+
+
+const char *get_prog_name(const char* full_path )
+	{
+	if ( strchr( full_path, '/' ) == (char*) NULL )
+		return full_path;
+
+	int i = 0;
+	while ( full_path[i] != '\0' ) ++i;
+	while ( full_path[i] != '/'  ) --i;
+	return full_path + (i+1) * sizeof( char );
+	}
+
+void glishd_sighup()
+	{
+	if ( current_daemon )
+		current_daemon->Invalidate();
+	unblock_signal(SIGHUP);
+	}
+
+
+#define DEFINE_SIG_FWD(NAME,SIGNAL)					\
+void NAME( )								\
+	{								\
+	if ( current_daemon )						\
+		current_daemon->FatalError();				\
+									\
+	install_signal_handler( SIGNAL, (signal_handler) SIG_DFL );	\
+	kill( getpid(), SIGNAL );					\
+	}
+
+DEFINE_SIG_FWD(glishd_sigsegv,SIGSEGV)
+DEFINE_SIG_FWD(glishd_sigbus, SIGBUS);
+DEFINE_SIG_FWD(glishd_sigill, SIGILL);
+#ifdef SIGEMT
+DEFINE_SIG_FWD(glishd_sigemt, SIGEMT);
+#endif
+DEFINE_SIG_FWD(glishd_sigfpe, SIGFPE);
+DEFINE_SIG_FWD(glishd_sigtrap, SIGTRAP);
+#ifdef SIGSYS
+DEFINE_SIG_FWD(glishd_sigsys, SIGSYS);
+#endif
+
+void install_terminate_handlers()
+	{
+	(void) install_signal_handler( SIGSEGV, glishd_sigsegv );
+	(void) install_signal_handler( SIGBUS, glishd_sigbus );
+	(void) install_signal_handler( SIGILL, glishd_sigill );
+#ifdef SIGEMT
+	(void) install_signal_handler( SIGEMT, glishd_sigemt );
+#endif
+	(void) install_signal_handler( SIGFPE, glishd_sigfpe );
+	(void) install_signal_handler( SIGTRAP, glishd_sigtrap );
+#ifdef SIGSYS
+	(void) install_signal_handler( SIGSYS, glishd_sigsys );
+#endif
+	}
+
+main( int argc, char **argv )
+	{
+	GlishDaemon *dmon;
+	if ( getuid() == 0 )
+		dmon = new dServer( argc, argv );
+	else
+		dmon = new dUser( argc, argv );
+
+	dmon->loop( );
+
+	delete dmon;
+
+	return 0;
 	}

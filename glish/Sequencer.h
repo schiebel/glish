@@ -109,7 +109,7 @@ public:
 	inline unsigned int TRACE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 	inline unsigned int PRINTPRECISION( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
-	inline unsigned int INCLUDE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
+	inline unsigned int PATH( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
 	inline unsigned int ILOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int OLOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 
@@ -122,8 +122,9 @@ public:
 	void DoOLog( const Value *v) { DoLog( 0, v ); }
 	int PrintLimit() { if ( PRINTLIMIT(update) ) update_print( ); return printlimit; }
 	int PrintPrecision() { if ( PRINTPRECISION(update) ) update_print( ); return printprecision; }
-	charptr *Include() { if ( INCLUDE(update) ) update_include( ); return include; }
-	int IncludeLen() { if ( INCLUDE(update) ) update_include( ); return includelen; }
+	charptr KeyDir() { if ( PATH(update) ) update_path( ); return keydir; }
+	charptr *Include() { if ( PATH(update) ) update_path( ); return include; }
+	int IncludeLen() { if ( PATH(update) ) update_path( ); return includelen; }
 	SystemInfo() : val(0), update( ~((unsigned int) 0) ), 
 			log(0), log_val(0), log_file(0), log_name(0),
 			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
@@ -138,7 +139,7 @@ private:
 	const char *prefix_buf(const char *prefix, const char *buf);
 	void update_output( );
 	void update_print( );
-	void update_include( );
+	void update_path( );
 	IValue *val;
 	int trace;
 
@@ -157,9 +158,13 @@ private:
 
 	int printlimit;
 	int printprecision;
+
 	charptr *include;
 	int includelen;
+	charptr keydir;
+
 	unsigned int update;
+
 };
 	
 
@@ -375,8 +380,8 @@ public:
 	// Returns a non-zero value if there are existing clients.
 	int ActiveClients() const	{ return num_active_processes > 0; }
 
-	int MultiClientScript() { return multi_script; }
-	int MultiClientScript( int set_to )
+	Client::ShareType MultiClientScript() { return multi_script; }
+	Client::ShareType MultiClientScript( Client::ShareType set_to )
 		{
 		multi_script = set_to;
 		return multi_script;
@@ -474,7 +479,7 @@ protected:
 
 	// Used to indicate that the current script client should be
 	// started as a multi-threaded client.
-	int multi_script;
+	Client::ShareType multi_script;
 	// Used to indicate that the sequencer is in the initialization
 	// phase of startup.
 	int doing_init;

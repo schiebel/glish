@@ -143,7 +143,7 @@ void UnHandle( Client* c, char* name )
 
 int main( int argc, char** argv )
 	{
-	Client c( argc, argv, 1 );
+	Client c( argc, argv, Client::USER );
 
 	int j;
 

@@ -64,10 +64,12 @@ INTERP_OBJS = \
 	Agent.o \
 	BinOpExpr.o \
 	BuiltIn.o \
+	Daemon.o \
 	Event.o \
 	Expr.o \
 	Frame.o \
 	Func.o \
+	RemoteExec.o \
 	Sequencer.o \
 	Select.o \
 	Stmt.o \
@@ -84,13 +86,11 @@ CLIENT_OBJS = \
 	ValKern.o \
 	Client.o \
 	Complex.o \
-	Daemon.o \
 	Dict.o \
 	Executable.o \
 	LocalExec.o \
 	Object.o \
 	Queue.o \
-	RemoteExec.o \
 	Reporter.o \
 	Socket.o \
 	Str.o \
@@ -104,10 +104,12 @@ INTERP_OBJS_PROXY = \
 	$(D)Agent.o \
 	$(D)BinOpExpr.o \
 	$(D)BuiltIn.o \
+	$(D)Daemon.o \
 	$(D)Event.o \
 	$(D)Expr.o \
 	$(D)Frame.o \
 	$(D)Func.o \
+	$(D)RemoteExec.o \
 	$(D)Sequencer.o \
 	$(D)Select.o \
 	$(D)Stmt.o \
@@ -124,13 +126,11 @@ CLIENT_OBJS_PROXY = \
 	$(D)ValKern.o \
 	$(D)Client.o \
 	$(D)Complex.o \
-	$(D)Daemon.o \
 	$(D)Dict.o \
 	$(D)Executable.o \
 	$(D)LocalExec.o \
 	$(D)Object.o \
 	$(D)Queue.o \
-	$(D)RemoteExec.o \
 	$(D)Reporter.o \
 	$(D)Socket.o \
 	$(D)Str.o \

@@ -8,7 +8,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include "md5.h"
 #include "util.h"
@@ -81,7 +80,6 @@ static unsigned char *get_key( const char *dir, const char *host,
 	const char *nme;
 	int user_len;
 	int n,id;
-	struct stat stat_buf;
 
 	static const char from_fmt[] = "%s/hosts/%s";
 	static const char to_fmt[] = "%s/hosts/%s";
@@ -129,12 +127,6 @@ static unsigned char *get_key( const char *dir, const char *host,
 	if ( ! (key_f = fopen( key_file, "r" )) )
 		{
 		sprintf( errmsg, "couldn't open user key file \"%s\"", key_file );
-		return 0;
-		}
-
-	if ( fstat( fileno(key_f), &stat_buf) < 0)
-	        {
-		sprintf( errmsg, "couldn't stat user key file \"%s\"", key_file );
 		return 0;
 		}
 

@@ -137,7 +137,7 @@ stack_type::~stack_type( )
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
 public:
-	ScriptClient( int& argc, char** argv, int multi = 0 );
+	ScriptClient( int& argc, char** argv, Client::ShareType multi = 0 );
 
 	// Inform the ScriptClient as to which selector and agent
 	// it should use for getting and propagating events.
@@ -664,27 +664,37 @@ void SystemInfo::update_print( )
 	update &= ~PRINTPRECISION();
 	}
 
-void SystemInfo::update_include( )
+void SystemInfo::update_path( )
 	{
 	const IValue *v1;
 	const IValue *v2;
 
 	include = 0;
 	includelen = 0;
+	keydir = 0;
 	if ( val && val->Type() == TYPE_RECORD &&
 	     val->HasRecordElement( "path" ) &&
 	     (v1 = (const IValue*)(val->ExistingRecordElement( "path" ))) &&
-	     v1 != false_value && v1->Type() == TYPE_RECORD &&
-	     v1->HasRecordElement( "include" ) &&
-	     (v2 = (const IValue*)(v1->ExistingRecordElement("include"))) &&
-	     v2 != false_value && v2->Type() == TYPE_STRING &&
-	     v2->Length() )
+	     v1 != false_value && v1->Type() == TYPE_RECORD )
 		{
-		include = v2->StringPtr(0);
-		includelen = v2->Length();
+		if ( v1->HasRecordElement( "include" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("include"))) &&
+		     v2 != false_value && v2->Type() == TYPE_STRING &&
+		     v2->Length() )
+			{
+			include = v2->StringPtr(0);
+			includelen = v2->Length();
+			}
+
+		if ( v1->HasRecordElement( "keys" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("keys"))) &&
+		     v2 != false_value && v2->Type() == TYPE_STRING &&
+		     v2->Length() )
+			keydir = v2->StringPtr(0)[0];
+
 		}
 
-	update &= ~INCLUDE();
+	update &= ~PATH();
 	}
 
 void Sequencer::TopLevelReset()
@@ -776,6 +786,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	sys_value->SetField( "ppid", ppid );
 	Unref(ppid);
 
+	recordptr path = create_record_dict();
+	path->Insert( strdup("keys"), new IValue(get_key_directory()) );
+	sys_value->SetField( "path", new IValue( path ) );
+
 	recordptr max = create_record_dict();
 	max->Insert( strdup("integer"), new IValue( (int) INT_MAX ) );
 	max->Insert( strdup("byte"), new IValue( (int) UCHAR_MAX ) );
@@ -802,7 +816,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	{
 	cur_sequencer = this;
 
-	multi_script = 0;
+	multi_script = Client::NONSHARED;
 	script_created = 0;
 	doing_init = 1;
 	argc_ = argc;
@@ -2643,22 +2657,7 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 		// We're all done, the daemon was already running.
 		return rd;
 
-	// Have to start up the daemon.
-	message->Report( "activating Glish daemon on ", host );
-
-	start_remote_daemon( host );
-
-	rd = OpenDaemonConnection( host, err );
-	if ( err ) return 0;
-	while ( ! rd )
-		{
-		message->Report( "waiting for daemon ..." );
-		sleep( 1 );
-		rd = OpenDaemonConnection( host, err );
-		if ( err ) return 0;
-		}
-
-	return rd;
+	return new RemoteDaemon( host, start_remote_daemon(host) );
 	}
 
 RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
@@ -2669,6 +2668,12 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 
 	if ( ! strcmp(h,"localhost") )
 		h = ConnectionHost();
+
+	//
+	// update the key directory before using if necessary
+	//
+	if ( System().KeyDir() )
+		set_key_directory( System().KeyDir() );
 
 	if (r = connect_to_daemon( h, err ) )
 		{
@@ -3098,7 +3103,7 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv, int multi ) : Client( argc, argv, multi )
+ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi ) : Client( argc, argv, multi )
 	{
 	selector = 0;
 	agent = 0;

@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <pwd.h>
 #include <time.h>
+#include <grp.h>
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -248,7 +249,6 @@ unsigned char *read_encoded_binary( FILE *f, int *len_p )
 	*len_p = 0;
 	while ( (c = getc( f )) != EOF )
 		{
-		putc(c,stderr);
 		if ( c == '\n' )
 			{
 			if ( n == 0 )
@@ -549,6 +549,20 @@ int get_user_group( const char *name )
 	struct passwd *pw;
 	pw = getpwnam( name );
 	return pw ? pw->pw_gid : 0;
+	}
+
+const char *get_group_name( int gid )
+	{
+	static char buf[1024];
+	struct group *grp = getgrgid(gid);
+
+	if ( grp && grp->gr_name )
+		{
+		strcpy(buf,grp->gr_name);
+		return buf;
+		}
+
+	return 0;
 	}
 
 const char *get_user_shell( const char *name )

@@ -219,7 +219,7 @@ private:
 
 int glish_timedoutdummy = 0;
 
-Client::Client( int& argc, char** argv, int arg_multithreaded ) :
+Client::Client( int& argc, char** argv, ShareType arg_multithreaded ) :
 	last_context( ), useshm(0)
 	{
 	int usingpipes = 0;
@@ -369,7 +369,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 		}
 
 
-	if ( multithreaded && ReRegister() )
+	if ( multithreaded != NONSHARED && ReRegister() )
 		{
 		fatal->Report("multithreaded client with no glishd present");
 		}
@@ -401,7 +401,7 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
 	{
 	initial_client_name = prog_name = name;
 
-	multithreaded = 0;
+	multithreaded = NONSHARED;
 
 	ClientInit();
 
@@ -415,7 +415,7 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
 
 	event_sources.append( es );
 
-	if ( multithreaded && ReRegister() )
+	if ( multithreaded != NONSHARED && ReRegister() )
 		{
 		fatal->Report("multithreaded client with no glishd present");
 		}
@@ -426,7 +426,7 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
 	}
 
 Client::Client( int client_read_fd, int client_write_fd, const char* name,
-	const EventContext &arg_context, int arg_multithreaded ) : 
+	const EventContext &arg_context, ShareType arg_multithreaded ) : 
 	last_context( arg_context ), useshm(0)
 	{
 	// BUG HERE -- name (argument) could go away...
@@ -446,7 +446,7 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name,
 
 	event_sources.append( es );
 
-	if ( multithreaded && ReRegister() )
+	if ( multithreaded != NONSHARED && ReRegister() )
 		{
 		fatal->Report("multithreaded client with no glishd present");
 		}
@@ -685,7 +685,7 @@ int Client::HasClientInput( fd_set* mask )
 
 int Client::ReRegister( char* registration_name )
 	{
-	if ( ! multithreaded || no_glish )
+	if ( multithreaded == NONSHARED || no_glish )
 		return 0;
 
 	loop_over_list( event_sources, i )
@@ -701,23 +701,8 @@ int Client::ReRegister( char* registration_name )
 
 	if ( ! glishd_running )
 		{
-		message->Report( "starting local daemon ..." );
-		start_local_daemon();
-		const int tries = 15;
-		int count = tries;
-		for ( ; count && ! glishd_running; count--)
-			{
-			if ( count != tries )
-				{
-				message->Report( "waiting for daemon ..." );
-				sleep( 1 );
-				}
-			mysock = new AcceptSocket( 0, DAEMON_PORT, 0 );
-			glishd_running = ! mysock->Port(); // Port()==0 if glishd running
-			delete mysock;
-			}
-		if ( ! count )
-			return 1;
+		message->Report( "local daemon not running, client will not be shared..." );
+		return 0;
 		}
 
 	// connect and register with glishd
@@ -727,13 +712,11 @@ int Client::ReRegister( char* registration_name )
 	if ( ! remote_connection( socket, local_host, DAEMON_PORT ) )
 		return 1; // connect failed
 
-#ifdef AUTHENTICATE
 	if ( ! authenticate_to_server( socket ) )
 		{
 		close( socket );
 		return 1;
 		}
-#endif
 
 	EventSource* es = new EventSource( socket, GLISHD,
 		EventContext(( registration_name == 0 ) ?
@@ -741,10 +724,19 @@ int Client::ReRegister( char* registration_name )
 			       "*glishd*"));
 	event_sources.append( es );
 
-	GlishEvent e( (const char *) "*register-persistent*",
-		create_value( ( registration_name == 0 ) ? prog_name :
-		registration_name ) );
+	charptr *reg_val = (charptr*) alloc_memory(sizeof(charptr)*2);
+	reg_val[0] = strdup( ! registration_name ? prog_name : registration_name );
+	reg_val[1] = strdup( multithreaded == GROUP ? "GROUP" :
+			     multithreaded == WORLD ? "WORLD" : "USER" );
+
+	GlishEvent e((const char*) "*register-persistent*", create_value(reg_val,2) );
 	send_event( es->Sink(), &e );
+
+	//
+	//  This should be removed when LocalExec::~LocalExec no longer sends a
+	//  SIGTERM to clients.
+	//
+	install_signal_handler( SIGTERM, (signal_handler) SIG_IGN );
 
 	return 0;
 	}
@@ -757,9 +749,9 @@ void Client::ClientInit()
 		init_reporters();
 		init_values();
 
-#ifdef AUTHENTICATE
+		// for libnpd
 		init_log( prog_name );
-#endif
+
 #if defined(__alpha) || defined(__alpha__)
 		if ( ! glish_alpha_sigfpe_init )
 			{
@@ -812,7 +804,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		if ( ! fgets( buf, sizeof( buf ), stdin ) )
 			{
 			// stdio context exited
-			if ( ! multithreaded )
+			if ( multithreaded == NONSHARED )
 				return 0;
 			else
 				{
@@ -853,7 +845,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 
 		last_event = recv_event( fd_src );
 
-		if ( last_event && multithreaded && type == GLISHD )
+		if ( last_event && multithreaded != NONSHARED && type == GLISHD )
 			{
 			// Caught glishd request in multithreaded context
 			//
@@ -980,7 +972,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			}
 		}
 
-	if ( ! last_event && multithreaded && type != I_LINK )
+	if ( ! last_event && multithreaded != NONSHARED && type != I_LINK )
 		{
 		// Interpreter context has exited for multithreaded client
 		//
