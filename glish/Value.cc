@@ -2937,7 +2937,7 @@ dcomplex text_to_dcomplex( const char text[], int& successful )
 	char* ptr = text_ptr;
 	if ( !*ptr || *ptr != '-' && *ptr != '+' )
 		{
-		successful = 0;
+		successful = 1;
 		return result;
 		}
 

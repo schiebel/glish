@@ -928,6 +928,9 @@ IValue *ConstructExpr::TypeCheck( const IValue* values[], int num_values,
 		{
 		const IValue* v = values[i];
 
+		if ( v->Type() == TYPE_FAIL )
+			return copy_value(v);
+
 		if ( v->Length() > 0 && v->IsNumeric() )
 			return MaxNumeric( values, num_values, max_type );
 		}
