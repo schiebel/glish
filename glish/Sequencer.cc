@@ -3139,7 +3139,11 @@ IValue *Sequencer::Include( const char *file )
 
 	if ( ! ret )
 		{
+		stack_type *incst = new stack_type;
+		PushFrames( incst );
 		ret = Exec( 1, 1 );
+		PopFrames( );
+		delete incst;
 		if ( ret && ret->Type() != TYPE_FAIL )
 			{
 			Unref( ret );
