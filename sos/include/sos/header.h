@@ -11,6 +11,25 @@
 #define SOS_HEADER_SIZE		24
 #define SOS_VERSION		0
 
+class ostream;
+
+struct sos_header_kernel {
+	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0 ) :
+		buf_((unsigned char*)b), type_(t), length_(l), count_(1), freeit_(freeit) { }
+	unsigned int count() { return count_; }
+	unsigned int ref() { return ++count_; }
+	unsigned int unref() { return --count_; }
+	~sos_header_kernel() { if ( freeit_ ) delete buf_; }
+	void set( void *b, unsigned int l, sos_code t, int freeit = 0 );
+	void set( unsigned int l, sos_code t ) { type_ = t; length_ = l; }
+
+	unsigned char	*buf_;
+	sos_code	type_;
+	unsigned int	length_;	// in units of type_
+	unsigned int	count_;
+	int		freeit_;
+};
+
 //	sos header structure
 //							      offset
 //		1 byte version number				0
@@ -27,86 +46,99 @@
 //
 class sos_header {
 public:
-	unsigned char version() const { return buf[0]; }
-	unsigned char arch() const { return buf[1]; }
-	sos_code type() const { return buf[2]; }
-	unsigned char typeLen() const { return buf[3]; }
-	unsigned int magic() const { return *((int*)&buf[4]); }
-	unsigned int length() const { return buf[8] + (buf[9] << 8) +
-				      (buf[10] << 16) + (buf[11] << 24); }
-	unsigned int time() const { return buf[12] + (buf[13] << 8) +
-				    (buf[14] << 16) + (buf[15] << 24); }
+	//
+	// information from the buffer
+	//
+	unsigned char version() const { return kernel->buf_[0]; }
+	unsigned char arch() const { return kernel->buf_[1]; }
+	sos_code type() const { return kernel->buf_[2]; }
+	unsigned char typeLen() const { return kernel->buf_[3]; }
+	unsigned int magic() const { return *((int*)&kernel->buf_[4]); }
+	unsigned int length() const { return kernel->buf_[8] + (kernel->buf_[9] << 8) +
+				      (kernel->buf_[10] << 16) + (kernel->buf_[11] << 24); }
+	unsigned int time() const { return kernel->buf_[12] + (kernel->buf_[13] << 8) +
+				    (kernel->buf_[14] << 16) + (kernel->buf_[15] << 24); }
+
+	//
+	// information "local" to the class
+	//
+	static unsigned char iSize() { return current_header_size; }
+	static unsigned char iVersion() { return current_version; }
+	unsigned char *iBuffer() { return kernel->buf_; }
+	unsigned int iLength() { return kernel->length_; }
+	sos_code iType() { return kernel->type_; }
+
+	//
+	// update buffer information
+	//
+	void stamp();
+
+	//
+	// reference count
+	//
+	unsigned int count( ) const { return kernel->count(); }
+
+	//
+	// constructors
+	//
+	sos_header( byte *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_BYTE,freeit) ) { }
+	sos_header( short *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_SHORT,freeit) ) { }
+	sos_header( int *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_INT,freeit) ) { }
+	sos_header( float *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_FLOAT,freeit) ) { }
+	sos_header( double *a, unsigned int l, int freeit = 0 ) : kernel( new sos_header_kernel(a,l,SOS_DOUBLE,freeit) ) { }
+
+	sos_header( ) : kernel( new sos_header_kernel(0,SOS_UNKNOWN,0) ) { }
+	sos_header( char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0 ) :
+		kernel( new sos_header_kernel(b,l,t,freeit) ) { }
+	sos_header( unsigned char *b, unsigned int l = 0, sos_code t = SOS_UNKNOWN, int freeit = 0 ) :
+		kernel( new sos_header_kernel(b,l,t,freeit) ) { }
+
+	sos_header( const sos_header &h ) : kernel( h.kernel ) { kernel->ref(); }
+
+	//
+	// assignment
+	//
+	sos_header &operator=( sos_header &h );
+
+	//
+	// change buffer
+	//
+	void set( byte *a, unsigned int l, int freeit = 0 );
+	void set( short *a, unsigned int l, int freeit = 0 );
+	void set( int *a, unsigned int l, int freeit = 0 );
+	void set( float *a, unsigned int l, int freeit = 0 );
+	void set( double *a, unsigned int l, int freeit = 0 );
+
+	void set ( );
+	void set( char *a, unsigned int l, sos_code t, int freeit = 0 );
+	void set( unsigned char *a, unsigned int l, sos_code t, int freeit = 0 );
+	void set( unsigned int l, sos_code t ) { kernel->set( l, t ); }
 
 	//
 	// access to user data
 	//
-	unsigned char ugetc( int off = 0 ) const { return buf[20 + (off % 4)]; }
+	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[20 + (off % 4)]; }
 	unsigned short ugets( int off = 0 ) const { off = 20 + (off % 2) * 2;
-			return buf[off] + (buf[off+1] << 8); }
-	unsigned int ugeti( ) const { return buf[20] + (buf[21] << 8) +
-			(buf[22] << 16) + (buf[23] << 24); }
+			return kernel->buf_[off] + (kernel->buf_[off+1] << 8); }
+	unsigned int ugeti( ) const { return kernel->buf_[20] + (kernel->buf_[21] << 8) +
+			(kernel->buf_[22] << 16) + (kernel->buf_[23] << 24); }
 
-	void usetc( unsigned char c, int off = 0 ) { buf[20 + (off % 4)] = c; }
+	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[20 + (off % 4)] = c; }
 	void usets( unsigned short s, int off = 0 ) { off = 20 + (off % 2) * 2;
-			buf[off] = s & 0xff; buf[off+1] = (s >> 8) & 0xff; }
+			kernel->buf_[off] = s & 0xff; kernel->buf_[off+1] = (s >> 8) & 0xff; }
 	void useti( unsigned int i );
 
-	static unsigned char iSize() { return current_header_size; }
-	static unsigned char iVersion() { return current_version; }
-	unsigned char *iBuffer() { return buf; }
-	unsigned int iLength() { return length_; }
-	sos_code iType() { return type_; }
+	~sos_header( ) { if ( ! kernel->unref() ) delete kernel; }
 
-	void stamp();
-
-	sos_header( byte *a, unsigned int l ) : buf((unsigned char*)a), length_(l),
-				type_(SOS_BYTE) { }
-	sos_header( short *a, unsigned int l ) : buf((unsigned char*)a), length_(l),
-				type_(SOS_SHORT) { }
-	sos_header( int *a, unsigned int l ) : buf((unsigned char*)a), length_(l),
-				type_(SOS_INT) { }
-	sos_header( float *a, unsigned int l ) : buf((unsigned char*)a), length_(l),
-				type_(SOS_FLOAT)  { }
-	sos_header( double *a, unsigned int l ) : buf((unsigned char*)a), length_(l),
-				type_(SOS_DOUBLE) { }
-
-	sos_header( ) : buf(0), type_(SOS_UNKNOWN), length_(0) { }
-	sos_header( char *b, sos_code t = SOS_UNKNOWN,
-		    unsigned int l = 0  ) : buf( (unsigned char *) b ),
-				type_(t), length_(l) { }
-	sos_header( unsigned char *b, sos_code t = SOS_UNKNOWN,
-		    unsigned int l = 0 ) : buf( b ), 
-				type_(t), length_(l) { }
-
-	void set( byte *a, unsigned int l )
-		{ buf = (unsigned char*) a; length_ = l; type_ = SOS_BYTE; }
-	void set( short *a, unsigned int l )
-		{ buf = (unsigned char*) a; length_ = l; type_ = SOS_SHORT; }
-	void set( int *a, unsigned int l )
-		{ buf = (unsigned char*) a; length_ = l; type_ = SOS_INT; }
-	void set( float *a, unsigned int l )
-		{ buf = (unsigned char*) a; length_ = l; type_ = SOS_FLOAT; }
-	void set( double *a, unsigned int l )
-		{ buf = (unsigned char*) a; length_ = l; type_ = SOS_DOUBLE; }
-
-	void set ( )
-		{ buf = 0; length_ = 0; type_ = SOS_UNKNOWN; }
-	void set( char *a, sos_code t = SOS_UNKNOWN, unsigned int l = 0  )
-		{ buf = (unsigned char*) a; length_ = l; type_ = t; }
-	void set( unsigned char *a, sos_code t = SOS_UNKNOWN, unsigned int l = 0 )
-		{ buf = a; length_ = l; type_ = t; }
-
-	sos_header &operator=(void *b)
-		{ buf = (unsigned char*) b; type_ = type(); length_ = length(); }
-
-	~sos_header( ) { }
+// 	sos_header &operator=(void *b)
+// 		{ buf = (unsigned char*) b; type_ = type(); length_ = length(); }
 
 private:
 	static unsigned char current_version;
 	static unsigned char current_header_size;
-	unsigned char	*buf;
-	sos_code	type_;
-	unsigned int	length_;	// in units of type_
+	sos_header_kernel *kernel;
 };
+
+extern ostream &operator<< (ostream &, const sos_header &);
 
 #endif
