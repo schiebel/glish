@@ -832,6 +832,7 @@ int glish_parser()
 	{
 	int ret;
 
+	error->SetCount(0);
 	status = 0;
 	while ( ! (ret = yyparse()) )
 		{
