@@ -56,6 +56,29 @@ int system( const char* string );
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
 
+// A special type of Client used for script clients.  It overrides
+// FD_Change() to create or delete ScriptSelectee's as needed.
+class ScriptClient : public Client {
+public:
+	ScriptClient( int& argc, char** argv );
+
+	// Inform the ScriptClient as to which selector and agent
+	// it should use for getting and propagating events.
+	void SetInterface( Selector* selector, Agent* agent );
+
+	// Creates Selectees for each of the event sources if this
+	// hasn't already been done. This can only be called after
+	// SetInterface() has been called.
+	void AddEventSources( );
+
+protected:
+	void FD_Change( int fd, int add_flag );
+
+	Selector* selector;
+	Agent* agent;
+	name_list event_src_list;
+	};
+
 // A Selectee corresponding to input for a Glish client.
 class ClientSelectee : public Selectee {
     public:
@@ -99,11 +122,11 @@ class AcceptSelectee : public Selectee {
 // A Selectee corresponding to a Glish script's own client.
 class ScriptSelectee : public Selectee {
 public:
-	ScriptSelectee( Client* client, Agent* agent, int conn_socket );
+	ScriptSelectee( ScriptClient* client, Agent* agent, int conn_socket );
 	int NotifyOfSelection();
 
 protected:
-	Client* script_client;
+	ScriptClient* script_client;
 	Agent* script_agent;
 	int connection_socket;
 	};
@@ -147,24 +170,6 @@ protected:
 	};
 
 
-// A special type of Client used for script clients.  It overrides
-// FD_Change() to create or delete ScriptSelectee's as needed.
-class ScriptClient : public Client {
-public:
-	ScriptClient( int& argc, char** argv );
-
-	// Inform the ScriptClient as to which selector and agent
-	// it should use for getting and propagating events.
-	void SetInterface( Selector* selector, Agent* agent );
-
-protected:
-	void FD_Change( int fd, int add_flag );
-
-	Selector* selector;
-	Agent* agent;
-	};
-
-
 // A special type of Agent used for script clients; when it receives
 // an event, it propagates it via the ScriptClient object.
 class ScriptAgent : public Agent {
@@ -175,7 +180,7 @@ public:
 			int /* is_request */, int /* log */ )
 		{
 		Value* event_val = BuildEventValue( args, 1 );
-		client->PostEvent( event_name, event_val );
+		client->PostEvent( event_name, event_val, client->LastContext() );
 		Unref( event_val );
 		return 0;
 		}
@@ -1715,7 +1720,7 @@ int AcceptSelectee::NotifyOfSelection()
 	}
 
 
-ScriptSelectee::ScriptSelectee( Client* client, Agent* agent, int conn_socket )
+ScriptSelectee::ScriptSelectee( ScriptClient* client, Agent* agent, int conn_socket )
     : Selectee( conn_socket )
 	{
 	script_client = client;
@@ -1731,6 +1736,7 @@ int ScriptSelectee::NotifyOfSelection()
 	FD_SET( connection_socket, &fd_mask );
 
 	GlishEvent* e = script_client->NextEvent( &fd_mask );
+	script_client->AddEventSources();
 
 	if ( ! e )
 		{
@@ -1845,7 +1851,7 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv ) : Client( argc, argv )
+ScriptClient::ScriptClient( int& argc, char** argv ) : Client( argc, argv, 1 )
 	{
 	selector = 0;
 	agent = 0;
@@ -1855,13 +1861,31 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
 	agent = a;
+	AddEventSources();
+	}
+
+void ScriptClient::AddEventSources()
+	{
 	int read_fd = fileno( stdin );
+	int got_src = 0;
+
+	if ( event_src_list.length() == event_sources.length() )
+		return;
+
 	loop_over_list( event_sources, i )
 		{
 		if ( ! strcmp( event_sources[i]->Context().id(), interpreter_tag ) )
-			read_fd = event_sources[i]->Read_FD();
+			got_src++;
+		if ( ! event_src_list.is_member((char*)event_sources[i]->Context().id()) )
+			{
+			selector->AddSelectee( new ScriptSelectee( this, agent, event_sources[i]->Read_FD() ) );
+			event_src_list.append(strdup(event_sources[i]->Context().id()));
+			}
 		}
-	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
+
+	if ( ! got_src )
+		selector->AddSelectee( new ScriptSelectee( this, agent, fileno( stdin ) ) );
+
 	}
 
 void ScriptClient::FD_Change( int fd, int add_flag )

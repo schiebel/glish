@@ -10,6 +10,8 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include "Channel.h"
+#include "Sequencer.h"
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
