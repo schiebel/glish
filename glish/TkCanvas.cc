@@ -146,19 +146,22 @@ static TkAgent *InvalidNumberOfArgs( int num )
 			var = var##_char_;				\
 			}
 
-#define EXPRINT(var,EVENT)                                              \
+#define EXPRINTVAL(var,EVENT)                                           \
         Expr *var##_expr_ = (*args)[c++]->Arg();                        \
-        const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();         \
-        int var = 0;                                                    \
-        if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
-                var##_val_ ->Length() <= 0 )                            \
+        const IValue *var = var##_expr_ ->ReadOnlyEval();               \
+	const IValue *var##_val_ = var;					\
+        if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )      \
                 {                                                       \
                 error->Report("bad value for ", EVENT);                 \
-                var##_expr_ ->ReadOnlyDone(var##_val_);                 \
+                var##_expr_ ->ReadOnlyDone(var);                        \
                 return 0;                                   		\
-                }                                                       \
-        else                                                            \
-                var = var##_val_ ->IntVal();
+                }
+
+#define EXPRINT(var,EVENT)                                              \
+        int var = 0;                                                    \
+	EXPRINTVAL(var##_val_,EVENT)                                    \
+	Expr *var##_expr_ = var##_val__expr_;				\
+        var = var##_val_ ->IntVal();
 
 
 #define EXPRINT2(var,EVENT)						\
@@ -220,6 +223,99 @@ CLASS::~CLASS( )					\
 
 DEFINE_DTOR(TkCanvas)
 
+//
+// These variables are made file static to allow them to be shared by
+// the canvas functions. This was done to minimize allocations.
+//
+static int argv_len = 64;
+static char **arg_name = new char*[argv_len];
+static char **arg_val = new char*[argv_len];
+static char **argv = new char*[argv_len];
+
+#define CANVAS_FUNC_REALLOC(size)							\
+	if ( size >= argv_len )								\
+		{									\
+		while ( size >= argv_len ) argv_len *= 2;				\
+		arg_name = (char**) realloc( arg_name, argv_len * sizeof(char*) );	\
+		arg_val = (char**) realloc( arg_val, argv_len * sizeof(char*) );	\
+		argv = (char**) realloc( argv, argv_len * sizeof(char*) );		\
+		}
+
+IValue *glishtk_StrToInt( char *str )
+	{
+	int i = atoi(str);
+	return new IValue( i );
+	}
+
+char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one int list function";
+	HASARG( args, >= 1 )
+	int len = args->length() < howmany ? args->length() : howmany;
+	CANVAS_FUNC_REALLOC(len+2)
+	static char buff[128];
+	int argc = 0;
+
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	int c = 0;
+	for ( int i=0; i < len; i++ )
+		{
+		EXPRINT( v, event_name )
+		sprintf(buff,"%d",v);
+		argv[argc++] = strdup(buff);
+		EXPR_DONE( v )
+		}
+
+	rivet_cmd( self, argc, argv );
+	ret = (char*) self->interp->result;
+
+	for ( int x=0; x < len; x++ )
+		delete argv[x + 2];
+
+	return ret;
+	}
+
+char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
+				int howmany, parameter_list *args, int is_request, int log )
+	{
+	char *event_name = "tag function";
+	if ( args->length() <= 0 )
+		return 0;
+	CANVAS_FUNC_REALLOC(5)
+	int c = 0;
+	EXPRSTRVAL(str_v, event_name)
+	int argc = 0;
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	argv[argc++] = (char*)(str_v->StringPtr()[0]);
+	if ( subcmd )
+		argv[argc++] = (char*) subcmd;
+	if ( str_v->Length() > 1 && str_v->Length() >= howmany )
+		for ( int i=1; i < str_v->Length(); i++ )
+			{
+			argv[argc] = (char*)(str_v->StringPtr()[i]);
+			rivet_cmd(self, argc+1, argv);
+			}
+	else if ( args->length() > 1 && args->length() >= howmany )
+		{
+		for (int i=c; i < args->length(); i++)
+			{
+			EXPRSTR(str, event_name)
+			argv[argc] = (char*)str;
+			rivet_cmd(self, argc+1, argv);
+			EXPR_DONE(str)
+			}
+		}
+	else if ( howmany == 1 )
+		rivet_cmd( self, argc, argv );
+
+	EXPR_DONE(str_v)
+	return 0;
+	}
+
 char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, parameter_list *args,
 				int is_request, int log )
 	{
@@ -229,24 +325,11 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	char *event_name = "one string + n int function";
 	TkCanvas *agent = (TkCanvas*)agent_;
 	HASARG( args, > 0 )
-	static int argv_len = 64;
-	static char **arg_name = new char*[argv_len];
-	static char **arg_val = new char*[argv_len];
-	static char **argv = new char*[argv_len];
 	static char tag[256];
 	static int tagstr_len = 512;
 	static char *tagstr = new char[tagstr_len];
 	int tagstr_cnt = 0;
 	int name_cnt = 0;
-
-#define POINTFUNC_REALLOC(size)								\
-	if ( size >= argv_len )								\
-		{									\
-		while ( size >= argv_len ) argv_len *= 2;				\
-		arg_name = (char**) realloc( arg_name, argv_len * sizeof(char*) );	\
-		arg_val = (char**) realloc( arg_val, argv_len * sizeof(char*) );	\
-		argv = (char**) realloc( argv, argv_len * sizeof(char*) );		\
-		}
 
 	tagstr[0] = '\0';
 	int c = 0;
@@ -259,7 +342,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		{
 	        c = 0;
 		elements = (*args).length();
-		POINTFUNC_REALLOC(elements*2+argc+2)
+		CANVAS_FUNC_REALLOC(elements*2+argc+2)
 
 #define POINTFUNC_TAG_APPEND(STR)					\
 if ( tagstr_cnt+strlen(STR)+5 >= tagstr_len )				\
@@ -307,7 +390,7 @@ else								\
 		{
 		rows = shape_val->IntVal();
 		elements = rows*2;
-		POINTFUNC_REALLOC( elements+argc+2+(*args).length()*2 )
+		CANVAS_FUNC_REALLOC( elements+argc+2+(*args).length()*2 )
 		Value *newval = copy_value(val);
 		newval->Polymorph(TYPE_INT);
 		int *ip = newval->IntPtr();
@@ -332,7 +415,7 @@ else								\
 		{
 		Value *newval = copy_value(val);
 		elements = val->Length();
-		POINTFUNC_REALLOC(elements+argc+2+(*args).length()*2)
+		CANVAS_FUNC_REALLOC(elements+argc+2+(*args).length()*2)
 		newval->Polymorph(TYPE_INT);
 		int *ip = newval->IntPtr();
 		int i;
@@ -640,10 +723,13 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 
 	procs.Insert("height", new TkProc("-height", glishtk_onedim));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
+	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("rectangle", new TkProc(this, "create", "rectangle", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
@@ -651,6 +737,10 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
 	procs.Insert("frame", new TkProc(this, "", glishtk_canvas_frame, glishtk_tkcast));
 	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist));
+	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
+	procs.Insert("tagabove", new TkProc("addtag","above", 2, glishtk_canvas_tagfunc));
+	procs.Insert("tagbelow", new TkProc("addtag","below", 2, glishtk_canvas_tagfunc));
+	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
 	}
 
 unsigned long TkCanvas::ItemCount(const char *name) const

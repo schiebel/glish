@@ -362,7 +362,7 @@ char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_
 	HASARG( args, >= howmany )
 	static int len = 4;
 	static char *buf = new char[len*128];
-	char *ptr = buf;
+	static char elem[128];
 
 	if ( ! howmany )
 		howmany = args->length();
@@ -377,10 +377,10 @@ char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_
 	for ( int x=0; x < howmany; x++ )
 		{
 		EXPRINT( v, event_name )
-		ptr += sprintf(ptr,"%d ",v);
+		sprintf(elem,"%d ",v);
+		strcat(buf,elem);
 		EXPR_DONE( v )
 		}
-	*--ptr = '\0';
 
 	ret = (char*) rivet_set( self, (char*) cmd, buf );
 	return ret;
@@ -667,8 +667,12 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 			val = (*aproc)(agent, cmdstr, arg, x, y);
 		else if ( aproc2 && agent )
 			val = (*aproc2)(agent, cmdstr, param, arg, x, y);
+		else if ( aproc3 && agent )
+			val = (*aproc3)(agent, cmdstr, param, param2, arg, x, y);
 		else if ( iproc )
 			val = (*iproc)(s, cmdstr, i, arg, x, y);
+		else if ( iproc1 )
+			val = (*iproc1)(s, cmdstr, param, i, arg, x, y);
 		else
 			return error_ivalue();
 
