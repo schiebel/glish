@@ -99,7 +99,7 @@ await_type::await_type( await_type &o )
 	only_ = o.only_;
 	dict_ = o.dict_;
 	o.dict_ = 0;
-	task_ = o.task_;
+	agent_ = o.agent_;
 	name_ = o.name_;
 	}
 
@@ -111,7 +111,7 @@ void await_type::operator=( await_type &o )
 	if ( dict_ ) delete_agent_dict( dict_ );
 	dict_ = o.dict_;
 	o.dict_ = 0;
-	task_ = o.task_;
+	agent_ = o.agent_;
 	name_ = o.name_;
 	}
 
@@ -123,7 +123,7 @@ void await_type::set( )
 	if ( dict_ ) delete_agent_dict( dict_ );
 	dict_ = 0;
 	// request/reply members
-	task_ = 0;
+	agent_ = 0;
 	name_ = 0;
 	}
 
@@ -132,7 +132,7 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 	stmt_ = s;
 	except_ = e;
 	only_ = o;
-	task_ = 0;
+	agent_ = 0;
 	name_ = 0;
 
 	if ( dict_ ) delete_agent_dict( dict_ );
@@ -165,9 +165,9 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 		}
 	}
 
-void await_type::set( Task *t, const char *n )
+void await_type::set( Agent *a, const char *n )
 	{
-	task_ = t;
+	agent_ = a;
 	name_ = n;
 	stmt_ = 0;
 	except_ = 0;
@@ -2372,7 +2372,7 @@ void Sequencer::UnhandledFail( const IValue *val )
 char* Sequencer::RegisterTask( Task* new_task )
 	{
 	char buf[128];
-	sprintf( buf, "task%d", ++last_task_id );
+	sprintf( buf, "<task:%d>", ++last_task_id );
 
 	char* new_ID = strdup( buf );
 
@@ -2683,14 +2683,14 @@ void Sequencer::PagerOutput( char *string, char **argv )
 	}
 
 
-IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
+IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 				const char* reply_name )
 	{
 	int removed_yyin = 0;
 
 	PushAwait( );
 
-	await.set( task, reply_name );
+	await.set( agent, reply_name );
 
 	if ( yyin && isatty( fileno( yyin ) ) &&
 	     selector->FindSelectee( fileno( yyin ) ) )
@@ -2713,7 +2713,7 @@ IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 
 	if ( ! last_reply )
 		{
-		warn->Report( task, " terminated without replying to ",
+		warn->Report( agent, " terminated without replying to ",
 				event_name, " request" );
 		result = error_ivalue();
 		}
@@ -2895,6 +2895,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 
 	const char* event_name = event->name;
 	IValue* value = (IValue*)event->value;
+	Agent *agent = task;
 
 	if ( verbose > 0 )
 		message->Report( name, ": received event ",
@@ -2903,7 +2904,49 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	if ( monitor_task && task != monitor_task )
 		LogEvent( task->TaskID(), task->Name(), event_name, value, 1 );
 
-	if ( ! strcmp( event_name, "established" ) )
+	if ( event->IsProxy() )
+		{
+		if ( ! strcmp( event_name, "*proxy-id*" ) )
+			{
+			IValue *result = new IValue(NewObjId( ));
+			task->SendEvent( event_name, result );
+			Unref(result);
+			}
+		else if ( value->Type() == TYPE_RECORD )
+			{
+			const IValue *nid = 0;
+			const IValue *nval = 0;
+			if ( (nval = (IValue*)value->HasRecordElement("*proxy-create*")) &&
+			     nval->Type() == TYPE_DOUBLE )
+				{
+				ProxyTask *pxy = new ProxyTask(nval->DoubleVal(), task, this);
+				event->SetValue( (Value*)(value = pxy->AgentRecord()) );
+				complain_if_no_interest = 1;
+				}
+			else if ( (nval = (IValue*)value->HasRecordElement("value")) &&
+				  (nid = (IValue*)value->HasRecordElement("id")) &&
+				  nid->Type() == TYPE_DOUBLE )
+				{
+				double id = nid->DoubleVal();
+				ProxyTask *pxy = task->FetchProxy(id);
+				if ( pxy )
+					{
+					event->SetValue((Value*)copy_value(nval));
+					agent = pxy;
+					}
+				else
+					error->Report( "bad proxy identifier" );
+
+				complain_if_no_interest = 1;
+				}
+			else
+				complain_if_no_interest = 1;
+			}
+		else
+			complain_if_no_interest = 1;
+		}
+
+	else if ( ! strcmp( event_name, "established" ) )
 		{
 		// We already did the SetActive() when the channel
 		// was established.
@@ -2924,16 +2967,10 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	else if ( ! strcmp( event_name, "*forward*" ) )
 		ForwardEvent( event_name, value );
 
-	else if ( ! strcmp( event_name, "*proxy-id*" ) )
-		{
-		IValue *result = new IValue(NewObjId( ));
-		task->SendEvent( event_name, result );
-		Unref(result);
-		}
 	else
 		complain_if_no_interest = 1;
 
-	if ( NewEvent( (Agent*) task, event, complain_if_no_interest, t ) )
+	if ( NewEvent( agent, event, complain_if_no_interest, t ) )
 		{
 		pending_task = task;
 
@@ -2954,7 +2991,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	{
 	if ( await.stmt() && agent->HasRegisteredInterest( await.stmt(), event_name ) )
 		selector->AwaitDone();
-	else if ( await.task() && await.task() == agent->AgentTask() && ! strcmp( await.name(), event_name ) )
+	else if ( await.agent() && await.agent() == agent->AgentTask() && ! strcmp( await.name(), event_name ) )
 		selector->AwaitDone();
 	}
 
@@ -2966,7 +3003,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	if ( await.active() )						\
 		{							\
 		/* request/reply takes precedence */			\
-		if ( await.task() && await.task() == agent->AgentTask() && \
+		if ( await.agent() && await.agent() == agent->AgentTask() && \
 		     ! strcmp( await.name(), event_name ) )		\
 			{						\
 			await_finished = 1;				\
@@ -3001,7 +3038,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	if ( ignore_event )						\
 		warn->Report( "event ", agent->Name(), ".", event_name,	\
 			      " ignored due to \"await\"" );		\
-	else if ( ! await.task() || ! await_finished )			\
+	else if ( ! await.agent() || ! await_finished )			\
 		{							\
 		/* We're going to want to keep the event value as a */	\
 		/* field in the agent's AgentRecord.                */	\

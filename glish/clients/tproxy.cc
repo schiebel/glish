@@ -14,21 +14,26 @@ ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { }
 void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
 	{
 	ProxyA *np = new ProxyA( s );
-	cerr << "(1a)--> " << np->Id() << endl;
 	np->SendCtor("newtp");
-	cerr << "(1b)--> " << np->Id() << endl;
 	}
 
 void ProxyA::ProcessEvent( const char *name, const Value *val )
 	{
-	cerr << "(2)--> " << name << endl;
+	if ( ReplyPending() )
+		Reply( val );
+	else
+		{
+		char buf[1024];
+		sprintf(buf, "ProxyA_%s", name);
+		PostEvent( buf, val );
+		}
 	}
 
 int main( int argc, char** argv )
 	{
 	ProxyStore stor( argc, argv );
 
-	stor.Register( "create-a", ProxyA::Create );
+	stor.Register( "maka", ProxyA::Create );
 
 	stor.Loop();
 	}

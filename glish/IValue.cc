@@ -1855,7 +1855,7 @@ char *IValue::GetNSDesc( ) const
 	{
 	glish_type type = Type();
 	if ( type == TYPE_AGENT )
-		return strdup( "<agent>" );
+		return strdup( AgentVal()->AgentID() );
 	if ( type == TYPE_FUNC )
 		return strdup( "<function>" );
 	return 0;

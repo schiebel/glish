@@ -118,8 +118,8 @@ Task::~Task()
 	Unref( selector );
 	}
 
-IValue* Task::SendEvent( const char* event_name, IValue *event_val,
-			int is_request, int log )
+IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
+			int is_request, int log, double proxy_id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
@@ -142,13 +142,23 @@ IValue* Task::SendEvent( const char* event_name, IValue *event_val,
 			return error_ivalue();
 		}
 
+	if ( proxy_id != 0.0 )
+		{
+		recordptr rec = create_record_dict( );
+		rec->Insert(strdup("id"), new IValue(proxy_id));
+		rec->Insert(strdup("value"), event_val);
+		event_val = new IValue(rec);
+		}
+
 	if ( ! channel )
 		{
 		if ( ! pending_events )
 			pending_events = new glish_event_list;
 
-		GlishEvent* e = new GlishEvent( strdup( event_name ),
-						copy_value( event_val ) );
+		GlishEvent *e = new GlishEvent( strdup(event_name), copy_value(event_val) );
+
+		if ( proxy_id != 0.0 )
+			e->SetIsProxy( );
 		if ( is_request )
 			e->SetIsRequest();
 
@@ -179,6 +189,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *event_val,
 
 			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
+			if ( proxy_id != 0.0 ) e.SetIsProxy( );
 			sendEvent( sink, &e, 0 );
 
 			result = sequencer->AwaitReply( this, event_name,
@@ -189,6 +200,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *event_val,
 		else
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
+			if ( proxy_id != 0.0 ) e.SetIsProxy( );
 			sendEvent( sink, &e );
 			}
 		}
@@ -197,18 +209,24 @@ IValue* Task::SendEvent( const char* event_name, IValue *event_val,
 	}
 
 IValue* Task::SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log )
+			int is_request, int log, double id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
 
 	IValue* event_val = BuildEventValue( args, 1 );
 
-	IValue* result = SendEvent( event_name, event_val, is_request, log );
+	IValue* result = SendEvent( event_name, event_val, is_request, log, id );
 
 	Unref( event_val );
 
 	return result;
+	}
+
+IValue *Task::SendEvent( const char* event_name, parameter_list* args,
+			int is_request, int log )
+	{
+	return SendEvent( event_name, args, is_request, log, 0.0 );
 	}
 
 void Task::SetChannel( Channel* c, Selector* s )
@@ -1023,6 +1041,13 @@ void Task::sendEvent( sos_sink &fd, const char* event_name,
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
+ProxyTask *Task::FetchProxy( double id )
+	{
+	loop_over_list( ptlist, i )
+		if ( ptlist[i]->Id() == id )
+			return ptlist[i];
+	return 0;
+	}
 
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend )
@@ -1030,6 +1055,26 @@ void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 	sos_status *ss = send_event( fd, event_name, e, can_suspend );
 	if ( ss )
 		sequencer->SendSuspended( ss, copy_value(e->value) );
+	}
+
+ProxyTask::ProxyTask( double id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_)
+	{
+	char buf[128];
+	sprintf(buf, "<proxy:%d>", (int) id);
+	agent_ID = strdup(buf);
+	task->RegisterProxy(this);
+	}
+
+ProxyTask::~ProxyTask( )
+	{
+	task->UnregisterProxy(this);
+	if ( agent_ID ) free_memory((char*)agent_ID);
+	}
+
+IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
+				int is_request, int log )
+	{
+	return task->SendEvent( event_name, args, is_request, log, id );
 	}
 
 int same_host( Task* t1, Task* t2 )

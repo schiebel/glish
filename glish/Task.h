@@ -12,9 +12,13 @@
 class Channel;
 class Selector;
 class GlishEvent;
+class ProxyTask;
 
 glish_declare(PList,GlishEvent);
 typedef PList(GlishEvent) glish_event_list;
+
+glish_declare(PList,ProxyTask);
+typedef PList(ProxyTask) proxytask_list;
 
 
 class TaskAttr {
@@ -58,9 +62,11 @@ class Task : public Agent {
 	// Send an event with the given name and associated values
 	// to the associated task.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request=0, int log=0 );
-	IValue* SendEvent( const char* event_name, IValue *event_val,
-			int is_request=0, int log=0 );
+			int is_request, int log );
+	IValue* SendEvent( const char* event_name, parameter_list* args,
+			int is_request, int log, double proxy_id );
+	IValue* SendEvent( const char* event_name, IValue *&event_val,
+			int is_request=0, int log=0, double id=0.0 );
 
 	void SetActive()	{ SetActivity( 1 ); }
 	void SetDone()		{ SetActivity( 0 );
@@ -92,6 +98,12 @@ class Task : public Agent {
 		sendEvent( fd, &e, can_suspend );
 		}
 
+	void RegisterProxy( ProxyTask *p )
+		{ if ( ! ptlist.is_member(p) ) ptlist.append( p ); }
+	void UnregisterProxy( ProxyTask *p )
+		{ ptlist.remove(p); }
+	ProxyTask *FetchProxy( double id );
+
     protected:
 	// Creates and returns an argv vector with room for num_args arguments.
 	// The program name and any additional, connection-related arguments
@@ -122,6 +134,8 @@ class Task : public Agent {
 	int active;
 
 	int protocol;	// which protocol the client speaks, or 0 if not known
+
+	proxytask_list ptlist;
 
 	// Pipes used for local connections.
 	int pipes_used;
@@ -200,6 +214,20 @@ class CreateTaskBuiltIn : public BuiltIn {
 	Sequencer* sequencer;
 	TaskAttr* attrs;	// attributes for task currently being created
 	};
+
+class ProxyTask : public Agent {
+    public:
+	ProxyTask( double id_, Task *t, Sequencer *s );
+	~ProxyTask( );
+
+	IValue* SendEvent( const char* event_name, parameter_list* args,
+				int is_request, int log );
+
+	double Id() const { return id; }
+    private:
+	Task *task;
+	double id;
+};
 
 
 // True if both tasks are executing on the same host.

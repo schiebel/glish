@@ -75,10 +75,12 @@ double ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
 
-	PostEvent( PXGETID, v );
+	GlishEvent e( (const char*) PXGETID, (const Value*) v );
+	e.SetIsProxy( );
+	PostEvent( &e );
 	GlishEvent *reply = NextEvent( );
 
-	if ( ! reply || ! reply->Val()->Type() == TYPE_DOUBLE )
+	if ( ! reply || reply->Val()->Type() != TYPE_DOUBLE )
 		{
 		Error( "problem getting ID" );
 		return 0.0;

@@ -59,6 +59,9 @@ public:
 	void SetIsProxy();
 	void SetFlags( unsigned char new_flags ) { flags = new_flags; }
 
+	void SetValue( Value *v );
+	void SetValue( const Value *v );
+
 	// These are public for historical reasons.
 	const char* name;
 	Value* value;

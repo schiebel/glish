@@ -189,6 +189,22 @@ void GlishEvent::SetIsProxy()
 	flags |= GLISH_PROXY_EVENT;
 	}
 
+void GlishEvent::SetValue( Value *v )
+	{
+	if ( delete_value )
+		Unref( (Value*) value );
+	value = v;
+	delete_value = 1;
+	}
+
+void GlishEvent::SetValue( const Value *v )
+	{
+	if ( delete_value )
+		Unref( (Value*) value );
+	value = v;
+	delete_value = 0;
+	}
+
 
 class EventLink {
 public:
@@ -1354,6 +1370,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 
 	const char* name = e->name;
 	const Value* value = e->value;
+	unsigned char flags = e->Flags();
 
 	if ( ! have_interpreter_connection || streq( context.id(), "*stdio*" ) )
 		{
@@ -1381,6 +1398,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
  /**!!LOOK!!**/			static sos_fd_sink sink;
 				sink.setFd(el->FD());
 				GlishEvent e( el->Name(), value );
+				e.SetFlags(flags);
 				send_event( sink, &e );
 				did_send = 1;
 				}
@@ -1400,7 +1418,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 		    event_sources[j]->Sink().fd() >= 0 )
 			{
 			GlishEvent e( name, value );
-
+			e.SetFlags(flags);
 			send_event( event_sources[j]->Sink(), &e );
 			return; // should only be one match
 			}

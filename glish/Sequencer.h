@@ -233,14 +233,14 @@ class EnvHolder {
 class await_type {
     public:
 	await_type() : stmt_(0), except_(0), only_(0), dict_(0),
-		       task_(0), name_(0) { }
+		       agent_(0), name_(0) { }
 	await_type( await_type &o );
 	~await_type( ) { set( ); }
 	void operator=( await_type &o );
-	int active( ) { return stmt_ || task_ ? 1 : 0; }
+	int active( ) { return stmt_ || agent_ ? 1 : 0; }
 	void set( );
 	void set( Stmt *s, Stmt *e, int o );
-	void set( Task *t, const char *n );
+	void set( Agent *a, const char *n );
 
 	// await statement members
 	Stmt *stmt() { return stmt_; }
@@ -249,14 +249,14 @@ class await_type {
 	agent_dict *dict() { return dict_; }
 
 	// request/reply members
-	Task *task( ) { return task_; }
+	Agent *agent( ) { return agent_; }
 	const char *name( ) { return name_; }
     private:
 	Stmt *stmt_;
 	Stmt *except_;
 	int only_;
 	agent_dict *dict_;
-	Task *task_;
+	Agent *agent_;
 	const char *name_;
 };
 
@@ -418,7 +418,7 @@ public:
 
 	// Wait for a reply to the given event to arrive on the given
 	// channel and return its value.
-	IValue* AwaitReply( Task* task, const char* event_name,
+	IValue* AwaitReply( Agent* agent, const char* event_name,
 				const char* reply_name );
 
 	// In sending an event, the sending was discontinued. Most likely
