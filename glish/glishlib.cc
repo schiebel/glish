@@ -155,3 +155,4 @@ void report_error( const char * /*file*/, int /*line*/,
 
 
 
+void show_glish_stack( ostream& ) { }

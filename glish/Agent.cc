@@ -231,7 +231,7 @@ void Agent::DescribeSelf( ostream& s ) const
 IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	{
 	if ( args->length() == 0 )
-		return error_ivalue();
+		return false_ivalue();
 
 	if ( args->length() == 1 )
 		{

@@ -12,6 +12,8 @@ RCSID("@(#) $Id$")
 int interactive = 0;
 extern Str *file_name;
 
+extern void show_glish_stack( ostream& );
+
 class WarningReporter : public Reporter {
     public:
 	WarningReporter() : Reporter( cerr )	{ }
@@ -257,6 +259,7 @@ void ErrorReporter::Prolog()
 
 void FatalReporter::Prolog()
 	{
+	show_glish_stack( stream );
 	Reporter::Prolog();
 	stream << "fatal internal error, ";
 	}

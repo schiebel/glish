@@ -74,22 +74,32 @@ int shutting_glish_down = 0;
 stack_type::stack_type( )
 	{
 	frames = new frame_list;
+	flen = -1;
 	offsets = new offset_list;
+	olen = -1;
+	delete_on_spot = 0;
 	}
 
-stack_type::stack_type(const stack_type &other)
+stack_type::stack_type( const stack_type &other, int clip )
 	{
 	frames = new frame_list;
 	offsets = new offset_list;
-	for ( int i = 0; i < other.frames->length(); i++ )
+
+	int len = clip && other.flen >= 0 ? other.flen : other.frames->length();
+	for ( int i = 0; i < len; i++ )
 		{
 		Frame *n = (*other.frames)[i];
 		if (n) Ref(n);
 		frames->append(n);
 		}
+	flen = len;
 
-	for ( LOOPDECL i = 0; i < other.offsets->length(); i++ )
+	len = clip && other.olen >= 0 ? other.olen : other.offsets->length();
+	for ( LOOPDECL i = 0; i < len; i++ )
 		offsets->append((*other.offsets)[i]);
+	olen = len;
+
+	delete_on_spot = 0;
 	}
 
 stack_type::~stack_type( )
@@ -976,6 +986,11 @@ void Sequencer::SetErrorResult( IValue *err )
 	cur_sequencer->error_result = err;
 	}
 
+const Sequencer *Sequencer::CurSeq ( )
+	{
+	return cur_sequencer;
+	}
+
 const IValue *Sequencer::LookupVal( const char *id )
 	{
 	Expr *expr = 0;
@@ -1020,33 +1035,37 @@ void Sequencer::DeleteVal( const char* id )
 
 void Sequencer::DescribeFrames( ostream& s ) const
 	{
-	if ( frames().length() )
+	loop_over_list( stack, X )
 		{
-		s << "frames:\t\t";
-		loop_over_list(frames(), i)
-			if ( frames()[i] )
-				s << (void*) frames()[i] << "\t";
-			else
-			  	s << "X" << "\t\t";
-		s << endl;
+		stack_type *S = stack[X];
+		s << "[" << X << "]" << (void*) s;
+		if ( (*S->frames).length() )
+			{
+			s << "\tframes:\t\t";
+			loop_over_list((*S->frames), i)
+				if ( (*S->frames)[i] )
+					s << (void*) (*S->frames)[i] << "\t";
+				else
+				  	s << "X" << "\t\t";
+			s << endl;
 
-		s << "\t\t";
-		loop_over_list(frames(), j)
-			if ( frames()[j] )
-				s << frames()[j]->Size() << "\t\t";
-			else
-			  	s << "X" << "\t\t";
-		s << endl;
-		}
-	if ( global_frames().length() )
-		{
-		s << "offsets:\t";
-		loop_over_list(global_frames(), i)
-			s << global_frames()[i] << "\t\t";
-		s << endl;
+			s << "\t\t\t\t";
+			loop_over_list((*S->frames), j)
+				if ( (*S->frames)[j] )
+					s << (*S->frames)[j]->Size() << "\t\t";
+				else
+				  	s << "X" << "\t\t";
+			s << endl;
+			}
+		if ( (*S->offsets).length() )
+			{
+			s << "\t\toffsets:\t";
+			loop_over_list((*S->offsets), i)
+				s << (*S->offsets)[i] << "\t\t";
+			s << endl;
+			}
 		}
 	}
-
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{
@@ -1059,7 +1078,14 @@ void Sequencer::PushFrame( Frame* new_frame )
 
 void Sequencer::PushFrames( stack_type *new_stack )
 	{
-	stack.append(new_stack);
+	if ( new_stack && new_stack->flen != new_stack->frames->length() )
+		{
+		stack_type *ns = new stack_type( *new_stack, 1 );
+		ns->delete_on_spot = 1;
+		stack.append( ns );
+		}
+	else
+		stack.append(new_stack);
 	}
 
 Frame* Sequencer::PopFrame( )
@@ -1086,7 +1112,9 @@ Frame* Sequencer::PopFrame( )
 
 void Sequencer::PopFrames( )
 	{
-	stack.remove_nth(stack.length()-1);
+	stack_type *ns = stack.remove_nth(stack.length()-1);
+	if ( ns->delete_on_spot )
+		delete ns;
 	}
 
 Frame* Sequencer::CurrentFrame()
@@ -1122,7 +1150,7 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 			if ( gs_off >= 0 )
 				offset += global_frames()[gs_off];
 
-			if ( offset < 0 || offset >= frames().length() )
+			if ( offset < 0 || offset >= frames().length() || ! frames()[offset] )
 				fatal->Report(
 		    "local frame error in Sequencer::FrameElement (",
 		    scope_offset, ",", gs_off ? global_frames()[gs_off] : -1,
@@ -1843,6 +1871,14 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 		{
 		error->Report( "syntax errors parsing input" );
 		SetErrorResult( ret );
+		if ( stmts )
+			{
+			stmt_list del;
+			stmts->CollectUnref(del);
+			loop_over_list( del, i )
+				NodeUnref( del[i] );
+			stmts = 0;
+			}
 		}
 	else
 		ret = Exec( 1, value_needed );
@@ -1913,6 +1949,9 @@ IValue *Sequencer::Include( const char *file )
 	void *new_buf = new_flex_buffer( fptr );
 	int is_interactive = interactive;
 	set_flex_buffer(new_buf);
+	int old_line_num = line_num;
+	line_num = 0;
+
 
 	error->SetCount(0);
 	interactive = 0;
@@ -1938,6 +1977,7 @@ IValue *Sequencer::Include( const char *file )
 		stmts = 0;
 		}
 
+	line_num = old_line_num;
 	file_name = old_file_name;
 	clear_error();
 	error->SetCount(0);

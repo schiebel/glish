@@ -88,11 +88,14 @@ typedef PList(Frame) frame_list;
 typedef List(int) offset_list;
 
 struct stack_type : GlishRef {
-	stack_type(const stack_type &);
+	stack_type( const stack_type &, int clip = 0 );
 	stack_type( );
 	~stack_type( );
 	frame_list *frames;
+	int flen;
 	offset_list *offsets;
+	int olen;
+	int delete_on_spot;
 };
 
 declare(PList,stack_type);
@@ -124,6 +127,7 @@ public:
 	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
+	static const Sequencer *CurSeq( );
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
 	static const IValue *LookupVal( const char *id );

@@ -785,34 +785,36 @@ IValue *glishtk_strtobool( char *str )
 	}
 
 IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
-		{
-		char *val = 0;
-		if ( proc )
-			val = (*proc)(s,cmdstr,arg,x,y);
-		else if ( proc1 )
-			val = (*proc1)(s,cmdstr,param,arg,x,y);
-		else if ( proc2 )
-			val = (*proc2)(s,cmdstr,param,param2,arg,x,y);
-		else if ( fproc && frame )
-			val = (frame->*fproc)( arg, x, y );
-		else if ( aproc && agent )
-			val = (*aproc)(agent, cmdstr, arg, x, y);
-		else if ( aproc2 && agent )
-			val = (*aproc2)(agent, cmdstr, param, arg, x, y);
-		else if ( aproc3 && agent )
-			val = (*aproc3)(agent, cmdstr, param, param2, arg, x, y);
-		else if ( iproc )
-			val = (*iproc)(s, cmdstr, i, arg, x, y);
-		else if ( iproc1 )
-			val = (*iproc1)(s, cmdstr, param, i, arg, x, y);
-		else
-			return error_ivalue();
+	{
+	char *val = 0;
+	if ( proc )
+		val = (*proc)(s,cmdstr,arg,x,y);
+	else if ( proc1 )
+		val = (*proc1)(s,cmdstr,param,arg,x,y);
+	else if ( proc2 )
+		val = (*proc2)(s,cmdstr,param,param2,arg,x,y);
+	else if ( fproc && frame )
+		val = (frame->*fproc)( arg, x, y );
+	else if ( aproc && agent )
+		val = (*aproc)(agent, cmdstr, arg, x, y);
+	else if ( aproc2 && agent )
+		val = (*aproc2)(agent, cmdstr, param, arg, x, y);
+	else if ( aproc3 && agent )
+		val = (*aproc3)(agent, cmdstr, param, param2, arg, x, y);
+	else if ( iproc )
+		val = (*iproc)(s, cmdstr, i, arg, x, y);
+	else if ( iproc1 )
+		val = (*iproc1)(s, cmdstr, param, i, arg, x, y);
+	else
+		return error_ivalue();
 
-		if ( convert && val )
-			return (*convert)(val);
-		else
-			return new IValue( glish_true );
-		}
+	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
+
+	if ( convert && val )
+		return (*convert)(val);
+	else
+		return new IValue( glish_true );
+	}
 
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{

@@ -226,6 +226,8 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 	return fmt_readline_str( buf, max_size, ret );
 	}
 
+#endif
+
 DEFINE_CREATE_VALUE(IValue)
 
 Value *copy_value( const Value *value )
@@ -376,4 +378,9 @@ void report_error( const char *file, int line,
 		}
 	Sequencer::SetErrorResult( ret );
 	}
-#endif
+
+void show_glish_stack( ostream &s )
+	{
+	Sequencer::CurSeq()->DescribeFrames( s );
+	s << endl;
+	}
