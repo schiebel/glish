@@ -203,7 +203,7 @@ class UserAgent : public Agent {
 
 	int ReflectEvents( ) const { return reflect_events; }
 	int SetReflect( ) { reflect_events = 1; }
-	int ClearReflect( ) { reflect_events = 1; }
+	int ClearReflect( ) { reflect_events = 0; }
 
     protected:
 	int StickyNotes( ) const;
