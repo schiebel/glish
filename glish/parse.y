@@ -457,7 +457,6 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							current_sequencer, $1 );
 
 			$$ = new FuncExpr( ufunc );
-			Ref($$);
 
 			if ( $2 )
 				{
@@ -469,9 +468,10 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							$2, LOCAL_SCOPE );
 
 					IValue* ref = new IValue( ufunc );
-					Ref(ref);
-
 					func->Assign( ref );
+
+					/* keep ufunc from being deleted with $$ */
+					Ref(ufunc);
 					}
 				else
 					{
