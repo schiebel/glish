@@ -1360,6 +1360,14 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 
 	result = new IValue( result, val_type );
 
+	//## After the creation of this last value, the initial "result" has
+	//## a reference count of 2 for TYPE_SUBVEC_REF. Since we want "result"
+	//## to go away when the outer reference is deleted, it is unref()ed
+	//## here. The use of TYPE_SUBVEC_REF should be clarified to see if the
+	//## current behavior is ever necessary.
+	if ( result->Deref()->Type() == TYPE_SUBVEC_REF )
+		Unref(result->Deref());
+
 	Unref( array_ref );
 
 	return result;
