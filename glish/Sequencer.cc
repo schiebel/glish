@@ -2924,7 +2924,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	else if ( ! strcmp( event_name, "*forward*" ) )
 		ForwardEvent( event_name, value );
 
-	else if ( ! strcmp( event_name, "*get-proxy-id*" ) )
+	else if ( ! strcmp( event_name, "*proxy-id*" ) )
 		{
 		IValue *result = new IValue(NewObjId( ));
 		task->SendEvent( event_name, result );

@@ -10,17 +10,11 @@ RCSID("@(#) $Id$")
 //
 //  Generates Events:
 //
-//		o  *get-proxy-id* to get an ID for each proxy
+//		o  *proxy-id* to get an ID for each proxy
 //		o  *proxy-create* to create a proxy in the interpreter
 //
-//  Receives Event
-//
-//		o  *proxy* with record [ name=, value=, id= ]
-//
-
-#define PXGETID		"*get-proxy-id*"
-#define PXCREATE		"*proxy-create*"
-#define PXEVENT		"*proxy*"
+#define PXGETID		"*proxy-id*"
+#define PXCREATE	"*proxy-create*"
 
 class pxy_store_cbinfo {
     public:
@@ -97,7 +91,7 @@ void ProxyStore::Loop( )
 	{
 	for ( GlishEvent* e; (e = NextEvent()); )
 		{
-		if ( ! strcmp( e->Name(), PXEVENT ) )
+		if ( e->IsProxy() )
 			{
 			Value *rval = e->Val();
 			if ( rval->Type() != TYPE_RECORD )
@@ -107,29 +101,24 @@ void ProxyStore::Loop( )
 				}
 
 			const Value *idv = rval->HasRecordElement( "id" );
-			const Value *namev = rval->HasRecordElement( "name" );
 			const Value *val = rval->HasRecordElement( "value" );
-			if ( ! idv || ! namev || ! val || idv->Type() != TYPE_DOUBLE ||
-			     namev->Type() != TYPE_STRING )
+			if ( ! idv || ! val || idv->Type() != TYPE_DOUBLE )
 				{
 				Error( "bad proxy value" );
 				continue;
 				}
 
 			double id = idv->DoubleVal();
-			char *name = namev->StringVal();
 			int found = 0;
 			loop_over_list( pxlist, i )
 				if ( pxlist[i]->Id() == id )
 					{
 					found = 1;
-					pxlist[i]->ProcessEvent( name, val );
+					pxlist[i]->ProcessEvent( e->Name(), val );
 					break;
 					}
 
 			if ( ! found ) Error( "bad proxy id" );
-
-			free_memory( name );
 			}
 		else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
 			(*cbi->cb())( this, e, cbi->data() );
