@@ -200,7 +200,12 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 		}
 
 	if ( ret && ret != this )
-		dl.append( this );
+		{
+		if ( ! dl.is_member(this) )
+			dl.append( this );
+		}
+	else
+		dl.remove( this );
 
 	return ret;
 	}
