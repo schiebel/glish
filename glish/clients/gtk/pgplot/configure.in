@@ -171,38 +171,6 @@ fi
 ])
 
 dnl##
-dnl## Preprocess files
-dnl##
-dnl##   $1 => input file
-dnl##	$2 => output file
-dnl##	$3 => initialization
-dnl##
-AC_DEFUN(PREPROCESS,
-[rm -f $ARCH/preprocess.conf
-
-cat > $ARCH/preprocess.conf <<\EOF
-[#!/bin/sh]
-ifelse($#, 3, [$3], )
-[cat <<'!NO!SUBS!']
-EOF
-
-sed -e "s/^\#FI/!NO!SUBS!\\
-fi\\
-cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
-else\\
-cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][A-Z]*\)/!NO!SUBS!\\
-if test -n \"\$\1\"; then\\
-cat <<'!NO!SUBS!'/" < $1 >> $ARCH/preprocess.conf
-
-cat >> $ARCH/preprocess.conf <<\EOF
-[!NO!SUBS!]
-EOF
-
-rm -f $2
-/bin/sh $ARCH/preprocess.conf > $2
-])
-
-dnl##
 dnl##   This macro takes care of appending things to
 dnl##   the ld search path...
 dnl##
@@ -283,6 +251,7 @@ dnl##--------------------------------------------------------------------
 dnl##
 dnl## Checks for programs.
 dnl##
+AC_PROG_CC
 HAVE_AIX
 HAVE_ALPHA
 AC_C_CONST
@@ -300,6 +269,20 @@ dnl##
 dnl## Checks for libraries or library functions.
 dnl##
 AC_CHECK_LIB(m, main)
+
+dnl##
+dnl## at some point we need to train configure to collect up
+dnl## the pgplot libraries and the misc fortran/f2c/etc
+dnl## libraries/objects that must be linked along with it...
+dnl##
+dnl AC_CHECK_LIB(pgplot, main, [
+dnl   AC_DEFINE(HAVE_LIBPGPLOT)
+dnl   AC_CHECK_LIB(cpgplot, main, [
+dnl     AC_DEFINE(HAVE_LIBCPGPLOT)
+dnl     LIBS="-lcpgplot -lpgplot $LIBS"
+dnl   ])])
+
+AC_CHECK_LIB(dl, dlopen, have_dl=yes; dl_lib="-ldl", have_dl=no; dl_lib="")
 
 dnl##
 dnl## Check for existence of -ldl library.  This is needed because
@@ -673,20 +656,10 @@ dnl##			libraries), then this symbol has an empty string
 dnl##			as its value.
 dnl##	GLISH_SLIB_SUFFIX - the suffix to stick onto all of the shared libraries
 dnl##			which are a part of a given Glish release.
-dnl##	GLISH_LIB_SUFFIX - the suffix to stick onto all of the static libraries
-dnl##			which are a part of a given Glish release.
 dnl##	MAKE_LIB -	Command to execute to build the static library;
 dnl##	MAKE_SLIB -	Command to execute to build the dynamic library
-dnl##	GLISH_LIBS -	The libraries needed to link the Glish interperter
-dnl##			indicated by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
-dnl##	CLIENT_LIBS -	The libraries needed to link a Glish client indicated
-dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
 dnl##	TKCLIENT_LIBS - The libraries needed to link a Glish client indicated
 dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
-dnl##	DYNAMIC_LIB -	'lib_tgt' if dynamic libary should be built, empty otherwise
-dnl##	STATIC_LIB -	'lib_tgt' if static libary should be built, empty otherwise
-dnl##	DYNAMIC_BIN -	'bin_tgt' if dynamic binary should be built, empty otherwise
-dnl##	STATIC_BIN -	'bin_tgt' if static binary should be built, empty otherwise
 dnl##
 dnl##	---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---
 dnl##
@@ -719,7 +692,6 @@ dnl##
 dnl## Set up configuration options based on system name and version.
 dnl##
 GLISH_SLIB_SUFFIX=""
-GLISH_LIB_SUFFIX=""
 LIB_VERSIONS_OK=ok
 SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
@@ -859,7 +831,6 @@ case $host_os in
 	# append a dummy version number to .so file names.
 
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
-	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
 	;;
     nextstep*)
@@ -967,7 +938,6 @@ case $host_os in
 	# So, the library has to have a name like libtcl75.so.1.0
 
 	GLISH_SLIB_SUFFIX='`echo ${VERSION} | tr -d .`.so.1.0'
-	GLISH_LIB_SUFFIX='`echo ${VERSION} | tr -d .`.a'
 	LIB_VERSIONS_OK=nodots
 	;;
     solaris2*)
@@ -978,7 +948,7 @@ case $host_os in
 	    SLIB_CXXFLAGS="-KPIC"
 	else
 	    LDI=""
-	    SLIB_LD="/usr/ccs/bin/ld -G -z text"
+	    SLIB_LD="/usr/ccs/bin/ld -G"
 	    SLIB_CXXFLAGS="-PIC"
 	fi
 	SLIB_LD_LIBS='${LIBS}'
@@ -1030,21 +1000,12 @@ dnl##
 dnl## Include version number or not? For now, not.
 dnl##
 GLISH_SLIB_SUFFIX=$SLIB_SUFFIX
-GLISH_LIB_SUFFIX=".a"
 
 if test "$GLISH_SLIB_SUFFIX" = "" ; then
 if test "$LIB_VERSIONS_OK" = "ok"; then
     GLISH_SLIB_SUFFIX="$VERSION$SLIB_SUFFIX"
 else
     GLISH_SLIB_SUFFIX="`echo $VERSION | tr -d .`$SLIB_SUFFIX"
-fi
-fi
-
-if test "$GLISH_LIB_SUFFIX" = "" ; then
-if test "$LIB_VERSIONS_OK" = "ok"; then
-    GLISH_LIB_SUFFIX="$VERSION.a"
-else
-    GLISH_LIB_SUFFIX="`echo $VERSION | tr -d .`.a"
 fi
 fi
 
@@ -1058,46 +1019,15 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    DYNAMIC_BIN=
-    STATIC_BIN=bin_tgt
-    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
-    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="$TK_LD_SEARCH \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    if test "$do_npd" = "yes"; then
-	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
-	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
-    fi
+    TKCLIENT_LIBS="$TK_LD_SEARCH"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    DYNAMIC_BIN=bin_tgt
-    STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
-    if test "$do_npd" = "yes"; then
-	GLISH_LIBS="$GLISH_LIBS -lnpd"
-	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd"
-    fi
+    TKCLIENT_LIBS="$TK_LD_SEARCH"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
-    if test -n "$DL_LIBS"; then
-	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
-	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
-    fi
-fi
-
-dnl##
-dnl## Are dynamic libraries disabled?
-dnl##
-DYNAMIC_LIB=lib_tgt
-STATIC_LIB=lib_tgt
-if test "$enable_dynamic" != "yes"; then
-    DYNAMIC_LIB=
 fi
 
 dnl## Note:  in the following variable, it's important to use the absolute
@@ -1150,7 +1080,6 @@ AC_MSG_RESULT($SLIB_CXXFLAGS)
 AC_MSG_CHECKING(for shared loader)
 AC_MSG_RESULT($SLIB_LD)
 
-AC_SUBST(GLISH_FLAGS)
 AC_SUBST(LOOPDECL)
 
 AC_SUBST(XINCLUDES)
@@ -1161,8 +1090,6 @@ AC_SUBST(TK_LIB)
 AC_SUBST(TK_INCL)
 AC_SUBST(TK_FLAGS)
 AC_SUBST(DL_LIBS)
-AC_SUBST(NPD_LIB)
-AC_SUBST(BUILD_NPD)
 AC_SUBST(top_off)
 
 
@@ -1173,16 +1100,9 @@ AC_SUBST(SLIB_CFLAGS)
 AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(GLISH_SLIB_SUFFIX)
-AC_SUBST(GLISH_LIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
 
-AC_SUBST(GLISH_LIBS)
-AC_SUBST(CLIENT_LIBS)
 AC_SUBST(TKCLIENT_LIBS)
-AC_SUBST(DYNAMIC_LIB)
-AC_SUBST(STATIC_LIB)
-AC_SUBST(DYNAMIC_BIN)
-AC_SUBST(STATIC_BIN)
 
 AC_OUTPUT($ARCH/Makefile:Makefile.in tkpgplot/$ARCH/Makefile:tkpgplot/Makefile.in)

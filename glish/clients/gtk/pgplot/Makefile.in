@@ -9,11 +9,8 @@ MK_LIB = @MAKE_SLIB@
 TK_LIB = @TK_LIB@
 CLIENT_LIBS = @TKCLIENT_LIBS@
 
-CFLAGS = @TK_FLAGS@ @CFLAGS@
 CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@
-LIB_SUFFIX = @GLISH_LIB_SUFFIX@
 
-CC = @CC@
 CPLUS = @CXX@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -41,34 +38,17 @@ SCRIPTDIR = @SCRIPTDIR@
 
 MKHIER = $(top)/config/mkhier
 
-
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkAgent.o tkCore.o tkCanvas.o malloc.o
-
-RCDIR = @RCDIR@
-TK_LIB = @TK_LIB@ 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
 INCLUDE = -I. -I$(SRC) -I$(GTK_SRC) -I$(GLISH_SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I. -I$(SRC) -I$(GTK_SRC) -I$(GLISH_SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
 OBJS = tkPgplot.o
 
-CLIENTS = $(BINDIR_P)/gtk
-
-INSTALLED_CLIENTS = $(BINDIR)/gtk
-
-SCRIPTS = $(SCRIPTDIR_P)/gtk.g
-
-INSTALLED_SCRIPTS = $(SCRIPTDIR)/gtk.g
-
-TAR_FILE = gtk.tar
-
-all: gPgplot.$(SUFFIX)
+all: gPgplot$(SUFFIX)
 
 make-bindir_p:
 	$(MKHIER) $(BINDIR_P)
@@ -93,13 +73,13 @@ tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(GTK_SRC)/tkAgent.h $(GTK_SRC)
 	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
 	fi
 
-gPgplot.$(SUFFIX): $(OBJS)
-	@if test -d $(SRC)/tkpgplot; then							\
-	    echo $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	else											\
-	    echo $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
-	    $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);			\
+gPgplot$(SUFFIX): $(OBJS)
+	@if test -d $(SRC)/tkpgplot; then						\
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	else										\
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	fi
 
 tar:
@@ -125,9 +105,7 @@ rcsinfo:
 	@cd clients; $(MAKE) $(MFLAGS) rcsinfo
 
 clean:
-	@rm -f $(CLIENT_OBJS) $(CLIENT_OBJS_PROXY) $(INTERP_OBJS) $(INTERP_OBJS_PROXY) \
-			libglishp$(LIB_SUFFIX) libglish$(LIB_SUFFIX) main.o glish errs \
-			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
+	@rm -f $(OBJS) gPgplot$(SUFFIX)
 
 distclean: clean
 	rm -f config.status config.cache config.h config_p.h Makefile

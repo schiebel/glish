@@ -89,15 +89,6 @@ tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
 tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
 
-tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc; \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc;	\
-	else										\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
-	fi
-
 malloc.o: $(GLISH_SRC)/malloc.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
@@ -105,13 +96,7 @@ main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
 gtk: $(OBJS) $(GLISH_LIBS)
-	@if test -d $(SRC)/tkpgplot; then							\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	else											\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);	\
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
-	fi
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);
 
 $(BINDIR_P)/gtk: gtk
 	$(INSTALL_PROGRAM) gtk $(BINDIR_P)
