@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "Glish/Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
@@ -645,20 +646,51 @@ struct glishtk_canvas_bindinfo
 	char *event_name;
 	char *tk_event_name;
 	char *tag;
-	glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
-			canvas(c), event_name(strdup(event)), tk_event_name(strdup(tk_event))
-			{ tag = tag_arg ? strdup(tag_arg) : 0; }
+	glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 );
 	~glishtk_canvas_bindinfo()
 		{
 		free_memory( tag );
 		free_memory( tk_event_name );
 		free_memory( event_name );
 		}
+
+	char *id;
+	static unsigned int bind_count;
 	};
+
+unsigned int glishtk_canvas_bindinfo::bind_count = 0;
+glishtk_canvas_bindinfo::glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
+			canvas(c), event_name(strdup(event)), tk_event_name(strdup(tk_event))
+	{
+	char buf[30];
+	tag = tag_arg ? strdup(tag_arg) : 0;
+	sprintf( buf, "gtkcb%x", ++bind_count );
+	id = strdup( buf );
+	}
+
+glish_declare(PList,glishtk_canvas_bindinfo);
+typedef PList(glishtk_canvas_bindinfo) glishtk_canvas_bindlist;
+glish_declare(PDict,glishtk_canvas_bindlist);
+typedef PDict(glishtk_canvas_bindlist) glishtk_canvas_bindtable;
 
 int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	{
-	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) data;
+	static char *event_names[] =
+	  {
+	    "", "", "KeyPress", "KeyRelease", "ButtonPress", "ButtonRelease",
+	    "MotionNotify", "EnterNotify", "LeaveNotify", "FocusIn", "FocusOut",
+	    "KeymapNotify", "Expose", "GraphicsExpose", "NoExpose", "VisibilityNotify",
+	    "CreateNotify", "DestroyNotify", "UnmapNotify", "MapNotify", "MapRequest",
+	    "ReparentNotify", "ConfigureNotify", "ConfigureRequest", "GravityNotify",
+	    "ResizeRequest", "CirculateNotify", "CirculateRequest", "PropertyNotify",
+	    "SelectionClear", "SelectionRequest", "SelectionNotify", "ColormapNotify",
+	    "ClientMessage", "MappingNotify"
+	  };
+
+	glishtk_canvas_bindlist *list = (glishtk_canvas_bindlist*) data;
+	glishtk_canvas_bindinfo *info = (*list)[0];
+	if ( ! info ) return TCL_ERROR;
+
 	recordptr rec = create_record_dict();
 	Tk_Window self = info->canvas->Self();
 
@@ -677,56 +709,248 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	dpt[1] = atoi(argv[2]);
 	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 
+	int type = atoi(argv[4]);
+	if ( type >= 2 && type <= 34 )
+		rec->Insert( strdup("type"), new Value( event_names[type] ) );
+	else
+		rec->Insert( strdup("type"), new Value( "unknown" ) );
+
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
 
-	if ( argv[4][0] != '?' )
+	if ( argv[5][0] != '?' )
 		{
 		// KeyPress/Release event
-		rec->Insert( strdup("sym"), new Value(argv[4]) );
-		rec->Insert( strdup("key"), new Value(argv[5]) );
+		rec->Insert( strdup("sym"), new Value(argv[5]) );
+		rec->Insert( strdup("key"), new Value(argv[6]) );
 		}
+	rec->Insert( strdup("id"), 0 );
 
-	Value *v = new Value( rec );
-	info->canvas->BindEvent( info->event_name, v );
-	Unref(v);
+	Value *val = new Value( rec );
+	loop_over_list( (*list), x )
+		{
+		glishtk_canvas_bindinfo *i = (*list)[x];
+		Unref( (Value*) rec->Insert( "id", new Value(i->id)) );
+		i->canvas->BindEvent( i->event_name, val );
+		}
+	Unref( val );
 	return TCL_OK;
 	}
 
+static glishtk_canvas_bindtable *glishtk_canvas_table = 0;
+static name_hash *glishtk_canvas_untable = 0;
 char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	{
+	static glishtk_canvas_bindtable table;
 	char *event_name = "canvas bind function";
 	EXPRINIT( event_name)
+
 	if ( args->Length() >= 3 )
 		{
+		glishtk_canvas_bindlist *list = 0;
 		EXPRSTR( tag, event_name )
 		EXPRSTR( button, event_name )
 		EXPRSTR( event, event_name )
+
+		tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button, 0 );
+		const char *current = Tcl_GetStringResult(agent->Interp());
+		char last_buffer[50];
+		char *last = 0;
+		if ( current && *current )
+			{
+			last = last_buffer;
+			while ( *current && ! isspace(*current) )
+				*last++ = *current++;
+			*last = '\0';
+			last = last != last_buffer ? last_buffer : 0;
+			}
+
 		glishtk_canvas_bindinfo *binfo = 
 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
 
-		tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button, " {",
-			     glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, binfo), " %x %y %b %K %A}", 0 );
-		
+		if ( ! glishtk_canvas_table ) glishtk_canvas_table = new glishtk_canvas_bindtable;
+
+		if ( ! last || ! (list = (*glishtk_canvas_table)[last]) )
+			{
+			list = new glishtk_canvas_bindlist;
+			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, list);
+			(*glishtk_canvas_table).Insert( strdup(cback), list );
+			tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button,
+				     " {", cback, " %x %y %b %T %K %A}", 0 );
+			}
+
+		list->append(binfo);
+
+		if ( ! glishtk_canvas_untable ) glishtk_canvas_untable = new name_hash;
+		(*glishtk_canvas_untable).Insert( strdup(binfo->id), strdup(last) );
+
 		EXPR_DONE( event )
 		EXPR_DONE( button )
 		EXPR_DONE( tag )
+
+		return binfo->id;
 		}
 	else if ( args->Length() >= 2 )
 		{
+		glishtk_canvas_bindlist *list = 0;
 		EXPRSTR( button, event_name )
 		EXPRSTR( event, event_name )
+
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, 0 );
+		const char *current = Tcl_GetStringResult(agent->Interp());
+		char last_buffer[50];
+		char *last = 0;
+		if ( current && *current )
+			{
+			last = last_buffer;
+			while ( *current && ! isspace(*current) )
+				*last++ = *current++;
+			*last = '\0';
+			last = last != last_buffer ? last_buffer : 0;
+		}
+
 		glishtk_canvas_bindinfo *binfo = 
 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
-			     glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, binfo), " %x %y %b %K %A}", 0 );
+		if ( ! glishtk_canvas_table ) glishtk_canvas_table = new glishtk_canvas_bindtable;
+
+		if ( ! last || ! (list = (*glishtk_canvas_table)[last]) )
+			{
+			list = new glishtk_canvas_bindlist;
+			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, list);
+			(*glishtk_canvas_table).Insert( strdup(cback), list );
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
+				     " {", cback, " %x %y %b %T %K %A}", 0 );
+			}
+
+		list->append(binfo);
+
+		if ( ! glishtk_canvas_untable ) glishtk_canvas_untable = new name_hash;
+		(*glishtk_canvas_untable).Insert( strdup(binfo->id), strdup(last) );
 
 		EXPR_DONE( event )
 		EXPR_DONE( button )
+
+		return binfo->id;
 		}
 
 	return 0;
 	}
+
+char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
+	{
+	char *event_name = "agent unbind function";
+	if ( args->Type() == TYPE_STRING && args->Length() >= 1 ) 
+		{
+		char *cback = 0;
+		charptr name = args->StringPtr(0)[0];
+
+		if ( glishtk_canvas_untable && (cback = (*glishtk_canvas_untable)[name]) )
+			{
+			free_memory( (*glishtk_canvas_untable).Remove(name) );
+			glishtk_canvas_bindlist *list = 0;
+			if ( glishtk_canvas_table && (list = (*glishtk_canvas_table)[cback]) )
+				{
+				glishtk_canvas_bindinfo *info = 0;
+				loop_over_list( (*list), x )
+					{
+					if ( ! strcmp((*list)[x]->id,name) )
+						{
+						info = (*list).remove_nth(x);
+						break;
+						}
+					}
+
+				if ( info )
+					{
+					if ( ! (*list).length() )
+						{
+						free_memory( (*glishtk_canvas_table).Remove(cback) );
+						if ( info->tag )
+							tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+								     " bind ", info->tag, SP, info->tk_event_name, " {}", 0 );
+						else
+							tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()),
+								     SP, info->tk_event_name, " {}", 0 );
+						Unref(list);
+						}
+					delete info;
+					}
+				}
+			free_memory(cback);
+			}
+
+		else if ( glishtk_canvas_table )
+			{
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, 0 );
+
+			const char *current = Tcl_GetStringResult(agent->Interp());
+			char last_buffer[50];
+			char *last = 0;
+			if ( current && *current )
+				{
+				last = last_buffer;
+				while ( *current && ! isspace(*current) )
+					*last++ = *current++;
+				*last = '\0';
+				last = last != last_buffer ? last_buffer : 0;
+				}
+
+			glishtk_canvas_bindlist *list = 0;
+			if ( last && *last && (list = (*glishtk_canvas_table)[last]) )
+				{
+				free_memory( (*glishtk_canvas_table).Remove(last) );
+				glishtk_canvas_bindinfo *info = (*list)[0];
+				if ( info )
+					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+						     info->tk_event_name, " {}", 0 );
+				loop_over_list( (*list), x )
+					delete (*list)[x];
+				(*list).clear();
+				if ( info ) Unref(list);
+				}
+			}
+
+		}
+
+	else if ( args->Type() == TYPE_RECORD && args->Length() >= 2 ) 
+		{
+		EXPRINIT( event_name)
+		EXPRSTR( tag, event_name )
+		EXPRSTR( name, event_name )
+
+		tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+			     " bind ", tag, SP, name, 0 );
+
+		const char *current = Tcl_GetStringResult(agent->Interp());
+		char last_buffer[50];
+		char *last = 0;
+		if ( current && *current )
+			{
+			last = last_buffer;
+			while ( *current && ! isspace(*current) )
+				*last++ = *current++;
+			*last = '\0';
+			last = last != last_buffer ? last_buffer : 0;
+			}
+
+		glishtk_canvas_bindlist *list = 0;
+		if ( last && *last && (list = (*glishtk_canvas_table)[last]) )
+			{
+			free_memory( (*glishtk_canvas_table).Remove(last) );
+			glishtk_canvas_bindinfo *info = (*list)[0];
+			if ( info )
+				tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+					     " bind ", info->tag, SP, info->tk_event_name, " {}", 0 );
+			loop_over_list( (*list), x )
+				delete (*list)[x];
+			(*list).clear();
+			if ( info ) Unref(list);
+			}
+		}
+
+	return 0;
+	}
+
 
 Value *glishtk_tkcast( char *tk )
 	{
@@ -899,7 +1123,8 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 
 	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
 	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_canvas_unbind));
 	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));

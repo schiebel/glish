@@ -25,6 +25,9 @@ class TkProxy;
 class TkCanvas;
 class TkFrame;
 
+glish_declare(PDict,char);
+typedef PDict(char) name_hash;
+
 glish_declare(PList,TkProxy);
 typedef PList(TkProxy) tkagent_list;
 

@@ -3,8 +3,10 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "tkPgplot.h"
+#include "Glish/Dict.h"
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "tkpgplot.h"
 #include "cpgplot.h"
@@ -345,26 +347,56 @@ Value *tk_castiToStr(char *str) {
 	return new Value(ints->val, ints->len);
 }
 
-struct glishtk_pgplot_bindinfo {
-
+struct glishtk_pgplot_bindinfo
+	{
 	TkPgplot *pgplot;
 	char *event_name;
 	char *tk_event_name;
+	glishtk_pgplot_bindinfo( TkPgplot *c, const char *event, const char *tk_event );
+	~glishtk_pgplot_bindinfo( )
+		{
+		free_memory( tk_event_name );
+		free_memory( event_name );
+		free_memory( id );
+		}
 
-	glishtk_pgplot_bindinfo( TkPgplot *c, const char *event, const char *tk_event ) :
+	char *id;
+	static unsigned int bind_count;
+	};
+
+unsigned int glishtk_pgplot_bindinfo::bind_count = 0;
+glishtk_pgplot_bindinfo::glishtk_pgplot_bindinfo( TkPgplot *c, const char *event, const char *tk_event ) :
 			pgplot(c), event_name(strdup(event)),
-			tk_event_name(strdup(tk_event)) { }
-
-	~glishtk_pgplot_bindinfo( ) {
-		free_memory(tk_event_name);
-		free_memory(event_name);
+			tk_event_name(strdup(tk_event))
+	{
+	char buf[30];
+	sprintf( buf, "gtkpb%x", ++bind_count );
+	id = strdup( buf );
 	}
 
-};
+glish_declare(PList,glishtk_pgplot_bindinfo);
+typedef PList(glishtk_pgplot_bindinfo) glishtk_pgplot_bindlist;
+glish_declare(PDict,glishtk_pgplot_bindlist);
+typedef PDict(glishtk_pgplot_bindlist) glishtk_pgplot_bindtable;
 
 int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *argv[] )
 	{
-	glishtk_pgplot_bindinfo *info = (glishtk_pgplot_bindinfo*) data;
+	static char *event_names[] =
+	  {
+	    "", "", "KeyPress", "KeyRelease", "ButtonPress", "ButtonRelease",
+	    "MotionNotify", "EnterNotify", "LeaveNotify", "FocusIn", "FocusOut",
+	    "KeymapNotify", "Expose", "GraphicsExpose", "NoExpose", "VisibilityNotify",
+	    "CreateNotify", "DestroyNotify", "UnmapNotify", "MapNotify", "MapRequest",
+	    "ReparentNotify", "ConfigureNotify", "ConfigureRequest", "GravityNotify",
+	    "ResizeRequest", "CirculateNotify", "CirculateRequest", "PropertyNotify",
+	    "SelectionClear", "SelectionRequest", "SelectionNotify", "ColormapNotify",
+	    "ClientMessage", "MappingNotify"
+	  };
+
+	glishtk_pgplot_bindlist *list = (glishtk_pgplot_bindlist*) data;
+	glishtk_pgplot_bindinfo *info = (*list)[0];
+	if ( ! info ) return TCL_ERROR;
+
 	Tcl_Interp *tcl = info->pgplot->Interp();
 	Tk_Window self = info->pgplot->Self();
 
@@ -382,32 +414,154 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	dpt[1] = atoi(argv[2]);
 	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 
-	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+	int type = atoi(argv[4]);
+	if ( type >= 2 && type <= 34 )
+		rec->Insert( strdup("type"), new Value( event_names[type] ) );
+	else
+		rec->Insert( strdup("type"), new Value( "unknown" ) );
 
-	info->pgplot->BindEvent( info->event_name, new Value( rec ) );
+	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+	rec->Insert( strdup("id"), 0 );
+
+	Value *val = new Value( rec );
+	loop_over_list( (*list), x )
+		{
+		glishtk_pgplot_bindinfo *i = (*list)[x];
+		Unref( (Value*) rec->Insert("id", new Value(i->id)) );
+		i->pgplot->BindEvent( i->event_name, val );
+		}
+	Unref( val );
+
 	return TCL_OK;
 	}
 
+static glishtk_pgplot_bindtable *glishtk_pgplot_table = 0;
+static name_hash *glishtk_pgplot_untable = 0;
 char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 	char *event_name = "pgplot bind function";
 	EXPRINIT(event_name)
 
-	if (args->Length () >= 2)
+	if (args->Length() >= 2)
 		{
 		EXPRSTR(button, event_name);
 		EXPRSTR(event, event_name);
 
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, 0 );
+		const char *current = Tcl_GetStringResult(agent->Interp());
+		char last_buffer[50];
+		char *last = 0;
+		if ( current && *current )
+			{
+			last = last_buffer;
+			while ( *current && ! isspace(*current) )
+				*last++ = *current++;
+			*last = '\0';
+			last = last != last_buffer ? last_buffer : 0;
+			}
+
 		glishtk_pgplot_bindinfo *binfo = new glishtk_pgplot_bindinfo((TkPgplot *)agent, event, button);
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
-			     glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, binfo), " %x %y %b}", 0 );
+		if ( ! glishtk_pgplot_table ) glishtk_pgplot_table = new glishtk_pgplot_bindtable;
+
+		glishtk_pgplot_bindlist *list = 0;
+		if ( ! last || ! (list = (*glishtk_pgplot_table)[last]) )
+			{
+			list = new glishtk_pgplot_bindlist;
+			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, list);
+			(*glishtk_pgplot_table).Insert( strdup(cback), list );
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
+				     " {", cback, " %x %y %b %T }", 0 );
+			}
+
+		list->append(binfo);
+
+		if ( ! glishtk_pgplot_untable ) glishtk_pgplot_untable = new name_hash;
+		(*glishtk_pgplot_untable).Insert( strdup(binfo->id), strdup(last) );
 
 		EXPR_DONE(event);
 		EXPR_DONE(button);
+
+		return binfo->id;
 		}
 
 	return 0;
 }
+
+char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
+	{
+	char *event_name = "agent unbind function";
+	if ( args->Type() == TYPE_STRING && args->Length() >= 1 )
+		{
+		char *cback = 0;
+		charptr name = args->StringPtr(0)[0];
+
+		if ( glishtk_pgplot_untable && (cback = (*glishtk_pgplot_untable)[name]) )
+			{
+			free_memory( (*glishtk_pgplot_untable).Remove(name) );
+			glishtk_pgplot_bindlist *list = 0;
+			if ( glishtk_pgplot_table && (list = (*glishtk_pgplot_table)[cback]) )
+				{
+				glishtk_pgplot_bindinfo *info = 0;
+				loop_over_list( (*list), x )
+					{
+					if ( ! strcmp((*list)[x]->id,name) )
+						{
+						info = (*list).remove_nth(x);
+						break;
+						}
+					}
+
+				if ( info )
+					{
+					if ( ! (*list).length() )
+						{
+						free_memory( (*glishtk_pgplot_table).Remove(cback) );
+						tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+							     info->tk_event_name, " {}", 0 );
+						Unref(list);
+						}
+					delete info;
+					}
+				}
+			free_memory(cback);
+			}
+
+		else if ( glishtk_pgplot_table )
+			{
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, 0 );
+
+			const char *current = Tcl_GetStringResult(agent->Interp());
+			char last_buffer[50];
+			char *last = 0;
+			if ( current && *current )
+				{
+				last = last_buffer;
+				while ( *current && ! isspace(*current) )
+					*last++ = *current++;
+				*last = '\0';
+				last = last != last_buffer ? last_buffer : 0;
+				}
+
+			glishtk_pgplot_bindlist *list = 0;
+			if ( last && *last && (list = (*glishtk_pgplot_table)[last]) )
+				{
+				free_memory( (*glishtk_pgplot_table).Remove(last) );
+				glishtk_pgplot_bindinfo *info = (*list)[0];
+				if ( info )
+					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+						     info->tk_event_name, " {}", 0 );
+				loop_over_list( (*list), x )
+					delete (*list)[x];
+				(*list).clear();
+				if ( info ) Unref(list);
+				}
+			}
+
+		}
+
+	return 0;
+	}
+
 
 Value *glishtk_int( char *sel ) {
 	return new Value(atoi(sel));
@@ -561,7 +715,8 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	frame->Pack();
 
 	// Non-standard routines.
-	procs.Insert("bind", new PgProc(this, "", glishtk_pgplot_bind));
+	procs.Insert("bind", new PgProc(this, "", glishtk_pgplot_bind, glishtk_str));
+	procs.Insert("unbind", new PgProc(this, "", glishtk_pgplot_unbind));
 	procs.Insert("cursor", new PgProc(this, &TkPgplot::Cursor, glishtk_str));
 	procs.Insert("height", new PgProc("-height", glishtk_oneornodim,
 					    glishtk_int));

@@ -10,6 +10,7 @@ RCSID("@(#) $Id$")
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "Glish/Value.h"
 #include "system.h"
 #include "comdefs.h"
@@ -866,58 +867,213 @@ struct glishtk_bindinfo
 	TkProxy *agent;
 	char *event_name;
 	char *tk_event_name;
-	glishtk_bindinfo( TkProxy *c, const char *event, const char *tk_event ) :
-			agent(c), event_name(strdup(event)),
-			tk_event_name(strdup(tk_event)) { }
+	glishtk_bindinfo( TkProxy *c, const char *event, const char *tk_event );
 	~glishtk_bindinfo()
 		{
 		free_memory( tk_event_name );
 		free_memory( event_name );
+		free_memory( id );
 		}
+
+	char *id;
+	static unsigned int bind_count;
 	};
+
+unsigned int glishtk_bindinfo::bind_count = 0;
+glishtk_bindinfo::glishtk_bindinfo( TkProxy *c, const char *event, const char *tk_event ) :
+			agent(c), event_name(strdup(event)),
+			tk_event_name(strdup(tk_event))
+	{
+	char buf[30];
+	sprintf( buf, "gtkbb%x", ++bind_count );
+	id = strdup( buf );
+	}
+
+glish_declare(PList,glishtk_bindinfo);
+typedef PList(glishtk_bindinfo) glishtk_bindlist;
+glish_declare(PDict,glishtk_bindlist);
+typedef PDict(glishtk_bindlist) glishtk_bindtable;
 
 int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
-	glishtk_bindinfo *info = (glishtk_bindinfo*) data;
+	static char *event_names[] =
+	  {
+	    "", "", "KeyPress", "KeyRelease", "ButtonPress", "ButtonRelease",
+	    "MotionNotify", "EnterNotify", "LeaveNotify", "FocusIn", "FocusOut",
+	    "KeymapNotify", "Expose", "GraphicsExpose", "NoExpose", "VisibilityNotify",
+	    "CreateNotify", "DestroyNotify", "UnmapNotify", "MapNotify", "MapRequest",
+	    "ReparentNotify", "ConfigureNotify", "ConfigureRequest", "GravityNotify",
+	    "ResizeRequest", "CirculateNotify", "CirculateRequest", "PropertyNotify",
+	    "SelectionClear", "SelectionRequest", "SelectionNotify", "ColormapNotify",
+	    "ClientMessage", "MappingNotify"
+	  };
+
+	glishtk_bindlist *list = (glishtk_bindlist*) data;
+	glishtk_bindinfo *info = (*list)[0];
+	if ( ! info ) return TCL_ERROR;
+
 	recordptr rec = create_record_dict();
 
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
 	dpt[0] = atoi(argv[1]);
 	dpt[1] = atoi(argv[2]);
 	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
+
+	int type = atoi(argv[4]);
+	if ( type >= 2 && type <= 34 )
+		rec->Insert( strdup("type"), new Value( event_names[type] ) );
+	else
+		rec->Insert( strdup("type"), new Value( "unknown" ) );
+
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
-	if ( argv[4][0] != '?' )
+	if ( argv[5][0] != '?' )
 		{
 		// KeyPress/Release event
-		rec->Insert( strdup("sym"), new Value(argv[4]) );
-		rec->Insert( strdup("key"), new Value(argv[5]) );
+		rec->Insert( strdup("sym"), new Value(argv[5]) );
+		rec->Insert( strdup("key"), new Value(argv[6]) );
 		}
+	rec->Insert( strdup("id"), 0 );
 
-	Value *v = new Value( rec );
-	info->agent->BindEvent( info->event_name, v );
-	Unref(v);
+	Value *val = new Value( rec );
+	loop_over_list( (*list), x )
+		{
+		glishtk_bindinfo *i = (*list)[x];
+		Unref( (Value*) rec->Insert("id", new Value(i->id)) );
+		i->agent->BindEvent( i->event_name, val );
+		}
+	Unref( val );
+
 	return TCL_OK;
 	}
 
+static glishtk_bindtable *glishtk_table = 0;
+static name_hash *glishtk_untable = 0;
 char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "agent bind function";
 	EXPRINIT( event_name)
+
 	if ( args->Length() >= 2 )
 		{
 		EXPRSTR( button, event_name )
 		EXPRSTR( event, event_name )
+
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, 0 );
+		const char *current = Tcl_GetStringResult(agent->Interp());
+		char last_buffer[50];
+		char *last = 0;
+		if ( current && *current )
+			{
+			last = last_buffer;
+			while ( *current && ! isspace(*current) )
+				*last++ = *current++;
+			*last = '\0';
+			last = last != last_buffer ? last_buffer : 0;
+			}
+
 		glishtk_bindinfo *binfo = new glishtk_bindinfo(agent, event, button);
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
-			     glishtk_make_callback(agent->Interp(), glishtk_bindcb, binfo), " %x %y %b %K %A}", 0 );
+		if ( ! glishtk_table ) glishtk_table = new glishtk_bindtable;
+
+		glishtk_bindlist *list = 0;
+		if ( ! last || ! (list = (*glishtk_table)[last]) )
+			{
+			list = new glishtk_bindlist;
+			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_bindcb, list);
+			(*glishtk_table).Insert( strdup(cback), list );
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
+				     " {", cback, " %x %y %b %T %K %A}", 0 );
+			}
+
+		list->append(binfo);
+
+		if ( ! glishtk_untable ) glishtk_untable = new name_hash;
+		(*glishtk_untable).Insert( strdup(binfo->id), strdup(last) );
 
 		EXPR_DONE( event )
 		EXPR_DONE( button )
+
+		return binfo->id;
 		}
 
 	return 0;
 	}
+
+char *glishtk_unbind(TkProxy *agent, const char *, Value *args )
+	{
+	char *event_name = "agent unbind function";
+	if ( args->Type() == TYPE_STRING && args->Length() >= 1 )
+		{
+		char *cback = 0;
+		charptr name = args->StringPtr(0)[0];
+
+		if ( glishtk_untable && (cback = (*glishtk_untable)[name]) )
+			{
+			free_memory( (*glishtk_untable).Remove(name) );
+			glishtk_bindlist *list = 0;
+			if ( glishtk_table && (list = (*glishtk_table)[cback]) )
+				{
+				glishtk_bindinfo *info = 0;
+				loop_over_list( (*list), x )
+					{
+					if ( ! strcmp((*list)[x]->id,name) )
+						{
+						info = (*list).remove_nth(x);
+						break;
+						}
+					}
+
+				if ( info )
+					{
+					if ( ! (*list).length() )
+						{
+						free_memory( (*glishtk_table).Remove(cback) );
+						tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+							     info->tk_event_name, " {}", 0 );
+						Unref(list);
+						}
+					delete info;
+					}
+				}
+			free_memory(cback);
+			}
+
+		else if ( glishtk_table )
+			{
+			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, 0 );
+
+			const char *current = Tcl_GetStringResult(agent->Interp());
+			char last_buffer[50];
+			char *last = 0;
+			if ( current && *current )
+				{
+				last = last_buffer;
+				while ( *current && ! isspace(*current) )
+					*last++ = *current++;
+				*last = '\0';
+				last = last != last_buffer ? last_buffer : 0;
+				}
+
+			glishtk_bindlist *list = 0;
+			if ( last && *last && (list = (*glishtk_table)[last]) )
+				{
+				free_memory( (*glishtk_table).Remove(last) );
+				glishtk_bindinfo *info = (*list)[0];
+				if ( info )
+					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+						     info->tk_event_name, " {}", 0 );
+				loop_over_list( (*list), x )
+					delete (*list)[x];
+				(*list).clear();
+				if ( info ) Unref(list);
+				}
+			}
+
+		}
+
+	return 0;
+	}
+
 
 int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, char *[] )
 	{
@@ -1224,7 +1380,8 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	else
 		Pack();
 
-	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new FmeProc(this, "", glishtk_unbind));
 	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
 	procs.Insert("disable", new FmeProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
@@ -1349,7 +1506,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
 	procs.Insert("map", new FmeProc(this, "MC", glishtk_agent_map));
 	procs.Insert("unmap", new FmeProc(this, "UC", glishtk_agent_map));
-	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new FmeProc(this, "", glishtk_unbind));
 
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
 	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
@@ -1430,7 +1588,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
 	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
-	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new FmeProc(this, "", glishtk_unbind));
 
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
 	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
@@ -2291,7 +2450,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	frame->Pack();
 
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("bitmap", new TkProc(this, "-bitmap", glishtk_bitmap, glishtk_str));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
@@ -2507,7 +2667,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr, glishtk_str));
 	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr, glishtk_str));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -2926,7 +3087,8 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	if ( value < from || value > to ) value = from;
 	SetValue(value);
 
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
@@ -3140,7 +3302,8 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
 	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_text_append));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
@@ -3336,7 +3499,8 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	procs.Insert("view", new TkProc("", glishtk_scrollbar_update));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("jump", new TkProc("-jump", glishtk_onebool));
 	}
 
@@ -3497,7 +3661,8 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify
 	frame->Pack();
 
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
@@ -3667,7 +3832,8 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
@@ -3838,7 +4004,8 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr wid
 	frame->Pack();
 
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
@@ -4015,7 +4182,8 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_listbox_select));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
