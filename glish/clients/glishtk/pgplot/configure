@@ -3126,7 +3126,7 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
-	SLIB_LD_LIBS=""
+	SLIB_LD_LIBS="$PGPLOTLINKFLAGS $LIBS -lX11"
 	SLIB_SUFFIX=".so"
 	SLIB_LABEL="-Wl,-h,"
 	if test "$have_dl" = yes; then
