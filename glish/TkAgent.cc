@@ -709,7 +709,7 @@ TkAgent::~TkAgent( ) { }
 
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
-		  charptr padx_, charptr pady_, charptr background, charptr width,
+		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 )
 	{
 	char *argv[13];
@@ -746,6 +746,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	side = strdup(side_);
 	padx = strdup(padx_);
 	pady = strdup(pady_);
+	expand = strdup(expand_);
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
@@ -777,11 +778,12 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 	procs.Insert("padx", new TkProc( this, &TkFrame::SetPadx ));
 	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
+	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
-		  charptr borderwidth, charptr padx_, charptr pady_, charptr background,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 )
 	{
 	frame = frame_;
@@ -798,6 +800,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	side = strdup(side_);
 	padx = strdup(padx_);
 	pady = strdup(pady_);
+	expand = strdup(expand_);
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
@@ -829,6 +832,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 	procs.Insert("padx", new TkProc( this, &TkFrame::SetPadx ));
 	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
+	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	}
 
@@ -912,6 +916,21 @@ char *TkFrame::SetPady( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
+char *TkFrame::SetExpand( parameter_list *args, int is_request, int log )
+	{
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRDIM( expand_, "" )
+	if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
+		{
+		delete expand;
+		expand = strdup( expand_ );
+		Pack();
+		}
+	EXPR_DONE( expand_ )
+	return "";
+	}
+
 void TkFrame::PackSpecial( TkAgent *agent )
 	{
 	const char **instr = agent->PackInstruction();
@@ -979,8 +998,8 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret;
 
-	if ( args_val->length() != 11 )
-		return InvalidNumberOfArgs(11);
+	if ( args_val->length() != 12 )
+		return InvalidNumberOfArgs(12);
 
 	int c = 1;
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -989,17 +1008,18 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( borderwidth )
 	SETDIM( padx )
 	SETDIM( pady )
+	SETSTR( expand )
 	SETSTR( background )
 	SETDIM( width )
 	SETDIM( height )
 	SETSTR( title )
 
 	if ( parent->Type() == TYPE_BOOL )
-		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady,
+		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
 				    background, width, height, title );
 	else
 		ret =  new TkFrame( s, (TkFrame*)parent->AgentVal(), relief,
-				    side, borderwidth, padx, pady, background,
+				    side, borderwidth, padx, pady, expand, background,
 				    width, height );
 
 	return ret;
@@ -1010,12 +1030,17 @@ const char **TkFrame::PackInstruction()
 	static char *ret[5];
 	int c = 0;
 
-	ret[c++] = "-fill";
-	ret[c++] = "both";
-	ret[c++] = "-expand";
-	ret[c++] = "true";
-	ret[c++] = 0;
-	return ret;
+	if ( strcmp(expand,"none") )
+		{
+		ret[c++] = "-fill";
+		ret[c++] = expand;
+		ret[c++] = "-expand";
+		ret[c++] = "true";
+		ret[c++] = 0;
+		return ret;
+		}
+
+	return 0;
 	}
 
 

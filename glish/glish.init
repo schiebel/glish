@@ -92,10 +92,10 @@ function client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
 
 function frame ( parent=F, relief='flat',
 		 borderwidth=2, side='top',
-		 padx=0, pady=0, 
+		 padx=0, pady=0, expand='none',
 		 background='lightgrey',
 		 width=70, height=50, title='glish/tk' )
-	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, background, width, height, title )
+	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, title )
 
 function button ( parent, text='button', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F )
 	create_graphic( 'button', parent, text, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled )

@@ -88,7 +88,7 @@ PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
 PFX_BINDIR = $(PFX_INSTALLDIR)/bin
 
 
-GLISH_HOME = @GLISH_HOME@
+GLISHROOT = @GLISHROOT@
 
 LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a $(LIBDIR)/libnpd.a
 
@@ -211,7 +211,7 @@ Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
-	$(CPLUS) $(CFLAGS) -DGLISH_HOME=\"$(GLISH_HOME)\" $(INCLUDE) \
+	$(CPLUS) $(CFLAGS) -DGLISHROOT=\"$(GLISHROOT)\" $(INCLUDE) \
 				-c $(SRC)/Sequencer.cc
 Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc

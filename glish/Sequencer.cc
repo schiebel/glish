@@ -52,7 +52,7 @@ int system( const char* string );
 #endif
 
 #define GLISH_RC_FILE ".glishrc"
-#define GLISH_HOME_VAR "GLISH_HOME"
+#define GLISHROOT_VAR "GLISHROOT"
 
 // Time to wait until probing a remote daemon, in seconds.
 #define PROBE_DELAY 5
@@ -414,9 +414,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	Parse( glish_init );
 
-	const char *glish_home = getenv( GLISH_HOME_VAR );
+	const char *glish_home = getenv( GLISHROOT_VAR );
 	if ( ! glish_home )
-		glish_home = GLISH_HOME;
+		glish_home = GLISHROOT;
 
 	if ( glish_home )
 		{
