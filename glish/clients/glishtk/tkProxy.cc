@@ -168,6 +168,12 @@ char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	return Tcl_GetStringResult(tcl);
 	}
 
+char *glishtk_focus(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
+	{
+	tcl_VarEval( tcl, "focus ", Tk_PathName(self), (char *)NULL );
+	return Tcl_GetStringResult(tcl);
+	}
+
 class glishtk_event {
     public:
 	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
@@ -775,6 +781,7 @@ TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ),
 		procs.Insert("hlcolor", new TkProc("-highlightcolor", glishtk_onestr, glishtk_str));
 		procs.Insert("hlbackground", new TkProc("-highlightbackground", glishtk_onestr, glishtk_str));
 		procs.Insert("hlthickness", new TkProc("-highlightthickness", glishtk_onedim, glishtk_strtoint));
+		procs.Insert("focus", new TkProc("focus", glishtk_focus, glishtk_str));
 		}
 	}
 

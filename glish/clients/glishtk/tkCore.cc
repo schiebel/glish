@@ -1440,6 +1440,8 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	procs.Insert("expand", new FmeProc( this, &TkFrameP::SetExpand, glishtk_str ));
 	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
 	procs.Insert("grab", new FmeProc( this, &TkFrameP::GrabCB ));
+	procs.Insert("iconify", new FmeProc( this, &TkFrameP::IconifyCB ));
+	procs.Insert("deiconify", new FmeProc( this, &TkFrameP::DeiconifyCB ));
 	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
 	procs.Insert("icon", new FmeProc( this, &TkFrameP::SetIcon, glishtk_str ));
 	procs.Insert("map", new FmeProc(this, "MT", glishtk_agent_map));
@@ -1866,6 +1868,18 @@ char *TkFrameP::GrabCB( Value *args )
 		global_scope = 1;
 
 	return Grab( global_scope );
+	}
+
+char *TkFrameP::IconifyCB( Value * )
+	{
+	tcl_VarEval( tcl, "wm iconify ", Tk_PathName(topwin), (char *)NULL );
+	return Tcl_GetStringResult(tcl);
+	}
+
+char *TkFrameP::DeiconifyCB( Value * )
+	{
+	tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(topwin), (char *)NULL );
+	return Tcl_GetStringResult(tcl);
 	}
 
 char *TkFrameP::Raise( Value *args )

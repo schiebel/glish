@@ -82,6 +82,9 @@ class TkFrameP : public TkFrame {
 	char *ReleaseCB( Value * );
 	char *FontsCB( Value * );
 
+	char *IconifyCB( Value * );
+	char *DeiconifyCB( Value * );
+
 	char *Raise( Value * );
 	char *Title( Value * );
 
