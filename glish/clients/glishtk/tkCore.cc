@@ -313,7 +313,6 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 		EXPRVAL( start, event_name );
 		if ( start->Type() == TYPE_STRING )
 			{
-			// LEAKS!!!! upon error
 			EXPRSTR( end, event_name )
 			a->EnterEnable();
 			tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start->StringPtr(0)[0] ), SP, a->IndexCheck( end ), (char *)NULL );
@@ -326,7 +325,6 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 			charptr cstart = a->IndexCheck( start->IntPtr(0)[0], startbuf );
 			if ( cstart )
 				{
-				// LEAKS!!!! upon error
 				EXPRINT( end, event_name )
 				char endbuf[20];
 				charptr cend = a->IndexCheck( end, endbuf );
