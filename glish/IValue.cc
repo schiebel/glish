@@ -32,7 +32,7 @@ void delete_agents( void *ary_, unsigned int len )
 	{
 	agentptr *ary = (agentptr*) ary_;
 	for (int i = 0; i < len; i++)
-		if ( agents.is_member( ary[i] ) )
+		if ( (*agents).is_member( ary[i] ) )
 			Unref( ary[i] );
 	}
 

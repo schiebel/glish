@@ -1543,9 +1543,9 @@ IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	IValue* r = create_irecord();
 
-	loop_over_list( agents, i )
+	loop_over_list( (*agents), i )
 		{
-		IValue* a = agents[i]->AgentRecord();
+		IValue* a = (*agents)[i]->AgentRecord();
 		IValue* a_ref = new IValue( a, VAL_REF );
 		r->SetField( r->NewFieldName(), a_ref );
 		Unref( a_ref );
@@ -1616,6 +1616,15 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 #else
 	error->Report("This Glish was not configured for graphic clients");
 	return error_ivalue();
+#endif
+	}
+
+IValue* HaveGuiBuiltIn::DoCall( const_args_list* args_val )
+	{
+#ifdef GLISHTK
+	return new IValue( TkHaveGui() ? glish_true : glish_false );
+#else
+	return new IValue( glish_false );
 #endif
 	}
 
@@ -2262,8 +2271,10 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new TimeBuiltIn );
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
-	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
+
+	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );
+	s->AddBuiltIn( new HaveGuiBuiltIn );
 
 	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );

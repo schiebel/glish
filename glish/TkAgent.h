@@ -10,6 +10,8 @@
 struct _Rivetstruct;
 typedef struct _Rivetstruct *Rivetobj;
 
+extern int TkHaveGui();
+
 class TkAgent;
 class TkCanvas;
 class TkFrame;

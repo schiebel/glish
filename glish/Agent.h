@@ -145,6 +145,6 @@ class UserAgent : public Agent {
 
 
 // Agents currently in existence.
-extern agent_list agents;
+extern agent_list *agents;
 
 #endif	/* agent_h */

@@ -140,7 +140,6 @@ class name : public BuiltIn {						\
 
 
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
-DERIVE_SEQUENCER_BUILTIN(CreateGraphicBuiltIn,NUM_ARGS_VARIES,"create_graphic")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
 
 DERIVE_SEQUENCER_BUILTIN(SymbolNamesBuiltIn,NUM_ARGS_VARIES,"symbol_names")
@@ -151,6 +150,12 @@ DERIVE_SEQUENCER_BUILTIN(SymbolDeleteBuiltIn,1,"symbol_delete")
 DERIVE_SEQUENCER_BUILTIN(LastWheneverExecutedBuiltIn,0,"last_whenever_executed")
 DERIVE_SEQUENCER_BUILTIN(CurrentWheneverBuiltIn,0,"current_whenever")
 DERIVE_SEQUENCER_BUILTIN(EvalBuiltIn,NUM_ARGS_VARIES,"eval")
+
+//
+// These will move to a client at some point.
+// 
+DERIVE_SEQUENCER_BUILTIN(CreateGraphicBuiltIn,NUM_ARGS_VARIES,"create_graphic")
+DERIVE_BUILTIN(HaveGuiBuiltIn,0,"have_gui",)
 
 
 extern char* paste( parameter_list* args );

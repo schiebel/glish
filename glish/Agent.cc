@@ -16,7 +16,7 @@ RCSID("@(#) $Id$")
 #define INTERESTED_IN_ALL "*"
 
 
-agent_list agents;
+agent_list *agents;
 
 
 Notifiee::Notifiee( Stmt* arg_stmt ) : frames(0), frame(0)
@@ -72,12 +72,12 @@ Agent::Agent( Sequencer* s )
 
 	agent_value = new IValue( create_record_dict(), this );
 
-	agents.append( this );
+	(*agents).append( this );
 	}
 
 Agent::~Agent()
 	{
-	(void) agents.remove( this );
+	(void) (*agents).remove( this );
 
 	IterCookie* c = interested_parties.InitForIteration();
 

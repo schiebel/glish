@@ -53,7 +53,7 @@ int system( const char* string );
 #endif
 
 #define GLISH_RC_FILE ".glishrc"
-#define GLISHROOT_VAR "GLISHROOT"
+#define RCDIR_VAR "GLISHROOT"
 
 // Time to wait until probing a remote daemon, in seconds.
 #define PROBE_DELAY 5
@@ -336,6 +336,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	argc_ = argc;
 	argv_ = argv;
 
+	agents = new agent_list;
 	init_reporters();
 	init_values();
 
@@ -476,9 +477,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	Parse( glish_init );
 
-	const char *glish_home = getenv( GLISHROOT_VAR );
+	const char *glish_home = getenv( RCDIR_VAR );
 	if ( ! glish_home )
-		glish_home = GLISHROOT;
+		glish_home = RCDIR;
 
 	if ( glish_home )
 		{
@@ -596,8 +597,8 @@ Sequencer::~Sequencer()
 	delete connection_socket;
 	delete connection_port;
 
-	while ( agents.length() )
-		Unref( agents.remove_nth( agents.length() - 1 ) );
+	while ( (*agents).length() )
+		Unref( (*agents).remove_nth( (*agents).length() - 1 ) );
 
 	delete selector;
 

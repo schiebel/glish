@@ -1,0 +1,393 @@
+##
+## $Header$
+##
+## Makefile for Glish interpreter.
+##
+
+## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
+## from ftp.ee.lbl.gov.
+
+#IF DYNAMIC
+MK_LIB = @MAKE_SLIB@
+LD_LIBS = @SLIB_LD_LIBS@
+CFLAGS = @GLISH_FLAGS@ @CFLAGS@ @SLIB_CFLAGS@
+CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
+LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+RANLIB = :
+LIBTGT = @DYNAMIC_LIB@
+BINTGT = @DYNAMIC_BIN@
+INSTALL_LIBTGT = INSTALL_@DYNAMIC_LIB@
+INSTALL_BINTGT = INSTALL_@DYNAMIC_BIN@
+GLISH_LIBS = @GLISH_LIBS@
+#ELSE
+MK_LIB = @MAKE_LIB@
+LD_LIBS = 
+CFLAGS = @GLISH_FLAGS@ @CFLAGS@
+CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
+LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+RANLIB = @RANLIB@
+LIBTGT = @STATIC_LIB@
+BINTGT = @STATIC_BIN@
+INSTALL_LIBTGT = INSTALL_@STATIC_LIB@
+INSTALL_BINTGT = INSTALL_@STATIC_BIN@
+GLISH_LIBS = @GLISH_LIBS@
+#FI
+
+CC = @CC@
+CPLUS = @CXX@
+LFLAGS = -s
+YACC = @YACC@
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+LIBS = @LIBS@
+
+D = @DOT@
+T = @TOUCH_PROXY@
+MINSPACE_RM = @MINSPACE_RM@
+
+SHELL = /bin/sh
+SH = $(SHELL)
+
+SRC = ../..
+
+H = $(SRC)/include/Glish
+
+INTERP_OBJS = \
+	IValue.o \
+	Agent.o \
+	BinOpExpr.o \
+	BuiltIn.o \
+	Event.o \
+	Expr.o \
+	Frame.o \
+	Func.o \
+	Sequencer.o \
+	Select.o \
+	Stmt.o \
+	Task.o \
+	TkAgent.o \
+	TkCanvas.o \
+	TkSelect.o \
+	glish_init.o \
+	parse.o \
+	scan.o
+
+CLIENT_OBJS = \
+	Value.o \
+	ValKern.o \
+	Client.o \
+	Complex.o \
+	Daemon.o \
+	Dict.o \
+	Executable.o \
+	List.o \
+	LocalExec.o \
+	Object.o \
+	Queue.o \
+	RemoteExec.o \
+	Reporter.o \
+	Socket.o \
+	VecRef.o \
+	glishlib.o \
+	system.o
+
+INTERP_OBJS_PROXY = \
+	$(D)IValue.o \
+	$(D)Agent.o \
+	$(D)BinOpExpr.o \
+	$(D)BuiltIn.o \
+	$(D)Event.o \
+	$(D)Expr.o \
+	$(D)Frame.o \
+	$(D)Func.o \
+	$(D)Sequencer.o \
+	$(D)Select.o \
+	$(D)Stmt.o \
+	$(D)Task.o \
+	$(D)TkAgent.o \
+	$(D)TkCanvas.o \
+	$(D)TkSelect.o \
+	$(D)glish_init.o \
+	$(D)parse.o \
+	$(D)scan.o
+
+CLIENT_OBJS_PROXY = \
+	$(D)Value.o \
+	$(D)ValKern.o \
+	$(D)Client.o \
+	$(D)Complex.o \
+	$(D)Daemon.o \
+	$(D)Dict.o \
+	$(D)Executable.o \
+	$(D)List.o \
+	$(D)LocalExec.o \
+	$(D)Object.o \
+	$(D)Queue.o \
+	$(D)RemoteExec.o \
+	$(D)Reporter.o \
+	$(D)Socket.o \
+	$(D)VecRef.o \
+	$(D)glishlib.o \
+	$(D)system.o
+
+KEY_HEADERS = \
+	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \
+	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
+	$(H)/glish.h
+
+
+top = @top_srcdir@@top_off@
+INCDIR_P = $(SRC)/../include
+LIBDIR_P = $(top)/lib/$(ARCH)
+BINDIR_P = $(top)/bin/$(ARCH)
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+INCDIR = @includedir@
+LIBDIR = @libdir@
+BINDIR = @bindir@
+
+MKHIER = $(top)/config/mkhier
+
+RCDIR = @RCDIR@
+TK_LIB = @TK_LIB@ 
+XLIB = @XLIBSW@
+XINC = @XINCLUDES@
+
+INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+
+GLIBS = $(LIBDIR_P)/libsds$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) @NPD_LIB@ $(TK_LIB)
+
+TAR_FILE = glish.tar
+
+all: $(LIBTGT) $(BINTGT)
+
+install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
+
+lib_tgt: $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libglishp$(LIB_SUFFIX) 
+	$(MKHIER) $(INCDIR_P)/Glish
+	@rm -f $(INCDIR_P)/Glish/*.h
+	cp $(H)/*.h $(INCDIR_P)/Glish
+
+bin_tgt: $(BINDIR_P)/glish
+
+INSTALL_lib_tgt: $(LIBDIR)/libglish$(LIB_SUFFIX) $(LIBDIR)/libglishp$(LIB_SUFFIX) 
+	$(MKHIER) $(INCDIR)/Glish
+	@rm -f $(INCDIR)/Glish/*.h
+	cp $(H)/*.h $(INCDIR)/Glish
+
+INSTALL_bin_tgt: $(BINDIR)/glish
+
+glish: main.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libglishp$(LIB_SUFFIX) $(GLIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glish main.o $(GLISH_LIBS) $(XLIB) @LIBS@
+
+libglish$(LIB_SUFFIX): $(CLIENT_OBJS_PROXY)
+	rm -f libglish$(LIB_SUFFIX)
+	$(MK_LIB) libglish$(LIB_SUFFIX) $(CLIENT_OBJS) $(LD_LIBS)
+	$(RANLIB) libglish$(LIB_SUFFIX)
+	$(MINSPACE_RM) $(CLIENT_OBJS)
+
+libglishp$(LIB_SUFFIX): $(INTERP_OBJS_PROXY)
+	rm -f libglishp$(LIB_SUFFIX)
+	$(MK_LIB) libglishp$(LIB_SUFFIX) $(INTERP_OBJS) $(LD_LIBS)
+	$(RANLIB) libglishp$(LIB_SUFFIX)
+	$(MINSPACE_RM) $(INTERP_OBJS)
+
+$(BINDIR_P)/glish: glish
+	$(MKHIER) $(BINDIR_P)
+	$(INSTALL_PROGRAM) -s glish $(BINDIR_P)
+
+$(LIBDIR_P)/libglish$(LIB_SUFFIX): libglish$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libglish$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libglish$(LIB_SUFFIX)
+
+$(LIBDIR_P)/libglishp$(LIB_SUFFIX): libglishp$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libglishp$(LIB_SUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libglishp$(LIB_SUFFIX)
+
+$(BINDIR)/glish: glish
+	$(MKHIER) $(BINDIR)
+	$(INSTALL_PROGRAM) -s glish $(BINDIR)
+
+$(LIBDIR)/libglish$(LIB_SUFFIX): libglish$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libglish$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglish$(LIB_SUFFIX)
+
+$(LIBDIR)/libglishp$(LIB_SUFFIX): libglishp$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libglishp$(LIB_SUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglishp$(LIB_SUFFIX)
+
+tar:
+	@rm -f $(TAR_FILE).Z tar-files
+	@$(MAKE) $(MFLAGS) tar-list >tar-files
+	tar cf $(TAR_FILE) -I tar-files
+	compress $(TAR_FILE)
+	@rm tar-files
+
+tar-list:
+	@echo glish >&2
+	@ls Makefile.in config.h.in \
+		COPYING glish.init mkinit.sh *.c *.cc *.h *.l *.y \
+		*.sed doc/*.ps demos/*.g demos/*.cc demos/*.c \
+		demos/README* include/Glish/*.h | grep -v '^config.h$$'
+	@cd clients; $(MAKE) $(MFLAGS) tar-list | sed 's,^,clients/,'
+
+rcsinfo:
+	@echo glish
+	@rlog -L -S RCS/*,v
+	@echo glish/include/Glish
+	@cd include/Glish; rlog -L -S RCS/*,v
+	@cd clients; $(MAKE) $(MFLAGS) rcsinfo
+
+clean:
+	@rm -f $(CLIENT_OBJS) $(CLIENT_OBJS_PROXY) $(INTERP_OBJS) $(INTERP_OBJS_PROXY) \
+			libglishp$(LIB_SUFFIX) libglish$(LIB_SUFFIX) main.o glish errs \
+			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
+
+distclean: clean
+	rm -f config.status config.cache config.h config_p.h Makefile
+
+$(D)Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc $(T)
+
+$(D)BinOpExpr.o: $(SRC)/BinOpExpr.cc $(SRC)/BinOpExpr.h $(KEY_HEADERS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/BinOpExpr.cc $(T)
+
+$(D)BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(SRC)/TkAgent.h $(KEY_HEADERS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/BuiltIn.cc $(T)
+
+$(D)Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
+		$(SRC)/Reporter.h $(SRC)/ports.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Client.cc $(T)
+
+$(D)Complex.o: $(SRC)/Complex.cc $(H)/Complex.h $(H)/glish.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Complex.cc $(T)
+
+$(D)Daemon.o: $(SRC)/Daemon.cc $(SRC)/Daemon.h $(H)/Client.h
+	$(CPLUS) '-DRSH="@RSH@"' $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Daemon.cc $(T)
+
+$(D)Dict.o: $(SRC)/Dict.cc $(H)/Dict.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Dict.cc $(T)
+
+$(D)Event.o: $(SRC)/Event.cc $(KEY_HEADERS) $(SRC)/Event.h $(SRC)/Reporter.h \
+		$(SRC)/Task.h $(SRC)/Agent.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Event.cc $(T)
+
+$(D)Executable.o: $(SRC)/Executable.cc $(SRC)/Executable.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Executable.cc $(T)
+
+$(D)Expr.o: $(SRC)/Expr.cc $(KEY_HEADERS) $(SRC)/Reporter.h $(SRC)/Task.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Expr.cc $(T)
+
+$(D)Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Frame.cc $(T)
+
+$(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Func.cc $(T)
+
+$(D)List.o: $(SRC)/List.cc $(H)/List.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/List.cc $(T)
+
+$(D)LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/LocalExec.cc $(T)
+
+$(D)Object.o: $(SRC)/Object.cc $(H)/Object.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Object.cc $(T)
+
+$(D)Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Queue.cc $(T)
+
+$(D)RemoteExec.o: $(SRC)/RemoteExec.cc $(SRC)/RemoteExec.h $(SRC)/Executable.h \
+		$(SRC)/Channel.h $(H)/Client.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/RemoteExec.cc $(T)
+
+$(D)Reporter.o: $(SRC)/Reporter.cc $(SRC)/Reporter.h $(H)/Object.h $(SRC)/input.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Reporter.cc $(T)
+
+$(D)Select.o: $(SRC)/Select.cc $(SRC)/Select.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Select.cc $(T)
+
+$(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
+    $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
+    $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
+	$(CPLUS) $(CXXFLAGS) -DRCDIR=\"$(RCDIR)\" $(INCLUDE) \
+				-c $(SRC)/Sequencer.cc $(T)
+
+$(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc $(T)
+
+$(D)Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Stmt.cc $(T)
+
+$(D)Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
+    $(SRC)/BuiltIn.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Task.cc $(T)
+
+$(D)TkAgent.o: $(SRC)/Agent.h $(SRC)/TkAgent.cc $(SRC)/TkAgent.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -w -c $(SRC)/TkAgent.cc $(T)
+
+$(D)TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanvas.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/TkCanvas.cc $(T)
+
+$(D)TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc $(T)
+
+$(D)ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/ValKern.cc $(T)
+
+$(D)Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Value.cc $(T)
+
+$(D)IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
+				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
+			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/IValue.cc $(T)
+
+$(D)VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(KEY_HEADERS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/VecRef.cc $(T)
+
+$(D)glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/glishlib.cc $(T)
+
+main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h $(SRC)/IValue.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/main.cc
+
+y.tab.h $(D)parse.o: $(SRC)/parse.y
+
+parse.cc: $(SRC)/parse.y
+	$(YACC) -d $(SRC)/parse.y
+	mv -f y.tab.c parse.cc
+	sed -e 's/extern "C" int yylex(void);//' < parse.cc > parse.cc.fixed
+	mv parse.cc.fixed parse.cc
+# the sgi compiler puts in a declaration of yylex which screws things up
+# Hence this kludge. gcc for one doesn't redeclare yylex so this does
+# nothing.
+
+$(D)parse.o: parse.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/BinOpExpr.h
+	@sed -f $(SRC)/fix_yyparse.sed < parse.cc > parse.cc.fixed
+	@mv parse.cc.fixed parse.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I. -DYYDEBUG -c parse.cc $(T)
+
+
+$(D)scan.o: $(SRC)/scan.l y.tab.h $(KEY_HEADERS)
+	@rm -f scan.cc
+	flex $(LFLAGS) $(SRC)/scan.l
+	@mv lex.yy.c scan.cc
+	@-chmod g+w scan.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I. -c scan.cc $(T)
+
+glish_init.cc: $(SRC)/glish.init $(SRC)/mkinit.sh
+	$(SH) $(SRC)/mkinit.sh $(SRC)/glish.init >glish_init.cc
+$(D)glish_init.o: glish_init.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c glish_init.cc $(T)
+
+$(D)system.o: $(SRC)/system.c $(SRC)/system.h
+	$(CC) $(CFLAGS) $(CINCLUDE) -c $(SRC)/system.c $(T)
+
+INSTALL_:

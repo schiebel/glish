@@ -5,32 +5,27 @@
 
 TAR_FILE = glish.tar
 
+BUILD_DIR=$$ARCH
+
+
 all:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS all
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS);		\
+	(cd clients; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing glish ...
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS install;			\
-	cd ../clients; $(MAKE) $$FLGS PFX= install-all
-
-install-all:
-	@echo Installing glish ...
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	if test "$(PFX)" = "1"; then				\
-		cd $$ARCH; $(MAKE) $$FLGS prefix-install;	\
-	else	cd $$ARCH; $(MAKE) $$FLGS install; fi;		\
-	cd ../clients; $(MAKE) $$FLGS PFX=$(PFX) install-all
+	else 	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS install);	\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS install);	\
+	(cd clients; $(MAKE) $$FLGS install)
 
 build: all
 
@@ -38,22 +33,22 @@ glish:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS glish
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS glish
 
 libglish.a:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libglish.a
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS libglish.a
 
 libinterp.a:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libinterp.a
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS libinterp.a
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -81,19 +76,14 @@ clean:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS clean
-
-clean-all: clean
-	@cd clients; $(MAKE) $(MFLAGS) clean-all
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR); $(MAKE) $$FLGS clean);		\
+	(cd clients; $(MAKE) $(MFLAGS) clean)
 
 distclean: clean
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS distclean
-
-distclean-all: distclean
-	@cd clients; $(MAKE) $(MFLAGS) distclean-all
-
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR); $(MAKE) $$FLGS distclean);		\
+	(cd clients; $(MAKE) $(MFLAGS) distclean)

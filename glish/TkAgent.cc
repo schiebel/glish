@@ -5,6 +5,7 @@ RCSID("@(#) $Id$")
 #include "TkCanvas.h"
 
 #ifdef GLISHTK
+#include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include "Rivet/rivet.h"
@@ -2707,5 +2708,19 @@ void TkListbox::elementSelected(  )
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)
 STD_EXPAND_CANEXPAND(TkListbox)
+
+int TkHaveGui()
+	{
+	Display *display;
+	int ret = 0;
+
+	if ( (display=XOpenDisplay(NULL)) != NULL )
+		{
+		ret = 1;
+		XCloseDisplay(display);
+		}
+
+	return ret;
+	}
 
 #endif
