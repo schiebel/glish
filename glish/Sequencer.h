@@ -253,6 +253,7 @@ class Sequencer GC_FINAL_CLASS {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
+	inline unsigned int NO_AUTO_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
 
 	friend class SystemInfo;
 	Sequencer( int& argc, char**& argv );
@@ -304,6 +305,10 @@ public:
 	int AwaitDone( );
 	static char *BinPath( const char *host, const char *var = 0 );
 	static char *LdPath( const char *host, const char *var = 0 );
+
+	// Returns true when "auto fail" should be suppressed,
+	// unhandled fails cause the routine to fail by default.
+	int SupressAutoFail( ) const { return NO_AUTO_FAIL(verbose_mask); }
 
 	SystemInfo &System() { return system; }
 

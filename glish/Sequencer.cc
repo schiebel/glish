@@ -1508,6 +1508,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			  argv[0][3] == '\0' )
 			verbose = argv[0][2] - '0';
 
+		else if ( ! strcmp( argv[0], "-noaf" ) )
+			verbose_mask |= NO_AUTO_FAIL();
+
 		else if ( ! strcmp( argv[0], "-vi" ) )
 			verbose_mask |= VERB_INCL();
 
