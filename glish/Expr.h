@@ -102,7 +102,7 @@ class evalOpt {
 	// VALUE_NEEDED is included because it is the only outstanding statement
 	// evaluation flag, it indicates if a return value is expected or not.
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
-	enum returnType { VALUE_NEEDED=9 };
+	enum returnType { VALUE_NEEDED=9, RESULT_PERISHABLE=10, RHS_RESULT=11 };
 
 	evalOpt( ) : mask(0), fcount(0), backrefs(0) { }
 	evalOpt( exprType t ) : mask(1<<t), fcount(0), backrefs(0) { }
@@ -130,18 +130,20 @@ class evalOpt {
 	void decfc( ) { --fcount; }
 
 	// evaluation types/modes
-	inline static unsigned short mCOPY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
-	inline static unsigned short mREAD_ONLY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }
-	inline static unsigned short mSIDE_EFFECTS( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<2; }
-	inline static unsigned short mREAD_ONLY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<3; }
-	inline static unsigned short mCOPY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<4; }
+	inline static unsigned short mCOPY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<COPY; }
+	inline static unsigned short mREAD_ONLY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<READ_ONLY; }
+	inline static unsigned short mSIDE_EFFECTS( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<SIDE_EFFECTS; }
+	inline static unsigned short mREAD_ONLY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<READ_ONLY_PRESERVE; }
+	inline static unsigned short mCOPY_PRESERVE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<COPY_PRESERVE; }
 	// statement flow types
-	inline static unsigned short mNEXT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<5; }
-	inline static unsigned short mLOOP( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<6; }
-	inline static unsigned short mBREAK( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<7; }
-	inline static unsigned short mRETURN( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<8; }
+	inline static unsigned short mNEXT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<NEXT; }
+	inline static unsigned short mLOOP( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<LOOP; }
+	inline static unsigned short mBREAK( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<BREAK; }
+	inline static unsigned short mRETURN( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RETURN; }
 	// statement return mode
-	inline static unsigned short mVALUE_NEEDED( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<9; }
+	inline static unsigned short mVALUE_NEEDED( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<VALUE_NEEDED; }
+	inline static unsigned short mRESULT_PERISHABLE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RESULT_PERISHABLE; }
+	inline static unsigned short mRHS_RESULT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<RHS_RESULT; }
 
 	// evaluation types/modes
 	int copy() const { return mCOPY(mask); }
@@ -158,6 +160,8 @@ class evalOpt {
 
 	// statement return mode
 	int value_needed() const { return mVALUE_NEEDED(mask); }
+	int result_perishable() const { return mRESULT_PERISHABLE(mask); }
+	int rhs_result() const { return mRHS_RESULT(mask); }
 
 	// References to global or wider values discovered while evaluating
 	back_offsets_type &Backrefs( );

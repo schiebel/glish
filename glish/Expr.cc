@@ -499,6 +499,7 @@ ConstExpr::ConstExpr( const IValue* value )
 
 IValue* ConstExpr::Eval( evalOpt &opt )
 	{
+	opt.set( evalOpt::RESULT_PERISHABLE );
 	return CopyOrRefValue( const_value, opt );
 	}
 
@@ -694,7 +695,9 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 	evalOpt lopt(opt);		// save state of options
 
 	IValue *r_err = 0;
+	opt.set( evalOpt::RHS_RESULT );
 	IValue *r = right->CopyEval( opt, left->LhsIs(right) ? 1 : 0 );
+
 	if ( ! r ) return 0;
 	if ( r->Type() == TYPE_FAIL )
 		r_err = copy_value(r);
@@ -702,7 +705,14 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 	opt = lopt;
 	IValue *l_err = left->Assign( opt, r );
 
-	if ( r_err )
+	//
+	// In this case we had an expression like:
+	//
+	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
+	//
+	if ( opt.result_perishable( ) )
+		return l_err;
+	else if ( r_err )
 		return r_err;
 	if ( l_err && l_err->Type() == TYPE_FAIL )
 		return (IValue*) Fail( l_err );
@@ -712,18 +722,22 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 
 	else if ( lopt.read_only() || lopt.read_only_preserve() )
 		return (IValue*) left->ReadOnlyEval( opt, lopt.read_only_preserve() );
-
 	else
 		return 0;
 	}
 
 IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 	{
-	opt.set(evalOpt::SIDE_EFFECTS);
-	IValue *ret = Eval(opt);
+	evalOpt lopt(opt);		// save state of options
+
+	lopt.set(evalOpt::SIDE_EFFECTS);
+
+	IValue *ret = Eval(lopt);
 	if ( ret )
 		{
 		if ( ret->Type() == TYPE_FAIL )
+			return ret;
+		else if ( lopt.result_perishable( ) )
 			return ret;
 
 		fatal->Report(
@@ -893,6 +907,8 @@ IValue* ConstructExpr::Eval( evalOpt &opt )
 	{
 	if ( err )
 		return (IValue*) Fail( err, this );
+
+	opt.set( evalOpt::RESULT_PERISHABLE );
 
 	if ( ! args )
 		return create_irecord();
@@ -1827,15 +1843,26 @@ IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_type val_type )
 
 IValue *AttributeRefExpr::Assign( evalOpt &opt, IValue* new_value )
 	{
-	IValue* lhs_value_ref = left->RefEval( opt, VAL_REF );
+	evalOpt lopt(opt);		// save state of options
+
+	IValue* lhs_value_ref = left->RefEval( lopt, VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
+
+	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
+	     lhs_value_ref->VecRefDeref()->Type() != TYPE_RECORD &&
+	     (lhs_value_ref->IsModConst() || lhs_value->IsModConst()) )
+		{
+		Unref( new_value );
+		Unref( lhs_value_ref );
+		return (IValue*) Fail( "'const' values cannot be modified." );
+		}
 
 	if ( field )
 		lhs_value->AssignAttribute( field, new_value );
 
 	else if ( right )
 		{
-		const IValue* index_val = right->ReadOnlyEval(opt);
+		const IValue* index_val = right->ReadOnlyEval(lopt);
 		if ( index_val && index_val->Type() == TYPE_STRING &&
 		     index_val->Length() == 1  )
 			{
@@ -1873,8 +1900,30 @@ IValue *AttributeRefExpr::Assign( evalOpt &opt, IValue* new_value )
 		}
 
 	Unref( new_value );
+
+	//
+	// When we have an expression like:
+	//
+	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
+	//
+	// we cannot loose the value... the fact that the value is perisable
+	// is indicated by an evalOpt flag... or
+	//
+	//	y := x:::=[foo='bar']
+	//
+	// where for consistency's sake we want it to return the value rather
+	// than the attributes...
+	//
+	if ( lopt.result_perishable( ) || opt.rhs_result( ) )
+		{
+		opt.set( evalOpt::RESULT_PERISHABLE );
+		Ref(lhs_value);
+		}
+	else
+		lhs_value = 0;
+
 	Unref( lhs_value_ref );
-	return 0;
+	return lhs_value;
 	}
 
 int AttributeRefExpr::Describe( OStream &s, const ioOpt &opt ) const
