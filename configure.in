@@ -13,7 +13,7 @@ AC_CONFIG_AUX_DIR(config)
 
 if test -z "$ARCH"; then
     AC_CANONICAL_HOST()
-    ARCH="$host_cpu-$host_os"
+    ARCH="$host"
 fi
 
 ##

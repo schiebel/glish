@@ -20,7 +20,6 @@ if test -z "$ARCH"; then
 	echo "Sorry, can't even guess what the architecture might be..."
 	exit 1
     fi
-    ARCH=`echo $ARCH | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\1-\3/'`
 fi
 
 echo $ARCH

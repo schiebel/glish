@@ -328,7 +328,7 @@ host_vendor=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\2/'`
 host_os=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\3/'`
 echo "$ac_t""$host" 1>&6
 
-    ARCH="$host_cpu-$host_os"
+    ARCH="$host"
 fi
 
 ##
