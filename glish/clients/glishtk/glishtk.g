@@ -122,6 +122,20 @@ func init_glishtk( load=F ) {
 						background, fill, hlcolor, hlbackground, hlthickness )
 				}
 
+    ret.tabbox := func ( parent, width='350', height='250' )
+				{
+				if ( system.nogui ) fail "GUI disabled"
+				return gtk->tabbox( parent, width, height )
+				}
+
+    ret.tab := func ( container, text='tab', side='top', row=0, justify='center', padx=4, pady=2, font='', width=0,
+		      foreground='black', background='lightgrey' )
+				{
+				if ( system.nogui ) fail "GUI disabled"
+				return gtk->tab( container, text, side, row, justify, padx, pady, font, width,
+						 foreground, background )
+				}
+
     ret.have_gui := func ( ) { return ! system.nogui && gtk->have_gui() }
     ret.tk_hold := func ( ) { if ( ! system.nogui ) gtk->tk_hold(T); return T }
     ret.tk_release := func ( ) { if ( ! system.nogui ) gtk->tk_release(T); return T }
@@ -154,6 +168,8 @@ entry := dgtk.entry
 message := dgtk.message
 listbox := dgtk.listbox
 canvas := dgtk.canvas
+tabbox := dgtk.tabbox
+tab := dgtk.tab
 
 have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold

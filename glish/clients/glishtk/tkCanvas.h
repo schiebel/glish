@@ -33,7 +33,7 @@ class TkCanvas : public TkProxy {
 
 	static void Create( ProxyStore *, Value * );
 	~TkCanvas();
-	int CanvasCount() const { return count; }
+	int WidgetCount() const { return count; }
 	int ItemCount(const char *) const;
 	int NewItemCount(const char *);
 	ProxyStore *seq() { return store; }

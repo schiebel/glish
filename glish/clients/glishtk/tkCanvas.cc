@@ -14,9 +14,6 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include "comdefs.h"
 
-#define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
-	sprintf(BUFFER,"c%x%s%x",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
-
 #define CREATE_RETURN						\
 	if ( ! ret || ! ret->IsValid() )			\
 		{						\

@@ -57,6 +57,9 @@ class TkFrameP : public TkFrame {
 	TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, const char *tag_ );
+	TkFrameP( ProxyStore *s, MkTab *tab_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
+		  charptr background, charptr width, charptr height, const char *tag_ );
 
 	// Called when the frame is killed via the window manager
 	void KillFrame( );
@@ -82,7 +85,7 @@ class TkFrameP : public TkFrame {
 	const char *IconifyCB( Value * );
 	const char *DeiconifyCB( Value * );
 
-	const char *Raise( Value * );
+	const char *Raise( Value *args=0 );
 	const char *Title( Value * );
 
 	void Pack();
@@ -117,6 +120,7 @@ class TkFrameP : public TkFrame {
 	char *expand;
 	char *tag;
 	TkCanvas *canvas;
+	MkTab *tab;
   	tkagent_list elements;
 	static unsigned long grab;
 

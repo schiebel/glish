@@ -20,6 +20,7 @@ extern int TkHaveGui();
 class TkProxy;
 class TkCanvas;
 class TkFrame;
+class MkTab;
 
 typedef void (*WidgetCtor)( ProxyStore *, Value * );
 

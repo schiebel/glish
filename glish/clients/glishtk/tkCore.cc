@@ -6,6 +6,7 @@
 RCSID("@(#) $Id$")
 #include "tkCore.h"
 #include "tkCanvas.h"
+#include "mkWidgets.h"
 
 #include <X11/Xlib.h>
 #include <string.h>
@@ -261,6 +262,13 @@ const char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
 			a->Enable( 0 );
 
 	return ret;
+	}
+
+const char *glishtk_raise_tab_cb( TkProxy *a, const char *, Value * )
+	{
+	TkFrameP *f = (TkFrameP*)a;
+	f->Raise( );
+	return 0;
 	}
 
 const char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
@@ -1252,7 +1260,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		    charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
 		    charptr hlcolor, charptr hlbackground, charptr hlthickness, charptr visual_, int visualdepth,
 		    charptr logf ) : TkFrame( s ),
-		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
+			side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), tab(0),
 		  topwin( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
 		  logfile(0), icon(0)
 
@@ -1488,7 +1496,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		    charptr width, charptr height, charptr cursor, int new_cmap,
 		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) : TkFrame( s ),
-		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), topwin( 0 ),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), tab(0), topwin( 0 ),
 		  reject_first_resize(0), tlead(0), tpos(0), unmapped(0), logfile(0), icon(0)
 
 	{
@@ -1598,7 +1606,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		    charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
-		  padx(0), pady(0), expand(0), topwin( 0 ), reject_first_resize(0),
+		  padx(0), pady(0), expand(0), tab(0), topwin( 0 ), reject_first_resize(0),
 		  tlead(0), tpos(0), unmapped(0), logfile(0), icon(0)
 
 	{
@@ -1680,6 +1688,91 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
 	}
 
+
+TkFrameP::TkFrameP( ProxyStore *s, MkTab *tab_, charptr relief_, charptr side_,
+		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		    charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
+		  padx(0), pady(0), expand(0), canvas(0), topwin( 0 ), reject_first_resize(0),
+		  tlead(0), tpos(0), unmapped(0), logfile(0), icon(0)
+
+	{
+	char *argv[12];
+
+	char *background_ = glishtk_quote_string(background);
+
+	frame = 0;
+	tab = tab_;
+	tag = strdup(tag_);
+
+	agent_ID = "<graphic:frame>";
+
+	if ( ! root )
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
+
+	if ( ! tab || ! tab->Self() ) return;
+
+	side = strdup(side_);
+	padx = strdup(padx_);
+	pady = strdup(pady_);
+	expand = strdup(expand_);
+
+	int c = 0;
+	argv[c++] = (char*) "frame";
+	argv[c++] = (char*) NewName(tab->Self());
+	argv[c++] = (char*) "-relief";
+	argv[c++] = (char*) relief_;
+	argv[c++] = (char*) "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = (char*) "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = (char*) "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = (char*) "-background";
+	argv[c++] = (char*) background_;
+
+	tcl_ArgEval( this, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+
+	if ( ! self )
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
+
+	//
+	// Clearing the height/width of toplevel frames fixes problems
+	// with configuring the widget. When setting the cursor, for
+	// example, the frame & children go crazy resizing themselves.
+	//
+// 	rivet_clear_frame_dims( self );
+
+	if ( frame )
+		{
+		frame->AddElement( this );
+		frame->Pack();
+		}
+	else
+		Pack();
+
+	procs.Insert("padx", new FmeProc( this, &TkFrameP::SetPadx, glishtk_strtoint ));
+	procs.Insert("pady", new FmeProc( this, &TkFrameP::SetPady, glishtk_strtoint ));
+	procs.Insert("tag", new FmeProc( this, &TkFrameP::GetTag, glishtk_str ));
+	procs.Insert("side", new FmeProc( this, &TkFrameP::SetSide, glishtk_str ));
+	procs.Insert("grab", new FmeProc( this, &TkFrameP::GrabCB ));
+	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
+	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
+	procs.Insert("cursor", new FmeProc(this, "-cursor", glishtk_onestr, glishtk_str));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind, glishtk_str));
+	procs.Insert("unbind", new FmeProc(this, "", glishtk_unbind));
+
+	procs.Insert("disable", new FmeProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
+
+	procs.Insert("raise", new FmeProc( this, "", glishtk_raise_tab_cb ));
+	}
+
 void TkFrameP::UnMap()
 	{
 	if ( unmapped ) return;
@@ -1716,7 +1809,10 @@ void TkFrameP::UnMap()
 	if ( canvas )
 		tcl_VarEval( this, Tk_PathName(canvas->Self()), " delete ", tag, (char *)NULL );
 	else if ( self )
+		{
+		if ( tab ) tab->Remove( tag );
 		Tk_DestroyWindow( self );
+		}
 
 	canvas = 0;
 	frame = 0;
@@ -1910,11 +2006,16 @@ const char *TkFrameP::DeiconifyCB( Value * )
 
 const char *TkFrameP::Raise( Value *args )
 	{
-	TkProxy *agent = 0;
-	if ( args->IsAgentRecord( ) && (agent = (TkProxy*) store->GetProxy(args)) )
-		tcl_VarEval( this, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), (char *)NULL );
+	if ( tab )
+		tab->Raise( tag );
 	else
-		tcl_VarEval( this, "raise ", Tk_PathName(TopLevel()), (char *)NULL );
+		{
+		TkProxy *agent = 0;
+		if ( args->IsAgentRecord( ) && (agent = (TkProxy*) store->GetProxy(args)) )
+			tcl_VarEval( this, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), (char *)NULL );
+		else
+			tcl_VarEval( this, "raise ", Tk_PathName(TopLevel()), (char *)NULL );
+		}
 
 	return "";
 	}

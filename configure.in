@@ -19,19 +19,20 @@ dnl##
 dnl## Extra command line options
 dnl##
 dnl##--------------------------------------------------------------------
-AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
-AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
-AC_ARG_ENABLE(os-malloc,           [  --enable-os-malloc          do not use Lea malloc])
-AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
-AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])
-AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR      directory for sitewide key files])
-AC_ARG_ASSIGN(script-dir,          [  --script-dir=SCRIPT_DIR     directory for sitewide script files])
-AC_ARG_ASSIGN(tcl-includes,        [  --tcl-includes=DIR          tcl and tk include files are in DIR])
-AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR         tcl and tk libraries are in DIR])
-AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags   PGPLOT include flags])
-AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags   PGPLOT link flags])
-AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags  PGPLOT search flags])
-AC_ARG_ASSIGN(extra-link-libs,     [  --extra-libs=libs           libraries to add to link line])
+AC_ARG_ENABLE(static-binary,       [  --enable-static-binary       force binaries to be static])
+AC_ARG_ENABLE(shared,              [  --enable-shared              build shared libraries])
+AC_ARG_ENABLE(os-malloc,           [  --enable-os-malloc           do not use Lea malloc])
+AC_ARG_ENABLE(min-space,           [  --enable-min-space           delete intermediate objects])
+AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR         directory for sitewide .glishrc])
+AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR       directory for sitewide key files])
+AC_ARG_ASSIGN(script-dir,          [  --script-dir=SCRIPT_DIR      directory for sitewide script files])
+AC_ARG_ASSIGN(script-dir-tcl,      [  --script-dir-tcl=SCRIPT_DIR  directory for sitewide tcl files])
+AC_ARG_ASSIGN(tcl-includes,        [  --tcl-includes=DIR           system tcl and tk include files are in DIR])
+AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR          system tcl and tk libraries are in DIR])
+AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags    PGPLOT include flags])
+AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags    PGPLOT link flags])
+AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags   PGPLOT search flags])
+AC_ARG_ASSIGN(extra-link-libs,     [  --extra-libs=libs            libraries to add to link line])
 
 if test "$enable_static_binary" = "yes" -o "$enable_shared" != "yes"; then
 	static_binary="yes"
@@ -374,6 +375,17 @@ else
 	SCRIPTDIR="$option_script_dir"
 fi
 AC_SUBST(SCRIPTDIR)
+
+dnl##
+dnl## sitewide glish tcl script
+dnl##
+if test -z "$option_script_dir_tcl"; then
+	SCRIPTDIRTCL="${SCRIPTDIR}/tcl"
+	EXPAND_VAR(SCRIPTDIRTCL)
+else
+	SCRIPTDIRTCL="$option_script_dir_tcl"
+fi
+AC_SUBST(SCRIPTDIRTCL)
 
 dnl##
 dnl## sitewide .glishrc

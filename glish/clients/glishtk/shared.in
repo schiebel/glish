@@ -35,6 +35,7 @@ INCDIR_P = $(top)/include
 LIBDIR_P = $(top)/lib/$(ARCH)
 BINDIR_P = $(top)/bin/$(ARCH)
 SCRIPTDIR_P = $(top)/share/glish
+SCRIPTDIRTCL_P = $(SCRIPTDIR_P)/tcl
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
@@ -42,6 +43,7 @@ INCDIR = @includedir@
 LIBDIR = @libdir@
 BINDIR = @bindir@
 SCRIPTDIR = @SCRIPTDIR@
+SCRIPTDIRTCL = @SCRIPTDIRTCL@
 
 MKHIER = $(top)/config/mkhier
 
@@ -54,9 +56,9 @@ XINC = @XINCLUDES@
 INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 
 OBJS = tkProxy.o tkUtil.o
-LOBJS = GlishTk.o tkCore.o tkCanvas.o
+LOBJS = GlishTk.o tkCore.o tkCanvas.o mkWidgets.o
 
-all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX) $(LIBDIR_P)/GlishTk$(SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX) $(LIBDIR_P)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL_P)/mkWidgets/pkgIndex.tcl
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -64,7 +66,7 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX)
+install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl
 
 libglishtk$(GSUFFIX): $(OBJS)
 	rm -f libglishtk$(GSUFFIX)
@@ -103,6 +105,66 @@ tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
 
 tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
+
+mkWidgets.o: $(SRC)/mkWidgets.cc $(SRC)/mkWidgets.h $(H)/glishtk.h $(SRC)/comdefs.h
+	$(MKHIER) $(SCRIPTDIRTCL_P)
+	SCRIPTDIRTCL_P_FULL=`cd $(SCRIPTDIRTCL_P); pwd`; \
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DTCLSCRIPTDIRP="\"$$SCRIPTDIRTCL_P_FULL\"" \
+				        -DTCLSCRIPTDIR="\"$(SCRIPTDIRTCL)\"" -c $(SRC)/mkWidgets.cc 
+
+$(SCRIPTDIRTCL_P)/mkWidgets/pkgIndex.tcl:
+	$(MKHIER) $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/pkgIndex.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Aclock.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Calendar.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Combobox.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Document.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Gridcontrol.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Ibutton.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Iconbox.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Listcontrol.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Pane.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Progressbar.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Scrollbox.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Spinentry.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Statusbar.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Tabcontrol.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Textframe.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Toolbar.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Tooltip.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Treecontrol.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Window.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/metawidget.tcl $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/mkWidCol.htm $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/mkWidMan.htm $(SCRIPTDIRTCL_P)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/ReadMe.txt $(SCRIPTDIRTCL_P)/mkWidgets
+
+$(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl:
+	$(MKHIER) $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/pkgIndex.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Aclock.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Calendar.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Combobox.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Document.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Gridcontrol.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Ibutton.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Iconbox.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Listcontrol.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Pane.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Progressbar.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Scrollbox.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Spinentry.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Statusbar.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Tabcontrol.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Textframe.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Toolbar.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Tooltip.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Treecontrol.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/Window.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/metawidget.tcl $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/mkWidCol.htm $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/mkWidMan.htm $(SCRIPTDIRTCL)/mkWidgets
+	$(INSTALL_DATA) $(SRC)/mkWidgets/ReadMe.txt $(SCRIPTDIRTCL)/mkWidgets
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

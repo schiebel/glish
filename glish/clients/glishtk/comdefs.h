@@ -235,4 +235,10 @@ CLASS::~CLASS( )					\
 								\
 	SETDONE
 
+#define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
+	sprintf(BUFFER,"c%x%s%x",CANVAS->WidgetCount(),TYPE,CANVAS->NewItemCount(TYPE));
+
+
+extern Value *glishtk_tkcast( const char *tk );
+
 #endif

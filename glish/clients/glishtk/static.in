@@ -30,6 +30,7 @@ INCDIR_P = $(top)/include
 LIBDIR_P = $(top)/lib/$(ARCH)
 BINDIR_P = $(top)/bin/$(ARCH)
 SCRIPTDIR_P = $(top)/share/glish
+SCRIPTDIRTCL_P = $(SCRIPTDIR_P)/tcl
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@

@@ -11,6 +11,7 @@ RCSID("@(#) $Id$")
 
 extern "C" void GlishTk_init( ProxyStore *, int, const char * const * );
 extern "C" void GlishTk_loop( ProxyStore *, const GlishCallback *, int, const GlishCallback *, int );
+extern void MkWidgets_init( ProxyStore *store );
 
 void GlishTk_init( ProxyStore *store, int, const char * const * )
 	{
@@ -36,6 +37,7 @@ void GlishTk_init( ProxyStore *store, int, const char * const * )
 
 	store->Register( "tk_load", TkProxy::Load );
 	store->Register( "tk_loadpath", TkProxy::SetLoadPath );
+	MkWidgets_init( store );
 	}
 
 static void fileproc_callback( ClientData data, int )
