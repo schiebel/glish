@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 sub MY::c_o {
 '
 .cc.o:
-	CC -PIC -DDEBUGGING -Bdynamic -g -c $(CCCDLFLAGS) -I$(PERL_INC) $(DEFINE) $(INC) $*.cc
+	c++ -DDEBUGGING -rdynamic -g -c $(CCCDLFLAGS) -I$(PERL_INC) $(DEFINE) $(INC) $*.cc
 ';
 }
 
@@ -19,7 +19,7 @@ WriteMakefile(
     'VERSION'	=> '0.1',
     'LIBS'	=> ['-L/opt/local/share/lib/perl5.002/site_perl/sun4-solaris/auto/Glish -L/opt/SW4.0/SUNWspro/lib -lglish -lsds -lnpd -lC -lm -lnsl -lsocket'],
     'DEFINE'	=> '',
-    'INC'	=> '-I/net/muse/muse_2/dschieb/dev/glish/include',
-    'dynamic_lib' => {OTHERLDFLAGS => '-R /opt/local/share/lib/perl5.002/site_perl/sun4-solaris/auto/Glish:/opt/SW4.0/SUNWspro/lib:/opt/local/lib:/usr/ucblib:/usr/ccs/lib:/usr/lib'},
-    'XS'	=> { 'Glish.xs' => 'Glish.cc' }
+    'INC'	=> '-I/home/drs/dev/glish/include -I/home/drs/dev/glish/glish/include',
+    'dynamic_lib' => {OTHERLDFLAGS => '-Wl,-rpath,/usr/lib/perl5/site_perl/5.005/i386-linux/auto/Glish:/usr/lib -L/usr/lib/perl5/site_perl/5.005/i386-linux/auto/Glish -lglish -lsos -lnpd -lnsl -lstdc++' },
+    'XS'	=> { 'Glish.xs' => 'Glish.cc' },
 );

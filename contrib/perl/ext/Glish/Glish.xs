@@ -491,7 +491,8 @@ pv2gv_hash_real_action(TYPE_BOOL,TYPE_BOOL)
 			// must maintain offset into the static list of keys becausee
 			// this function is called recursively...
 			int myoff = offset;
-			for (int X = 0; cur = hv_iternext(hash);X++)
+			int X = 0;
+			for ( ; cur = hv_iternext(hash);X++)
 				{
 				if ( X >= hash_len - myoff )
 					{
@@ -672,6 +673,7 @@ pv2gv(SV *val, glish_type type)
 	}
 
 MODULE = Glish PACKAGE = Glish
+PROTOTYPES: ENABLE
 
 BOOT:
 #
