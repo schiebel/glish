@@ -28,7 +28,7 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel,
 	while ( argv[argc] )
 		++argc;
 
-	charptr* client_argv = new charptr[argc + 1];
+	charptr* client_argv = (charptr*) alloc_memory( sizeof(charptr)*(argc+1) );
 
 	client_argv[0] = id;
 	for ( int i = 1; i <= argc; ++i )
@@ -37,7 +37,7 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel,
 	Value argv_value( client_argv, argc + 1, COPY_ARRAY );
 	send_event( daemon_channel->WriteFD(), "client", &argv_value );
 
-	delete client_argv;
+	free_memory( client_argv );
 	}
 
 
@@ -49,7 +49,7 @@ RemoteExec::~RemoteExec()
 		send_event( daemon_channel->WriteFD(), "kill", &id_value );
 		}
 
-	delete id;
+	free_memory( id );
 	}
 
 

@@ -586,7 +586,7 @@ char *literal( const char *new_str, int clear )
 	{
 	static unsigned int len = 512;
 	static unsigned int curlen = 0;
-	static char *string = new char[len];
+	static char *string = (char*) alloc_memory( sizeof(char)*len );
 
 	if ( clear )
 		curlen = 0;

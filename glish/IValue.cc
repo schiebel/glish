@@ -109,7 +109,7 @@ IValue::IValue( const char *message, const char *file, int line ) : Value( messa
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	{
 	InitValue();
-	funcptr *ary = new funcptr[1];
+	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
 	}
@@ -126,7 +126,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 	InitValue();
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
-		agentptr *ary = new agentptr[1];
+		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
 		copy_array(&value,ary,1,agentptr);
 		kernel.SetArray( (voidptr*) ary, 1, TYPE_AGENT, 0, copy_agents, 0, delete_agents );
 		}
@@ -283,7 +283,7 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 			}						\
 									\
 		if ( rhs_copy )						\
-			delete rhs_array;				\
+			free_memory( rhs_array );			\
 									\
 		break;							\
 		}
@@ -305,7 +305,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 
@@ -329,7 +329,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
 					fatal->Report(
@@ -380,7 +380,7 @@ void IValue::AssignArrayElements( Value* value )
 			}						\
 									\
 		if ( rhs_copy )						\
-			delete rhs_array;				\
+			free_memory( rhs_array );			\
 									\
 		break;							\
 		}
@@ -402,7 +402,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray,strdup, delete (char*) (lhs[i]);)
+	CoerceToStringArray,strdup, free_memory( (void*) lhs[i] );)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 
@@ -426,7 +426,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, delete (char*) (lhs[i]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[i] );)
 
 				default:
 					fatal->Report(
@@ -462,7 +462,7 @@ void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 		}							\
 									\
 	if ( rhs_copy )							\
-		delete rhs_array;					\
+		free_memory( rhs_array );				\
 	}
 
 
@@ -645,22 +645,23 @@ IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )
 									\
 	if ( ! lhs_array || ! rhs_array )				\
 		{							\
-		if ( lhs_array && lhs_copy ) delete lhs_array;		\
-		if ( rhs_array && rhs_copy ) delete rhs_array;		\
+		if ( lhs_array && lhs_copy ) free_memory( lhs_array );	\
+		if ( rhs_array && rhs_copy ) free_memory( rhs_array );	\
 		return new IValue( #name " failed", (const char*)0, 0 );\
 		}							\
 									\
-	glish_bool* result = new glish_bool[lhs_len];			\
+	glish_bool* result = (glish_bool*)				\
+			alloc_memory( sizeof(glish_bool)*lhs_len );	\
 									\
 	int rhs_incr = rhs->Length() == 1 ? 0 : 1;			\
 									\
 	expr->Compute( lhs_array, rhs_array, result, lhs_len, rhs_incr );\
 									\
 	if ( lhs_copy )							\
-		delete lhs_array;					\
+		free_memory( lhs_array );				\
 									\
 	if ( rhs_copy )							\
-		delete rhs_array;					\
+		free_memory( rhs_array );				\
 									\
 	IValue* answer = new IValue( result, lhs_len );			\
 	answer->CopyAttributes( lhs->AttributePtr() ? lhs : rhs );	\

@@ -44,7 +44,7 @@ BaseList::BaseList(int size, PFC handler)
 	else
 		{
 		num_entries = 0;
-		if ( (entry = new ent[chunk_size]) )
+		if ( entry = (ent*) alloc_memory(sizeof(ent) * chunk_size) )
 			max_entries = chunk_size;
 		else
 			max_entries = 0;
@@ -65,7 +65,7 @@ BaseList::BaseList(BaseList& b)
 	error_handler = b.error_handler;
 
 	if ( max_entries )
-		entry = new ent[max_entries];
+		entry = (ent*) alloc_memory( sizeof(ent)*max_entries );
 	else
 		entry = 0;
 
@@ -78,7 +78,7 @@ void BaseList::operator=(BaseList& b)
 	if ( this == &b )
 		return;	// i.e., this already equals itself
 
-	delete entry;
+	free_memory( entry );
 
 	max_entries = b.max_entries;
 	chunk_size = b.chunk_size;
@@ -86,7 +86,7 @@ void BaseList::operator=(BaseList& b)
 	error_handler = b.error_handler;
 
 	if ( max_entries )
-		entry = new ent[max_entries];
+		entry = (ent*) alloc_memory( sizeof(ent)*max_entries );
 	else
 		entry = 0;
 
@@ -159,7 +159,7 @@ ent BaseList::get()
 
 void BaseList::clear()
 	{
-	delete entry;
+	free_memory( entry );
 	entry = 0;
 	num_entries = max_entries = 0;
 	chunk_size = DEFAULT_CHUNK_SIZE;

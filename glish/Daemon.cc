@@ -35,7 +35,7 @@ int start_local_daemon( )
 		return 0;
 
 	new LocalExec( exec_name );
-	delete exec_name;
+	free_memory( exec_name );
 	return 1;
 	}
 

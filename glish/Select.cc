@@ -138,7 +138,7 @@ Selector::Selector() : await_done(0)
 	max_num_fds = 32;
 #endif
 
-	selectees = new Selectee* [max_num_fds];
+	selectees = (Selectee**) alloc_memory( sizeof(Selectee*)*max_num_fds );
 
 	for ( int i = 0; i < max_num_fds; ++i )
 		selectees[i] = 0;
@@ -156,7 +156,7 @@ Selector::~Selector()
 	for ( int i = 0; i < max_num_fds; ++i )
 		delete selectees[i];
 
-	delete selectees;
+	free_memory( selectees );
 	delete fdset;
 	}
 

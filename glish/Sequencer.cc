@@ -271,7 +271,7 @@ Scope::~Scope()
 	c = global_refs.InitForIteration();
 	char * val;
 	while ( (val = global_refs.NextEntry( key, c )) )
-		delete val;
+		free_memory( val );
 	}
 
 
@@ -287,7 +287,7 @@ void Scope::MarkGlobalRef(const char *c)
 void Scope::ClearGlobalRef(const char *c)
 	{
 	char *v = global_refs.Remove(c);
-	delete v;
+	free_memory( v );
 	}
 
 void NotifyTrigger::NotifyDone() { }
@@ -308,7 +308,7 @@ Notification::Notification( Agent* arg_notifier, const char* arg_field,
 
 Notification::~Notification()
 	{
-	delete field;
+	free_memory( field );
 	Unref( value );
 	Unref( trigger );
 	}
@@ -327,7 +327,7 @@ void Notification::Describe( OStream& s ) const
 	{								\
 	if ( VAR##_file ) { fclose( VAR##_file ); VAR##_file = 0; }	\
 	if ( VAR##_val )  { Unref( VAR##_val );	VAR##_val = 0; }	\
-	if ( VAR##_name ) { delete VAR##_name; VAR##_name = 0; }	\
+	if ( VAR##_name ) { free_memory( VAR##_name ); VAR##_name = 0; }\
 	}
 
 SystemInfo::~SystemInfo()
@@ -349,7 +349,7 @@ void SystemInfo::SetVal(IValue *v)
 const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	{
 	static unsigned int size = 1024;
-	static char *outbuf = new char[size];
+	static char *outbuf = (char*) alloc_memory( sizeof(char)*size );
 
 	if ( ! prefix || ! buf )
 		return buf;
@@ -393,7 +393,7 @@ void SystemInfo::DoLog( int input, const Value *v )
 	{
 	char* desc = v->StringVal( ' ', v->PrintLimit() , 1 );
 	DoLog( input, desc );
-	delete desc;
+	free_memory( desc );
 	}
 
 void SystemInfo::DoLog( int input, const char *orig_buf, int len )
@@ -492,11 +492,11 @@ if ( v1->HasRecordElement( #VAR ) &&					\
 		if ( VAR##_name )					\
 			if ( strcmp(nf,VAR##_name) )			\
 				{					\
-				delete VAR##_name;			\
+				free_memory( VAR##_name );		\
 				VAR##_name = nf;			\
 				}					\
 			else						\
-				delete nf;				\
+				free_memory( nf );			\
 		else							\
 			VAR##_name = nf;				\
 									\
@@ -530,7 +530,7 @@ if ( v1->HasRecordElement( #VAR ) &&					\
 			}						\
 		if ( VAR##_name )					\
 			{						\
-			delete VAR##_name;				\
+			free_memory( VAR##_name );			\
 			VAR##_name = 0;					\
 			}						\
 		if ( VAR##_file )					\
@@ -737,13 +737,13 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
 	connection_host = local_host_name();
-	connection_port = new char[32];
+	connection_port = (char*) alloc_memory(sizeof(char)*32);
 	sprintf( connection_port, "%d", connection_socket->Port() );
 
 	static const char tag_fmt[] = "*tag-%s.%d*";
 	int n = strlen( tag_fmt ) + strlen( connection_host ) + /* slop */ 32;
 
-	interpreter_tag = new char[n];
+	interpreter_tag = (char*) alloc_memory(sizeof(char)*n);
 	sprintf( interpreter_tag, tag_fmt, connection_host, int( getpid() ) );
 
 	monitor_task = 0;
@@ -916,7 +916,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 		MakeArgvGlobal( argv, argc );
 		Parse( runfile );
 		do_interactive = 0;
-		delete runfile;
+		free_memory( runfile );
 		}
 	else
 		MakeArgvGlobal( argv, argc, 1 );
@@ -948,9 +948,9 @@ Sequencer::~Sequencer()
 	if ( ! script_client_active )
 		delete script_client;
 
-	delete interpreter_tag;
+	free_memory( interpreter_tag );
 	delete connection_socket;
-	delete connection_port;
+	free_memory( connection_port );
 
 	while ( (*agents).length() )
 		Unref( (*agents).remove_nth( (*agents).length() - 1 ) );
@@ -1096,7 +1096,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 	if ( old )
 		{
 		Unref(old);
-		delete id;
+		free_memory( id );
 		}
 
 	return result;
@@ -1129,7 +1129,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 					if ( old )
 						{
 						Unref(old);
-						delete id;
+						free_memory( id );
 						}
 					return result;
 					}
@@ -1182,7 +1182,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 
 		}
 
-	delete id;
+	free_memory(id);
 	return result;
 	}
 
@@ -1238,7 +1238,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 	if ( old )
 		{
 		Unref(old);
-		delete id;
+		free_memory( id );
 		}
 
 	return var;
@@ -1305,7 +1305,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 
 		}
 
-	delete id;
+	free_memory( id );
 	return result;
 	}
 
@@ -1627,7 +1627,7 @@ void Sequencer::PopFuncName( )
 
 	char *top = cur_sequencer->func_names.remove_nth( top_pos );
 
-	delete top;
+	free_memory( top );
 	}
 
 IValue *Sequencer::FuncNameStack( )
@@ -1637,7 +1637,7 @@ IValue *Sequencer::FuncNameStack( )
 	if ( ! len )
 		return 0;
 
-	charptr *strs = new char*[len];
+	charptr *strs = (const char**) alloc_memory( sizeof(char*)*len );
 
 	for ( int i=0; i < len; i++ )
 		strs[i] = strdup( cur_sequencer->func_names[i] );
@@ -1947,7 +1947,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 		NewEvent( task, establish_event );
 		}
 
-	delete task_id;
+	free_memory( task_id );
 
 	return task;
 	}
@@ -2203,7 +2203,7 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc, int append_name )
 		argv_value = new IValue( (charptr*) argv, argc, COPY_ARRAY );
 	else
 		{
-		char **av = new char*[argc+1];
+		char **av = (char**) alloc_memory( sizeof(char*)*(argc+1) );
 		av[0] = strdup(name);
 		for ( int i = 0; i < argc; i++ )
 			av[i+1] = strdup(argv[i]);
@@ -2336,7 +2336,7 @@ IValue *Sequencer::Include( const char *file )
 		}
 
 	FILE *fptr = fopen( expanded_name, "r");
-	delete expanded_name;
+	free_memory( expanded_name );
 
 	if ( ! fptr )
 		return error_ivalue();

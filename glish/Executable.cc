@@ -33,7 +33,7 @@ void Executable::DoneReceived() { }
 
 Executable::~Executable()
 	{
-	delete executable;
+	free_memory( executable );
 	}
 
 

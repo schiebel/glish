@@ -80,7 +80,6 @@ void NAME( )								\
 	fprintf(stderr,"\n[fatal error, '%s' (signal %d), exiting]\n",	\
 			STRING, SIGNAL);				\
 									\
-	if ( s ) delete s;						\
 	install_signal_handler( SIGNAL, (signal_handler) SIG_DFL );	\
 	kill( getpid(), SIGNAL );					\
 	}
@@ -102,7 +101,6 @@ void glish_sigint( )
 		longjmp( glish_top_level, 1 );
 		}
 
-	if ( s ) delete s;
 	install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
 	kill(getpid(), SIGINT);
 	}

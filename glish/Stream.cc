@@ -41,13 +41,13 @@ OStream &OStream::flush( )
 char *DBuf::tmpbuf = 0;
 DBuf::DBuf(unsigned int s)
 	{
-	if ( ! tmpbuf ) tmpbuf = new char[512];
+	if ( ! tmpbuf ) tmpbuf = (char*) alloc_memory( sizeof(char)*512 );
 	size_ = s ? s : 1;
-	buf = new char[size_ + 1];
+	buf = (char*) alloc_memory( sizeof(char)*(size_ + 1) );
 	len_ = 0;
 	}
 
-DBuf::~DBuf() { if ( buf ) delete buf; }
+DBuf::~DBuf() { free_memory( buf ); }
 
 #define DEFINE_APPEND(TYPE)						\
 int DBuf::put( TYPE v, const char *format )				\

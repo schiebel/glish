@@ -448,7 +448,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 				id = current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 				}
 			else
-				delete $1;
+				free_memory( $1 );
 
 			$$ = null_stmt;
 			}
@@ -781,7 +781,7 @@ var:		TOK_ID
 			if ( ! $$ )
 				$$ = CreateVarExpr( $1, current_sequencer );
 			else
-				delete $1;
+				free_memory( $1 );
 
 			Ref($$);
 			}

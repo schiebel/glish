@@ -21,7 +21,7 @@ Parameter::~Parameter()
 	NodeUnref( arg );
 	NodeUnref( default_value );
 	if ( name && can_delete )
-		delete name;
+		free_memory( name );
 	}
 
 Parameter::Parameter( const char* arg_name, value_type arg_parm_type,

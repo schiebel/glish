@@ -11,6 +11,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Reporter.h"
 #include "Sequencer.h"
+#include "system.h"
 
 
 #define INTERESTED_IN_ALL "*"
@@ -83,7 +84,7 @@ Agent::~Agent()
 		loop_over_list( *string_copies, i )
 			{
 			char* str = (char*) (*string_copies)[i];
-			delete str;
+			free_memory( str );
 			}
 
 		delete string_copies;
@@ -188,8 +189,8 @@ IValue* Agent::AssociatedStatements()
 	while ( (interest = interested_parties.NextEntry( key, c )) )
 		num_stmts += interest->length();
 
-	char** event = new char*[num_stmts];
-	int* stmt = new int[num_stmts];
+	char** event = (char**) alloc_memory( sizeof(char*)*num_stmts );
+	int* stmt = (int*) alloc_memory( sizeof(int)*num_stmts );
 	int count = 0;
 
 	c = interested_parties.InitForIteration();

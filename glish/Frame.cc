@@ -6,6 +6,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Frame.h"
 #include "Reporter.h"
+#include "system.h"
 
 
 Frame::Frame( int frame_size, IValue* param_info, scope_type s )
@@ -13,7 +14,7 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	scope = s;
 	size = frame_size;
 	missing = param_info ? param_info : empty_ivalue();
-	values = new IValue*[size];
+	values = (IValue**) alloc_memory( sizeof(IValue*)*size );
 
 	for ( int i = 0; i < size; ++i )
 		values[i] = 0;
@@ -28,7 +29,7 @@ Frame::~Frame()
 
 	for ( int i = 0; i < size; ++i )
 		Unref( values[i] );
-	delete values;
+	free_memory( values );
 	}
 
 

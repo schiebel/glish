@@ -12,6 +12,7 @@ RCSID("@(#) $Id$")
 #include "Expr.h"
 #include "Agent.h"
 #include "Func.h"
+#include "system.h"
 #include "config.h"
 
 int ParseNode::canDelete() const
@@ -138,7 +139,7 @@ VarExpr::~VarExpr()
 	// simply a reference to a global variable.
 	//
 	if ( scope_offset >= 0 )
-		delete id;
+		free_memory(id);
 	}
 
 void VarExpr::change_id( char *newid )
@@ -148,7 +149,7 @@ void VarExpr::change_id( char *newid )
 	// simply a reference to a global variable.
 	//
 	if ( scope_offset >= 0 )
-		delete id;
+		free_memory( id );
 	else
 		scope_offset = 0;
 
@@ -693,7 +694,8 @@ IValue* ConstructExpr::BuildArray()
 			++num_values;
 		}
 
-	const_value_ptr* values = new const_value_ptr[num_values];
+	const_value_ptr* values = (const_value_ptr*) 
+				alloc_memory( sizeof(const_value_ptr)*num_values );
 
 	int total_length = 0;
 	for ( LOOPDECL i = 0; i < args->length(); ++i )
@@ -728,7 +730,7 @@ IValue* ConstructExpr::BuildArray()
 		if ( ! (*args)[i]->IsEllipsis() )
 			(*args)[i]->Arg()->ReadOnlyDone( values[i] );
 
-	delete values;
+	free_memory( values );
 
 	return result;
 	}
@@ -820,7 +822,8 @@ IValue* ConstructExpr::ConstructArray( const IValue* values[],
 #define BUILD_WITH_COERCE_TYPE(tag, type, coercer)			\
 	case tag:							\
 		{							\
-		type* array = new type[total_length];			\
+		type* array = (type*) alloc_memory(			\
+					sizeof(type)*total_length );	\
 		type* array_ptr = array;				\
 									\
 		for ( i = 0; i < num_values; ++i )			\
@@ -840,7 +843,8 @@ IValue* ConstructExpr::ConstructArray( const IValue* values[],
 #define BUILD_WITH_NON_COERCE_TYPE(tag, type, accessor, storage)	\
 	case tag:							\
 		{							\
-		type* array = new type[total_length];			\
+		type* array = (type*) alloc_memory(			\
+					sizeof(type)*total_length );	\
 		type* array_ptr = array;				\
 									\
 		for ( i = 0; i < num_values; ++i )			\
@@ -855,7 +859,7 @@ IValue* ConstructExpr::ConstructArray( const IValue* values[],
 		result = new IValue( array, total_length, storage );	\
 									\
 		if ( storage == COPY_ARRAY )				\
-			delete array;					\
+			free_memory( array );				\
 									\
 		break;							\
 		}
@@ -1333,7 +1337,7 @@ int ArrayRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 RecordRefExpr::~RecordRefExpr()
 	{
 	if ( field )
-		delete field;
+		free_memory( field );
 	}
 
 RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
@@ -1424,7 +1428,7 @@ int RecordRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 AttributeRefExpr::~AttributeRefExpr()
 	{
 	if ( field )
-		delete field;
+		free_memory( field );
 	} 
 
 AttributeRefExpr::AttributeRefExpr( Expr *op1 ) : BinaryExpr(op1, 0, "::")
@@ -1557,7 +1561,7 @@ IValue *AttributeRefExpr::Assign( IValue* new_value )
 			{
 			char* str = index_val->StringVal();
 			lhs_value->AssignAttribute( str, new_value );
-			delete str;
+			free_memory( str );
 			}
 
 		else
@@ -1714,7 +1718,7 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 
 		int direction = (start > stop) ? -1 : 1;
 		int num_values = (stop - start) * direction + 1;
-		int* range = new int[num_values];
+		int* range = (int*) alloc_memory( sizeof(int)*num_values );
 
 		int i;
 		int index = 0;
@@ -1835,7 +1839,7 @@ IValue* IncludeExpr::Eval( eval_type etype )
 		ret = 0;
 		}
 
-	delete file;
+	free_memory( file );
 	return ret ? ret : new IValue( glish_true );
 	}
 

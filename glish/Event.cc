@@ -199,7 +199,7 @@ void delete_name_list( name_list* nl )
 	if ( nl )
 		{
 		loop_over_list( *nl, i )
-			delete (*nl)[i];
+			free_memory( (*nl)[i] );
 
 		delete nl;
 		}

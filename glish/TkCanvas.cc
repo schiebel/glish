@@ -12,6 +12,8 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "IValue.h"
 #include "Expr.h"
+#include "system.h"
+
 
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
@@ -248,17 +250,17 @@ DEFINE_DTOR(TkCanvas)
 // the canvas functions. This was done to minimize allocations.
 //
 static int argv_len = 64;
-static char **arg_name = new char*[argv_len];
-static char **arg_val = new char*[argv_len];
-static char **argv = new char*[argv_len];
+static char **arg_name = (char**) alloc_memory( sizeof(char*)*argv_len );
+static char **arg_val = (char**) alloc_memory( sizeof(char*)*argv_len );
+static char **argv = (char**) alloc_memory( sizeof(char*)*argv_len );
 
 #define CANVAS_FUNC_REALLOC(size)							\
 	if ( size >= argv_len )								\
 		{									\
 		while ( size >= argv_len ) argv_len *= 2;				\
-		arg_name = (char**) realloc( arg_name, argv_len * sizeof(char*) );	\
-		arg_val = (char**) realloc( arg_val, argv_len * sizeof(char*) );	\
-		argv = (char**) realloc( argv, argv_len * sizeof(char*) );		\
+		arg_name = (char**) realloc_memory( arg_name, argv_len * sizeof(char*) );\
+		arg_val = (char**) realloc_memory( arg_val, argv_len * sizeof(char*) );	\
+		argv = (char**) realloc_memory( argv, argv_len * sizeof(char*) );		\
 		}
 
 IValue *glishtk_StrToInt( char *str )
@@ -298,7 +300,7 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, para
 	if ( args->length() >= howmany )
 		{
 		static int len = 4;
-		static char *buf = new char[len*128];
+		static char *buf = (char*) alloc_memory( sizeof(char)*(len*128) );
 		static char elem[128];
 
 		if ( ! howmany )
@@ -307,7 +309,7 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, para
 		while ( howmany > len )
 			{
 			len *= 2;
-			buf = (char *) realloc(buf, len * sizeof(char) * 128);
+			buf = (char *) realloc_memory(buf, len * sizeof(char) * 128);
 			}
 
 		int c = 0;
@@ -353,7 +355,7 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parame
 	ret = (char*) self->interp->result;
 
 	for ( int x=0; x < len; x++ )
-		delete argv[x + 2];
+		free_memory( argv[x + 2] );
 
 	return ret;
 	}
@@ -407,7 +409,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	HASARG( args, > 0 )
 	static char tag[256];
 	static int tagstr_len = 512;
-	static char *tagstr = new char[tagstr_len];
+	static char *tagstr = (char*) alloc_memory( sizeof(char)*tagstr_len );
 	int tagstr_cnt = 0;
 	int name_cnt = 0;
 
@@ -428,28 +430,29 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 if ( tagstr_cnt+strlen(STR)+5 >= tagstr_len )				\
 	{								\
 	while ( tagstr_cnt+strlen(STR)+5 >= tagstr_len ) tagstr_len *= 2; \
-	tagstr = (char*) realloc( tagstr, tagstr_len * sizeof(char));	\
+	tagstr = (char*) realloc_memory( tagstr, tagstr_len * sizeof(char));\
 	}								\
 if ( tagstr_cnt ) { strcat(tagstr, " "); tagstr_cnt++; }		\
 strcat(tagstr, STR);							\
 tagstr_cnt += strlen(STR);
 
-#define POINTFUNC_NAMED_ACTION				 	\
-if ( strcmp((*args)[c]->Name(),"tag") )				\
-	{							\
-	arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2]; \
-	sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());	\
-	EXPRSTR( str, event_name )				\
-	arg_val[name_cnt++] = strdup(str);			\
-	EXPR_DONE( str )					\
-	}							\
-else								\
-	{							\
-	EXPRSTRVAL(str_v,event_name)				\
-	char *str = str_v->StringVal();				\
-	POINTFUNC_TAG_APPEND(str)				\
-	delete str;						\
-	EXPR_DONE( str_v )					\
+#define POINTFUNC_NAMED_ACTION				 		\
+if ( strcmp((*args)[c]->Name(),"tag") )					\
+	{								\
+	arg_name[name_cnt] = (char*) alloc_memory( 			\
+			sizeof(char)*(strlen((*args)[c]->Name())+2) );	\
+	sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());		\
+	EXPRSTR( str, event_name )					\
+	arg_val[name_cnt++] = strdup(str);				\
+	EXPR_DONE( str )						\
+	}								\
+else									\
+	{								\
+	EXPRSTRVAL(str_v,event_name)					\
+	char *str = str_v->StringVal();					\
+	POINTFUNC_TAG_APPEND(str)					\
+	free_memory( str );						\
+	EXPR_DONE( str_v )						\
 	}
 
 		for (int i = 0; i < (*args).length(); i++)
@@ -539,7 +542,7 @@ else								\
 	ret = (char*) rivet_cmd( agent->Self(), argc, argv );
 
 	for (int j=3; j < argc - 2; j++)
-		delete argv[j];
+		free_memory( argv[j] );
 
 	return tag;
 	}
@@ -591,7 +594,7 @@ char *glishtk_canvas_move(Rivetobj self, const char *cmd, parameter_list *args,
 			sprintf(xshift,"%d",delta[0]);
 			sprintf(yshift,"%d",delta[1]);
 			if (is_copy)
-				delete delta;
+				free_memory( delta );
 			}
 		rivet_va_cmd( self, "move", tag, xshift, yshift, 0 );
 		EXPR_DONE( off )
@@ -613,9 +616,9 @@ struct glishtk_canvas_bindinfo
 			canvas(c) { tag = tag_arg ? strdup(tag_arg) : 0; }
 	~glishtk_canvas_bindinfo()
 		{
-		if ( tag ) delete tag;
-		delete tk_event_name;
-		delete event_name;
+		free_memory( tag );
+		free_memory( tk_event_name );
+		free_memory( event_name );
 		}
 	};
 
@@ -627,11 +630,11 @@ int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysy
 	if ( info->tag )
 		rec->Insert( strdup("tag"), new IValue( info->tag ) );
 	static char buff[256];
-	int *wpt = new int[2];
+	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
 	wpt[0] = xevent->xkey.x;
 	wpt[1] = xevent->xkey.y;
 	rec->Insert( strdup("wpoint"), new IValue( wpt, 2 ) );
-	int *cpt = new int[2];
+	int *cpt = (int*) alloc_memory( sizeof(int)*2 );
 	sprintf(buff,"%d",xevent->xkey.x);
 	char *ret = (char*) rivet_va_cmd(canvas, "canvasx", buff, 0);
 	cpt[0] = atoi(ret);
@@ -808,7 +811,7 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	argv[c++] = rivet_new_callback((int (*)()) canvas_yscrollcb, (ClientData) this, 0);
 
 	if ( region_is_copy )
-		delete region;
+		free_memory( region );
 
 	self = rivet_create(CanvasClass, frame->Self(), c, argv);
 	agent_ID = "<graphic:canvas>";
@@ -902,7 +905,7 @@ const char **CLASS::PackInstruction()			\
 			ret[c++] = "false";		\
 			}				\
 		ret[c++] = 0;				\
-		return ret;				\
+		return (const char**) ret;		\
 		}					\
 	else						\
 		return 0;				\

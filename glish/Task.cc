@@ -64,11 +64,11 @@ Task::~Task()
 	delete pending_events;
 
 	delete attrs;
-	delete name;
+	free_memory( name );
 	delete executable;
 
-	delete read_pipe_str;
-	delete write_pipe_str;
+	free_memory( read_pipe_str );
+	free_memory( write_pipe_str );
 
 	Unref( selector );
 	}
@@ -121,9 +121,9 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 		if ( is_request )
 			{
 			const char* fmt = "*%s-reply*";
-			char* reply_name =
-				new char[strlen( event_name ) +
-					 strlen( fmt ) + 1];
+			char* reply_name = (char*) alloc_memory(
+				sizeof(char)*(strlen( event_name ) +
+					 strlen( fmt ) + 1) );
 			sprintf( reply_name, fmt, event_name );
 
 			IValue* new_val = create_irecord();
@@ -139,7 +139,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 
 			result = sequencer->AwaitReply( this, event_name,
 							reply_name );
-			delete reply_name;
+			free_memory( reply_name );
 			}
 
 		else
@@ -236,7 +236,8 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 	argc += 1;		// room for the end of client args
 
-	const char** argv = new string[argc + 1];	// + 1 for final nil
+				// + 1 for final nil
+	const char** argv = (const char**) alloc_memory( sizeof(char*)*(argc + 1) );
 	int argp = 0;
 
 	argv[argp++] = prog;
@@ -316,7 +317,7 @@ void Task::Exec( const char** argv )
 
 		local_channel = sequencer->AddLocalClient( read_pipe[0],
 								write_pipe[1] );
-		delete exec_name;
+		free_memory( exec_name );
 		}
 
 	no_such_program = 0;
@@ -379,8 +380,8 @@ ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 
 	Exec( argv );
 
-	delete argv;
-	delete arg_string;
+	free_memory( argv );
+	free_memory( arg_string );
 	}
 
 
@@ -463,12 +464,12 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 		Exec( argv );
 
 	for ( argp = first_arg_pos; argp < first_arg_pos + num_args; ++argp )
-		delete ((char**) argv)[argp];
+		free_memory( ((char**) argv)[argp] );
 
 	if ( name && agent_value )
 		agent_value->AssignRecordElement("name",new IValue((const char*) name));
 
-	delete argv;
+	free_memory( argv );
 	}
 
 
@@ -502,8 +503,8 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname,
 
 TaskAttr::~TaskAttr()
 	{
-	delete task_var_ID;
-	delete hostname;
+	free_memory( task_var_ID );
+	free_memory( hostname );
 	}
 
 
@@ -543,13 +544,13 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
 			{
 			if ( hostname )
-				delete hostname;
+				free_memory( hostname );
 			hostname = strdup( "localhost" );
 			}
 		else
 			{
 			if ( hostname )
-				delete hostname;
+				free_memory( hostname );
 			hostname = 0;
 			channel = 0;
 			}
@@ -606,11 +607,11 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 				result = SynchronousShell( command, input_str );
 
-				delete input_str;
+				free_memory( input_str );
 				}
 
 			delete attrs;
-			delete command;
+			free_memory( command );
 			}
 		}
 
@@ -782,7 +783,7 @@ IValue* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
 		event_values[line_num - 1] = strdup( line_buf );
 		}
 
-	charptr* event_values_copy = new charptr[line_num];
+	charptr* event_values_copy = (charptr*) alloc_memory( sizeof(charptr)*line_num );
 
 	copy_array( event_values, event_values_copy, line_num, charptr );
 
@@ -817,7 +818,7 @@ char* CreateTaskBuiltIn::NextRemoteShellCmdLine( char* line_buf )
 	char* next_line = v->StringVal();
 	strcpy( line_buf, next_line );
 
-	delete next_line;
+	free_memory( next_line );
 	delete e;
 
 	return line_buf;

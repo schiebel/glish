@@ -812,7 +812,7 @@ IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 		{
 		char* args_string = paste( args );
 		message->Report( args_string );
-		delete args_string;
+		free_memory( args_string );
 		}
 
 	else
@@ -912,7 +912,7 @@ IValue* IncludeStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ 
 
 	IValue *ret = sequencer->Include( str );
 
-	delete str;
+	free_memory( str );
 	return ret;
 	}
 

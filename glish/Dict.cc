@@ -55,7 +55,7 @@ Dictionary::~Dictionary()
 			delete tbl[i];
 			}
 
-	delete tbl;
+	delete [] tbl;
 
 	if ( order )
 		delete order;
@@ -285,7 +285,7 @@ void Dictionary::ChangeSize( int new_size )
 			}
 		}
 
-	delete tbl;
+	delete [] tbl;
 	Init( new_size );
 
 	for ( LOOPDECL i = 0; i < current->length(); ++i )

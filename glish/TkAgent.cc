@@ -18,6 +18,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Expr.h"
 
+
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
@@ -57,7 +58,7 @@ glishtk_event::~glishtk_event()
 	{
 	Unref(val);
 	Unref(agent);
-	delete nme;
+	free_memory( nme );
 	}
 
 class ScrollbarTrigger : public NotifyTrigger {
@@ -152,7 +153,7 @@ IValue *glishtk_splitnl( char *str )
 	if ( ! nls )
 		return new IValue( prev );
 
-	char **ary = new char*[nls+1];
+	char **ary = (char**) alloc_memory( sizeof(char*)*(nls+1) );
 
 	for ( nls = 0, str = prev; *str; str++ )
 		if ( *str == '\n' )
@@ -182,7 +183,7 @@ IValue *glishtk_splitsp_int( char *sel )
 	char *end;
 	int cnt = 0;
 	static int len = 2;
-	static int *ary = new int[len];
+	static int *ary = (int*) alloc_memory( sizeof(int)*len );
 
 	while ( *start && (end = strchr(start,' ')) )
 		{
@@ -214,7 +215,7 @@ char **glishtk_splitsp_str_( char *sel, int &cnt )
 	char *end;
 	cnt = 0;
 	static int len = 2;
-	static char **ary = new char*[len];
+	static char **ary = (char**) alloc_memory( sizeof(char*)*len );
 
 	while ( *start && (end = strchr(start,' ')) )
 		{
@@ -473,7 +474,7 @@ char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_
 	char *event_name = "one int list function";
 	HASARG( args, >= howmany )
 	static int len = 4;
-	static char *buf = new char[len*128];
+	static char *buf = (char*) alloc_memory( sizeof(char)*(len*128) );
 	static char elem[128];
 
 	if ( ! howmany )
@@ -598,7 +599,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *ar
 	if ( args->length() >= 2 )
 		{
 		ret = new strary_ret;
-		ret->ary = new char*[(int)(args->length()/2)];
+		ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(args->length()/2)) );
 		ret->len = 0;
 		for ( int i=0; i+1 < args->length(); i+=2 )
 			{
@@ -625,7 +626,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *ar
 			{
 			ret = new strary_ret;
 			ret->len = 0;
-			ret->ary = new char*[(int)(start->Length() / 2)];
+			ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(start->Length() / 2)) );
 			charptr *idx = start->StringPtr(0);
 			for ( int i = 0; i+1 < start->Length(); i+=2 )
 				{
@@ -643,7 +644,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *ar
 				{
 				ret = new strary_ret;
 			        ret->len = 1;
-				ret->ary = new char*[1];
+				ret->ary = (char**) alloc_memory( sizeof(char*) );
 				ret->ary[0] = strdup(s);
 				}
 			}
@@ -698,7 +699,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, parameter_list *args,
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( "end" ), str, 0);
 		a->ExitEnable();
 		}
-	delete str;
+	free_memory( str );
 	EXPR_DONE( val )
 	return ret;
 	}
@@ -716,7 +717,7 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 	a->EnterEnable();
 	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
 	a->ExitEnable();
-	delete str;
+	free_memory( str );
 	EXPR_DONE( val )
 	return ret;
 	}
@@ -735,7 +736,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
 	rivet_va_cmd(a->Self(), "see", a->IndexCheck("end"), 0);
 	a->ExitEnable();
-	delete str;
+	free_memory( str );
 	EXPR_DONE( val )
 	return ret;
 	}
@@ -870,7 +871,7 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, IValue *str_v, 
 
 	if ( ! len ) return 0;
 
-	char **argv = new char*[len+3];
+	char **argv = (char**) alloc_memory( sizeof(char*)*(len+3) );
 	charptr *strs = str_v->StringPtr(0);
 
 	argv[0] = 0;
@@ -880,7 +881,7 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, IValue *str_v, 
 		argv[c+3] = (char *) strs[c];
 		
 	rivet_cmd(a->Self(), c+3, argv);
-	delete argv;
+	free_memory( argv );
 	}
 
 char *glishtk_listbox_insert(TkAgent *a, const char *cmd, parameter_list *args,
@@ -918,7 +919,7 @@ char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, IValue *val )
 		return 0;
 
 	static int rlen = 200;
-	static char *ret = new char[rlen];
+	static char *ret = (char*) alloc_memory( sizeof(char)*rlen );
 	int *index = val->IntPtr(0);
 	char buf[40];
 	int cnt=0;
@@ -1205,6 +1206,7 @@ void TkAgent::UnMap()
 	{
 	if ( self )
 		rivet_destroy_window( self );
+
 	frame = 0;
 	self = 0;
 	}
@@ -1541,12 +1543,12 @@ TkFrame::~TkFrame( )
 		}
 
 	if ( tag )
-		delete tag;
+		free_memory( tag );
 
-	if ( side ) delete side;
-	if ( padx ) delete padx;
-	if ( pady ) delete pady;
-	if ( expand ) delete expand;
+	free_memory( side );
+	free_memory( padx );
+	free_memory( pady );
+	free_memory( expand );
 
 	if ( ! tl_count )
 		// Empty queue
@@ -1560,7 +1562,7 @@ char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
 	EXPRSTR( side_, "" )
 	if ( side_[0] != side[0] || strcmp(side, side_) )
 		{
-		delete side;
+		free_memory( side );
 		side = strdup( side_ );
 		Pack();
 		}
@@ -1575,7 +1577,7 @@ char *TkFrame::SetPadx( parameter_list *args, int is_request, int log )
 	EXPRDIM( padx_, "" )
 	if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
 		{
-		delete padx;
+		free_memory( padx );
 		padx = strdup( padx_ );
 		Pack();
 		}
@@ -1590,7 +1592,7 @@ char *TkFrame::SetPady( parameter_list *args, int is_request, int log )
 	EXPRDIM( pady_, "" )
 	if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
 		{
-		delete pady;
+		free_memory( pady );
 		pady = strdup( pady_ );
 		Pack();
 		}
@@ -1610,7 +1612,7 @@ char *TkFrame::SetExpand( parameter_list *args, int is_request, int log )
 	EXPRDIM( expand_, "" )
 	if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
 		{
-		delete expand;
+		free_memory( expand );
 		expand = strdup( expand_ );
 		Pack();
 		}
@@ -1703,7 +1705,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	int cnt = 0;
 	while ( instr[cnt] ) cnt++;
 
-	char **argv = new char*[cnt+8];
+	char **argv = (char**) alloc_memory( sizeof(char*)*(cnt+8) );
 
 	int i = 1;
 	argv[0] = 0;
@@ -1720,7 +1722,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 		argv[i++] = (char*) instr[cnt++];
 
 	glishtk_pack(root,i,argv);
-	delete argv;
+	free_memory( argv );
 	}
 
 int TkFrame::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
@@ -1741,7 +1743,7 @@ void TkFrame::Pack( )
 	{
 	if ( elements.length() )
 		{
-		char **argv = new char*[elements.length()+7];
+		char **argv = (char**) alloc_memory( sizeof(char*)*(elements.length()+7) );
 
 		int c = 1;
 		argv[0] = 0;
@@ -1766,7 +1768,7 @@ void TkFrame::Pack( )
 		if ( frame )
 			frame->Pack();
 
-		delete argv;
+		free_memory( argv );
 		}
 	}
 
@@ -2544,7 +2546,7 @@ IValue *TkText::Create( Sequencer *s, const_args_list *args_val )
 
 	char *text_str = text->StringVal( ' ', 0, 1 );
 	ret =  new TkText( s, (TkFrame*)parent->AgentVal(), width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill );
-	delete text_str;
+	free_memory( text_str );
 
 	CREATE_RETURN
 	}      

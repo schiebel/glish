@@ -36,7 +36,7 @@ ValueKernel::array_t::~array_t()
 		if ( final )
 			(*final)( values, length );
 
-		delete (char*) values;
+		free_memory( values );
 		}
 	}
 
@@ -180,7 +180,7 @@ void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 		{
 		if ( values == 0 || alloc_bytes == 0 )
 			{
-			values = (void *) new char[ alen*type_bytes ];
+			values = (void *) alloc_memory( alen*type_bytes );
 			alloc_bytes = alen*type_bytes;
 			}
 		else if ( len*type_bytes > alloc_bytes )
@@ -520,7 +520,7 @@ void delete_record( recordptr r )
 		const char* key;
 		while ( (member = r->NextEntry( key, c )) )
 			{
-			delete (char*) key;
+			free_memory( key );
 			Unref( member );
 			}
 
@@ -566,5 +566,5 @@ void delete_strings(void *src, unsigned int len)
 	{
 	char **ary = (char**)src;
 	for ( unsigned int i=0; i < len; i++ )
-		delete *ary++;
+		free_memory( *ary++ );
 	}

@@ -79,15 +79,15 @@ unsigned int EventContext::client_count = 1;
 
 EventContext::~EventContext() 
 	{ 
-	if (context) delete (char *) context;
-	if (client_name) delete (char *) client_name;
+	if (context) free_memory( context );
+	if (client_name) free_memory( client_name );
 	}
 
 EventContext &EventContext::operator=(const EventContext &c) { 
 		if ( &c != this ) {
-			if ( context ) delete (char *) context;
+			if ( context ) free_memory( context );
 			context = c.id() ? strdup(c.id()) : 0;
-			if ( client_name ) delete (char *) client_name;
+			if ( client_name ) free_memory( client_name );
 			client_name = c.name() ? strdup(c.name()) : 0;
 		}
 		return *this;
@@ -101,7 +101,7 @@ EventContext::EventContext( const char *client_name_, const char *context_ )
 		{
 		const char *unknown_str = "unknown-client";
 		const int len = strlen(unknown_str);
-		client_name = new char[len + 22];
+		client_name = (char*) alloc_memory( sizeof(char)*(len + 22) );
 		sprintf(client_name,"%s#%u", unknown_str, client_count);
 		}
 
@@ -111,7 +111,7 @@ EventContext::EventContext( const char *client_name_, const char *context_ )
 		{
 		const char *unknown_str = "<unknown>";
 		const int len = strlen(unknown_str);
-		context = new char[len + 22];
+		context = (char*) alloc_memory( sizeof(char)*(len + 22) );
 		sprintf(context,"%s#%u", unknown_str, client_count);
 		}
 
@@ -153,7 +153,7 @@ GlishEvent::GlishEvent( char* arg_name, Value* arg_value )
 GlishEvent::~GlishEvent()
 	{
 	if ( delete_name )
-		delete (char*) name;
+		free_memory( (void*) name );
 
 	if ( delete_value )
 		Unref( (Value*) value );
@@ -194,9 +194,9 @@ public:
 
 	~EventLink()
 		{
-		delete id;
-		delete name;
-		delete path;
+		free_memory( id );
+		free_memory( name );
+		free_memory( path );
 		}
 
 	const char* ID() const		{ return id; }
@@ -482,7 +482,7 @@ Client::~Client()
 		delete event_sources[j];
 
 	if ( interpreter_tag )
-		delete interpreter_tag;
+		free_memory( interpreter_tag );
 
 	clear_shared_memory();
 	}
@@ -999,7 +999,7 @@ void Client::BuildLink( Value* v )
 		return;
 		}
 
-	char* sink_id;
+	char* sink_id = 0;
 	if ( ! v->FieldVal( "sink_id", sink_id ) )
 		fatal->Report( "bad internal link event" );
 
@@ -1012,7 +1012,7 @@ void Client::BuildLink( Value* v )
 		}
 
 	int fd = (*remote_sinks)[sink_id];
-	delete sink_id;
+	free_memory( sink_id );
 
 	// Minor-league bug here.  fd=0 is legal, though it means that
 	// somehow stdin got closed.  But even in that case, we'll just
@@ -1062,9 +1062,9 @@ void Client::BuildLink( Value* v )
 
 EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 	{
-	char* event_name;
-	char* new_name;
-	char* task_id;
+	char* event_name = 0;
+	char* new_name = 0;
+	char* task_id = 0;
 
 	if ( ! v->FieldVal( "event", event_name ) ||
 	     ! v->FieldVal( "new_name", new_name ) ||
@@ -1089,7 +1089,7 @@ EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 
 	else
 		{ // Look for whether this event link already exists.
-		delete event_name;
+		free_memory( event_name );
 
 		loop_over_list( *l, i )
 			{
@@ -1099,8 +1099,8 @@ EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 			     streq( el->Name(), new_name ) &&
 			     streq( el->ID(), task_id ) )
 				{ // This one fits the bill.
-				delete new_name;
-				delete task_id;
+				free_memory( new_name );
+				free_memory( task_id );
 
 				is_new = 0;
 
@@ -1155,7 +1155,7 @@ void Client::RendezvousAsOriginator( Value* v )
 		// second call to BuildLink won't see that we already have
 		// a socket connection.  So we check here, too.
 		output_fd = sink_fd;
-		delete sink_id;
+		free_memory( sink_id );
 
 		// If this was a local socket, get rid of the corresponding
 		// file.
@@ -1167,7 +1167,7 @@ void Client::RendezvousAsOriginator( Value* v )
 					"can't unlink local socket sink %s",
 						path );
 
-			delete path;
+			free_memory( path );
 			}
 		}
 
@@ -1210,7 +1210,7 @@ void Client::RendezvousAsResponder( Value* v )
 	if ( (*remote_sources)[source_id] )
 		{
 		// We're all set, we already select on this input source.
-		delete source_id;
+		free_memory( source_id );
 		return;
 		}
 
@@ -1239,7 +1239,7 @@ void Client::RendezvousAsResponder( Value* v )
 			PostEvent( "error", "can't unlink local socket sink %s",
 					path );
 
-		delete path;
+		free_memory( path );
 		}
 
 	else
@@ -1259,7 +1259,7 @@ void Client::RendezvousAsResponder( Value* v )
 			return;
 			}
 
-		delete host;
+		free_memory( host );
 		}
 
 	event_sources.append( new EventSource( input_fd, I_LINK, last_context ) );
@@ -1372,9 +1372,9 @@ void Client::RemoveInterpreter( EventSource* source )
 
 	// delete all links associated with this interpreter
 	// how wonderful to be so profound!
-	delete context_links[ strdup(context) ];
-	delete context_sinks[ strdup(context) ];
-	delete context_sources[ strdup(context) ];
+	delete context_links[ context ];
+	delete context_sinks[ context ];
+	delete context_sources[ context ];
 
 	delete event_sources.remove( source );
 	}
@@ -1435,13 +1435,13 @@ GlishEvent* recv_event( int fd )
 
 	if ( hdr.flags & GLISH_STRING_EVENT )
 		{
-		char* value = new char[size+1];
+		char* value = (char*) alloc_memory( sizeof(char)*(size+1) );
 		if ( size > 0 && ! read_buffer( fd, value, size ) )
 			{
 			error->Report( prog_name,
 		": read only partial string event value from socket, errno = ",
 					errno );
-			delete value;
+			free_memory( value );
 			return 0;
 			}
 
@@ -1451,7 +1451,7 @@ GlishEvent* recv_event( int fd )
 			result = split( value );
 			}
 
-		delete value;
+		free_memory( value );
 		}
 
 	else
@@ -1531,7 +1531,7 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 		if ( send_event_header( fd, event_flags, size, name ) )
 			(void) write_buffer( fd, string_val, size );
 
-		delete string_val;
+		free_memory( string_val );
 		}
 
 	else
@@ -1719,7 +1719,7 @@ GlishEvent* recv_shm_event( int shmid )
 	else
 		{
 		int l = strlen(&shmptr[1]);
-		char *newname = new char[l+1];
+		char *newname = (char*) alloc_memory( sizeof(char)*(l+1) );
 		memcpy(newname,&shmptr[1],l+1);
 		int off = l+2;
 		Value *newval = ValueFromMemBlock(shmptr,off);

@@ -519,7 +519,7 @@ void* realloc_memory( void* ptr, unsigned int new_size )
 
 void free_memory( void* ptr )
 	{
-	free( (malloc_t) ptr );
+	if ( ptr ) free( (malloc_t) ptr );
 	}
 
 #ifndef HAVE_STRDUP

@@ -227,20 +227,20 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	int len = arg->Length();
 	glish_type type = arg->Type();
 
-#define NUMERIC_BUILTIN_ACTION(type,accessor,fn)	\
-	{						\
-	int is_copy;					\
-	type* args_vec = arg->accessor( is_copy, len );	\
-	type* stor = new type[len];			\
-							\
-	for ( int i = 0; i < len; ++i )			\
-		stor[i] = (*fn)( args_vec[i] );		\
-							\
-	if ( is_copy )					\
-		delete args_vec;			\
-							\
-	result = new IValue( stor, len );		\
-	result->CopyAttributes( arg );			\
+#define NUMERIC_BUILTIN_ACTION(type,accessor,fn)		\
+	{							\
+	int is_copy;						\
+	type* args_vec = arg->accessor( is_copy, len );		\
+	type* stor = (type*) alloc_memory( sizeof(type)*len );	\
+								\
+	for ( int i = 0; i < len; ++i )				\
+		stor[i] = (*fn)( args_vec[i] );			\
+								\
+	if ( is_copy )						\
+		free_memory( args_vec );			\
+								\
+	result = new IValue( stor, len );			\
+	result->CopyAttributes( arg );				\
 	}
 
 	if ( type == TYPE_COMPLEX || type == TYPE_DCOMPLEX )
@@ -261,22 +261,22 @@ IValue* RealBuiltIn::DoCall( const_args_list* args_val )
 	IValue* result;
 
 #define RE_IM_BUILTIN_ACTION(tag,type,subtype,accessor,OFFSET,elem,XLATE)\
-	case tag:						\
-		{						\
-		int is_copy;					\
-		int len = v->Length();				\
-		subtype* stor = new subtype[len];		\
-		type* from = v->accessor( is_copy, len );	\
-		for ( int i = 0; i < len; i++ )			\
-			{					\
-			XLATE					\
-			stor[i] = from[OFFSET] elem;		\
-			}					\
-		if ( is_copy )					\
-			delete from;				\
-		result = new IValue( stor, len );		\
-		result->CopyAttributes( v );			\
-		}						\
+	case tag:							\
+		{							\
+		int is_copy;						\
+		int len = v->Length();					\
+		subtype* stor = (subtype*) alloc_memory( sizeof(subtype)*len );\
+		type* from = v->accessor( is_copy, len );		\
+		for ( int i = 0; i < len; i++ )				\
+			{						\
+			XLATE						\
+			stor[i] = from[OFFSET] elem;			\
+			}						\
+		if ( is_copy )						\
+			free_memory( from );				\
+		result = new IValue( stor, len );			\
+		result->CopyAttributes( v );				\
+		}							\
 		break;
 
 	switch ( v->Type() )
@@ -298,9 +298,9 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 	int off = ref->TranslateIndex( i, &err );		\
 	if ( err )						\
 		{						\
-		delete stor;					\
+		free_memory( stor );				\
 		if ( is_copy )					\
-			delete from;				\
+			free_memory( from );			\
 		return (IValue*) Fail("invalid index (=",i+1,"),\
 			sub-vector reference may be bad");	\
 		}
@@ -397,16 +397,16 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 		int maxlen = rlen > ilen ? rlen : ilen;			\
 		rettype* r = rv->accessor( r_is_copy, rlen );		\
 		rettype* i = iv->accessor( i_is_copy, ilen );		\
-		type* stor = new type[maxlen];				\
+		type* stor = (type*) alloc_memory( sizeof(type)*maxlen );\
 		for ( int cnt = 0; cnt < maxlen; ++cnt )		\
 			{						\
 			stor[cnt].r = coerce( r[rscalar ? 0 : cnt] );	\
 			stor[cnt].i = coerce( i[iscalar ? 0 : cnt] );	\
 			}						\
 		if ( r_is_copy )					\
-			delete r;					\
+			free_memory( r );				\
 		if ( i_is_copy )					\
-			delete i;					\
+			free_memory( i );				\
 		result = new IValue( stor, maxlen );			\
 		}							\
 		break;
@@ -444,21 +444,21 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 				" requires one or two numeric arguments" );
 
 #define COMPLEXBUILTIN_ONEPARM_ACTION(tag,type,rettype,accessor,coerce)	\
-	case tag:						\
-		{						\
-		int is_copy;					\
-		int vlen = v->Length();				\
-		rettype* vp = v->accessor( is_copy, vlen );	\
-		type* stor = new type[vlen];			\
-		for ( int cnt = 0; cnt < vlen; ++cnt )		\
-			{					\
-			stor[cnt].r = coerce( vp[cnt] );	\
-			stor[cnt].i = 0;			\
-			}					\
-		if ( is_copy )					\
-			delete vp;				\
+	case tag:							\
+		{							\
+		int is_copy;						\
+		int vlen = v->Length();					\
+		rettype* vp = v->accessor( is_copy, vlen );		\
+		type* stor = (type*) alloc_memory( sizeof(type)*vlen );	\
+		for ( int cnt = 0; cnt < vlen; ++cnt )			\
+			{						\
+			stor[cnt].r = coerce( vp[cnt] );		\
+			stor[cnt].i = 0;				\
+			}						\
+		if ( is_copy )						\
+			free_memory( vp );				\
 		result = new IValue( stor, vlen );			\
-		}						\
+		}							\
 		break;
 
 		switch ( v->Type() )
@@ -504,7 +504,7 @@ IValue* SumBuiltIn::DoCall( const_args_list* args_val )
 		for ( int j = 0; j < len; ++j )			\
 			sum += val_array[j];			\
 		if ( is_copy )					\
-			delete val_array;			\
+			free_memory( val_array );		\
 		}						\
 	result = new IValue( sum );				\
 	}
@@ -539,7 +539,7 @@ IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
 			for ( int j = 0; j < len; ++j )			\
 				prod *= val_array[j];			\
 			if ( is_copy )					\
-				delete val_array;			\
+				free_memory( val_array );		\
 			}						\
 		result = new IValue( prod );				\
 		break;							\
@@ -571,7 +571,7 @@ IValue* LengthBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( num > 1 )
 		{
-		int* len = new int[args_val->length()];
+		int* len = (int*) alloc_memory( sizeof(int)*args_val->length() );
 		loop_over_list( *args_val, i )
 			len[i] = (*args_val)[i]->Length();
 		return new IValue( len, num );
@@ -663,7 +663,7 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,off,,RANGEBUILTIN_XLATE)			\
 			}						\
 									\
 		}							\
-	type* range = new type[2];					\
+	type* range = (type*) alloc_memory( sizeof(type)*2 );		\
 	range[0] = min_val;						\
 	range[1] = max_val;						\
 									\
@@ -743,7 +743,7 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( "ridiculously large sequence in call to ",
 				this );
 
-	double* result = new double[num_vals];
+	double* result = (double*) alloc_memory( sizeof(double)*num_vals );
 
 	double val = starting_point;
 	for ( int i = 0; i < num_vals; ++i )
@@ -782,7 +782,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		if ( times_vec[x] < 0 )
 			{
 			if ( times_is_copy )
-				delete times_vec;
+				free_memory( times_vec );
 			return (IValue*) Fail( "invalid replication parameter, 2nd (",
 					times_vec[x], "), in ", this );
 			}
@@ -801,16 +801,16 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		switch ( element->Type() )
 			{
 #define REPBUILTIN_ACTION_A(tag,type,accessor,copy_func)			\
-			case tag:						\
-				{						\
-				type* vec = new type[veclen];			\
-				type* elm = element->accessor(0);		\
-				for ( LOOPDECL i=0; i < times_len; ++i )	\
-					for ( int j=0; j < times_vec[i]; ++j )	\
-					  vec[off++] = copy_func( elm[i] );	\
-				ret = new IValue( vec, veclen );		\
-				}						\
-				break;
+	case tag:								\
+		{								\
+		type* vec = (type*) alloc_memory( sizeof(type)*veclen );	\
+		type* elm = element->accessor(0);				\
+		for ( LOOPDECL i=0; i < times_len; ++i )			\
+			for ( int j=0; j < times_vec[i]; ++j )			\
+			  vec[off++] = copy_func( elm[i] );			\
+		ret = new IValue( vec, veclen );				\
+		}								\
+		break;
 
 		REPBUILTIN_ACTION_A(TYPE_BOOL,glish_bool,BoolPtr,)
 		REPBUILTIN_ACTION_A(TYPE_BYTE,byte,BytePtr,)
@@ -836,16 +836,16 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			switch ( element->Type() )
 				{
 #define REPBUILTIN_ACTION_B(tag,type,accessor,copy_func,CLEANUP_VAL)	\
-				case tag:				\
-					{				\
-					type val = element->accessor();	\
-					type *vec = new type[len];	\
-					for (int i = 0; i < len; i++)	\
-						vec[i] = copy_func(val);\
-					ret = new IValue( vec, len );	\
-					CLEANUP_VAL			\
-					}				\
-					break;
+	case tag:							\
+		{							\
+		type val = element->accessor();				\
+		type *vec = (type*) alloc_memory( sizeof(type)*len );	\
+		for (int i = 0; i < len; i++)				\
+			vec[i] = copy_func(val);			\
+		ret = new IValue( vec, len );				\
+		CLEANUP_VAL						\
+		}							\
+		break;
 
 			REPBUILTIN_ACTION_B(TYPE_BOOL,glish_bool,BoolVal,,)
 			REPBUILTIN_ACTION_B(TYPE_BYTE,byte,ByteVal,,)
@@ -855,7 +855,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_DOUBLE,double,DoubleVal,,)
 			REPBUILTIN_ACTION_B(TYPE_COMPLEX,complex,ComplexVal,,)
 			REPBUILTIN_ACTION_B(TYPE_DCOMPLEX,dcomplex,DcomplexVal,,)
-			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,strdup,delete (char *)val;)
+			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,strdup,free_memory((void*)val);)
 
 				default:
 					fatal->Report(
@@ -872,16 +872,16 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			switch ( element->Type() )
 				{
 #define REPBUILTIN_ACTION_C(tag,type,accessor,copy_func)		\
-			case tag:					\
-				{					\
-				type* val = element->accessor(0);	\
-				type* vec = new type[veclen];		\
-				for ( int j = 0; j < repl; ++j )	\
-					for ( int i = 0; i < e_len; ++i )\
-						vec[off++] =  copy_func(val[i]);\
-				ret = new IValue( vec, veclen );		\
-				}					\
-				break;
+	case tag:							\
+		{							\
+		type* val = element->accessor(0);			\
+		type* vec = (type*) alloc_memory( sizeof(type)*veclen );\
+		for ( int j = 0; j < repl; ++j )			\
+			for ( int i = 0; i < e_len; ++i )		\
+				vec[off++] =  copy_func(val[i]);	\
+		ret = new IValue( vec, veclen );			\
+		}							\
+		break;
 
 	REPBUILTIN_ACTION_C(TYPE_BOOL,glish_bool,BoolPtr,)
 	REPBUILTIN_ACTION_C(TYPE_BYTE,byte,BytePtr,)
@@ -901,7 +901,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		}
 
 	if ( times_is_copy )
-		delete times_vec;
+		free_memory( times_vec );
 
 	return ret ? ret : error_ivalue();
 	}
@@ -982,7 +982,7 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 			ret = new IValue( (int) random_long() );
 		else
 			{
-			int *ival = new int[arg1];
+			int *ival = (int*) alloc_memory( sizeof(int)*arg1 );
 			for ( int i = arg1 - 1; i >= 0; i-- )
 				ival[i] = (int) random_long();
 
@@ -1011,11 +1011,11 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 
 #define XBIND_CLEANUP							\
 	if ( shape_is_copy )						\
-		delete( shape );
+		free_memory( shape );
 
 #define XBIND_ALLOC_PTR(tag, type)					\
 	case tag:							\
-		result = new type[cols*rows];				\
+		result = alloc_memory( sizeof(type)*(cols*rows) );	\
 		break;
 
 #define XBIND_PLACE_ACTION(tag,type,array,to,from,access,conv)		\
@@ -1250,7 +1250,7 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 									\
 	if ( result_value )						\
 		{							\
-		int *newshape = new int[2];				\
+		int *newshape = (int*) alloc_memory( sizeof(int)*2 );	\
 		newshape[ROWS] = rows;					\
 		newshape[COLS] = cols;					\
 		result_value->AssignAttribute( "shape", 		\
@@ -1294,7 +1294,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	// First argument gives separator string.
 	char* separator = (*args_val)[0]->StringVal();
 
-	charptr* string_vals = new charptr[args_val->length()];
+	charptr* string_vals = (charptr*) alloc_memory( sizeof(charptr)*args_val->length() );
 
 	int len = 1;	// Room for end-of-string.
 	int sep_len = strlen( separator );
@@ -1307,7 +1307,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 		len += strlen( string_vals[i] ) + sep_len;
 		}
 
-	char* paste_val = new char[len];
+	char* paste_val = (char*) alloc_memory( sizeof(char)*(len+1) );
 	paste_val[0] = '\0';
 
 	for ( int j = 1; j < i; ++j )
@@ -1317,13 +1317,13 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 		if ( j < i - 1 )
 			strcat( paste_val, separator );
 
-		delete (char*) string_vals[j];
+		free_memory( (void*) string_vals[j] );
 		}
 
-	delete string_vals;
-	delete separator;
+	free_memory( string_vals );
+	free_memory( separator );
 
-	charptr* result = new charptr[1];
+	charptr* result = (charptr*) alloc_memory( sizeof(charptr) );
 	result[0] = paste_val;
 
 	return new IValue( result, 1 );
@@ -1344,9 +1344,9 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 
 	IValue* result = isplit( source, split_chars );
 
-	delete source;
+	free_memory( source );
 	if ( len == 2 )
-		delete split_chars;
+		free_memory( split_chars );
 
 	return result;
 	}
@@ -1365,7 +1365,7 @@ IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
 		int len = val->Length();
 		if ( len > 1 )
 			{
-			glish_bool *ret = new glish_bool[len];
+			glish_bool *ret = (glish_bool*) alloc_memory( sizeof(glish_bool)*len );
 			switch( type )
 				{
 #define ISNAN_ACTION(tag,type,accessor,extra) 		\
@@ -1421,7 +1421,7 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	else
 		result = read_ivalue_from_SDS( sds );
 
-	delete filename;
+	free_memory( filename );
 
 	return result;
 	}
@@ -1465,7 +1465,7 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 			}
 		}
 
-	delete filename;
+	free_memory( filename );
 
 	return ret ? ret : new IValue( 1 );
 	}
@@ -1620,7 +1620,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 			func = func_val->FuncVal();
 
 	int cnt = 0;
-	charptr *name_ary = new charptr[ scope->Length() ];
+	charptr *name_ary = (charptr*) alloc_memory( sizeof(charptr)*scope->Length() );
 	IterCookie *c = scope->InitForIteration();
 	const Expr *member;
 	const char *key;
@@ -1644,7 +1644,8 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 				}
 			if ( ! func || flag )
 				{
-				name_ary[cnt] = new char[strlen( key )+1];
+				name_ary[cnt] = (char*) alloc_memory( sizeof(char)*
+								      (strlen(key)+1) );
 				strcpy((char*) name_ary[cnt++], key);
 				}
 			}
@@ -1756,7 +1757,7 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 	IValue *result = 0;
 	if ( len )
 		{
-		char **lines = new char*[len+1];
+		char **lines = (char**) alloc_memory( sizeof(char*)*(len+1) );
 
 		loop_over_list( *args_val, i )
 			lines[i] = (*args_val)[i]->StringVal();
@@ -1766,9 +1767,9 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 		result = sequencer->Eval( (const char **) lines );
 
 		for ( int j = 0; j < len; j++ )
-			delete lines[j];
+			free_memory( lines[j] );
 
-		delete lines;
+		free_memory( lines );
 		}
 
 	return result ? result : empty_ivalue();
@@ -1793,7 +1794,7 @@ IValue* name( const IValue* arg )					\
 	if ( arg->Type() == TYPE_STRING )				\
 		{							\
 		const charptr* strings = arg->StringPtr(0);		\
-		type* result = new type[len];				\
+		type* result = (type*) alloc_memory( sizeof(type)*len );\
 									\
 		for ( int i = 0; i < len; ++i )				\
 			result[i] = stringcvt( strings[i] );		\
@@ -1859,12 +1860,12 @@ IValue* as_byte_built_in( const IValue* arg )
 		{
 		char* arg_str = arg->StringVal();
 		int len = strlen( arg_str );
-		byte* result = new byte[len];
+		byte* result = (byte*) alloc_memory( sizeof(byte)*len );
 
 		for ( int i = 0; i < len; ++i )
 			result[i] = byte(arg_str[i]);
 
-		delete arg_str;
+		free_memory( arg_str );
 
 		return new IValue( result, len );
 		}
@@ -1893,7 +1894,7 @@ IValue* as_string_built_in( const IValue* arg )
 	//
 	if ( arg->Type() == TYPE_RECORD )
 		{
-		char **ptr = new char*[1];
+		char **ptr = (char**) alloc_memory( sizeof(char*) );
 		ptr[0] = arg->StringVal();
 		return new IValue( (charptr*) ptr, 1 );
 		}
@@ -1917,7 +1918,7 @@ IValue* as_string_built_in( const IValue* arg )
 	if ( arg->Type() == TYPE_BYTE )
 		{
 		byte* vals = arg->BytePtr(0);
-		char* s = new char[len+1];
+		char* s = (char*) alloc_memory( sizeof(char)*(len+1) );
 
 		int i = 0;
 		for ( ; i < len; ++i )
@@ -1926,12 +1927,12 @@ IValue* as_string_built_in( const IValue* arg )
 		s[i] = '\0';
 
 		IValue* result = new IValue( s );
-		delete s;
+		free_memory( s );
 
 		return result;
 		}
 
-	charptr* result = new charptr[len];
+	charptr* result = (charptr*) alloc_memory( sizeof(charptr)*len );
 	int i;
 	char buf[256];
 
@@ -1952,7 +1953,7 @@ IValue* as_string_built_in( const IValue* arg )
 	int index = ref->TranslateIndex( i, &err );		\
 	if ( err )						\
 		{						\
-		delete result;					\
+		free_memory( result );				\
 		return (IValue*) Fail( "invalid sub-vector" );	\
 		}
 #define COERCE_XXX_TO_STRING(tag,type,accessor,format,INDX,rest,XLATE,FORMAT)	\
@@ -2045,7 +2046,7 @@ IValue* type_name_built_in( const IValue* arg )
 		sprintf( buf, "%s %s", t == TYPE_REF ? "ref" : "const",
 			deref_name );
 
-		delete deref_name;
+		free_memory( deref_name );
 		Unref( deref_val );
 
 		return new IValue( buf );
@@ -2076,7 +2077,7 @@ IValue* field_names_built_in( const IValue* arg )
 	IterCookie* c = record_dict->InitForIteration();
 	int len = record_dict->Length();
 
-	charptr* names = new charptr[len];
+	charptr* names = (charptr*) alloc_memory( sizeof(charptr)*len );
 	const char* key;
 
 	int i = 0;

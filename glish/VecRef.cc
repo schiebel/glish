@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
 #include "Reporter.h"
+#include "system.h"
 
 implement(SubVecRef,glish_bool)
 implement(SubVecRef,byte)
@@ -51,7 +52,7 @@ VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index,
 
 	if ( ! take_indices )
 		{
-		indices = new int[len];
+		indices = (int*) alloc_memory( sizeof(int)*len );
 		memcpy(indices, arg_indices, len * sizeof(int));
 		}
 	else
@@ -80,7 +81,7 @@ VecRef::~VecRef()
 	{
 	if ( ! is_subvec_ref )
 		// We "own" the indices.
-		delete indices;
+		free_memory( indices );
 
 	Unref( ref );
 	Unref( val );

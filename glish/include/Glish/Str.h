@@ -5,6 +5,7 @@
 #include <string.h>
 
 extern "C" {
+void free_memory( void* ptr );
 #ifndef HAVE_STRDUP
 char* strdup( const char* );
 #endif
@@ -25,7 +26,7 @@ public:
 	const char *chars() const { return str; }
 	void ref() { cnt++; }
 	unsigned int unref() { return --cnt; }
-	~StrKernel() { if ( str ) delete str; }
+	~StrKernel() { if ( str ) free_memory( str ); }
 private:
 	char *str;
 	unsigned int cnt;

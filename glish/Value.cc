@@ -44,20 +44,23 @@ class SDS_ValueManager : public GlishObject {
 
 class DelObj : public GlishObject {
 public:
-	DelObj( GlishObject* arg_obj )	{ obj = arg_obj; ptr = 0; }
-	DelObj( void* arg_ptr )		{ obj = 0; ptr = arg_ptr; }
+	DelObj( GlishObject* arg_obj )	{ obj = arg_obj; ptr = 0; cptr = 0; }
+	DelObj( void* arg_ptr )		{ obj = 0; ptr = arg_ptr; cptr = 0; }
+	DelObj( char* arg_ptr )		{ obj = 0; ptr = 0; cptr = arg_ptr; }
 
 	~DelObj();
 
 protected:
 	GlishObject* obj;
 	void* ptr;
+	char* cptr;
 };
 
 DelObj::~DelObj()
 	{
 	Unref( obj );
-	delete ptr;
+	if ( ptr ) delete ptr;
+	if ( cptr ) free_memory( cptr );
 	}
 
 
@@ -315,7 +318,7 @@ void Value::DeleteAttribute( const Value* index )
 	{
 	char* index_string = index->StringVal();
 	DeleteAttribute( index_string );
-	delete index_string;
+	free_memory( index_string );
 	}
 
 void Value::DeleteAttribute( const char field[] )
@@ -646,7 +649,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	else
 		buf_size = length * 8;
 
-	char* buf = new char[buf_size];
+	char* buf = (char*) alloc_memory( sizeof(char)*buf_size );
 	if ( ! buf )
 		fatal->Report( "out of memory in Value::StringVal()" );
 
@@ -763,7 +766,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			if ( erri )					\
 				{					\
 				err = strFail( "invalid sub-vector" );	\
-				delete alloced;				\
+				free_memory( alloced );			\
 				return strdup( " " );			\
 				}					\
 			switch ( ref->Type() )				\
@@ -835,12 +838,12 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	// spacing for the columns.  Note that these and the arrays
 	// created just below are static, so we don't free them on exit.
 	static int column_width_len = 64;
-	static int* column_width = new int[column_width_len];
+	static int* column_width = (int*) alloc_memory( sizeof(int)*column_width_len );
 
 	// Arrays for iterating through the matrix.
 	static int indices_len = 32;
-	static int* indices = new int[indices_len];
-	static int* factor = new int[indices_len];
+	static int* indices = (int*) alloc_memory( sizeof(int)*indices_len );
+	static int* factor = (int*) alloc_memory( sizeof(int)*indices_len );
 
 	// Resize arrays as necessary.
 	while ( shape[c] > column_width_len )
@@ -877,9 +880,9 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	if ( size > length ) 
 		{
 		warn->Report( "\"::shape\"/length mismatch" );
-		delete buf;
+		free_memory( buf );
 		if ( shape_is_copy )
-			delete shape;
+			free_memory( shape );
 		return StringVal( sep );
 		}
 
@@ -990,7 +993,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		}
 
 	if ( shape_is_copy )
-		delete shape;
+		free_memory( shape );
 
 	append_buf( buf, buf_ptr, buf_size, "]" );
 
@@ -1034,7 +1037,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 		{
 		const char *key;
 		rptr->NthEntry( 0, key );
-		char *ret = new char[strlen(key)+7];
+		char *ret = (char*) alloc_memory( sizeof(char)*(strlen(key)+7) );
 		strcpy(ret,"[");
 		strcat(ret,key);
 		strcat(ret,"=...]");
@@ -1044,8 +1047,8 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 		been_there.append( (Value*) VecRefDeref() );
 
 
-	const char** key_strs = new const char*[len];
-	char** element_strs = new char*[len];
+	const char** key_strs = (const char**) alloc_memory( sizeof(char*)*len );
+	char** element_strs = (char**) alloc_memory( sizeof(char*)*len );
 	int total_len = 0;
 
 	for ( int i = 0; i < len; ++i )
@@ -1066,7 +1069,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 	// the []'s (we could steal these from the last element since it
 	// doesn't have a ", " at the end of it, but that seems a bit
 	// evil), and 1 more for the end-of-string.
-	char* result = new char[total_len + 3 * len + 3];
+	char* result = (char*) alloc_memory( sizeof(char)*(total_len + 3 * len + 3) );
 
 	strcpy( result, "[" );
 
@@ -1074,7 +1077,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 		{
 		sprintf( &result[strlen( result )], "%s=%s, ",
 			 key_strs[i], element_strs[i] );
-		delete element_strs[i];
+		free_memory( element_strs[i] );
 		}
 
 	// Now add the final ']', taking care to wipe out the trailing
@@ -1082,6 +1085,9 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 	strcpy( &result[strlen( result ) - 2], "]" );
 
 	been_there.remove( (Value*) VecRefDeref() );
+	free_memory( key_strs );
+	free_memory( element_strs );
+
 	return result;
 	}
 
@@ -1151,7 +1157,7 @@ const Value* Value::VecRefDeref() const
 									\
 	is_copy = 1;							\
 	if ( ! result )							\
-		result = new ctype[size];				\
+		result = (ctype*) alloc_memory( sizeof(ctype)*size );	\
 									\
 	int incr = (length == 1 ? 0 : 1);				\
 	int i, j;
@@ -1488,7 +1494,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 
 	is_copy = 1;
 	if ( ! result )
-		result = new charptr[size];
+		result = (charptr*) alloc_memory( sizeof(charptr)*size );
 
 	int incr = (Length() == 1 ? 0 : 1);
 
@@ -1533,7 +1539,7 @@ Value* Value::operator []( const Value* index ) const
 		Value* result = ArrayRef( indices, num_indices );
 
 		if ( indices_are_copy )
-			delete indices;
+			free_memory( indices );
 
 		return result;
 		}
@@ -1550,24 +1556,24 @@ Value* Value::operator []( const_value_list* args_val ) const
 // by this routine (and Value::SubRef) prior to exit.
 #define SUBOP_CLEANUP_1							\
 	if ( shape_is_copy )						\
-		delete shape;						\
-	delete factor;
+		free_memory( shape );					\
+	free_memory( factor );
 
 #define SUBOP_CLEANUP_2(length)						\
 	{								\
 	SUBOP_CLEANUP_1							\
 	for ( int x = 0; x < length; ++x )				\
 		if ( index_is_copy[x] )					\
-			delete index[x];				\
+			free_memory( index[x] );			\
 									\
-	delete index;							\
-	delete index_is_copy;						\
-	delete cur;							\
+	free_memory( index );						\
+	free_memory( index_is_copy );					\
+	free_memory( cur );						\
 	}
 
 #define SUBOP_CLEANUP(length)					\
 	SUBOP_CLEANUP_2(length)					\
-	delete len;
+	free_memory( len );
 
 	int length = kernel.Length();
 
@@ -1596,7 +1602,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 	Value* op_val = (*ptr)["op[]"];
 
-	int* factor = new int[shape_len];
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -1657,10 +1663,10 @@ Value* Value::operator []( const_value_list* args_val ) const
 		return ArrayRef( &offset, 1 );
 		}
 
-	int* index_is_copy = new int[shape_len];
-	int** index = new int*[shape_len];
-	int* cur = new int[shape_len];
-	int* len = new int[shape_len];
+	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
+	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
+	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -1677,7 +1683,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = new int[len[i]];
+			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -1719,7 +1725,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 	case tag:								\
 		{								\
 		type* vec = accessor;						\
-		type* ret = new type[vecsize];					\
+		type* ret = (type*) alloc_memory( sizeof(type)*vecsize );	\
 										\
 		for ( int v = 0; v < vecsize; ++v )				\
 			{							\
@@ -1753,7 +1759,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 				result->AssignAttribute( "op[]", op_val );	\
 			}							\
 		else								\
-			delete len;						\
+			free_memory( len );					\
 		}								\
 		break;
 
@@ -1782,7 +1788,7 @@ SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
 	if ( err )					\
 		{					\
 		EXTRA_ERROR				\
-		delete ret;				\
+		free_memory( ret );			\
 		SUBOP_CLEANUP_2(shape_len)		\
 		return error_value();			\
 		}
@@ -1804,7 +1810,7 @@ SUBSCRIPT_OP_ACTION(TYPE_COMPLEX, complex, theVal->ComplexPtr(),
 SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX, dcomplex, theVal->DcomplexPtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
 SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
-	theLen, off,strdup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) delete (char *) ret[X];))
+	theLen, off,strdup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
 
 				default:
 					fatal->Report(
@@ -1825,12 +1831,12 @@ Value* Value::Pick( const Value *index ) const
 	{
 #define PICK_CLEANUP				\
 	if ( shape_is_copy )			\
-		delete shape;			\
+		free_memory( shape );		\
 	if ( ishape_is_copy )			\
-		delete ishape;			\
+		free_memory( ishape );		\
 	if ( indx_is_copy )			\
-		delete indx;			\
-	delete factor;
+		free_memory( indx );		\
+	free_memory( factor );
 
 #define PICK_INITIALIZE(ERR_RET,SHORT)					\
 	const attributeptr attr = AttributePtr();			\
@@ -1885,7 +1891,7 @@ Value* Value::Pick( const Value *index ) const
 		ishape_val->CoerceToIntArray( ishape_is_copy, ishape_len );\
 	int ilen = index->Length();					\
 	int len = Length();						\
-	int* factor = new int[shape_len];				\
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );	\
 	int offset = 1;							\
 	int* indx = index->CoerceToIntArray( indx_is_copy, ilen );	\
 	Value* result = 0;						\
@@ -1920,12 +1926,12 @@ Value* Value::Pick( const Value *index ) const
 
 	switch ( Type() )
 		{
-#define PICK_ACTION_CLEANUP for(int X=0;X<i;X++) delete (char *) ret[X];
+#define PICK_ACTION_CLEANUP for(int X=0;X<i;X++) free_memory((void*)ret[X]);
 #define PICK_ACTION(tag,type,accessor,OFFSET,COPY_FUNC,XLATE,CLEANUP)	\
 	case tag:							\
 		{							\
 		type* ptr = accessor();					\
-		type* ret = new type[ishape[0]];			\
+		type* ret = (type*) alloc_memory( sizeof(type)*ishape[0] );\
 		int cur = 0;						\
 		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
@@ -1938,7 +1944,7 @@ Value* Value::Pick( const Value *index ) const
 					{				\
 					PICK_CLEANUP			\
 					CLEANUP				\
-					delete ret;			\
+					free_memory( ret );		\
 					return Fail( "index number ", j,\
 					" (=", cur, ") is out of range" );\
 					}				\
@@ -1977,7 +1983,7 @@ Value* Value::Pick( const Value *index ) const
 	if ( err )							\
 		{							\
 		CLEANUP							\
-		delete ret;						\
+		free_memory( ret );					\
 		return Fail( "index number ", j, " (=",cur,		\
 			") is out of range. Sub-vector reference may be invalid" );\
 		}
@@ -2016,7 +2022,7 @@ Value* Value::PickRef( const Value *index )
 
 	PICK_INITIALIZE(PICK_FAIL_IVAL, return this->operator[]( index );)
 
-	int* ret = new int[ishape[0]];
+	int* ret = (int*) alloc_memory( sizeof(int)*ishape[0] );
 	int cur = 0;
 	for ( LOOPDECL i = 0; i < ishape[0]; ++i )
 		{
@@ -2027,7 +2033,7 @@ Value* Value::PickRef( const Value *index )
 			if ( cur < 1 || cur > shape[j] )
 				{
 				PICK_CLEANUP
-				delete ret;
+				free_memory( ret );
 				return Fail( "index number ", j, " (=",cur,
 						") is out of range" );
 				}
@@ -2068,7 +2074,7 @@ void Value::PickAssign( const Value* index, Value* value )
 	case tag:							\
 		{							\
 		int cur = 0;						\
-		int* offset_vec = new int[ishape[0]];			\
+		int* offset_vec = (int*) alloc_memory( sizeof(int)*ishape[0] );\
 		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
 			offset_vec[i] = 0;				\
@@ -2079,7 +2085,7 @@ void Value::PickAssign( const Value* index, Value* value )
 				if ( cur < 1 || cur > shape[j] )	\
 					{				\
 					PICK_CLEANUP			\
-					delete offset_vec;		\
+					free_memory( offset_vec );	\
 					error->Report("index number ", i,\
 							" (=", cur,	\
 							") is out of range");\
@@ -2095,9 +2101,9 @@ void Value::PickAssign( const Value* index, Value* value )
 		type* ret = to_accessor();				\
 		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			ret[ offset_vec[i] ] = COPY_FUNC( vec[i] );	\
-		delete offset_vec;					\
+		free_memory( offset_vec );				\
 		if ( is_copy )						\
-			delete vec;					\
+			free_memory( vec );				\
 		}							\
 		break;
 
@@ -2125,7 +2131,7 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,)
 	if ( err )							\
 		{							\
 		PICK_CLEANUP						\
-		delete offset_vec;					\
+		free_memory( offset_vec );				\
 		error->Report( "index number ", j, " (=",cur,		\
 			") is out of range. Sub-vector reference may be invalid" );\
 		return;							\
@@ -2221,7 +2227,7 @@ Value* Value::SubRef( const_value_list *args_val )
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 	Value* op_val = (*ptr)["op[]"];
 
-	int* factor = new int[shape_len];
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -2282,10 +2288,10 @@ Value* Value::SubRef( const_value_list *args_val )
 		return create_value( (Value*) this, &offset, 1, VAL_REF );
 		}
 
-	int* index_is_copy = new int[shape_len];
-	int** index = new int*[shape_len];
-	int* cur = new int[shape_len];
-	int* len = new int[shape_len];
+	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
+	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
+	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -2302,7 +2308,7 @@ Value* Value::SubRef( const_value_list *args_val )
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = new int[len[i]];
+			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -2338,7 +2344,7 @@ Value* Value::SubRef( const_value_list *args_val )
 
 	// Loop through filling resultant vector.
 
-	int* ret = new int[vecsize];
+	int* ret = (int*) alloc_memory( sizeof(int)*vecsize );
 	for ( int v = 0; v < vecsize; ++v )
 		{
 		// Calculate offset.
@@ -2372,7 +2378,7 @@ Value* Value::SubRef( const_value_list *args_val )
 			result->AssignAttribute( "op[]", op_val );
 		}
 	else
-		delete len;
+		free_memory( len );
 
 	SUBOP_CLEANUP_2(shape_len)
 	return result;
@@ -2410,7 +2416,7 @@ const Value* Value::ExistingRecordElement( const Value* index ) const
 	{
 	char* index_string = index->StringVal();
 	const Value* result = ExistingRecordElement( index_string );
-	delete index_string;
+	free_memory( index_string );
 
 	return result;
 	}
@@ -2439,7 +2445,7 @@ Value* Value::GetOrCreateRecordElement( const Value* index )
 	{
 	char* index_string = index->StringVal();
 	Value* result = GetOrCreateRecordElement( index_string );
-	delete index_string;
+	free_memory( index_string );
 
 	return result;
 	}
@@ -2476,7 +2482,7 @@ Value* Value::Field( const Value* index )
 	{
 	char* index_string = index->StringVal();
 	Value* result = Field( index_string );
-	delete index_string;
+	free_memory( index_string );
 
 	return result;
 	}
@@ -2678,7 +2684,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 			if ( vals[i] )
 				++num_indices;
 
-		indices = new int[num_indices];
+		indices = (int*) alloc_memory( sizeof(int)*num_indices );
 		indices_are_copy = 1;
 
 		num_indices = 0;
@@ -2716,7 +2722,9 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 	case tag:							\
 		{							\
 		type* source_ptr = accessor(0);				\
-		type* new_values = new type[num_indices];		\
+		type* new_values = (type*) alloc_memory(		\
+					sizeof(type)*num_indices );	\
+									\
 		for ( LOOPDECL i = 0; i < num_indices; ++i )		\
 			{						\
 			XLATE						\
@@ -2746,7 +2754,7 @@ ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,)
 	if ( err )					\
 		{					\
 		EXTRA_ERROR				\
-		delete new_values;			\
+		free_memory( new_values );		\
 		return Fail("invalid index (=",indices[i],"), sub-vector reference may be bad");\
 		}
 
@@ -2758,7 +2766,7 @@ ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,off,ARRAY_REF_ACTION_XLATE(;))
 ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,off,ARRAY_REF_ACTION_XLATE(;))
 ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;))
 ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) delete (char *) new_values[X];))
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) free_memory( (void*) new_values[X] );))
 
 		default:
 			fatal->Report( "bad type in Value::ArrayRef()" );
@@ -2787,7 +2795,7 @@ Value* Value::TrueArrayRef( int* indices, int num_indices, int take_indices ) co
 		if ( indices[i] < 1 || indices[i] > kernel.Length() )
 			{
 			if ( take_indices )
-				delete indices;
+				free_memory( indices );
 
 			return Fail( "index (=", indices[i],
 				") out of range, array length =", kernel.Length() );
@@ -2854,7 +2862,7 @@ void Value::AssignElements( const Value* index, Value* value )
 			AssignArrayElements( value, indices, num_indices );
 
 		if ( indices_are_copy )
-			delete indices;
+			free_memory( indices );
 		}
 
 	Unref( value );
@@ -3108,7 +3116,7 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 			}						\
 									\
 		if ( rhs_copy )						\
-			delete rhs_array;				\
+			free_memory( rhs_array );			\
 									\
 		break;							\
 		}
@@ -3130,7 +3138,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -3152,7 +3160,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
 					fatal->Report(
@@ -3203,7 +3211,7 @@ void Value::AssignArrayElements( Value* value )
 			}						\
 									\
 		if ( rhs_copy )						\
-			delete rhs_array;				\
+			free_memory( rhs_array );			\
 									\
 		break;							\
 		}
@@ -3225,7 +3233,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray,strdup, delete (char*) (lhs[i]);)
+	CoerceToStringArray,strdup, free_memory( (void*) lhs[i] );)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -3247,7 +3255,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, delete (char*) (lhs[i]);)
+	CoerceToStringArray, strdup, free_memory( (void*) lhs[i] );)
 
 				default:
 					fatal->Report(
@@ -3297,7 +3305,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 	Value* op_val = (*ptr)["op[]"];
 
-	int* factor = new int[shape_len];
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -3440,10 +3448,10 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 		return;
 		}
 
-	int* index_is_copy = new int[shape_len];
-	int** index = new int*[shape_len];
-	int* cur = new int[shape_len];
-	int* len = new int[shape_len];
+	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
+	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
+	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -3460,7 +3468,7 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = new int[len[i]];
+			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -3523,9 +3531,9 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 			}						\
 									\
 		if ( is_copy )						\
-			delete vec;					\
+			free_memory( vec );				\
 									\
-		delete len;						\
+		free_memory( len );					\
 		}							\
 		break;
 
@@ -3548,14 +3556,14 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,off
 			switch ( theVal->Type() )
 				{
 
-#define ASSIGN_ARY_ELEMENTS_ACTION_XLATE					\
+#define ASSIGN_ARY_ELEMENTS_ACTION_XLATE				\
 	int err;							\
 	int off = ref->TranslateIndex( offset, &err );			\
 	if ( err )							\
 		{							\
 		if ( is_copy )						\
-			delete vec;					\
-		delete len;						\
+			free_memory( vec );				\
+		free_memory( len );					\
 		SUBOP_CLEANUP_2(shape_len)				\
 		error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
 		return;							\
@@ -3666,7 +3674,7 @@ void Value::Not()
 	{
 	if ( Type() == TYPE_FAIL )
 		{
-		glish_bool *ary = new glish_bool[1];
+		glish_bool *ary = (glish_bool*) alloc_memory( sizeof(glish_bool) );
 		ary[0] = glish_true;
 		kernel.SetArray( ary, 1 );
 		return;
@@ -3688,7 +3696,7 @@ void Value::Not()
 		return;
 		}
 
-	glish_bool* result = new glish_bool[length];
+	glish_bool* result = (glish_bool*) alloc_memory( sizeof(glish_bool)*length );
 
 	switch ( Type() )
 		{
@@ -3724,7 +3732,7 @@ NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
 		{							\
 		error->Report( "index (=",i,				\
 			") is out of range. Sub-vector reference may be invalid" );\
-		delete result;						\
+		free_memory( result );					\
 		return;							\
 		}
 
@@ -3735,7 +3743,7 @@ NOT_ACTION(TYPE_COMPLEX,complex,.r || ptr[off].i,ComplexPtr,off,NOT_ACTION_XLATE
 NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XLATE)
 				default:
 					error->Report( "bad type in Value::Not()" );
-					delete result;
+					free_memory( result );
 					return;
 				}
 			}
@@ -3744,7 +3752,7 @@ NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XL
 
 		default:
 			error->Report( "bad type in Value::Not()" );
-			delete result;
+			free_memory( result );
 			return;
 		}
 
@@ -3875,7 +3883,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 
 			// Create a suitable contiguous heap for holding all
 			// the strings.
-			char* heap = new char[total_size];
+			char* heap = (char*) alloc_memory( sizeof(char)*total_size );
 
 			char* heap_ptr = heap;
 			for ( LOOPDECL i = 0; i < length; ++i )
@@ -3891,7 +3899,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 				(void) sds_declare_structure( sds, heap,
 					(char*) name, total_size, SDS_STRING );
 
-			dlist->append( new DelObj( (void*) heap ) );
+			dlist->append( new DelObj( heap ) );
 
 			break;
 			}
@@ -3938,10 +3946,10 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 		const char* key;
 		while ( (member = attr->NextEntry( key, c )) ) 
 			{
-			char* new_name = new char[strlen( key ) + 10];
+			char* new_name = (char*) alloc_memory( sizeof(char)*(strlen(key)+10) );
 			sprintf( new_name, "at*%s", key );
 			member->AddToSds( sds, dlist, new_name, rh, level + 1 );
-			delete new_name;
+			free_memory( new_name );
 			}
 		}
 
@@ -4042,7 +4050,7 @@ void Value::VecRefPolymorph( glish_type new_type )
 	case tag:							\
 		{							\
 		ref_type& old = ref_func();				\
-		type* new_val = new type[length];			\
+		type* new_val = (type*) alloc_memory( sizeof(type)*length );\
 		for ( int i = 0; i < length; ++i )			\
 			new_val[i] = copy_func( old[i] );		\
 		kernel.SetArray( new_val, length );			\
@@ -4127,7 +4135,7 @@ int Value::DescribeSelf( OStream& s, charptr prefix ) const
 		{
 		char* desc = StringVal( ' ', PrintLimit() , 1 );
 		s << desc;
-		delete desc;
+		free_memory( desc );
 		}
 	return 1;
 	}
@@ -4179,7 +4187,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			for (int i = 0; i < h.len; i++)
 				{
 				int kl = strlen((char*) &memory[offset]);
-				char *key = new char[kl+1];
+				char *key = (char*) alloc_memory( sizeof(char)*(kl+1) );
 				memcpy(key,&memory[offset],kl+1);
 				offset += kl + 1;
 				Value *member = ValueFromMemBlock(memory, offset);
@@ -4191,11 +4199,11 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			break;
 		case TYPE_STRING:
 			{
-			char **s = new char*[h.len];
+			char **s = (char**) alloc_memory( sizeof(char*)*h.len );
 			for (int i=0; i < h.len; i++)
 				{
 				int l = strlen(&memory[offset]);
-				s[i] = new char[l+1];
+				s[i] = (char*) alloc_memory( sizeof(char)*(l+1) );
 				memcpy(s[i],&memory[offset],l+1);
 				offset += l+1;
 				}
@@ -4205,7 +4213,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			break;
 		default:
 			{
-			void *values = new char[h.len];
+			void *values = alloc_memory( sizeof(char)*h.len );
 			memcpy(values,&memory[offset],h.len);
 			offset += h.len;
 			switch( h.type )
@@ -4281,7 +4289,7 @@ static charptr* make_string_array( char* heap, int len, int& result_len )
 		if ( *heap_ptr == '\0' )
 			++result_len;
 
-	charptr* result = new charptr[result_len];
+	charptr* result = (charptr*) alloc_memory( sizeof(charptr)*result_len );
 
 	heap_ptr = heap;
 	for ( int i = 0; i < result_len; ++i )
@@ -4567,11 +4575,11 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 	if ( strlen(split_chars) == 0 )
 		{
 		num_pieces = strlen(source);
-		char **strings = new char*[num_pieces];
+		char **strings = (char**) alloc_memory( sizeof(char*)*num_pieces );
 		char *ptr = source;
 		for ( int i = 0; i < num_pieces ; i++ )
 			{
-			strings[i] = new char[2];
+			strings[i] = (char*) alloc_memory(sizeof(char)*2);
 			strings[i][0] = *ptr++;
 			strings[i][1] = '\0';
 			}
@@ -4587,9 +4595,9 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 		++num_pieces;
 		next_string = strtok( 0, split_chars );
 		}
-	delete source_copy;
+	free_memory( source_copy );
 
-	charptr* strings = new charptr[num_pieces];
+	charptr* strings = (charptr*) alloc_memory( sizeof(charptr)*num_pieces );
 	charptr* sptr = strings;
 	next_string = strtok( source, split_chars );
 	while ( next_string )
@@ -4735,7 +4743,7 @@ static char *format_error_message( const Value *val, char sep,
 	if ( (value1 = (*attr)["line"]) && value1->IsNumeric() )
 		{
 		int l = value1->IntVal();
-		msg[2] = new char[48];
+		msg[2] = (char*) alloc_memory( sizeof(char)*48 );
 		sprintf(msg[2],"Line: %d",l);
 		cnt += strlen(msg[2]);
 		}
@@ -4746,7 +4754,7 @@ static char *format_error_message( const Value *val, char sep,
 		{
 		charptr *stack = value1->StringPtr(0);
 		int l = strlen(stack[--len]);
-		msg[3] = new char[l+10];
+		msg[3] = (char*) alloc_memory( sizeof(char)*(l+10) );
 		strcpy(msg[3],"Stack:\t");
 		strcat(msg[3],stack[len]);
 		strcat(msg[3],"()");
@@ -4754,7 +4762,7 @@ static char *format_error_message( const Value *val, char sep,
 		for (int x=4; x < 8 && len; x++)
 			{
 			l = strlen(stack[--len]);
-			msg[x] = new char[l+4];
+			msg[x] = (char*) alloc_memory( sizeof(char)*(l+4) );
 			strcpy(msg[x],"\t");
 			strcat(msg[x],stack[len]);
 			strcat(msg[x],"()");
@@ -4768,7 +4776,7 @@ static char *format_error_message( const Value *val, char sep,
 		}
 
 	// Add some for line feeds etc...
-	char *result = new char[ cnt + 24 ];
+	char *result = (char*) alloc_memory( sizeof(char)*(cnt + 24) );
 
 	strcpy(result, intro);
 	if ( msg[0] ) { strcat(result, ": "); strcat(result, msg[0]); }
@@ -4783,7 +4791,7 @@ static char *format_error_message( const Value *val, char sep,
 		if ( msg[x] ) { strcat(result, "\n\t"); strcat(result, msg[x]); }
 
 	for ( int i=0; i < 8; i++ )
-		if ( msg[i] ) delete msg[i];
+		if ( msg[i] ) free_memory( msg[i] );
 
 	return result;
 	}
