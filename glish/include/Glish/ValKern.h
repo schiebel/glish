@@ -26,6 +26,8 @@ unsigned int count_references( recordptr from, recordptr to );
 typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
 typedef void (*KernelZeroFunc)( void *, unsigned int len );
 typedef void (*KernelDeleteFunc)( void *, unsigned int len );
+typedef void *(*KernelAllocateFunc)( unsigned int len );
+typedef void *(*KernelReallocateFunc)( void *, unsigned int len );
 
 typedef unsigned short vkmode_t;
 
@@ -37,6 +39,8 @@ struct glish_typeinfo_t {
 	KernelCopyFunc copy;
 	KernelDeleteFunc final;
 	KernelZeroFunc zero;
+	KernelAllocateFunc allocate;
+	KernelReallocateFunc reallocate;
 };
 
 extern glish_typeinfo_t glish_typeinfo[];
@@ -45,7 +49,7 @@ extern void register_type_funcs( glish_type, KernelCopyFunc c=0,
 //
 // Copy-on-write semantics
 //
-class ValueKernel {
+class ValueKernel : public gc_cleanup {
 
     public:
 
@@ -53,8 +57,8 @@ class ValueKernel {
 	// These structures need to be public for some compilers, e.g.
 	// Sun's native compiler
 	//
-	struct array_t {
-
+	class array_t : public gc_cleanup {
+	    public:
 		glish_type type;
 
 		unsigned int length;
@@ -68,6 +72,8 @@ class ValueKernel {
 		KernelCopyFunc copy() { return glish_typeinfo[type].copy; }
 		KernelDeleteFunc final() { return glish_typeinfo[type].final; }
 		KernelZeroFunc zero() { return glish_typeinfo[type].zero; }
+		KernelAllocateFunc allocate() { return glish_typeinfo[type].allocate; }
+		KernelReallocateFunc reallocate() { return glish_typeinfo[type].reallocate; }
 
 		unsigned int bytes() { return type_bytes()*length; }
 
@@ -89,7 +95,8 @@ class ValueKernel {
 
 	};
 
-	struct record_t {
+	class record_t : public gc_cleanup {
+	    public:
 		recordptr record;
 		unsigned long ref_count;
 		void clear();

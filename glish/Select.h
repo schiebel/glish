@@ -23,8 +23,10 @@ class SelectTimer;
 glish_declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
+#define alloc_Selecteeptr( num ) (Selectee**) GC_malloc( sizeof(Selectee*) * (num) )
+#define realloc_Selecteeptr( ptr, num ) (Selectee**) GC_malloc( ptr, sizeof(Selectee*) * (num) )
 
-class Selectee {
+class Selectee : public gc_cleanup {
 public:
 	enum Type { READ, WRITE };
 
@@ -43,7 +45,7 @@ protected:
 	};
 
 
-class SelectTimer {
+class SelectTimer : public gc_cleanup {
 public:
 	// Creates a timer that expires "delta" seconds from now.
 	// If "interval" is non-zero then after expiring the timer

@@ -36,6 +36,11 @@ struct dcomplex {
 	double i;
 };
 
+#define alloc_complex( num ) (complex*) GC_malloc_atomic( sizeof(complex) * num )
+#define alloc_complexptr( num ) (complex**) GC_malloc( sizeof(complex*) * num )
+#define alloc_dcomplex( num ) (dcomplex*) GC_malloc_atomic( sizeof(dcomplex) * num )
+#define alloc_dcomplexptr( num ) (dcomplex**) GC_malloc( sizeof(dcomplex*) * num )
+
 inline complex::complex( const dcomplex& cv )
 	{
 	r = cv.r;

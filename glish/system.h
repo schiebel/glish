@@ -7,7 +7,6 @@
 #define system_h
 #include "Glish/glish.h"
 #include "config.h"
-#include "malloc.h"
 
 #include <stdio.h>
 #include <math.h>

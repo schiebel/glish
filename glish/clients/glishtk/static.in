@@ -41,10 +41,10 @@ SCRIPTDIR = @SCRIPTDIR@
 MKHIER = $(top)/config/mkhier
 
 
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkCore.o tkCanvas.o malloc.o
+OBJS = main.o tkCore.o tkCanvas.o
 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
@@ -88,9 +88,6 @@ tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
 
 tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
-
-malloc.o: $(GLISH_SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 main.o: $(SRC)/main.cc $(H)/glishtk.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 

@@ -5,7 +5,6 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Glish/Complex.h"
-#include "Glish/glish.h"
 
 // Defined in "Value.cc".
 extern dcomplex text_to_dcomplex( const char text[], int& successful );

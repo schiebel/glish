@@ -24,16 +24,16 @@
 //	sizeof(data) <= sizeof(void*).
 #include <stdarg.h>
 //
-// needed for class SosRef
+// needed for class GcRef
 //
-#include "sos/ref.h"
+#include "gcmem/ref.h"
 #include "sos/generic.h"
 
 typedef void* void_ptr;
 typedef void_ptr ent;
 typedef void (*PFC)(char*);	// mostly for error handling
 
-class BaseList : public SosRef {
+class BaseList : public GcRef {
     public:
 	~BaseList();
 
@@ -77,7 +77,7 @@ class BaseList : public SosRef {
 	friend class BaseListIterator;
 	};
 
-class BaseListIterator {
+class BaseListIterator : public gc_cleanup {
     public:
 	BaseListIterator(BaseList& l)	{ lp = &l; pos = 0; }
 

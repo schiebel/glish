@@ -43,10 +43,6 @@ SH = $(SHELL)
 
 RM = rm -f
 
-SRC = ../..
-HEADERDIR = $(SRC)/include/Npd
-INC = -I.. -I$(SRC)/include -I/usr/ucbinclude
-
 top = @top_srcdir@@top_off@
 INCDIR_P = $(top)/include
 LIBDIR_P = $(top)/lib/$(ARCH)
@@ -57,6 +53,10 @@ exec_prefix = @exec_prefix@
 INCDIR = @includedir@
 LIBDIR = @libdir@
 BINDIR = @bindir@
+
+SRC = ../..
+HEADERDIR = $(SRC)/include/Npd
+INC = -I.. -I$(SRC)/include -I$(INCDIR_P) -I/usr/ucbinclude 
 
 MKHIER = $(top)/config/mkhier
 
@@ -106,7 +106,7 @@ libnpd$(LIB_SUFFIX): $(OBJS_PROXY)
 	$(MINSPACE_RM) $(OBJS)
 
 glishkey: libnpd$(LIB_SUFFIX) genkey.o
-	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) -lm @LIBS@
+	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) ${LIBDIR_P}/libgcmem.a -lm @LIBS@
 
 $(LIBDIR_P)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)

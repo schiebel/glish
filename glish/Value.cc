@@ -61,19 +61,19 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 	attributeptr attr = ModAttributePtr();
 	if ( xfile && xfile[0] )
 		{
-		rptr->Insert( strdup("file"), create_value( xfile ) );
-		Unref( (Value*) attr->Insert( strdup("file"), create_value( xfile ) ) );
+		rptr->Insert( string_dup("file"), create_value( xfile ) );
+		Unref( (Value*) attr->Insert( string_dup("file"), create_value( xfile ) ) );
 		if ( lineNum > 0 )
 			{
-			rptr->Insert( strdup("line"), create_value( lineNum ) );
-			Unref( (Value*) attr->Insert( strdup("line"), create_value( lineNum ) ) );
+			rptr->Insert( string_dup("line"), create_value( lineNum ) );
+			Unref( (Value*) attr->Insert( string_dup("line"), create_value( lineNum ) ) );
 			}
 		}
 
 	if ( message )
 		{
-		rptr->Insert( strdup("message"), create_value( message ) );
-		Unref( (Value*) attr->Insert( strdup("message"), create_value( message ) ) );
+		rptr->Insert( string_dup("message"), create_value( message ) );
+		Unref( (Value*) attr->Insert( string_dup("message"), create_value( message ) ) );
 		}
 	}
 
@@ -87,11 +87,11 @@ Value::Value( const Value *val, const char *, int )
 	if ( v )
 		{
 		charptr *sptr = v->StringPtr(0);
-		charptr *sary = (charptr*) alloc_memory( sizeof(charptr) * (v->Length() + 1) );
+		charptr *sary = (charptr*) alloc_charptr( v->Length() + 1 );
 		int x = 0;
 		for ( ; x < v->Length(); ++x )
-			sary[x] = strdup(sptr[x]);
-		sary[x] = (charptr) alloc_memory( strlen((*glish_files)[file]) + 1);
+			sary[x] = string_dup(sptr[x]);
+		sary[x] = (charptr) alloc_char( strlen((*glish_files)[file]) + 1);
 		strcpy( (char*) sary[x], (*glish_files)[file] );
 		rptr->Insert("file",create_value( sary, v->Length() + 1 ));
 		Unref(v);
@@ -100,7 +100,7 @@ Value::Value( const Value *val, const char *, int )
 	if ( v )
 		{
 		int *iptr = v->IntPtr(0);
-		int *iary = (int*) alloc_memory( sizeof(int) * (v->Length() + 1) );
+		int *iary = alloc_int( v->Length() + 1 );
 		int x = 0;
 		for ( ; x < v->Length(); ++x )
 			iary[x] = iptr[x];
@@ -115,9 +115,9 @@ void Value::SetFailMessage( Value *nv )
 		fatal->Report( "Value::SetFailValue called for non fail value" );
 
 	recordptr rptr = kernel.constRecord();
-	Unref( (Value*) rptr->Insert( strdup("message"), nv ) );
+	Unref( (Value*) rptr->Insert( string_dup("message"), nv ) );
 	attributeptr attr = ModAttributePtr();
-	Unref( (Value*) attr->Insert( strdup("message"), copy_value(nv) ) );
+	Unref( (Value*) attr->Insert( string_dup("message"), copy_value(nv) ) );
 	}
 
 void Value::SetFail( recordptr rec )
@@ -629,13 +629,13 @@ char* Value::RecordStringVal( char sep, int max_elements,
 	int len = rptr->Length();
 
 	if ( len == 0 )
-		return strdup( "[=]" );
+		return string_dup( "[=]" );
 
 	if ( been_there.is_member( (Value*) VecRefDeref() ) )
 		{
 		const char *key;
 		rptr->NthEntry( 0, key );
-		char *ret = (char*) alloc_memory( sizeof(char)*(strlen(key)+7) );
+		char *ret = alloc_char( strlen(key)+7 );
 		strcpy(ret,"[");
 		strcat(ret,key);
 		strcat(ret,"=***]");
@@ -645,8 +645,8 @@ char* Value::RecordStringVal( char sep, int max_elements,
 		been_there.append( (Value*) VecRefDeref() );
 
 
-	const char** key_strs = (const char**) alloc_memory( sizeof(char*)*len );
-	char** element_strs = (char**) alloc_memory( sizeof(char*)*len );
+	charptr* key_strs = (charptr*) alloc_charptr( len );
+	char** element_strs = alloc_charptr( len );
 	int total_len = 0;
 
 	for ( int i = 0; i < len && ( ! max_elements || i < max_elements ); ++i )
@@ -667,7 +667,7 @@ char* Value::RecordStringVal( char sep, int max_elements,
 	// the []'s (we could steal these from the last element since it
 	// doesn't have a ", " at the end of it, but that seems a bit
 	// evil), and 1 more for the end-of-string.
-	char* result = (char*) alloc_memory( sizeof(char)*(total_len + 3 * len + 10) );
+	char* result = alloc_char( total_len + 3 * len + 10 );
 
 	strcpy( result, "[" );
 
@@ -747,7 +747,7 @@ const Value* Value::VecRefDeref() const
 									\
 	is_copy = 1;							\
 	if ( ! result )							\
-		result = (ctype*) alloc_memory( sizeof(ctype)*size );	\
+		result = (ctype*) alloc_##ctype( size );		\
 									\
 	int incr = (length == 1 ? 0 : 1);				\
 	int i, j;
@@ -1101,10 +1101,10 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 		if ( size > 1 )
 			warn->Report( "array values lost due to conversion to string type" );
 		is_copy = 1;
-		char **ary = (char**) alloc_memory(sizeof(char*)*size);
+		char **ary = alloc_charptr(size);
 		for ( int x=0; x < size; ++x )
 			{
-			ary[x] = (char*) alloc_memory(1);
+			ary[x] = alloc_char(1);
 			ary[x][0] = '\0';
 			}
 		return (charptr*)ary;
@@ -1118,7 +1118,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 
 	is_copy = 1;
 	if ( ! result )
-		result = (charptr*) alloc_memory( sizeof(charptr)*size );
+		result = (charptr*) alloc_charptr( size );
 
 	int incr = (Length() == 1 ? 0 : 1);
 
@@ -1167,7 +1167,7 @@ Value* Value::RecordRef( const Value* index ) const
 
 	for ( int i = 0; i < n; ++i )
 		{
-		char* key = strdup( indices[i] );
+		char* key = string_dup( indices[i] );
 		new_record->Insert( key,
 				copy_value( ExistingRecordElement( key ) ) );
 		}
@@ -1227,7 +1227,7 @@ Value* Value::GetOrCreateRecordElement( const char* field )
 	if ( ! member )
 		{
 		member = create_value( glish_false );
-		RecordPtr()->Insert( strdup( field ), member );
+		RecordPtr()->Insert( string_dup( field ), member );
 		}
 
 	return member;
@@ -1326,7 +1326,7 @@ char* Value::NewFieldName( int alloc )
 		sprintf( buf, "*%d", ++counter );
 	while ( Field( buf ) );
 
-	return alloc ? strdup( buf ) : buf;
+	return alloc ? string_dup( buf ) : buf;
 	}
 
 
@@ -1448,7 +1448,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 			if ( vals[i] )
 				++num_indices;
 
-		indices = (int*) alloc_memory( sizeof(int)*num_indices );
+		indices = alloc_int( num_indices );
 		indices_are_copy = 1;
 
 		num_indices = 0;
@@ -1494,7 +1494,7 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 			fatal->Report( "no member corresponding to key = \"",
 					key, "\" in Value::RecordSlice" );
 
-		new_record->Insert( strdup( key ), copy_value( new_member ) );
+		new_record->Insert( string_dup( key ), copy_value( new_member ) );
 		}
 
 	return create_value( new_record );
@@ -1640,7 +1640,7 @@ void Value::AssignRecordElement( const char* index, Value* value )
 
 	else
 		// We'll be creating a new element in the dictionary.
-		index = strdup( index );
+		index = string_dup( index );
 
 	rptr->Insert( index, value );
 	}
@@ -1765,7 +1765,7 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		char **ary = (char**) StringPtr();
 		for ( int x=orig_len; x < min_index; ++x )
 			{
-			ary[x] = (char*) alloc_memory(1);
+			ary[x] = alloc_char(1);
 			ary[x][0] = '\0';
 			}
 		}
@@ -1808,7 +1808,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -1830,7 +1830,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
 					fatal->Report(
@@ -1903,7 +1903,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray,strdup, free_memory( (void*) lhs[i] );)
+	CoerceToStringArray,string_dup, free_memory( (void*) lhs[i] );)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -1925,7 +1925,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[i] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
 
 				default:
 					fatal->Report(
@@ -1995,7 +1995,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 
-	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* factor = alloc_int( shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -2138,10 +2138,10 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 		return;
 		}
 
-	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
-	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
-	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
-	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* index_is_copy = alloc_int( shape_len );
+	int** index = alloc_intptr( shape_len );
+	int* cur = alloc_int( shape_len );
+	int* len = alloc_int( shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -2158,7 +2158,7 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
+			index[i] = alloc_int( len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -2235,7 +2235,7 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,offset,,
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,offset,,)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,offset,,)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,offset,,)
-ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,strdup,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,string_dup,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -2275,7 +2275,7 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX, complex, ComplexPtr, CoerceToComplexArr
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX, dcomplex, DcomplexPtr,
 	CoerceToDcomplexArray, off,, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
-	CoerceToStringArray, off, strdup, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+	CoerceToStringArray, off, string_dup, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
 
 				default:
 					fatal->Report(
@@ -2369,7 +2369,7 @@ void Value::Not()
 	{
 	if ( Type() == TYPE_FAIL )
 		{
-		glish_bool *ary = (glish_bool*) alloc_memory( sizeof(glish_bool) );
+		glish_bool *ary = alloc_glish_bool( 1 );
 		ary[0] = glish_true;
 		kernel.SetArray( ary, 1 );
 		return;
@@ -2391,7 +2391,7 @@ void Value::Not()
 		return;
 		}
 
-	glish_bool* result = (glish_bool*) alloc_memory( sizeof(glish_bool)*length );
+	glish_bool* result = alloc_glish_bool( length );
 
 	switch ( Type() )
 		{
@@ -2538,7 +2538,7 @@ void Value::VecRefPolymorph( glish_type new_type )
 	case tag:							\
 		{							\
 		ref_type& old = ref_func();				\
-		type* new_val = (type*) alloc_memory( sizeof(type)*length );\
+		type* new_val = (type*) alloc_##type( length );		\
 		for ( int i = 0; i < length; ++i )			\
 			new_val[i] = copy_func( old[i] );		\
 		kernel.SetArray( new_val, length );			\
@@ -2553,7 +2553,7 @@ VECREF_POLYMORPH_ACTION(TYPE_FLOAT,float,floatref,FloatRef,)
 VECREF_POLYMORPH_ACTION(TYPE_DOUBLE,double,doubleref,DoubleRef,)
 VECREF_POLYMORPH_ACTION(TYPE_COMPLEX,complex,complexref,ComplexRef,)
 VECREF_POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,dcomplexref,DcomplexRef,)
-VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,strdup)
+VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,string_dup)
 
 		case TYPE_RECORD:
 			if ( length > 1 )
@@ -2612,13 +2612,13 @@ char *Value::GetNSDesc( int ) const
 	{
 	glish_type type = Type();
 	if ( type == TYPE_AGENT )
-		return strdup( "<agent>" );
+		return string_dup( "<agent>" );
 	if ( type == TYPE_FUNC )
-		return strdup( "<function>" );
+		return string_dup( "<function>" );
 	if ( type == TYPE_REGEX )
-		return strdup( "<regex>" );
+		return string_dup( "<regex>" );
 	if ( type == TYPE_FILE )
-		return strdup( "<file>" );
+		return string_dup( "<file>" );
 	return 0;
 	}
 
@@ -2774,7 +2774,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			for (int i = 0; i < h.len; i++)
 				{
 				int kl = strlen((char*) &memory[offset]);
-				char *key = (char*) alloc_memory( sizeof(char)*(kl+1) );
+				char *key = alloc_char( kl+1 );
 				memcpy(key,&memory[offset],kl+1);
 				offset += kl + 1;
 				Value *member = ValueFromMemBlock(memory, offset);
@@ -2786,11 +2786,11 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			break;
 		case TYPE_STRING:
 			{
-			char **s = (char**) alloc_memory( sizeof(char*)*h.len );
+			char **s = alloc_charptr( h.len );
 			for (int i=0; i < h.len; i++)
 				{
 				int l = strlen(&memory[offset]);
-				s[i] = (char*) alloc_memory( sizeof(char)*(l+1) );
+				s[i] = alloc_char( l+1 );
 				memcpy(s[i],&memory[offset],l+1);
 				offset += l+1;
 				}
@@ -2800,7 +2800,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 			break;
 		default:
 			{
-			void *values = alloc_memory( sizeof(char)*h.len );
+			void *values = (void*) alloc_char( h.len );
 			memcpy(values,&memory[offset],h.len);
 			offset += h.len;
 			switch( h.type )
@@ -2922,11 +2922,11 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 	if ( strlen(split_chars) == 0 )
 		{
 		num_pieces = strlen(source);
-		char **strings = (char**) alloc_memory( sizeof(char*)*num_pieces );
+		char **strings = alloc_charptr( num_pieces );
 		char *ptr = source;
 		for ( int i = 0; i < num_pieces ; i++ )
 			{
-			strings[i] = (char*) alloc_memory(sizeof(char)*2);
+			strings[i] = alloc_char(2);
 			strings[i][0] = *ptr++;
 			strings[i][1] = '\0';
 			}
@@ -2935,7 +2935,7 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 
 	// First see how many pieces the split will result in.
 	num_pieces = 0;
-	char* source_copy = strdup( source );
+	char* source_copy = string_dup( source );
 	charptr next_string = strtok( source_copy, split_chars );
 	while ( next_string )
 		{
@@ -2944,12 +2944,12 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 		}
 	free_memory( source_copy );
 
-	charptr* strings = (charptr*) alloc_memory( sizeof(charptr)*num_pieces );
+	charptr* strings = (charptr*) alloc_charptr( num_pieces );
 	charptr* sptr = strings;
 	next_string = strtok( source, split_chars );
 	while ( next_string )
 		{
-		*(sptr++) = strdup( next_string );
+		*(sptr++) = string_dup( next_string );
 		next_string = strtok( 0, split_chars );
 		}
 

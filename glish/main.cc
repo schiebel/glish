@@ -543,8 +543,8 @@ static void glish_dump_core( const char *file )
 	Scope *scope = Sequencer::CurSeq()->GetScope( );
 	int len = scope->Length();
 
-	char **fields = (char**) alloc_memory( sizeof(char*) * len );
-	const IValue **vals = (const IValue**) alloc_memory( sizeof(IValue*) * len );
+	char **fields = alloc_charptr( len );
+	const IValue **vals = (const IValue**) alloc_ivalueptr( len );
 	if ( ! fields || ! vals ) return;
 
 	IterCookie *c = scope->InitForIteration();
@@ -667,6 +667,12 @@ static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
 extern "C" int grexec_();
 void *grexec__ = grexec_;
 #endif
+
+extern "C" void free( void * ) { }
+extern "C" void *malloc( size_t s ) { return alloc_memory(s); }
+extern "C" void *calloc( size_t n, size_t s) { return alloc_zero_memory( n*s ); }
+extern "C" void *realloc( void *p, size_t s ) { return realloc_memory(p,s); }
+
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
 static char copyright2[]  = "Copyright (c) 1997,1998 Associated Universities Inc.";

@@ -152,7 +152,7 @@ TTYput(c)
     Screen[ScreenCount] = c;
     if (++ScreenCount >= ScreenSize - 1) {
 	ScreenSize += SCREEN_INC;
-	RENEW(Screen, char, ScreenSize);
+	Screen = realloc_char(Screen, ScreenSize);
     }
 }
 
@@ -283,7 +283,7 @@ TTYinfo()
        return;
     }
     p = tgetstr("le", &bp);
-    backspace = p ? strdup(p) : NULL;
+    backspace = p ? string_dup(p) : NULL;
     TTYwidth = tgetnum("co");
     TTYrows = tgetnum("li");
 #endif	/* defined(USE_TERMCAP) */
@@ -514,11 +514,11 @@ insert_string(p)
 
     len = strlen((char *)p);
     if (End + len >= Length) {
-	if ((new = NEW(CHAR, Length + len + MEM_INC)) == NULL)
+	if ((new = alloc_char(Length + len + MEM_INC)) == NULL)
 	    return CSstay;
 	if (Length) {
 	    COPYFROMTO(new, Line, Length);
-	    DISPOSE(Line);
+	    free_memory(Line);
 	}
 	Line = new;
 	Length += len + MEM_INC;
@@ -665,8 +665,8 @@ search_hist(search, move)
     /* Save or get remembered search pattern. */
     if (search && *search) {
 	if (old_search)
-	    DISPOSE(old_search);
-	old_search = (CHAR *)strdup((char *)search);
+	    free_memory(old_search);
+	old_search = (CHAR *)string_dup((char *)search);
     }
     else {
 	if (old_search == NULL || *old_search == '\0')
@@ -747,14 +747,14 @@ save_yank(begin, i)
     int		i;
 {
     if (Yanked) {
-	DISPOSE(Yanked);
+	free_memory(Yanked);
 	Yanked = NULL;
     }
 
     if (i < 1)
 	return;
 
-    if ((Yanked = NEW(CHAR, (size_t)i + 1)) != NULL) {
+    if ((Yanked = alloc_char( i + 1 )) != NULL) {
 	COPYFROMTO(Yanked, &Line[begin], i);
 	Yanked[i] = '\0';
     }
@@ -875,14 +875,14 @@ insert_char(c)
 	return insert_string(buff);
     }
 
-    if ((p = NEW(CHAR, Repeat + 1)) == NULL)
+    if ((p = alloc_char(Repeat + 1)) == NULL)
 	return CSstay;
     for (i = Repeat, q = p; --i >= 0; )
 	*q++ = c;
     *q = '\0';
     Repeat = 0;
     s = insert_string(p);
-    DISPOSE(p);
+    free_memory(p);
     return s;
 }
 
@@ -1099,12 +1099,12 @@ hist_add(p)
 {
     int		i;
 
-    if ((p = (CHAR *)strdup((char *)p)) == NULL)
+    if ((p = (CHAR *)string_dup((char *)p)) == NULL)
 	return;
     if (History.Size < HIST_SIZE)
 	History.Lines[History.Size++] = p;
     else {
-	DISPOSE(History.Lines[0]);
+	free_memory(History.Lines[0]);
 	for (i = 0; i < HIST_SIZE - 1; i++)
 	    History.Lines[i] = History.Lines[i + 1];
 	History.Lines[i] = p;
@@ -1135,8 +1135,8 @@ STATIC void
 readline_cleanup()
 {
     rl_ttyset(1);
-    DISPOSE(Screen);
-    DISPOSE(History.Lines[--History.Size]);
+    free_memory(Screen);
+    free_memory(History.Lines[--History.Size]);
 }
 
 char *
@@ -1148,7 +1148,7 @@ readline(prompt)
 
     if (Line == NULL) {
 	Length = MEM_INC;
-	if ((Line = NEW(CHAR, Length)) == NULL)
+	if ((Line = alloc_char(Length)) == NULL)
 	    return NULL;
     }
 
@@ -1158,12 +1158,12 @@ readline(prompt)
 	hist_add(NIL);
 	ScreenSize = SCREEN_INC;
 	Prompt = prompt ? prompt : (char *)NIL;
-	Screen = NEW(char, ScreenSize);
+	Screen = alloc_char(ScreenSize);
 	TTYputs((STRING)Prompt);
     }
 
     if ((line = editinput()) != NULL) {
-	line = (CHAR *)strdup((char *)line);
+	line = (CHAR *)string_dup((char *)line);
 	TTYputs((STRING)NEWLINE);
 	TTYflush();
     }
@@ -1231,7 +1231,7 @@ nb_readline(prompt)
 
     if (Line == NULL) {
 	Length = MEM_INC;
-	if ((Line = NEW(CHAR, Length)) == NULL)
+	if ((Line = alloc_char(Length)) == NULL)
 	    return NULL;
     }
 
@@ -1242,7 +1242,7 @@ nb_readline(prompt)
 	hist_add(NIL);
 	ScreenSize = SCREEN_INC;
 	Prompt = prompt ? prompt : (char *)NIL;
-	Screen = NEW(char, ScreenSize);
+	Screen = alloc_char(ScreenSize);
 	TTYputs((STRING)Prompt);
     }
 
@@ -1260,7 +1260,7 @@ nb_readline(prompt)
 
 
     if ((line = nb_editinput()) != NULL && line != rl_data_incomplete) {
-	line = (CHAR *)strdup((char *)line);
+	line = (CHAR *)string_dup((char *)line);
 	TTYputs((STRING)NEWLINE);
 	TTYflush();
     }
@@ -1333,7 +1333,7 @@ find_word()
     for (p = &Line[Point]; p > Line && strchr(SEPS, (char)p[-1]) == NULL; p--)
 	continue;
     len = Point - (p - Line) + 1;
-    if ((new = NEW(CHAR, len)) == NULL)
+    if ((new = alloc_char(len)) == NULL)
 	return NULL;
     COPYFROMTO(new, p, len);
     new[len - 1] = '\0';
@@ -1352,12 +1352,12 @@ c_complete()
     word = find_word();
     p = (CHAR *)rl_complete((char *)word, &unique);
     if (word)
-	DISPOSE(word);
+	free_memory(word);
     if (p && *p) {
 	s = insert_string(p);
 	if (!unique)
 	    (void)ring_bell();
-	DISPOSE(p);
+	free_memory(p);
 	return s;
     }
     return ring_bell();
@@ -1374,12 +1374,12 @@ c_possible()
     word = find_word();
     ac = rl_list_possib((char *)word, (char ***)&av);
     if (word)
-	DISPOSE(word);
+	free_memory(word);
     if (ac) {
 	columns(ac, av);
 	while (--ac >= 0)
-	    DISPOSE(av[ac]);
-	DISPOSE(av);
+	    free_memory(av[ac]);
+	free_memory(av);
 	return CSmove;
     }
     return ring_bell();
@@ -1560,7 +1560,7 @@ argify(line, avp)
     int		i;
 
     i = MEM_INC;
-    if ((*avp = p = NEW(CHAR*, i))== NULL)
+    if ((*avp = p = (CHAR**) alloc_charptr(i))== NULL)
 	 return 0;
 
     for (c = line; isspace(*c); c++)
@@ -1573,14 +1573,14 @@ argify(line, avp)
 	    *c++ = '\0';
 	    if (*c && *c != '\n') {
 		if (ac + 1 == i) {
-		    new = NEW(CHAR*, i + MEM_INC);
+		    new = (CHAR**) alloc_charptr(i + MEM_INC);
 		    if (new == NULL) {
 			p[ac] = NULL;
 			return ac;
 		    }
 		    COPYFROMTO(new, p, i * sizeof (char **));
 		    i += MEM_INC;
-		    DISPOSE(p);
+		    free_memory(p);
 		    *avp = p = new;
 		}
 		p[ac++] = c;
@@ -1605,7 +1605,7 @@ last_argument()
     if (History.Size == 1 || (p = History.Lines[History.Size - 2]) == NULL)
 	return ring_bell();
 
-    if ((p = (CHAR *)strdup((char *)p)) == NULL)
+    if ((p = (CHAR *)string_dup((char *)p)) == NULL)
 	return CSstay;
     ac = argify(p, &av);
 
@@ -1615,8 +1615,8 @@ last_argument()
 	s = ac ? insert_string(av[ac - 1]) : CSstay;
 
     if (ac)
-	DISPOSE(av);
-    DISPOSE(p);
+	free_memory(av);
+    free_memory(p);
     return s;
 }
 

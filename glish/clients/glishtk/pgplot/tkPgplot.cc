@@ -352,8 +352,8 @@ struct glishtk_pgplot_bindinfo {
 	char *tk_event_name;
 
 	glishtk_pgplot_bindinfo( TkPgplot *c, const char *event, const char *tk_event ) :
-			pgplot(c), event_name(strdup(event)),
-			tk_event_name(strdup(tk_event)) { }
+			pgplot(c), event_name(string_dup(event)),
+			tk_event_name(string_dup(tk_event)) { }
 
 	~glishtk_pgplot_bindinfo( ) {
 		free_memory(tk_event_name);
@@ -375,14 +375,14 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	wpt[0] = (float) atof(Tcl_GetStringResult(tcl));
 	tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], 0 );
 	wpt[1] = (float) atof(Tcl_GetStringResult(tcl));
-	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
+	rec->Insert( string_dup("world"), new Value( wpt, 2 ) );
 
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
 	dpt[0] = atoi(argv[1]);
 	dpt[1] = atoi(argv[2]);
-	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
+	rec->Insert( string_dup("device"), new Value( dpt, 2 ) );
 
-	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+	rec->Insert( string_dup("code"), new Value(atoi(argv[3])) );
 
 	info->pgplot->BindEvent( info->event_name, new Value( rec ) );
 	return TCL_OK;
@@ -555,7 +555,7 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 		free_memory(region);
 
 	if (fill_ && fill_[0] && strcmp(fill_, "none"))
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement(this);
 	frame->Pack();
@@ -844,10 +844,10 @@ char *TkPgplot::Cursor( Value *args ) {
 
 		if (!init)
 			{
-			item[0] = strdup("norm");
-			item[1] = strdup("0");
-			item[2] = strdup("0");
-			item[3] = strdup("1");
+			item[0] = string_dup("norm");
+			item[1] = string_dup("0");
+			item[2] = string_dup("0");
+			item[3] = string_dup("1");
 			init = 1;
 			}
 

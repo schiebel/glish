@@ -108,25 +108,25 @@ unsigned int sos_fd_buf_kernel::size = MAXIOV;
 
 sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), total(0), tmp_cur(0)
 	{
-	iov = (struct iovec*) sos_alloc_memory( size * sizeof( struct iovec ) );
-	status = (sos_sink::buffer_type*) sos_alloc_memory( size * sizeof( sos_sink::buffer_type ) );
-	tmp_bufs = (char**) sos_alloc_zero_memory( tmp_cnt * sizeof(void*) );
+	iov = (struct iovec*) alloc_memory( size * sizeof( struct iovec ) );
+	status = (sos_sink::buffer_type*) alloc_memory( size * sizeof( sos_sink::buffer_type ) );
+	tmp_bufs = (char**) alloc_zero_memory( tmp_cnt * sizeof(void*) );
 	}
 
 sos_fd_buf_kernel::~sos_fd_buf_kernel()
 	{
 	reset( );
 	for ( int x = 0; tmp_bufs[x]; x++ )
-		sos_free_memory( tmp_bufs[x] );
-	sos_free_memory( iov );
-	sos_free_memory( status );
-	sos_free_memory( tmp_bufs );
+		free_memory( tmp_bufs[x] );
+	free_memory( iov );
+	free_memory( status );
+	free_memory( tmp_bufs );
 	}
 
 char *sos_fd_buf_kernel::new_tmp( )
 	{
 	if ( ! tmp_bufs[tmp_cur] )
-		tmp_bufs[tmp_cur] = (char *) sos_alloc_memory( tmp_size );
+		tmp_bufs[tmp_cur] = (char *) alloc_memory( tmp_size );
 	return tmp_bufs[tmp_cur++];
 	}
 
@@ -134,7 +134,7 @@ void sos_fd_buf_kernel::reset( )
 	{
 	for ( int x = 0; (unsigned int) x < cnt; x++ )
 		if ( status[x] == sos_sink::FREE )
-			sos_free_memory( iov[x].iov_base );
+			free_memory( iov[x].iov_base );
 
 	while ( final_list.length() > 0 )
 		{
@@ -374,7 +374,7 @@ sos_out::sos_out( sos_sink *out_, int integral_header ) : out(out_)
 		not_integral = 0;
 	else
 		{
-		not_integral = (char*) sos_alloc_memory(SOS_HEADER_SIZE);
+		not_integral = (char*) alloc_memory(SOS_HEADER_SIZE);
 		head.set( not_integral, 0, SOS_UNKNOWN );
 		}
 	}
@@ -439,7 +439,7 @@ PUTCHAR(unsigned char)
 		return Error( NO_SINK );				\
 									\
 	unsigned int total = (len+1) * 4;				\
-	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE ); \
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE ); \
 	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
 									\
 	*lptr++ = len;							\
@@ -449,7 +449,7 @@ PUTCHAR(unsigned char)
 		total += lptr[i];					\
 		}							\
 									\
-	buf = (char*) sos_realloc_memory( buf, total + SOS_HEADER_SIZE ); \
+	buf = (char*) realloc_memory( buf, total + SOS_HEADER_SIZE ); \
 	lptr = (unsigned int *) (buf + SOS_HEADER_SIZE + 4);		\
 									\
 	head.set(buf,total,SOS_STRING);					\
@@ -476,8 +476,8 @@ PUTCHAR(unsigned char)
 	if ( type == sos_sink::FREE )					\
 		{							\
 		for ( unsigned int X = 0; X < len; X++ )		\
-			sos_free_memory( (char*) s[X] );		\
-		sos_free_memory( s );					\
+			free_memory( (char*) s[X] );		\
+		free_memory( s );					\
 		}							\
 									\
 	return ret;							\
@@ -494,7 +494,7 @@ PUTCHAR(unsigned char)
 	for ( unsigned int i = 0; i < len; i++ )			\
 		total += s.strlen(i);					\
 									\
-	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE );\
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );\
 									\
 	head.set(buf,total,SOS_STRING);					\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
@@ -582,10 +582,10 @@ sos_status *sos_out::put_record_start( unsigned int l, sos_header &h )
 			else swap_abcdefgh_efghabcd(result,len);
 #endif
 
-sos_out::~sos_out() { if ( not_integral ) sos_free_memory(not_integral); }
+sos_out::~sos_out() { if ( not_integral ) free_memory(not_integral); }
 
 sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : 
-			head((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1),
+			head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1),
 			use_str(use_str_), not_integral(integral_header ? 0 : 1), in(in_)
 	{
 	}
@@ -666,12 +666,12 @@ void *sos_in::get_numeric( sos_code &type, unsigned int &len )
 
 	if ( not_integral )
 		{
-		result_ = (char*) sos_alloc_memory( len * head.typeLen() );
+		result_ = (char*) alloc_memory( len * head.typeLen() );
 		result  = result_;
 		}
 	else
 		{
-		result_ = (char*) sos_alloc_memory(len * head.typeLen() + SOS_HEADER_SIZE);
+		result_ = (char*) alloc_memory(len * head.typeLen() + SOS_HEADER_SIZE);
 		memcpy(result_, head.iBuffer(), SOS_HEADER_SIZE);
 		result  = result_ + SOS_HEADER_SIZE;
 		}
@@ -711,7 +711,7 @@ void *sos_in::get_numeric( sos_code &type, unsigned int &len )
 void *sos_in::get_string( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
-	char *buf = (char*) sos_alloc_memory(len);
+	char *buf = (char*) alloc_memory(len);
 	in->read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
@@ -729,14 +729,14 @@ void *sos_in::get_string( unsigned int &len )
 	for ( unsigned int i = 0; i < len; i++ )
 		{
 		register unsigned int slen = *lptr++;
-		ary[i] = (char*) sos_alloc_memory( slen + 1 );
+		ary[i] = (char*) alloc_memory( slen + 1 );
 		lary[i] = slen;
 		memcpy(ary[i],cptr,slen);
 		ary[i][slen] = '\0';
 		cptr += slen;
 		}
 
-	sos_free_memory( buf );
+	free_memory( buf );
 	return ns;
 	}
 #else
@@ -746,7 +746,7 @@ void *sos_in::get_string( unsigned int & ) { return 0; }
 void *sos_in::get_chars( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
-	char *buf = (char*) sos_alloc_memory(len);
+	char *buf = (char*) alloc_memory(len);
 	in->read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
@@ -758,17 +758,17 @@ void *sos_in::get_chars( unsigned int &len )
 		}
 
 	char *cptr = (char*)(&lptr[len]);
-	char **ary = (char **) sos_alloc_memory(len * sizeof(char*));
+	char **ary = (char **) alloc_memory(len * sizeof(char*));
 	for ( unsigned int i = 0; i < len; i++ )
 		{
 		register unsigned int slen = *lptr++;
-		ary[i] = (char*) sos_alloc_memory( slen + 1 );
+		ary[i] = (char*) alloc_memory( slen + 1 );
 		memcpy(ary[i],cptr,slen);
 		ary[i][slen] = '\0';
 		cptr += slen;
 		}
 
-	sos_free_memory( buf );
+	free_memory( buf );
 	return ary;
 	}
 

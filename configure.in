@@ -1386,9 +1386,9 @@ dnl##
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
-    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
+    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -1397,9 +1397,9 @@ if test "$static_binary" = "yes"; then
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos"
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx -lgcmem"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos -lgcmem"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lgcmem"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
@@ -1532,6 +1532,8 @@ AC_SUBST(STATIC_BIN)
 dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
+$mkhier "gcmem/$ARCH/static"
+$mkhier "gcmem/$ARCH/dynamic"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/dynamic"
 $mkhier "npd/$ARCH/static"
@@ -1555,5 +1557,7 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in)
 PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/static.in)
+PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/static/Makefile:gcmem/$ARCH/static.in gcmem/$ARCH/dynamic/Makefile:gcmem/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

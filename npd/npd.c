@@ -55,8 +55,8 @@ static char *keys_dir = 0;
 
 void set_key_directory( const char *kd )
 	{
-	if ( keys_dir ) my_free( keys_dir );
-	keys_dir = (kd ? strdup(kd) : 0);
+	if ( keys_dir ) free_memory( keys_dir );
+	keys_dir = (kd ? string_dup(kd) : 0);
 	}
 
 const char *get_key_directory( )
@@ -138,7 +138,7 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 				 our_username, write_, challenge, challenge_len ) )
 		return to_log( "answering peer %s's challenge failed - %s",
 				remote_host, errmsg );
-	my_free( challenge );
+	free_memory( challenge );
 	fflush( write_ );
 
 	if ( ! (s = get_word_from_peer( read_ )) ||

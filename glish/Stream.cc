@@ -43,9 +43,9 @@ OStream &OStream::flush( )
 char *DBuf::tmpbuf = 0;
 DBuf::DBuf(unsigned int s)
 	{
-	if ( ! tmpbuf ) tmpbuf = (char*) alloc_memory( sizeof(char)*512 );
+	if ( ! tmpbuf ) tmpbuf = alloc_char( 512 );
 	size_ = s ? s : 1;
-	buf = (char*) alloc_memory( sizeof(char)*(size_ + 1) );
+	buf = alloc_char( size_ + 1 );
 	len_ = 0;
 	}
 
@@ -59,7 +59,7 @@ int DBuf::put( TYPE v, const char *format )				\
 	if ( len_ + l + 1 >= size_ )					\
 		{							\
 		while ( len_ + l + 1 >= size_ ) size_ *= 2;		\
-		buf = (char*) realloc_memory( (void*) buf, size_ + 1 );	\
+		buf = realloc_char( buf, size_ + 1 );			\
 		}							\
 	memcpy(&buf[len_],tmpbuf,l);					\
 	len_ += l;							\
@@ -73,7 +73,7 @@ int DBuf::put( const char *v, const char * )
 	if ( len_ + l + 1 >= size_ )
 		{
 		while ( len_ + l + 1 >= size_ ) size_ *= 2;
-		buf = (char*) realloc_memory( (void*) buf, size_ + 1 );
+		buf = realloc_char( buf, size_ + 1 );
 		}
 	memcpy(&buf[len_],v,l);
 	len_ += l;

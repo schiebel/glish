@@ -37,7 +37,7 @@ class OStream : public GlishRef {
 
 OStream &endl(OStream&);
 
-class DBuf {
+class DBuf : public gc_cleanup {
     public:
 	DBuf(unsigned int size=1024);
 	~DBuf();

@@ -18,7 +18,7 @@ RCSID("@(#) $Id$")
 
 // The value of an iteration cookie is the bucket and offset within the
 // bucket at which to start looking for the next value to return.
-class IterCookie {
+class IterCookie : public gc_cleanup {
 public:
 	IterCookie( int b, int o ) : bucket(b), offset(o) { }
 	void Set( int b, int o )
@@ -45,7 +45,7 @@ Dictionary::Dictionary( dict_order ordering, int initial_size )
 Dictionary::~Dictionary()
 	{
 	Clear();
-	delete [] tbl;
+	free_memory(tbl);
 	if ( order ) delete order;
 	}
 
@@ -194,7 +194,7 @@ void* Dictionary::NextEntry( const char*& key, IterCookie*& cookie ) const
 void Dictionary::Init( int size )
 	{
 	num_buckets = NextPrime( size );
-	tbl = new PList(DictEntry)*[num_buckets];
+	tbl = (PList(DictEntry)**) alloc_memory( sizeof(PList(DictEntry)*)*num_buckets );
 
 	for ( int i = 0; i < num_buckets; ++i )
 		tbl[i] = 0;
@@ -349,7 +349,7 @@ void Dictionary::ChangeSize( int new_size )
 			}
 		}
 
-	delete [] tbl;
+	free_memory(tbl);
 	Init( new_size );
 
 	for ( LOOPDECL i = 0; i < current->length(); ++i )

@@ -40,8 +40,8 @@ struct dynbuf {
 
 dynbuf::dynbuf( int ary_size ) : slen(SPRINTF_ALLOC+1), scur(0), alen(ary_size), acur(0)
 	{
-	ary = (char**) alloc_memory(sizeof(char*)*alen);
-	ary[acur] = (char*) alloc_memory(slen);
+	ary = alloc_charptr(alen);
+	ary[acur] = alloc_char(slen);
 	}
 
 dynbuf::~dynbuf( )
@@ -61,14 +61,14 @@ void dynbuf::next( )
 		++acur;
 		scur = 0;
 		slen = SPRINTF_ALLOC+1;
-		ary[acur] = (char*) alloc_memory(slen);
+		ary[acur] = alloc_char(slen);
 		}
 	}
 
 void dynbuf::_size( int new_size )
 	{
 	while ( new_size >= slen ) slen *= 2;
-	ary[acur] = (char*) realloc_memory( ary[acur], slen );
+	ary[acur] = realloc_char( ary[acur], slen );
 	}
 
 static char	*ctor(int,int);
@@ -204,14 +204,14 @@ cvt:
 				sprintf( ebuf, "illegal conversion character `%c'", ch );
 			else
 				(void) sprintf(ebuf, "illegal conversion character `\\%03o'", (unsigned char)ch);
-			error = strdup(ebuf);
+			error = string_dup(ebuf);
 			return 0;
 			// NOTREACHED
 		}
 
 		// 2 leaves room for ultimate conversion char and for \0
 		if (convp >= &cbuf[sizeof(cbuf) - 2]) {
-			error = strdup("conversion string too long");
+			error = string_dup("conversion string too long");
 			return 0;
 		}
 		*convp++ = ch;
@@ -228,22 +228,22 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 	*convp++ = ch;
 	*convp = 0;
 	sprintf(ebuf, "format `%s' illegal: %s", cbuf, why);
-	return strdup(ebuf);
+	return string_dup(ebuf);
 }
 
 #define STRING(lhs)							\
 {									\
 	val = (*ap)[index];						\
 	if ( val->Type() != TYPE_STRING )				\
-		return strdup("bad type, non-string");			\
-	lhs = (char*) strdup(val->StringPtr(0)[off]);			\
+		return string_dup("bad type, non-string");			\
+	lhs = (char*) string_dup(val->StringPtr(0)[off]);			\
 	++index;							\
 }
 #define INT(lhs)							\
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return strdup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");			\
 	lhs = val->IntVal(off+1);					\
 	++index;							\
 }
@@ -251,7 +251,7 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return strdup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");			\
 	lhs = val->ShortVal(off+1);					\
 	++index;							\
 }
@@ -266,17 +266,17 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 		STRING(tstr)						\
 		ctrl(tstr);						\
 		lhs = *tstr;						\
-		free( tstr );						\
+		free_memory( tstr );					\
 		}							\
 	else								\
-		return strdup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");			\
 	++index;							\
 }
 #define FLOAT(lhs)							\
 {									\
 	val = (*ap)[index];						\
 	if ( ! val->IsNumeric() )					\
-		return strdup("bad type, non-numeric");			\
+		return string_dup("bad type, non-numeric");			\
 	lhs = val->DoubleVal(off+1);					\
 	++index;							\
 }
@@ -308,7 +308,7 @@ static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap,
 	// verify number of arguments
 	if (index + ndyn >= ap->length()) {
 		sprintf( ebuf, "not enough args for format `%s'", s );
-		return strdup(ebuf);
+		return string_dup(ebuf);
 	}
 
 	// pick up dynamic specifiers
@@ -318,7 +318,7 @@ static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap,
 			INT(a2)
 		if (ndyn > 2) {
 			sprintf( ebuf, "too many `*'s in `%s'", s );
-			return strdup(ebuf);
+			return string_dup(ebuf);
 		}
 	}
 
@@ -512,7 +512,7 @@ static char *ctor( int x, int caps) {
 	p = caps ? "M\2D\5C\2L\5X\2V\5I" : "m\2d\5c\2l\5x\2v\5i";
 	v = 1000;
 	if (n >= v * BUFSIZ / 2)	// conservative
-		return (strdup("[abortive Roman numeral]"));
+		return (string_dup("[abortive Roman numeral]"));
 	for (;;) {
 		while (n >= v)
 			*outp++ = *p, n -= v;
@@ -531,5 +531,5 @@ static char *ctor( int x, int caps) {
 		}
 	}
 	*outp = 0;
-	return (strdup(buf));
+	return (string_dup(buf));
 }

@@ -20,10 +20,26 @@ class RelExpr;
 class Frame;
 class IValue;
 
-typedef Func* funcptr;
-typedef Regex* regexptr;
+class IValue;
+#define alloc_ivalueptr( num ) (IValue**) GC_malloc( sizeof(IValue*) * (num) )
+#define realloc_ivalueptr( ptr, num ) (IValue**) GC_realloc( ptr, sizeof(IValue*) * (num) )
+
 typedef File* fileptr;
+#define alloc_fileptr( num ) (fileptr*) GC_malloc( sizeof(fileptr) * (num) )
+#define realloc_fileptr( ptr, num ) (fileptr*) GC_malloc( ptr, sizeof(fileptr) * (num) )
+
+typedef Regex* regexptr;
+#define alloc_regexptr( num ) (regexptr*) GC_malloc( sizeof(regexptr) * (num) )
+#define realloc_regexptr( ptr, num ) (regexptr*) GC_malloc( ptr, sizeof(regexptr) * (num) )
+
+typedef Func* funcptr;
+#define alloc_funcptr( num ) (funcptr*) GC_malloc( sizeof(funcptr) * (num) )
+#define realloc_funcptr( ptr, num ) (funcptr*) GC_malloc( ptr, sizeof(funcptr) * (num) )
+
 typedef Agent* agentptr;
+#define alloc_agentptr( num ) (agentptr*) GC_malloc( sizeof(agentptr) * (num) )
+#define realloc_agentptr( ptr, num ) (agentptr*) GC_malloc( ptr, sizeof(agentptr) * (num) )
+
 
 glish_declare(PList,IValue);
 typedef PList(IValue) ivalue_list;

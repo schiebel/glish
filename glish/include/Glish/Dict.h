@@ -9,7 +9,7 @@
 class Dictionary;
 class IterCookie;
 
-class DictEntry {
+class DictEntry : public gc_cleanup {
 public:
 	DictEntry( const char* k, void* val )
 		{ key = k; value = val; }
@@ -28,7 +28,7 @@ glish_declare(PList,DictEntry);
 // of insertions.
 typedef enum { ORDERED, UNORDERED } dict_order;
 
-class Dictionary {
+class Dictionary : public gc_cleanup {
     public:
 	Dictionary( dict_order ordering = UNORDERED,
 		int initial_size = DEFAULT_DICT_SIZE );

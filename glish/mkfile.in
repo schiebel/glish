@@ -194,8 +194,8 @@ INSTALL_lib_tgt: $(LIBDIR)/libglish$(LIB_SUFFIX) $(LIBDIR)/libglishp$(LIB_SUFFIX
 
 INSTALL_bin_tgt: $(BINDIR)/glish
 
-glish: main.o malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libglishp$(LIB_SUFFIX) $(GLIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o malloc.o $(GLISH_LIBS) @LIBS@
+glish: main.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libglishp$(LIB_SUFFIX) $(GLIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(GLISH_LIBS) @LIBS@
 
 libglish$(LIB_SUFFIX): $(CLIENT_OBJS_PROXY)
 	rm -f libglish$(LIB_SUFFIX)
@@ -382,9 +382,6 @@ $(D)glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h
 
 main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h $(SRC)/IValue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc
-
-malloc.o: $(SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/malloc.c
 
 y.tab.h $(D)parse.o: $(SRC)/parse.y
 

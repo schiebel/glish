@@ -24,7 +24,7 @@ glish_implement(SubVecRef,float)
 glish_implement(SubVecRef,double)
 glish_implement(SubVecRef,complex)
 glish_implement(SubVecRef,dcomplex)
-glish_implement2(SubVecRef,charptr,strdup)
+glish_implement2(SubVecRef,charptr,string_dup)
 
 const char *VecRef::Description() const
 	{
@@ -62,7 +62,7 @@ VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index,
 
 	if ( ! take_indices )
 		{
-		indices = (int*) alloc_memory( sizeof(int)*len );
+		indices = (int*) alloc_int( len );
 		memcpy(indices, arg_indices, len * sizeof(int));
 		}
 	else

@@ -24,7 +24,7 @@ unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
 void sos_header_kernel::set( void *b, unsigned int l, sos_code t, int freeit )
 	{
 	if ( buf_ && freeit_ )
-		sos_free_memory( buf_ );
+		free_memory( buf_ );
 	buf_ = (unsigned char*) b;
 	length_ = l;
 	type_ = t;
@@ -97,10 +97,10 @@ void sos_header::scratch( )
 	if ( kernel->count() > 1 )
 		{
 		kernel->unref();
-		kernel = new sos_header_kernel((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel = new sos_header_kernel((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 		}
 	else
-		kernel->set( (char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel->set( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	}
 
 void sos_header::useti( unsigned int i )
@@ -151,7 +151,7 @@ void sos_header::stamp()
 ostream &operator<< (ostream &ios, const sos_header &h)
 	{
 	unsigned int v = h.time();
-	char *time = strdup(ctime((const time_t *) &v));
+	char *time = string_dup(ctime((const time_t *) &v));
 	int i = 0;
 	for (i = strlen(time) - 1; i > 0 && time[i] == '\n'; --i );
 	time[i+1] = '\0';

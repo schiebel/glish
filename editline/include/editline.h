@@ -2,6 +2,7 @@
 **
 **  Internal header file for editline library.
 */
+#include "gcmem/alloc.h"
 #include <stdio.h>
 #if	defined(HAVE_STDLIB_H)
 #include <stdlib.h>
@@ -25,11 +26,6 @@ typedef unsigned char	CHAR;
 #define MEM_INC		64
 #define SCREEN_INC	256
 
-#define DISPOSE(p)	free((char *)(p))
-#define NEW(T, c)	\
-	((T *)malloc((unsigned int)(sizeof (T) * (c))))
-#define RENEW(p, T, c)	\
-	(p = (T *)realloc((char *)(p), (unsigned int)(sizeof (T) * (c))))
 #define COPYFROMTO(new, p, len)	\
 	(void)memcpy((char *)(new), (char *)(p), (int)(len))
 

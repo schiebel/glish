@@ -15,7 +15,7 @@ RCSID("@(#) $Id$")
 #define PXGETID		"*proxy-id*"
 #define PXCREATE	"*proxy-create*"
 
-class pxy_store_cbinfo {
+class pxy_store_cbinfo : public gc_cleanup {
     public:
 	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), cb3(0), data(data_) { }
 	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), cb3(0), data(data_) { }
@@ -37,7 +37,7 @@ void pxy_store_cbinfo::invoke( ProxyStore *s, Value *v, GlishEvent *e )
 	if ( s->ReplyPending() ) s->Reply(true_reply);
 	}
 
-class event_queue_item {
+class event_queue_item : public gc_cleanup {
     public:
 	event_queue_item( GlishEvent *e, char *&rn ) : event(e), reply_name(rn)
 		{ rn = 0; }
@@ -114,7 +114,7 @@ GlishEvent *ProxyStore::NextEvent( EventSource* source )
 
 void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data )
 	{
-	char *s = strdup(string);
+	char *s = string_dup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
 	if ( old )
 		{
@@ -125,7 +125,7 @@ void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data )
 
 void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data )
 	{
-	char *s = strdup(string);
+	char *s = string_dup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
 	if ( old )
 		{
@@ -136,7 +136,7 @@ void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data )
 
 void ProxyStore::Register( const char *string, PxyStoreCB3 cb )
 	{
-	char *s = strdup(string);
+	char *s = string_dup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb ) );
 	if ( old )
 		{
@@ -318,7 +318,7 @@ Proxy *Proxy::Done( Value * )
 void Proxy::SendCtor( const char *name, Proxy *source )
 	{
 	recordptr rec = create_record_dict();
-	rec->Insert( strdup(PXCREATE), create_value((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
+	rec->Insert( string_dup(PXCREATE), create_value((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
 	if ( ! source )
 		{
 		if ( ReplyPending( ) )

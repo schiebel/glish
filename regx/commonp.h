@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "regx/common.h"
+#include "gcmem/alloc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,12 +16,11 @@ extern "C" {
 #define Null(type)      ((type)NULL)
 #define Nullch          ((char*)NULL)
 #define Nullsv          ((SV*)NULL)
-#define New(x,v,n,t)    (v = (t*)malloc((n)*sizeof(t)))
-#define Newc(x,v,n,t,c) (v = (c*)malloc((n)*sizeof(t)))
+#define New(x,v,n,t)    (v = alloc_##t(n))
+#define Newc(x,v,n,t,c) (v = (c*)alloc_memory((n)*sizeof(t)))
 #define memzero(d,l)    memset(d,0,l)
-#define Newz(x,v,n,t)   (v = (t*)malloc((n)*sizeof(t))), \
-                        memzero((char*)(v), (n)*sizeof(t))
-#define Renew(v,n,t) 	(v = (t*)realloc((v),((n)*sizeof(t))))
+#define Newz(x,v,n,t)   (v = (t*)alloc_zero_memory((n)*sizeof(t)))
+#define Renew(v,n,t) 	(v = (t*)realloc_memory((v),((n)*sizeof(t))))
 #define Copy(s,d,n,t)   (void)memcpy((char*)(d),(char*)(s), (n) * sizeof(t))
 #define memEQ(s1,s2,l)  (!memcmp(s1,s2,l))
 #define memNE(s1,s2,l)  (memcmp(s1,s2,l))
@@ -41,8 +41,8 @@ extern "C" {
 #define isPRINT_LC(c)   isprint((unsigned char)(c))
 #define isALNUM_LC(c)   (isalpha((unsigned char)(c)) || isdigit((unsigned char)(c)) || (char)(c) == '_')
 
-#define Safefree free
-#define safemalloc malloc
+#define Safefree free_memory
+#define safemalloc GC_malloc
 #define STRLEN int
 #define IV int
 #define UV unsigned int
@@ -99,7 +99,7 @@ typedef union {
 EXT I32 savestack_max;
 any_value *savestack;	/* to save non-local values on */
 #define INIT_SAVESTACK	{ savestack_max = 8;					\
-			  New(4077, savestack, savestack_max, any_value); }
+			  savestack = (any_value*) GC_malloc(savestack_max*sizeof(any_value)); }
 #define SAVEt_REGCONTEXT 21
 #define SSPUSHINT(i) (savestack[savestack_ix++].any_i32 = (I32)(i))
 #define SSPUSHPTR(p) (savestack[savestack_ix++].any_ptr = (void*)(p))

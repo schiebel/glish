@@ -3,6 +3,7 @@
 //
 #if ! defined(str_h_)
 #define str_h_
+#include "Glish/glish.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -18,10 +19,10 @@ char* strdup( const char* );
 //  used for maintaining the correspondence between glish objects and file
 //  names.
 //
-class StrKernel {
+class StrKernel : public gc_cleanup {
 public:
 	StrKernel( ) : str(0), cnt(1) { }
-	StrKernel( const char *s ) : str( s && s[0] ? strdup( s ) : 0 ),
+	StrKernel( const char *s ) : str( s && s[0] ? string_dup( s ) : 0 ),
 					cnt(1) { }
 	StrKernel( char *s ) : str( s ), cnt(1) { }
 	const char *Chars() const { return str ? str : ""; }
@@ -34,7 +35,7 @@ private:
 	unsigned int cnt;
 };
 
-class Str {
+class Str : public gc_cleanup {
 public:
 	Str( ) : kernel( 0 ) { }
 	Str( const char *s ) : kernel( new StrKernel(s) ) { }

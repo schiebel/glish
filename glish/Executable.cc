@@ -127,7 +127,7 @@ void ExecMinder::ForkReset( )
 
 Executable::Executable( const char* arg_executable )
 	{
-	executable = strdup( arg_executable );
+	executable = string_dup( arg_executable );
 	exec_error = has_exited = deactivated = 0;
 	}
 
@@ -172,7 +172,7 @@ char* which_executable( const char* exec_name )
 	if ( exec_name[0] == '/' || exec_name[0] == '.' )
 		{
 		char *exe = canonic_path(exec_name);
-		exe = exe ? exe : strdup(exec_name);
+		exe = exe ? exe : string_dup(exec_name);
 		if ( can_execute( exe ) ) return exe;
 		free_memory( exe );
 		return 0;
@@ -187,7 +187,7 @@ char* which_executable( const char* exec_name )
 			if ( can_execute( directory ) )
 				{
 				char *ret = canonic_path( directory );
-				return ret ? ret : strdup( directory );
+				return ret ? ret : string_dup( directory );
 				}
 			}
 		}
@@ -218,7 +218,7 @@ char* which_executable( const char* exec_name )
 			if ( can_execute( directory ) )
 				{
 				char *ret = canonic_path( directory );
-				return ret ? ret : strdup( directory );
+				return ret ? ret : string_dup( directory );
 				}
 
 			dir_beginning = dir_ending;

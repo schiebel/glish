@@ -479,37 +479,37 @@ more_xpv()
 #define del_XPV(p) del_xpv(p)
 
 #define new_XPVIV() (void*)safemalloc(sizeof(XPVIV))
-#define del_XPVIV(p) free((char*)p)
+#define del_XPVIV(p) free_memory((char*)p)
 
 #define new_XPVNV() (void*)safemalloc(sizeof(XPVNV))
-#define del_XPVNV(p) free((char*)p)
+#define del_XPVNV(p) free_memory((char*)p)
 
 #define new_XPVMG() (void*)safemalloc(sizeof(XPVMG))
-#define del_XPVMG(p) free((char*)p)
+#define del_XPVMG(p) free_memory((char*)p)
 
 #define new_XPVLV() (void*)safemalloc(sizeof(XPVLV))
-#define del_XPVLV(p) free((char*)p)
+#define del_XPVLV(p) free_memory((char*)p)
 
 #define new_XPVAV() (void*)safemalloc(sizeof(XPVAV))
-#define del_XPVAV(p) free((char*)p)
+#define del_XPVAV(p) free_memory((char*)p)
 
 #define new_XPVHV() (void*)safemalloc(sizeof(XPVHV))
-#define del_XPVHV(p) free((char*)p)
+#define del_XPVHV(p) free_memory((char*)p)
 
 #define new_XPVCV() (void*)safemalloc(sizeof(XPVCV))
-#define del_XPVCV(p) free((char*)p)
+#define del_XPVCV(p) free_memory((char*)p)
 
 #define new_XPVGV() (void*)safemalloc(sizeof(XPVGV))
-#define del_XPVGV(p) free((char*)p)
+#define del_XPVGV(p) free_memory((char*)p)
 
 #define new_XPVBM() (void*)safemalloc(sizeof(XPVBM))
-#define del_XPVBM(p) free((char*)p)
+#define del_XPVBM(p) free_memory((char*)p)
 
 #define new_XPVFM() (void*)safemalloc(sizeof(XPVFM))
-#define del_XPVFM(p) free((char*)p)
+#define del_XPVFM(p) free_memory((char*)p)
 
 #define new_XPVIO() (void*)safemalloc(sizeof(XPVIO))
-#define del_XPVIO(p) free((char*)p)
+#define del_XPVIO(p) free_memory((char*)p)
 
 bool
 sv_upgrade(sv, mt)

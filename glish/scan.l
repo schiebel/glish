@@ -783,7 +783,7 @@ char *literal( const char *new_str, int clear )
 	{
 	static unsigned int len = 512;
 	static unsigned int curlen = 0;
-	static char *string = (char*) alloc_memory( sizeof(char)*len );
+	static char *string = alloc_char( len );
 
 	if ( clear )
 		curlen = 0;
@@ -800,7 +800,7 @@ char *literal( const char *new_str, int clear )
 		{
 		while ( curlen + newlen + 1 > len )
 			len *= 2;
-		string = (char*) realloc_memory( (void*) string, len );
+		string = realloc_char( string, len );
 		}
 
 	memcpy( &string[curlen], new_str, newlen + 1 );

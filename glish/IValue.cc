@@ -115,7 +115,7 @@ void IValue::MarkFail()
 	if ( Type() == TYPE_FAIL )
 		{
 		recordptr rptr = kernel.constRecord();
-		rptr->Insert(strdup("HANDLED"), new IValue( glish_true ));
+		rptr->Insert(string_dup("HANDLED"), new IValue( glish_true ));
 		}
 	}
 
@@ -188,33 +188,33 @@ IValue::IValue( ) : Value( ) GGCTOR
 		Value *v = 0;
 		recordptr rptr = kernel.constRecord();
 		if ( (v=(*rptr)["file"]) )
-			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("file"), copy_value(v) ));
 		if ( (v=(*rptr)["line"]) )
-			Unref((IValue*)attr->Insert( strdup("line"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("line"), copy_value(v) ));
 		if ( (v=(*rptr)["message"]) )
-			Unref((IValue*)attr->Insert( strdup("message"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("message"), copy_value(v) ));
 		if ( (v=(*rptr)["stack"]) )
-			Unref((IValue*)attr->Insert( strdup("stack"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("stack"), copy_value(v) ));
 		}
 	else
 		{
 		recordptr rptr = kernel.modRecord();
 		if ( file_name && ! interactive && glish_files )
 			{
-			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
-			Unref((IValue*)attr->Insert( strdup("file" ),new IValue( (*glish_files)[file_name] )));
+			rptr->Insert( string_dup("file"), new IValue( (*glish_files)[file_name] ) );
+			Unref((IValue*)attr->Insert( string_dup("file" ),new IValue( (*glish_files)[file_name] )));
 			if ( line_num > 0 )
 				{
-				rptr->Insert( strdup("line"), new IValue( (int) line_num ));
-				Unref((IValue*)attr->Insert( strdup("line" ),new IValue( (int) line_num )));
+				rptr->Insert( string_dup("line"), new IValue( (int) line_num ));
+				Unref((IValue*)attr->Insert( string_dup("line" ),new IValue( (int) line_num )));
 				}
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack )
 			{
-			rptr->Insert( strdup("stack"), stack );
-			Unref((IValue*)attr->Insert( strdup("stack" ), copy_value(stack) ));
+			rptr->Insert( string_dup("stack"), stack );
+			Unref((IValue*)attr->Insert( string_dup("stack" ), copy_value(stack) ));
 			}
 
 		FailStmt::SetFail( this );
@@ -232,33 +232,33 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		Value *v = 0;
 		recordptr rptr = kernel.constRecord();
 		if ( (v=(*rptr)["file"]) )
-			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("file"), copy_value(v) ));
 		if ( (v=(*rptr)["line"]) )
-			Unref((IValue*)attr->Insert( strdup("line"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("line"), copy_value(v) ));
 		if ( (v=(*rptr)["message"]) )
-			Unref((IValue*)attr->Insert( strdup("message"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("message"), copy_value(v) ));
 		if ( (v=(*rptr)["stack"]) )
-			Unref((IValue*)attr->Insert( strdup("stack"), copy_value(v) ));
+			Unref((IValue*)attr->Insert( string_dup("stack"), copy_value(v) ));
 		}
 	else
 		{
 		recordptr rptr = kernel.modRecord();
 		if ( ! fle && file_name && ! interactive && glish_files )
 			{
-			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
-			Unref((IValue*)attr->Insert( strdup("file" ),new IValue( (*glish_files)[file_name] )));
+			rptr->Insert( string_dup("file"), new IValue( (*glish_files)[file_name] ) );
+			Unref((IValue*)attr->Insert( string_dup("file" ),new IValue( (*glish_files)[file_name] )));
 			if ( lne <= 0 && line_num > 0 )
 				{
-				rptr->Insert( strdup("line"), new IValue( (int) line_num ) );
-				Unref((IValue*)attr->Insert( strdup("line" ),new IValue( (int) line_num )));
+				rptr->Insert( string_dup("line"), new IValue( (int) line_num ) );
+				Unref((IValue*)attr->Insert( string_dup("line" ),new IValue( (int) line_num )));
 				}
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack  )
 			{
-			rptr->Insert( strdup("stack"), stack );
-			Unref((IValue*)attr->Insert( strdup("stack" ), copy_value(stack) ));
+			rptr->Insert( string_dup("stack"), stack );
+			Unref((IValue*)attr->Insert( string_dup("stack" ), copy_value(stack) ));
 			}
 
 		FailStmt::SetFail( this );
@@ -268,7 +268,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
 	MARKFINAL
-	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
+	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
@@ -283,7 +283,7 @@ IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FU
 IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 	{
 	MARKFINAL
-	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
+	regexptr *ary = alloc_regexptr( 1 );
 	copy_array(&value,ary,1,regexptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
 	}
@@ -298,7 +298,7 @@ IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_R
 IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
 	{
 	MARKFINAL
-	fileptr *ary = (fileptr*) alloc_memory( sizeof(fileptr) );
+	fileptr *ary = alloc_fileptr( 1 );
 	copy_array(&value,ary,1,fileptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
 	}
@@ -315,7 +315,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 	MARKFINAL
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
-		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
+		agentptr *ary = alloc_agentptr( 1 );
 		copy_array(&value,ary,1,agentptr);
 		kernel.SetArray( (voidptr*) ary, 1, TYPE_AGENT, 0 );
 		}
@@ -326,7 +326,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
 	{
 	MARKFINAL
-	value->Insert( strdup( AGENT_MEMBER_NAME ),
+	value->Insert( string_dup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
 
 	kernel.SetRecord( value );
@@ -615,7 +615,7 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 
-	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* factor = alloc_int( shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -676,10 +676,10 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 		return ArrayRef( &offset, 1 );
 		}
 
-	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
-	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
-	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
-	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* index_is_copy = alloc_int( shape_len );
+	int** index = alloc_intptr( shape_len );
+	int* cur = alloc_int( shape_len );
+	int* len = alloc_int( shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -696,7 +696,7 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
+			index[i] = alloc_int( len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -738,7 +738,7 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 	case tag:								\
 		{								\
 		type* vec = accessor;						\
-		type* ret = (type*) alloc_memory( sizeof(type)*vecsize );	\
+		type* ret = (type*) alloc_##type( vecsize );			\
 										\
 		for ( int v = 0; v < vecsize; ++v )				\
 			{							\
@@ -784,7 +784,7 @@ SUBSCRIPT_OP_ACTION(TYPE_FLOAT,float,FloatPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_DOUBLE,double,DoublePtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),length,offset,,)
-SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
+SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,string_dup,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -822,7 +822,7 @@ SUBSCRIPT_OP_ACTION(TYPE_COMPLEX, complex, theVal->ComplexPtr(),
 SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX, dcomplex, theVal->DcomplexPtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
 SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
-	theLen, off,strdup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
+	theLen, off,string_dup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
 
 				default:
 					fatal->Report(
@@ -859,7 +859,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match )
 
 	if ( global )
 		{
-		int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+		int *match_count = alloc_int( rlen );
 
 		for ( int j=0; j < rlen; ++j )
 			{
@@ -873,7 +873,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match )
 		}
 	else
 		{
-		glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+		glish_bool *match_count = alloc_glish_bool( rlen );
 
 		for ( int j=0; j < rlen; ++j )
 			{
@@ -911,7 +911,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 
 	if ( global )
 		{
-		int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+		int *match_count = alloc_int( rlen );
 		for ( int j=0; j < rlen; ++j )
 			{
 			int count = 0;
@@ -923,7 +923,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 				count += rptr[j]->matchCount();
 				if ( tlen > 1 )
 					{
-					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
+					indices = realloc_int( indices, ilen+tlen-1 );
 					move_ptrs( &indices[k+tlen], &indices[k+1], ilen-k-1 );
 					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
 					ilen += tlen-1;
@@ -938,7 +938,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 		}
 	else
 		{
-		glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+		glish_bool *match_count = alloc_glish_bool( rlen );
 		for ( int j=0; j < rlen; ++j )
 			{
 			int count = 0;
@@ -950,7 +950,7 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 				count += rptr[j]->matchCount();
 				if ( tlen > 1 )
 					{
-					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
+					indices = realloc_int( indices, ilen+tlen-1 );
 					move_ptrs( &indices[k+tlen], &indices[k+1], ilen-k-1 );
 					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
 					ilen += tlen-1;
@@ -997,8 +997,7 @@ IValue* IValue::ArrayRef( int* indices, int num_indices )
 	case tag:							\
 		{							\
 		type* source_ptr = accessor(0);				\
-		type* new_values = (type*) alloc_memory(		\
-					sizeof(type)*num_indices );	\
+		type* new_values = (type*) alloc_##type( num_indices );	\
 									\
 		for ( LOOPDECL i = 0; i < num_indices; ++i )		\
 			{						\
@@ -1017,7 +1016,7 @@ ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,indices[i]-1,,)
-ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,string_dup,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,indices[i]-1,,Ref(new_values[i]);)
 ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,indices[i]-1,,Ref(new_values[i]);)
 
@@ -1044,7 +1043,7 @@ ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
-ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) free_memory( (void*) new_values[X] );),)
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,string_dup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) free_memory( (void*) new_values[X] );),)
 ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
 ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
 
@@ -1152,7 +1151,7 @@ IValue* IValue::Pick( const IValue *index ) const
 		ishape_val->CoerceToIntArray( ishape_is_copy, ishape_len );\
 	int ilen = index->Length();					\
 	int len = Length();						\
-	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );	\
+	int* factor = alloc_int( shape_len );				\
 	int offset = 1;							\
 	int* indx = index->CoerceToIntArray( indx_is_copy, ilen );	\
 	IValue* result = 0;						\
@@ -1192,7 +1191,7 @@ IValue* IValue::Pick( const IValue *index ) const
 	case tag:							\
 		{							\
 		type* ptr = accessor();					\
-		type* ret = (type*) alloc_memory( sizeof(type)*ishape[0] );\
+		type* ret = (type*) alloc_##type( ishape[0] );		\
 		int cur = 0;						\
 		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
@@ -1226,7 +1225,7 @@ IValue* IValue::Pick( const IValue *index ) const
 		PICK_ACTION(TYPE_DOUBLE,double,DoublePtr,offset,,,)
 		PICK_ACTION(TYPE_COMPLEX,complex,ComplexPtr,offset,,,)
 		PICK_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,offset,,,)
-		PICK_ACTION(TYPE_STRING,charptr,StringPtr,offset,strdup,,
+		PICK_ACTION(TYPE_STRING,charptr,StringPtr,offset,string_dup,,
 			PICK_ACTION_CLEANUP)
 
 		case TYPE_SUBVEC_REF:
@@ -1256,7 +1255,7 @@ PICK_ACTION(TYPE_FLOAT,float,theVal->FloatPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_DOUBLE,double,theVal->DoublePtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_COMPLEX,complex,theVal->ComplexPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_DCOMPLEX,dcomplex,theVal->DcomplexPtr,off,,PICK_ACTION_XLATE(;),)
-PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,strdup,
+PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,string_dup,
 	PICK_ACTION_XLATE(PICK_ACTION_CLEANUP),PICK_ACTION_CLEANUP)
 
 				default:
@@ -1282,7 +1281,7 @@ IValue* IValue::PickRef( const IValue *index )
 
 	PICK_INITIALIZE(PICK_FAIL_IVAL, return this->operator[]( index );)
 
-	int* ret = (int*) alloc_memory( sizeof(int)*ishape[0] );
+	int* ret = alloc_int( ishape[0] );
 	int cur = 0;
 	for ( LOOPDECL i = 0; i < ishape[0]; ++i )
 		{
@@ -1334,7 +1333,7 @@ void IValue::PickAssign( const IValue* index, IValue* value )
 	case tag:							\
 		{							\
 		int cur = 0;						\
-		int* offset_vec = (int*) alloc_memory( sizeof(int)*ishape[0] );\
+		int* offset_vec = alloc_int( ishape[0] );		\
 		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
 			offset_vec[i] = 0;				\
@@ -1375,7 +1374,7 @@ PICKASSIGN_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,,)
 PICKASSIGN_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,,)
 PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,)
 PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,)
-PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,)
+PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -1414,7 +1413,7 @@ PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,
 	PICKASSIGN_ACTION_XLATE)
 PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,
 	PICKASSIGN_ACTION_XLATE)
-PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,
+PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,
 	PICKASSIGN_ACTION_XLATE)
 
 				default:
@@ -1485,7 +1484,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 
-	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* factor = alloc_int( shape_len );
 	int cur_factor = 1;
 	int offset = 0;
 	int max_len = 0;
@@ -1546,10 +1545,10 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 		return new IValue( (IValue*) this, &offset, 1, VAL_REF );
 		}
 
-	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
-	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
-	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
-	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* index_is_copy = alloc_int( shape_len );
+	int** index = alloc_intptr( shape_len );
+	int* cur = alloc_int( shape_len );
+	int* len = alloc_int( shape_len );
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
@@ -1566,7 +1565,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 		else
 			{ // Spoof entire dimension.
 			len[i] = shape[i];
-			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
+			index[i] = alloc_int( len[i] );
 			for ( int j = 0; j < len[i]; j++ )
 				index[i][j] = j+1;
 			index_is_copy[i] = 1;
@@ -1602,7 +1601,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 
 	// Loop through filling resultant vector.
 
-	int* ret = (int*) alloc_memory( sizeof(int)*vecsize );
+	int* ret = alloc_int( vecsize );
 	for ( int v = 0; v < vecsize; ++v )
 		{
 		// Calculate offset.
@@ -1665,7 +1664,7 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 		char **ary = (char**) StringPtr();
 		for ( int x=orig_len; x < min_index; ++x )
 			{
-			ary[x] = (char*) alloc_memory(1);
+			ary[x] = alloc_char(1);
 			ary[x][0] = '\0';
 			}
 		}
@@ -1708,7 +1707,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
@@ -1736,7 +1735,7 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
 					fatal->Report(
@@ -1809,7 +1808,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
-	CoerceToStringArray,strdup, free_memory( (void*) lhs[i] );)
+	CoerceToStringArray,string_dup, free_memory( (void*) lhs[i] );)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
@@ -1837,7 +1836,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
-	CoerceToStringArray, strdup, free_memory( (void*) lhs[i] );)
+	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
 
 				default:
 					fatal->Report(
@@ -2001,12 +2000,12 @@ char *IValue::GetNSDesc( int evalable ) const
 		{
 		if ( evalable )
 			{
-			char *buf = (char*) alloc_memory(strlen(AgentVal()->AgentID())+3);
+			char *buf = alloc_char(strlen(AgentVal()->AgentID())+3);
 			sprintf(buf,"'%s'",AgentVal()->AgentID());
 			return buf;
 			}
 		else
-			return strdup( AgentVal()->AgentID() );
+			return string_dup( AgentVal()->AgentID() );
 		}
 
 	if ( type == TYPE_FUNC )
@@ -2016,10 +2015,10 @@ char *IValue::GetNSDesc( int evalable ) const
 			static SOStream *srpt = new SOStream;
 			srpt->reset();
 			Describe( *srpt );
-			return strdup( srpt->str() );
+			return string_dup( srpt->str() );
 			}
 		else
-			return strdup( "<function>" );
+			return string_dup( "<function>" );
 		}
 
 	return 0;
@@ -2148,8 +2147,7 @@ IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )
 		return new IValue( #name " failed", (const char*)0, 0 );\
 		}							\
 									\
-	glish_bool* result = (glish_bool*)				\
-			alloc_memory( sizeof(glish_bool)*lhs_len );	\
+	glish_bool* result = alloc_glish_bool( lhs_len );		\
 									\
 	int rhs_incr = rhs->Length() == 1 ? 0 : 1;			\
 									\

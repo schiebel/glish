@@ -20,7 +20,7 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	scope = s;
 	size = frame_size;
 	missing = param_info ? param_info : empty_ivalue();
-	values = (IValue**) alloc_memory( sizeof(IValue*)*size );
+	values = alloc_ivalueptr( size );
 
 	for ( int i = 0; i < size; ++i )
 		values[i] = 0;

@@ -8,11 +8,8 @@
 /*
 ** use the allocation routines declared here
 */
-#include "sos/alloc.h"
-#define alloc_memory		sos_alloc_memory
-#define alloc_zero_memory	sos_alloc_zero_memory
-#define realloc_memory		sos_realloc_memory
-#define free_memory		sos_free_memory
+#include "gcmem/alloc.h"
+
 #include "sos/generic.h"
 #define glish_name2		sos_name2
 #define glish_name3		sos_name3
@@ -26,6 +23,17 @@ typedef enum { glish_false, glish_true } glish_bool;
 
 typedef const char* string;
 typedef unsigned char byte;
+
+#define alloc_glish_bool( num ) (glish_bool*) GC_malloc_atomic( sizeof(glish_bool) * num )
+#define alloc_glish_boolptr( num ) (glish_bool**) GC_malloc( sizeof(glish_bool*) * num )
+#define alloc_byte( num ) (byte*) GC_malloc_atomic( sizeof(byte) * num )
+#define alloc_byteptr( num ) (byte**) GC_malloc( sizeof(byte*) * num )
+
+#define realloc_glish_bool( ptr, num ) (glish_bool*) GC_realloc( ptr, sizeof(glish_bool) * num )
+#define realloc_glish_boolptr( ptr, num ) (glish_bool**) GC_realloc( ptr, sizeof(glish_bool*) * num )
+#define realloc_byte( ptr, num ) (byte*) GC_realloc( ptr, sizeof(byte) * num )
+#define realloc_byteptr( ptr, num ) (byte**) GC_realloc( ptr, sizeof(byte*) * num )
+
 
 #define loop_over_list(list, iterator)	\
 	for ( int iterator = 0; iterator < (list).length(); ++iterator )

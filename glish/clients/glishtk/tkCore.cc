@@ -4,10 +4,11 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#define GC XGC
 #include "tkCore.h"
 #include "tkCanvas.h"
-
 #include <X11/Xlib.h>
+#undef GC
 #include <string.h>
 #include <stdlib.h>
 #include "Glish/Value.h"
@@ -42,12 +43,12 @@ Value *glishtk_splitnl( char *str )
 		if ( *str == '\n' )
 			{
 			*str = (char) 0;
-			ary[nls++] = strdup( prev );
+			ary[nls++] = string_dup( prev );
 			prev = str+1;
 			}
 
 	if ( prev != str )
-		ary[nls++] = strdup( prev );
+		ary[nls++] = string_dup( prev );
 
 	return new Value( (const char **) ary, nls );
 	}
@@ -107,7 +108,7 @@ char **glishtk_splitsp_str_( char *sel, int &cnt )
 			ary = (char **) realloc(ary, len * sizeof(char*) );\
 			}
 		EXPAND_ACTION_B
-		ary[cnt++] = strdup(start);
+		ary[cnt++] = string_dup(start);
 		*end++ = ' ';
 		start = end;
 		}
@@ -115,7 +116,7 @@ char **glishtk_splitsp_str_( char *sel, int &cnt )
 	if ( *start )
 		{
 		EXPAND_ACTION_B
-		ary[cnt++] = strdup(start);
+		ary[cnt++] = string_dup(start);
 		}
 
 	return ary;
@@ -363,7 +364,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 			int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 					     a->IndexCheck( one ), SP, a->IndexCheck( two ), 0 );
 			if ( r == TCL_OK )
-				ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
+				ret->ary[ret->len++] = string_dup(Tcl_GetStringResult(a->Interp()));
 			EXPR_DONE(one)
 			EXPR_DONE(two)
 			}
@@ -381,7 +382,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 				int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 						     a->IndexCheck( idx[i] ), SP, a->IndexCheck( idx[i+1] ), 0 );
 				if ( r == TCL_OK )
-					ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
+					ret->ary[ret->len++] = string_dup(Tcl_GetStringResult(a->Interp()));
 				}
 			}
 		else
@@ -393,7 +394,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 				ret = new strary_ret;
 			        ret->len = 1;
 				ret->ary = (char**) alloc_memory( sizeof(char*) );
-				ret->ary[0] = strdup(Tcl_GetStringResult(a->Interp()));
+				ret->ary[0] = string_dup(Tcl_GetStringResult(a->Interp()));
 				}
 			}
 		}
@@ -495,7 +496,7 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 				++argc;
 				}
 			else
-				argv[argc++] = strdup(a->IndexCheck(s));
+				argv[argc++] = string_dup(a->IndexCheck(s));
 			free_memory(s);
 			EXPR_DONE( val )
 			}
@@ -869,8 +870,8 @@ struct glishtk_bindinfo
 	char *event_name;
 	char *tk_event_name;
 	glishtk_bindinfo( TkProxy *c, const char *event, const char *tk_event ) :
-			agent(c), event_name(strdup(event)),
-			tk_event_name(strdup(tk_event)) { }
+			agent(c), event_name(string_dup(event)),
+			tk_event_name(string_dup(tk_event)) { }
 	~glishtk_bindinfo()
 		{
 		free_memory( tk_event_name );
@@ -886,13 +887,13 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
 	dpt[0] = atoi(argv[1]);
 	dpt[1] = atoi(argv[2]);
-	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
-	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+	rec->Insert( string_dup("device"), new Value( dpt, 2 ) );
+	rec->Insert( string_dup("code"), new Value(atoi(argv[3])) );
 	if ( argv[4][0] != '?' )
 		{
 		// KeyPress/Release event
-		rec->Insert( strdup("sym"), new Value(argv[4]) );
-		rec->Insert( strdup("key"), new Value(argv[5]) );
+		rec->Insert( string_dup("sym"), new Value(argv[4]) );
+		rec->Insert( string_dup("key"), new Value(argv[5]) );
 		}
 
 	info->agent->BindEvent( info->event_name, new Value( rec ) );
@@ -1100,7 +1101,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		if ( tlead->Self() )
 			{
 			Ref( tlead );
-			tpos = strdup(tpos_);
+			tpos = string_dup(tpos_);
 			}
 		else
 			HANDLE_CTOR_ERROR("Frame creation failed, bad transient leader");
@@ -1157,10 +1158,10 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 			}
 		}
 
-	side = strdup(side_);
-	padx = strdup(padx_);
-	pady = strdup(pady_);
-	expand = strdup(expand_);
+	side = string_dup(side_);
+	padx = string_dup(padx_);
+	pady = string_dup(pady_);
+	expand = string_dup(expand_);
 
 	int c = 0;
 	argv[c++] = "frame";
@@ -1274,10 +1275,10 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 
 	if ( ! frame || ! frame->Self() ) return;
 
-	side = strdup(side_);
-	padx = strdup(padx_);
-	pady = strdup(pady_);
-	expand = strdup(expand_);
+	side = string_dup(side_);
+	padx = string_dup(padx_);
+	pady = string_dup(pady_);
+	expand = string_dup(expand_);
 
 	int c = 0;
 	argv[c++] = "frame";
@@ -1355,7 +1356,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 
 	frame = 0;
 	canvas = canvas_;
-	tag = strdup(tag_);
+	tag = string_dup(tag_);
 
 	agent_ID = "<graphic:frame>";
 
@@ -1364,10 +1365,10 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 
 	if ( ! canvas || ! canvas->Self() ) return;
 
-	side = strdup(side_);
-	padx = strdup(padx_);
-	pady = strdup(pady_);
-	expand = strdup(expand_);
+	side = string_dup(side_);
+	padx = string_dup(padx_);
+	pady = string_dup(pady_);
+	expand = string_dup(expand_);
 
 	int c = 0;
 	argv[c++] = "frame";
@@ -1514,7 +1515,7 @@ char *TkFrameP::SetIcon( Value *args )
 		if ( iconx && strlen(iconx) )
 			{
 			if ( icon ) free_memory(icon);
-			icon = strdup(iconx);
+			icon = string_dup(iconx);
 			char *icon_ = (char*) alloc_memory(strlen(icon)+3);
 			sprintf(icon_," @%s",icon);
 			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0 );
@@ -1533,7 +1534,7 @@ char *TkFrameP::SetSide( Value *args )
 		if ( side_[0] != side[0] || strcmp(side, side_) )
 			{
 			free_memory( side );
-			side = strdup( side_ );
+			side = string_dup( side_ );
 			Pack();
 			}
 		}
@@ -1549,7 +1550,7 @@ char *TkFrameP::SetPadx( Value *args )
 		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
 			{
 			free_memory( padx );
-			padx = strdup( padx_ );
+			padx = string_dup( padx_ );
 			Pack();
 			}
 		}
@@ -1560,7 +1561,7 @@ char *TkFrameP::SetPadx( Value *args )
 		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
 			{
 			free_memory( padx );
-			padx = strdup( padx_ );
+			padx = string_dup( padx_ );
 			Pack();
 			}
 		}
@@ -1577,7 +1578,7 @@ char *TkFrameP::SetPady( Value *args )
 		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
 			{
 			free_memory( pady );
-			pady = strdup( pady_ );
+			pady = string_dup( pady_ );
 			Pack();
 			}
 		}
@@ -1588,7 +1589,7 @@ char *TkFrameP::SetPady( Value *args )
 		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
 			{
 			free_memory( pady );
-			pady = strdup( pady_ );
+			pady = string_dup( pady_ );
 			Pack();
 			}
 		}
@@ -1610,7 +1611,7 @@ char *TkFrameP::SetExpand( Value *args )
 		if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
 			{
 			free_memory( expand );
-			expand = strdup( expand_ );
+			expand = string_dup( expand_ );
 			Pack();
 			}
 		}
@@ -1803,10 +1804,10 @@ void TkFrameP::ResizeEvent( )
 		{
 		recordptr rec = create_record_dict();
 
-		rec->Insert( strdup("old"), new Value( size, 2, COPY_ARRAY ) );
+		rec->Insert( string_dup("old"), new Value( size, 2, COPY_ARRAY ) );
 		size[0] = Tk_Width(self);
 		size[1] = Tk_Height(self);
-		rec->Insert( strdup("new"), new Value( size, 2, COPY_ARRAY ) );
+		rec->Insert( string_dup("new"), new Value( size, 2, COPY_ARRAY ) );
 
 		PostTkEvent( "resize", new Value( rec ) );
 		}
@@ -2240,7 +2241,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 #endif
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -2431,7 +2432,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 #endif
 
 	tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
-	menu_index = strdup( Tcl_GetStringResult(tcl) );
+	menu_index = string_dup( Tcl_GetStringResult(tcl) );
 
 	free_memory(background_);
 	free_memory(foreground_);
@@ -2456,7 +2457,7 @@ void TkButton::update_menu_index( int i )
 	char buf[64];
 	sprintf(buf,"%d",i);
 	free_memory((char*)menu_index);
-	menu_index = strdup(buf);
+	menu_index = string_dup(buf);
 	}
 
 void TkButton::Remove( TkButton *item )
@@ -2485,7 +2486,7 @@ void TkButton::ButtonPressed( )
 		Value *v = value ? copy_value(value) : new Value( glish_true );
 
 		attributeptr attr = v->ModAttributePtr();
-		attr->Insert( strdup("state"), type != CHECK || state ? new Value( glish_true ) :
+		attr->Insert( string_dup("state"), type != CHECK || state ? new Value( glish_true ) :
 							    new Value( glish_false ) ) ;
 
 		PostTkEvent( "press", v );
@@ -2822,10 +2823,10 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScale::TkScale")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 	else if ( fill_ && ! fill_[0] )
-		fill = (orient && ! strcmp(orient,"vertical")) ? strdup("y") :
-				(orient && ! strcmp(orient,"horizontal")) ? strdup("x") : 0;
+		fill = (orient && ! strcmp(orient,"vertical")) ? string_dup("y") :
+				(orient && ! strcmp(orient,"horizontal")) ? string_dup("x") : 0;
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3013,7 +3014,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3302,7 +3303,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkLabel::TkLabel")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3449,7 +3450,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <Return> ", glishtk_make_callback( tcl, entry_returncb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3589,7 +3590,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkMessage::TkMessage")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3742,7 +3743,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <ButtonRelease-1> ", glishtk_make_callback( tcl, listbox_button1cb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = strdup(fill_);
+		fill = string_dup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();

@@ -11,7 +11,7 @@ class OStream;
 
 extern int glish_dummy_int;
 
-class regxsubst {
+class regxsubst : public gc_cleanup {
     public:
 	regxsubst() : subst(0), reg(0),	startp(0), endp(0),
 			pcnt(0), psze(0), refs(0), rcnt(0),
@@ -21,7 +21,7 @@ class regxsubst {
 			pcnt(0), psze(0), refs(0), rcnt(0),
 			rsze(0), splits(0), scnt(0), ssze(0),
 			err_(0), split_count(0) { }
-	regxsubst( const regxsubst &o ) : subst( o.subst ? strdup(o.subst) : 0 ),
+	regxsubst( const regxsubst &o ) : subst( o.subst ? string_dup(o.subst) : 0 ),
 			reg(0), startp(0), endp(0), pcnt(0), psze(0),
 			refs(0), rcnt(0), rsze(0), splits(0), scnt(0),
 			ssze(0), err_(0), split_count(0) { } 
@@ -33,7 +33,7 @@ class regxsubst {
 	const char *err( ) const { return err_; }
 	const char *str( ) const { return subst; };
 	void setStr( char *s );
-	void setStr( const char *s ) { setStr( (char*)( s ? strdup(s) : 0 ) ); }
+	void setStr( const char *s ) { setStr( (char*)( s ? string_dup(s) : 0 ) ); }
 
 	int splitCount( ) const { return split_count; }
 	void splitReset( ) { scnt = 0; }
@@ -135,7 +135,7 @@ typedef PList(match_node) match_node_list;
 // Class which manages the match information across
 // multiple Regex applications.
 //
-class RegexMatch {
+class RegexMatch : public gc_cleanup {
     public:
 	RegexMatch( ) : last(0) { }
 	~RegexMatch( );

@@ -195,7 +195,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 
 VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
 	{
-	id = strdup(var_id);
+	id = string_dup(var_id);
 	sequencer = var_sequencer;
 	scope = ANY_SCOPE;
 	scope_offset = 0;
@@ -327,12 +327,12 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	switch ( m )
 		{
 		case SCOPE_LHS:
-			ret = sequencer->LookupVar( strdup(id), LOCAL_SCOPE,
+			ret = sequencer->LookupVar( string_dup(id), LOCAL_SCOPE,
 							this, created );
 			break;
 		case SCOPE_UNKNOWN:
 		case SCOPE_RHS:
-			ret = sequencer->LookupVar( strdup(id), ANY_SCOPE,
+			ret = sequencer->LookupVar( string_dup(id), ANY_SCOPE,
 							this, created );
 			break;
 		default:
@@ -890,8 +890,7 @@ IValue* ConstructExpr::BuildArray()
 			++num_values;
 		}
 
-	const_value_ptr* values = (const_value_ptr*) 
-				alloc_memory( sizeof(const_value_ptr)*num_values );
+	const_value_ptr* values = (const_value_ptr*) alloc_ivalueptr( num_values );
 
 	int total_length = 0;
 	for ( LOOPDECL i = 0; i < args->length(); ++i )
@@ -1021,8 +1020,7 @@ IValue* ConstructExpr::ConstructArray( const IValue* values[],
 #define BUILD_WITH_COERCE_TYPE(tag, type, coercer)			\
 	case tag:							\
 		{							\
-		type* array = (type*) alloc_memory(			\
-					sizeof(type)*total_length );	\
+		type* array = (type*) alloc_##type( total_length );	\
 		type* array_ptr = array;				\
 									\
 		for ( i = 0; i < num_values; ++i )			\
@@ -1042,8 +1040,7 @@ IValue* ConstructExpr::ConstructArray( const IValue* values[],
 #define BUILD_WITH_NON_COERCE_TYPE(tag, type, accessor, storage, do_copy ) \
 	case tag:							\
 		{							\
-		type* array = (type*) alloc_memory(			\
-					sizeof(type)*total_length );	\
+		type* array = (type*) alloc_##type( total_length );	\
 		type* array_ptr = array;				\
 									\
 		for ( i = 0; i < num_values; ++i )			\
@@ -1109,7 +1106,7 @@ IValue* ConstructExpr::BuildRecord()
 		IValue *arg = p->Arg()->CopyEval();
 		if ( p->ParamType() == VAL_CONST )
 			arg->MakeConst();
-		rec->Insert( strdup( p->Name() ), arg );
+		rec->Insert( string_dup( p->Name() ), arg );
 		}
 
 	return new IValue( rec );
@@ -1705,7 +1702,7 @@ IValue* AttributeRefExpr::Eval( eval_type etype )
 			const IValue* member;
 			const char* key;
 			while ( (member = (const IValue*)(aptr->NextEntry( key, c))) )
-				new_record->Insert( strdup( key ),
+				new_record->Insert( string_dup( key ),
 						   copy_value( member ) );
 			}
 
@@ -1944,7 +1941,7 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 
 		int direction = (start > stop) ? -1 : 1;
 		int num_values = (stop - start) * direction + 1;
-		int* range = (int*) alloc_memory( sizeof(int)*num_values );
+		int* range = alloc_int( num_values );
 
 		int i;
 		int index = 0;
@@ -2048,14 +2045,14 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			if ( global )
 				{  // if we're deailing with a //g, we return the
 				   // number of applications
-				int *ret = (int*) alloc_memory( rlen * sizeof(int) );
+				int *ret = alloc_int( rlen );
 				for ( int i=0; i < rlen; ++i )
 					ret[i] = regs[i]->Eval( (char**&) strs, slen, &match );
 				result = new IValue( ret, rlen );
 				}
 			else
 				{
-				glish_bool *ret = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+				glish_bool *ret = alloc_glish_bool( rlen );
 				for ( int i=0; i < rlen; ++i )
 					ret[i] = regs[i]->Eval( (char**&) strs, slen, &match ) ? glish_true : glish_false;
 				result = new IValue( ret, rlen );
@@ -2065,7 +2062,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			{
 			if ( global )
 				{
-				int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
+				int *ret = alloc_int( slen * rlen );
 				for ( int row=0; row < slen; ++row )
 					for ( int col=0; col < rlen; ++col )
 						ret[row + col % rlen * slen] =
@@ -2073,7 +2070,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				result = new IValue( ret, slen * rlen );
 				if ( rlen > 1 )
 					{
-					int *shape = (int*) alloc_memory( 2 * sizeof(int) );
+					int *shape = alloc_int( 2 );
 					shape[0] = slen;
 					shape[1] = rlen;
 					result->AssignAttribute("shape", new IValue(shape,2));
@@ -2081,7 +2078,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				}
 			else
 				{
-				glish_bool *ret = (glish_bool*) alloc_memory( slen * rlen * sizeof(glish_bool) );
+				glish_bool *ret = alloc_glish_bool( slen * rlen );
 				for ( int row=0; row < slen; ++row )
 					for ( int col=0; col < rlen; ++col )
 						ret[row + col % rlen * slen] =
@@ -2090,7 +2087,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				result = new IValue( ret, slen * rlen );
 				if ( rlen > 1 )
 					{
-					int *shape = (int*) alloc_memory( 2 * sizeof(int) );
+					int *shape = alloc_int( 2 );
 					shape[0] = slen;
 					shape[1] = rlen;
 					result->AssignAttribute("shape", new IValue(shape,2));
@@ -2186,7 +2183,7 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	IValue* result = 0;
 
-	sequencer->PushFuncName( strdup(op->Description()) );
+	sequencer->PushFuncName( string_dup(op->Description()) );
 
 	if ( ! func_val || ! (result = func_val->Call(args,etype)) )
 		{

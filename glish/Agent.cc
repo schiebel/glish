@@ -104,7 +104,7 @@ Agent::~Agent()
 			}
 
 		delete string_copies;
-		}	
+		}
 	}
 
 int Agent::BundleEvents( int ) { return 0; }
@@ -208,9 +208,9 @@ IValue* Agent::AssociatedStatements()
 	while ( (interest = interested_parties.NextEntry( key, c )) )
 		num_stmts += interest->length();
 
-	char** event = (char**) alloc_memory( sizeof(char*)*num_stmts );
-	int* stmt = (int*) alloc_memory( sizeof(int)*num_stmts );
-	glish_bool* active = (glish_bool*) alloc_memory( sizeof(glish_bool)*num_stmts );
+	char** event = alloc_charptr( num_stmts );
+	int* stmt = alloc_int( num_stmts );
+	glish_bool* active = alloc_glish_bool( num_stmts );
 	int count = 0;
 
 	c = interested_parties.InitForIteration();
@@ -218,7 +218,7 @@ IValue* Agent::AssociatedStatements()
 		{
 		loop_over_list( *interest, j )
 			{
-			event[count] = strdup( key );
+			event[count] = string_dup( key );
 			stmt[count] = (*interest)[j]->stmt()->Index();
 			active[count] = (*interest)[j]->stmt()->GetActivity() ?
 							glish_true : glish_false;
@@ -404,7 +404,7 @@ int Agent::IsPseudo( ) const
 	return 0;
 	}
 
-class uagent_await_info {
+class uagent_await_info : public gc_cleanup {
     public:
 	uagent_await_info( const char *n, UserAgent *a ) : name_(n), agent_(a), result_(0) { }
 	void set_result( IValue *v ) { result_ = copy_value(v); }

@@ -17,7 +17,7 @@ strdup(p)
 {
     char	*new;
 
-    if ((new = NEW(char, strlen(p) + 1)) != NULL)
+    if ((new = alloc_char(strlen(p) + 1)) != NULL)
 	(void)strcpy(new, p);
     return new;
 }
@@ -71,18 +71,18 @@ FindMatches(dir, file, avp)
 	    continue;
 
 	if ((ac % MEM_INC) == 0) {
-	    if ((new = NEW(char*, ac + MEM_INC)) == NULL)
+	    if ((new = alloc_charptr(ac + MEM_INC)) == NULL)
 		break;
 	    if (ac) {
 		COPYFROMTO(new, av, ac * sizeof (char **));
-		DISPOSE(av);
+		free_memory(av);
 	    }
 	    *avp = av = new;
 	}
 
-	if ((av[ac] = strdup(p)) == NULL) {
+	if ((av[ac] = string_dup(p)) == NULL) {
 	    if (ac == 0)
-		DISPOSE(av);
+		free_memory(av);
 	    break;
 	}
 	ac++;
@@ -109,19 +109,19 @@ SplitPath(path, dirpart, filepart)
     char	*fpart;
 
     if ((fpart = strrchr(path, '/')) == NULL) {
-	if ((dpart = strdup(DOT)) == NULL)
+	if ((dpart = string_dup(DOT)) == NULL)
 	    return -1;
-	if ((fpart = strdup(path)) == NULL) {
-	    DISPOSE(dpart);
+	if ((fpart = string_dup(path)) == NULL) {
+	    free_memory(dpart);
 	    return -1;
 	}
     }
     else {
-	if ((dpart = strdup(path)) == NULL)
+	if ((dpart = string_dup(path)) == NULL)
 	    return -1;
 	dpart[fpart - path + 1] = '\0';
-	if ((fpart = strdup(++fpart)) == NULL) {
-	    DISPOSE(dpart);
+	if ((fpart = string_dup(++fpart)) == NULL) {
+	    free_memory(dpart);
 	    return -1;
 	}
     }
@@ -153,8 +153,8 @@ rl_complete(pathname, unique)
     if (SplitPath(pathname, &dir, &file) < 0)
 	return NULL;
     if ((ac = FindMatches(dir, file, &av)) == 0) {
-	DISPOSE(dir);
-	DISPOSE(file);
+	free_memory(dir);
+	free_memory(file);
 	return NULL;
     }
 
@@ -164,14 +164,14 @@ rl_complete(pathname, unique)
 	/* Exactly one match -- finish it off. */
 	*unique = 1;
 	j = strlen(av[0]) - len + 2;
-	if ((p = NEW(char, j + 1)) != NULL) {
+	if ((p = alloc_char(j + 1)) != NULL) {
 	    COPYFROMTO(p, av[0] + len, j);
-	    if ((new = NEW(char, strlen(dir) + strlen(av[0]) + 2)) != NULL) {
+	    if ((new = alloc_char(strlen(dir) + strlen(av[0]) + 2)) != NULL) {
 		(void)strcpy(new, dir);
 		(void)strcat(new, "/");
 		(void)strcat(new, av[0]);
 		rl_add_slash(new, p);
-		DISPOSE(new);
+		free_memory(new);
 	    }
 	}
     }
@@ -186,7 +186,7 @@ rl_complete(pathname, unique)
   breakout:
 	    if (i > len) {
 		j = i - len + 1;
-		if ((p = NEW(char, j)) != NULL) {
+		if ((p = alloc_char(j)) != NULL) {
 		    COPYFROMTO(p, av[0] + len, j);
 		    p[j - 1] = '\0';
 		}
@@ -195,11 +195,11 @@ rl_complete(pathname, unique)
     }
 
     /* Clean up and return. */
-    DISPOSE(dir);
-    DISPOSE(file);
+    free_memory(dir);
+    free_memory(file);
     for (i = 0; i < ac; i++)
-	DISPOSE(av[i]);
-    DISPOSE(av);
+	free_memory(av[i]);
+    free_memory(av);
     return p;
 }
 
@@ -218,7 +218,7 @@ rl_list_possib(pathname, avp)
     if (SplitPath(pathname, &dir, &file) < 0)
 	return 0;
     ac = FindMatches(dir, file, avp);
-    DISPOSE(dir);
-    DISPOSE(file);
+    free_memory(dir);
+    free_memory(file);
     return ac;
 }

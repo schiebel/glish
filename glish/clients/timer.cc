@@ -42,7 +42,7 @@ inline int streq( const char* a, const char* b )
 //              "list" are dynamically allocated and are to
 //              be freed by this class.
 //
-class TimeDesc
+class TimeDesc : public gc_cleanup
     {
     public:
 	TimeDesc( double delay_v ) :
@@ -82,7 +82,7 @@ typedef PList(TimeDesc) time_list;
 //  TimeList just holds all of the time intervals this client
 //  is handling
 //
-class TimeList
+class TimeList : public gc_cleanup
     {
     public:
 	TimeList() { }
@@ -117,13 +117,13 @@ void TimeList::add_time( double val, const char *id )
 	if ( count >= times.length() )
 		{
 		times.append( new TimeDesc( val ) );
-		times[times.length()-1]->names().append(strdup(id));
+		times[times.length()-1]->names().append(string_dup(id));
 		}
 	else
 		{
 		if ( times[count]->delay() > val )
 			times.insert_nth( count, new TimeDesc( val ) );
-		times[count]->names().append(strdup(id));
+		times[count]->names().append(string_dup(id));
 		}
 	}
 
@@ -164,7 +164,7 @@ TimeList::~TimeList( )
 // This is essentially one element of the "display list" for the
 // timer events.
 //
-class Interval
+class Interval : public gc_cleanup
     {
     public:
 
@@ -216,7 +216,7 @@ enum elapse_options { INIT, USE };
 //
 // This is the "display list" for the timer client
 //
-class IntervalList
+class IntervalList : public gc_cleanup
     {
     public:
 	IntervalList( TimeList &tl_ ) : cur(0), start_interval(0),
@@ -494,7 +494,7 @@ int main( int argc, char** argv )
 						{
 						sprintf( tag, "tmr%x", ++tag_cnt );
 						tlist.add_time( times[i], tag );
-						tags[i] = strdup(tag);
+						tags[i] = string_dup(tag);
 						++len;
 						}
 

@@ -107,7 +107,7 @@ void EventDesignator::Register( Notifiee* notifiee )
 			a->RegisterInterest( notifiee );
 		else
 			loop_over_list( nl, i )
-				a->RegisterInterest( notifiee, strdup(nl[i]), 1 );
+				a->RegisterInterest( notifiee, string_dup(nl[i]), 1 );
 		}
 
 	else
@@ -157,7 +157,7 @@ name_list &EventDesignator::EventNames( int force_eval )
 
 	if ( event_name_str )
 		{
-		names->append( strdup( event_name_str ) );
+		names->append( string_dup( event_name_str ) );
 		return *names;
 		}
 
@@ -171,7 +171,7 @@ name_list &EventDesignator::EventNames( int force_eval )
 		int n = index_val->Length();
 		const char** s = index_val->StringPtr(0);
 		for ( int i = 0; i < n; ++i )
-			names->append( strdup( s[i] ) );
+			names->append( string_dup( s[i] ) );
 		}
 
 	else

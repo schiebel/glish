@@ -135,7 +135,7 @@ typedef PList(stack_type) stack_list;
 extern void system_change_function(IValue *, IValue *);
 class Sequencer;
 
-class SystemInfo {
+class SystemInfo : public gc_cleanup {
 public:
 	inline unsigned int TRACE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -144,6 +144,7 @@ public:
 	inline unsigned int ILOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int OLOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int PAGER( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
+	inline unsigned int STACKLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
 
 	int Trace() { if ( TRACE(update) ) update_output( ); return trace; }
 	int ILog() { if ( ILOGX(update) ) update_output( ); return ilog || log; }
@@ -162,11 +163,12 @@ public:
 	int IncludeLen() { if ( PATH(update) ) update_path( ); return includelen; }
 	const IValue *BinPath() { if ( PATH(update) ) update_path( ); return binpath; }
 	const IValue *LdPath() { if ( PATH(update) ) update_path( ); return ldpath; }
+	int StackLimit() { if ( STACKLIMIT(update) ) update_stacklimit( ); return stacklimit; }
 	SystemInfo( Sequencer *s ) : val(0), log(0), log_val(0), log_file(0), log_name(0),
 			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
 			olog(0), olog_val(0), olog_file(0), olog_name(0),
 			pager_limit(0), pager_exec(0), pager_exec_len(0),
-			printlimit(0), printprecision(-1), include(0), includelen(0),
+			stacklimit(0), printlimit(0), printprecision(-1), include(0), includelen(0),
 			binpath(0), ldpath(0), keydir(0), update( ~((unsigned int) 0) ), sequencer(s) { }
 	void SetVal(IValue *v);
 	~SystemInfo();
@@ -176,6 +178,7 @@ private:
 	void DoLog( int input, const Value * );
 	const char *prefix_buf(const char *prefix, const char *buf);
 	void update_output( );
+	void update_stacklimit( );
 	void update_print( );
 	void update_path( );
 	IValue *val;
@@ -198,6 +201,8 @@ private:
 	charptr *pager_exec;
 	int pager_exec_len;
 
+	int stacklimit;
+
 	int printlimit;
 	int printprecision;
 
@@ -212,7 +217,7 @@ private:
 
 };
 
-class EnvHolder {
+class EnvHolder : public gc_cleanup {
     public:
 	void put( const char *var, char *string );
 	IterCookie* InitForIteration() const
@@ -223,7 +228,7 @@ class EnvHolder {
 	PDict(char) strings;
 };
 
-class await_type {
+class await_type : public gc_cleanup {
     public:
 	await_type() : stmt_(0), except_(0), only_(0), dict_(0),
 		       agent_(0), name_(0) { }
@@ -253,7 +258,7 @@ class await_type {
 	const char *name_;
 };
 
-class Sequencer {
+class Sequencer : public gc_cleanup {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -318,6 +323,8 @@ public:
 	void DeleteVal( const char* id );
 
 	void DescribeFrames( OStream& s ) const;
+	int FrameLen() const { return frames().length(); }
+	int StackLen() const { return stack.length(); }
 	void PushFrame( Frame* new_frame );
 	void PushFrames( stack_type *new_stack );
 	// Note that only the last frame popped is returned (are the others leaked?).

@@ -318,6 +318,11 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 	if ( ! valid )
 		return error_ivalue( "function not valid" );
 
+	int stack_limit = sequencer->System().StackLimit();
+	if ( stack_limit >= 0 && (sequencer->StackLen() + 1 > stack_limit ||
+	     sequencer->FrameLen() + 1 > stack_limit) )
+		return error_ivalue( "infinite recursion detected" );
+
 	int arg_cnt = 0;
 	int do_call = 1;
 	Parameter* f;
@@ -341,8 +346,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 
 	int missing_size = num_supplied_args + formals->length();
 	int missing_len = 0;
-	glish_bool* missing =
-		(glish_bool*) alloc_memory( missing_size * sizeof(glish_bool) );
+	glish_bool* missing = alloc_glish_bool( missing_size );
 	if ( ! missing )
 		fatal->Report( "out of memory in UserFunc::Call" );
 
@@ -354,8 +358,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 	if ( missing_len >= missing_size )				\
 		{							\
 		missing_size *= 2;					\
-		missing = (glish_bool*) realloc_memory( (void*) missing,\
-				missing_size * sizeof(glish_bool) );	\
+		missing = realloc_glish_bool( missing, missing_size );	\
 		if ( ! missing )					\
 			fatal->Report( "out of memory in UserFunc::Call" );\
 		}							\

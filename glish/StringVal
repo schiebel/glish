@@ -23,7 +23,7 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 		int buf_ptr_offset = buf_ptr - buf;
 
 		buf_size *= 2;
-		buf = (char*) realloc_memory( (void*) buf, buf_size );
+		buf = realloc_char( buf, buf_size );
 		if ( ! buf )
 			fatal->Report( "out of memory in append_buf()" );
 
@@ -87,7 +87,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 					found = 1;
 			if ( ! found )
 				{
-				msg[cur] = (char*) alloc_memory( strlen(strs[x]) + 30 );
+				msg[cur] = alloc_char( strlen(strs[x]) + 30 );
 				sprintf( msg[cur], "\tFile:\t%s, Line %d", strs[x], ln[x] );
 				cnt += strlen(msg[cur++]);
 				++C;
@@ -101,7 +101,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		{
 		charptr *stack = value1->StringPtr(0);
 		int l = strlen(stack[--len]);
-		msg[cur] = (char*) alloc_memory( sizeof(char)*(l+20) );
+		msg[cur] = alloc_char( l+20 );
 		strcpy(msg[cur],"\tStack:\t");
 		strcat(msg[cur],stack[len]);
 		strcat(msg[cur++],"()");
@@ -111,7 +111,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 			{
 			++lines;
 			l = strlen(stack[--len]);
-			msg[x] = (char*) alloc_memory( sizeof(char)*(l+6) );
+			msg[x] = alloc_char( l+6 );
 			strcpy(msg[x],"\t\t");
 			strcat(msg[x],stack[len]);
 			strcat(msg[x],"()");
@@ -127,7 +127,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 	if ( prefix ) cnt += lines * strlen(prefix);
 
 	// Add some for line feeds etc...
-	char *result = (char*) alloc_memory( sizeof(char)*(cnt + 34) );
+	char *result = alloc_char( cnt + 34 );
 
 	result[0] = '\0';
 	if ( prefix ) strcat( result, prefix );
@@ -207,7 +207,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	else
 		buf_size += length * 8;
 
-	char* buf = (char*) alloc_memory( sizeof(char)*buf_size );
+	char* buf = alloc_char( buf_size );
 	if ( ! buf )
 		fatal->Report( "out of memory in Value::StringVal()" );
 
@@ -457,19 +457,18 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	// spacing for the columns.  Note that these and the arrays
 	// created just below are static, so we don't free them on exit.
 	static int column_width_len = 64;
-	static int* column_width = (int*) alloc_memory( sizeof(int)*column_width_len );
+	static int* column_width = alloc_int( column_width_len );
 
 	// Arrays for iterating through the matrix.
 	static int indices_len = 32;
-	static int* indices = (int*) alloc_memory( sizeof(int)*indices_len );
-	static int* factor = (int*) alloc_memory( sizeof(int)*indices_len );
+	static int* indices = alloc_int( indices_len );
+	static int* factor = alloc_int( indices_len );
 
 	// Resize arrays as necessary.
 	while ( shape[c] > column_width_len )
 		{
 		column_width_len *= 2;
-		column_width = (int*) realloc_memory( (void*) column_width,
-					column_width_len * sizeof(int) );
+		column_width = realloc_int( column_width, column_width_len );
 		if ( ! column_width )
 			fatal->Report( "out of memory in Value::StringVal()" );
 		}
@@ -477,10 +476,8 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	while ( shape_len > indices_len )
 		{
 		indices_len *= 2;
-		indices = (int*) realloc_memory( (void*) indices,
-						indices_len * sizeof(int) );
-		factor = (int*) realloc_memory( (void*) factor,
-					indices_len * sizeof(int) );
+		indices = realloc_int( indices, indices_len );
+		factor = realloc_int( factor, indices_len );
 		if ( ! indices || ! factor )
 			fatal->Report( "out of memory in Value::StringVal()" );
 		}

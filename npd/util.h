@@ -3,6 +3,7 @@
 */
 
 #include <stdio.h>
+#include "gcmem/alloc.h"
 
 /* Amount to add to size computations to be sure to avoid fencepost errors. */
 #define SLOP 10
@@ -124,12 +125,6 @@ extern const char *npd_log_file();
  * can't portably declare sys_errlist! :-()
  */
 extern const char *sys_error_desc();
-
-/* Versions of malloc() and free() so we can isolate the proper definition
- * of a generic pointer type.
- */
-extern void *my_alloc( int size );
-extern void my_free( void *ptr );
 
 #if ! defined(RCSID)
 #if ! defined(NO_RCSID)

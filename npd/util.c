@@ -54,7 +54,7 @@ static const char *prog_name = "noname";
 /* strdup() functionality */
 char *copy_string( const char *str )
 	{
-	char *result = (char *) my_alloc( strlen( str ) + 1 );
+	char *result = alloc_char( strlen( str ) + 1 );
 	strcpy( result, str );
 	return result;
 	}
@@ -65,7 +65,7 @@ char *copy_string( const char *str )
  */
 static char *encode_binary_to_string( const unsigned char *b, int len )
 	{
-	char *s = (char *) my_alloc( len * 2 + SLOP );
+	char *s = alloc_char( len * 2 + SLOP );
 	int i;
 
 	if ( ! s )
@@ -90,7 +90,7 @@ static char *encode_binary_to_string( const unsigned char *b, int len )
 static unsigned char *decode_string_to_binary( const char *str, int *len_p )
 	{
 	int n = strlen( str );
-	unsigned char *b = (unsigned char *) my_alloc( n / 2 + SLOP );
+	unsigned char *b = (unsigned char *) alloc_char( n / 2 + SLOP );
 
 	if ( ! b )
 		{
@@ -106,7 +106,7 @@ static unsigned char *decode_string_to_binary( const char *str, int *len_p )
 
 		if ( sscanf( str, "%2x", &next_byte ) != 1 )
 			{
-			my_free( (void *) b );
+			free_memory( (void *) b );
 			strcpy( errmsg, "bad format in decode_string_to_binary" );
 			return 0;
 			}
@@ -213,7 +213,7 @@ long random_long( )
  */
 unsigned char *random_bytes( int len )
 	{
-	unsigned char *b = (unsigned char *) my_alloc( len );
+	unsigned char *b = (unsigned char *) alloc_char( len );
 	int n = 0;
 
 	if ( ! b )
@@ -309,7 +309,7 @@ void write_encoded_binary( FILE *f, unsigned char *b, int len )
 
 	putc( '\n', f );
 
-	my_free( (void *) s );
+	free_memory( (void *) s );
 	}
 
 /* Returns a pointer to a (static region) string giving the next 
@@ -511,7 +511,7 @@ const char *get_our_username()
 
 		if ( pw && pw->pw_name )
 			{
-			name = (char*) my_alloc(strlen(pw->pw_name) + 1);
+			name = alloc_char(strlen(pw->pw_name) + 1);
 			strcpy(name, pw->pw_name);
 			}
 		else
@@ -847,12 +847,3 @@ void init_log( const char *program_name )
 #endif
 	}
 
-void *my_alloc( int size )
-	{
-	return (void *) malloc( size );
-	}
-
-void my_free( void *ptr )
-	{
-	free( ptr );
-	}

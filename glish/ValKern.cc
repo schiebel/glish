@@ -21,23 +21,23 @@ extern int glish_collecting_garbage;
 #endif
 
 glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
-	{ { 0, 0, 0, 0 },  					/* TYPE_ERROR */
-	  { 0, 0, 0, 0 },  					/* TYPE_REF */
-	  { 0, 0, 0, 0 },  					/* TYPE_SUBVEC_REF */
-	  { sizeof(glish_bool), 0, 0, 0 },			/* TYPE_BOOL */
-	  { sizeof(byte), 0, 0, 0 },				/* TYPE_BYTE */
-	  { sizeof(short), 0, 0, 0 },				/* TYPE_SHORT */
-	  { sizeof(int), 0, 0, 0 },				/* TYPE_INT */
-	  { sizeof(float), 0, 0, 0 },				/* TYPE_FLOAT */
-	  { sizeof(double), 0, 0, 0 },				/* TYPE_DOUBLE */
-	  { sizeof(charptr), copy_strings, delete_strings, 0 },	/* TYPE_STRING */
-	  { sizeof(void*), 0, 0, 0 },				/* TYPE_AGENT */
-	  { sizeof(void*), 0, 0, 0 },				/* TYPE_FUNC */
-	  { 0, 0, 0, 0 },					/* TYPE_RECORD */
-	  { sizeof(complex), 0, 0, 0 },				/* TYPE_COMPLEX */
-	  { sizeof(dcomplex), 0, 0, 0 },			/* TYPE_DCOMPLEX */
-	  { 0, 0, 0, 0 },					/* TYPE_FAIL */
-	  { sizeof(void*), 0, 0, 0 }				/* TYPE_REGEX */
+	{ { 0, 0, 0, 0, 0, 0 },						/* TYPE_ERROR */
+	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_REF */
+	  { 0, 0, 0, 0, 0, 0 },  					/* TYPE_SUBVEC_REF */
+	  { sizeof(glish_bool), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_BOOL */
+	  { sizeof(byte), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_BYTE */
+	  { sizeof(short), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_SHORT */
+	  { sizeof(int), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_INT */
+	  { sizeof(float), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_FLOAT */
+	  { sizeof(double), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_DOUBLE */
+	  { sizeof(charptr), copy_strings, 0, 0, GC_malloc, 0 },	/* TYPE_STRING */
+	  { sizeof(void*), 0, 0, 0, 0, 0 },				/* TYPE_AGENT */
+	  { sizeof(void*), 0, 0, 0, 0, 0 },				/* TYPE_FUNC */
+	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_RECORD */
+	  { sizeof(complex), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_COMPLEX */
+	  { sizeof(dcomplex), 0, 0, 0, GC_malloc_atomic, 0 },		/* TYPE_DCOMPLEX */
+	  { 0, 0, 0, 0, 0, 0 },						/* TYPE_FAIL */
+	  { sizeof(void*), 0, 0, 0, 0, 0 }				/* TYPE_REGEX */
 	};
 
 void register_type_funcs( glish_type t, KernelCopyFunc c,
@@ -192,13 +192,19 @@ void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 		{
 		if ( values == 0 || alloc_bytes == 0 )
 			{
-			values = (void *) alloc_memory( alen*type_bytes() );
 			alloc_bytes = alen*type_bytes();
+			if ( allocate() )
+				values = (*allocate())( alloc_bytes );
+			else
+				values = alloc_memory( alloc_bytes );
 			}
 		else if ( len*type_bytes() > alloc_bytes )
 		  	{
 			alloc_bytes = len*type_bytes();
-			values = (void *) realloc_memory( values, alloc_bytes );
+			if ( reallocate() )
+				values = (*reallocate())( values, alloc_bytes );
+			else
+				values = realloc_memory( values, alloc_bytes );
 			}
 
 		if ( do_zero || ! len )
@@ -640,14 +646,14 @@ recordptr copy_record_dict( recordptr rptr )
 				new_member->MakeConst();
 			if ( member->IsModConst() )
 				new_member->MakeModConst();
-			new_record->Insert( strdup(key), new_member );
+			new_record->Insert( string_dup(key), new_member );
 			}
 		}
 	else
 		{
 		IterCookie *c = rptr->InitForIteration();
 		while ( (member = rptr->NextEntry( key, c )) ) 
-			new_record->Insert( strdup( key ), copy_value( member ) );
+			new_record->Insert( string_dup( key ), copy_value( member ) );
 		}
 
 	return new_record;
@@ -658,7 +664,7 @@ void copy_strings(void *tgt, void *src, unsigned int len)
 	charptr *from = (charptr*)src;
 	charptr *to = (charptr*)tgt;
 	for ( unsigned int i=0; i < len; i++ )
-		*to++ = strdup(*from++);
+		*to++ = string_dup(*from++);
 	}
 
 void delete_strings(void *src, unsigned int len)

@@ -4,7 +4,7 @@
 
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
-#include "sos/alloc.h"
+#include "gcmem/alloc.h"
 
 #include <stdlib.h>
 #include <iostream.h>
@@ -48,7 +48,7 @@ BaseList::BaseList(int size, PFC handler)
 	else
 		{
 		num_entries = 0;
-		if ( (entry = (ent*) sos_alloc_memory(sizeof(ent) * chunk_size)) )
+		if ( (entry = (ent*) alloc_memory(sizeof(ent) * chunk_size)) )
 			max_entries = chunk_size;
 		else
 			max_entries = 0;
@@ -69,7 +69,7 @@ BaseList::BaseList(BaseList& b)
 	error_handler = b.error_handler;
 
 	if ( max_entries )
-		entry = (ent*) sos_alloc_memory( sizeof(ent)*max_entries );
+		entry = (ent*) alloc_memory( sizeof(ent)*max_entries );
 	else
 		entry = 0;
 
@@ -82,7 +82,7 @@ void BaseList::operator=(BaseList& b)
 	if ( this == &b )
 		return;	// i.e., this already equals itself
 
-	sos_free_memory( entry );
+	free_memory( entry );
 
 	max_entries = b.max_entries;
 	chunk_size = b.chunk_size;
@@ -90,7 +90,7 @@ void BaseList::operator=(BaseList& b)
 	error_handler = b.error_handler;
 
 	if ( max_entries )
-		entry = (ent*) sos_alloc_memory( sizeof(ent)*max_entries );
+		entry = (ent*) alloc_memory( sizeof(ent)*max_entries );
 	else
 		entry = 0;
 
@@ -171,7 +171,7 @@ void BaseList::clear()
 
 BaseList::~BaseList()
 	{
-	sos_free_memory( entry );
+	free_memory( entry );
 	}
 
 ent BaseList::replace(int ent_index,ent new_ent)
@@ -192,7 +192,7 @@ int BaseList::resize( )
 	{
 	max_entries += chunk_size;
 	chunk_size *= 2;
-	entry = (ent*) sos_realloc_memory( (void*) entry, sizeof( ent ) * max_entries );
+	entry = (ent*) realloc_memory( (void*) entry, sizeof( ent ) * max_entries );
 	return max_entries;
 	}
 

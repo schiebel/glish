@@ -93,7 +93,7 @@ void Handle( Client* c, char* name )
 	if ( ! l )
 		{
 		l = new name_list;
-		event_context_list.Insert( strdup(name), l );
+		event_context_list.Insert( string_dup(name), l );
 		}
 
 	for ( int j=0 ; j<l->length() ; ++j )
@@ -105,7 +105,7 @@ void Handle( Client* c, char* name )
 			}
 		}
 
-	l->append( strdup( c->LastContext().id() ) );
+	l->append( string_dup( c->LastContext().id() ) );
 	c->PostEvent( "handling", name );
 	}
 
@@ -148,7 +148,7 @@ int main( int argc, char** argv )
 	int j;
 
 	// Initial context
-	my_contexts.append( strdup( c.LastContext().id() ) );
+	my_contexts.append( string_dup( c.LastContext().id() ) );
 
 	// For every event named "name", we need a string list of
 	//   contexts to forward it to.

@@ -9,19 +9,20 @@
 #ifndef sos_header_h
 #define sos_header_h
 #include "sos/mdep.h"
+#include "gc/gc_cpp.h"
 
 #define SOS_HEADER_SIZE		24
 #define SOS_VERSION		0
 
 #include <iostream.h>
 
-struct sos_header_kernel {
+struct sos_header_kernel : public gc_cleanup {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0 ) :
 		buf_((unsigned char*)b), type_(t), length_(l), count_(1), freeit_(freeit) { }
 	unsigned int count() { return count_; }
 	unsigned int ref() { return ++count_; }
 	unsigned int unref() { return --count_; }
-	~sos_header_kernel() { if ( freeit_ ) sos_free_memory( buf_ ); }
+	~sos_header_kernel() { if ( freeit_ ) free_memory( buf_ ); }
 	void set( void *b, unsigned int l, sos_code t, int freeit = 0 );
 	void set( unsigned int l, sos_code t ) { type_ = t; length_ = l; }
 
@@ -47,7 +48,7 @@ struct sos_header_kernel {
 //
 //	( should provide a way for user control info... )
 //
-class sos_header {
+class sos_header : public gc_cleanup {
 public:
 	//
 	// information from the buffer

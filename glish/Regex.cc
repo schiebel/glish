@@ -37,14 +37,14 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 		if (  psze > 0 )					\
 			{						\
 			psze *= 2;					\
-			startp = (char**) realloc_memory( startp, psze * sizeof(char*) ); \
-			endp = (char**) realloc_memory( startp, psze * sizeof(char*) ); \
+			startp = realloc_charptr( startp, psze );	\
+			endp = realloc_charptr( startp, psze );		\
 			}						\
 		else							\
 			{						\
 			psze = 5;					\
-			startp = (char**) alloc_memory( psze * sizeof(char*) ); \
-			endp = (char**) alloc_memory( psze * sizeof(char*) ); \
+			startp = alloc_charptr( psze );			\
+			endp = alloc_charptr( psze );			\
 			}						\
 		}							\
 	}
@@ -55,12 +55,12 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 		if (  rsze > 0 )					\
 			{						\
 			rsze *= 2;					\
-			refs = (unsigned short*) realloc_memory( refs, rsze * sizeof(unsigned short) ); \
+			refs = (unsigned short*) realloc_short( refs, rsze ); \
 			}						\
 		else							\
 			{						\
 			rsze = 5;					\
-			refs = (unsigned short*) alloc_memory( rsze * sizeof(unsigned short) ); \
+			refs = (unsigned short*) alloc_short( rsze );	\
 			}						\
 		}							\
 	}
@@ -72,12 +72,12 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 		if (  ssze > 0 )					\
 			{						\
 			ssze *= 2;					\
-			splits = (char**) realloc_memory( splits, ssze * sizeof(char*) ); \
+			splits = realloc_charptr( splits, ssze );	\
 			}						\
 		else							\
 			{						\
 			ssze = 5;					\
-			splits = (char**) alloc_memory( ssze * sizeof(char*) ); \
+			splits = alloc_charptr( ssze  );		\
 			}						\
 		}							\
 	}
@@ -98,7 +98,7 @@ void regxsubst::compile( regexp *reg_ )
 
 	if ( ! reg || ! subst )
 		{
-		err_ = strdup("bad regular expression");
+		err_ = string_dup("bad regular expression");
 		return;
 		}
 
@@ -134,7 +134,7 @@ void regxsubst::compile( regexp *reg_ )
 				if ( newdigit < 0 || newdigit > 65534 )
 					{
 					sprintf( regx_buffer, "paren reference overflow: %d", newdigit);
-					err_ = strdup( regx_buffer );
+					err_ = string_dup( regx_buffer );
 					}
 				else
 					{
@@ -142,7 +142,7 @@ void regxsubst::compile( regexp *reg_ )
 					if ( refs[rcnt] == 0 || refs[rcnt] > reg->nparens )
 						{
 						sprintf( regx_buffer, "paren reference out of range: %u", refs[rcnt] );
-						err_ = strdup( regx_buffer );
+						err_ = string_dup( regx_buffer );
 						}
 					else rcnt++;
 					}
@@ -224,17 +224,17 @@ void regxsubst::split( char **dest, const char *src )
 		int len = splits[i] - src;
 		if ( len > 0 )
 			{
-			*dest = (char*) alloc_memory(len+1);
+			*dest = alloc_char(len+1);
 			memcpy( *dest, src, len );
 			(*dest)[len] = '\0';
 			}
 		else
-			*dest = strdup("");
+			*dest = string_dup("");
 
 		src = splits[i];
 		}
 
-	*dest = strdup( src );
+	*dest = string_dup( src );
 	}
 			
 	  
@@ -268,7 +268,7 @@ void Regex::compile( )
 	else
 		{
 		reg = 0;	// probably need to free it
-		error_string = strdup( regx_buffer );
+		error_string = string_dup( regx_buffer );
 		}
 	}
 
@@ -281,7 +281,7 @@ Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 	if ( match ) compile( );
 	}
 
-Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
+Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? string_dup(o.match) : 0 ),
 				match_end(0), error_string(0), divider( o.divider ), flags( o.flags ),
 				match_count(0), desc(0)
 	{
@@ -297,7 +297,7 @@ Regex::Regex( const Regex *o )
 		{
 		subst.setStr( o->subst.str() );
 		reg = 0;
-		match = o->match ? strdup(o->match) : 0;
+		match = o->match ? string_dup(o->match) : 0;
 		match_end = 0;
 		error_string = 0;
 		divider = o-> divider;
@@ -410,7 +410,7 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 
 		if ( swap_io )
 			{
-			outs = (char**) alloc_memory(sizeof(char*)*len);
+			outs = alloc_charptr(len);
 			outs_len = len;
 			outs_off = 0;
 			root = alt_src;
@@ -444,7 +444,7 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 					{
 					len += count * splits;
 					outs_len += count * splits;
-					outs = (char**) realloc_memory(outs, sizeof(char*)*(outs_len+1));
+					outs = realloc_charptr(outs, outs_len+1);
 
 					resized = 1;
 
@@ -461,13 +461,13 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 				else
 					{
 					if ( free_it && ! swap_io ) free_memory(outs[outs_off+i]);
-					outs[outs_off+i] = strdup( regx_buffer );
+					outs[outs_off+i] = string_dup( regx_buffer );
 					}
 				}
 			else if ( swap_io )
 				{
 				if ( free_it && ! swap_io ) free_str = outs[outs_off+i];
-				outs[outs_off+i] = strdup(root[ offset + (swap_io ? mc : i) ]);
+				outs[outs_off+i] = string_dup(root[ offset + (swap_io ? mc : i) ]);
 				}
 
 			if ( free_str ) free_memory( free_str );
@@ -510,7 +510,7 @@ const char *Regex::Description( ) const
 
 	if ( ! match || ! reg )
 		{
-		((Regex*)this)->desc = strdup( "bad <regex>" );
+		((Regex*)this)->desc = string_dup( "bad <regex>" );
 		return desc;
 		}
 
@@ -518,7 +518,7 @@ const char *Regex::Description( ) const
 	if ( subst.str() )
 		{
 		int slen = strlen(subst.str());
-		((Regex*)this)->desc = (char*) alloc_memory( mlen + slen + 5 );
+		((Regex*)this)->desc = alloc_char( mlen + slen + 5 );
 		char *ptr = desc;
 		*ptr++ = 's'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
@@ -528,7 +528,7 @@ const char *Regex::Description( ) const
 		}
 	else
 		{
-		((Regex*)this)->desc = (char*) alloc_memory( mlen + 4 );
+		((Regex*)this)->desc = alloc_char( mlen + 4 );
 		char *ptr = desc;
 		*ptr++ = 'm'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
@@ -570,13 +570,13 @@ void str_node::update( Regex *reg )
 		if ( reg->R()->endp[cnt] > reg->R()->startp[cnt] )
 			{
 			register int slen = reg->R()->endp[cnt]-reg->R()->startp[cnt];
-			register char *buf = (char*) alloc_memory( slen+1 );
+			register char *buf = alloc_char( slen+1 );
 			if ( slen > 0 ) memcpy(buf, reg->R()->startp[cnt], slen);
 			buf[slen] = '\0';
 			strs.append( buf );
 			}
 		else
-			strs.append( strdup("") );
+			strs.append( string_dup("") );
 		}
 	}
 
@@ -593,7 +593,7 @@ IValue *str_node::get( Regex *reg )
 		return  empty;
 		}
 
-	char **ary = (char**) alloc_memory( sizeof(char*) * len );
+	char **ary = alloc_charptr( len );
 	IValue *ret = 0;
 	int rows = len/parens;
 
@@ -604,7 +604,7 @@ IValue *str_node::get( Regex *reg )
 			for ( int col=parens-1; col >= 0; --col )
 				ary[col*rows+row] = strs.remove_nth(from--);
 		ret = new IValue( (charptr*) ary, len );
-		int *shape_i = (int*) alloc_memory( sizeof(int) * 2 );
+		int *shape_i = alloc_int( 2 );
 		shape_i[0] = rows;
 		shape_i[1] = parens;
 		ret->AssignAttribute( "shape", new IValue( shape_i, 2 ) );

@@ -11,7 +11,7 @@ class SOStream;
 class Value;
 class Reporter;
 
-class RMessage {
+class RMessage : public gc_cleanup {
     public:
 	RMessage( const GlishObject* message_object );
 	RMessage( const char* message_string );
@@ -44,7 +44,7 @@ class RMessage {
 extern RMessage EndMessage;
 
 
-class Reporter {
+class Reporter : public gc_cleanup {
     public:
 	Reporter( OStream *reporter_stream );
 	virtual ~Reporter( );

@@ -157,7 +157,7 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 			if ( ! al )
 				{
 				al = new agent_list;
-				dict_->Insert(strdup(nme),al);
+				dict_->Insert(string_dup(nme),al);
 				}
 
 			al->append(await_agent);
@@ -188,7 +188,7 @@ static charptr *merge_chars( charptr *one, int onelen, charptr *two, int twolen 
 	{
 	if ( ! one || ! two || ! onelen || ! twolen ) return 0;
 
-	charptr *ret = (charptr*) alloc_memory(sizeof(charptr)*(onelen+twolen));
+	charptr *ret = (charptr*) alloc_charptr( onelen+twolen );
 	for (int i=0; i < onelen; ++i)
 		ret[i] = one[i];
 	for ( LOOPDECL i=0; i < twolen; ++i )
@@ -207,7 +207,7 @@ static char **split_path( char *path, int &count )
 	char *ptr = path;
 	while ( *ptr ) { if ( *ptr++ == ':' ) i++; }
 
-	char **ret = (char**) alloc_memory( sizeof(char*) * i );
+	char **ret = alloc_charptr( i );
 
 	count = 0;
 	char *cur = path;
@@ -219,15 +219,15 @@ static char **split_path( char *path, int &count )
 			if ( *ptr == ':' )
 				{
 				*ptr = '\0';
-				ret[count++] = strdup(cur);
+				ret[count++] = string_dup(cur);
 				*ptr++ = ':';
 				cur = ptr;
 				}
 			else
-				ret[count++] = strdup(cur);
+				ret[count++] = string_dup(cur);
 			}
 		else
-			ret[count++] = strdup(cur);
+			ret[count++] = string_dup(cur);
 		}
 
 	return ret;
@@ -242,7 +242,7 @@ static char *join_path( const char **path, int len, const char *var_name = 0 )
 		count += strlen(path[i]);
 
 	if ( var_name ) count += strlen(var_name) + 1;
-	char *ret = (char*) alloc_memory( sizeof(char) * count );
+	char *ret = alloc_char( count );
 	if ( var_name ) sprintf( ret, "%s=", var_name );
 	else ret[0] = '\0';
 
@@ -488,7 +488,7 @@ protected:
 	};
 
 
-class awaitinfo {
+class awaitinfo : public gc_cleanup {
 public:
 	awaitinfo( await_type &aw ) : await(aw), value(0), agent(0), name(0) {}
 	~awaitinfo();
@@ -519,7 +519,7 @@ int awaitinfo::SetValue( Agent *agent_, const char *name_, IValue *val )
 	Ref(value);
 	agent = agent_;
 	Ref(agent);
-	name = strdup(name_);
+	name = string_dup(name_);
 	return 1;
 	}
 
@@ -543,7 +543,7 @@ void Scope::MarkGlobalRef(const char *c)
 	{
 	if ( ! WasGlobalRef( c ) )
 		{
-		char *str = strdup(c);
+		char *str = string_dup(c);
 		global_refs.Insert( str, str );
 		}
 	}
@@ -562,7 +562,7 @@ Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    NotifyTrigger *t, Type ty ) : valid(1), type_(ty)
 	{
 	notifier = arg_notifier;
-	field = strdup( arg_field );
+	field = string_dup( arg_field );
 	value = arg_value;
 	notifiee = arg_notifiee;
 	trigger = t;
@@ -617,7 +617,7 @@ void SystemInfo::SetVal(IValue *v)
 const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	{
 	static unsigned int size = 1024;
-	static char *outbuf = (char*) alloc_memory( sizeof(char)*size );
+	static char *outbuf = alloc_char( size );
 
 	if ( ! prefix || ! buf )
 		return buf;
@@ -632,7 +632,7 @@ const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	if ( outsize > size )
 		{
 		while ( outsize > size ) size *= 2;
-		outbuf = (char*) realloc_memory( (void*) outbuf, size );
+		outbuf = realloc_char( outbuf, size );
 		}
 
 	char *pp = 0;
@@ -887,6 +887,28 @@ void SystemInfo::update_print( )
 
 	update &= ~PRINTLIMIT();
 	update &= ~PRINTPRECISION();
+	}
+
+void SystemInfo::update_stacklimit( )
+	{
+	const IValue *v1;
+	const IValue *v2;
+	int tmp;
+
+	stacklimit = 0;
+	if ( val && val->Type() == TYPE_RECORD &&
+	     val->HasRecordElement( "limits" ) &&
+	     (v1 = (IValue*) val->ExistingRecordElement( "limits" )) &&
+	     v1 != false_value && v1->Type() == TYPE_RECORD )
+		{
+		if ( v1->HasRecordElement( "stack" ) &&
+		     (v2 = (IValue*) v1->ExistingRecordElement("stack")) &&
+		     v2 != false_value && v2->IsNumeric() &&
+		     (tmp = v2->IntVal()) > 0 )
+			stacklimit = tmp;
+		}
+
+	update &= ~STACKLIMIT();
 	}
 
 void SystemInfo::update_path( )
@@ -1219,7 +1241,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	Unref(ppid);
 
 	recordptr path = create_record_dict();
-	path->Insert( strdup("key"), new IValue(get_key_directory()) );
+	path->Insert( string_dup("key"), new IValue(get_key_directory()) );
 
 	char *envpath = getenv( "PATH" );
 	if ( envpath )
@@ -1229,8 +1251,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		if ( binpath && len )
 			{
 			recordptr bin = create_record_dict( );
-			bin->Insert( strdup(local_host_name()), new IValue(binpath,len) );
-			path->Insert( strdup("bin"), new IValue( bin ) );
+			bin->Insert( string_dup(local_host_name()), new IValue(binpath,len) );
+			path->Insert( string_dup("bin"), new IValue( bin ) );
 			}
 		}
 
@@ -1248,8 +1270,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		if ( ldpath && len )
 			{
 			recordptr ld = create_record_dict( );
-			ld->Insert( strdup(local_host_name()), new IValue(ldpath,len) );
-			path->Insert( strdup("lib"), new IValue( ld ) );
+			ld->Insert( string_dup(local_host_name()), new IValue(ldpath,len) );
+			path->Insert( string_dup("lib"), new IValue( ld ) );
 			}
 		}
 	else
@@ -1259,37 +1281,38 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		if ( lbpath && len )
 			{
 			recordptr ld = create_record_dict( );
-			ld->Insert( strdup(local_host_name()), new IValue(lbpath,len) );
-			path->Insert( strdup("lib"), new IValue( ld ) );
+			ld->Insert( string_dup(local_host_name()), new IValue(lbpath,len) );
+			path->Insert( string_dup("lib"), new IValue( ld ) );
 			}
 		}
 
-	charptr *inc = (charptr*) alloc_memory( sizeof(char*)* 2 );
-	inc[0] = strdup(".");
-	inc[1] = strdup(SCRIPTDIR);
-	path->Insert( strdup("include"), new IValue( inc, 2 ) );
+	char **inc = alloc_charptr( 2 );
+	inc[0] = string_dup(".");
+	inc[1] = string_dup(SCRIPTDIR);
+	path->Insert( string_dup("include"), new IValue( (charptr*) inc, 2 ) );
 
 	IValue * path_val = new IValue( path );
 	sys_value->SetField( "path", path_val );
 	Unref(path_val);
 
 	recordptr max = create_record_dict();
-	max->Insert( strdup("integer"), new IValue( (int) INT_MAX ) );
-	max->Insert( strdup("byte"), new IValue( (int) UCHAR_MAX ) );
-	max->Insert( strdup("short"), new IValue( (int) SHRT_MAX ) );
-	max->Insert( strdup("float"), new IValue( (float) FLT_MAX ) );
-	max->Insert( strdup("double"), new IValue( (double) DBL_MAX ) );
+	max->Insert( string_dup("integer"), new IValue( (int) INT_MAX ) );
+	max->Insert( string_dup("byte"), new IValue( (int) UCHAR_MAX ) );
+	max->Insert( string_dup("short"), new IValue( (int) SHRT_MAX ) );
+	max->Insert( string_dup("float"), new IValue( (float) FLT_MAX ) );
+	max->Insert( string_dup("double"), new IValue( (double) DBL_MAX ) );
 
 	recordptr min = create_record_dict();
-	min->Insert( strdup("integer"), new IValue( (int) INT_MIN ) );
-	min->Insert( strdup("byte"), new IValue( (int) 0 ) );
-	min->Insert( strdup("short"), new IValue( (int) SHRT_MIN ) );
-	min->Insert( strdup("float"), new IValue( (float) FLT_MIN ) );
-	min->Insert( strdup("double"), new IValue( (double) DBL_MIN ) );
+	min->Insert( string_dup("integer"), new IValue( (int) INT_MIN ) );
+	min->Insert( string_dup("byte"), new IValue( (int) 0 ) );
+	min->Insert( string_dup("short"), new IValue( (int) SHRT_MIN ) );
+	min->Insert( string_dup("float"), new IValue( (float) FLT_MIN ) );
+	min->Insert( string_dup("double"), new IValue( (double) DBL_MIN ) );
 
 	recordptr limits = create_record_dict();
-	limits->Insert( strdup("max"), new IValue( max ) );
-	limits->Insert( strdup("min"), new IValue( min ) );
+	limits->Insert( string_dup("max"), new IValue( max ) );
+	limits->Insert( string_dup("min"), new IValue( min ) );
+	limits->Insert( string_dup("stack"), new IValue( 5000 ) );
 
 	IValue *limits_val = new IValue( limits );
 	sys_value->SetField( "limits", limits_val );
@@ -1298,9 +1321,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	recordptr output = create_record_dict();
 	recordptr pager = create_record_dict();
 	char *envpager = getenv( "PAGER" );
-	pager->Insert( strdup("exec"), new IValue( envpager ? envpager : "more" ) );
-	pager->Insert( strdup("limit"), new IValue( 24 ) );
-	output->Insert( strdup("pager"), new IValue( pager ) );
+	pager->Insert( string_dup("exec"), new IValue( envpager ? envpager : "more" ) );
+	pager->Insert( string_dup("limit"), new IValue( 24 ) );
+	output->Insert( string_dup("pager"), new IValue( pager ) );
 	IValue *output_val = new IValue( output );
 
 	sys_value->SetField( "output", output_val );
@@ -1309,7 +1332,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 int *Sequencer::NewObjId( Task *t )
 	{
-	int *ret = (int*) alloc_memory(sizeof(int)*3);
+	int *ret = alloc_int(3);
 	ret[0] = xpid;
 	ret[1] = t->TaskIDi();
 	ret[2] = ++obj_cnt;
@@ -1382,13 +1405,13 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
 	connection_host = local_host_name();
-	connection_port = (char*) alloc_memory(sizeof(char)*32);
+	connection_port = alloc_char(32);
 	sprintf( connection_port, "%d", connection_socket->Port() );
 
 	static const char tag_fmt[] = "*tag-%s.%d*";
 	int n = strlen( tag_fmt ) + strlen( connection_host ) + /* slop */ 32;
 
-	interpreter_tag = (char*) alloc_memory(sizeof(char)*n);
+	interpreter_tag = alloc_char(n);
 	sprintf( interpreter_tag, tag_fmt, connection_host, xpid );
 
 	monitor_task = 0;
@@ -1402,14 +1425,14 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	system_agent = new UserAgent( this );
 	sys_val = system_agent->AgentRecord();
 
-	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
+	Expr* system_expr = InstallID( string_dup( "system" ), GLOBAL_SCOPE );
 	system_expr->SetChangeNotice(system_change_function);
 	system_expr->Assign( sys_val );
 
 	SetupSysValue( sys_val );
 
 	// Create place for the script variable to be filled in later
-	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
+	script_expr = InstallID( string_dup( "script" ), GLOBAL_SCOPE );
 	script_expr->Assign( new IValue( glish_false ) );
 
 	name = argv[0];
@@ -1674,7 +1697,7 @@ Sequencer::~Sequencer()
 
 void Sequencer::AddBuiltIn( BuiltIn* built_in )
 	{
-	Expr* id = InstallID( strdup( built_in->Name() ), GLOBAL_SCOPE );
+	Expr* id = InstallID( string_dup( built_in->Name() ), GLOBAL_SCOPE );
 	id->Assign( new IValue( built_in ) );
 	}
 
@@ -2162,7 +2185,7 @@ const IValue *Sequencer::LookupVal( const char *id )
 	{
 	Expr *expr = 0;
 	const IValue *val = 0;
-	if ( cur_sequencer && (expr = cur_sequencer->LookupID( strdup( id ), GLOBAL_SCOPE, 0 )) )
+	if ( cur_sequencer && (expr = cur_sequencer->LookupID( string_dup( id ), GLOBAL_SCOPE, 0 )) )
 		{
 		val = expr->ReadOnlyEval();
 		expr->ReadOnlyDone( val );	// **BUG**
@@ -2189,7 +2212,7 @@ void Sequencer::DeleteVal( const char* id )
 			}
 		// Create an impossible, non-clashing name
 		sprintf(buf,"*%lx*",filler++);
-		char *newid = strdup(buf);
+		char *newid = string_dup(buf);
 		// Remove the old name from the scope dict
 		(*scopes[0]).Remove( id );
 		// Stick the new name into the old VarExpr
@@ -2508,12 +2531,12 @@ IValue *Sequencer::FuncNameStack( )
 	if ( ! len )
 		return 0;
 
-	charptr *strs = (const char**) alloc_memory( sizeof(char*)*len );
+	char **strs = alloc_charptr( len );
 
 	for ( int i=0; i < len; i++ )
-		strs[i] = strdup( cur_sequencer->func_names[i] );
+		strs[i] = string_dup( cur_sequencer->func_names[i] );
 
-	return new IValue( strs, len );
+	return new IValue( (charptr*) strs, len );
 	}
 
 void Sequencer::UnhandledFail( const IValue *val )
@@ -2531,7 +2554,7 @@ char* Sequencer::RegisterTask( Task* new_task, int &idi )
 	char buf[128];
 	sprintf( buf, "<task:%d>", ++last_task_id );
 
-	char* new_ID = strdup( buf );
+	char* new_ID = string_dup( buf );
 	idi = last_task_id;
 
 	ids_to_tasks.Insert( new_ID, new_task );
@@ -2851,8 +2874,8 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 				const char* reply_name )
 	{
 	// should look at this to see why a copy is required!
-	event_name = strdup(event_name);
-	reply_name = strdup(reply_name);
+	event_name = string_dup(event_name);
+	reply_name = string_dup(reply_name);
 	int removed_stdin = 0;
 
 	PushAwait( );
@@ -3373,7 +3396,7 @@ void Sequencer::MakeEnvGlobal()
 			}
 		}
 
-	Expr* env_expr = LookupID( strdup( "environ" ), GLOBAL_SCOPE );
+	Expr* env_expr = LookupID( string_dup( "environ" ), GLOBAL_SCOPE );
 	env_expr->Assign( env_value );
 	}
 
@@ -3391,14 +3414,14 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc, int append_name )
 		argv_value = new IValue( (charptr*) argv, argc, COPY_ARRAY );
 	else
 		{
-		char **av = (char**) alloc_memory( sizeof(char*)*(argc+1) );
-		av[0] = strdup(name);
+		char **av = alloc_charptr( argc+1 );
+		av[0] = string_dup(name);
 		for ( int i = 0; i < argc; i++ )
-			av[i+1] = strdup(argv[i]);
+			av[i+1] = string_dup(argv[i]);
 		argv_value = new IValue( (charptr*) av, argc+1 );
 		}
 
-	Expr* argv_expr = LookupID( strdup( "argv" ), GLOBAL_SCOPE );
+	Expr* argv_expr = LookupID( string_dup( "argv" ), GLOBAL_SCOPE );
 	argv_expr->Assign( argv_value );
 	}
 
@@ -3443,7 +3466,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 	unsigned short old_file_name = file_name;
 	if ( filename )
 		{
-		glish_files->append(strdup(filename));
+		glish_files->append(string_dup(filename));
 		file_name = glish_files->length()-1;
 		}
 
@@ -3556,7 +3579,7 @@ IValue *Sequencer::Include( const char *file )
 		cerr << "vi " << expanded_name << endl;
 
 	unsigned short old_file_name = file_name;
-	glish_files->append(strdup(file));
+	glish_files->append(string_dup(file));
 	file_name = glish_files->length()-1;
 
 	void *old_buf = current_flex_buffer();
@@ -3648,7 +3671,7 @@ IValue *Sequencer::Include( const char *file )
 void Sequencer::IncludeOnce( )
 	{
 	if ( expanded_name && ! include_once.Lookup(expanded_name) )
-		include_once.Insert(strdup(expanded_name), 1);
+		include_once.Insert(string_dup(expanded_name), 1);
 	}
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
@@ -3662,7 +3685,7 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 		return rd;
 
 	RemoteDaemon *ret = new RemoteDaemon( host, start_remote_daemon(host) );
-	daemons.Insert( strdup( host ), ret );
+	daemons.Insert( string_dup( host ), ret );
 	selector->AddSelectee(new DaemonSelectee( ret, selector, this ) );
 	return ret;
 	}
@@ -3684,7 +3707,7 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 
 	if ( (r = connect_to_daemon( h, err )) )
 		{
-		daemons.Insert( strdup( host ), r );
+		daemons.Insert( string_dup( host ), r );
 		selector->AddSelectee(new DaemonSelectee( r, selector, this ) );
 		}
 
@@ -4216,7 +4239,7 @@ void ScriptClient::AddEventSources()
 		if ( ! event_src_list.is_member((char*)event_sources[i]->Context().id()) )
 			{
 			selector->AddSelectee( new ScriptSelectee( this, agent, event_sources[i]->Source().fd() ) );
-			event_src_list.append(strdup(event_sources[i]->Context().id()));
+			event_src_list.append(string_dup(event_sources[i]->Context().id()));
 			}
 		}
 
@@ -4239,7 +4262,7 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 void EnvHolder::put( const char *var, char *string )
 	{
 	char *old = strings.Lookup( var );
-	strings.Insert( old ? var : strdup( var ), string );
+	strings.Insert( old ? var : string_dup( var ), string );
 	if ( old ) free_memory( old );
 	putenv( string );
 	}
@@ -4252,7 +4275,7 @@ char* which_include( const char* filename )
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
 		if ( access( filename, R_OK ) == 0 )
-			return strdup( filename );
+			return string_dup( filename );
 		else
 			return 0;
 		}
@@ -4265,7 +4288,7 @@ char* which_include( const char* filename )
 			sprintf( directory, "%s/%s", paths[i], filename );
 
 			if ( access( directory, R_OK ) == 0 )
-				return strdup( directory );
+				return string_dup( directory );
 			}
 
 	return 0;

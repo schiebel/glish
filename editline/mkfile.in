@@ -38,17 +38,18 @@ SH = $(SHELL)
 
 RM = rm -f
 
-SRC = ../..
-INC = -I$(SRC)/include -I..
-EDITLIB = $(ISTKLIBS)/libedit$(LIB_SUFFIX)
-LOCAL_CFLAGS = -DANSI_ARROWS -DHIDE -DSYS_UNIX -DDO_SIGTSTP
-
 top = @top_srcdir@@top_off@
 LIBDIR_P = $(top)/lib/$(ARCH)
+INCDIR_P = $(top)/include
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 LIBDIR = @libdir@
+
+SRC = ../..
+INC = -I$(SRC)/include -I.. -I$(INCDIR_P)
+EDITLIB = $(ISTKLIBS)/libedit$(LIB_SUFFIX)
+LOCAL_CFLAGS = -DANSI_ARROWS -DHIDE -DSYS_UNIX -DDO_SIGTSTP
 
 MKHIER = $(top)/config/mkhier
 

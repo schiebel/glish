@@ -89,9 +89,9 @@ EventContext::~EventContext()
 EventContext &EventContext::operator=(const EventContext &c) { 
 		if ( &c != this ) {
 			if ( context ) free_memory( context );
-			context = c.id() ? strdup(c.id()) : 0;
+			context = c.id() ? string_dup(c.id()) : 0;
 			if ( client_name ) free_memory( client_name );
-			client_name = c.name() ? strdup(c.name()) : 0;
+			client_name = c.name() ? string_dup(c.name()) : 0;
 		}
 		return *this;
 	}
@@ -99,22 +99,22 @@ EventContext &EventContext::operator=(const EventContext &c) {
 EventContext::EventContext( const char *client_name_, const char *context_ )
 	{
 	if ( client_name_ )
-		client_name = strdup(client_name_);
+		client_name = string_dup(client_name_);
 	else
 		{
 		const char *unknown_str = "unknown-client";
 		const int len = strlen(unknown_str);
-		client_name = (char*) alloc_memory( sizeof(char)*(len + 22) );
+		client_name = alloc_char( len + 22 );
 		sprintf(client_name,"%s#%u", unknown_str, client_count);
 		}
 
 	if ( context_ )
-		context = strdup(context_);
+		context = string_dup(context_);
 	else
 		{
 		const char *unknown_str = "<unknown>";
 		const int len = strlen(unknown_str);
-		context = (char*) alloc_memory( sizeof(char)*(len + 22) );
+		context = alloc_char( len + 22 );
 		sprintf(context,"%s#%u", unknown_str, client_count);
 		}
 
@@ -123,8 +123,8 @@ EventContext::EventContext( const char *client_name_, const char *context_ )
 	}
 
 EventContext::EventContext(const EventContext &c) : 
-			context( c.id() ? strdup(c.id()) : 0), 
-			client_name( c.name() ? strdup(c.name()) : 0)
+			context( c.id() ? string_dup(c.id()) : 0), 
+			client_name( c.name() ? string_dup(c.name()) : 0)
 	{ }
 
 
@@ -226,7 +226,7 @@ ProxyId::ProxyId( const Value *val )
 	}
 
 
-class EventLink {
+class EventLink : public gc_cleanup {
 public:
 	EventLink( char* task_id, char* new_name, int initial_activity )
 		{
@@ -252,7 +252,7 @@ public:
 
 	void SetActive( int activity )	{ active = activity; }
 	void SetFD( int new_fd )	{ fd = new_fd; }
-	void SetPath( const char* p )	{ path = strdup( p ); }
+	void SetPath( const char* p )	{ path = string_dup( p ); }
 
 private:
 	char* id;
@@ -279,7 +279,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 	int useshm_ = 0;
 
 	if ( ! initial_name && argv[0] )
-		initial_name = strdup(strip_path(argv[0]));
+		initial_name = string_dup(strip_path(argv[0]));
 
 	prog_name = argv[0];
 	--argc, ++argv;	// remove program name from argument list
@@ -290,7 +290,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 	int write_fd;
 
 	no_glish = 0;
-	interpreter_tag = strdup("*no-interpreter*");
+	interpreter_tag = string_dup("*no-interpreter*");
 
 	if ( argc < 2 || ! streq( argv[0], "-id" ) )
 		{
@@ -319,7 +319,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 			if ( interpreter_tag )
 				free_memory(interpreter_tag);
 
-			interpreter_tag = strdup("*stdio*");
+			interpreter_tag = string_dup("*stdio*");
 
 			last_context = EventContext(initial_client_name,interpreter_tag);
 
@@ -385,13 +385,13 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 
 		if ( interpreter_tag )
 			free_memory(interpreter_tag);
-		interpreter_tag = strdup(last_context.id());
+		interpreter_tag = string_dup(last_context.id());
 
 		if ( argc > 1 && streq( argv[0], "-interpreter" ) )
 			{
 			if ( interpreter_tag )
 				free_memory(interpreter_tag);
-			interpreter_tag = strdup(argv[1]);
+			interpreter_tag = string_dup(argv[1]);
 			argc -= 2, argv += 2;
 			}
 
@@ -464,7 +464,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	initial_client_name = prog_name = name;
 
 	if ( ! initial_name && name )
-		initial_name = strdup(name);
+		initial_name = string_dup(name);
 
 	useshm = 0;
 	script_client = script_file;
@@ -475,7 +475,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	no_glish = 0;
 	have_interpreter_connection = 1;
 
-	interpreter_tag = strdup( last_context.id() );
+	interpreter_tag = string_dup( last_context.id() );
 
 	EventSource* es = new EventSource( client_read_fd, client_write_fd,
 		INTERP, last_context );
@@ -501,7 +501,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name,
 	initial_client_name = prog_name = name;
 
 	if ( ! initial_name && name )
-		initial_name = strdup(name);
+		initial_name = string_dup(name);
 
 	useshm = 0;
 	script_client = script_file;
@@ -512,7 +512,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name,
 	no_glish = 0;
 	have_interpreter_connection = 1;
 
-	interpreter_tag = strdup( last_context.id() );
+	interpreter_tag = string_dup( last_context.id() );
 
 	EventSource* es = new EventSource( client_read_fd, client_write_fd,
 		INTERP, last_context );
@@ -732,8 +732,8 @@ void Client::PostEvent( const char* event_name, const Value* event_value,
 	if ( &proxy_id != &glish_proxyid_dummy )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert( strdup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
-		rec->Insert( strdup("value"), copy_value(event_value) );
+		rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+		rec->Insert( string_dup("value"), copy_value(event_value) );
 		GlishEvent e( event_name, create_value(rec) );
 		e.SetIsProxy( );
 		SendEvent( &e, -1, context );
@@ -781,8 +781,8 @@ void Client::Reply( const Value* event_value, const ProxyId &proxy_id )
 		if ( &proxy_id != &glish_proxyid_dummy )
 			{
 			recordptr rec = create_record_dict( );
-			rec->Insert( strdup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
-			rec->Insert( strdup("value"), copy_value(event_value) );
+			rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+			rec->Insert( string_dup("value"), copy_value(event_value) );
 			GlishEvent e( (const char*) pending_reply, create_value(rec) );
 			e.SetIsReply();
 			e.SetIsProxy();
@@ -900,14 +900,14 @@ int Client::ReRegister( char* registration_name )
 			       "*glishd*"));
 	event_sources.append( es );
 
-	charptr *reg_val = (charptr*) alloc_memory(sizeof(charptr)*2);
+	char **reg_val = alloc_charptr( 2 );
 
-	reg_val[0] = strdup( script_client ? script_client : 
+	reg_val[0] = string_dup( script_client ? script_client : 
 			     ! registration_name ? prog_name : registration_name );
-	reg_val[1] = strdup( multithreaded == GROUP ? "GROUP" :
+	reg_val[1] = string_dup( multithreaded == GROUP ? "GROUP" :
 			     multithreaded == WORLD ? "WORLD" : "USER" );
 
-	GlishEvent e((const char*) "*register-persistent*", create_value(reg_val,2) );
+	GlishEvent e((const char*) "*register-persistent*", create_value((charptr*)reg_val,2) );
 	send_event( es->Sink(), &e );
 
 	//
@@ -1013,7 +1013,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			result = create_value( delim );
 			}
 
-		last_event = new GlishEvent( strdup( buf ), result );
+		last_event = new GlishEvent( string_dup( buf ), result );
 
 		last_context = context;
 		}
@@ -1217,7 +1217,7 @@ void Client::BuildLink( Value* v )
 	if ( ! remote_sinks )
 		{
 		remote_sinks = new sink_id_list;
-		context_sinks.Insert( strdup( last_context.id() ), remote_sinks );
+		context_sinks.Insert( string_dup( last_context.id() ), remote_sinks );
 		}
 
 	int fd = (*remote_sinks)[sink_id];
@@ -1285,7 +1285,7 @@ EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 	if ( ! cl )
 		{
 		cl = new event_link_context_list;
-		context_links.Insert( strdup( last_context.id() ), cl );
+		context_links.Insert( string_dup( last_context.id() ), cl );
 		}
 
 	event_link_list* l = (*cl)[event_name];
@@ -1349,7 +1349,7 @@ void Client::RendezvousAsOriginator( Value* v )
 	if ( ! remote_sinks )
 		{
 		remote_sinks = new sink_id_list;
-		context_sinks.Insert( strdup( last_context.id() ), remote_sinks );
+		context_sinks.Insert( string_dup( last_context.id() ), remote_sinks );
 		}
 
 	int sink_fd = (*remote_sinks)[sink_id];
@@ -1413,7 +1413,7 @@ void Client::RendezvousAsResponder( Value* v )
 	if ( ! remote_sources )
 		{
 		remote_sources = new sink_id_list;
-		context_sources.Insert( strdup(last_context.id() ), remote_sources );
+		context_sources.Insert( string_dup(last_context.id() ), remote_sources );
 		}
 
 	if ( (*remote_sources)[source_id] )
@@ -1474,7 +1474,7 @@ void Client::RendezvousAsResponder( Value* v )
 	event_sources.append( new EventSource( input_fd, ILINK, last_context ) );
 	FD_Change( input_fd, 1 );
 
-	(*remote_sources).Insert( strdup(source_id), input_fd );
+	(*remote_sources).Insert( string_dup(source_id), input_fd );
 	}
 
 void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_arg )
@@ -1635,7 +1635,7 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	{
 	sos_code type;
 	unsigned int len;
-	static sos_header head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
+	static sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1);
 	Value *val = 0;
 
 	void *ary = sos.get( len, type, head );
@@ -1677,7 +1677,7 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 
 	if ( name_len )
 		{
-		name = (char*) alloc_memory( name_len + 1 );
+		name = alloc_char( name_len + 1 );
 		sos.read(name,name_len);
 		name[name_len] = '\0';
 		}
@@ -1719,7 +1719,7 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 		  unsigned char flags, const ProxyId &proxy_id )
 	{
 	static value_list been_there;
-	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+	static sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	static Value *empty = empty_value( );
 
 	if ( ! val )
@@ -1770,7 +1770,7 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 										\
 	sos.put_record_start( len, head );					\
 										\
-	const char **fields = (const char**) alloc_memory( sizeof(char*) * len ); \
+	char **fields = alloc_charptr( len );					\
 	int i = 0;								\
 										\
 	for ( i = 0; i < len; ++i )						\

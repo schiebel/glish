@@ -23,7 +23,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Reporter.h"
 
 
-class Serialize {
+class Serialize : public gc_cleanup {
     public:
 	Serialize( const_args_list &argv_, int start = 0 ) : argv(argv_),
 			list_element(start), str_element(0) { }
@@ -147,8 +147,8 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 	if ( &proxy_id != &glish_proxyid_dummy )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert(strdup("id"), new IValue((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY));
-		rec->Insert(strdup("value"), event_val);
+		rec->Insert(string_dup("id"), new IValue((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY));
+		rec->Insert(string_dup("value"), event_val);
 		event_val = new IValue(rec);
 		}
 
@@ -157,7 +157,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		if ( ! pending_events )
 			pending_events = new event_list;
 
-		GlishEvent *e = new GlishEvent( strdup(event_name), copy_value(event_val) );
+		GlishEvent *e = new GlishEvent( string_dup(event_name), copy_value(event_val) );
 
 		if ( &proxy_id != &glish_proxyid_dummy )
 			e->SetIsProxy( );
@@ -181,9 +181,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		if ( is_request )
 			{
 			const char* fmt = "*%s-reply*";
-			char* reply_name = (char*) alloc_memory(
-				sizeof(char)*(strlen( event_name ) +
-					 strlen( fmt ) + 1) );
+			char* reply_name = alloc_char( strlen( event_name ) + strlen( fmt ) + 1 );
 			sprintf( reply_name, fmt, event_name );
 
 			IValue* new_val = create_irecord();
@@ -255,7 +253,7 @@ IValue *Task::SendEvent( const char* event_name, parameter_list* args,
 			{
 			if ( ! bundle ) bundle = create_record_dict( );
 			IValue* val = BuildEventValue( args, 0 );
-			char *nme = (char*) alloc_memory( strlen(event_name) + 9 );
+			char *nme = alloc_char( strlen(event_name) + 9 );
 			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
 			bundle->Insert( nme, val );
 			if ( bundle->Length() >= bundle_size )
@@ -377,7 +375,7 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	argc += 1;		// room for the end of client args
 
 				// + 1 for final nil
-	const char** argv = (const char**) alloc_memory( sizeof(char*)*(argc + 1) );
+	charptr *argv = (charptr*) alloc_charptr( argc + 1 );
 	int argp = 0;
 
 	argv[argp++] = prog;
@@ -410,10 +408,10 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 		char buf[64];
 		sprintf( buf, "%d", write_pipe[0] );
-		argv[argp++] = write_pipe_str = strdup( buf );
+		argv[argp++] = write_pipe_str = string_dup( buf );
 
 		sprintf( buf, "%d", read_pipe[1] );
-		argv[argp++] = read_pipe_str = strdup( buf );
+		argv[argp++] = read_pipe_str = string_dup( buf );
 		}
 
 	argv[argp++] = "-interpreter";
@@ -520,7 +518,7 @@ ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 	{
 	char* arg_string = paste( args );
 
-	name = strdup( "shell_client" );
+	name = string_dup( "shell_client" );
 
 	// Turn off async attribute; we don't want the shell_client
 	// program to run asynchronously.
@@ -559,7 +557,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 	const IValue* arg = (const IValue*)((*args)[0]->Deref());
 
 	if ( arg->Type() == TYPE_STRING )
-		name = strdup( arg->StringPtr(0)[0] );
+		name = string_dup( arg->StringPtr(0)[0] );
 	else
 		name = arg->StringVal();
 
@@ -599,7 +597,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 			for ( int k = 0; k < n; ++k )
 				{
 				if ( saw_name )
-					argv[argp++] = strdup( words[k] );
+					argv[argp++] = string_dup( words[k] );
 				else
 					// Skip over name.
 					saw_name = 1;
@@ -663,7 +661,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channe
 	ping_flag = arg_ping_flag;
 	suspend_flag = arg_suspend_flag;
 	useshm = 0;
-	name = name_ ? strdup(name_) : 0;
+	name = name_ ? string_dup(name_) : 0;
 	force_sockets = arg_force_sockets;
 	}
 
@@ -743,7 +741,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 			{
 			if ( hostname )
 				free_memory( hostname );
-			hostname = strdup( "localhost" );
+			hostname = string_dup( "localhost" );
 			}
 		else
 			{
@@ -1016,14 +1014,14 @@ IValue* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
 			break;
 			}
 
-		event_values[line_num - 1] = strdup( line_buf );
+		event_values[line_num - 1] = string_dup( line_buf );
 		}
 
-	charptr* event_values_copy = (charptr*) alloc_memory( sizeof(charptr)*line_num );
+	char **event_values_copy = alloc_charptr( line_num );
 
 	copy_array( event_values, event_values_copy, line_num, charptr );
 
-	return new IValue( event_values_copy, line_num );
+	return new IValue( (charptr*) event_values_copy, line_num );
 	}
 
 
@@ -1144,7 +1142,7 @@ ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), bu
 	{
 	char buf[128];
 	sprintf(buf, "<proxy:%d>", id.id());
-	agent_ID = strdup(buf);
+	agent_ID = string_dup(buf);
 	task->RegisterProxy(this);
 	}
 
@@ -1194,7 +1192,7 @@ IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
 			{
 			if ( ! bundle ) bundle = create_record_dict( );
 			IValue* val = BuildEventValue( args, 0 );
-			char *nme = (char*) alloc_memory( strlen(event_name) + 9 );
+			char *nme = alloc_char( strlen(event_name) + 9 );
 			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
 			bundle->Insert( nme, val );
 			if ( bundle->Length() >= bundle_size )

@@ -255,7 +255,7 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	{							\
 	int is_copy;						\
 	type* args_vec = arg->accessor( is_copy, len );		\
-	type* stor = (type*) alloc_memory( sizeof(type)*len );	\
+	type* stor = (type*) alloc_##type( len );	\
 								\
 	NUMERIC_BUILTIN_ACTION_LOOP(fn)				\
 								\
@@ -293,7 +293,7 @@ IValue* RealBuiltIn::DoCall( const_args_list* args_val )
 		{							\
 		int is_copy;						\
 		int len = v->Length();					\
-		subtype* stor = (subtype*) alloc_memory( sizeof(subtype)*len );\
+		subtype* stor = alloc_##subtype( len );			\
 		type* from = v->accessor( is_copy, len );		\
 		for ( int i = 0; i < len; i++ )				\
 			{						\
@@ -392,7 +392,7 @@ IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( this, " requires a string argument" );
 
 	int len = v->Length();
-	int *ret = (int*) alloc_memory( sizeof(int)*len );
+	int *ret = alloc_int( len );
 	charptr *strs = v->StringPtr(0);
 
 	for ( int i=0; i < len; ++i )
@@ -409,16 +409,16 @@ IValue* WhichIncludeBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( this, " requires a string argument" );
 
 	int len = v->Length();
-	charptr *ret = (charptr*) alloc_memory( sizeof(charptr)*len );
+	char **ret = alloc_charptr( len );
 	charptr *strs = v->StringPtr(0);
 
 	for ( int i=0; i < len; ++i )
 		{
 		char *s = which_include(strs[i]);
-		ret[i] = strdup( s ? s : "" );
+		ret[i] = string_dup( s ? s : "" );
 		}
 
-	return new IValue( ret, len );
+	return new IValue( (charptr*) ret, len );
 	}
 
 IValue* WhichClientBuiltIn::DoCall( const_args_list* args_val )
@@ -429,16 +429,16 @@ IValue* WhichClientBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( this, " requires a string argument" );
 
 	int len = v->Length();
-	charptr *ret = (charptr*) alloc_memory( sizeof(charptr)*len );
+	char **ret = alloc_charptr( len );
 	charptr *strs = v->StringPtr(0);
 
 	for ( int i=0; i < len; ++i )
 		{
 		char *s = which_executable(strs[i]);
-		ret[i] = strdup( s ? s : "" );
+		ret[i] = string_dup( s ? s : "" );
 		}
 
-	return new IValue( ret, len );
+	return new IValue( (charptr*) ret, len );
 	}
 
 IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
@@ -456,7 +456,7 @@ IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( result )
 		{
-		char **ret = (char**) alloc_memory(sizeof(char*));
+		char **ret = alloc_charptr(1);
 		ret[0] = result;
 		return new IValue( (charptr*) ret, 1 );
 		}
@@ -505,7 +505,7 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 		int maxlen = rlen > ilen ? rlen : ilen;			\
 		rettype* r = rv->accessor( r_is_copy, rlen );		\
 		rettype* i = iv->accessor( i_is_copy, ilen );		\
-		type* stor = (type*) alloc_memory( sizeof(type)*maxlen );\
+		type* stor = alloc_##type( maxlen );			\
 		for ( int cnt = 0; cnt < maxlen; ++cnt )		\
 			{						\
 			stor[cnt].r = coerce( r[rscalar ? 0 : cnt] );	\
@@ -563,7 +563,7 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 		int is_copy;						\
 		int vlen = v->Length();					\
 		rettype* vp = v->accessor( is_copy, vlen );		\
-		type* stor = (type*) alloc_memory( sizeof(type)*vlen );	\
+		type* stor = alloc_##type( vlen );			\
 		for ( int cnt = 0; cnt < vlen; ++cnt )			\
 			{						\
 			stor[cnt].r = coerce( vp[cnt] );		\
@@ -689,7 +689,7 @@ IValue* LengthBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( num > 1 )
 		{
-		int* len = (int*) alloc_memory( sizeof(int)*args_val->length() );
+		int* len = alloc_int( args_val->length() );
 		loop_over_list( *args_val, i )
 			len[i] = (*args_val)[i]->Length();
 		return new IValue( len, num );
@@ -781,7 +781,7 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,off,,RANGEBUILTIN_XLATE)			\
 			}						\
 									\
 		}							\
-	type* range = (type*) alloc_memory( sizeof(type)*2 );		\
+	type* range = alloc_##type( 2 );				\
 	range[0] = min_val;						\
 	range[1] = max_val;						\
 									\
@@ -861,7 +861,7 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( "ridiculously large sequence in call to ",
 				this );
 
-	double* result = (double*) alloc_memory( sizeof(double)*num_vals );
+	double* result = alloc_double( num_vals );
 
 	double val = starting_point;
 	for ( int i = 0; i < num_vals; ++i )
@@ -921,7 +921,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 #define REPBUILTIN_ACTION_A(tag,type,accessor,copy_func)			\
 	case tag:								\
 		{								\
-		type* vec = (type*) alloc_memory( sizeof(type)*veclen );	\
+		type* vec = (type*) alloc_##type( veclen );			\
 		type* elm = element->accessor(0);				\
 		for ( LOOPDECL i=0; i < times_len; ++i )			\
 			for ( int j=0; j < times_vec[i]; ++j )			\
@@ -938,7 +938,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		REPBUILTIN_ACTION_A(TYPE_DOUBLE,double,DoublePtr,)
 		REPBUILTIN_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,)
 		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
-		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,strdup)
+		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,string_dup)
 		REPBUILTIN_ACTION_A(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 			default:
@@ -958,7 +958,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	case tag:							\
 		{							\
 		type val = element->accessor();				\
-		type *vec = (type*) alloc_memory( sizeof(type)*len );	\
+		type *vec = (type*) alloc_##type( len );		\
 		for (int i = 0; i < len; i++)				\
 			vec[i] = copy_func(val);			\
 		ret = new IValue( vec, len );				\
@@ -974,7 +974,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_DOUBLE,double,DoubleVal,,)
 			REPBUILTIN_ACTION_B(TYPE_COMPLEX,complex,ComplexVal,,)
 			REPBUILTIN_ACTION_B(TYPE_DCOMPLEX,dcomplex,DcomplexVal,,)
-			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,strdup,free_memory((void*)val);)
+			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,string_dup,free_memory((void*)val);)
 			REPBUILTIN_ACTION_B(TYPE_REGEX,regexptr,RegexVal,new Regex,)
 
 				default:
@@ -995,7 +995,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	case tag:							\
 		{							\
 		type* val = element->accessor(0);			\
-		type* vec = (type*) alloc_memory( sizeof(type)*veclen );\
+		type* vec = (type*) alloc_##type( veclen );		\
 		for ( int j = 0; j < repl; ++j )			\
 			for ( int i = 0; i < e_len; ++i )		\
 				vec[off++] =  copy_func(val[i]);	\
@@ -1011,7 +1011,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	REPBUILTIN_ACTION_C(TYPE_DOUBLE,double,DoublePtr,)
 	REPBUILTIN_ACTION_C(TYPE_COMPLEX,complex,ComplexPtr,)
 	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
-	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,strdup)
+	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,string_dup)
 	REPBUILTIN_ACTION_C(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 				default:
@@ -1103,7 +1103,7 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 			ret = new IValue( (int) random_long() );
 		else
 			{
-			int *ival = (int*) alloc_memory( sizeof(int)*arg1 );
+			int *ival = alloc_int( arg1 );
 			for ( int i = arg1 - 1; i >= 0; i-- )
 				ival[i] = (int) random_long();
 
@@ -1136,7 +1136,7 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 
 #define XBIND_ALLOC_PTR(tag, type)					\
 	case tag:							\
-		result = alloc_memory( sizeof(type)*(cols*rows) );	\
+		result = alloc_##type( cols*rows );			\
 		break;
 
 #define XBIND_PLACE_ACTION(tag,type,array,to,from,access,conv)		\
@@ -1370,7 +1370,7 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 									\
 	if ( result_value )						\
 		{							\
-		int *newshape = (int*) alloc_memory( sizeof(int)*2 );	\
+		int *newshape = alloc_int( 2 );				\
 		newshape[ROWS] = rows;					\
 		newshape[COLS] = cols;					\
 		result_value->AssignAttribute( "shape", 		\
@@ -1517,19 +1517,19 @@ IValue* TrBuiltIn::DoCall( const_args_list* args_val )
 	charptr *src = src_v->StringPtr();
 	int src_len = src_v->Length();
 
-	charptr *ret = (charptr*) alloc_memory( src_len * sizeof(charptr));
+	char **ret = alloc_charptr( src_len );
 	
 	for ( register int i=0; i < src_len; ++i )
 		{
 		int len = strlen(src[i]);
-		char *ns = (char*) alloc_memory( len+1 );
+		char *ns = alloc_char( len+1 );
 		int j=0;
 		for ( ; j < len; ++j ) ns[j] = map[src[i][j]];
 		ns[j] = '\0';
-		ret[i] = (charptr) ns;
+		ret[i] = ns;
 		}
 
-	return new IValue( ret, src_len );
+	return new IValue( (charptr*) ret, src_len );
 	}
 
 IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
@@ -1540,7 +1540,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	// First argument gives separator string.
 	char* separator = (*args_val)[0]->StringVal();
 
-	charptr* string_vals = 0;
+	char** string_vals = 0;
 
 	int len = 1;	// Room for end-of-string.
 	int sep_len = strlen( separator );
@@ -1548,7 +1548,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	int i = 1;
 	if ( args_val->length() != 2 || (*args_val)[1]->VecRefDeref()->Type() != TYPE_STRING )
 		{
-		string_vals = (charptr*) alloc_memory( sizeof(charptr)*args_val->length() );
+		string_vals = alloc_charptr( args_val->length() );
 		for ( ; i < args_val->length(); ++i )
 			{
 			unsigned int limit = (*args_val)[i]->PrintLimit();
@@ -1563,10 +1563,10 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 			{
 			charptr *strs = val->StringPtr(0);
 			int xlen = val->Length();
-			string_vals = (charptr*) alloc_memory( sizeof(charptr)*(xlen+1) );
+			string_vals = alloc_charptr( xlen+1 );
 			for ( ; i < xlen+1; ++i )
 				{
-				string_vals[i] = strdup(strs[i-1]);
+				string_vals[i] = string_dup(strs[i-1]);
 				len += strlen( string_vals[i] ) + sep_len;
 				}
 			}
@@ -1574,7 +1574,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 			{
 			VecRef* ref = val->VecRefPtr();
 			int xlen = ref->Length();
-			string_vals = (charptr*) alloc_memory( sizeof(charptr)*(xlen+1) );
+			string_vals = alloc_charptr( xlen+1 );
 			IValue* theVal = (IValue*) ref->Val();
 			charptr *strs = theVal->StringPtr(0);
 			int err = 0;
@@ -1582,7 +1582,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 				{
 				int off = ref->TranslateIndex( i-1, &err );
 				if ( err ) return (IValue*) Fail("paste");
-				string_vals[i] = strdup(strs[off]);
+				string_vals[i] = string_dup(strs[off]);
 				len += strlen( string_vals[i] ) + sep_len;
 				}
 			}
@@ -1590,7 +1590,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 			
 		}
 
-	char* paste_val = (char*) alloc_memory( sizeof(char)*(len+1) );
+	char* paste_val = alloc_char( len+1 );
 	paste_val[0] = '\0';
 
 	for ( int j = 1; j < i; ++j )
@@ -1606,10 +1606,10 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	free_memory( string_vals );
 	free_memory( separator );
 
-	charptr* result = (charptr*) alloc_memory( sizeof(charptr) );
+	char** result = alloc_charptr( 1 );
 	result[0] = paste_val;
 
-	return new IValue( result, 1 );
+	return new IValue( (charptr*) result, 1 );
 	}
 
 IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
@@ -1643,11 +1643,12 @@ IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	{
-	struct mallinfo info = mallinfo();
-	recordptr rec = create_record_dict();
-	rec->Insert(strdup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
-	rec->Insert(strdup("unused"),new IValue(info.fordblks + info.fsmblks));
-	return new IValue( rec );
+// 	struct mallinfo info = mallinfo();
+// 	recordptr rec = create_record_dict();
+// 	rec->Insert(string_dup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
+// 	rec->Insert(string_dup("unused"),new IValue(info.fordblks + info.fsmblks));
+// 	return new IValue( rec );
+	return new IValue( glish_false );
 	}
 
 IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
@@ -1663,7 +1664,7 @@ IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
 		int len = val->Length();
 		if ( len > 1 )
 			{
-			glish_bool *ret = (glish_bool*) alloc_memory( sizeof(glish_bool)*len );
+			glish_bool *ret = alloc_glish_bool( len );
 			switch( type )
 				{
 #define ISNAN_ACTION(tag,type,accessor,extra) 		\
@@ -1728,7 +1729,7 @@ IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
 	if ( len == 0 )
 		return (IValue*) Fail( "open() invoked with no arguments" );
 
-	fileptr *ret = (fileptr*) alloc_memory( sizeof(fileptr) * len );
+	fileptr *ret = alloc_fileptr( len );
 	loop_over_list( *args_val, i )
 		{
 		char* filename = (*args_val)[i]->StringVal();
@@ -1773,10 +1774,10 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( type == 'c' )
 		{
-		charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr));
+		char **rstrs = alloc_charptr( 1 );
 		rstrs[0] = file->read_chars( num );
 		if ( rstrs[0] )
-			result = new IValue( rstrs, 1 );
+			result = new IValue( (charptr*) rstrs, 1 );
 		else
 			{
 			free_memory(rstrs);
@@ -1794,12 +1795,12 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	else
 		{
 		int i=1;
-		charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
+		char **rstrs = alloc_charptr( num );
 		rstrs[0] = file->read_line();
 		for (; rstrs[i-1] && i < num; ++i)
 			rstrs[i] = file->read_line();
 		if ( rstrs[0] )
-			result = new IValue( rstrs, rstrs[i-1] ? i : i-1 );
+			result = new IValue( (charptr*) rstrs, rstrs[i-1] ? i : i-1 );
 		else
 			{
 			free_memory(rstrs);
@@ -1861,7 +1862,7 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( pat_val->Type() != TYPE_STRING || len == 1 )
 		{
-		char **ary = (char**) alloc_memory( sizeof(char*) * len );
+		char **ary = alloc_charptr( len );
 		for ( int j=0; j < len; ++j )
 			ary[j] = (*args_val)[j]->StringVal();
 		return new IValue( (charptr*) ary, len );
@@ -1875,7 +1876,7 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 
 	if ( minlen <= 0 )
 		{
-		char **ary = (char**) alloc_memory( sizeof(char*) * len );
+		char **ary = alloc_charptr( len );
 		for ( int j=0; j < len; ++j )
 			ary[j] = (*args_val)[j]->StringVal();
 		return new IValue( (charptr*) ary, len );
@@ -1916,7 +1917,7 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 	bytes = bytes < 0 ? 0 : bytes > 2048 ? 2048 : bytes;
 	char *buf = 0;
 
-	if ( bytes ) buf = (char*) alloc_memory( bytes + 1 );
+	if ( bytes ) buf = alloc_char( bytes + 1 );
 
 	struct stat sbuf;
 	int length = file_val->Length();
@@ -1927,7 +1928,7 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 		if ( (follow ? stat( files[i], &sbuf ) : lstat( files[i], &sbuf )) < 0 )
 			{
 			cur = create_record_dict( );
-			if ( rec ) rec->Insert( strdup(files[i]), new IValue(cur) );
+			if ( rec ) rec->Insert( string_dup(files[i]), new IValue(cur) );
 			continue;
 			}
 
@@ -1938,7 +1939,7 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 				{
 				int fd = open( files[i], O_RDONLY, 0644 );
 				if ( fd < 0 )
-					cur->Insert(strdup("type"), new IValue( "regular" ));
+					cur->Insert(string_dup("type"), new IValue( "regular" ));
 				else
 					{
 					int ascii = 1;
@@ -1948,48 +1949,48 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 							{ ascii = 0; break; }
 
 					if ( ascii )
-						cur->Insert(strdup("type"), new IValue( "ascii" ));
+						cur->Insert(string_dup("type"), new IValue( "ascii" ));
 					else
-						cur->Insert(strdup("type"), new IValue( "regular" ));
+						cur->Insert(string_dup("type"), new IValue( "regular" ));
 					close( fd );
 					}
 				}
 			else
-				cur->Insert(strdup("type"), new IValue( "regular" ));
+				cur->Insert(string_dup("type"), new IValue( "regular" ));
 			}
 		else if ( S_ISDIR(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "directory" ));
+			cur->Insert(string_dup("type"), new IValue( "directory" ));
 		else if ( S_ISCHR(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "character special" ));
+			cur->Insert(string_dup("type"), new IValue( "character special" ));
 		else if ( S_ISBLK(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "block special" ));
+			cur->Insert(string_dup("type"), new IValue( "block special" ));
 		else if ( S_ISFIFO(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "fifo" ));
+			cur->Insert(string_dup("type"), new IValue( "fifo" ));
 #ifdef S_ISLNK
 		else if ( S_ISLNK(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "symbolic link" ));
+			cur->Insert(string_dup("type"), new IValue( "symbolic link" ));
 #endif
 #ifdef S_ISSOCK
 		else if ( S_ISSOCK(sbuf.st_mode) )
-			cur->Insert(strdup("type"), new IValue( "socket" ));
+			cur->Insert(string_dup("type"), new IValue( "socket" ));
 #endif
 		else
-			cur->Insert(strdup("type"), new IValue( "unknown" ));
+			cur->Insert(string_dup("type"), new IValue( "unknown" ));
 
-		cur->Insert(strdup("inode"), new IValue( (int) sbuf.st_ino ));
+		cur->Insert(string_dup("inode"), new IValue( (int) sbuf.st_ino ));
 
 		if ( S_ISREG(sbuf.st_mode ) )
-			cur->Insert(strdup("size"), new IValue( (int) sbuf.st_size ));
+			cur->Insert(string_dup("size"), new IValue( (int) sbuf.st_size ));
 		else
-			cur->Insert(strdup("size"), new IValue( 0 ));
+			cur->Insert(string_dup("size"), new IValue( 0 ));
 
 		recordptr timrec = create_record_dict( );
-		timrec->Insert(strdup("access"), new IValue((int) sbuf.st_atime));
-		timrec->Insert(strdup("modify"), new IValue((int) sbuf.st_mtime));
-		timrec->Insert(strdup("change"), new IValue((int) sbuf.st_atime));
-		cur->Insert(strdup("time"), new IValue( timrec ));
+		timrec->Insert(string_dup("access"), new IValue((int) sbuf.st_atime));
+		timrec->Insert(string_dup("modify"), new IValue((int) sbuf.st_mtime));
+		timrec->Insert(string_dup("change"), new IValue((int) sbuf.st_atime));
+		cur->Insert(string_dup("time"), new IValue( timrec ));
 
-		if ( rec ) rec->Insert( strdup(files[i]), new IValue(cur) );
+		if ( rec ) rec->Insert( string_dup(files[i]), new IValue(cur) );
 		}
 
 	return new IValue( rec ? rec : cur );
@@ -2153,7 +2154,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 			func = func_val->FuncVal();
 
 	int cnt = 0;
-	charptr *name_ary = (charptr*) alloc_memory( sizeof(charptr)*scope->Length() );
+	char **name_ary = alloc_charptr( scope->Length() );
 	IterCookie *c = scope->InitForIteration();
 	const Expr *member;
 	const char *key;
@@ -2177,8 +2178,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 				}
 			if ( ! func || flag )
 				{
-				name_ary[cnt] = (char*) alloc_memory( sizeof(char)*
-								      (strlen(key)+1) );
+				name_ary[cnt] = alloc_char( strlen(key)+1 );
 				strcpy((char*) name_ary[cnt++], key);
 				}
 			}
@@ -2202,19 +2202,19 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 		recordptr rptr = create_record_dict();
 		for ( int i = 0; i < str->Length(); i++ )
 			{
-			Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+			Expr *exp = sequencer->LookupID( string_dup(strs[i]), GLOBAL_SCOPE, 0, 0);
 			if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
 				{
 				IValue *val = exp->CopyEval();
 				if ( val )
-					rptr->Insert( strdup(strs[i]), val );
+					rptr->Insert( string_dup(strs[i]), val );
 				}
 			}
 		ret = new IValue( rptr );
 		}
 	else
 		{
-		Expr *exp = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 0, 0);
+		Expr *exp = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 0, 0);
 		if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
 			ret = exp->CopyEval();
 		}
@@ -2259,7 +2259,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		c = rptr->InitForIteration();
 		while ( (member = (IValue*)(rptr->NextEntry( key, c ))) )
 			{
-			Expr *id = sequencer->LookupID( strdup(key), GLOBAL_SCOPE, 1, 0 );
+			Expr *id = sequencer->LookupID( string_dup(key), GLOBAL_SCOPE, 1, 0 );
 			id->Assign( copy_value(member) );
 			}
 		}
@@ -2271,7 +2271,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		charptr *strs = arg1->StringPtr(0);
 		if ( valid_symbol_name(strs[0]) )
 			{
-			Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
+			Expr *id = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 1, 0 );
 			id->Assign( copy_value( arg2 ) );
 			}
 		else
@@ -2309,10 +2309,10 @@ IValue* IsDefinedBuiltIn::DoCall( const_args_list *args_val )
 	int len;
 	if ( (len = str->Length()) > 1 )
 		{
-		glish_bool *ret_ary = (glish_bool*) alloc_memory(sizeof(glish_bool)*len);
+		glish_bool *ret_ary = alloc_glish_bool( len );
 		for ( int i = 0; i < len; i++ )
 			{
-			Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+			Expr *exp = sequencer->LookupID( string_dup(strs[i]), GLOBAL_SCOPE, 0, 0);
 			if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
 				ret_ary[i] = glish_true;
 			else
@@ -2322,7 +2322,7 @@ IValue* IsDefinedBuiltIn::DoCall( const_args_list *args_val )
 		}
 	else
 		{
-		Expr *exp = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 0, 0);
+		Expr *exp = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 0, 0);
 		ret = new IValue( exp && ((VarExpr*)exp)->Access() == USE_ACCESS ? glish_true : glish_false );
 		}
 
@@ -2338,13 +2338,17 @@ IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return copy_value( cur->Missing() );
 	}
 
-#ifdef GGC
-IValue* GarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CollectGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
-	sequencer->CollectGarbage( );
+	GC_gcollect( );
 	return new IValue( glish_true );
 	}
-#endif
+
+IValue* DumpGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
+	{
+	GC_dump( );
+	return new IValue( glish_true );
+	}
 
 IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -2362,7 +2366,7 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 	IValue *result = 0;
 	if ( len )
 		{
-		char **lines = (char**) alloc_memory( sizeof(char*)*(len+1) );
+		char **lines = alloc_charptr( len+1 );
 
 		loop_over_list( *args_val, i )
 			lines[i] = (*args_val)[i]->StringVal();
@@ -2399,7 +2403,7 @@ IValue* name( const IValue* arg )					\
 	if ( arg->Type() == TYPE_STRING )				\
 		{							\
 		const charptr* strings = arg->StringPtr(0);		\
-		type* result = (type*) alloc_memory( sizeof(type)*len );\
+		type* result = alloc_##type( len );			\
 									\
 		for ( int i = 0; i < len; ++i )				\
 			result[i] = stringcvt( strings[i] );		\
@@ -2453,7 +2457,7 @@ IValue* as_byte_built_in( const IValue* arg )
 		{
 		char* arg_str = arg->StringVal();
 		int len = strlen( arg_str );
-		byte* result = (byte*) alloc_memory( sizeof(byte)*len );
+		byte* result = alloc_byte( len );
 
 		for ( int i = 0; i < len; ++i )
 			result[i] = byte(arg_str[i]);
@@ -2481,9 +2485,9 @@ IValue* as_byte_built_in( const IValue* arg )
 
 IValue* as_evalstr_built_in( const IValue* arg )
 	{
-	charptr *res = (charptr*) alloc_memory(sizeof(charptr));
+	char **res = alloc_charptr( 1 );
 	res[0] = arg->StringVal( ' ', 0, 0, 1 );
-	return new IValue( res, 1 );
+	return new IValue( (charptr*) res, 1 );
 	}
 
 IValue* as_string_built_in( const IValue* arg )
@@ -2496,7 +2500,7 @@ IValue* as_string_built_in( const IValue* arg )
 	//
 	if ( arg->Type() == TYPE_RECORD )
 		{
-		char **ptr = (char**) alloc_memory( sizeof(char*) );
+		char **ptr = alloc_charptr( 1 );
 		ptr[0] = arg->StringVal();
 		return new IValue( (charptr*) ptr, 1 );
 		}
@@ -2517,7 +2521,7 @@ IValue* as_string_built_in( const IValue* arg )
 	if ( arg->Type() == TYPE_BYTE )
 		{
 		byte* vals = arg->BytePtr(0);
-		char* s = (char*) alloc_memory( sizeof(char)*(len+1) );
+		char* s = alloc_char( len+1 );
 
 		int i = 0;
 		for ( ; i < len; ++i )
@@ -2534,11 +2538,11 @@ IValue* as_string_built_in( const IValue* arg )
 	if ( arg->Type() == TYPE_REGEX )
 		{
 		regexptr *regs = arg->RegexPtr(0);
-		char** s = (char**) alloc_memory( sizeof(char*)*len );
+		char** s = alloc_charptr( len );
 
 		int i = 0;
 		for ( ; i < len; ++i )
-			s[i] = strdup(regs[i]->Description( ));
+			s[i] = string_dup(regs[i]->Description( ));
 
 		IValue* result = new IValue( (charptr*) s, len );
 		return result;
@@ -2547,7 +2551,7 @@ IValue* as_string_built_in( const IValue* arg )
 	if ( ! arg->IsNumeric() && arg->Type() != TYPE_REGEX )
 		return (IValue*) Fail( "non-numeric argument to as_string()" );
 
-	charptr* result = (charptr*) alloc_memory( sizeof(charptr)*len );
+	char **result = alloc_charptr( len );
 	int i;
 	char buf[256];
 
@@ -2577,7 +2581,7 @@ IValue* as_string_built_in( const IValue* arg )
 			{						\
 			XLATE						\
 			sprintf( buf, format, vals[INDX] rest );	\
-			result[i] = strdup( buf );			\
+			result[i] = string_dup( buf );			\
 			}						\
 		}							\
 		break;
@@ -2604,7 +2608,7 @@ IValue* as_string_built_in( const IValue* arg )
 			{
 			glish_bool* vals = arg->BoolPtr(0);
 			for ( i = 0; i < len; ++i )
-				result[i] = strdup( vals[i] ? "T" : "F" );
+				result[i] = string_dup( vals[i] ? "T" : "F" );
 			}
 			break;
 
@@ -2622,7 +2626,7 @@ IValue* as_string_built_in( const IValue* arg )
 					for ( i = 0; i < len; ++i )
 						{
 						COERCE_XXX_TO_STRING_SUBVECREF_XLATE
-						result[i] = strdup( vals[index] ? "T" : "F" );
+						result[i] = string_dup( vals[index] ? "T" : "F" );
 						}
 					}
 					break;
@@ -2640,7 +2644,7 @@ IValue* as_string_built_in( const IValue* arg )
 			fatal->Report( "bad type tag in as_string()" );
 		}
 
-	return new IValue( result, len );
+	return new IValue( (charptr*) result, len );
 	}
 
 
@@ -2690,7 +2694,7 @@ IValue* field_names_built_in( const IValue* arg )
 	recordptr record_dict = arg->RecordPtr(0);
 	int len = record_dict->Length();
 
-	charptr* names = (charptr*) alloc_memory( sizeof(charptr)*len );
+	char **names = alloc_charptr( len );
 	const char* key;
 
 	int i = 0;
@@ -2700,10 +2704,10 @@ IValue* field_names_built_in( const IValue* arg )
 		if ( ! nth_val )
 			fatal->Report(
 				"bad record in field_names_built_in" );
-		names[i] = strdup( key );
+		names[i] = string_dup( key );
 		}
 
-	return new IValue( names, i );
+	return new IValue( (charptr*) names, i );
 	}
 
 
@@ -2842,9 +2846,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new TrBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
 
-#ifdef GGC
-	s->AddBuiltIn( new GarbageBuiltIn( s ) );
-#endif
+	s->AddBuiltIn( new CollectGarbageBuiltIn( s ) );
+	s->AddBuiltIn( new DumpGarbageBuiltIn( s ) );
 
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );

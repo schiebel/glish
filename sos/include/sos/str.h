@@ -13,11 +13,11 @@
 #include <unistd.h>
 #include <string.h>
 
-class str_kernel {
+class str_kernel : public gc_cleanup {
 public:
 	str_kernel( unsigned int size_ = 0 ) : cnt(1), size(size_ ? size_ : 1)
-		{ ary = (char**) sos_alloc_zero_memory(size*sizeof(char*));
-		  len = (unsigned int*) sos_alloc_zero_memory(size*sizeof(unsigned int)); }
+		{ ary = (char**) alloc_zero_memory(size*sizeof(char*));
+		  len = (unsigned int*) alloc_zero_memory(size*sizeof(unsigned int)); }
 
 	str_kernel( const char * );
 
@@ -50,7 +50,7 @@ protected:
 	unsigned int *len;
 };
 
-class str_ref {
+class str_ref : public gc_cleanup {
 friend class str;
 friend unsigned int strlen( const str_ref & );
 public:
@@ -68,7 +68,7 @@ private:
 	unsigned int off;
 };
 
-class str {
+class str : public gc_cleanup {
 friend class str_ref;
 friend unsigned int strlen( const str_ref & );
 public:

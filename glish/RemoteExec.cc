@@ -20,21 +20,21 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel, const char* arg_executable,
     : Executable( arg_executable )
 	{
 	daemon_channel = arg_daemon_channel;
-	name = arg_name ? strdup( arg_name ) : 0;
+	name = arg_name ? string_dup( arg_name ) : 0;
 
 	char id_buf[64];
 	static int remote_exec_id = 0;
 
 	sprintf( id_buf, "remote task %d", ++remote_exec_id );
-	id = strdup( id_buf );
+	id = string_dup( id_buf );
 
 	int argc = 0;
 	while ( argv[argc] ) ++argc;
 
 	recordptr rec = create_record_dict();
-	rec->Insert( strdup("name"), create_value( arg_name ? arg_name : arg_executable ) );
-	rec->Insert( strdup("argv"), create_value( argv, argc, COPY_ARRAY ) );
-	rec->Insert( strdup("id"), create_value( id ) );
+	rec->Insert( string_dup("name"), create_value( arg_name ? arg_name : arg_executable ) );
+	rec->Insert( string_dup("argv"), create_value( argv, argc, COPY_ARRAY ) );
+	rec->Insert( string_dup("id"), create_value( id ) );
 	Value param( rec );
 	send_event( daemon_channel->Sink(), "client", &param );
 	}

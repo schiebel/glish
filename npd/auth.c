@@ -66,7 +66,7 @@ int create_userkeyfile( const char *dir )
 
 	write_encoded_binary( key_f, user_key, DEFAULT_KEY_SIZE );
 	fclose( key_f );
-	my_free( user_key );
+	free_memory( user_key );
 
 	return 1;
 	}
@@ -116,7 +116,7 @@ static unsigned char *get_key( const char *dir, const char *host,
 	if ( host_len < MD5_DIGEST_SIZE )
 		{
 		sprintf( errmsg, "host key too small (%d bytes)", host_len );
-		my_free( host_key );
+		free_memory( host_key );
 		return 0;
 		}
 
@@ -144,53 +144,53 @@ static unsigned char *get_key( const char *dir, const char *host,
 	if ( host_len != user_len )
 		{
 		sprintf( errmsg, "host key length (%d) != user key length (%d)",host_len,user_len);
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	if ( ! (id = get_file_owner(key_file)) )
 		{
 		sprintf( errmsg, "couldn't determine the ownership of \"%s\"", key_file );
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	if ( ! (nme = get_username(id)) )
 		{
 		sprintf( errmsg, "couldn't get the username for uid %d", id );
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	if ( strcmp( nme, user ) )
 		{
 		sprintf( errmsg, "key file ownership problem (not owned by %s)", user );
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	if ( ! is_regfile_protected(key_file) )
 		{
 		sprintf( errmsg, "key file ownership problem, has world/group access or not regular file" );
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	if ( user_len < MD5_DIGEST_SIZE )
 		{
 		sprintf( errmsg, "user key too small (%d bytes)", user_len );
-		my_free( host_key );
-		my_free( user_key );
+		free_memory( host_key );
+		free_memory( user_key );
 		return 0;
 		}
 
 	xor_together( host_key, user_key, host_len );
-	my_free( user_key );
+	free_memory( user_key );
 	*len_p = host_len;
 
 	return host_key;
@@ -205,7 +205,7 @@ static unsigned char *compute_MD5( unsigned char *b, int n, int *len_p )
 	MD5_CTX context;
 
 	*len_p = MD5_DIGEST_SIZE;
-	digest = (unsigned char *) my_alloc( *len_p );
+	digest = (unsigned char *) alloc_char( *len_p );
 	if ( ! digest )
 		{
 		strcpy( errmsg, "no memory for MD5 digest" );
@@ -239,10 +239,10 @@ unsigned char *compose_challenge( const char *dir, const char *host,
 	write_encoded_binary( f, challenge, n );
 
 	xor_together( challenge, key, n );
-	my_free( key );
+	free_memory( key );
 
 	answer = compute_MD5( challenge, n, len_p );
-	my_free( challenge );
+	free_memory( challenge );
 
 	return answer;
 	}
@@ -268,10 +268,10 @@ int answer_challenge( const char *dir, const char *host, const char *user,
 
 	xor_together( key, challenge, n );
 	answer = compute_MD5( key, n, &n );
-	my_free( key );
+	free_memory( key );
 
 	write_encoded_binary( f, answer, n );
-	my_free( answer );
+	free_memory( answer );
 
 	return 1;
 	}

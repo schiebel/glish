@@ -38,8 +38,8 @@ MKHIER = $(top)/config/mkhier
 INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
-LIBS = malloc.o $(CLIENT_LIBS) @LIBS@
+GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+LIBS = $(CLIENT_LIBS) @LIBS@
 
 CLIENTS = \
 	$(BINDIR_P)/tproxy \
@@ -209,9 +209,6 @@ $(BINDIR_P)/multiplexer: multiplexer
 $(BINDIR)/multiplexer: multiplexer
 	$(INSTALL_PROGRAM) multiplexer $(BINDIR)
 #	strip $(BINDIR)/multiplexer
-
-malloc.o: $(GLISH_SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

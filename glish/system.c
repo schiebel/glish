@@ -122,7 +122,7 @@ char* local_socket_name( int sock )
 	if ( getsockname( sock, (struct sockaddr*) &addr, &len ) < 0 )
 		pgripe( "getsockname() failed in local_socket_name()" );
 
-	return strdup( addr.sun_path );
+	return string_dup( addr.sun_path );
 	}
 
 
@@ -360,7 +360,7 @@ char *canonic_path( const char *path_in )
 		}
 
 	*nptr = '\0';
-	return strdup(newpath);
+	return string_dup(newpath);
 
 #else
 	return 0;
@@ -401,7 +401,7 @@ int send_fd( int pipe, int fd )
 	msg.msg_accrights = (caddr_t) &fd;
 	msg.msg_accrightslen = sizeof(int);
 #else
-	if ( cmptr == 0 && (cmptr = (struct cmsghdr *) calloc(CONTROLLEN,1)) == NULL )
+	if ( cmptr == 0 && (cmptr = (struct cmsghdr *) alloc_zero_memory(CONTROLLEN)) == NULL )
 		return -1;
 	cmptr->cmsg_level = SOL_SOCKET;
 	cmptr->cmsg_type = SCM_RIGHTS;
@@ -439,7 +439,7 @@ int recv_fd( int pipe )
 	msg.msg_accrights = (caddr_t) &newfd;
 	msg.msg_accrightslen = sizeof(int);
 #else
-	if ( ! cmptr && ! (cmptr = (struct cmsghdr *) malloc(CONTROLLEN)) )
+	if ( ! cmptr && ! (cmptr = (struct cmsghdr *) alloc_memory(CONTROLLEN)) )
 		return -1;
 	msg.msg_control = (caddr_t) cmptr;
 	msg.msg_controllen = CONTROLLEN;
@@ -882,7 +882,7 @@ const char* local_host_name()
 	}
 
 #ifndef HAVE_STRDUP
-char *strdup( const char *str )
+char *string_dup( const char *str )
 	{
 	int str_length = strlen( str );
 	char *tmp_str = (char*) alloc_memory(str_length + 1);

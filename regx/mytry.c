@@ -13,7 +13,7 @@
 */
 PMOP pm;
 main() {
-    char *regex = strdup("\\S+?(\\d+)$");
+    char *regex = string_dup("\\S+?(\\d+)$");
     char buf[2048];
     char obuf[1024];
     int i;
@@ -25,7 +25,7 @@ main() {
     	{
 	if ( buf[0] == '#' )
 	    {
-	    regex = strdup( &buf[1] );
+	    regex = string_dup( &buf[1] );
 	    printf("new exp>\t%s\n",regex);
 	    r = pregcomp(regex,regex+strlen(regex),&pm);
 	    gets( buf );

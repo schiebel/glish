@@ -5,7 +5,7 @@
 #define object_h
 #include "Glish/Str.h"
 #include "Glish/List.h"
-#include "sos/ref.h"
+#include "gcmem/ref.h"
 
 // GlishObject is the root of the class hierarchy.  GlishObjects know how to
 // describe themselves.
@@ -24,9 +24,9 @@ extern RMessage EndMessage;
 extern Str glish_errno;
 
 typedef const char* charptr;
-typedef SosRef GlishRef;
+typedef GcRef GlishRef;
 
-class ioOpt {
+class ioOpt : public gc_cleanup {
     public:
 	inline static unsigned short SHORT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
 	inline static unsigned short NO_NEWLINE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }

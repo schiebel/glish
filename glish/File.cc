@@ -17,7 +17,7 @@ File::File( const char *str_ ) : str(0), desc(0), in(0), out(0)
 	{
 	if ( !str_ || !str_[0] ) return;
 
-	str = strdup(str_);
+	str = string_dup(str_);
 
 	int len = strlen(str);
 
@@ -68,7 +68,7 @@ char *File::read_line( )
 	int l = strlen(buf);
 
 	int len = l+1;
-	char *ret = (char*) alloc_memory( len );
+	char *ret = alloc_char( len );
 	memcpy( ret, buf, l+1 );
 
 	while ( ! feof( in ) && ret[len-2] != '\n' )
@@ -89,7 +89,7 @@ char *File::read_chars( int num )
 	     ! in || feof(in) ) return 0;
 
 
-	char *ret = (char*) alloc_memory( num+1 );
+	char *ret = alloc_char( num+1 );
 	int len = 0;
 
 	if ( (len = read( fileno(in), ret, num )) > 0 )
@@ -110,7 +110,7 @@ byte *File::read_bytes( int &num )
 	     ! in || feof(in) ) return 0;
 
 
-	byte *ret = (byte*) alloc_memory( num );
+	byte *ret = alloc_byte( num );
 	int len = 0;
 
 	if ( (len = read( fileno(in), ret, num )) > 0 )
@@ -183,7 +183,7 @@ char *File::clean_string( )
 	if ( ! buffer )
 		{
 		buffer_len = 1024;
-		buffer = (char*) alloc_memory( 1024 );
+		buffer = alloc_char( 1024 );
 		}
 
 	const char *start = str;
@@ -238,7 +238,7 @@ const char *File::Description( ) const
 	{
 	if ( desc ) return desc;
 
-	((File*)this)->desc = (char*) alloc_memory( strlen(str) + 9);
+	((File*)this)->desc = alloc_char( strlen(str) + 9);
 
 	sprintf(((File*)this)->desc, "<FILE: %s>", str);
 

@@ -157,7 +157,7 @@ Selector::Selector() : await_done(0), break_selection(0)
 	max_num_fds = 32;
 #endif
 
-	selectees = (Selectee**) alloc_memory( sizeof(Selectee*)*max_num_fds );
+	selectees = alloc_Selecteeptr( max_num_fds );
 
 	for ( int i = 0; i < max_num_fds; ++i )
 		selectees[i] = 0;

@@ -23,7 +23,7 @@ class ProxyId;
 
 extern ProxyId glish_proxyid_dummy;
 
-class EventContext {
+class EventContext : public gc_cleanup {
 public:
 	EventContext(const char *client_name_ = 0, const char *context_ = 0 );
 	EventContext(const EventContext &c);
@@ -113,7 +113,7 @@ class EventSource : public GlishObject {
 	};
 
 
-class ProxyId {
+class ProxyId : public gc_cleanup {
     public:
 	ProxyId( ) { ary[0]=ary[1]=ary[2]=0; }
 	ProxyId( int interp_, int task_, int id_ )
@@ -184,7 +184,7 @@ class AcceptSocket;
 extern int glish_timedoutdummy;
 extern EventContext glish_ec_dummy;
 
-class Client {
+class Client : public gc_cleanup {
     public:
 	//
 	//  The "Type" describes how the client is shared by glish users
