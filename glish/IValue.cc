@@ -489,7 +489,6 @@ void IValue::DescribeSelf( ostream& s ) const
 		Value::DescribeSelf( s );
 	}
 
-#if 1
 IValue *copy_value( const IValue *value )
 	{
 	if ( value->IsRef() )
@@ -514,8 +513,6 @@ IValue *copy_value( const IValue *value )
 		case TYPE_RECORD:
 			if ( value->IsAgentRecord() )
 				{
-				warn->Report(
-		"cannot copy agent record value; returning reference instead" );
 				copy = new IValue( (Value*) value, VAL_REF );
 				copy->CopyAttributes( value );
 				}
@@ -562,101 +559,6 @@ IValue *copy_value( const IValue *value )
 
 	return copy;
 	}
-#else
-IValue* copy_value( const IValue* value )
-	{
-	if ( value->IsRef() )
-		return copy_value( (const IValue*) value->RefPtr() );
-
-	IValue* copy;
-	switch ( value->Type() )
-		{
-#define COPY_VALUE(tag,accessor)					\
-	case tag:							\
-		copy = new IValue( value->accessor, value->Length(),	\
-					COPY_ARRAY );			\
-		break;
-
-COPY_VALUE(TYPE_BOOL,BoolPtr())
-COPY_VALUE(TYPE_BYTE,BytePtr())
-COPY_VALUE(TYPE_SHORT,ShortPtr())
-COPY_VALUE(TYPE_INT,IntPtr())
-COPY_VALUE(TYPE_FLOAT,FloatPtr())
-COPY_VALUE(TYPE_DOUBLE,DoublePtr())
-COPY_VALUE(TYPE_COMPLEX,ComplexPtr())
-COPY_VALUE(TYPE_DCOMPLEX,DcomplexPtr())
-COPY_VALUE(TYPE_STRING,StringPtr())
-COPY_VALUE(TYPE_FUNC,FuncPtr())
-
-		case TYPE_AGENT:
-			copy = new IValue( value->AgentVal() );
-			break;
-
-		case TYPE_RECORD:
-			{
-			if ( value->IsAgentRecord() )
-				{
-				warn->Report(
-		"cannot copy agent record value; returning reference instead" );
-				return new IValue( (Value*) value, VAL_REF );
-				}
-
-			recordptr rptr = value->RecordPtr();
-			recordptr new_record = create_record_dict();
-
-			for ( int i = 0; i < rptr->Length(); ++i )
-				{
-				const char* key;
-				Value* member = rptr->NthEntry( i, key );
-
-				new_record->Insert( strdup( key ),
-							copy_value( (IValue*) member ) );
-				}
-
-			copy = new IValue( new_record );
-			break;
-			}
-
-		case TYPE_OPAQUE:
-			{
-			// _AIX requires a temporary
-			SDS_Index tmp(value->SDS_IndexVal());
-			copy = new IValue( tmp );
-			}
-			break;
-
-		case TYPE_SUBVEC_REF:
-			switch ( value->VecRefPtr()->Type() )
-				{
-#define COPY_REF(tag,accessor)						\
-	case tag:							\
-		copy = new IValue( value->accessor ); 			\
-		break;
-
-				COPY_REF(TYPE_BOOL,BoolRef())
-				COPY_REF(TYPE_BYTE,ByteRef())
-				COPY_REF(TYPE_SHORT,ShortRef())
-				COPY_REF(TYPE_INT,IntRef())
-				COPY_REF(TYPE_FLOAT,FloatRef())
-				COPY_REF(TYPE_DOUBLE,DoubleRef())
-				COPY_REF(TYPE_COMPLEX,ComplexRef())
-				COPY_REF(TYPE_DCOMPLEX,DcomplexRef())
-				COPY_REF(TYPE_STRING,StringRef())
-
-				default:
-					fatal->Report(
-						"bad type in copy_value()" );
-				}
-			break;
-
-		default:
-			fatal->Report( "bad type in copy_value()" );
-		}
-
-	copy->CopyAttributes( value );
-	return copy;
-	}
-#endif
 
 #define DEFINE_XXX_REL_OP_COMPUTE(name,type,coerce_func)		\
 IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )\

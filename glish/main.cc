@@ -165,6 +165,11 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 
 DEFINE_CREATE_VALUE(IValue)
 
+Value *copy_value( const Value *value )
+	{
+	return (Value*)copy_value( (const IValue*) value );
+	}
+
 const Value *lookup_sequencer_value( const char *id )
 	{
 	return Sequencer::LookupVal( id );
