@@ -315,7 +315,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 		}
 
 	if ( have_interpreter_connection )
-		SendEstablishedEvent( EventContext(last_context) );
+		SendEstablishedEvent( last_context );
 
 	CreateSignalHandler();
 
@@ -658,7 +658,6 @@ void Client::SendEstablishedEvent( const EventContext &context )
 
 	Unref( r );
 	}
-
 
 GlishEvent* Client::GetEvent( EventSource* source )
 	{
