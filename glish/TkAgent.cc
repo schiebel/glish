@@ -1199,15 +1199,17 @@ const char **TkFrame::PackInstruction()
 		{
 		ret[c++] = "-fill";
 		ret[c++] = expand;
-		ret[c++] = "-expand";
-		ret[c++] = "true";
+		if ( ! frame || ! strcmp(expand,"both") )
+			{
+			ret[c++] = "-expand";
+			ret[c++] = "true";
+			}
 		ret[c++] = 0;
 		return ret;
 		}
 
 	return 0;
 	}
-
 
 TkButton::~TkButton( )
 	{
@@ -1643,7 +1645,7 @@ const char **TkText::PackInstruction()
 		{
 		ret[c++] = "-fill";
 		ret[c++] = fill;
-		if ( ! strcmp(fill,"both") )
+		if ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";

@@ -370,7 +370,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 		}
 	}
 
-#define DEFINE_XXX_ARITH_OP_COMPUTE(name,type,coerce_func)		\
+#define DEFINE_XXX_ARITH_OP_COMPUTE(name,type,coerce_func,access_func)	\
 void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 	{								\
 	int lhs_copy, rhs_copy;						\
@@ -378,6 +378,9 @@ void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 	type* rhs_array = ((IValue*)value)->coerce_func( rhs_copy, value->Length() );\
 									\
 	int rhs_incr = value->Length() == 1 ? 0 : 1;			\
+									\
+	if ( ! lhs_copy )						\
+		lhs_array = access_func();				\
 									\
 	expr->Compute( lhs_array, rhs_array, lhs_len, rhs_incr );	\
 									\
@@ -394,13 +397,13 @@ void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 	}
 
 
-DEFINE_XXX_ARITH_OP_COMPUTE(ByteOpCompute,byte,CoerceToByteArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(ShortOpCompute,short,CoerceToShortArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(IntOpCompute,int,CoerceToIntArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(FloatOpCompute,float,CoerceToFloatArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray)
+DEFINE_XXX_ARITH_OP_COMPUTE(ByteOpCompute,byte,CoerceToByteArray,BytePtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(ShortOpCompute,short,CoerceToShortArray,ShortPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(IntOpCompute,int,CoerceToIntArray,IntPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(FloatOpCompute,float,CoerceToFloatArray,FloatPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray,DoublePtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray,ComplexPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray,DcomplexPtr)
 
 
 void IValue::Polymorph( glish_type new_type )
@@ -490,7 +493,76 @@ void IValue::DescribeSelf( ostream& s ) const
 #if 1
 IValue *copy_value( const IValue *value )
 	{
-	return new IValue( *value );
+	if ( value->IsRef() )
+		return copy_value( (const IValue*) value->RefPtr() );
+
+	IValue *copy = 0;
+	switch( value->Type() )
+		{
+		case TYPE_BOOL:
+		case TYPE_BYTE:
+		case TYPE_SHORT:
+		case TYPE_INT:
+		case TYPE_FLOAT:
+		case TYPE_DOUBLE:
+		case TYPE_COMPLEX:
+		case TYPE_DCOMPLEX:
+		case TYPE_STRING:
+		case TYPE_AGENT:
+		case TYPE_FUNC:
+			copy = new IValue( *value );
+			break;
+		case TYPE_RECORD:
+			if ( value->IsAgentRecord() )
+				{
+				warn->Report(
+		"cannot copy agent record value; returning reference instead" );
+				copy = new IValue( (Value*) value, VAL_REF );
+				copy->CopyAttributes( value );
+				}
+			else
+				copy = new IValue( *value );
+			break;
+		case TYPE_OPAQUE:
+			{
+			// _AIX requires a temporary
+			SDS_Index tmp(value->SDS_IndexVal());
+			copy = new IValue( tmp );
+			copy->CopyAttributes( value );
+			}
+			break;
+
+		case TYPE_SUBVEC_REF:
+		case TYPE_SUBVEC_CONST:
+			switch ( value->VecRefPtr()->Type() )
+				{
+#define COPY_REF(tag,accessor)						\
+	case tag:							\
+		copy = new IValue( value->accessor ); 			\
+		copy->CopyAttributes( value );				\
+		break;
+
+				COPY_REF(TYPE_BOOL,BoolRef())
+				COPY_REF(TYPE_BYTE,ByteRef())
+				COPY_REF(TYPE_SHORT,ShortRef())
+				COPY_REF(TYPE_INT,IntRef())
+				COPY_REF(TYPE_FLOAT,FloatRef())
+				COPY_REF(TYPE_DOUBLE,DoubleRef())
+				COPY_REF(TYPE_COMPLEX,ComplexRef())
+				COPY_REF(TYPE_DCOMPLEX,DcomplexRef())
+				COPY_REF(TYPE_STRING,StringRef())
+
+				default:
+					fatal->Report(
+						"bad type in copy_value()" );
+				}
+			break;
+
+		default:
+			fatal->Report( "bad type in copy_value()" );
+		}
+
+	return copy;
 	}
 #else
 IValue* copy_value( const IValue* value )

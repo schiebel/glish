@@ -839,7 +839,7 @@ const char **TkCanvas::PackInstruction()
 		{
 		ret[c++] = "-fill";
 		ret[c++] = fill;
-		if ( ! strcmp(fill,"both") )
+		if ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";

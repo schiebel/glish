@@ -182,6 +182,7 @@ class TkFrame : public TkAgent {
 	~TkFrame();
 
 	const char **PackInstruction();
+	const char *Expand() const { return expand; }
 
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id ) { radio_id = id; }
