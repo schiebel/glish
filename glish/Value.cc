@@ -306,6 +306,9 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 		case TYPE_AGENT:
 			SetFail( "arrays of agents are not currently supported" );
 			break;
+		case TYPE_FAIL:
+			SetFail( copy_record_dict( ref_value->kernel.constRecord() ) );
+			break;
 
 		default:
 			fatal->Report( "bad Value in Value::Value" );

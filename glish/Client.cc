@@ -351,6 +351,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 		if ( streq( argv[0], "-host" ) )
 			{ // Socket connection.
 			char* host = argv[1];
+			int is_localhost = host && streq( host, local_host_name() );
 			argc -= 2, argv += 2;
 
 			if ( argc < 2 || ! streq( argv[0], "-port" ) )
@@ -362,9 +363,8 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 
 			int socket = get_tcp_socket();
 
-			if ( ! remote_connection( socket, host, port ) )
-				fatal->Report(
-		"could not establish Client connection to interpreter" );
+			if ( ! remote_connection( socket, is_localhost ? "localhost" : host, port ) )
+				fatal->Report( "could not establish Client connection to interpreter" );
 
 			read_fd = write_fd = socket;
 			}
