@@ -591,7 +591,7 @@ char *glishtk_bitmap(Rivetobj self, const char *cmd, parameter_list *args,
 		HASARG( args, > 0 )
 		int c = 0;
 		EXPRSTR( str, event_name )
-		char *bitmap = alloc_memory(strlen(str)+2);
+		char *bitmap = (char*) alloc_memory(strlen(str)+2);
 		sprintf(bitmap,"@%s",str);
 		ret = (char*) rivet_set( self, (char*) cmd, bitmap );
 		free_memory( bitmap );
@@ -2091,6 +2091,8 @@ void TkFrame::UnMap()
 
 	if ( RefCount() > 0 ) Ref(this);
 
+	Tk_DeleteEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
+
 	if ( grab && grab == Id() )
 		Release();
 
@@ -2132,6 +2134,9 @@ void TkFrame::UnMap()
 
 	if ( tlead )
 		{
+		Rivetobj top = tlead->TopLevel();
+		Tk_DeleteEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
+				      glishtk_moveframe_cb, this );
 		Unref( tlead );
 		tlead = 0;
 		}

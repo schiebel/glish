@@ -22,7 +22,6 @@ void glish_regx_error_handler( const char *pat, va_list va )
 
 void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 
-
 #define memcpy_killbs( to, from, len ) \
 {char last='\0'; int j=0; for (int i=0; i<len; ++i) last=(((to)[j] = (from)[i])=='\\'?(last=='\\'?(++j,'\0'):'\\'):(to)[j++]);len=j;}
 
@@ -274,8 +273,7 @@ void Regex::compile( )
 	}
 
 Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
-				subst( subst_ ), reg(0), match(match_),
-				match_end(0) ,match_val(0), match_res(0), match_len(0), alloc_len(0),
+				subst( subst_ ), reg(0), match(match_), match_end(0),
 				error_string(0), divider(divider_), flags(flags_), match_count(0),
 				desc(0)
 	{
@@ -284,9 +282,8 @@ Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 	}
 
 Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
-				match_end(0), match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider( o.divider ), flags( o.flags ), match_count(0),
-				desc(0)
+				match_end(0), error_string(0), divider( o.divider ), flags( o.flags ),
+				match_count(0), desc(0)
 	{
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
@@ -302,10 +299,6 @@ Regex::Regex( const Regex *o )
 		reg = 0;
 		match = o->match ? strdup(o->match) : 0;
 		match_end = 0;
-		match_val = 0;
-		match_res = 0;
-		match_len = 0;
-		alloc_len = 0;
 		error_string = 0;
 		divider = o-> divider;
 		flags = o-> flags;
@@ -315,10 +308,6 @@ Regex::Regex( const Regex *o )
 		{
 		subst = match = match_end = 0;
 		reg = 0;
-		match_val = 0;
-		match_res = 0;
-		match_len = 0;
-		alloc_len = 0;
 		error_string = 0;
 		divider = '!';
 		flags = 0;
@@ -329,63 +318,6 @@ Regex::Regex( const Regex *o )
 	if ( match ) compile( );
 	}
 
-
-#define ADJUST_MATCH(LENMOD,DUMMY)					\
-if ( match_val )							\
-	{								\
-	Unref( match_val );						\
-	match_val = 0;							\
-	}								\
-									\
-if ( match_res )							\
-	{								\
-	for (int i = 0; i < match_len; i++ )				\
-		free_memory( match_res[i] );				\
-	if ( reg->nparens LENMOD > alloc_len )				\
-		{							\
-		alloc_len = reg->nparens LENMOD;			\
-		match_res = (char**) realloc_memory( match_res, 	\
-				alloc_len * sizeof(char*) );		\
-		}							\
-	}								\
-else if ( reg->nparens > 0 )						\
-	{								\
-	alloc_len = reg->nparens LENMOD;				\
-	match_res = (char **) alloc_memory( alloc_len * sizeof(char*) );\
-	}
-
-#define MATCH_ACTION(OP,INDEXINIT,COUNT,COUNTINIT)			\
-if ( OP > 0 )								\
-	{								\
-	if ( match_len > 0 )						\
-		{							\
-		for ( register int cnt=1; cnt <= reg->nparens; cnt++ )	\
-			{						\
-			if ( reg->endp[cnt] > reg->startp[cnt] )	\
-				{					\
-				register int index = INDEXINIT;		\
-				register int slen = reg->endp[cnt]-reg->startp[cnt]; \
-				match_res[index] = (char*) alloc_memory( slen+1 ); \
-				if ( slen > 0 ) memcpy(match_res[index], reg->startp[cnt], slen); \
-				match_res[index][slen] = '\0';		\
-				}					\
-			else						\
-				match_res[INDEXINIT] = strdup("");	\
-			}						\
-		}							\
-	}								\
-else									\
-	{								\
-	if ( match_len > 0 )						\
-		{							\
-		for ( register int cnt=0; cnt < reg->nparens; cnt++ )	\
-			{						\
-			COUNTINIT;					\
-			match_res[COUNT] = (char*) alloc_memory( 1 );	\
-			match_res[COUNT][0] = '\0';			\
-			}						\
-		}							\
-	}
 
 #define SUBST_PLACE_ACTION						\
 	if ( reg->startp[0] && reg->endp[0] )				\
@@ -400,6 +332,7 @@ else									\
 		}
 
 #define EVAL_LOOP( KEY, SUBST_ACTION )					\
+	{								\
 	KEY ( s < s_end && regxexec( reg, s, s_end, orig, 1,0,1 ) )	\
 		{							\
 		++count;						\
@@ -413,9 +346,15 @@ else									\
 			s_end = s + (s_end - m);			\
 			}						\
 									\
+		XMATCH->update( orig, this );				\
 		SUBST_ACTION						\
 		s = reg->endp[0];					\
-		}
+		}							\
+									\
+	if ( count == 0 )						\
+		XMATCH->failed( orig, this );				\
+	}
+
 
 #define EVAL_ACTION( STR, SUBST_ACTION )				\
 	char *orig = STR;						\
@@ -427,10 +366,11 @@ else									\
 		EVAL_LOOP(while, SUBST_ACTION)				\
 	else								\
 		EVAL_LOOP(if, SUBST_ACTION)				\
+									\
 	match_count += count;
 
 
-IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
+IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, int free_it,
 		     int return_matches, int can_resize, char **alt_src )
 	{
 
@@ -446,10 +386,7 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 		else
 			return 0;
 
-	ADJUST_MATCH(*len,)
-
 	match_count = 0;
-	match_len = reg->nparens * len;
 	int count = 0;
 
 	if ( subst.str() )
@@ -527,9 +464,6 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 				outs[i] = strdup(strs[ in_place && ! swap_io ? i : mc ]);
 				}
 
-			MATCH_ACTION( count, mc+(cnt-1)%reg->nparens*len , index ,	\
-				     register int index = mc+cnt%reg->nparens*len )
-
 			if ( free_str ) free_memory( free_str );
 
 			}
@@ -547,8 +481,6 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 			EVAL_ACTION( strs[i], )
 
 			r[i] = count;
-			MATCH_ACTION( count, i+(cnt-1)%reg->nparens*len , index ,	\
-				     register int index = i+cnt%reg->nparens*len )
 			}
 
 		return new IValue( r, len );
@@ -556,12 +488,8 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 	}
 
 
-int Regex::Eval( char *&string, int in_place )
+int Regex::Eval( char *&string, RegexMatch *XMATCH, int in_place )
 	{
-
-	ADJUST_MATCH(,)
-
-	match_len = reg->nparens;
 
 	int count = 0;
 	if ( subst.str() )
@@ -585,40 +513,15 @@ int Regex::Eval( char *&string, int in_place )
 				free_memory( tmp );
 				}
 
-			MATCH_ACTION( count , cnt-1 , cnt , )
 			}
 		}
 	else
 		{
 		EVAL_ACTION( string, )
 
-		MATCH_ACTION( count , cnt-1 , cnt , )
 		}
 
 	return count;
-	}
-
-IValue *Regex::GetMatch( )
-	{
-	if ( match_val ) return match_val;
-
-	if ( match_len > 0 )
-		{
-		match_val = new IValue( (charptr*) match_res, match_len );
-		if ( match_len > reg->nparens )
-			{
-			int *shape = (int*) alloc_memory( 2 * sizeof(int) );
-			shape[0] = (int)(match_len / reg->nparens);
-			shape[1] = (int)(reg->nparens);
-			match_val->AssignAttribute("shape", new IValue(shape,2));
-			}
-		alloc_len = match_len = 0;
-		match_res = 0;
-		}
-	else
-		match_val = empty_ivalue();
-
-	return match_val;
 	}
 
 void Regex::Describe( OStream& s ) const
@@ -671,17 +574,208 @@ Regex::~Regex()
 	if ( error_string ) free_memory( error_string );
 	}
 
+//
+// --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+//
+struct str_node {
+	str_node( char *s ) : base(s) { }
+	~str_node( );
+	void update( Regex *reg );
+	IValue *get( Regex *reg );
+	char *base;
+	name_list strs;
+};
+
+str_node::~str_node( )
+	{
+	for ( int i=strs.length()-1; i >= 0; --i )
+		free_memory( strs.remove_nth(i) );
+	}
+
+void str_node::update( Regex *reg )
+	{
+	for ( register int cnt=1; cnt <= reg->R()->nparens; cnt++ )
+		{
+		if ( reg->R()->endp[cnt] > reg->R()->startp[cnt] )
+			{
+			register int slen = reg->R()->endp[cnt]-reg->R()->startp[cnt];
+			register char *buf = (char*) alloc_memory( slen+1 );
+			if ( slen > 0 ) memcpy(buf, reg->R()->startp[cnt], slen);
+			buf[slen] = '\0';
+			strs.append( buf );
+			}
+		else
+			strs.append( strdup("") );
+		}
+	}
+
+IValue *str_node::get( Regex *reg )
+	{
+	int len = strs.length();
+	int parens = reg->R()->nparens;
+
+	if ( len <= 0 || parens <= 0 ||
+	     len % parens != 0 )
+		{
+		IValue *empty = empty_ivalue();
+		empty->Polymorph( TYPE_STRING );
+		return  empty;
+		}
+
+	char **ary = (char**) alloc_memory( sizeof(char*) * len );
+	IValue *ret = 0;
+	int rows = len/parens;
+
+	if ( parens > 1 && len > parens )
+		{
+		int from = len-1;
+		for ( int row=rows-1; row >= 0; --row )
+			for ( int col=parens-1; col >= 0; --col )
+				ary[col*rows+row] = strs.remove_nth(from--);
+		ret = new IValue( (charptr*) ary, len );
+		int *shape_i = (int*) alloc_memory( sizeof(int) * 2 );
+		shape_i[0] = rows;
+		shape_i[1] = parens;
+		ret->AssignAttribute( "shape", new IValue( shape_i, 2 ) );
+		}
+	else if ( len > 0 )
+		{
+		for ( int i=len-1; i >= 0; --i )
+			ary[i] = strs.remove_nth(i);
+		ret = new IValue( (charptr*) ary, len );
+		}
+
+	return ret;
+	}
+
+glish_declare(PList,str_node);
+typedef PList(str_node) str_node_list;
+
 struct match_node {
 	match_node( Regex *r ) : reg(r) { Ref(reg); }
 	~match_node( );
+	void update( char * );
+	void failed( char * );
+	IValue *get( );
 	Regex *reg;
+	str_node_list list;
 };
 
-match_node::~match_node( ) { Unref(reg); }
+match_node::~match_node( )
+	{
+	Unref(reg);
+	for ( int i=list.length()-1; i >= 0; --i )
+		delete list.remove_nth(i);
+	}
 
-MatchMgr::~MatchMgr( ) { }
+void match_node::update( char *s )
+	{
+	for ( int i=0; i < list.length(); ++i )
+		if ( list[i]->base == s )
+			{
+			list[i]->update( reg );
+			return;
+			}
 
-void MatchMgr::clear( ) { }
-void MatchMgr::add( Regex* ) { }
-void MatchMgr::update( Regex* ) { }
-IValue *MatchMgr::get( ) { return 0; }
+	str_node *newsn = new str_node(s);
+	newsn->update( reg );
+	list.append( newsn );
+	}
+
+void match_node::failed( char *s )
+	{
+	for ( int i=0; i < list.length(); ++i )
+		if ( list[i]->base == s )
+			return;
+
+	list.append( new str_node(s) );
+	}
+
+IValue *match_node::get( )
+	{
+	if ( list.length() > 1 )
+		{
+		recordptr newr = create_record_dict();
+		IValue *ret = new IValue( newr );
+		for ( int i=0; i < list.length(); ++i )
+			newr->Insert(ret->NewFieldName(1),list[i]->get(reg));
+		return ret;
+		}
+
+	else if ( list.length() == 1 )
+		return list[0]->get(reg);
+
+	else
+		{
+		IValue *empty = empty_ivalue();
+		empty->Polymorph( TYPE_STRING );
+		return  empty;
+		}
+	}
+
+RegexMatch::~RegexMatch( )
+	{
+	clear( );
+	}
+
+void RegexMatch::clear( )
+	{
+	if ( last ) Unref(last);
+	last = 0;
+
+	for ( int i=list.length()-1; i >= 0; --i )
+		delete list.remove_nth(i);
+	}
+
+void RegexMatch::add( Regex *r )
+	{
+	for ( int i=0; i < list.length(); ++i )
+		if ( list[i]->reg == r ) return;
+	list.append( new match_node(r) );
+	}
+
+void RegexMatch::update( char *str, Regex *r )
+	{
+	for ( int i=0; i < list.length(); ++i )
+		if ( list[i]->reg == r )
+			{
+			list[i]->update( str );
+			return;
+			}
+
+	match_node *newmn = new match_node(r);
+	newmn->update( str );
+	list.append( newmn );
+	}
+
+void RegexMatch::failed( char *str, Regex *r )
+	{
+	for ( int i=0; i < list.length(); ++i )
+		if ( list[i]->reg == r )
+			{
+			list[i]->failed( str );
+			return;
+			}
+
+	match_node *newmn = new match_node(r);
+	newmn->failed( str );
+	list.append( newmn );
+	}
+
+IValue *RegexMatch::get( )
+	{
+	if ( last ) return last;
+
+	if ( list.length() > 1 )
+		{
+		recordptr newr = create_record_dict();
+		last = new IValue( newr );
+		for ( int i=0; i < list.length(); ++i )
+			newr->Insert(last->NewFieldName(1),list[i]->get());
+		}
+
+	else if ( list.length() == 1 )
+		last = list[0]->get();
+
+	return last;
+	}

@@ -454,6 +454,7 @@ Notification::Notification( Agent* arg_notifier, const char* arg_field,
 	trigger = t;
 
 	Ref( value );
+	Ref( notifier );
 	}
 
 Notification::~Notification()
@@ -461,6 +462,7 @@ Notification::~Notification()
 	free_memory( field );
 	Unref( value );
 	Unref( trigger );
+	Unref( notifier );
 	}
 
 void Notification::Describe( OStream& s ) const
@@ -1170,8 +1172,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change_count(1),
 				system(this), script_client(0), script_client_active(0),
-				expanded_name(0), run_file(0), doing_pager(0),
-				last_regex_executed(0)
+				expanded_name(0), run_file(0), doing_pager(0)
 	{
 	cur_sequencer = this;
 

@@ -1912,9 +1912,14 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	if ( slen < 1 )
 		APPLYREG_BAIL( "zero length string" )
 
+	RegexMatch &match = sequencer->GetMatch();
+
+	match.clear();
+
 	regexptr *regs = regval->RegexPtr(0);
 	Regex::regex_type type = regs[0]->Type();
 	int splits = regs[0]->Splits() ? 1 : 0;
+
 	for ( int i = 1; i < rlen; ++i )
 		{
 		if ( regs[i]->Type() != type )
@@ -1930,7 +1935,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			{
 			int *ret = (int*) alloc_memory( rlen * sizeof(int) );
 			for ( int i=0; i < rlen; ++i )
-				ret[i] = regs[i]->Eval( (char*&) strs[0] );
+				ret[i] = regs[i]->Eval( (char*&) strs[0], &match );
 			result = new IValue( ret, rlen );
 			}
 		else
@@ -1938,7 +1943,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
 			for ( int row=0; row < slen; ++row )
 				for ( int col=0; col < rlen; ++col )
-					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row] );
+					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row], &match );
 			result = new IValue( ret, slen * rlen );
 			if ( rlen > 1 )
 				{
@@ -1958,7 +1963,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		//
 		// This will allocate space for "rstrs", and fill it from "strs"
 		//
-		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1, (char**) strs );
+		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1, (char**) strs );
 
 		if ( err ) return err;
 
@@ -1977,7 +1982,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 
 			for ( int j=1; j < rlen; ++j )
 				{
-				regs[j]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1 );
+				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1 );
 				match_count[j] = regs[j]->matchCount();
 				}
 
@@ -1988,15 +1993,13 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		else
 			{
 			for ( int j=1; j < rlen; ++j )
-				regs[j]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1 );
+				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1 );
 
 			result = new IValue( rstrs, nlen );
 			}
 		}
 	else
 		fatal->Report( "bad type in ApplyRegExpr::Eval( )" );
-
-	sequencer->RegexExecuted( regs[rlen-1] );
 
 	right->ReadOnlyDone( regval );
 
@@ -2205,7 +2208,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 	{
 	Notification* n = sequencer->LastNotification();
 
-	if ( ! n )
+	if ( ! n || ! n->notifier )
 		return (IValue*) Fail( this, ": no events have been received" );
 
 	IValue* result;
@@ -2214,6 +2217,9 @@ IValue* LastEventExpr::Eval( eval_type etype )
 		{
 		case EVENT_AGENT:
 			result = n->notifier->AgentRecord();
+
+			if ( ! result )
+				return (IValue*) Fail( this, ": no events have been received" );
 
 			if ( etype == EVAL_COPY )
 				result = copy_value( result );
@@ -2297,20 +2303,22 @@ LastRegexExpr::LastRegexExpr( Sequencer* arg_sequencer,
 
 IValue* LastRegexExpr::Eval( eval_type etype )
 	{
-	Regex* r = sequencer->LastRegex();
-
-	if ( ! r )
-		return (IValue*) Fail( this, ": no regular expression" );
+	RegexMatch &match = sequencer->GetMatch();
 
 	IValue* result;
 
 	if ( type == REGEX_MATCH )
 		{
-		result = r->GetMatch( );
-		if ( etype == EVAL_COPY )
-			result = copy_value( result );
+		result = match.get( );
+		if ( result )
+			{
+			if ( etype == EVAL_COPY )
+				result = copy_value( result );
+			else
+				Ref( result );
+			}
 		else
-			Ref( result );
+			result = empty_ivalue();
 		}
 	else
 		fatal->Report( "bad type in LastRegexExpr::Eval" );
@@ -2320,15 +2328,18 @@ IValue* LastRegexExpr::Eval( eval_type etype )
 
 IValue* LastRegexExpr::RefEval( value_type val_type )
 	{
-	Regex* r = sequencer->LastRegex();
-
-	if ( ! r )
-		return (IValue*) Fail( this, ": no regular expression" );
+	RegexMatch &match = sequencer->GetMatch();
 
 	IValue* result;
 
 	if ( type == REGEX_MATCH )
-		result = new IValue( r->GetMatch(), val_type );
+		{
+		IValue *ret = match.get( );
+		if ( ret )
+			result = new IValue( ret, val_type );
+		else
+			result = (IValue*) Fail( "no regular expression values" );
+		}
 
 	else
 		fatal->Report( "bad type in LastRegexExpr::RefEval" );

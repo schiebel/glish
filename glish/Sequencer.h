@@ -309,9 +309,7 @@ public:
 	Stmt* LastWheneverExecuted()	 { return last_whenever_executed; }
 	void WheneverExecuted( Stmt* s ) { last_whenever_executed = s; }
 
-	Regex *LastRegex( ) 		 { return last_regex_executed; }
-	void RegexExecuted( Regex *r )	 { if ( last_regex_executed ) Unref(last_regex_executed);
-					   if ((last_regex_executed = r)) Ref(last_regex_executed); }
+	RegexMatch &GetMatch( ) { return regex_match; }
 
 	// Registers a new task with the sequencer and returns its
 	// task ID.
@@ -553,7 +551,7 @@ protected:
 	PQueue(Notification) notification_queue;
 	Notification* last_notification;
 	Stmt* last_whenever_executed;
-	Regex *last_regex_executed;
+	RegexMatch regex_match;
 	Stmt* stmts;
 	PList(Stmt) registered_stmts;
 	Dict(int) include_once;

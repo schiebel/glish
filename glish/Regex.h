@@ -53,6 +53,8 @@ class regxsubst {
 	int split_count;
 };
 
+class RegexMatch;
+
 class Regex : public GlishObject {
      public:
 
@@ -71,14 +73,14 @@ class Regex : public GlishObject {
 	// latter two parameters are ONLY used when doing a substitution, i.e. for
 	// matches the number of matches is always returned.
 	//
-	IValue *Eval( char **&strs, int &len, int in_place = 0, int free_it = 0,
+	IValue *Eval( char **&strs, int &len, RegexMatch *match=0, int in_place = 0, int free_it = 0,
 		      int return_matches = 1, int can_resize = 0, char **alt_src = 0 );
 
 	//
 	// Lower level routines to allow a series of REs to be applied to
 	// each string. The latter allocates memory which must be freed.
 	//
-	int Eval( char *&string, int in_place = 0 );
+	int Eval( char *&string, RegexMatch *match=0, int in_place = 0 );
 
 	//
 	// returns non-null string if an error occurred
@@ -91,8 +93,6 @@ class Regex : public GlishObject {
 	// returns an allocated string
 	const char *Description( ) const;
 
-	IValue *GetMatch( );
-
 	//
 	// how many entries is the string going to be split into
 	// with each match?
@@ -102,6 +102,9 @@ class Regex : public GlishObject {
 	int matchCount() const { return match_count; }
 
 	~Regex();
+
+	// Internal use...
+	regexp *R() { return reg; }
 
      protected:
 	void compile( );
@@ -115,11 +118,6 @@ class Regex : public GlishObject {
 
 	char   *error_string;
 
-	IValue *match_val;
-	char   **match_res;
-	int    match_len;
-	int    alloc_len;
-
 	char divider;
 	unsigned int flags;
 	int match_count;
@@ -131,16 +129,46 @@ struct match_node;
 glish_declare(PList,match_node);
 typedef PList(match_node) match_node_list;
 
-class MatchMgr {
+//
+// Class which manages the match information across
+// multiple Regex applications.
+//
+class RegexMatch {
     public:
-	MatchMgr( ) { }
-	~MatchMgr( );
+	RegexMatch( ) : last(0) { }
+	~RegexMatch( );
+
+	//
+	// Called to reset the match information
+	//
 	void clear( );
+
+	//
+	// Can be called initially to "register" a Regex,
+	// but this is now unnecessary
+	//
 	void add( Regex * );
-	void update( Regex * );
+
+	//
+	// Called to collect the information from a
+	// successful match.
+	//
+	void update( char *, Regex * );
+
+	//
+	// Called when the match fails.
+	//
+	void failed( char *, Regex * );
+
+	//
+	// Called to retrieve the match information. If this
+	// value needs to persist, it must be Ref()ed or copied.
+	//
 	IValue *get( );
+
     private:
 	match_node_list list;
+	IValue *last;
 };
 
 extern void copy_regexs( void *to_, void *from_, unsigned int len );
