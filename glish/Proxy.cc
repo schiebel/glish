@@ -47,7 +47,7 @@ ProxyStore::~ProxyStore( )
 		}
 	}
 
-void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data = 0 )
+void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data )
 	{
 	char *s = strdup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
@@ -58,7 +58,7 @@ void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data = 0 )
 		}
 	}
 
-void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data = 0 )
+void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data )
 	{
 	char *s = strdup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
