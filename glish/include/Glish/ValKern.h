@@ -202,6 +202,8 @@ class ValueKernel {
 	void SetVecRef( VecRef *v );
 	VecRef *GetVecRef() const { return vecref; }
 
+	unsigned long RefCount( ) const;
+
 	glish_type Type() const
 		{
 		return mARRAY(mode) ? array->type :
