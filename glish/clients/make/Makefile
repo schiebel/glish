@@ -1,43 +1,58 @@
-#	from: @(#)Makefile	5.2 (Berkeley) 12/28/90
-#	$Id$
+## $Id$
+##
+##
+## Makefile for make client.
+##
 
-PROG=	bmake
-#CC=gcc -pipe -g
-MACHINE?=sunos
-MACHINE_ARCH?=sun4
-#.ifndef BSDOBJDIR
-#OBJMACHINE=yes
-#.endif
+TAR_FILE = glish-clients.tar
 
-all: config.h ${PROG}
+STATIC_DIR=$$ARCH
 
-CFLAGS+= -DHAVE_CONFIG_H -I. -I${.CURDIR} -DMACHINE=\"${MACHINE}\" -DMACHINE_ARCH=\"${MACHINE_ARCH}\"
-.if ${MACHINE} == "sun386"
-CFLAGS+= -DPORTAR
-.else
-CFLAGS+= -DPOSIX
-.endif
+SHELL = /bin/sh
+SH = $(SHELL)
 
-SRCS=	arch.c buf.c compat.c cond.c dir.c for.c hash.c job.c main.c \
-	make.c parse.c str.c suff.c targ.c var.c util.c
-SRCS+=	lstAppend.c lstAtEnd.c lstAtFront.c lstClose.c lstConcat.c \
-	lstDatum.c lstDeQueue.c lstDestroy.c lstDupl.c lstEnQueue.c \
-	lstFind.c lstFindFrom.c lstFirst.c lstForEach.c lstForEachFrom.c \
-	lstInit.c lstInsert.c lstIsAtEnd.c lstIsEmpty.c lstLast.c \
-	lstMember.c lstNext.c lstOpen.c lstRemove.c lstReplace.c lstSucc.c
-SRCS+=	getenv.c 
-.if ${MACHINE} != sunos
-SRCS+= sigcompat.c
-.endif
-.PATH:	${.CURDIR}/lst.lib
+all:
+	@if test -z "$(ARCH)"; then 				\
+		ARCH=`../../../config/architecture`;		\
+		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
+	else	FLGS=""; fi;					\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS all);
 
-BINDIR=	/usr/local/bin
+install:
+	@echo Installing glish clients ...
+	@if test -z "$(ARCH)"; then 				\
+		ARCH=`../../../config/architecture`;		\
+		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
+	else	FLGS=""; fi;					\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS install);
 
-.if make(install)
+build: all
 
-SUBDIR+= PSD.doc
-.endif
 
-.include "prog.mk"
+tar:
+	@rm -f $(TAR_FILE).Z tar-files
+	@$(MAKE) $(MFLAGS) tar-list >tar-files
+	tar cf $(TAR_FILE) -I tar-files
+	compress $(TAR_FILE)
+	@rm -f tar-files
 
-.include "../Makefile.autoconf.inc"
+tar-list:
+	@ls Makefile.in *.cc *.c *.h
+
+rcsinfo:
+	@echo glish/clients
+	@rlog -L -S RCS/*,v
+
+clean:
+	@if test -z "$(ARCH)"; then 				\
+		ARCH=`../../../config/architecture`;		\
+		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
+	else	FLGS=""; fi;					\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS clean);
+
+distclean:
+	@if test -z "$(ARCH)"; then 				\
+		ARCH=`../../../config/architecture`;		\
+		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
+	else	FLGS=""; fi;					\
+	(cd $(STATIC_DIR); $(MAKE) $$FLGS distclean);

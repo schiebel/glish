@@ -1,0 +1,96 @@
+// $Id$
+// Copyright (c) 1999 Associated Universities Inc.
+//
+// Glish "make" client - generates events for makefile actions.
+//
+// This client was built using the BSD make tool from NetBSD.
+//
+
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
+#include "Glish/Client.h"
+#include "make_client.h"
+
+inline int streq( const char* a, const char* b )
+        {
+        return ! strcmp( a, b );
+        }
+
+int main( int argc, char** argv ) {
+    Client c( argc, argv );
+    bMake_Init( argc, argv );
+
+    for ( GlishEvent* e; (e = c.NextEvent()); ) {
+        Value *val = e->value;
+        if ( streq( e->name, "variable" ) ) {
+	    if ( val->Type() == TYPE_STRING && val->Length() > 0 ) {
+	        const char *def[] = { "1" };
+	        char *name = val->StringVal();
+	        bMake_Define( val->StringPtr(0), val->Length(), def, 1 );
+	    } else if ( val->Type() == TYPE_RECORD && val->Length() >= 2 ) {
+	        Value *name = val->NthField(1);
+		Value *value = val->NthField(2);
+		if ( name->Type() == TYPE_STRING && name->Length() > 0 &&
+		     value->Type() == TYPE_STRING && value->Length() > 0 &&
+		     name->Length() == value->Length() ) {
+		    bMake_Define( name->StringPtr(0), name->Length(),
+				  value->StringPtr(0), value->Length() );
+		} else {
+		    c.Error( "bad value for 'variable'" );
+		    continue;
+		}
+	    } else { 
+                c.Error( "bad value for 'variable'" );
+		continue;
+	    }
+	} else if ( streq( e->name, "target" ) ) {
+	    Value *tgt = 0;
+	    Value *action = 0;
+	    if ( val->Type() == TYPE_RECORD && val->Length() >= 2 &&
+		 (tgt=val->NthField(1)) && tgt->Type() == TYPE_STRING && tgt->Length() > 0 &&
+		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 ) {
+	        Value *dep;
+	        if ( val->Length() == 2 ) {
+		    bMake_TargetDef( tgt->StringPtr(0), tgt->Length(),
+				     action->StringPtr(0), action->Length(), 0, 0 );
+		} else if ( (dep=val->NthField(3)) && dep->Type() == TYPE_STRING && dep->Length() > 0 ) {
+		    bMake_TargetDef( tgt->StringPtr(0), tgt->Length(),
+				     action->StringPtr(0), action->Length(),
+				     dep->StringPtr(0), dep->Length() );
+		} else {
+		    c.Error( "bad value for 'target'" );
+		    continue;
+		}
+	    } else {
+		c.Error( "bad value for 'target'" );
+	        continue;
+	    }
+	} else if ( streq(e->name, "suffix" ) ) {
+	    Value *suf = 0;
+	    Value *action = 0;
+	    if ( val->Type() == TYPE_RECORD && val->Length() >= 2 &&
+		 (suf=val->NthField(1)) && suf->Type() == TYPE_STRING && suf->Length() > 0 &&
+		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 ) {
+	        bMake_SuffixDef( suf->StringPtr(0), suf->Length(),
+				 action->StringPtr(0), action->Length() );
+	    } else {
+		c.Error( "bad value for 'suffix'" );
+	        continue;
+	    }
+	} else if ( streq(e->name, "make" ) ) {
+            Value *tgt = 0;
+	    if ( val->Type() == TYPE_STRING && val->Length() > 0 )
+ 	        bMake_SetMain( val->StringPtr(0), val->Length() );
+	    if ( ! bMake_HasMain( ) )
+	        c.Error( "no root target specified" );
+	    else
+	        bMake( );
+	} else {
+	    c.Error( "unknown event ('%s') or bad value", e->name );
+	    continue;
+	}
+    }
+
+    bMake_Finish( );
+    return 0;
+}

@@ -79,8 +79,9 @@ static char 	    meta[256];
 static GNode	    *curTarg = NILGNODE;
 static GNode	    *ENDNode;
 static void CompatInterrupt __P((int));
-static int CompatRunCommand __P((ClientData, ClientData));
+static int GlishRunCommand __P((ClientData, ClientData));
 static int CompatMake __P((ClientData, ClientData));
+static void (*command_handler)(char*) = 0;
 
 /*-
  *-----------------------------------------------------------------------
@@ -121,7 +122,7 @@ CompatInterrupt (signo)
 	if (signo == SIGINT) {
 	    gn = Targ_FindNode(".INTERRUPT", TARG_NOCREATE);
 	    if (gn != NILGNODE) {
-		Lst_ForEach(gn->commands, CompatRunCommand, (ClientData)gn);
+		Lst_ForEach(gn->commands, GlishRunCommand, (ClientData)gn);
 	    }
 	}
 
@@ -129,22 +130,8 @@ CompatInterrupt (signo)
     exit (signo);
 }
 
-/*-
- *-----------------------------------------------------------------------
- * CompatRunCommand --
- *	Execute the next command for a target. If the command returns an
- *	error, the node's made field is set to ERROR and creation stops.
- *
- * Results:
- *	0 if the command succeeded, 1 if an error occurred.
- *
- * Side Effects:
- *	The node's 'made' field may be set to ERROR.
- *
- *-----------------------------------------------------------------------
- */
 static int
-CompatRunCommand (cmdp, gnp)
+GlishRunCommand (cmdp, gnp)
     ClientData    cmdp;	    	/* Command to execute */
     ClientData    gnp;    	/* Node from which the command came */
 {
@@ -153,9 +140,7 @@ CompatRunCommand (cmdp, gnp)
     Boolean 	  silent,   	/* Don't print command */
 		  errCheck; 	/* Check errors */
     WAIT_T 	  reason;   	/* Reason for child's death */
-    int    	  status;   	/* Description of child's death */
     int	    	  cpid;	    	/* Child actually found */
-    ReturnStatus  stat;	    	/* Status of fork */
     LstNode 	  cmdNode;  	/* Node where current command is located */
     char    	  **av;	    	/* Argument vector for thing to exec */
     int	    	  argc;	    	/* Number of arguments in av or 0 if not
@@ -193,10 +178,11 @@ CompatRunCommand (cmdp, gnp)
     } else {
 	cmd = cmdStart;
     }
+
     Lst_Replace (cmdNode, (ClientData)cmdStart);
 
     if ((gn->type & OP_SAVE_CMDS) && (gn != ENDNode)) {
-	(void)Lst_AtEnd(ENDNode->commands, (ClientData)cmdStart);
+	Cmd_AtEnd(ENDNode, (ClientData)cmdStart);
 	return(0);
     } else if (strcmp(cmdStart, "...") == 0) {
 	gn->type |= OP_SAVE_CMDS;
@@ -240,106 +226,13 @@ CompatRunCommand (cmdp, gnp)
     if (noExecute) {
 	return (0);
     }
-    
-    if (*cp != '\0') {
-	/*
-	 * If *cp isn't the null character, we hit a "meta" character and
-	 * need to pass the command off to the shell. We give the shell the
-	 * -e flag as well as -c if it's supposed to exit when it hits an
-	 * error.
-	 */
-	static char	*shargv[4] = { "/bin/sh" };
 
-	shargv[1] = (errCheck ? "-ec" : "-c");
-	shargv[2] = cmd;
-	shargv[3] = (char *)NULL;
-	av = shargv;
-	argc = 0;
-    } else {
-	/*
-	 * No meta-characters, so no need to exec a shell. Break the command
-	 * into words to form an argument vector we can execute.
-	 * brk_string sticks our name in av[0], so we have to
-	 * skip over it...
-	 */
-	av = brk_string(cmd, &argc, TRUE);
-	av += 1;
-    }
-    
-    local = TRUE;
+    if ( command_handler )
+        (*command_handler)( cmd );
+    else
+        printf("%s\n",cmd);
 
-    /*
-     * Fork and execute the single command. If the fork fails, we abort.
-     */
-    cpid = vfork();
-    if (cpid < 0) {
-	Fatal("Could not fork");
-    }
-    if (cpid == 0) {
-	if (local) {
-	    execvp(av[0], av);
-	    (void) write (2, av[0], strlen (av[0]));
-	    (void) write (2, ": not found\n", sizeof(": not found"));
-	} else {
-	    (void)execv(av[0], av);
-	}
-	exit(1);
-    }
-    free(cmdStart);
-    Lst_Replace (cmdNode, (ClientData) NULL);
-    
-    /*
-     * The child is off and running. Now all we can do is wait...
-     */
-    while (1) {
-
-	while ((stat = wait((int *)&reason)) != cpid) {
-	    if (stat == -1 && errno != EINTR) {
-		break;
-	    }
-	}
-	
-	if (stat > -1) {
-	    if (WIFSTOPPED(reason)) {
-		status = WSTOPPED;		/* stopped */
-	    } else if (WIFEXITED(reason)) {
-		status = WEXITSTATUS(reason);		/* exited */
-		if (status != 0) {
-		    printf ("*** Error code %d", status);
-		}
-	    } else {
-		status = WTERMSIG(reason);		/* signaled */
-		printf ("*** Signal %d", status);
-	    } 
-
-	    
-	    if (!WIFEXITED(reason) || (status != 0)) {
-		if (errCheck) {
-		    gn->made = ERROR;
-		    if (keepgoing) {
-			/*
-			 * Abort the current target, but let others
-			 * continue.
-			 */
-			printf (" (continuing)\n");
-		    }
-		} else {
-		    /*
-		     * Continue executing commands for this target.
-		     * If we return 0, this will happen...
-		     */
-		    printf (" (ignored)\n");
-		    status = 0;
-		}
-	    }
-	    break;
-	} else {
-	    Fatal ("error in wait: %d", stat);
-	    /*NOTREACHED*/
-	}
-    }
-
-    return (status);
+    return (0);
 }
 
 /*-
@@ -426,7 +319,7 @@ CompatMake (gnp, pgnp)
 		    
 	/*
 	 * Alter our type to tell if errors should be ignored or things
-	 * should not be printed so CompatRunCommand knows what to do.
+	 * should not be printed so GlishRunCommand knows what to do.
 	 */
 	if (Targ_Ignore (gn)) {
 	    gn->type |= OP_IGNORE;
@@ -442,7 +335,7 @@ CompatMake (gnp, pgnp)
 	     */
 	    if (!touchFlag) {
 		curTarg = gn;
-		Lst_ForEach (gn->commands, CompatRunCommand, (ClientData)gn);
+		Lst_ForEach (gn->commands, GlishRunCommand, (ClientData)gn);
 		curTarg = NILGNODE;
 	    } else {
 		Job_Touch (gn, gn->type & OP_SILENT);
@@ -615,7 +508,7 @@ Compat_Run(targs)
     if (!queryFlag) {
 	gn = Targ_FindNode(".BEGIN", TARG_NOCREATE);
 	if (gn != NILGNODE) {
-	    Lst_ForEach(gn->commands, CompatRunCommand, (ClientData)gn);
+	    Lst_ForEach(gn->commands, GlishRunCommand, (ClientData)gn);
 	}
     }
 
@@ -646,6 +539,13 @@ Compat_Run(targs)
      * If the user has defined a .END target, run its commands.
      */
     if (errors == 0) {
-	Lst_ForEach(ENDNode->commands, CompatRunCommand, (ClientData)gn);
+	Lst_ForEach(ENDNode->commands, GlishRunCommand, (ClientData)gn);
     }
+}
+
+void
+bMake_SetHandler( func )
+    void (*func)(char*);
+{
+    command_handler = func;
 }

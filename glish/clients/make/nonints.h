@@ -125,6 +125,10 @@ int Targ_PrintCmd __P((ClientData, ClientData));
 char *Targ_FmtTime __P((time_t));
 void Targ_PrintType __P((int));
 void Targ_PrintGraph __P((int));
+void Targ_Delete __P(( GNode* ));
+void Targ_FlagGNs __P((void));
+void Targ_NoFlagGNs __P((void));
+void Targ_ForEach __P(( int (*)(ClientData, ClientData), ClientData));
 
 /* var.c */
 void Var_Delete __P((char *, GNode *));

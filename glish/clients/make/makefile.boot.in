@@ -8,6 +8,7 @@ prefix=@prefix@
 srcdir=@srcdir@
 VPATH=.:$(srcdir)
 CC=@CC@
+CXX=@CXX@
 MACHINE=`$(srcdir)/machine.sh`
 MACHINE_ARCH=`$(srcdir)/machine.sh arch`
 INSTALL=$(srcdir)/install-sh
@@ -15,15 +16,16 @@ MKDEP=$(srcdir)/mkdeps.sh -n -i/usr/include
 MKDEP_OPTS=-A
 MK=${prefix}/share/mk
 
-CFLAGS=-g -I. -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CFLAGS=-g -I../../../include -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CXXFLAGS=-g -I../../../include -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
 MDEFS="-DFORCE_MACHINE=\"${MACHINE}\"" "-DMACHINE_ARCH=\"${MACHINE_ARCH}\""
 
 OBJ=arch.o buf.o compat.o cond.o dir.o for.o hash.o job.o main.o make.o \
-    parse.o str.o suff.o targ.o var.o util.o getopt.o sigcompat.o @LIBOBJS@
+    parse.o str.o suff.o targ.o var.o util.o getopt.o sigcompat.o make_client.o @LIBOBJS@
 
-bmake: ${OBJ}
+make_client: ${OBJ}
 	(cd lst.lib; $(MAKE) -f makefile.boot CC="$(CC)" CFLAGS="-I.. ${CFLAGS}" )
-	${CC} *.o lst.lib/*.o -o bmake @LIBS@
+	${CC} *.o lst.lib/*.o -o make_client @LIBS@
 
 install:
 	${INSTALL} -m755 bmake ${prefix}/bin

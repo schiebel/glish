@@ -93,6 +93,7 @@ static char *rcsid = "$Id$";
 #include "dir.h"
 #include "job.h"
 #include "pathnames.h"
+#include "make_client.h"
 
 #ifndef	DEFMAXLOCAL
 #define	DEFMAXLOCAL DEFMAXJOBS
@@ -105,11 +106,8 @@ time_t			now;		/* Time at start of make */
 GNode			*DEFAULT;	/* .DEFAULT node */
 Boolean			allPrecious;	/* .PRECIOUS given on line by itself */
 
-static Boolean		noBuiltins;	/* -r flag */
 static Lst		makefiles;	/* ordered list of makefiles to read */
-int			maxJobs;	/* -J argument */
 static int		maxLocal;	/* -L argument */
-Boolean			compatMake;	/* -B argument */
 Boolean			debug;		/* -d flag */
 Boolean			noExecute;	/* -n flag */
 Boolean			keepgoing;	/* -k flag */
@@ -176,11 +174,7 @@ MainParseArgs(argc, argv)
 		argv[0] = "";		/* avoid problems in getopt */
 
 	optind = 1;	/* since we're called more than once */
-#ifdef notyet
-# define OPTFLAGS "BD:I:L:PSd:ef:ij:knqrst"
-#else
-# define OPTFLAGS "D:I:d:ef:ij:knqrst"
-#endif
+# define OPTFLAGS "D:I:d:ef:ij:knt"
 rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		switch(c) {
 		case 'D':
@@ -193,24 +187,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			Var_Append(MAKEFLAGS, "-I", VAR_GLOBAL);
 			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
 			break;
-#ifdef notyet
-		case 'B':
-			compatMake = TRUE;
-			break;
-		case 'L':
-			maxLocal = atoi(optarg);
-			Var_Append(MAKEFLAGS, "-L", VAR_GLOBAL);
-			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
-			break;
-		case 'P':
-			usePipes = FALSE;
-			Var_Append(MAKEFLAGS, "-P", VAR_GLOBAL);
-			break;
-		case 'S':
-			keepgoing = FALSE;
-			Var_Append(MAKEFLAGS, "-S", VAR_GLOBAL);
-			break;
-#endif
 		case 'd': {
 			char *modules = optarg;
 
@@ -277,11 +253,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			ignoreErrors = TRUE;
 			Var_Append(MAKEFLAGS, "-i", VAR_GLOBAL);
 			break;
-		case 'j':
-			maxJobs = atoi(optarg);
-			Var_Append(MAKEFLAGS, "-j", VAR_GLOBAL);
-			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
-			break;
 		case 'k':
 			keepgoing = TRUE;
 			Var_Append(MAKEFLAGS, "-k", VAR_GLOBAL);
@@ -289,19 +260,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		case 'n':
 			noExecute = TRUE;
 			Var_Append(MAKEFLAGS, "-n", VAR_GLOBAL);
-			break;
-		case 'q':
-			queryFlag = TRUE;
-			/* Kind of nonsensical, wot? */
-			Var_Append(MAKEFLAGS, "-q", VAR_GLOBAL);
-			break;
-		case 'r':
-			noBuiltins = TRUE;
-			Var_Append(MAKEFLAGS, "-r", VAR_GLOBAL);
-			break;
-		case 's':
-			beSilent = TRUE;
-			Var_Append(MAKEFLAGS, "-s", VAR_GLOBAL);
 			break;
 		case 't':
 			touchFlag = TRUE;
@@ -406,12 +364,10 @@ Main_ParseArgLine(line)
  *	The program exits when done. Targets are created. etc. etc. etc.
  */
 int
-main(argc, argv)
+bMake_Init(argc, argv)
 	int argc;
 	char **argv;
 {
-	Lst targs;	/* target nodes to create -- passed to Make_Init */
-	Boolean outOfDate = TRUE; 	/* FALSE if all targets up to date */
 	struct stat sb, sa;
 	char *p, *p1, *path, *pwd, *getenv(), *getcwd();
 	char mdpath[MAXPATHLEN + 1];
@@ -498,26 +454,18 @@ main(argc, argv)
 
 	create = Lst_Init(FALSE);
 	makefiles = Lst_Init(FALSE);
-	beSilent = FALSE;		/* Print commands as executed */
+	beSilent = TRUE;		/* Print commands as executed */
 	ignoreErrors = FALSE;		/* Pay attention to non-zero returns */
 	noExecute = FALSE;		/* Execute all commands */
 	keepgoing = FALSE;		/* Stop on error */
 	allPrecious = FALSE;		/* Remove targets when interrupted */
 	queryFlag = FALSE;		/* This is not just a check-run */
-	noBuiltins = FALSE;		/* Read the built-in rules */
 	touchFlag = FALSE;		/* Actually update targets */
 	usePipes = TRUE;		/* Catch child output in pipes */
 	debug = 0;			/* No debug verbosity, please. */
 	jobsRunning = FALSE;
 
-	maxJobs = DEFMAXJOBS;		/* Set default max concurrency */
 	maxLocal = DEFMAXLOCAL;		/* Set default local max concurrency */
-#ifdef notyet
-	compatMake = FALSE;		/* No compat mode */
-#else
-	compatMake = TRUE;		/* No compat mode */
-#endif
-    
 
 	/*
 	 * Initialize the parsing, directory and variable modules to prepare
@@ -552,17 +500,6 @@ main(argc, argv)
 	Var_Set("MACHINE_ARCH", MACHINE_ARCH, VAR_GLOBAL);
 #endif
 
-	/*
-	 * First snag any flags out of the MAKE environment variable.
-	 * (Note this is *not* MAKEFLAGS since /bin/make uses that and it's
-	 * in a different format).
-	 */
-#ifdef POSIX
-	Main_ParseArgLine(getenv("MAKEFLAGS"));
-#else
-	Main_ParseArgLine(getenv("MAKE"));
-#endif
-    
 	MainParseArgs(argc, argv);
 
 	/*
@@ -593,25 +530,13 @@ main(argc, argv)
 	} else
 		Var_Set(".TARGETS", "", VAR_GLOBAL);
 
-	/*
-	 * Read in the built-in rules first, followed by the specified makefile,
-	 * if it was (makefile != (char *) NULL), or the default Makefile and
-	 * makefile, in that order, if it wasn't.
-	 */
-	 if (!noBuiltins && !ReadMakefile(_PATH_DEFSYSMK) &&
-	     !ReadMakefile("sys.mk"))
-		Fatal("make: no system rules (%s).", _PATH_DEFSYSMK);
-
 	if (!Lst_IsEmpty(makefiles)) {
 		LstNode ln;
 
 		ln = Lst_Find(makefiles, (ClientData)NULL, ReadMakefile);
 		if (ln != NILLNODE)
 			Fatal("make: cannot open %s.", (char *)Lst_Datum(ln));
-	} else if (!ReadMakefile("makefile"))
-		(void)ReadMakefile("Makefile");
-
-	(void)ReadMakefile(".depend");
+	}
 
 	Var_Append("MFLAGS", Var_Value(MAKEFLAGS, VAR_GLOBAL, &p1), VAR_GLOBAL);
 	if (p1)
@@ -664,49 +589,73 @@ main(argc, argv)
 	 * time to add the default search path to their lists...
 	 */
 	Suff_DoPaths();
+	return( 0 );
+}
 
+static int
+MainStrDup( cmdp, lstp )
+    ClientData cmdp;
+    ClientData lstp;
+{
+  Lst lst = (Lst)lstp;
+  Lst_AtEnd( lst, strdup((char*)cmdp) );
+  return(0);
+}
+
+static int
+CleanTargs( gnp, lstp )
+    ClientData gnp;
+    ClientData lstp;
+{
+    GNode *gn = (GNode*) gnp;
+    if ( gn->type & OP_GENERATED ) Targ_Delete( gn );
+    return 0;
+}
+
+static int
+MainUnmake( gn, dummy )
+    ClientData gn;
+    ClientData dummy;
+{
+    int count = 0;
+    GNode *targ = (GNode*) gn;
+    targ->made = UNMADE;
+    targ->childMade = FALSE;
+    Var_Set(">","",targ);
+    Var_Set("?","",targ);
+    Lst_Destroy(targ->commands, NOFREE);
+    targ->commands = Lst_Init (FALSE);
+    Lst_ForEach( targ->orig_cmds, MainStrDup, (ClientData)targ->commands );
+    return 0;
+}
+
+int
+bMake( )
+{
+	Lst targs;	/* target nodes to create -- passed to Make_Init */
+
+	Targ_FlagGNs ( );
 	/* print the initial graph, if the user requested it */
 	if (DEBUG(GRAPH1))
 		Targ_PrintGraph(1);
 
-	/*
-	 * Have now read the entire graph and need to make a list of targets
-	 * to create. If none was given on the command line, we consult the
-	 * parsing module to find the main target(s) to create.
-	 */
-	if (Lst_IsEmpty(create))
-		targs = Parse_MainName();
-	else
-		targs = Targ_FindList(create, TARG_CREATE);
+	targs = Targ_FindList(create, TARG_CREATE);
 
-/*
- * this was original amMake -- want to allow parallelism, so put this
- * back in, eventually.
- */
-	if (!compatMake) {
-		/*
-		 * Initialize job module before traversing the graph, now that
-		 * any .BEGIN and .END targets have been read.  This is done
-		 * only if the -q flag wasn't given (to prevent the .BEGIN from
-		 * being executed should it exist).
-		 */
-		if (!queryFlag) {
-			if (maxLocal == -1)
-				maxLocal = maxJobs;
-			Job_Init(maxJobs, maxLocal);
-			jobsRunning = TRUE;
-		}
+	Compat_Run(targs);
 
-		/* Traverse the graph, checking on all the targets */
-		outOfDate = Make_Run(targs);
-	} else
-		/*
-		 * Compat_Init will take care of creating all the targets as
-		 * well as initializing the module.
-		 */
-		Compat_Run(targs);
-    
+	Targ_NoFlagGNs ( );
+	Targ_ForEach( CleanTargs, (ClientData)NULL );
+
 	Lst_Destroy(targs, NOFREE);
+
+	Targ_ForEach( MainUnmake, (ClientData)NULL );
+
+	return( 0 );
+}
+
+int
+bMake_Finish( void )
+{
 	Lst_Destroy(makefiles, NOFREE);
 	Lst_Destroy(create, (void (*) __P((ClientData))) free);
 
@@ -721,11 +670,7 @@ main(argc, argv)
 	Var_End();
 	Parse_End();
 	Dir_End();
-
-	if (queryFlag && outOfDate)
-		return(1);
-	else
-		return(0);
+	return(0);
 }
 
 /*-
@@ -979,4 +924,119 @@ PrintAddr(a, b)
 {
     printf("%lx ", (unsigned long) a);
     return b ? 0 : 0;
+}
+
+void
+bMake_Define( var, var_len, val, val_len )
+    const char **var;
+    int var_len;
+    const char **val;
+    int val_len;
+{
+    int len = var_len < val_len ? var_len : var_len;
+    int i = 0, j=0;
+    int j_incr = 1;
+    if ( ! var || var_len <= 0 ) return;
+    if ( ! val || val_len <= 0 ) return;
+    if ( var_len > 1 && val_len == 1 ) {
+        len = var_len;
+	j_incr = 0;
+    }
+    for ( ; i < len; ++i,j+=j_incr )
+        Var_Set( (char*)var[i], (char*)val[j], VAR_GLOBAL );
+}
+
+void
+bMake_TargetDef( tag, tag_len, cmd, cmd_len, depend, depend_len )
+    const char **tag;
+    int tag_len;
+    const char **cmd;
+    int cmd_len;
+    const char **depend;
+    int depend_len;
+{
+    int i = 0, x = 0;
+    GNode *gn,*dep;
+    /*** do we have a tag? ***/
+    if ( ! tag || tag_len <= 0 ) return;
+    /*** do we have a command? ***/
+    if ( ! cmd || cmd_len <= 0 ) return;
+    for ( x=0; x < tag_len; ++x ) {
+        gn = Targ_FindNode( (char*)tag[x], TARG_CREATE );
+        if ( cmd && cmd_len > 0 )
+            for ( i=0; i < cmd_len; ++i )
+                Cmd_AtEnd( gn, strdup(cmd[i]) );
+        if ( depend && depend_len > 0 ) {
+            gn->type |= OP_DEPENDS;
+            for ( i=0; i < depend_len; ++i ) {
+                dep = Targ_FindNode ((char*)depend[i], TARG_CREATE);
+                if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
+                    (void)Lst_AtEnd (gn->children, (ClientData)dep);
+                   gn->unmade += 1;
+                }
+            }
+        }
+    }
+}
+
+void
+bMake_SuffixDef( tag, tag_len, cmd, cmd_len )
+    const char **tag;
+    int tag_len;
+    const char **cmd;
+    int cmd_len;
+{
+    int i = 0, x = 0;
+    int dot_count = 0;
+    GNode *gn;
+    const char *end;
+    char buf[256];
+    char *bp = 0;
+
+    /*** do we have a command? ***/
+    if ( ! cmd || cmd_len <= 0 ) return;
+    /*** does it look like a suffix rule? ***/
+    if ( ! tag || tag_len <= 0 ) return;    
+    /*** how many dots does it have? ***/
+    for ( x=0; x < tag_len; ++x ) {
+        if ( *tag[x] != '.' ) return;
+	dot_count = 0;
+	for ( end=tag[x]; *end; ++end )
+	    if ( *end == '.' ) ++dot_count;
+	if ( dot_count != 2 ) return;
+    }
+
+    for ( x=0; x < tag_len; ++x ) {
+        bp = buf;
+        *bp++ = '.';
+        for ( end = tag[x]+1; *end && *end != '.'; *bp++ = *end++ );
+        *bp = '\0';
+        Suff_AddSuffix((char*)buf);
+        Suff_AddSuffix((char*)end);
+        gn = Suff_AddTransform((char*)tag[x]);
+
+        for ( i=0; i < cmd_len; ++i )
+            Cmd_AtEnd( gn, strdup(cmd[i]) );
+    }
+}
+
+void
+bMake_SetMain( tgt, len )
+    const char **tgt;
+    int len;
+{
+    int i=0;
+    if ( ! Lst_IsEmpty(create)) {
+        Lst_Destroy( create, NOFREE);
+	create = Lst_Init( FALSE );
+    }
+    if ( ! tgt || len <= 0 ) return;
+    for ( i=0; i < len; ++i )
+        Lst_AtEnd( create, strdup(tgt[i]) );
+}
+
+int
+bMake_HasMain( )
+{
+    return Lst_IsEmpty(create) ? 0 : 1;
 }
