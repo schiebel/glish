@@ -28,7 +28,7 @@ typedef SosRef GlishRef;
 
 class GlishObject : public GlishRef {
     public:
-	GlishObject() : line(line_num), file( file_name )	{ }
+	GlishObject() : file( file_name ), line(line_num)	{ }
 
 	virtual ~GlishObject()	{ }
 
