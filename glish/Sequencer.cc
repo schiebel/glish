@@ -67,7 +67,15 @@ extern int glish_include_jmpbuf_set;
 #include "version.h"
 #include "change.h"
 
+#if USE_EDITLINE
+extern "C" {
+	void finalize_readline_history( );
+	void initialize_readline_history( const char * );
+}
+#endif
+
 #define GLISH_RC_FILE ".glishrc"
+#define GLISH_HISTORY_FILE ".glishlog"
 #define RCDIR_VAR "GLISHROOT"
 const char * const LD_PATH = "LD_LIBRARY_PATH";
 
@@ -1363,6 +1371,18 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	init_regex();
 	init_scanner( );
 
+	char glish_rc_filename[2048];
+	const char *glish_rc_dir = 0;
+
+#if USE_EDITLINE
+	if ( (glish_rc_dir = getenv( "HOME" )) )
+		{
+		sprintf( glish_rc_filename, "%s/%s",
+			 glish_rc_dir, GLISH_HISTORY_FILE );
+		initialize_readline_history( glish_rc_filename );
+		}
+#endif
+
 	// Create the global scope.
 	PushScope( GLOBAL_SCOPE );
 	// Setup stack
@@ -1532,9 +1552,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	Parse( opt, glish_init );
 
 	FILE* glish_rc_file;
-	char glish_rc_filename[256];
-	const char *glish_rc_dir = getenv( RCDIR_VAR );
 	int loaded_system_glishrc = 0;
+	glish_rc_dir = getenv( RCDIR_VAR );
 
 	//
 	//  Check $GLISHROOT/.glishrc

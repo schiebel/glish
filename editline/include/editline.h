@@ -48,6 +48,7 @@ extern char	*rl_complete();
 extern int	rl_list_possib();
 extern void	rl_ttyset();
 extern void	rl_add_slash();
+extern void	rl_initialize();
 
 #if	!defined(HAVE_STDLIB_H)
 extern char	*getenv();

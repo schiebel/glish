@@ -14,6 +14,7 @@ RCSID("@(#) $Id$")
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <stdio.h>
 
 #if defined(HAVE_UNISTD_H)
 #include <unistd.h>
@@ -37,7 +38,7 @@ RCSID("@(#) $Id$")
 #define ISMETA(x)	((x) & 0x80)
 #define UNMETA(x)	((x) & 0x7F)
 #if	!defined(HIST_SIZE)
-#define HIST_SIZE	150
+#define HIST_SIZE	201
 #endif	/* !defined(HIST_SIZE) */
 
 typedef const CHAR	*STRING;
@@ -1647,6 +1648,49 @@ last_argument()
 	free_memory(av);
     free_memory(p);
     return s;
+}
+
+static char *the_history_file = 0;
+void initialize_readline_history( const char *history_file )
+{
+    char buf[2048], *s;
+    FILE *f = 0;
+    int len;
+    if ( ! the_history_file ) {
+	the_history_file = strdup(history_file);
+	f = fopen( history_file,  "r" );
+	if ( ! f ) return;
+	while ( ! feof(f) ) {
+	    s = fgets( buf, 2048, f );
+	    if ( s ) {
+	        len = strlen( s );
+		if ( len > 0 && s[len-1] == '\n' )
+		    s[len-1] = '\0';
+	    	hist_add( s );
+	    }
+	}
+	fclose( f );
+	the_history_file = strdup(history_file);
+    }
+}
+void finalize_readline_history( )
+{
+    int i = 0;
+    FILE *f = 0;
+    if ( the_history_file ) {
+        if ( History.Size < HIST_SIZE )
+	    f = fopen( the_history_file, "w" );
+	else
+	    f = fopen( the_history_file, "a" );
+
+	if ( f ) {
+	    for ( i=0; i < History.Size; ++i ) {
+	        fputs( History.Lines[i], f );
+		fputc( '\n', f );
+	    }
+	    fclose( f );
+	}
+    }
 }
 
 STATIC KEYMAP	Map[33] = {

@@ -98,6 +98,8 @@ extern "C" {
 	void nb_readline_cleanup();
 	void *create_editor( );
 	void *set_editor( void * );
+	void finalize_readline_history( );
+	void initialize_readline_history( const char * );
 }
 #endif
 
@@ -110,6 +112,7 @@ void glish_cleanup( )
 	{
 #if USE_EDITLINE
 	nb_readline_cleanup();
+	finalize_readline_history( );
 #endif
 	set_term_unchar_mode();
 	Sequencer::CurSeq()->AbortOccurred();
