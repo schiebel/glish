@@ -133,7 +133,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 
 			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
-			send_event( fd, &e );
+			sendEvent( fd, &e );
 
 			result = sequencer->AwaitReply( this, event_name,
 							reply_name );
@@ -143,7 +143,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 		else
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
-			send_event( fd, &e );
+			sendEvent( fd, &e );
 			}
 		}
 
@@ -226,6 +226,9 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	if ( attrs->ping_flag )
 		++argc;		// room for -ping flag
 
+	if ( attrs->useshm )
+		++argc;		// room for -useshm flag
+
 	argc += 1;		// room for the end of client args
 
 	const char** argv = new string[argc + 1];	// + 1 for final nil
@@ -275,6 +278,9 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 	if ( attrs->ping_flag )
 		argv[argp++] = "-ping";
+
+	if ( ! use_socket && attrs->useshm )
+		argv[argp++] = "-useshm";
 
 	argv[argp++] = "-+-";
 
@@ -374,9 +380,15 @@ ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 
 
 ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
-			Sequencer* s  )
+			Sequencer* s, int shm_flag )
     : Task( task_attrs, s )
 	{
+
+	if ( ! shm_flag || attrs->daemon_channel || attrs->async_flag )
+		attrs->useshm = useshm = 0;
+	else
+		attrs->useshm = useshm = 1;
+
 	// Get the program name.
 	const IValue* arg = (const IValue*)((*args)[0]->Deref());
 
@@ -477,6 +489,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname,
 	async_flag = arg_async_flag;
 	ping_flag = arg_ping_flag;
 	suspend_flag = arg_suspend_flag;
+	useshm = 0;
 	}
 
 TaskAttr::~TaskAttr()
@@ -490,14 +503,14 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	{
 	// Arguments are:
 	//
-	//	var-ID hostname client async ping suspend args...
+	//	var-ID hostname client async ping suspend input noshm args...
 	//
 	// where "var-ID" and "hostname" are string values, and
 	// client/async/ping/suspend are boolean flags.
 
 	const_args_list& args = *args_val;
 
-	int task_args_start = 7;
+	int task_args_start = 8;
 
 	if ( args.length() <= task_args_start )
 		return (IValue*) Fail( "too few arguments given to create_task" );
@@ -511,8 +524,10 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( err )
 		return (IValue*) Fail( "remote task creation failed" );
 
+	int shm_flag = 1;
 	if ( sequencer->LocalHost( hostname ) && channel )
 		{
+		shm_flag = 0;
 		char *client = GetString( args[task_args_start] );
 		IValue val( client );
 		send_event( channel->WriteFD(), "client-up", &val );
@@ -544,6 +559,8 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )
 		input = new IValue( (IValue*) args[6], VAL_CONST );
 
+	shm_flag = shm_flag && args[7]->IntVal();
+
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag, ping_flag,
 				suspend_flag );
 
@@ -555,7 +572,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	IValue* result;
 
 	if ( client_flag )
-		result = CreateClient( &task_args );
+		result = CreateClient( &task_args, shm_flag );
 
 	else
 		{ // Shell client.
@@ -809,7 +826,7 @@ IValue* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
 	}
 
 
-IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args )
+IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args, int shm_flag )
 	{
 	if ( attrs->async_flag )
 		{
@@ -822,7 +839,7 @@ IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args )
 		"suspend option is not supported for asynchronous clients" );
 		}
 
-	Task* task = new ClientTask( args, attrs, sequencer );
+	Task* task = new ClientTask( args, attrs, sequencer, shm_flag );
 
 	CheckTaskStatus( task );
 
@@ -840,6 +857,23 @@ void CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 				task->Name(), "\"" );
 	}
 
+
+void Task::sendEvent( int fd, const char* event_name,
+		      const GlishEvent* e, int sds )
+	{
+	send_event( fd, event_name, e, sds );
+	}
+
+
+void ClientTask::sendEvent( int fd, const char* event_name,
+		      const GlishEvent* e, int sds )
+	{
+	if ( ! useshm )
+		send_event( fd, event_name, e, sds );
+	else
+		send_shm_event( fd, event_name, e, sds );
+	return;
+	}
 
 int same_host( Task* t1, Task* t2 )
 	{

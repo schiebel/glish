@@ -602,6 +602,8 @@ Sequencer::~Sequencer()
 	finalize_values();
 	finalize_reporters();
 	delete null_stmt;
+
+	clear_shared_memory();
 	}
 
 

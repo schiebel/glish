@@ -29,6 +29,8 @@ class VecRef : public GlishObject {
 	dcomplexref* DcomplexRef();
 	charptrref* StringRef();
 
+	int Bytes() const { return val->Bytes() / val->Length() * len; }
+
     protected:
 	// Constructor used by SubVecRef classes.
 	VecRef( Value* ref_value, int* index, int num, int arg_max_index,

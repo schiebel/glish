@@ -99,10 +99,10 @@ func has_field( const x, const field )
 	}
 
 func shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
- 	create_task( id, host, F, async, ping, suspend, input, ... )
+ 	create_task( id, host, F, async, ping, suspend, input, T, ... )
 
-func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
- 	create_task( id, host, T, async, ping, suspend, input, ... )
+func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F, shm=F )
+ 	create_task( id, host, T, async, ping, suspend, input, shm, ... )
 
 func frame ( parent=F, relief='flat',
 		 borderwidth=2, side='top',

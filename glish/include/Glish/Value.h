@@ -639,6 +639,9 @@ public:
 			}
 		}
 
+	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
+	int ToMemBlock(char *memory, int offset = 0) const;
+
 protected:
 
 	Value ( glish_type ) { }		// for IValue
@@ -759,6 +762,8 @@ extern dcomplex text_to_dcomplex( const char text[], int& successful );
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt = "%g" );
 
+extern Value *ValueFromMemBlock( char *memory, int &offset );
+extern Value *ValueFromMemBlock( char *memory );
 
 extern Value *Fail( const RMessage&, const RMessage& = EndMessage,
 	const RMessage& = EndMessage, const RMessage& = EndMessage,

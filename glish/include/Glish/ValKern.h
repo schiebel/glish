@@ -77,6 +77,7 @@ class ValueKernel {
 		void clear();
 		record_t() : record(0), ref_count(1) { DIAG2((void*)this,"\t\trecord_t alloc") }
 		~record_t() { clear(); }
+		int bytes( int AddPerValue = 0 ) const;
 	};
 
     protected:
@@ -101,6 +102,7 @@ class ValueKernel {
 
 	glish_type otherType() const;
 	unsigned int otherLength() const;
+	unsigned int ValueKernel::otherBytes( int addPerValue = 0 ) const;
 
 	void unrefArray(int del=0);
 	void unrefRecord(int del=0);
@@ -123,6 +125,12 @@ class ValueKernel {
 		}
 
     public:
+
+	struct header {
+		glish_type 	type;
+		int 		len;
+		char 		have_attr;
+	};
 
 	void MakeConst() { mode |= CONST(); }
 	void MakeModConst() { mode |= MOD_CONST(); }
@@ -205,7 +213,9 @@ class ValueKernel {
 		       RECORD(mode) ? record->record->Length() :
 		       otherLength();
 		}
-	  
+
+	int Bytes( int addPerValue = 0 ) const;
+	int ToMemBlock(char *memory, int offset = 0, int have_attributes = 0) const;
 
 	~ValueKernel( ) { unref(1); }
 };

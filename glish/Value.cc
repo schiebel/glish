@@ -4121,6 +4121,121 @@ void Value::DescribeSelf( ostream& s ) const
 		}
 	}
 
+int Value::Bytes( int addPerValue ) const
+	{
+	return kernel.Bytes( addPerValue ) + 
+		(attributes ? attributes->Bytes( addPerValue ) : 0);
+	}
+
+int Value::ToMemBlock(char *memory, int offset) const
+	{
+	if ( IsVecRef() )
+		{
+		Value* copy = copy_value( this );
+		offset = copy->ToMemBlock( memory, offset );
+		Unref(copy);
+		return offset;
+		}
+
+	if ( IsRef() )
+		{
+		const Value *v = Deref();
+		offset = v->kernel.ToMemBlock( memory, offset, attributes ? 1 : 0 );
+		}
+	else
+		offset = kernel.ToMemBlock( memory, offset, attributes ? 1 : 0 );
+
+	if ( attributes )
+		offset = attributes->kernel.ToMemBlock( memory, offset, 0 );
+
+	return offset;
+	}
+
+Value *ValueFromMemBlock(char *memory, int &offset)
+	{
+	ValueKernel::header h;
+	Value *v = 0;
+
+	memcpy(&h,&memory[offset],sizeof(h));
+	offset += sizeof(h);
+
+	switch ( h.type )
+		{
+		case TYPE_RECORD:
+			{
+			recordptr rec = create_record_dict();
+
+			for (int i = 0; i < h.len; i++)
+				{
+				int kl = strlen((char*) &memory[offset]);
+				char *key = new char[kl+1];
+				memcpy(key,&memory[offset],kl+1);
+				offset += kl + 1;
+				Value *member = ValueFromMemBlock(memory, offset);
+				rec->Insert( key, member );
+				}
+
+			v = create_value( rec );
+			}
+			break;
+		case TYPE_STRING:
+			{
+			char **s = new char*[h.len];
+			for (int i=0; i < h.len; i++)
+				{
+				int l = strlen(&memory[offset]);
+				s[i] = new char[l+1];
+				memcpy(s[i],&memory[offset],l+1);
+				offset += l+1;
+				}
+
+			v = create_value((charptr*)s, h.len);
+			}
+			break;
+		default:
+			{
+			void *values = new char[h.len];
+			memcpy(values,&memory[offset],h.len);
+			offset += h.len;
+			switch( h.type )
+				{
+
+#define VALUE_FROM_MEM_ACTION(tag,type)				\
+	case tag:						\
+		v = create_value( (type*) values, h.len / sizeof(type) ); \
+		break;
+
+VALUE_FROM_MEM_ACTION(TYPE_BOOL, glish_bool)
+VALUE_FROM_MEM_ACTION(TYPE_BYTE, byte)
+VALUE_FROM_MEM_ACTION(TYPE_SHORT, short)
+VALUE_FROM_MEM_ACTION(TYPE_INT, int)
+VALUE_FROM_MEM_ACTION(TYPE_FLOAT, float)
+VALUE_FROM_MEM_ACTION(TYPE_DOUBLE, double)
+VALUE_FROM_MEM_ACTION(TYPE_COMPLEX, complex)
+VALUE_FROM_MEM_ACTION(TYPE_DCOMPLEX, dcomplex)
+
+				default:
+					fatal->Report( "Bad type (", (int) h.type, ") in ValueFromMemBlock( )" );
+				}
+			}
+		}
+
+	if ( h.have_attr )
+		{
+		Value *attr = ValueFromMemBlock(memory, offset);
+		v->AssignAttributes( attr );
+		}
+
+	return v;
+	}
+
+Value *ValueFromMemBlock( char *memory )
+	{
+	int offset = 0;
+	return ValueFromMemBlock( memory, offset );
+	}
+
+
 Value* empty_value()
 	{
 	int i = 0;
@@ -4437,6 +4552,21 @@ void delete_list( del_list* dlist )
 
 charptr *csplit( char* source, int &num_pieces, char* split_chars )
 	{
+
+	if ( strlen(split_chars) == 0 )
+		{
+		num_pieces = strlen(source);
+		char **strings = new char*[num_pieces];
+		char *ptr = source;
+		for ( int i = 0; i < num_pieces ; i++ )
+			{
+			strings[i] = new char[2];
+			strings[i][0] = *ptr++;
+			strings[i][1] = '\0';
+			}
+		return (charptr*) strings;
+		}
+
 	// First see how many pieces the split will result in.
 	num_pieces = 0;
 	char* source_copy = strdup( source );

@@ -367,6 +367,8 @@ class Client {
 	// Multithreaded or not?
 	int multithreaded;
 
+	// Use shared memory
+	int useshm;
 	};
 
 
@@ -385,5 +387,23 @@ inline void send_event( int fd, const char* name, const Value* value )
 	GlishEvent e( name, value );
 	send_event( fd, &e );
 	}
+
+extern void send_shm_event( int write_fd, const char* event_name,
+			const GlishEvent* e, int sds = -1 );
+
+inline void send_shm_event( int write_fd, const GlishEvent* e, int sds = -1 )
+	{
+	send_shm_event( write_fd, e->name, e, sds );
+	}
+
+inline void send_shm_event( int write_fd, const char* name, const Value* value )
+	{
+	GlishEvent e( name, value );
+	send_shm_event( write_fd, &e );
+	}
+
+extern GlishEvent* recv_shm_event( int shmid );
+
+extern void clear_shared_memory();
 
 #endif	/* client_h */

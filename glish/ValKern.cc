@@ -16,6 +16,19 @@ void ValueKernel::record_t::clear()
 	ref_count = 1;
 	}
 
+int ValueKernel::record_t::bytes( int addPerValue ) const
+	{
+	int size = addPerValue;
+	IterCookie* c = record->InitForIteration();
+
+	Value* member;
+	const char* key;
+
+	while ( (member = record->NextEntry( key, c )) )
+		size += strlen(key) + 1 + member->Bytes(addPerValue);
+	return size;
+	}
+
 ValueKernel::array_t::~array_t()
 	{
 	if ( values ) 
@@ -86,6 +99,16 @@ unsigned int ValueKernel::otherLength() const
 		return vecref->Length();
 	else if ( OPAQUE(mode) )
 		return 1;
+	else
+		return 0;
+	}
+
+unsigned int ValueKernel::otherBytes(int addPerValue) const
+	{
+	if ( VALUE(mode) )
+		return value->Bytes(addPerValue);
+	else if ( REF(mode) )
+		return vecref->Bytes() + addPerValue;
 	else
 		return 0;
 	}
@@ -398,6 +421,89 @@ void ValueKernel::unrefOthers()
 	else if ( REF(mode) )
 		Unref( vecref );
 	}
+
+int ValueKernel::Bytes( int addPerValue ) const
+	{
+	if ( ARRAY(mode) )
+		{
+		if ( Type() != TYPE_STRING )
+			return (int) array->bytes() + addPerValue;
+		else
+			{
+			int cnt = addPerValue;
+			for ( int i = 0; i < array->length; i++ )
+				cnt += strlen(((char**)array->values)[i])+1;
+			return cnt;
+			}
+		}
+	else if ( RECORD(mode) )
+		return record->bytes( addPerValue );
+	else
+		return otherBytes();
+	}
+
+
+int ValueKernel::ToMemBlock(char *memory, int offset, int have_attributes) const
+	{
+	header h;
+	glish_type type = Type();
+	if ( ARRAY(mode) )
+		{
+		h.type = type;
+		h.have_attr = have_attributes ? 1 : 0;
+
+		if ( type != TYPE_STRING )
+			{
+			h.len = array->bytes();
+			memcpy(&memory[offset],&h,sizeof(h));
+			offset += sizeof(h);
+
+			memcpy(&memory[offset],array->values,h.len);
+			offset += h.len;
+			}
+		else
+			{
+			h.len = array->length;
+			memcpy(&memory[offset],&h,sizeof(h));
+			offset += sizeof(h);
+
+			for (int i=0; i < h.len; i++)
+				{
+				int l = strlen(((char**)array->values)[i]);
+				memcpy(&memory[offset],((char**)array->values)[i],l+1);
+				offset += l+1;
+				}
+			}
+		}
+	else if ( RECORD(mode) )
+		{
+		h.type = type;
+		h.len = record->record->Length();
+		h.have_attr = have_attributes ? 1 : 0;
+
+		memcpy(&memory[offset],&h,sizeof(h));
+		offset += sizeof(h);
+
+		IterCookie* c = record->record->InitForIteration();
+
+		Value* member;
+		const char* key;
+
+		while ( (member = record->record->NextEntry( key, c )) )
+			{
+			int l = strlen(key);
+			memcpy(&memory[offset],key,l+1);
+			offset += l+1;
+			offset = member->ToMemBlock(memory, offset);
+			}
+		}
+
+	else
+		return -1;
+
+	return offset;
+	}
+
 
 recordptr create_record_dict()
 	{

@@ -10,6 +10,11 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
 #include "Channel.h"
 
 #if HAVE_SYS_SELECT_H
@@ -202,11 +207,13 @@ private:
 
 
 Client::Client( int& argc, char** argv, int arg_multithreaded ) :
-	last_context( )
+	last_context( ), useshm(0)
 	{
+	int usingpipes = 0;
 	char** orig_argv = argv;
 
 	multithreaded = arg_multithreaded;
+	int useshm_ = 0;
 
 	prog_name = argv[0];
 	--argc, ++argv;	// remove program name from argument list
@@ -304,6 +311,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 			write_fd = atoi( argv[1] );
 
 			argc -= 2, argv += 2;
+			usingpipes = 1;
 			}
 
 		interpreter_tag = strdup(last_context.id());
@@ -317,6 +325,12 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 		if ( argc > 0 && streq( argv[0], "-suspend" ) )
 			{
 			suspend = 1;
+			--argc, ++argv;
+			}
+
+		if ( argc > 0 && streq( argv[0], "-useshm" ) )
+			{
+			if ( usingpipes ) useshm_ = 1;
 			--argc, ++argv;
 			}
 
@@ -363,6 +377,10 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 	// Put argv[0] back into the argument count - it was removed
 	// near the top of this routine.
 	++argc;
+
+	// set useshm last so that all handshaking happens
+	// outside of shared memory.
+	useshm = useshm_;
 	}
 
 
@@ -454,6 +472,8 @@ Client::~Client()
 
 	if ( interpreter_tag )
 		delete interpreter_tag;
+
+	clear_shared_memory();
 	}
 
 GlishEvent* Client::NextEvent()
@@ -908,6 +928,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 
 			else if ( streq( name, "*unlink-sink*" ) )
 				UnlinkSink( v );
+
 			}
 		}
 
@@ -1287,7 +1308,11 @@ void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &contex
 		    event_sources[j]->Write_FD() >= 0 )
 			{
 			GlishEvent e( name, value );
-			send_event( event_sources[j]->Write_FD(), &e, sds );
+			if ( ! useshm )
+				send_event( event_sources[j]->Write_FD(), &e, sds );
+			else
+				send_shm_event( event_sources[j]->Write_FD(), &e, sds );
+
 			return; // should only be one match
 			}
 		}
@@ -1436,7 +1461,18 @@ GlishEvent* recv_event( int fd )
 					int( hdr.flags & GLISH_OPAQUE_EVENT ) );
 		}
 
-	GlishEvent* e = new GlishEvent( strdup( hdr.event_name ), result );
+	
+	GlishEvent* e = 0;
+
+	if ( result && *hdr.event_name == '*' && ! strcmp(hdr.event_name,"*shm-event*") )
+		{
+		int shmid = result->IntVal();
+		Unref(result);
+		e = recv_shm_event(shmid);
+		}
+	else
+		e = new GlishEvent( strdup( hdr.event_name ), result );
+
 	e->SetFlags( int( hdr.flags ) );
 	return e;
 	}
@@ -1535,3 +1571,129 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 			}
 		}
 	}
+
+
+struct shm_handle
+	{
+	shm_handle( int id_, char *ptr_ ) : id(id_), ptr(ptr_) { }
+	~shm_handle( )
+		{
+		shmdt(ptr);
+		if ( shmctl(id, IPC_RMID, 0) < 0 )
+			error->Report("couldn't detach shared memory");
+		}
+
+	char *ptr;
+	int id;
+	};
+
+declare(PList,shm_handle);
+typedef PList(shm_handle) shm_list_;
+declare(PList,shm_list_);
+typedef PList(shm_list_) shm_list;
+
+
+static shm_list *shared_memory = 0;
+
+void clear_shared_memory()
+	{
+	if ( shared_memory )
+		{
+		for (int x = shared_memory->length() - 1; x >= 0; x--)
+			{
+			shm_list_ *list = shared_memory->remove_nth(x);
+			if ( list )
+				for (int y = list->length() - 1; y >= 0; y--)
+					delete list->remove_nth(y);
+			delete list;
+			}
+		delete shared_memory;
+		shared_memory = 0;
+		}
+	}
+
+#define CHUNK (1024 * 5)
+void send_shm_event( int write_fd, const char* event_name,
+		     const GlishEvent* e, int sds )
+	{
+	int shmid = -1;
+	char *shmptr = 0;
+	int off = 1;
+	Value *v = e->Val();
+	glish_type t = v->Type();
+
+
+	int l = strlen(event_name);
+	int size = v->Bytes( ) + l + 2;
+	int index = (int) (size / CHUNK);
+	
+
+	if ( shared_memory && shared_memory->length() > index )
+		for (int x = index; x < shared_memory->length() && ! shmptr; x++)
+			{
+			shm_list_ *list = (*shared_memory)[x];
+			if ( list )
+				for (int y = list->length() - 1; y >= 0; y--)
+					if ( *((*list)[y]->ptr) )
+						{
+						shm_handle *ho = (*list)[y];
+						shmptr = ho->ptr;
+						shmid = ho->id;
+						break;
+						}
+			}
+
+	else
+		{
+		if ( ! shared_memory )
+			shared_memory = new shm_list;
+
+		if ( shared_memory->length() <= index )
+			for ( int x=shared_memory->length(); x <= index; x++ )
+				shared_memory->append(0);
+		}
+
+	if ( ! shmptr )
+		{
+		if ( (shmid = shmget(IPC_PRIVATE, CHUNK * (index+1), (SHM_R | SHM_W))) < 0)
+			{
+			send_event(write_fd, event_name, e, sds);
+			return;
+			}
+		if ( (shmptr = (char*) shmat(shmid, 0, 0)) == (char*) -1 )
+			fatal->Report("couldn't attach to shared memory");
+		if ( ! (*shared_memory)[index] )
+			shared_memory->replace(index,new shm_list_);
+		(*shared_memory)[index]->append( new shm_handle( shmid, shmptr ) );
+		}
+
+	*shmptr = '\0';
+	memcpy(&shmptr[off],event_name,l+1);
+	off += l+1;
+	off = v->ToMemBlock(shmptr,off);
+	Value val( shmid );
+	GlishEvent newe( (const char *) "*shm-event*", (const Value*) &val );
+	send_event( write_fd, "*shm-event*", &newe, sds );
+	}
+
+GlishEvent* recv_shm_event( int shmid )
+	{
+	char *shmptr = 0;
+	if ( (shmptr = (char*) shmat(shmid,0,0)) == (char*) -1 )
+		{
+		error->Report("client couldn't attach to shared memory");
+		return 0;
+		}
+	else
+		{
+		int l = strlen(&shmptr[1]);
+		char *newname = new char[l+1];
+		memcpy(newname,&shmptr[1],l+1);
+		int off = l+2;
+		Value *newval = ValueFromMemBlock(shmptr,off);
+		*shmptr = '\1';
+		shmdt(shmptr);
+		return new GlishEvent(newname, newval);
+		}
+	}
+

@@ -5,6 +5,7 @@
 
 #include "Agent.h"
 #include "BuiltIn.h"
+#include "Glish/Client.h"
 
 class Executable;
 class Channel;
@@ -28,6 +29,7 @@ class TaskAttr {
 	int async_flag;
 	int ping_flag;
 	int suspend_flag;
+	int useshm;
 	};
 
 
@@ -69,6 +71,18 @@ class Task : public Agent {
 	Task* AgentTask();
 
 	void DescribeSelf( ostream& s ) const;
+
+	virtual void sendEvent( int fd, const char* event_name,
+			const GlishEvent* e, int sds = -1 );
+
+	void sendEvent( int fd, const GlishEvent* e, int sds = -1 )
+		{ sendEvent( fd, e->name, e, sds ); }
+
+	void sendEvent( int fd, const char* name, const Value* value )
+		{
+		GlishEvent e( name, value );
+		sendEvent( fd, &e );
+		}
 
     protected:
 	// Creates and returns an argv vector with room for num_args arguments.
@@ -116,9 +130,10 @@ class ShellTask : public Task {
 
 class ClientTask : public Task {
     public:
-	ClientTask( const_args_list* args, TaskAttr* task_attrs, Sequencer* s );
-
+	ClientTask( const_args_list* args, TaskAttr* task_attrs, Sequencer* s, int shm_flag=0 );
+	void sendEvent( int fd, const char* event_name, const GlishEvent* e, int sds = -1 );
     protected:
+	int useshm;
 	void CreateAsyncClient( const char** argv );
 	};
 
@@ -161,7 +176,7 @@ class CreateTaskBuiltIn : public BuiltIn {
 
 	// Create an asynchronous shell or client.
 	IValue* CreateAsyncShell( const_args_list* args );
-	IValue* CreateClient( const_args_list* args );
+	IValue* CreateClient( const_args_list* args, int shm_flag );
 
 	// Check to see whether the creation of the given task was
 	// successful.
