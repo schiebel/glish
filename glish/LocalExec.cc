@@ -30,6 +30,12 @@ RCSID("@(#) $Id$")
 
 #include "LocalExec.h"
 
+#if defined(SIGCHLD)
+#define GLISH_SIGCHLD SIGCHLD
+#elif defined(SIGCLD)
+#define GLISH_SIGCHLD SIGCLD
+#endif
+
 PList(LocalExec) *LocalExec::doneList = 0;
 
 LocalExec::LocalExec( const char* arg_executable, const char** argv )
@@ -53,9 +59,12 @@ LocalExec::~LocalExec()
 	if ( Active() )
 		kill( pid, SIGTERM );
 	if ( doneList )
+		{
+		signal_handler old = install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
 		doneList->remove(this);
+		install_signal_handler( GLISH_SIGCHLD, (signal_handler) old );
+		}
 	}
-
 
 void LocalExec::MakeExecutable( const char** argv )
 	{
@@ -139,16 +148,11 @@ void LocalExec::Ping()
 	}
 
 
-#if defined(SIGCHLD)
-#define GLISH_SIGCHLD SIGCHLD
-#elif defined(SIGCLD)
-#define GLISH_SIGCHLD SIGCLD
-#endif
-
 void LocalExec::DoneReceived()
 	{
 #if defined(GLISH_SIGCHLD)
 	if ( ! doneList ) doneList = new PList(LocalExec);
+	install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
 	doneList->append(this);
 	install_signal_handler( GLISH_SIGCHLD, (signal_handler) sigchld );
 #endif

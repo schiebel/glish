@@ -526,7 +526,7 @@ void free_memory( void* ptr )
 char *strdup( const char *str )
 	{
 	int str_length = strlen( str );
-	char *tmp_str = new char [str_length + 1];
+	char *tmp_str = (char*) alloc_memory(str_length + 1);
 
 	return strcpy( tmp_str, str );
 	}
