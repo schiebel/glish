@@ -26,15 +26,8 @@ extern const char* glish_init[];
 
 extern int in_func_decl;
 
-#ifndef AIX_YACC
-extern int yyparse();
-extern int yylex();
-#else
-extern "C" {
-	int yyparse();
-	int yylex();
-}
-#endif
+extern int glish_parser();
+
 extern void restart_yylex( FILE* input_file );
 extern void scan_strings( const char** strings );
 extern int interactive_read( FILE* file, const char prompt[], char buf[],

@@ -4346,7 +4346,7 @@ void init_values()
 
 void finalize_values()
 	{
-	delete false_value;
+	delete (Value*) false_value;
 	}
 
 void delete_list( del_list* dlist )

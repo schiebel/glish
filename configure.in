@@ -1,5 +1,18 @@
 AC_INIT(glish)
 
+AC_DEFUN(HAVE_AIX,
+[AC_BEFORE([$0], [AC_TRY_COMPILE])dnl
+AC_BEFORE([$0], [AC_TRY_LINK])dnl
+AC_BEFORE([$0], [AC_TRY_RUN])dnl
+AC_MSG_CHECKING(for AIX)
+AC_EGREP_CPP(yes,
+[#ifdef _AIX
+  yes
+#endif
+], [AC_MSG_RESULT(yes); AC_DEFINE(_ALL_SOURCE)
+AIX=1], [AC_MSG_RESULT(no)
+AIX=])])
+
 if test -z "$GLISHROOT"; then
    if test "x$prefix" = xNONE; then
        GLISHROOT="`pwd`"
@@ -33,6 +46,7 @@ fi
     
 dnl Checks for programs.
 AC_PROG_CC
+HAVE_AIX
 AC_C_CONST
 AC_PROG_CXX
 AC_DEFUN(AC_INSTALL_CACHE_VAL,ac_cv_path_install_glish)
@@ -174,6 +188,14 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
     AC_DEFINE(GETTOD_NOT_DECLARED)
 ])
+
+##
+##  Add in AIX flags
+##
+if test "$AIX"; then
+    CFLAGS="$CFLAGS -D_ALL_SOURCE"
+    CXXFLAGS="$CXXFLAGS -D_ALL_SOURCE"
+fi
 
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBSW)

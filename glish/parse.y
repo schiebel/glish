@@ -43,11 +43,17 @@
 
 
 %{
-#if defined(_AIX)
+#if defined(_AIX) && defined(YYBISON)
 /* Must occur before the first line of C++ code - barf! */
 /* Actually only required when using bison. */
 #pragma alloca
 #endif
+
+extern "C" {
+	int yyparse();
+	void yyerror( char msg[] );
+}
+extern int yylex();
 
 #include <string.h>
 #include <stdlib.h>
@@ -61,15 +67,6 @@
 #include "Task.h"
 #include "input.h"
 
-#if !defined(AIX_YACC)
-// This is a real drag, but Sun yacc++ declares an 'extern "C"' version
-// of yyerror() whose argument is a non-const char pointer.  We want our
-// version to be const-char, so we can use literal strings as error
-// messages.
-void yyerror( char msg[] );
-#else
-extern "C" void yyerror( char msg[] );
-#endif
 
 Sequencer* current_sequencer = 0;
 int in_func_decl = 0;
@@ -768,6 +765,7 @@ no_cont:		{ statement_can_end = 1; }
 %%
 
 
+extern "C"
 void yyerror( char msg[] )
 	{
 	if ( in_func_decl )
@@ -781,6 +779,11 @@ void yyerror( char msg[] )
 	error->Report( msg, " at or near '", yytext, "'" );
 	}
 
+
+int glish_parser()
+	{
+	return yyparse();
+	}
 
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 	{

@@ -1585,7 +1585,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 	else
 		interactive = 0;
 
-	if ( yyparse() )
+	if ( glish_parser() )
 		error->Report( "syntax errors parsing input" );
 
 	// Don't need to delete input_file_name, yylex() already did
