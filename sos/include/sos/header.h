@@ -18,8 +18,8 @@
 
 struct sos_header_kernel GC_FINAL_CLASS {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0,
-			   int ver = SOS_VERSION ) : buf_((unsigned char*)b), type_(t),
-				length_(l), count_(1), freeit_(freeit), version_(ver), off_(ver ? 0 : -4) { }
+			   int ver = SOS_VERSION ) : buf_((unsigned char*)b), off_(ver ? 0 : -4),
+				type_(t), length_(l), count_(1), freeit_(freeit), version_(ver) { }
 	unsigned int count() { return count_; }
 	unsigned int ref() { return ++count_; }
 	unsigned int unref() { return --count_; }
