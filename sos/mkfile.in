@@ -12,17 +12,22 @@ MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CFLAGS = @CFLAGS@ @SLIB_CFLAGS@
 CXXFLAGS = @CXXFLAGS@ @SLIB_CXXFLAGS@
-LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+GSUFFIX = @GLISH_SLIB_SUFFIX@
+SUFFIX = @SLIB_SUFFIX@
 RANLIB = :
 LIBTGT = @SHARED_LIB@
 INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+SLIB_LABEL = @SLIB_LABEL@
+LABEL = $(SLIB_LABEL)libsos$(GSUFFIX)
+LABELGC = $(SLIB_LABEL)libsosgc$(GSUFFIX)
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
 CFLAGS = @CFLAGS@
 CXXFLAGS = @CXXFLAGS@
-LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+GSUFFIX = @GLISH_LIB_SUFFIX@
+SUFFIX = @GLISH_LIB_SUFFIX@
 RANLIB = @RANLIB@
 LIBTGT = @STATIC_LIB@
 INSTALL_LIBTGT = INSTALL_@STATIC_LIB@
@@ -30,8 +35,8 @@ INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
 #IF GC
-GCLIB_P = $(LIBDIR_P)/libsosgc$(LIB_SUFFIX)
-GCLIB = $(LIBDIR)/libsosgc$(LIB_SUFFIX)
+GCLIB_P = $(LIBDIR_P)/libsosgc$(SUFFIX)
+GCLIB = $(LIBDIR)/libsosgc$(SUFFIX)
 #FI
 
 CC = @CC@
@@ -85,48 +90,46 @@ all: $(LIBTGT)
 
 install: $(INSTALL_LIBTGT)
 
-lib_tgt: $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(GCLIB_P) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libsos$(SUFFIX) $(GCLIB_P) $(HDRS_P)
 
-INSTALL_lib_tgt: $(LIBDIR)/libsos$(LIB_SUFFIX) $(GCLIB)
+INSTALL_lib_tgt: $(LIBDIR)/libsos$(SUFFIX) $(GCLIB)
 	$(MKHIER) $(INCDIR)/sos
 	@rm -f $(INCDIR)/sos/*.h
 	cp $(HDRS) $(INCDIR)/sos
 
-libs: libsos$(LIB_SUFFIX) libsosgc$(LIB_SUFFIX)
-
-libsos$(LIB_SUFFIX): $(OBJS_PROXY)
-	$(RM) libsos$(LIB_SUFFIX)
-	$(MK_LIB) libsos$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
-	$(RANLIB) libsos$(LIB_SUFFIX)
+libsos$(GSUFFIX): $(OBJS_PROXY)
+	$(RM) libsos$(GSUFFIX)
+	$(MK_LIB) libsos$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS)
+	$(RANLIB) libsos$(GSUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
-$(LIBDIR_P)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
+$(LIBDIR_P)/libsos$(GSUFFIX): libsos$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/sos
-	$(INSTALL_LIBRARY) libsos$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libsos$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libsos$(GSUFFIX)
 
-$(LIBDIR)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
+$(LIBDIR)/libsos$(GSUFFIX): libsos$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libsos$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libsos$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libsos$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libsos$(GSUFFIX)
 
-libsosgc$(LIB_SUFFIX): $(GCOBJS_PROXY)
-	$(RM) libsosgc$(LIB_SUFFIX)
-	$(MK_LIB) libsosgc$(LIB_SUFFIX) $(GCOBJS) $(LD_LIBS)
-	$(RANLIB) libsosgc$(LIB_SUFFIX)
+libsosgc$(GSUFFIX): $(GCOBJS_PROXY)
+	$(RM) libsosgc$(GSUFFIX)
+	$(MK_LIB) libsosgc$(GSUFFIX) $(LABELGC) $(GCOBJS) $(LD_LIBS)
+	$(RANLIB) libsosgc$(GSUFFIX)
 	$(MINSPACE_RM) $(GCOBJS)
 
-$(LIBDIR_P)/libsosgc$(LIB_SUFFIX): libsosgc$(LIB_SUFFIX)
+$(LIBDIR_P)/libsosgc$(GSUFFIX): libsosgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/sos
-	$(INSTALL_LIBRARY) libsosgc$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libsosgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libsosgc$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libsosgc$(GSUFFIX)
 
-$(LIBDIR)/libsosgc$(LIB_SUFFIX): libsosgc$(LIB_SUFFIX)
+$(LIBDIR)/libsosgc$(GSUFFIX): libsosgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libsosgc$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libsosgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libsosgc$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libsosgc$(GSUFFIX)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -146,7 +149,7 @@ rcsinfo:
 	@cd include/Sds;rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
 
 clean:
-	@rm -f errs $(OBJS_PROXY) *.o *~* $(APPS) core a.out *$(LIB_SUFFIX) ../$(TAR_FILE).Z
+	@rm -f errs $(OBJS_PROXY) *.o *~* $(APPS) core a.out *$(GSUFFIX) ../$(TAR_FILE).Z
 
 distclean: clean
 	rm -f config.status config.cache config.h Makefile
@@ -217,6 +220,28 @@ $(INCDIR_P)/sos/list.h: $(H)/list.h
 $(INCDIR_P)/sos/generic.h: $(H)/generic.h
 	rm -f $@ 
 	cp $(H)/generic.h $@
+
+#IF SLIB_SYM_LINKS
+$(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libsos$(SUFFIX);		\
+	ln -s libsos$(GSUFFIX) libsos$(SUFFIX)
+
+$(LIBDIR_P)/libsosgc$(SUFFIX): $(LIBDIR_P)/libsosgc$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libsosgc$(SUFFIX);	\
+	ln -s libsosgc$(GSUFFIX) libsosgc$(SUFFIX)
+
+$(LIBDIR)/libsos$(SUFFIX): $(LIBDIR)/libsos$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libsos$(SUFFIX);	\
+	ln -s libsos$(GSUFFIX) libsos$(SUFFIX)
+
+$(LIBDIR)/libsosgc$(SUFFIX): $(LIBDIR)/libsosgc$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libsosgc$(SUFFIX);	\
+	ln -s libsosgc$(GSUFFIX) libsosgc$(SUFFIX)
+#FI
 
 INSTALL_:
 

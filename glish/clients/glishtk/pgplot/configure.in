@@ -206,6 +206,38 @@ fi
 ])
 
 dnl##
+dnl## Preprocess files
+dnl##
+dnl##      $1 => input file
+dnl##	$2 => output file
+dnl##	$3 => initialization
+dnl##
+AC_DEFUN(PREPROCESS,
+[rm -f $ARCH/preprocess.conf
+
+cat > $ARCH/preprocess.conf <<EOF
+[#!/bin/sh]
+ifelse($#, 3, [$3], )
+[cat <<'!NO!SUBS!']
+EOF
+
+sed -e "s/^\#FI/!NO!SUBS!\\
+fi\\
+cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
+else\\
+cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][_A-Z]*\)/!NO!SUBS!\\
+if test -n \"\$\1\"; then\\
+cat <<'!NO!SUBS!'/" < $1 >> $ARCH/preprocess.conf
+
+cat >> $ARCH/preprocess.conf <<\EOF
+[!NO!SUBS!]
+EOF
+
+rm -f $2
+/bin/sh $ARCH/preprocess.conf > $2
+])
+
+dnl##
 dnl##   This macro takes care of appending things to
 dnl##   the ld search path...
 dnl##
@@ -927,6 +959,7 @@ case $host_os in
 	SLIB_CFLAGS="-fPIC"
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
+	SLIB_LABEL="-Wl,-h,"
 	if test "$have_dl" = yes; then
 	    SLIB_LD="\${CC} -shared"
 	    DL_LIBS="-ldl"
@@ -946,13 +979,13 @@ case $host_os in
 	DL_LIBS="$DL_LIBS -lc"
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
+	    GLISH_LD_SEARCH="-WL,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -1209,15 +1242,11 @@ if test -z "$TK_CXX_RPATH"; then
 fi
 
 dnl##
-dnl## Include version number or not? For now, not.
+dnl## Set up shared suffix
 dnl##
-GLISH_SLIB_SUFFIX=$SLIB_SUFFIX
-
 if test "$GLISH_SLIB_SUFFIX" = "" ; then
 if test "$LIB_VERSIONS_OK" = "ok"; then
-    GLISH_SLIB_SUFFIX="$VERSION$SLIB_SUFFIX"
-else
-    GLISH_SLIB_SUFFIX="`echo $VERSION | tr -d .`$SLIB_SUFFIX"
+    GLISH_SLIB_SUFFIX="$SLIB_SUFFIX.$_cv_version"
 fi
 fi
 
@@ -1291,9 +1320,12 @@ dnl##
 dnl## shared library flags
 dnl##
 AC_SUBST(SLIB_CFLAGS)
+AC_SUBST(SLIB_LABEL)
 AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(GLISH_SLIB_SUFFIX)
+AC_SUBST(SLIB_SUFFIX)
+AC_SUBST(LIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
 AC_SUBST(TK_LD_RPATH)
@@ -1301,4 +1333,12 @@ AC_SUBST(TK_CXX_RPATH)
 
 AC_SUBST(TKCLIENT_LIBS)
 
-AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/Makefile.in)
+if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
+    make_slib_symlinks="yes"
+fi
+
+$mkhier "tkpgplot/$ARCH"
+
+PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"])
+
+AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in)

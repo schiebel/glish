@@ -8,11 +8,14 @@ INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+SLIB_LABEL = @SLIB_LABEL@
+LABEL = $(SLIB_LABEL)libgtkpgdrv$(GSUFFIX)
 
 MK_LIB = @MAKE_SLIB@
 LD_LIBS =  @SLIB_LD_LIBS@
 CFLAGS = @DEFS@ @CFLAGS@ @SLIB_CFLAGS@
-LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+GSUFFIX = @GLISH_SLIB_SUFFIX@
+SUFFIX = @SLIB_SUFFIX@
 INSTALL_LIBRARY = $(INSTALL_DATA)
 
 CC = @CC@
@@ -47,7 +50,7 @@ LIBDIR = @libdir@
 
 MKHIER = $(top)/config/mkhier
 
-all: make-libdir_p $(LIBDIR_P)/libgtkpgdrv$(LIB_SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libgtkpgdrv$(SUFFIX)
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -55,19 +58,31 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install: make-libdir $(LIBDIR)/libgtkpgdrv$(LIB_SUFFIX)
+install: make-libdir $(LIBDIR)/libgtkpgdrv$(SUFFIX)
 
-libgtkpgdrv$(LIB_SUFFIX): $(OBJS_PROXY)
+libgtkpgdrv$(GSUFFIX): $(OBJS_PROXY)
 	rm -f $@
-	$(MK_LIB) $@ $(OBJS) $(LD_LIBS)
+	$(MK_LIB) $@ $(LABEL) $(OBJS) $(LD_LIBS)
 
-$(LIBDIR_P)/libgtkpgdrv$(LIB_SUFFIX): libgtkpgdrv$(LIB_SUFFIX)
+$(LIBDIR_P)/libgtkpgdrv$(GSUFFIX): libgtkpgdrv$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(INSTALL_LIBRARY) libgtkpgdrv$(LIB_SUFFIX) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) libgtkpgdrv$(GSUFFIX) $(LIBDIR_P)
 
-$(LIBDIR)/libgtkpgdrv$(LIB_SUFFIX): libgtkpgdrv$(LIB_SUFFIX)
+$(LIBDIR)/libgtkpgdrv$(GSUFFIX): libgtkpgdrv$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libgtkpgdrv$(LIB_SUFFIX) $(LIBDIR)
+	$(INSTALL_LIBRARY) libgtkpgdrv$(GSUFFIX) $(LIBDIR)
+
+#IF SLIB_SYM_LINKS
+$(LIBDIR_P)/libgtkpgdrv$(SUFFIX): $(LIBDIR_P)/libgtkpgdrv$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libgtkpgdrv$(SUFFIX);	\
+	ln -s libgtkpgdrv$(GSUFFIX) libgtkpgdrv$(SUFFIX)
+
+$(LIBDIR)/libgtkpgdrv$(SUFFIX): $(LIBDIR)/libgtkpgdrv$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libgtkpgdrv$(SUFFIX);	\
+	ln -s libgtkpgdrv$(GSUFFIX) libgtkpgdrv$(SUFFIX)
+#FI
 
 clean:
 	rm -f *.a $(OBJS_PROXY) *.o core errs *~ \#* TAGS *.E a.out errors tktest wish \

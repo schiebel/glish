@@ -659,7 +659,7 @@ struct glishtk_canvas_bindinfo
 	};
 
 unsigned int glishtk_canvas_bindinfo::bind_count = 0;
-glishtk_canvas_bindinfo::glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
+glishtk_canvas_bindinfo::glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg ) :
 			canvas(c), event_name(strdup(event)), tk_event_name(strdup(tk_event))
 	{
 	char buf[30];

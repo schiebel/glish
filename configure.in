@@ -292,7 +292,7 @@ sed -e "s/^\#FI/!NO!SUBS!\\
 fi\\
 cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
 else\\
-cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][A-Z]*\)/!NO!SUBS!\\
+cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][_A-Z]*\)/!NO!SUBS!\\
 if test -n \"\$\1\"; then\\
 cat <<'!NO!SUBS!'/" < $1 >> $ARCH/preprocess.conf
 
@@ -578,9 +578,9 @@ dnl##--------------------------------------------------------------------
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
     if test "$enable_gc" = "yes"; then
-        NPD_LIB='${LIBDIR_P}/libnpdgc${LIB_SUFFIX}'
+        NPD_LIB='${LIBDIR_P}/libnpdgc${GSUFFIX}'
     else
-        NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
+        NPD_LIB='${LIBDIR_P}/libnpd${GSUFFIX}'
     fi
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
@@ -1289,6 +1289,7 @@ case $host_os in
 	SLIB_CFLAGS="-fPIC"
 	SLIB_LD_LIBS=""
 	SLIB_SUFFIX=".so"
+	SLIB_LABEL="-Wl,-h,"
 	if test "$have_dl" = yes; then
 	    SLIB_LD="$CC -shared"
 	    DL_LIBS="-ldl"
@@ -1306,13 +1307,13 @@ case $host_os in
 	dnl##
 	DL_LIBS="$DL_LIBS -lc"
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	GC_MACH_DEP=mach_dep.o
 	;;
     MP-RAS-02*)
@@ -1592,16 +1593,12 @@ if test -z "$TK_CXX_RPATH"; then
 fi
 
 dnl##
-dnl## Include version number or not? For now, not.
+dnl## Set up shared suffix
 dnl##
-GLISH_SLIB_SUFFIX=$SLIB_SUFFIX
 GLISH_LIB_SUFFIX=".a"
-
 if test "$GLISH_SLIB_SUFFIX" = "" ; then
 if test "$LIB_VERSIONS_OK" = "ok"; then
-    GLISH_SLIB_SUFFIX="$VERSION$SLIB_SUFFIX"
-else
-    GLISH_SLIB_SUFFIX="`echo $VERSION | tr -d .`$SLIB_SUFFIX"
+    GLISH_SLIB_SUFFIX="$SLIB_SUFFIX.$_cv_version"
 fi
 fi
 
@@ -1735,9 +1732,12 @@ dnl##
 dnl## shared library flags
 dnl##
 AC_SUBST(SLIB_CFLAGS)
+AC_SUBST(SLIB_LABEL)
 AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(GLISH_SLIB_SUFFIX)
+AC_SUBST(SLIB_SUFFIX)
+AC_SUBST(LIB_SUFFIX)
 AC_SUBST(GLISH_LIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
@@ -1787,21 +1787,30 @@ $mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
 $mkhier "glish/clients/glishtk/$ARCH/shared"
 
+if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
+    make_slib_symlinks="yes"
+fi
+
 PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/Makefile.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"
+SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/shared.in,[SHARED="yes"
+SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/shared.in,[SHARED="yes"
+SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/shared.in,[SHARED="yes"
+SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/shared.in,[SHARED="yes"
+SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
 
 AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

@@ -7,8 +7,11 @@
 MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
-LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+GSUFFIX = @GLISH_SLIB_SUFFIX@
+SUFFIX = @SLIB_SUFFIX@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+SLIB_LABEL = @SLIB_LABEL@
+LABEL = $(SLIB_LABEL)libglishtk$(GSUFFIX)
 
 TK_LIB = @TK_LIB@
 
@@ -49,7 +52,7 @@ INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -
 
 OBJS = tkProxy.o
 
-all: make-libdir_p $(LIBDIR_P)/libglishtk$(LIB_SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX)
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -57,19 +60,19 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(LIBDIR)/libglishtk$(LIB_SUFFIX)
+install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX)
 
-libglishtk$(LIB_SUFFIX): $(OBJS)
-	rm -f libglishtk$(LIB_SUFFIX)
-	$(MK_LIB) libglishtk$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
+libglishtk$(GSUFFIX): $(OBJS)
+	rm -f libglishtk$(GSUFFIX)
+	$(MK_LIB) libglishtk$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS)
 
-$(LIBDIR_P)/libglishtk$(LIB_SUFFIX): libglishtk$(LIB_SUFFIX)
+$(LIBDIR_P)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(INSTALL_LIBRARY) libglishtk$(LIB_SUFFIX) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) libglishtk$(GSUFFIX) $(LIBDIR_P)
 
-$(LIBDIR)/libglishtk$(LIB_SUFFIX): libglishtk$(LIB_SUFFIX)
+$(LIBDIR)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libglishtk$(LIB_SUFFIX) $(LIBDIR)
+	$(INSTALL_LIBRARY) libglishtk$(GSUFFIX) $(LIBDIR)
 
 tkProxy.o: $(SRC)/tkProxy.cc $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkProxy.cc
@@ -98,11 +101,23 @@ rcsinfo:
 
 clean:
 	@rm -f $(CLIENT_OBJS) $(CLIENT_OBJS_PROXY) $(INTERP_OBJS) $(INTERP_OBJS_PROXY) \
-			libglishp$(LIB_SUFFIX) libglish$(LIB_SUFFIX) main.o glish errs \
+			libglishp$(GSUFFIX) libglish$(GSUFFIX) main.o glish errs \
 			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
 
 distclean: clean
 	rm -f config.status config.cache config.h config_p.h Makefile
+
+#IF SLIB_SYM_LINKS
+$(LIBDIR_P)/libglishtk$(SUFFIX): $(LIBDIR_P)/libglishtk$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libglishtk$(SUFFIX);	\
+	ln -s libglishtk$(GSUFFIX) libglishtk$(SUFFIX)
+
+$(LIBDIR)/libglishtk$(SUFFIX): $(LIBDIR)/libglishtk$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libglishtk$(SUFFIX);	\
+	ln -s libglishtk$(GSUFFIX) libglishtk$(SUFFIX)
+#FI
 
 INSTALL_:
 

@@ -17,7 +17,8 @@ MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@ @SLIB_CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
-LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+GSUFFIX = @GLISH_SLIB_SUFFIX@
+SUFFIX = @SLIB_SUFFIX@
 RANLIB = :
 LIBTGT = @SHARED_LIB@
 BINTGT = @SHARED_BIN@
@@ -25,12 +26,17 @@ INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_BINTGT = INSTALL_@SHARED_BIN@
 GLISH_LIBS = @GLISH_LIBS@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+SLIB_LABEL = @SLIB_LABEL@
+LABEL = $(SLIB_LABEL)libglish$(GSUFFIX)
+LABELGC = $(SLIB_LABEL)libglishgc$(GSUFFIX)
+LABELP = $(SLIB_LABEL)libglishp$(GSUFFIX)
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
-LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+GSUFFIX = @GLISH_LIB_SUFFIX@
+SUFFIX = @GLISH_LIB_SUFFIX@
 RANLIB = @RANLIB@
 LIBTGT = @STATIC_LIB@
 BINTGT = @STATIC_BIN@
@@ -41,13 +47,15 @@ INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
 #IF GC
-PLIB = $(LIBDIR_P)/libglishgc$(LIB_SUFFIX)
-GLIBS = $(LIBDIR_P)/libsosgc$(LIB_SUFFIX) $(LIBDIR_P)/libeditgc$(LIB_SUFFIX) $(LIBDIR_P)/libregxgc$(LIB_SUFFIX) @NPD_LIB@
+PLIB_P = $(LIBDIR_P)/libglishgc$(SUFFIX)
+PLIB = $(LIBDIR)/libglishgc$(SUFFIX)
+GLIBS = $(LIBDIR_P)/libsosgc$(GSUFFIX) $(LIBDIR_P)/libeditgc$(GSUFFIX) $(LIBDIR_P)/libregxgc$(GSUFFIX) @NPD_LIB@
 GCFLAG = -DENABLE_GC
 MALLIB =
 #ELSE
-PLIB = $(LIBDIR_P)/libglishp$(LIB_SUFFIX)
-GLIBS = $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libedit$(LIB_SUFFIX) $(LIBDIR_P)/libregx$(LIB_SUFFIX) @NPD_LIB@
+PLIB_P = $(LIBDIR_P)/libglishp$(SUFFIX)
+PLIB = $(LIBDIR)/libglishp$(SUFFIX)
+GLIBS = $(LIBDIR_P)/libsos$(GSUFFIX) $(LIBDIR_P)/libedit$(GSUFFIX) $(LIBDIR_P)/libregx$(GSUFFIX) @NPD_LIB@
 GCFLAG =
 MALLIB = malloc.o
 #FI
@@ -72,7 +80,7 @@ H = $(SRC)/include/Glish
 
 
 INTERP_OBJS = IValue.o Agent.o BinOpExpr.o BuiltIn.o Daemon.o Event.o Expr.o File.o Frame.o \
-	Func.o Garbage.o Pager.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o \
+	Func.o Pager.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o \
 	glish_init.o parse.o sprintf.o scan.o
 
 CLIENT_OBJS = Value.o ValKern.o Client.o Complex.o Dict.o Executable.o LocalExec.o Object.o \
@@ -83,7 +91,7 @@ CLIENT_GCOBJS = gcValue.o gcValKern.o gcClient.o gcComplex.o gcDict.o gcExecutab
 	@ARCH_OBJ@
 
 INTERP_OBJS_PROXY = $(D)IValue.o $(D)Agent.o $(D)BinOpExpr.o $(D)BuiltIn.o $(D)Daemon.o \
-	$(D)Event.o $(D)Expr.o $(D)File.o $(D)Frame.o $(D)Func.o $(D)Garbage.o $(D)Pager.o \
+	$(D)Event.o $(D)Expr.o $(D)File.o $(D)Frame.o $(D)Func.o $(D)Pager.o \
 	$(D)Regex.o $(D)RemoteExec.o $(D)Sequencer.o $(D)Select.o $(D)Stmt.o $(D)Task.o \
 	$(D)glish_init.o $(D)parse.o $(D)sprintf.o $(D)scan.o
 
@@ -96,7 +104,7 @@ CLIENT_GCOBJS_PROXY = $(D)gcValue.o $(D)gcValKern.o $(D)gcClient.o $(D)gcComplex
 	$(D)gcSocket.o $(D)gcStr.o $(D)gcStream.o $(D)gcVecRef.o $(D)gcsystem.o @ARCH_OBJ@
 
 KEY_HEADERS = \
-	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h $(SRC)/Garbage.h \
+	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(SRC)/Regex.h $(H)/glish.h
 
@@ -137,76 +145,76 @@ all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(PLIB) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P) $(HDRS_P)
 
 bin_tgt: $(BINDIR_P)/glish
 
-INSTALL_lib_tgt: $(LIBDIR)/libglish$(LIB_SUFFIX) $(PLIB) 
+INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(PLIB) 
 	$(MKHIER) $(INCDIR)/Glish
 	@rm -f $(INCDIR)/Glish/*.h
 	cp $(H)/*.h $(INCDIR)/Glish
 
 INSTALL_bin_tgt: $(BINDIR)/glish
 
-glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(PLIB) $(GLIBS)
+glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(GSUFFIX) $(PLIB_P) $(GLIBS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(MALLIB) $(GLISH_LIBS) @LIBS@
 
-libglish$(LIB_SUFFIX): $(CLIENT_OBJS_PROXY)
-	rm -f libglish$(LIB_SUFFIX)
-	$(MK_LIB) libglish$(LIB_SUFFIX) $(CLIENT_OBJS) $(LD_LIBS)
-	$(RANLIB) libglish$(LIB_SUFFIX)
+libglish$(GSUFFIX): $(CLIENT_OBJS_PROXY)
+	rm -f libglish$(GSUFFIX)
+	$(MK_LIB) libglish$(GSUFFIX) $(LABEL) $(CLIENT_OBJS) $(LD_LIBS)
+	$(RANLIB) libglish$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_OBJS)
 
-libglishgc$(LIB_SUFFIX): $(CLIENT_GCOBJS_PROXY) $(INTERP_OBJS_PROXY)
-	rm -f libglishgc$(LIB_SUFFIX)
-	$(MK_LIB) libglishgc$(LIB_SUFFIX) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS)
-	$(RANLIB) libglishgc$(LIB_SUFFIX)
+libglishgc$(GSUFFIX): $(CLIENT_GCOBJS_PROXY) $(INTERP_OBJS_PROXY)
+	rm -f libglishgc$(GSUFFIX)
+	$(MK_LIB) libglishgc$(GSUFFIX) $(LABELGC) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS)
+	$(RANLIB) libglishgc$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_GCOBJS) $(INTERP_OBJS)
 
-libglishp$(LIB_SUFFIX): $(INTERP_OBJS_PROXY)
-	rm -f libglishp$(LIB_SUFFIX)
-	$(MK_LIB) libglishp$(LIB_SUFFIX) $(INTERP_OBJS) $(LD_LIBS)
-	$(RANLIB) libglishp$(LIB_SUFFIX)
+libglishp$(GSUFFIX): $(INTERP_OBJS_PROXY)
+	rm -f libglishp$(GSUFFIX)
+	$(MK_LIB) libglishp$(GSUFFIX) $(LABELP) $(INTERP_OBJS) $(LD_LIBS)
+	$(RANLIB) libglishp$(GSUFFIX)
 	$(MINSPACE_RM) $(INTERP_OBJS)
 
 $(BINDIR_P)/glish: glish
 	$(MKHIER) $(BINDIR_P)
 	$(INSTALL_PROGRAM) -s glish $(BINDIR_P)
 
-$(LIBDIR_P)/libglish$(LIB_SUFFIX): libglish$(LIB_SUFFIX)
+$(LIBDIR_P)/libglish$(GSUFFIX): libglish$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/Glish
-	$(INSTALL_LIBRARY) libglish$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libglish$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglish$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libglish$(GSUFFIX)
 
-$(LIBDIR_P)/libglishgc$(LIB_SUFFIX): libglishgc$(LIB_SUFFIX)
+$(LIBDIR_P)/libglishgc$(GSUFFIX): libglishgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(INSTALL_LIBRARY) libglishgc$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libglishgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglishgc$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libglishgc$(GSUFFIX)
 
-$(LIBDIR_P)/libglishp$(LIB_SUFFIX): libglishp$(LIB_SUFFIX)
+$(LIBDIR_P)/libglishp$(GSUFFIX): libglishp$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(INSTALL_LIBRARY) libglishp$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libglishp$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglishp$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libglishp$(GSUFFIX)
 
 $(BINDIR)/glish: glish
 	$(MKHIER) $(BINDIR)
 	$(INSTALL_PROGRAM) -s glish $(BINDIR)
 
-$(LIBDIR)/libglish$(LIB_SUFFIX): libglish$(LIB_SUFFIX)
+$(LIBDIR)/libglish$(GSUFFIX): libglish$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libglish$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libglish$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglish$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglish$(GSUFFIX)
 
-$(LIBDIR)/libglishgc$(LIB_SUFFIX): libglishgc$(LIB_SUFFIX)
+$(LIBDIR)/libglishgc$(GSUFFIX): libglishgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libglishgc$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libglishgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglishgc$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglishgc$(GSUFFIX)
 
-$(LIBDIR)/libglishp$(LIB_SUFFIX): libglishp$(LIB_SUFFIX)
+$(LIBDIR)/libglishp$(GSUFFIX): libglishp$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libglishp$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libglishp$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libglishp$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglishp$(GSUFFIX)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -232,7 +240,7 @@ rcsinfo:
 
 clean:
 	@rm -f $(CLIENT_OBJS) $(CLIENT_OBJS_PROXY) $(INTERP_OBJS) $(INTERP_OBJS_PROXY) \
-			libglishgc$(LIB_SUFFIX) libglishp$(LIB_SUFFIX) libglish$(LIB_SUFFIX) \
+			libglishgc$(GSUFFIX) libglishp$(GSUFFIX) libglish$(GSUFFIX) \
 			main.o glish errs parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
 
 distclean: clean
@@ -265,9 +273,6 @@ $(D)Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
 
 $(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Func.cc $(T)
-
-$(D)Garbage.o: $(SRC)/Garbage.cc $(SRC)/Garbage.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Garbage.cc $(T)
 
 $(D)Pager.o: $(SRC)/Pager.cc $(SRC)/Pager.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Pager.cc $(T)
@@ -449,6 +454,38 @@ $(D)gcsystem.o: $(SRC)/system.c $(SRC)/system.h
 
 alpha.o: $(SRC)/alpha.c
 	$(ALTCC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/alpha.c
+
+#IF SLIB_SYM_LINKS
+$(LIBDIR_P)/libglish$(SUFFIX): $(LIBDIR_P)/libglish$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libglish$(SUFFIX);	\
+	ln -s libglish$(GSUFFIX) libglish$(SUFFIX)
+
+$(LIBDIR_P)/libglishp$(SUFFIX): $(LIBDIR_P)/libglishp$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libglishp$(SUFFIX);	\
+	ln -s libglishp$(GSUFFIX) libglishp$(SUFFIX)
+
+$(LIBDIR_P)/libglishgc$(SUFFIX): $(LIBDIR_P)/libglishgc$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libglishgc$(GSUFFIX);	\
+	ln -s libglishgc$(GSUFFIX) libglishgc$(SUFFIX)
+
+$(LIBDIR)/libglish$(SUFFIX): $(LIBDIR)/libglish$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libglish$(SUFFIX);	\
+	ln -s libglish$(GSUFFIX) libglish$(SUFFIX)
+
+$(LIBDIR)/libglishp$(SUFFIX): $(LIBDIR)/libglishp$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libglishp$(SUFFIX);	\
+	ln -s libglishp$(GSUFFIX) libglishp$(SUFFIX)
+
+$(LIBDIR)/libglishgc$(SUFFIX): $(LIBDIR)/libglishgc$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libglishgc$(SUFFIX);	\
+	ln -s libglishgc$(GSUFFIX) libglishgc$(SUFFIX)
+#FI
 
 ##
 ## Include files

@@ -11,18 +11,23 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CFLAGS = @CFLAGS@ @SLIB_CFLAGS@
-LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
+GSUFFIX = @GLISH_SLIB_SUFFIX@
+SUFFIX = @SLIB_SUFFIX@
 RANLIB = :
 LIBTGT = @SHARED_LIB@
 BINTGT = 
 INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_BINTGT = 
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+SLIB_LABEL = @SLIB_LABEL@
+LABEL = $(SLIB_LABEL)libnpd$(GSUFFIX)
+LABELGC = $(SLIB_LABEL)libnpdgc$(GSUFFIX)
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
 CFLAGS = @CFLAGS@
-LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+GSUFFIX = @GLISH_LIB_SUFFIX@
+SUFFIX = @GLISH_LIB_SUFFIX@
 RANLIB = @RANLIB@
 LIBTGT = lib_tgt
 BINTGT = bin_tgt
@@ -32,8 +37,8 @@ INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
 #IF GC
-GCLIB_P = $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX)
-GCLIB = $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
+GCLIB_P = $(LIBDIR_P)/libnpdgc$(SUFFIX)
+GCLIB = $(LIBDIR)/libnpdgc$(SUFFIX)
 #FI
 
 CC = @CC@
@@ -81,11 +86,11 @@ all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(GCLIB_P) $(INCDIR_P)/Npd/npd.h
+lib_tgt: $(LIBDIR_P)/libnpd$(SUFFIX) $(GCLIB_P) $(INCDIR_P)/Npd/npd.h
 
 bin_tgt: $(BINDIR_P)/glishkey
 
-INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX) $(GCLIB)
+INSTALL_lib_tgt: $(LIBDIR)/libnpd$(SUFFIX) $(GCLIB)
 	if test ! -d $(KEYDIR)/hosts; then	\
 	    $(MKHIER) "$(KEYDIR)/hosts";	\
 	    chmod -f 750 "$(KEYDIR)/hosts";	\
@@ -100,50 +105,72 @@ INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX) $(GCLIB)
 
 INSTALL_bin_tgt: $(BINDIR)/glishkey
 
-libnpd$(LIB_SUFFIX): $(OBJS_PROXY)
-	$(RM) libnpd$(LIB_SUFFIX)
-	$(MK_LIB) libnpd$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
-	$(RANLIB) libnpd$(LIB_SUFFIX)
+libnpd$(GSUFFIX): $(OBJS_PROXY)
+	$(RM) libnpd$(GSUFFIX)
+	$(MK_LIB) libnpd$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS)
+	$(RANLIB) libnpd$(GSUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
-libnpdgc$(LIB_SUFFIX): $(GCOBJS_PROXY)
-	$(RM) libnpdgc$(LIB_SUFFIX)
-	$(MK_LIB) libnpdgc$(LIB_SUFFIX) $(GCOBJS) $(LD_LIBS)
-	$(RANLIB) libnpdgc$(LIB_SUFFIX)
+libnpdgc$(GSUFFIX): $(GCOBJS_PROXY)
+	$(RM) libnpdgc$(GSUFFIX)
+	$(MK_LIB) libnpdgc$(GSUFFIX) $(LABELGC) $(GCOBJS) $(LD_LIBS)
+	$(RANLIB) libnpdgc$(GSUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
-glishkey: libnpd$(LIB_SUFFIX) genkey.o
-	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(LIB_SUFFIX) -lm @LIBS@
+glishkey: libnpd$(GSUFFIX) genkey.o
+	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(GSUFFIX) -lm @LIBS@
 
-$(LIBDIR_P)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
+$(LIBDIR_P)/libnpd$(GSUFFIX):libnpd$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/Npd
-	$(INSTALL_LIBRARY) libnpd$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libnpd$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libnpd$(GSUFFIX)
 
-$(LIBDIR_P)/libnpdgc$(LIB_SUFFIX):libnpdgc$(LIB_SUFFIX)
+$(LIBDIR_P)/libnpdgc$(GSUFFIX):libnpdgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(MKHIER) $(INCDIR_P)/Npd
-	$(INSTALL_LIBRARY) libnpdgc$(LIB_SUFFIX) $(LIBDIR_P)
-	$(RANLIB) $(LIBDIR_P)/libnpdgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libnpdgc$(GSUFFIX) $(LIBDIR_P)
+	$(RANLIB) $(LIBDIR_P)/libnpdgc$(GSUFFIX)
 
 $(BINDIR_P)/glishkey:glishkey
 	$(MKHIER) $(BINDIR_P)
 	$(INSTALL_PROGRAM) -s glishkey $(BINDIR_P)
 
-$(LIBDIR)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
+$(LIBDIR)/libnpd$(GSUFFIX):libnpd$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libnpd$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libnpd$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libnpd$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libnpd$(GSUFFIX)
 
-$(LIBDIR)/libnpdgc$(LIB_SUFFIX):libnpdgc$(LIB_SUFFIX)
+$(LIBDIR)/libnpdgc$(GSUFFIX):libnpdgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libnpdgc$(LIB_SUFFIX) $(LIBDIR)
-	$(RANLIB) $(LIBDIR)/libnpdgc$(LIB_SUFFIX)
+	$(INSTALL_LIBRARY) libnpdgc$(GSUFFIX) $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libnpdgc$(GSUFFIX)
 
 $(BINDIR)/glishkey:glishkey
 	$(MKHIER) $(BINDIR)
 	$(INSTALL_PROGRAM) -s glishkey $(BINDIR)
+
+#IF SLIB_SYM_LINKS
+$(LIBDIR_P)/libnpd$(SUFFIX): $(LIBDIR_P)/libnpd$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libnpd$(SUFFIX);		\
+	ln -s libnpd$(GSUFFIX) libnpd$(SUFFIX)
+
+$(LIBDIR_P)/libnpdgc$(SUFFIX): $(LIBDIR_P)/libnpdgc$(GSUFFIX)
+	cd $(LIBDIR_P);			\
+	rm -f libnpdgc$(SUFFIX);	\
+	ln -s libnpdgc$(GSUFFIX) libnpdgc$(SUFFIX)
+
+$(LIBDIR)/libnpd$(SUFFIX): $(LIBDIR)/libnpd$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libnpd$(SUFFIX);		\
+	ln -s libnpd$(GSUFFIX) libnpd$(SUFFIX)
+
+$(LIBDIR)/libnpdgc$(SUFFIX): $(LIBDIR)/libnpdgc$(GSUFFIX)
+	cd $(LIBDIR);			\
+	rm -f libnpdgc$(SUFFIX);	\
+	ln -s libnpdgc$(GSUFFIX) libnpdgc$(SUFFIX)
+#FI
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
