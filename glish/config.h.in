@@ -168,7 +168,4 @@ extern char **environ;
 #endif
 #endif
 
-#undef NEED_EMPTY_CONST84
-#ifdef NEED_EMPTY_CONST84
-#define CONST84
-#endif
+#undef GTKCONST

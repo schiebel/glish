@@ -1549,4 +1549,4 @@ LABEL_SLIB="$label_slib"])
 fi
 
 AC_CONFIG_HEADER($ARCH/config.h:config.h.in $TK_DRIVER_CONFIG)
-AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in $TK_DRIVER_MAKEFILE)
+AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in $TK_DRIVER_MAKEFILE $TK_DRIVER_CONFIG)

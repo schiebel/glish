@@ -952,7 +952,7 @@ typedef PList(glishtk_bindinfo) glishtk_bindlist;
 glish_declare(PDict,glishtk_bindlist);
 typedef PDict(glishtk_bindlist) glishtk_bindtable;
 
-int glishtk_bindcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int glishtk_bindcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	static const char *event_names[] =
 	  {
@@ -1136,7 +1136,7 @@ const char *glishtk_unbind(TkProxy *agent, const char *, Value *args )
 	}
 
 
-int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, CONST char *[] )
+int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, GTKCONST char *[] )
 	{
 	((TkFrameP*)data)->KillFrame();
 	return TCL_OK;
@@ -2553,7 +2553,7 @@ TkButton::~TkButton( )
 
 static unsigned char dont_invoke_button = 0;
 
-int buttoncb( ClientData data, Tcl_Interp *, int, CONST char *[] )
+int buttoncb( ClientData data, Tcl_Interp *, int, GTKCONST char *[] )
 	{
 	((TkButton*)data)->ButtonPressed();
 	return TCL_OK;
@@ -3267,7 +3267,7 @@ void TkScale::UnMap()
 	}
 
 unsigned int TkScale::scale_count = 0;
-int scalecb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int scalecb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	((TkScale*)data)->ValueSet( atof(argv[1]) );
 	return TCL_OK;
@@ -3597,7 +3597,7 @@ void TkText::UnMap()
 	TkProxy::UnMap();
 	}
 
-int text_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int text_yscrollcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3606,7 +3606,7 @@ int text_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	return TCL_OK;
 	}
 
-int text_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int text_xscrollcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3840,7 +3840,7 @@ void TkScrollbar::UnMap()
 	TkProxy::UnMap();
 	}
 
-int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, CONST char *argv[] )
+int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, GTKCONST char *argv[] )
 	{
 	char buf[256];
 	int vert = 0;
@@ -4189,13 +4189,13 @@ void TkEntry::UnMap()
 	TkProxy::UnMap();
 	}
 
-int entry_returncb( ClientData data, Tcl_Interp *, int, CONST char *[] )
+int entry_returncb( ClientData data, Tcl_Interp *, int, GTKCONST char *[] )
 	{
 	((TkEntry*)data)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int entry_xscrollcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4567,7 +4567,7 @@ void TkListbox::UnMap()
 	TkProxy::UnMap();
 	}
 
-int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4576,7 +4576,7 @@ int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
+int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, GTKCONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4585,7 +4585,7 @@ int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	return TCL_OK;
 	}
 
-int listbox_button1cb( ClientData data, Tcl_Interp*, int, CONST char *[] )
+int listbox_button1cb( ClientData data, Tcl_Interp*, int, GTKCONST char *[] )
 	{
 	((TkListbox*)data)->elementSelected();
 	return TCL_OK;

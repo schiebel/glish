@@ -10,7 +10,6 @@
 RCSID("@(#) $Id$")
 #include "config.h"
 #include "longint.h"
-#include <ostream>
 #include <stdio.h>
 
 int sos_big_endian = 1;

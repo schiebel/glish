@@ -8,7 +8,13 @@
 //======================================================================
 #ifndef sos_longint_h
 #define sos_longint_h
-#include <ostream>
+#include "config_p.h"
+
+#if defined(HAVE_IOSTREAM_H)
+#include <iostream.h>
+#else
+#include <iostream>
+#endif
 
 //
 // Indicates if this machine is big endian

@@ -1019,9 +1019,9 @@ AC_MSG_CHECKING([for const argv in Tcl_CmdProc])
 AC_TRY_COMPILE(
 [#include <tcl.h>],
 [extern void foo( Tcl_CmdProc* );
-extern int foocb( ClientData, Tcl_Interp *, int, char *[] );
+extern int foocb( ClientData, Tcl_Interp *, int, const char *[] );
 foo(foocb);
-], [AC_MSG_RESULT(non const); AC_DEFINE(NEED_EMPTY_CONST84,)], AC_MSG_RESULT(const))
+], [AC_MSG_RESULT(const); AC_DEFINE(GTKCONST,const)], [AC_MSG_RESULT(non const); AC_DEFINE(GTKCONST,)])
 CPPFLAGS="$saved_CPPFLAGS"
 
 dnl##
@@ -2031,7 +2031,7 @@ dnl##
 dnl## with TCL/Tk 8.4+, the argv parameter for Tcl_CmdProc's is "CONST84 char *[]"
 dnl## we define NEED_EMPTY_CONST84 for the older TCL/Tk versions
 dnl## 
-AC_SUBST(NEED_EMPTY_CONST84)
+AC_SUBST(NEED_EMPTY_TK_CB_CONST)
 
 #dnl##
 #dnl## $1 => input file

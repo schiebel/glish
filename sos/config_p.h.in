@@ -12,3 +12,6 @@
 
 /* Define const to be empty of C compiler does not support it.  */
 #undef const
+
+/* Define if you can include <iostream.h> without the compiler whining. */
+#undef HAVE_IOSTREAM_H
