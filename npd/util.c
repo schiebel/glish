@@ -706,13 +706,3 @@ void init_log( const char *program_name )
 		}
 #endif
 	}
-
-void *npd_malloc( size_t size )
-{
-return malloc( size > 0 ? size : 8 );
-}
-
-void npd_free( void *ptr )
-{
-  if ( ptr ) free( ptr );
-}
