@@ -28,8 +28,12 @@ typedef void *(*KernelReallocateFunc)( void *, unsigned int len );
 
 typedef unsigned short vkmode_t;
 
-extern void copy_strings( void *, void *, unsigned int len );
-extern void delete_strings( void *, unsigned int len );
+extern void glish_copy_strings( void *, void *, unsigned int len );
+#if ! defined(ENABLE_GC)
+extern void glish_delete_strings( void *, unsigned int len );
+#else
+#define glish_delete_strings 0
+#endif
 
 struct glish_typeinfo_t {
 	unsigned short bytes;
