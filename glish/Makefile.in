@@ -72,11 +72,15 @@ KEY_HEADERS = \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(H)/glish.h
 
-INSTALLDIR = $(SRC)/..
+INSTALLDIR = @top_srcdir@
 INCDIR = $(INSTALLDIR)/include
 LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
 BINDIR = $(INSTALLDIR)/bin/$(ARCH)
 
+##
+## prefix may be used as part of '@exec_prefix@'
+##
+prefix = @prefix@
 PFX_INSTALLDIR = @exec_prefix@
 PFX_INCDIR = @prefix@/include
 PFX_LIBDIR = $(PFX_INSTALLDIR)/lib

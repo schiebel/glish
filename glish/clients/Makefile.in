@@ -16,11 +16,15 @@ CFLAGS = -DAUTHENTICATE @CFLAGS@
 SRC = ..
 GLISH_SRC = ../..
 
-INSTALLDIR = $(GLISH_SRC)/..
+INSTALLDIR = @top_srcdir@
 LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
 BINDIR = $(INSTALLDIR)/bin/$(ARCH)
 INCDIR = $(INSTALLDIR)/include
 
+##
+## prefix may be used as part of '@exec_prefix@'
+##
+prefix = @prefix@
 PFX_INSTALLDIR = @exec_prefix@
 PFX_INCDIR = @prefix@/include
 PFX_LIBDIR = $(PFX_INSTALLDIR)/lib

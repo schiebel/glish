@@ -19,11 +19,15 @@ SRC = ..
 HEADERDIR = $(SRC)/include/Npd
 INC = -I. -I$(SRC)/include -I/usr/ucbinclude
 
-INSTALLDIR = $(SRC)/..
+INSTALLDIR = @top_srcdir@
 INCDIR = $(INSTALLDIR)/include
 LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
 BINDIR = $(INSTALLDIR)/bin/$(ARCH)
 
+##
+## prefix may be used as part of '@exec_prefix@'
+##
+prefix = @prefix@
 PFX_INSTALLDIR = @exec_prefix@
 PFX_INCDIR = @prefix@/include
 PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
