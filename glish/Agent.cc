@@ -124,9 +124,6 @@ void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 int Agent::CreateEvent( const char* event_name, IValue* event_value,
 			NotifyTrigger *t, int preserve, Expr *from_subsequence )
 	{
-	if ( ! agent_value )
-		return 0;
-
 	return NotifyInterestedParties( event_name, event_value, t, preserve, from_subsequence );
 	}
 

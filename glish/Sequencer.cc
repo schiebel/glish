@@ -3910,13 +3910,7 @@ void Sequencer::RunQueue( int await_ended )
 
 		IValue* notifier_val = n->notifier->AgentRecord();
 
-		if ( ! notifier_val )
-			{
-			Unref( n );
-			continue;
-			}
-
-		if ( n->notifier->PreserveEvents() &&
+		if ( notifier_val && n->notifier->PreserveEvents() &&
 		     notifier_val->Type() == TYPE_RECORD &&
 		     notifier_val->HasRecordElement( n->field ) != n->value )
 			// Need to assign the event value.
@@ -3931,7 +3925,7 @@ void Sequencer::RunQueue( int await_ended )
 		// otherwise be deleted underneath our feet.
 		Ref( n );
 		Ref( n->notifiee );
-		Ref(notifier_val);
+		if ( notifier_val ) Ref(notifier_val);
 		Ref(n->notifiee->stmt());
 		//
 		// PushNote() doesn't do a Ref()

@@ -1643,11 +1643,10 @@ IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	{
-// 	struct mallinfo info = mallinfo();
-// 	recordptr rec = create_record_dict();
-// 	rec->Insert(string_dup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
-// 	rec->Insert(string_dup("unused"),new IValue(info.fordblks + info.fsmblks));
-// 	return new IValue( rec );
+	recordptr rec = create_record_dict();
+	rec->Insert(string_dup("used"),new IValue((double)GC_get_heap_size()));
+	rec->Insert(string_dup("unused"),new IValue(0));
+	return new IValue( rec );
 	return new IValue( glish_false );
 	}
 
