@@ -166,6 +166,7 @@ BINDIR = @bindir@
 MKHIER = $(top)/config/mkhier
 
 RCDIR = @RCDIR@
+SCRIPTDIR = @SCRIPTDIR@
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
@@ -339,9 +340,9 @@ $(D)Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 
 $(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
-    $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
+    $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h ./Makefile
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DRCDIR=\"$(RCDIR)\" \
-				-c $(SRC)/Sequencer.cc $(T)
+		-DSCRIPTDIR=\"$(SCRIPTDIR)\" -c $(SRC)/Sequencer.cc $(T)
 
 $(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Socket.cc $(T)

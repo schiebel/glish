@@ -16,6 +16,7 @@ CC = @CC@
 CPLUS = @CXX@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
 
 SHELL = /bin/sh
 SH = $(SHELL)
@@ -27,12 +28,14 @@ top = @top_srcdir@@top_off@
 INCDIR_P = $(top)/include
 LIBDIR_P = $(top)/lib/$(ARCH)
 BINDIR_P = $(top)/bin/$(ARCH)
+SCRIPTDIR_P = $(top)/share/glish
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
 INCDIR = @includedir@
 LIBDIR = @libdir@
 BINDIR = @bindir@
+SCRIPTDIR = @SCRIPTDIR@
 
 MKHIER = $(top)/config/mkhier
 
@@ -55,9 +58,13 @@ CLIENTS = $(BINDIR_P)/gtk
 
 INSTALLED_CLIENTS = $(BINDIR)/gtk
 
+SCRIPTS = $(SCRIPTDIR_P)/gtk.g
+
+INSTALLED_SCRIPTS = $(SCRIPTDIR)/gtk.g
+
 TAR_FILE = gtk.tar
 
-all: make-bindir_p $(CLIENTS)
+all: make-bindir_p make-scriptdir_p $(CLIENTS) $(SCRIPTS)
 
 make-bindir_p:
 	$(MKHIER) $(BINDIR_P)
@@ -65,7 +72,13 @@ make-bindir_p:
 make-bindir:
 	$(MKHIER) $(BINDIR)
 
-install:  make-bindir $(INSTALLED_CLIENTS)
+make-scriptdir_p:
+	$(MKHIER) $(SCRIPTDIR_P)
+
+make-scriptdir:
+	$(MKHIER) $(SCRIPTDIR)
+
+install:  make-bindir make-scriptdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
 
 tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkAgent.cc
@@ -104,6 +117,12 @@ $(BINDIR_P)/gtk: gtk
 $(BINDIR)/gtk: gtk
 	$(INSTALL_PROGRAM) gtk $(BINDIR)
 #	strip $(BINDIR)/gtk
+
+$(SCRIPTDIR_P)/gtk.g: $(SRC)/gtk.g
+	$(INSTALL_DATA) $(SRC)/gtk.g $(SCRIPTDIR_P)
+
+$(SCRIPTDIR)/gtk.g: $(SRC)/gtk.g
+	$(INSTALL_DATA) $(SRC)/gtk.g $(SCRIPTDIR)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

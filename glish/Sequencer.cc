@@ -1222,9 +1222,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 			}
 		}
 
-	IValue *emptystr = empty_ivalue();
-	emptystr->Polymorph(TYPE_STRING);
-	path->Insert( strdup("include"), emptystr );
+	charptr *inc = (charptr*) alloc_memory( sizeof(char*)* 2 );
+	inc[0] = strdup(".");
+	inc[1] = strdup(SCRIPTDIR);
+	path->Insert( strdup("include"), new IValue( inc, 2 ) );
 
 	sys_value->SetField( "path", new IValue( path ) );
 
