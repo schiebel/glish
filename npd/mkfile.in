@@ -1,6 +1,7 @@
-# $Header$
-#
-# Makefile for npd C libraries.
+## $Id$
+##
+## Makefile for npd C libraries.
+##
 
 #IF DYNAMIC
 MK_LIB = @MAKE_SLIB@

@@ -1,6 +1,7 @@
-/* $Header$ */
-
-/* Utility routines for npd and npd_control. */
+/* $Id$
+**
+**  Utility routines for npd and npd_control.
+*/
 
 #include "config.h"
 #include <stdio.h>

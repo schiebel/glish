@@ -1,6 +1,7 @@
-/* $Header$ */
-
-/* Routines to do npd authentication. */
+/* $Id$
+**
+**  Routines to do npd authentication.
+*/
 
 #include "config.h"
 #include <stdio.h>

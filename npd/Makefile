@@ -1,8 +1,8 @@
-# $Header$
-
-#
-# Makefile for npd C libraries.
-
+## $Id$
+##
+##
+## Makefile for npd C libraries.
+##
 
 TAR_FILE = npd.tar
 

@@ -1,3 +1,7 @@
+/* $Id$
+**
+**  npd  --  network probe daemon
+*/
 #ifndef npd_h
 #define npd_h
 

@@ -1,4 +1,7 @@
-/* MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm */
+/* $Id$
+**
+**  MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm
+*/
 
 /* Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
  * rights reserved.
@@ -21,8 +24,6 @@
  * These notices must be retained in any copies of any part of this
  * documentation and/or software.
  */
-
-/* $Header$ */
 
 #include <memory.h>
 #include "config.h"

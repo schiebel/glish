@@ -1,6 +1,7 @@
-/* $Header$ */
-
-/* Generates to stdout a key to be used for npd communication. */
+/* $Id$
+**
+**  Generates to stdout a key to be used for npd communication.
+*/
 
 #include <stdio.h>
 #include "config.h"

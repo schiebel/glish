@@ -1,4 +1,7 @@
-/* $Header$ */
+/* $Id$
+**
+**  npd - network probe daemon
+*/
 
 /*
  * Copyright (c) 1994
@@ -20,8 +23,6 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-/* npd - network probe daemon */
 
 #include "config.h"
 #include <stdio.h>

@@ -1,4 +1,6 @@
-/* $Header$ */
+/* $Id$
+**
+*/
 
 /* Create the key file for our userid in the given directory if it
  * doesn't already exist. Returns 0 on error, non-zero on success.
