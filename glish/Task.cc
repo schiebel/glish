@@ -820,9 +820,15 @@ IValue* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
 	{
 	Task* task = new ShellTask( args, attrs, sequencer );
 
-	CheckTaskStatus( task );
+	IValue *err = 0;
+	if ( err = CheckTaskStatus( task ) )
+		{
+		Unref( task );
+		return err;
+		}
+	else
+		return task->AgentRecord();
 
-	return task->AgentRecord();
 	}
 
 
@@ -841,20 +847,27 @@ IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args, int shm_flag )
 
 	Task* task = new ClientTask( args, attrs, sequencer, shm_flag );
 
-	CheckTaskStatus( task );
-
-	return task->AgentRecord();
+	IValue *err = 0;
+	if ( err = CheckTaskStatus( task ) )
+		{
+		Unref( task );
+		return err;
+		}
+	else
+		return task->AgentRecord();
 	}
 
 
-void CreateTaskBuiltIn::CheckTaskStatus( Task* task )
+IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 	{
 	if ( task->NoSuchProgram() )
-		warn->Report( "no such program, \"", task->Name(), "\"" );
+		return (IValue*) generate_error( "no such program, \"", task->Name(), "\"" );
 
 	else if ( task->Exec() && task->Exec()->ExecError() )
-		warn->Report( "could not exec program, \"",
+		return (IValue*) generate_error( "could not exec program, \"",
 				task->Name(), "\"" );
+
+	return 0;
 	}
 
 

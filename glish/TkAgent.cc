@@ -170,7 +170,7 @@ IValue *glishtk_splitsp_int( char *sel )
 	return new IValue( ary, cnt, COPY_ARRAY );
 	}
 
-char **glishtk_splitsp_str( char *sel, int &cnt )
+char **glishtk_splitsp_str_( char *sel, int &cnt )
 	{
 	char *start = sel;
 	char *end;
@@ -200,6 +200,13 @@ char **glishtk_splitsp_str( char *sel, int &cnt )
 		}
 
 	return ary;
+	}
+
+IValue *glishtk_splitsp_str( char *s )
+	{
+	int len=0;
+	char **str = glishtk_splitsp_str_(s, len);
+	return new IValue( str, len, COPY_ARRAY );
 	}
 
 inline void glishtk_pack( Rivetobj root, int argc, char **argv)
@@ -260,19 +267,22 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		return 0;						\
 		}
 
-#define EXPRSTR(var,EVENT)						\
+#define EXPRSTRVAL(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
-	charptr var = 0;						\
-	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_STRING ||	\
-		var##_val_ ->Length() <= 0 )				\
+	const IValue *var = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var;					\
+	if ( ! var || var ->Type() != TYPE_STRING ||			\
+		var->Length() <= 0 )					\
 		{							\
 		error->Report("bad value for ", EVENT);			\
-		var##_expr_ ->ReadOnlyDone(var##_val_);			\
+		var##_expr_ ->ReadOnlyDone(var);			\
 		return 0;						\
-		}							\
-	else								\
-		var = ( var##_val_ ->StringPtr(0) )[0];
+		}
+#define EXPRSTR(var,EVENT)						\
+	charptr var = 0;						\
+	EXPRSTRVAL(var##_val_, EVENT)					\
+	Expr *var##_expr_ = var##_val__expr_;				\
+	var = ( var##_val_ ->StringPtr(0) )[0];
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
@@ -504,6 +514,84 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, parameter_list *args,
 	return ret;
 	}
 
+struct strary_ret {
+  char **ary;
+  int len;
+};
+
+IValue *glishtk_strary_to_value( char *s )
+	{
+	strary_ret *r = (strary_ret*) s;
+	IValue *ret = new IValue(r->ary,r->len);
+	delete r;
+	return ret;
+	}
+char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *event_name = "one-or-two index function";
+
+	HASARG( args, > 0 )
+	int c = 0;
+
+	strary_ret *ret = 0;
+	if ( args->length() >= 2 )
+		{
+		ret = new strary_ret;
+		ret->ary = new char*[(int)(args->length()/2)];
+		ret->len = 0;
+		for ( int i=0; i+1 < args->length(); i+=2 )
+			{
+			EXPRSTR(one, event_name)
+			EXPRSTR(two, event_name)
+			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( one ), a->IndexCheck( two ), 0);
+			if ( s ) ret->ary[ret->len++] = strdup(s);
+			EXPR_DONE(one)
+			EXPR_DONE(two)
+			}
+		}
+	else
+		{
+		EXPRVAL(start,event_name)
+	        if ( ! start || start->Type() != TYPE_STRING ||
+		     start->Length() <= 0 )
+			{
+			error->Report("bad value for ", event_name);
+			EXPR_DONE(start)
+			return 0;
+			}
+
+		if ( start->Length() > 1 )
+			{
+			ret = new strary_ret;
+			ret->len = 0;
+			ret->ary = new char*[(int)(start->Length() / 2)];
+			charptr *idx = start->StringPtr(0);
+			for ( int i = 0; i+1 < start->Length(); i+=2 )
+				{
+				char *s = rivet_va_cmd(a->Self(), cmd,
+						       a->IndexCheck( idx[i] ),
+						       a->IndexCheck( idx[i+1] ),0);
+
+				if ( s ) ret->ary[ret->len++] = strdup(s);
+				}
+			}
+		else
+			{
+			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( (start->StringPtr(0))[0] ), 0);
+			if ( s )
+				{
+				ret = new strary_ret;
+			        ret->len = 1;
+				ret->ary = new char*[1];
+				ret->ary[0] = strdup(s);
+				}
+			}
+		}
+			
+	return (char*) ret;
+	}
+
 char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
 			      parameter_list *args, int is_request, int log )
 	{
@@ -563,6 +651,124 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 	delete str;
 	EXPR_DONE( val )
 	return ret;
+	}
+
+char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
+			   parameter_list *args, int is_request, int log )
+	{
+	char *event_name = "tag function";
+		
+	if ( args-> length() < 2 )
+		{
+		error->Report("wrong number of arguments");
+		return 0;
+		}
+	int c = 0;
+	EXPRSTR(tag, event_name)
+	int argc = 0;
+	char *argv[8];
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	argv[argc++] = (char*) param;
+	argv[argc++] = (char*) tag;
+	if ( args->length() >= 3 )
+		for ( int i=c; i+1 < args->length(); i+=2 )
+			{
+			EXPRSTR(one, event_name)
+			argv[argc] = (char*)one;
+			EXPRSTR(two, event_name)
+			argv[argc+1] = (char*)two;
+			rivet_cmd(self,argc+2,argv);
+			EXPR_DONE(one)
+			EXPR_DONE(two)
+			}
+	else
+		{
+		EXPRSTRVAL(str_v, event_name)
+		charptr *s = str_v->StringPtr(0);
+
+		if ( str_v->Length() == 1 )
+			{
+			argv[argc] = (char*)s[0];
+			rivet_cmd(self,argc+1,argv);
+			}
+		else
+			for ( int i=0; i+1 < str_v->Length(); i+=2 )
+				{
+				argv[argc] = (char*)s[i];
+				argv[argc+1] = (char*)s[i+1];
+				rivet_cmd(self,argc+2,argv);
+				}
+
+		EXPR_DONE(str_v)
+		}
+
+	EXPR_DONE(tag)
+	return 0;
+	}
+
+char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
+			      parameter_list *args, int is_request, int log )
+	{
+	char *event_name = "tag function";
+	if ( args->length() < 2 )
+		{
+		error->Report("wrong number of arguments");
+		return 0;
+		}
+	int c = 0;
+	char buf[512];
+	int argc = 0;
+	char *argv[8];
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	argv[argc++] = (char*) param;
+	EXPRSTR(tag, event_name)
+	argv[argc++] = (char*) tag;
+	for ( int i=c; i < args->length(); i++ )
+		{
+		if ( (*args)[i]->Name() )
+			{
+			int doit = 1;
+			sprintf(buf,"-%s",(*args)[i]->Name());
+			argv[argc] = buf;
+			c = i;
+			EXPRVAL(val, event_name)
+			if ( val->Type() == TYPE_STRING )
+				argv[argc+1] = (char*)((val->StringPtr(0))[0]);
+			else if ( val->Type() == TYPE_BOOL )
+				argv[argc+1] = val->BoolVal() ? "true" : "false";
+			else
+				doit = 0;
+			
+			if ( doit ) rivet_cmd(self,argc+2,argv);
+			EXPR_DONE(val)
+			}
+		}
+	EXPR_DONE(tag)
+	return 0;
+	}
+
+char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
+			      parameter_list *args, int is_request, int log )
+	{
+	char *event_name = "tag function";
+	if ( args->length() < 1 )
+		{
+		error->Report("wrong number of arguments");
+		return 0;
+		}
+	int c = 0;
+	int argc = 0;
+	char *argv[8];
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	argv[argc++] = (char*) param;
+	EXPRSTR(tag, event_name)
+	argv[argc++] = (char*) tag;
+	rivet_cmd(self,argc,argv);
+	EXPR_DONE(tag)
+	return 	self->interp->result;
 	}
 
 char *glishtk_no2str(TkAgent *a, const char *cmd, const char *param,
@@ -787,6 +993,7 @@ IValue *glishtk_strtobool( char *str )
 IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	{
 	char *val = 0;
+
 	if ( proc )
 		val = (*proc)(s,cmdstr,arg,x,y);
 	else if ( proc1 )
@@ -808,7 +1015,7 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	else
 		return error_ivalue();
 
-	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
+/*	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ; */
 
 	if ( convert && val )
 		return (*convert)(val);
@@ -2088,10 +2295,14 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
-	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx, glishtk_splitnl));
+	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_strandidx));
 	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_strwithidx));
 	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_strwithidx));
+	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
+	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
+	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));
+	procs.Insert("ranges", new TkProc("tag", "ranges", glishtk_text_rangesfunc, glishtk_splitsp_str));
 	}
 
 TkAgent *TkText::Create( Sequencer *s, const_args_list *args_val )

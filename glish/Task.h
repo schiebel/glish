@@ -179,8 +179,9 @@ class CreateTaskBuiltIn : public BuiltIn {
 	IValue* CreateClient( const_args_list* args, int shm_flag );
 
 	// Check to see whether the creation of the given task was
-	// successful.
-	void CheckTaskStatus( Task* task );
+	// successful. Returns 0 if creation was successful, or an
+	// error (non-zero pointer) if it failed.
+	IValue *CheckTaskStatus( Task* task );
 
 	Sequencer* sequencer;
 	TaskAttr* attrs;	// attributes for task currently being created

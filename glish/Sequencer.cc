@@ -1394,25 +1394,29 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 		return 0;
 		}
 
-	stmt_flow_type flow;
-	Stmt *cur_stmts = stmts;		// do this dance with stmts to
-	Ref(cur_stmts);				// prevent stmts from being freed
+	IValue *ret = 0;
+	if ( stmts )
+		{
+		stmt_flow_type flow;
+		Stmt *cur_stmts = stmts;	// do this dance with stmts to
+		Ref(cur_stmts);			// prevent stmts from being freed
 						// or reassigned as part of an eval()
 
-	IValue *ret = cur_stmts->Exec( 1, flow );
+		ret = cur_stmts->Exec( 1, flow );
 
-	if ( ! value_needed )
-		{
-		if ( ret && ret->Type() == TYPE_FAIL )
+		if ( ! value_needed )
 			{
-			ret->Describe( cerr );
-			cerr << endl;
+			if ( ret && ret->Type() == TYPE_FAIL )
+				{
+				ret->Describe( cerr );
+			        cerr << endl;
+				}
+			Unref( ret );
+			ret = 0;
 			}
-		Unref( ret );
-		ret = 0;
-		}
 
-	Unref(cur_stmts);
+		Unref(cur_stmts);
+		}
 
 	if ( ! startup_script )
 		EventLoop();

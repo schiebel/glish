@@ -38,7 +38,8 @@ extern IValue *glishtk_str( char * );
 extern IValue *glishtk_splitsp_int( char * );
 // Split a string up into an array of strings with each space character
 // note the array which is returned will be trashed by subsequent calls.
-extern char **glishtk_splitsp_str( char *, int & );
+extern char **glishtk_splitsp_str_( char *, int & );
+extern IValue *glishtk_splitsp_str( char * );
 
 //###  Functions for Invoking Rivet Commands For Callbacks
 extern char *glishtk_nostr(Rivetobj, const char *cmd, parameter_list *args, int, int);
