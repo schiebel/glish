@@ -38,7 +38,7 @@ RCSID("@(#) $Id$")
 #endif
 
 
-Value* BuiltIn::Call( parameter_list* args, eval_type etype )
+IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 	{
 	if ( num_args != NUM_ARGS_VARIES )
 		{
@@ -59,7 +59,7 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 					num_args == 1 ? ";" : "s;",
 					num_args_present, " given" );
 
-			return error_value();
+			return error_ivalue();
 			}
 		}
 
@@ -69,14 +69,14 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 		if ( ! arg->Arg() )
 			{
 			error->Report( "missing parameter invalid for", this );
-			return error_value();
+			return error_ivalue();
 			}
 		if ( arg->Name() )
 			{
 			error->Report( this,
 					" does not have a parameter named \"",
 					arg->Name(), "\"" );
-			return error_value();
+			return error_ivalue();
 			}
 		}
 
@@ -87,7 +87,7 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 	loop_over_list( *args, i )
 		{
 		Parameter* arg = (*args)[i];
-		const Value* arg_val;
+		const IValue* arg_val;
 
 		if ( arg->IsEllipsis() )
 			{
@@ -97,7 +97,7 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 				{
 				arg_val = arg->NthEllipsisVal( j );
 				if ( do_deref )
-					arg_val = arg_val->Deref();
+					arg_val = (const IValue*) (arg_val->Deref());
 
 				args_vals->append( arg_val );
 				}
@@ -107,13 +107,13 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 			{
 			arg_val = arg->Arg()->ReadOnlyEval();
 			if ( do_deref )
-				arg_val = arg_val->Deref();
+				arg_val = (const IValue*) (arg_val->Deref());
 
 			args_vals->append( arg_val );
 			}
 		}
 
-	Value* result;
+	IValue* result;
 
 	if ( do_call )
 		{
@@ -133,12 +133,12 @@ Value* BuiltIn::Call( parameter_list* args, eval_type etype )
 			result = DoCall( args_vals );
 		}
 	else
-		result = error_value();
+		result = error_ivalue();
 
 	loop_over_list( *args, k )
 		{
 		if ( ! (*args)[k]->IsEllipsis() )
-			(*args)[k]->Arg()->ReadOnlyDone( (*args_vals)[k] );
+			(*args)[k]->Arg()->ReadOnlyDone( (const IValue*) ((*args_vals)[k]));
 		}
 
 	delete args_vals;
@@ -165,7 +165,7 @@ int BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 
 	loop_over_list( *args_vals, i )
 		{
-		const Value* arg = (*args_vals)[i];
+		const IValue* arg = (*args_vals)[i];
 
 		if ( arg->IsNumeric() )
 			{
@@ -185,21 +185,21 @@ int BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 	}
 
 
-Value* OneValueArgBuiltIn::DoCall( const_args_list* args_val )
+IValue* OneValueArgBuiltIn::DoCall( const_args_list* args_val )
 	{
 	return (*func)( (*args_val)[0] );
 	}
 
 
-Value* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
+IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	{
-	const Value* arg = (*args_val)[0];
-	Value* result;
+	const IValue* arg = (*args_val)[0];
+	IValue* result;
 
 	if ( ! arg->IsNumeric() )
 		{
 		error->Report( this, " requires a numeric argument" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	int len = arg->Length();
@@ -217,7 +217,7 @@ Value* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	if ( is_copy )					\
 		delete args_vec;			\
 							\
-	result = new Value( stor, len );		\
+	result = new IValue( stor, len );		\
 	result->CopyAttributes( arg );			\
 	}
 
@@ -229,17 +229,17 @@ Value* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-Value* RealBuiltIn::DoCall( const_args_list* args_val )
+IValue* RealBuiltIn::DoCall( const_args_list* args_val )
 	{
-	const Value* v = (*args_val)[0];
+	const IValue* v = (*args_val)[0];
 
 	if ( ! v->IsNumeric() )
 		{
 		error->Report( this, " requires a numeric argument" );
-		return error_value();
+		return error_ivalue();
 		}
 
-	Value* result;
+	IValue* result;
 
 #define RE_IM_BUILTIN_ACTION(tag,type,subtype,accessor,OFFSET,elem,XLATE)\
 	case tag:						\
@@ -255,7 +255,7 @@ Value* RealBuiltIn::DoCall( const_args_list* args_val )
 			}					\
 		if ( is_copy )					\
 			delete from;				\
-		result = new Value( stor, len );		\
+		result = new IValue( stor, len );		\
 		result->CopyAttributes( v );			\
 		}						\
 		break;
@@ -269,7 +269,7 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = v->VecRefPtr();
-			Value* theVal = ref->Val();
+			IValue* theVal = (IValue*) ref->Val();
 			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
@@ -284,7 +284,7 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 		if ( is_copy )					\
 			delete from;				\
 		error->Report("invalid index (=",i+1,"), sub-vector reference may be bad");\
-		return error_value();				\
+		return error_ivalue();				\
 		}
 
 RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
@@ -302,17 +302,17 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,RE
 	return result;
 	}
 
-Value* ImagBuiltIn::DoCall( const_args_list* args_val )
+IValue* ImagBuiltIn::DoCall( const_args_list* args_val )
 	{
-	const Value* v = (*args_val)[0];
+	const IValue* v = (*args_val)[0];
 
 	if ( ! v->IsNumeric() )
 		{
 		error->Report( this, " requires a numeric argument" );
-		return error_value();
+		return error_ivalue();
 		}
 
-	Value* result;
+	IValue* result;
 
 	switch ( v->Type() )
 		{
@@ -323,7 +323,7 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
 		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = v->VecRefPtr();
-			Value* theVal = ref->Val();
+			IValue* theVal = (IValue*) ref->Val();
 			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
@@ -338,33 +338,33 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,RE
 			}
 			break;
 		default:
-			result = new Value( 0.0 );
+			result = new IValue( 0.0 );
 		}
 
 	return result;
 	}
 
-Value* ComplexBuiltIn::DoCall( const_args_list* args_val )
+IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
-	Value* result;
+	IValue* result;
 
 	if ( len < 1 || len > 2 )
 		{
 		error->Report( this, " takes 1 or 2 arguments" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	if ( len == 2 )
 		{
-		const Value* rv = (*args_val)[0];
-		const Value* iv = (*args_val)[1];
+		const IValue* rv = (*args_val)[0];
+		const IValue* iv = (*args_val)[1];
 
 		if ( ! rv->IsNumeric() || ! iv->IsNumeric() )
 			{
 			error->Report( this,
 				" requires one or two numeric arguments" );
-			return error_value();
+			return error_ivalue();
 			}
 
 		int rlen = rv->Length();
@@ -379,7 +379,7 @@ Value* ComplexBuiltIn::DoCall( const_args_list* args_val )
 				"different-length operands in expression (",
 					rlen, " vs. ", ilen, "):\n\t",
 					this );
-			return error_value();
+			return error_ivalue();
 			}
 
 		glish_type maxt = max_numeric_type( rv->Type(), iv->Type() );
@@ -402,7 +402,7 @@ Value* ComplexBuiltIn::DoCall( const_args_list* args_val )
 			delete r;					\
 		if ( i_is_copy )					\
 			delete i;					\
-		result = new Value( stor, maxlen );			\
+		result = new IValue( stor, maxlen );			\
 		}							\
 		break;
 
@@ -426,19 +426,19 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 				break;
 
 			default:
-				result = error_value();
+				result = error_ivalue();
 			}
 		}
 
 	else
 		{
-		const Value* v = (*args_val)[0];
+		const IValue* v = (*args_val)[0];
 
 		if ( ! v->IsNumeric() )
 			{
 			error->Report( this,
 				" requires one or two numeric arguments" );
-			return error_value();
+			return error_ivalue();
 			}
 
 #define COMPLEXBUILTIN_ONEPARM_ACTION(tag,type,rettype,accessor,coerce)	\
@@ -455,7 +455,7 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 			}					\
 		if ( is_copy )					\
 			delete vp;				\
-		result = new Value( stor, vlen );			\
+		result = new IValue( stor, vlen );			\
 		}						\
 		break;
 
@@ -475,27 +475,27 @@ COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 				break;
 
 			default:
-				result = error_value();
+				result = error_ivalue();
 			}
 		}
 
 	return result;
 	}
 
-Value* SumBuiltIn::DoCall( const_args_list* args_val )
+IValue* SumBuiltIn::DoCall( const_args_list* args_val )
 	{
 	glish_type max_type;
-	Value* result;
+	IValue* result;
 
 	if ( ! AllNumeric( args_val, max_type ) )
-		return error_value();
+		return error_ivalue();
 
 #define SUM_BUILTIN_ACTION(type,accessor)			\
 	{							\
 	type sum = 0.0;						\
 	loop_over_list( *args_val, i )				\
 		{						\
-		const Value* val = (*args_val)[i];		\
+		const IValue* val = (*args_val)[i];		\
 		int len = val->Length();			\
 		int is_copy;					\
 		type* val_array = val->accessor(is_copy,len);	\
@@ -504,7 +504,7 @@ Value* SumBuiltIn::DoCall( const_args_list* args_val )
 		if ( is_copy )					\
 			delete val_array;			\
 		}						\
-	result = new Value( sum );				\
+	result = new IValue( sum );				\
 	}
 
 	if ( max_type == TYPE_COMPLEX || max_type == TYPE_DCOMPLEX )
@@ -515,13 +515,13 @@ Value* SumBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-Value* ProdBuiltIn::DoCall( const_args_list* args_val )
+IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
 	{
 	glish_type max_type;
-	Value* result;
+	IValue* result;
 
 	if ( ! AllNumeric( args_val, max_type ) )
-		return error_value();
+		return error_ivalue();
 
 	switch ( max_type )
 		{
@@ -530,7 +530,7 @@ Value* ProdBuiltIn::DoCall( const_args_list* args_val )
 		type prod = 1.0;					\
 		loop_over_list( *args_val, i )				\
 			{						\
-			const Value* val = (*args_val)[i];		\
+			const IValue* val = (*args_val)[i];		\
 			int len = val->Length();			\
 			int is_copy;					\
 			type* val_array = val->accessor(is_copy, len);	\
@@ -539,7 +539,7 @@ Value* ProdBuiltIn::DoCall( const_args_list* args_val )
 			if ( is_copy )					\
 				delete val_array;			\
 			}						\
-		result = new Value( prod );				\
+		result = new IValue( prod );				\
 		break;							\
 		}
 
@@ -563,7 +563,7 @@ Value* ProdBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-Value* LengthBuiltIn::DoCall( const_args_list* args_val )
+IValue* LengthBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int num = args_val->length();
 
@@ -572,23 +572,23 @@ Value* LengthBuiltIn::DoCall( const_args_list* args_val )
 		int* len = new int[args_val->length()];
 		loop_over_list( *args_val, i )
 			len[i] = (*args_val)[i]->Length();
-		return new Value( len, num );
+		return new IValue( len, num );
 		}
 
 	else if ( num == 1 )
-		return new Value( int( (*args_val)[0]->Length() ) );
+		return new IValue( int( (*args_val)[0]->Length() ) );
 
 	else
-		return empty_value();
+		return empty_ivalue();
 	}
 
-Value* RangeBuiltIn::DoCall( const_args_list* args_val )
+IValue* RangeBuiltIn::DoCall( const_args_list* args_val )
 	{
 	glish_type max_type;
-	Value* result;
+	IValue* result;
 
 	if ( ! AllNumeric( args_val, max_type ) )
-		return error_value();
+		return error_ivalue();
 
 #define RANGEBUILTIN_ACTION(tag,type,accessor,max)			\
 	case tag:							\
@@ -598,7 +598,7 @@ Value* RangeBuiltIn::DoCall( const_args_list* args_val )
 									\
 		loop_over_list( *args_val, i )				\
 			{						\
-			const Value* val = (*args_val)[i];		\
+			const IValue* val = (*args_val)[i];		\
 			int len = val->Length();			\
 			int is_copy;					\
 									\
@@ -620,7 +620,7 @@ Value* RangeBuiltIn::DoCall( const_args_list* args_val )
 		range[0] = min_val;					\
 		range[1] = max_val;					\
 									\
-		result = new Value( range, 2 );				\
+		result = new IValue( range, 2 );				\
 		}							\
 			break;
 
@@ -635,27 +635,27 @@ RANGEBUILTIN_ACTION(TYPE_FLOAT,float,CoerceToFloatArray,MAXFLOAT)
 		case TYPE_SHORT:
 RANGEBUILTIN_ACTION(TYPE_INT,int,CoerceToIntArray,MAXINT)
 		default:
-			result = error_value();
+			result = error_ivalue();
 		}
 
 	return result;
 	}
 
-Value* SeqBuiltIn::DoCall( const_args_list* args_val )
+IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 
 	if ( len == 0 || len > 3 )
 		{
 		error->Report( this, " takes from one to three arguments" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	double starting_point = 1.0;
 	double stopping_point;
 	double stride = 1.0;
 
-	const Value* arg;
+	const IValue* arg;
 
 	if ( len == 1 )
 		{
@@ -682,7 +682,7 @@ Value* SeqBuiltIn::DoCall( const_args_list* args_val )
 	if ( stride == 0 )
 		{
 		error->Report( "in call to ", this, ", stride = 0" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	if ( (starting_point < stopping_point && stride < 0) ||
@@ -690,7 +690,7 @@ Value* SeqBuiltIn::DoCall( const_args_list* args_val )
 		{
 		error->Report( "in call to ", this,
 				", stride has incorrect sign" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	double range = stopping_point - starting_point;
@@ -700,7 +700,7 @@ Value* SeqBuiltIn::DoCall( const_args_list* args_val )
 		{
 		error->Report( "ridiculously large sequence in call to ",
 				this );
-		return error_value();
+		return error_ivalue();
 		}
 
 	double* result = new double[num_vals];
@@ -712,7 +712,7 @@ Value* SeqBuiltIn::DoCall( const_args_list* args_val )
 		val += stride;
 		}
 
-	Value* result_val = new Value( result, num_vals );
+	IValue* result_val = new IValue( result, num_vals );
 
 	if ( starting_point == double( int( starting_point ) ) &&
 	     stopping_point == double( int( stopping_point ) ) &&
@@ -722,22 +722,22 @@ Value* SeqBuiltIn::DoCall( const_args_list* args_val )
 	return result_val;
 	}
 
-Value* RepBuiltIn::DoCall( const_args_list* args_val )
+IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	{
-	const Value* element = (*args_val)[0];
-	const Value* times = (*args_val)[1];
+	const IValue* element = (*args_val)[0];
+	const IValue* times = (*args_val)[1];
 
 	if ( ! times->IsNumeric() )
 		{
 		error->Report( "non-numeric parameters invalid for", this );
-		return error_value();
+		return error_ivalue();
 		}
 
 	if ( times->Length() != 1 && times->Length() != element->Length() )
 		{
 		error->Report( this,
 				": parameter vectors have unequal lengths" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	int times_is_copy;
@@ -751,10 +751,10 @@ Value* RepBuiltIn::DoCall( const_args_list* args_val )
 					times_vec[x], "), in ", this );
 			if ( times_is_copy )
 				delete times_vec;
-			return error_value();
+			return error_ivalue();
 			}
 
-	Value* ret = 0;
+	IValue* ret = 0;
 	if ( times_len > 1 )
 		{
 		// Here we know that BOTH the length of the element and the
@@ -775,7 +775,7 @@ Value* RepBuiltIn::DoCall( const_args_list* args_val )
 				for ( i=0; i < times_len; ++i )		\
 					for ( int j=0; j < times_vec[i]; ++j )\
 					  vec[off++] = copy_func( elm[i] );	\
-				ret = new Value( vec, veclen );		\
+				ret = new IValue( vec, veclen );		\
 				}					\
 				break;
 
@@ -809,7 +809,7 @@ Value* RepBuiltIn::DoCall( const_args_list* args_val )
 					type *vec = new type[len];	\
 					for (int i = 0; i < len; i++)	\
 						vec[i] = copy_func(val);\
-					ret = new Value( vec, len );	\
+					ret = new IValue( vec, len );	\
 					CLEANUP_VAL			\
 					}				\
 					break;
@@ -846,7 +846,7 @@ Value* RepBuiltIn::DoCall( const_args_list* args_val )
 				for ( int j = 0; j < repl; ++j )	\
 					for ( int i = 0; i < e_len; ++i )\
 						vec[off++] =  copy_func(val[i]);\
-				ret = new Value( vec, veclen );		\
+				ret = new IValue( vec, veclen );		\
 				}					\
 				break;
 
@@ -870,22 +870,22 @@ Value* RepBuiltIn::DoCall( const_args_list* args_val )
 	if ( times_is_copy )
 		delete times_vec;
 
-	return ret ? ret : error_value();
+	return ret ? ret : error_ivalue();
 	}
 
-Value* NumArgsBuiltIn::DoCall( const_args_list* args_val )
+IValue* NumArgsBuiltIn::DoCall( const_args_list* args_val )
 	{
-	return new Value( args_val->length() );
+	return new IValue( args_val->length() );
 	}
 
-Value* NthArgBuiltIn::DoCall( const_args_list* args_val )
+IValue* NthArgBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 
 	if ( len <= 0 )
 		{
 		error->Report( "first argument missing in call to", this );
-		return error_value();
+		return error_ivalue();
 		}
 
 	int n = (*args_val)[0]->IntVal();
@@ -895,23 +895,23 @@ Value* NthArgBuiltIn::DoCall( const_args_list* args_val )
 		error->Report( "first argument (=", n, ") to", this,
 				" out of range: ", len - 1,
 				"additional arguments supplied" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	return copy_value( (*args_val)[n] );
 	}
 
-Value* RandomBuiltIn::DoCall( const_args_list* args_val )
+IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
-	const Value *val = 0;
+	const IValue *val = 0;
 	int arg1 = 0;
 	int arg2 = 0;
 
 	if ( len > 2 )
 		{
 		error->Report( this, " takes from zero to two arguments" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	if ( len >= 1 )
@@ -922,7 +922,7 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 			{
 			error->Report( "non-numeric parameter invalid for",
 						this );
-			return error_value();
+			return error_ivalue();
 			}
 
 		arg1 = val->IntVal();
@@ -936,7 +936,7 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 			{
 			error->Report( "non-numeric parameter invalid for",
 						this );
-			return error_value();
+			return error_ivalue();
 			}
 
 		arg2 = val->IntVal();
@@ -949,18 +949,18 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 			}
 		}
 
-	Value *ret = 0;
+	IValue *ret = 0;
 	if ( len <= 1 )
 		{
 		if ( arg1 < 1 )
-			ret = new Value( (int) random_long() );
+			ret = new IValue( (int) random_long() );
 		else
 			{
 			int *ival = new int[arg1];
 			for ( int i = arg1 - 1; i >= 0; i-- )
 				ival[i] = (int) random_long();
 
-			ret = new Value( ival, arg1 );
+			ret = new IValue( ival, arg1 );
 			}
 		}
 	else
@@ -970,9 +970,9 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 			{
 			error->Report( "invalid range for",
 						this );
-			return error_value();
+			return error_ivalue();
 			}
-		ret =  new Value( (int)((unsigned long)random_long() % 
+		ret =  new IValue( (int)((unsigned long)random_long() % 
 						(diff+1)) + arg1 );
 		}
 
@@ -982,7 +982,7 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 #define XBIND_MIXTYPE_ERROR						\
 	{								\
 	error->Report( "both numeric and non-numeric arguments" );	\
-	return error_value();						\
+	return error_ivalue();						\
 	}
 
 #define XBIND_CLEANUP							\
@@ -1019,7 +1019,7 @@ Value* RandomBuiltIn::DoCall( const_args_list* args_val )
 		{							\
 		ptr_name = arg->VecRefDeref()->source();		\
 		int off = offset;					\
-		if (  attr && (shape_v = (*attr)["shape"]) &&		\
+		if (  attr && (shape_v = (const IValue*) ((*attr)["shape"])) &&	\
 		      shape_v != false_value &&	shape_v->IsNumeric() &&	\
 		      (shape_len = shape_v->Length()) > 1 )		\
 			{						\
@@ -1063,16 +1063,16 @@ XBIND_ACTION(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr,index,xlate,.r,stride,COLS,O
 	if ( err )							\
 		{							\
 		error->Report( "invalid sub-vector" );			\
-		return error_value();					\
+		return error_ivalue();					\
 		}
 
 #define XBIND_RETURN_ACTION(tag,type)					\
 	case tag:							\
-		result_value = new Value((type*)result,rows*cols);	\
+		result_value = new IValue((type*)result,rows*cols);	\
 		break;
 
 #define XBINDBUILTIN(name,ROWS,COLS,stride,OFF,ADV1,ADV2)		\
-Value* name::DoCall( const_args_list* args_vals )			\
+IValue* name::DoCall( const_args_list* args_vals )			\
 	{								\
 	int numeric = -1, rows = -1, minrows = -1;			\
 	int cols = 0;							\
@@ -1081,16 +1081,16 @@ Value* name::DoCall( const_args_list* args_vals )			\
 	if ( args_vals->length() < 2 )					\
 		{							\
 		error->Report(this, " takes at least two arguments");	\
-		return error_value();					\
+		return error_ivalue();					\
 		}							\
 									\
 	loop_over_list( *args_vals, i )					\
 		{							\
-		const Value *arg = (*args_vals)[i];			\
+		const IValue *arg = (*args_vals)[i];			\
 		int arg_len = arg->Length();				\
 		const attributeptr attr = arg->AttributePtr();		\
-		const Value *attr_val;					\
-		const Value *shape_v;					\
+		const IValue *attr_val;					\
+		const IValue *shape_v;					\
 		int shape_len;						\
 		int shape_is_copy;					\
 									\
@@ -1115,10 +1115,10 @@ Value* name::DoCall( const_args_list* args_vals )			\
 		else							\
 			{						\
 			error->Report("invalid type (argument ",i+1,")");\
-			return error_value();				\
+			return error_ivalue();				\
 			}						\
 									\
-		if (  attr && (shape_v = (*attr)["shape"]) &&		\
+		if (  attr && (shape_v = (const IValue*)((*attr)["shape"])) &&	\
 		      shape_v != false_value && shape_v->IsNumeric() &&	\
 		      (shape_len = shape_v->Length()) > 1 )		\
 			{						\
@@ -1126,7 +1126,7 @@ Value* name::DoCall( const_args_list* args_vals )			\
 				{					\
 				error->Report( "argument (",i+1,	\
 				  ") with dimensionality greater than 2" );\
-				return error_value();			\
+				return error_ivalue();			\
 				}					\
 			int* shape =					\
 				shape_v->CoerceToIntArray( shape_is_copy,\
@@ -1141,7 +1141,7 @@ Value* name::DoCall( const_args_list* args_vals )			\
 					error->Report( 			\
 					"mismatch in number of rows" );	\
 					XBIND_CLEANUP			\
-					return error_value();		\
+					return error_ivalue();		\
 					}				\
 				}					\
 			else						\
@@ -1157,7 +1157,7 @@ Value* name::DoCall( const_args_list* args_vals )			\
 				{					\
 				error->Report( 				\
 					"mismatch in number of rows" );	\
-				return error_value();			\
+				return error_ivalue();			\
 				}					\
 			}						\
 		}							\
@@ -1166,11 +1166,11 @@ Value* name::DoCall( const_args_list* args_vals )			\
 		rows = minrows;						\
 									\
 	void *result;							\
-	Value *result_value = 0;					\
+	IValue *result_value = 0;					\
 	if ( result_type == TYPE_STRING )				\
 		{							\
 		error->Report("sorry not implemented for strings yet");	\
-		return error_value();					\
+		return error_ivalue();					\
 		}							\
 									\
 	switch ( result_type )						\
@@ -1190,10 +1190,10 @@ Value* name::DoCall( const_args_list* args_vals )			\
 	int offset = 0;							\
 	loop_over_list( *args_vals, x )					\
 		{							\
-		const Value *arg = (*args_vals)[x];			\
+		const IValue *arg = (*args_vals)[x];			\
 		int arg_len = arg->Length();				\
 		const attributeptr attr = arg->AttributePtr();		\
-		const Value *shape_v;					\
+		const IValue *shape_v;					\
 		int shape_len;						\
 		int shape_is_copy;					\
 									\
@@ -1250,22 +1250,22 @@ Value* name::DoCall( const_args_list* args_vals )			\
 		newshape[ROWS] = rows;					\
 		newshape[COLS] = cols;					\
 		result_value->AssignAttribute( "shape", 		\
-					       new Value(newshape,2) );	\
+					       new IValue(newshape,2) );	\
 		return result_value;					\
 		}							\
 									\
-	return error_value();						\
+	return error_ivalue();						\
 	}
 
 XBINDBUILTIN(CbindBuiltIn,0,1,1,1,off,off)
 XBINDBUILTIN(RbindBuiltIn,1,0,cols,shape[0],offset+shape[0],offset+1)
 
-Value* PasteBuiltIn::DoCall( const_args_list* args_val )
+IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	{
 	if ( args_val->length() == 0 )
 		{
 		error->Report( "paste() invoked with no arguments" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	// First argument gives separator string.
@@ -1302,17 +1302,17 @@ Value* PasteBuiltIn::DoCall( const_args_list* args_val )
 	charptr* result = new charptr[1];
 	result[0] = paste_val;
 
-	return new Value( result, 1 );
+	return new IValue( result, 1 );
 	}
 
-Value* SplitBuiltIn::DoCall( const_args_list* args_val )
+IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 
 	if ( len < 1 || len > 2 )
 		{
 		error->Report( this, " takes 1 or 2 arguments" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	char* source = (*args_val)[0]->StringVal();
@@ -1321,7 +1321,7 @@ Value* SplitBuiltIn::DoCall( const_args_list* args_val )
 	if ( len == 2 )
 		split_chars = (*args_val)[1]->StringVal();
 
-	Value* result = split( source, split_chars );
+	IValue* result = isplit( source, split_chars );
 
 	delete source;
 	if ( len == 2 )
@@ -1331,23 +1331,23 @@ Value* SplitBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-Value* ReadValueBuiltIn::DoCall( const_args_list* args_val )
+IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	char* file_name = (*args_val)[0]->StringVal();
 
 	int sds = (int) sds_access( file_name, SDS_FILE, SDS_READ );
 
-	Value* result;
+	IValue* result;
 
 	if ( sds < 0 )
 		{
 		error->Report( "could not read value from \"", file_name,
 				"\"" );
-		result = error_value();
+		result = error_ivalue();
 		}
 
 	else
-		result = read_value_from_SDS( sds );
+		result = read_ivalue_from_SDS( sds );
 
 	delete file_name;
 
@@ -1355,10 +1355,10 @@ Value* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-Value* WriteValueBuiltIn::DoCall( const_args_list* args_val )
+IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	char* file_name = (*args_val)[1]->StringVal();
-	const Value* v = (*args_val)[0];
+	const IValue* v = (*args_val)[0];
 
 	int result = 1;
 
@@ -1406,64 +1406,64 @@ Value* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 
 	delete file_name;
 
-	return new Value( result );
+	return new IValue( result );
 	}
 
 
-Value* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
+IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
 	{
 	Agent* agent = (*args_val)[0]->AgentVal();
 
 	if ( ! agent )
-		return error_value();
+		return error_ivalue();
 
 	else
 		return agent->AssociatedStatements();
 	}
 
 
-Value* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
-	Value* r = create_record();
+	IValue* r = create_irecord();
 
 	loop_over_list( agents, i )
 		{
-		Value* a = agents[i]->AgentRecord();
-		r->SetField( r->NewFieldName(), new Value( a, VAL_REF ) );
+		IValue* a = agents[i]->AgentRecord();
+		r->SetField( r->NewFieldName(), new IValue( a, VAL_REF ) );
 		}
 
 	return r;
 	}
 
 
-Value* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Agent* user_agent = new UserAgent( sequencer );
 	return user_agent->AgentRecord();
 	}
 
 
-Value* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
 	Scope *scope = sequencer->GetScope( );
 	if ( ! scope || ! scope->Length() )
-		return error_value();
+		return error_ivalue();
 
 	if ( len > 1 )
 		{
 		error->Report( this, " takes 0 or 1 argument" );
-		return error_value();
+		return error_ivalue();
 		}
 
-	const Value *func_val = len > 0 ? (*args_val)[0] : 0 ;
+	const IValue *func_val = len > 0 ? (*args_val)[0] : 0 ;
 	funcptr func = 0;
 
 	if ( func_val )
  		if ( func_val->Type() != TYPE_FUNC )
 			{
 			error->Report( this, " only takes a function as an argument");
-			return error_value();
+			return error_ivalue();
 			}
 		else
 			func = func_val->FuncVal();
@@ -1481,7 +1481,7 @@ Value* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 			parameter_list p;
 			Parameter arg( 0, VAL_CONST, (Expr*) member );
 			p.append( &arg );
-			Value *r = func->Call( &p, EVAL_COPY );
+			IValue *r = func->Call( &p, EVAL_COPY );
 			if ( r && r->IsNumeric() )
 				flag = r->IntVal();
 			Unref( r );
@@ -1493,18 +1493,18 @@ Value* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 			}
 		}
 
-	return new Value( (charptr*) name_ary, cnt );
+	return new IValue( (charptr*) name_ary, cnt );
 	}
 
-Value* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
-	const Value *str = (*args_val)[0];
+	const IValue *str = (*args_val)[0];
 
 	if ( ! str || str->Type() != TYPE_STRING )
 		{
 		error->Report( this, " takes 1 string argument" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	charptr *strs = str->StringPtr();
@@ -1514,41 +1514,41 @@ Value* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 		Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
 		if ( exp )
 			{
-			Value *val = exp->CopyEval();
+			IValue *val = exp->CopyEval();
 			if ( val )
 				rptr->Insert( strdup(strs[i]), val );
 			}
 		}
 
-	return new Value( rptr );
+	return new IValue( rptr );
 	}
 
-Value* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
 
 	if ( len < 1 || len > 2 )
 		{
 		error->Report( this, " takes either 1 record argument or a string and a value" );
-		return error_value();
+		return error_ivalue();
 		}
 
-	const Value *arg1 = (*args_val)[0];
-	const Value *arg2 = len > 1 ? (*args_val)[1] : 0;
+	const IValue *arg1 = (*args_val)[0];
+	const IValue *arg2 = len > 1 ? (*args_val)[1] : 0;
 
 	if ( ! arg2 )
 		{
 		if ( arg1->Type() != TYPE_RECORD )
 			{
 			error->Report( "wrong type for argument 1, record expected" );
-			return error_value();
+			return error_ivalue();
 			}
 
 		recordptr rptr = arg1->RecordPtr();
 		IterCookie *c = rptr->InitForIteration();
-		Value *member;
+		IValue *member;
 		const char *key;
-		while ( (member = rptr->NextEntry( key, c )) )
+		while ( (member = (IValue*)(rptr->NextEntry( key, c ))) )
 			{
 			Expr *id = sequencer->LookupID( strdup(key), GLOBAL_SCOPE, 1, 0 );
 			id->Assign( copy_value(member) );
@@ -1559,7 +1559,7 @@ Value* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		if ( arg1->Type() != TYPE_STRING )
 			{
 			error->Report( "wrong type for argument 1, string expected" );
-			return error_value();
+			return error_ivalue();
 			}
 
 		charptr *strs = arg1->StringPtr();
@@ -1567,47 +1567,47 @@ Value* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		id->Assign( copy_value( arg2 ) );
 		}
 
-	return new Value( glish_true );
+	return new IValue( glish_true );
 	}
 
-Value* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Frame* cur = sequencer->CurrentFrame();
 	if ( ! cur )
-		return empty_value();
+		return empty_ivalue();
 
 	return copy_value( cur->Missing() );
 	}
 
-Value* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Notification* n = sequencer->LastNotification();
 
 	if ( ! n )
 		{
 		error->Report( "no active whenever, in call to", this );
-		return new Value( 0 );
+		return new IValue( 0 );
 		}
 
-	return new Value( n->notifiee->stmt->Index() );
+	return new IValue( n->notifiee->stmt->Index() );
 	}
 
-Value* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Stmt* s = sequencer->LastWheneverExecuted();
 
 	if ( ! s )
 		{
 		error->Report( "no whenever's executed, in call to", this );
-		return new Value( 0 );
+		return new IValue( 0 );
 		}
 
-	return new Value( s->Index() );
+	return new IValue( s->Index() );
 	}
 
 
 #define DEFINE_AS_XXX_BUILT_IN(name,type,tag,stringcvt,coercer,text,zero) \
-Value* name( const Value* arg )						\
+IValue* name( const IValue* arg )						\
 	{								\
 	int len = arg->Length();					\
 									\
@@ -1619,13 +1619,13 @@ Value* name( const Value* arg )						\
 		for ( int i = 0; i < len; ++i )				\
 			result[i] = stringcvt( strings[i] );		\
 									\
-		return new Value( result, len );			\
+		return new IValue( result, len );			\
 		}							\
 									\
 	if ( ! arg->IsNumeric() )					\
 		{							\
 		error->Report( "non-numeric argument to ", text );	\
-		return new Value( type(zero) );				\
+		return new IValue( type(zero) );				\
 		}							\
 									\
 	if ( arg->Type() == tag )					\
@@ -1634,7 +1634,7 @@ Value* name( const Value* arg )						\
 	int is_copy;							\
 	type* result = arg->coercer( is_copy, len );			\
 									\
-	Value* ret = new Value( result, len );				\
+	IValue* ret = new IValue( result, len );				\
 	ret->CopyAttributes( arg );					\
 	return ret;							\
 	}
@@ -1670,7 +1670,7 @@ DEFINE_AS_XXX_BUILT_IN(as_complex_built_in, complex, TYPE_COMPLEX, atocpx,
 DEFINE_AS_XXX_BUILT_IN(as_dcomplex_built_in, dcomplex, TYPE_DCOMPLEX, atodcpx,
 	CoerceToDcomplexArray, "as_dcomplex", dcomplex(0.0, 0.0))
 
-Value* as_byte_built_in( const Value* arg )
+IValue* as_byte_built_in( const IValue* arg )
 	{
 	if ( arg->Type() == TYPE_STRING )
 		{
@@ -1683,14 +1683,14 @@ Value* as_byte_built_in( const Value* arg )
 
 		delete arg_str;
 
-		return new Value( result, len );
+		return new IValue( result, len );
 		}
 
 	int len = arg->Length();
 	if ( ! arg->IsNumeric() )
 		{
 		error->Report( "non-numeric argument to ", "byte" );
-		return new Value( byte(0) );
+		return new IValue( byte(0) );
 		}
 
 	if ( arg->Type() == TYPE_BYTE )
@@ -1699,11 +1699,11 @@ Value* as_byte_built_in( const Value* arg )
 	int is_copy;
 	byte* result = arg->CoerceToByteArray( is_copy, len );
 
-	return new Value( result, len );
+	return new IValue( result, len );
 	}
 
 
-Value* as_string_built_in( const Value* arg )
+IValue* as_string_built_in( const IValue* arg )
 	{
 	if ( arg->Type() == TYPE_STRING )
 		return copy_value( arg );
@@ -1711,7 +1711,7 @@ Value* as_string_built_in( const Value* arg )
 	if ( ! arg->IsNumeric() )
 		{
 		error->Report( "non-numeric argument to as_string()" );
-		return new Value( "" );
+		return new IValue( "" );
 		}
 
 	int len = arg->Length();
@@ -1726,7 +1726,7 @@ Value* as_string_built_in( const Value* arg )
 
 		s[i] = '\0';
 
-		Value* result = new Value( s );
+		IValue* result = new IValue( s );
 		delete s;
 
 		return result;
@@ -1755,7 +1755,7 @@ Value* as_string_built_in( const Value* arg )
 		{						\
 		error->Report( "invalid sub-vector" );		\
 		delete result;					\
-		return error_value();			\
+		return error_ivalue();			\
 		}
 #define COERCE_XXX_TO_STRING(tag,type,accessor,format,INDX,rest,XLATE,FORMAT)	\
 	case tag:							\
@@ -1830,17 +1830,17 @@ Value* as_string_built_in( const Value* arg )
 			fatal->Report( "bad type tag in as_string()" );
 		}
 
-	return new Value( result, len );
+	return new IValue( result, len );
 	}
 
 
-Value* type_name_built_in( const Value* arg )
+IValue* type_name_built_in( const IValue* arg )
 	{
 	glish_type t = arg->Type();
 
 	if ( t == TYPE_REF || t == TYPE_CONST )
 		{
-		Value* deref_val = type_name_built_in( arg->RefPtr() );
+		IValue* deref_val = type_name_built_in( (const IValue*)(arg->RefPtr()) );
 		char* deref_name = deref_val->StringVal();
 
 		char buf[512];
@@ -1851,26 +1851,26 @@ Value* type_name_built_in( const Value* arg )
 		delete deref_name;
 		Unref( deref_val );
 
-		return new Value( buf );
+		return new IValue( buf );
 		}
 
 	if ( arg->IsVecRef() )
 		t = arg->VecRefDeref()->Type();
 
-	return new Value( type_names[t] );
+	return new IValue( type_names[t] );
 	}
 
-Value* length_built_in( const Value* arg )
+IValue* length_built_in( const IValue* arg )
 	{
-	return new Value( int( arg->Length() ) );
+	return new IValue( int( arg->Length() ) );
 	}
 
-Value* field_names_built_in( const Value* arg )
+IValue* field_names_built_in( const IValue* arg )
 	{
 	if ( arg->Type() != TYPE_RECORD )
 		{
 		error->Report( "argument to field_names is not a record" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	recordptr record_dict = arg->RecordPtr();
@@ -1882,14 +1882,14 @@ Value* field_names_built_in( const Value* arg )
 
 	for ( int i = 0; i < len; ++i )
 		{
-		Value* nth_val = record_dict->NthEntry( i, key );
+		IValue* nth_val = (IValue*)record_dict->NthEntry( i, key );
 		if ( ! nth_val )
 			fatal->Report(
 				"bad record in field_names_built_in" );
 		names[i] = strdup( key );
 		}
 
-	return new Value( names, i );
+	return new IValue( names, i );
 	}
 
 
@@ -1900,7 +1900,7 @@ char* paste( parameter_list* args )
 	// Create another parameter list with the separator at the
 	// beginning.
 	parameter_list args2;
-	Value sep( " " );
+	IValue sep( " " );
 	ConstExpr sep_expr( &sep );
 	Parameter sep_parm( 0, VAL_CONST, &sep_expr );
 
@@ -1909,7 +1909,7 @@ char* paste( parameter_list* args )
 	loop_over_list( *args, i )
 		args2.append( (*args)[i] );
 
-	Value* args_value = paste.Call( &args2, EVAL_COPY );
+	IValue* args_value = paste.Call( &args2, EVAL_COPY );
 
 	// ### could save on some string copies here by returning the
 	// value instead, and using StringPtr() instead of StringVal()
@@ -1927,43 +1927,17 @@ char* paste( const_args_list* args )
 
 	// Create another args list with the separator at the beginning.
 	const_args_list args2;
-	Value sep( " " );
+	IValue sep( " " );
 	args2.append( &sep );
 
 	loop_over_list( *args, i )
 		args2.append( (*args)[i] );
 
-	Value* args_value = paste.DoCall( &args2 );
+	IValue* args_value = paste.DoCall( &args2 );
 	char* result = args_value->StringVal();
 	Unref( args_value );
 
 	return result;
-	}
-
-
-Value* split( char* source, char* split_chars )
-	{
-	// First see how many pieces the split will result in.
-	int num_pieces = 0;
-	char* source_copy = strdup( source );
-	charptr next_string = strtok( source_copy, split_chars );
-	while ( next_string )
-		{
-		++num_pieces;
-		next_string = strtok( 0, split_chars );
-		}
-	delete source_copy;
-
-	charptr* strings = new charptr[num_pieces];
-	charptr* sptr = strings;
-	next_string = strtok( source, split_chars );
-	while ( next_string )
-		{
-		*(sptr++) = strdup( next_string );
-		next_string = strtok( 0, split_chars );
-		}
-
-	return new Value( strings, num_pieces );
 	}
 
 

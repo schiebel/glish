@@ -8,7 +8,7 @@ RCSID("@(#) $Id$")
 
 #include "Agent.h"
 #include "Frame.h"
-#include "Glish/Value.h"
+#include "IValue.h"
 #include "Reporter.h"
 #include "Sequencer.h"
 
@@ -43,7 +43,7 @@ Agent::Agent( Sequencer* s )
 	agent_value = 0;
 	string_copies = 0;
 
-	agent_value = new Value( create_record_dict(), this );
+	agent_value = new IValue( create_record_dict(), this );
 
 	agents.append( this );
 	}
@@ -75,7 +75,7 @@ Agent::~Agent()
 	(void) agents.remove( this );
 	}
 
-void Agent::SendSingleValueEvent( const char* event_name, const Value* value,
+void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 					int log )
 	{
 	ConstExpr c( value );	// ### make sure ConstExpr doesn't nuke
@@ -86,7 +86,7 @@ void Agent::SendSingleValueEvent( const char* event_name, const Value* value,
 	SendEvent( event_name, &plist, 0, log );
 	}
 
-int Agent::CreateEvent( const char* event_name, Value* event_value )
+int Agent::CreateEvent( const char* event_name, IValue* event_value )
 	{
 	if ( ! agent_value )
 		fatal->Report(
@@ -161,7 +161,7 @@ int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
 	return 0;
 	}
 
-Value* Agent::AssociatedStatements()
+IValue* Agent::AssociatedStatements()
 	{
 	int num_stmts = 0;
 
@@ -191,7 +191,7 @@ Value* Agent::AssociatedStatements()
 		fatal->Report(
 		"internal inconsistency in Agent::AssociatedStatements" );
 
-	Value* r = create_record();
+	IValue* r = create_irecord();
 	r->SetField( "event", (charptr*) event, num_stmts );
 	r->SetField( "stmt", stmt, num_stmts );
 
@@ -211,10 +211,10 @@ void Agent::DescribeSelf( ostream& s ) const
 		s << "<agent>";
 	}
 
-Value* Agent::BuildEventValue( parameter_list* args, int use_refs )
+IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	{
 	if ( args->length() == 0 )
-		return error_value();
+		return error_ivalue();
 
 	if ( args->length() == 1 )
 		{
@@ -225,7 +225,7 @@ Value* Agent::BuildEventValue( parameter_list* args, int use_refs )
 		}
 
 	// Build up a record.
-	Value* event_val = create_record();
+	IValue* event_val = create_irecord();
 
 	loop_over_list( *args, i )
 		{
@@ -242,7 +242,7 @@ Value* Agent::BuildEventValue( parameter_list* args, int use_refs )
 			}
 
 		Expr* arg_expr = p->Arg();
-		Value* arg_val = use_refs ?
+		IValue* arg_val = use_refs ?
 			arg_expr->RefEval( VAL_CONST ) : arg_expr->CopyEval();
 
 		event_val->AssignRecordElement( index, arg_val );
@@ -254,7 +254,7 @@ Value* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	return event_val;
 	}
 
-int Agent::NotifyInterestedParties( const char* field, Value* value )
+int Agent::NotifyInterestedParties( const char* field, IValue* value )
 	{
 	notification_list* interested = interested_parties[field];
 	int there_is_interest = 0;
@@ -296,7 +296,7 @@ int Agent::NotifyInterestedParties( const char* field, Value* value )
 	return there_is_interest;
 	}
 
-int Agent::DoNotification( Notifiee* n, const char* field, Value* value )
+int Agent::DoNotification( Notifiee* n, const char* field, IValue* value )
 	{
 	Stmt* s = n->stmt;
 
@@ -323,10 +323,10 @@ int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
 	}
 
 
-Value* UserAgent::SendEvent( const char* event_name, parameter_list* args,
+IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 				int /* is_request */, int log )
 	{
-	Value* event_val = BuildEventValue( args, 0 );
+	IValue* event_val = BuildEventValue( args, 0 );
 
 	if ( log )
 		sequencer->LogEvent( "<agent>", "<agent>",

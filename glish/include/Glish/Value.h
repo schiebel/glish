@@ -22,17 +22,15 @@ typedef enum {
 
 
 class Value;
-class Agent;
-class Func;
-class ArithExpr;
-class RelExpr;
 struct complex;
 struct dcomplex;
 struct record_header;	// Needed when dealing with SDS; see AddToSds()
 
+// also declared in Sequencer.h
+// stubbed for Clients
+extern const Value *lookup_sequencer_value( const char *id );
+
 typedef const char* charptr;
-typedef Func* funcptr;
-typedef Agent* agentptr;
 
 declare(PList,Value);
 typedef PList(Value) value_list;
@@ -110,8 +108,8 @@ void delete_record( recordptr r );
 extern int num_Values_created;
 extern int num_Values_deleted;
 
-
 class Value : public GlishObject {
+friend class IValue;
 public:
 	Value( glish_bool value );
 	Value( byte value );
@@ -122,14 +120,8 @@ public:
 	Value( complex value );
 	Value( dcomplex value );
 	Value( const char* value );
-	Value( funcptr value );
 
-	// If "storage" is set to "COPY_ARRAY", then the underlying
-	// "Agent" in value will be Ref()ed. Otherwise, if 
-	// "TAKE_OVER_ARRAY" it will simply be used.
-	Value( agentptr value, array_storage_type storage = COPY_ARRAY );
-
-	Value( recordptr value, Agent* agent = 0 );
+	Value( recordptr value );
 
 	Value( SDS_Index& sds_index );
 
@@ -157,8 +149,6 @@ public:
 	Value( dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 	Value( charptr value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY );
-	Value( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
 	Value( glish_boolref& value_ref );
@@ -215,9 +205,6 @@ public:
 	// bool, integer, or floating-point).
 	int IsNumeric() const;
 
-	// True if the value is a record corresponding to a agent.
-	int IsAgentRecord() const;
-
 	// Returns the "n"'th element coereced to the corresponding type.
 	glish_bool BoolVal( int n = 1 ) const;
 	byte ByteVal( int n = 1 ) const;
@@ -246,10 +233,6 @@ public:
 	// "max_elements" parameter.
 	unsigned int PrintLimit() const;
 
-	// Returns the agent or function corresponding to the Value.
-	Agent* AgentVal() const;
-	funcptr FuncVal() const;
-
 	// Returns the Value's SDS index, if TYPE_OPAQUE.  Returns
 	// SDS_NO_SUCH_SDS if the value is not TYPE_OPAQUE.
 	int SDS_IndexVal() const;
@@ -270,8 +253,6 @@ public:
 	complex* ComplexPtr() const;
 	dcomplex* DcomplexPtr() const;
 	charptr* StringPtr() const;
-	funcptr* FuncPtr() const;
-	agentptr* AgentPtr() const;
 	recordptr RecordPtr() const;
 
 	glish_bool* BoolPtr();
@@ -283,8 +264,6 @@ public:
 	complex* ComplexPtr();
 	dcomplex* DcomplexPtr();
 	charptr* StringPtr();
-	funcptr* FuncPtr();
-	agentptr* AgentPtr();
 	recordptr RecordPtr();
 
 	Value* RefPtr() const		{ return (Value*) values; }
@@ -353,31 +332,28 @@ public:
 	charptr* CoerceToStringArray( int& is_copy, int size,
 			charptr* result = 0 ) const;
 
-	// These coercions are very limited: they essentially either
-	// return the corresponding xxxPtr() (if the sizes match,
-	// no "result" is prespecified, and the Value is already
-	// the given type) or generate a fatal error.
-	funcptr* CoerceToFuncArray( int& is_copy, int size,
-			funcptr* result = 0 ) const;
-
-	// The following both return a new value.
+	// Both of the following return a newed value.
 	Value* operator[]( const Value* index ) const;
 	Value* operator[]( const_value_list *index ) const;
 
 	// Pick distinct elements from an array.
+	// Returns a newed value
 	Value* Pick( const Value* index ) const;
 
 	// Return a reference to distinct elements from an array.
+	// Returns a newed value
 	Value* PickRef( const Value* index );
 
 	// Assign to distinct array elements.
 	void PickAssign( const Value* index, Value *value );
 
 	// Return a true sub-array reference.
+	// Both of the following return a newed value.
 	Value* SubRef( const Value* index );
 	Value* SubRef( const_value_list *args_val );
 
-	Value* RecordRef( const Value* index ) const;	// returns a new Value
+	// Returns a newed value
+	Value* RecordRef( const Value* index ) const;
 
 	// Returns an (unmodifiable) existing Value, or false_value if the
 	// given field does not exist.
@@ -512,18 +488,6 @@ public:
 	void Negate();	// value <- -value
 	void Not();	// value <- ! value
 
-	void ByteOpCompute( const Value* value, int lhs_len, ArithExpr* expr );
-	void ShortOpCompute( const Value* value, int lhs_len, ArithExpr* expr );
-	void IntOpCompute( const Value* value, int lhs_len, ArithExpr* expr );
-	void FloatOpCompute( const Value* value, int lhs_len, ArithExpr* expr );
-	void DoubleOpCompute( const Value* value, int lhs_len,
-				ArithExpr* expr );
-	void ComplexOpCompute( const Value* value, int lhs_len,
-				ArithExpr* expr );
-	void DcomplexOpCompute( const Value* value, int lhs_len,
-				ArithExpr* expr );
-
-
 	// Add the Value to the sds designated by "sds" using the given
 	// name.  "dlist" is a del_list (PList of DelObj) that is used to
 	// record any objects or dynamic memory required by AddToSds in order
@@ -548,7 +512,7 @@ public:
 
 
 	// Change from present type to given type.
-	void Polymorph( glish_type new_type );
+	virtual void Polymorph( glish_type new_type );
 	void VecRefPolymorph( glish_type new_type );
 
 	// Retrieve the non-modifiable set of attributes, possibly nil.
@@ -593,11 +557,7 @@ public:
 		}
 
 	// Returns a new Value with the selected attributes.
-	Value* AttributeRef( const Value* index ) const
-		{
-		return attributes ? attributes->RecordRef( index ) :
-			new Value( glish_false );
-		}
+	Value* AttributeRef( const Value* index ) const;
 
 	// Returns a modifiable existing Value.  If the given field does
 	// not exist, it is added, with an initial value of F.
@@ -666,6 +626,9 @@ public:
 		}
 
 protected:
+
+	Value ( ) { }			// for IValue
+
 	void SetValue( glish_bool array[], int len,
 			array_storage_type storage = TAKE_OVER_ARRAY );
 	void SetValue( byte array[], int len,
@@ -684,11 +647,7 @@ protected:
 			array_storage_type storage = TAKE_OVER_ARRAY );
 	void SetValue( const char* array[], int len,
 			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( agentptr array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( funcptr array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( recordptr value, Agent* agent );
+	virtual void SetValue( recordptr value );
 	void SetValue( SDS_Index& array );
 
 	void SetValue( glish_boolref& value_ref );
@@ -706,11 +665,11 @@ protected:
 
 	virtual void SetType( glish_type new_type );
 
-	void DeleteValue();
+	virtual void DeleteValue();
 	void DeleteAttributes();
 
 	void InitValue();
-	void InitRecord( recordptr r, Agent* agent = 0 );
+	void InitRecord( recordptr r );
 
 	void InitAttributes()
 		{
@@ -751,11 +710,11 @@ protected:
 	// Copies the elements from the value parameter. It assumes
 	// that the sizes are compatible, and generates a warning,
 	// and copies a portion otherwise.
-	void AssignArrayElements( Value* value );
+	virtual void AssignArrayElements( Value* value );
 
 	// Does the actual work of assigning a list of array elements,
 	// once type-checking has been done.
-	void AssignArrayElements( int* indices, int num_indices,
+	virtual void AssignArrayElements( int* indices, int num_indices,
 				Value* value, int rhs_len );
 
 	// Searches a list of indices to find the largest and returns
@@ -786,26 +745,6 @@ protected:
 
 #include "VecRef.h"
 
-
-extern Value* bool_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* byte_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* short_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* int_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* float_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* double_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* complex_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* dcomplex_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-extern Value* string_rel_op_compute( const Value* lhs, const Value* rhs,
-				int lhs_len, RelExpr* expr );
-
 extern Value* read_value_from_SDS( int sds, int is_opaque_sds = 0 );
 
 extern int compatible_types( const Value* v1, const Value* v2,
@@ -815,6 +754,9 @@ extern void init_values();
 
 extern void delete_list( del_list* dlist );
 
+extern charptr *csplit( char* source, int &len, char* split_chars = " \t\n" );
+extern Value* split( char* source, char* split_chars = " \t\n" );
+
 // The following convert a string to integer/double/dcomplex.  They
 // set successful to return true if the conversion was successful,
 // false if the text does not describe a valid integer/double/dcomplex.
@@ -823,5 +765,54 @@ extern double text_to_double( const char text[], int& successful );
 extern dcomplex text_to_dcomplex( const char text[], int& successful );
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt = "%g" );
+
+
+// This is a real bother, but it is the best compromise available. C++ has
+// no virtual constructors, but when compiling the Glish interpreter, we
+// want IValues to be created, and when compiling the clients, we want
+// Values to be created. In main.cc, these are defined and return an
+// IValue* they are also defined in glishlib.cc (which goes into libglish)
+// and return a Value*
+extern Value *create_value( glish_bool value );
+extern Value *create_value( byte value );
+extern Value *create_value( short value );
+extern Value *create_value( int value );
+extern Value *create_value( float value );
+extern Value *create_value( double value );
+extern Value *create_value( complex value );
+extern Value *create_value( dcomplex value );
+extern Value *create_value( const char* value );
+extern Value *create_value( recordptr value );
+extern Value *create_value( SDS_Index& sds_index );
+extern Value *create_value( Value* ref_value, value_type val_type );
+extern Value *create_value( Value* ref_value, int index[], int num_elements, value_type val_type );
+extern Value *create_value( glish_bool value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( byte value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( short value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( int value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( float value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( double value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( complex value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( dcomplex value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( charptr value[], int num_elements,
+	array_storage_type storage = TAKE_OVER_ARRAY );
+extern Value *create_value( glish_boolref& value_ref );
+extern Value *create_value( byteref& value_ref );
+extern Value *create_value( shortref& value_ref );
+extern Value *create_value( intref& value_ref );
+extern Value *create_value( floatref& value_ref );
+extern Value *create_value( doubleref& value_ref );
+extern Value *create_value( complexref& value_ref );
+extern Value *create_value( dcomplexref& value_ref );
+extern Value *create_value( charptrref& value_ref );
+
 
 #endif /* value_h */

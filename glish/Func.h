@@ -10,7 +10,7 @@ class Sequencer;
 class Stmt;
 
 
-typedef Value* value_ptr;
+typedef IValue* value_ptr;
 declare(List,value_ptr);
 typedef List(value_ptr) args_list;
 
@@ -21,7 +21,7 @@ typedef PList(Parameter) parameter_list;
 
 class Func : public GlishObject {
     public:
-	virtual Value* Call( parameter_list* args, eval_type etype ) = 0;
+	virtual IValue* Call( parameter_list* args, eval_type etype ) = 0;
 
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
@@ -49,7 +49,7 @@ class Parameter : public GlishObject {
 
 	// Returns the nth value from a "..." argument; the first such
 	// value is indexed using n=0.
-	const Value* NthEllipsisVal( int n ) const;
+	const IValue* NthEllipsisVal( int n ) const;
 
 	void Describe( ostream& s ) const;
 
@@ -93,24 +93,24 @@ class UserFunc : public Func {
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 			Sequencer* sequencer, Expr* subsequence_expr );
 
-	Value* Call( parameter_list* args, eval_type etype );
-	Value* DoCall( args_list* args_vals, eval_type etype, Value* missing );
+	IValue* Call( parameter_list* args, eval_type etype );
+	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing );
 
 	void Describe( ostream& s ) const;
 
     protected:
-	Value* EvalParam( Parameter* p, Expr* actual );
+	IValue* EvalParam( Parameter* p, Expr* actual );
 
 	// Decode an actual "..." argument.
 	void AddEllipsisArgs( args_list* args_vals, Parameter* actual_ellipsis,
 				int& num_args, int num_formals,
-				Value* formal_ellipsis_value, int& do_call );
+				IValue* formal_ellipsis_value, int& do_call );
 
 	// Add to a formal "..." parameter.
-	void AddEllipsisValue( Value* ellipsis_value, Expr* arg );
+	void AddEllipsisValue( IValue* ellipsis_value, Expr* arg );
 
 	void ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				Value* ellipsis_value, int& do_call );
+				IValue* ellipsis_value, int& do_call );
 
 	parameter_list* formals;
 	Stmt* body;

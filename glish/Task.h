@@ -52,7 +52,7 @@ class Task : public Agent {
 
 	// Send an event with the given name and associated values
 	// to the associated task.
-	Value* SendEvent( const char* event_name, parameter_list* args,
+	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log );
 
 	void SetActive()	{ SetActivity( 1 ); }
@@ -128,29 +128,29 @@ class CreateTaskBuiltIn : public BuiltIn {
 	    : BuiltIn("create_task", NUM_ARGS_VARIES)
 		{ sequencer = arg_sequencer; }
 
-	Value* DoCall( const_args_list* args_val );
+	IValue* DoCall( const_args_list* args_val );
 	void DoSideEffectsCall( const_args_list* args_val,
 				int& side_effects_okay );
 
     protected:
 	// Extract a string from the given value, or if it indicates
 	// "default" (by being equal to F) return 0.
-	char* GetString( const Value* val );
+	char* GetString( const IValue* val );
 
 	// Execute the given command locally and synchronously, with the
 	// given string as input, and return a Value holding the result.
-	Value* SynchronousShell( const char* command, const char* input );
+	IValue* SynchronousShell( const char* command, const char* input );
 
 	// Same except execute the command remotely.
-	Value* RemoteSynchronousShell( const char* command,
-					Value* input );
+	IValue* RemoteSynchronousShell( const char* command,
+					IValue* input );
 
 	// Read the shell output appearing on "shell" due to executing
 	// "command" and return a Value representing the result.  Used
 	// by SynchronousShell() and RemoteSynchronousShell().  "is_remote"
 	// is a flag that if true indicates that the shell is executing
 	// remotely.
-	Value* GetShellCmdOutput( const char* command, FILE* shell,
+	IValue* GetShellCmdOutput( const char* command, FILE* shell,
 					int is_remote );
 
 	// Read the next line from a local or remote (respectively)
@@ -159,8 +159,8 @@ class CreateTaskBuiltIn : public BuiltIn {
 	char* NextRemoteShellCmdLine( char* line_buf );
 
 	// Create an asynchronous shell or client.
-	Value* CreateAsyncShell( const_args_list* args );
-	Value* CreateClient( const_args_list* args );
+	IValue* CreateAsyncShell( const_args_list* args );
+	IValue* CreateClient( const_args_list* args );
 
 	// Check to see whether the creation of the given task was
 	// successful.

@@ -6,19 +6,19 @@
 #include "Glish/Object.h"
 #include "Expr.h"
 
-class Value;
+class IValue;
 
 class Frame : public GlishObject {
     public:
-	Frame( int frame_size, Value* param_info, scope_type s );
+	Frame( int frame_size, IValue* param_info, scope_type s );
 	~Frame();
 
-	Value*& FrameElement( int offset );
+	IValue*& FrameElement( int offset );
 
 	// Functionality necessary to implement the "missing()" 
 	// function; in the future this may need to be extended 
 	// with a "ParameterInfo" object.
-	const Value *Missing() const	{ return missing; }
+	const IValue *Missing() const	{ return missing; }
 
 	int Size() const	{ return size; }
 
@@ -26,8 +26,8 @@ class Frame : public GlishObject {
 
     protected:
 	int size;
-	Value** values;
-	Value* missing;
+	IValue** values;
+	IValue* missing;
 	scope_type scope;
 	};
 

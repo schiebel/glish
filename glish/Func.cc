@@ -35,7 +35,7 @@ int Parameter::NumEllipsisVals() const
 		fatal->Report(
 			"Parameter::NumEllipsisVals called but not ellipsis" );
 
-	const Value* values = Arg()->ReadOnlyEval();
+	const IValue* values = Arg()->ReadOnlyEval();
 
 	int n = values->RecordPtr()->Length();
 
@@ -44,13 +44,13 @@ int Parameter::NumEllipsisVals() const
 	return n;
 	}
 
-const Value* Parameter::NthEllipsisVal( int n ) const
+const IValue* Parameter::NthEllipsisVal( int n ) const
 	{
 	if ( ! is_ellipsis )
 		fatal->Report(
 			"Parameter::NthEllipsisVal called but not ellipsis" );
 
-	const Value* values = Arg()->ReadOnlyEval();
+	const IValue* values = Arg()->ReadOnlyEval();
 
 	if ( n < 0 || n >= values->RecordPtr()->Length() )
 		fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
@@ -58,7 +58,7 @@ const Value* Parameter::NthEllipsisVal( int n ) const
 	char field_name[256];
 	sprintf( field_name, "%d", n );
 
-	const Value* result = values->ExistingRecordElement( field_name );
+	const IValue* result = (const IValue*) values->ExistingRecordElement( field_name );
 
 	Arg()->ReadOnlyDone( values );
 
@@ -129,10 +129,10 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			}
 	}
 
-Value* UserFunc::Call( parameter_list* args, eval_type etype )
+IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	{
 	if ( ! valid )
-		return error_value();
+		return error_ivalue();
 
 	args_list args_vals;
 	int do_call = 1;
@@ -142,10 +142,10 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 	int num_supplied_args = args->length();
 	int num_formals;
 
-	Value* ellipsis_value;
+	IValue* ellipsis_value;
 	if ( has_ellipsis )
 		{
-		ellipsis_value = create_record();
+		ellipsis_value = create_irecord();
 		num_formals = ellipsis_position;
 		}
 
@@ -370,12 +370,12 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 			}
 		}
 
-	Value* result;
+	IValue* result;
 
 	if ( do_call )
 		{
-		Value* missing_val = missing_len > 0 ?
-			new Value( missing, missing_len, PRESERVE_ARRAY ) : 0;
+		IValue* missing_val = missing_len > 0 ?
+			new IValue( missing, missing_len, PRESERVE_ARRAY ) : 0;
 		result = DoCall( &args_vals, etype, missing_val );
 		// No need to Unref() missing_val, Sequencer::PopFrame did
 		// that for us.
@@ -386,7 +386,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 		loop_over_list( args_vals, k )
 			Unref( args_vals[k] );
 
-		result = error_value();
+		result = error_ivalue();
 		}
 
 	free_memory( (void*) missing );
@@ -394,7 +394,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 	return result;
 	}
 
-Value* UserFunc::DoCall( args_list* args_vals, eval_type etype, Value* missing )
+IValue* UserFunc::DoCall( args_list* args_vals, eval_type etype, IValue* missing )
 	{
 	Frame* call_frame = new Frame( frame_size, missing, FUNC_SCOPE );
 	sequencer->PushFrame( call_frame );
@@ -402,7 +402,7 @@ Value* UserFunc::DoCall( args_list* args_vals, eval_type etype, Value* missing )
 	if ( subsequence_expr )
 		{
 		UserAgent* self = new UserAgent( sequencer );
-		subsequence_expr->Assign( new Value( self->AgentRecord(),
+		subsequence_expr->Assign( new IValue( self->AgentRecord(),
 							VAL_REF ) );
 		}
 
@@ -411,7 +411,7 @@ Value* UserFunc::DoCall( args_list* args_vals, eval_type etype, Value* missing )
 
 	int value_needed = etype != EVAL_SIDE_EFFECTS;
 	stmt_flow_type flow;
-	Value* result = body->Exec( value_needed, flow );
+	IValue* result = body->Exec( value_needed, flow );
 
 	if ( subsequence_expr )
 		{
@@ -447,7 +447,7 @@ void UserFunc::Describe( ostream& s ) const
 	}
 
 
-Value* UserFunc::EvalParam( Parameter* p, Expr* actual )
+IValue* UserFunc::EvalParam( Parameter* p, Expr* actual )
 	{
 	value_type param_type = p->ParamType();
 
@@ -460,14 +460,14 @@ Value* UserFunc::EvalParam( Parameter* p, Expr* actual )
 
 void UserFunc::AddEllipsisArgs( args_list* args_vals,
 				Parameter* actual_ellipsis, int& num_args,
-				int num_formals, Value* formal_ellipsis_value,
+				int num_formals, IValue* formal_ellipsis_value,
 				int& do_call )
 	{
 	int len = actual_ellipsis->NumEllipsisVals();
 
 	for ( int i = 0; i < len; ++i )
 		{
-		const Value* val;
+		const IValue* val;
 
 		if ( num_args >= num_formals )
 			{
@@ -486,7 +486,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 
 			val = actual_ellipsis->NthEllipsisVal( i );
 
-			Value* val_ref = new Value( (Value*) val, VAL_CONST );
+			IValue* val_ref = new IValue( (IValue*) val, VAL_CONST );
 			formal_ellipsis_value->AssignRecordElement( field_name,
 								val_ref );
 
@@ -514,7 +514,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 
 		else
 			{
-			Value* val_ref = new Value( (Value*) val, VAL_CONST );
+			IValue* val_ref = new IValue( (IValue*) val, VAL_CONST );
 			args_vals->append( val_ref );
 			}
 
@@ -523,12 +523,12 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 	}
 
 
-void UserFunc::AddEllipsisValue( Value* ellipsis_value, Expr* arg )
+void UserFunc::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	{
 	char field_name[256];
 	sprintf( field_name, "%d", ellipsis_value->RecordPtr()->Length() );
 
-	Value* val = arg->RefEval( VAL_CONST );
+	IValue* val = arg->RefEval( VAL_CONST );
 
 	ellipsis_value->AssignRecordElement( field_name, val );
 
@@ -537,7 +537,7 @@ void UserFunc::AddEllipsisValue( Value* ellipsis_value, Expr* arg )
 
 
 void UserFunc::ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				Value* ellipsis_value, int& do_call )
+				IValue* ellipsis_value, int& do_call )
 	{
 	if ( ellipsis_value )
 		AddEllipsisValue( ellipsis_value, arg );

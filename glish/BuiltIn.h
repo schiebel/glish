@@ -3,10 +3,12 @@
 #ifndef built_in_h
 #define built_in_h
 
+#include "Glish/List.h"
+#include "IValue.h"
 #include "Func.h"
 
 
-typedef List(const_value) const_args_list;
+typedef List(const_ivalue) const_args_list;
 
 struct dcomplex;
 
@@ -24,9 +26,9 @@ class BuiltIn : public Func {
 		}
 
 	const char* Name()				{ return description; }
-	Value* Call( parameter_list* args, eval_type etype );
+	IValue* Call( parameter_list* args, eval_type etype );
 
-	virtual Value* DoCall( const_args_list* args_vals ) = 0;
+	virtual IValue* DoCall( const_args_list* args_vals ) = 0;
 
 	// Used when the call is just for side-effects; sets side_effects_okay
 	// to true if it was okay to call this function just for side effects.
@@ -51,7 +53,7 @@ class BuiltIn : public Func {
 	};
 
 
-typedef Value* (*value_func_1_value_arg)( const Value* );
+typedef IValue* (*value_func_1_value_arg)( const IValue* );
 
 class OneValueArgBuiltIn : public BuiltIn {
     public:
@@ -59,7 +61,7 @@ class OneValueArgBuiltIn : public BuiltIn {
 				const char* name ) : BuiltIn(name, 1)
 		{ func = arg_func; }
 
-	Value* DoCall( const_args_list* args_val );
+	IValue* DoCall( const_args_list* args_val );
 
     protected:
 	value_func_1_value_arg func;
@@ -76,7 +78,7 @@ class NumericVectorBuiltIn : public BuiltIn {
 				const char* name ) : BuiltIn(name, 1)
 		{ func = arg_func; cfunc = arg_cfunc; }
 
-	Value* DoCall( const_args_list* args_val );
+	IValue* DoCall( const_args_list* args_val );
 
     protected:
 	double_func_1_double_arg func;
@@ -88,7 +90,7 @@ class NumericVectorBuiltIn : public BuiltIn {
 class name : public BuiltIn {						\
     public:								\
 	name() : BuiltIn(description, num_args)	{ init }		\
-	Value* DoCall( const_args_list* args_vals );			\
+	IValue* DoCall( const_args_list* args_vals );			\
 	};
 
 
@@ -124,7 +126,7 @@ class name : public BuiltIn {						\
 	name( Sequencer* arg_sequencer )				\
 	    : BuiltIn(description, num_args)				\
 		{ sequencer = arg_sequencer; }				\
-	Value* DoCall( const_args_list* args_vals );			\
+	IValue* DoCall( const_args_list* args_vals );			\
 									\
     protected:								\
 	Sequencer* sequencer;						\
@@ -144,7 +146,6 @@ DERIVE_SEQUENCER_BUILTIN(CurrentWheneverBuiltIn,0,"current_whenever")
 
 extern char* paste( parameter_list* args );
 extern char* paste( const_args_list* args );
-extern Value* split( char* source, char* split_chars = " \t\n" );
 
 extern void create_built_ins( Sequencer* s, const char *program_name );
 

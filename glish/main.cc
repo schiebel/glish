@@ -39,8 +39,15 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 
 #include "input.h"
+#include "glishlib.h"
 #include "Reporter.h"
 #include "Sequencer.h"
+#include "IValue.h"
+
+#if defined(GLISHTK)
+#include "Rivet/tcl.h"
+#include "Rivet/tk.h"
+#endif
 
 static Sequencer* s;
 
@@ -76,7 +83,6 @@ int main( int argc, char** argv )
 
 	return 0;
 	}
-
 
 #if USE_EDITLINE
 
@@ -152,4 +158,12 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 
 	return fmt_readline_str( buf, max_size, ret );
 	}
+
+DEFINE_CREATE_VALUE(IValue)
+
+const Value *lookup_sequencer_value( const char *id )
+	{
+	return Sequencer::LookupVal( id );
+	}
+
 #endif

@@ -11,7 +11,6 @@ RCSID("@(#) $Id$")
 #include <errno.h>
 #include <signal.h>
 #include "Channel.h"
-#include "Sequencer.h"
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -29,7 +28,6 @@ char* strdup( const char* );
 #include "Glish/Client.h"
 
 #include "Daemon.h"
-#include "BuiltIn.h"
 #include "Reporter.h"
 #include "Socket.h"
 #include "glish_event.h"
@@ -677,7 +675,7 @@ int Client::ReRegister( char* registration_name )
 	event_sources.append( es );
 
 	GlishEvent e( (const char *) "*register-persistent*",
-		new Value( ( registration_name == 0 ) ? prog_name :
+		create_value( ( registration_name == 0 ) ? prog_name :
 		registration_name ) );
 	send_event( socket, &e, 0 );
 
@@ -747,7 +745,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				RemoveInterpreter( source );
 				FD_Change( fd, 0 );
 				return new GlishEvent( (const char *) "*end-context*",
-					new Value("*stdio*") );
+					create_value("*stdio*") );
 				}
 			}
 
@@ -767,7 +765,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		else
 			{
 			*delim++ = '\0';
-			result = new Value( delim );
+			result = create_value( delim );
 			}
 
 		last_event = new GlishEvent( strdup( buf ), result );
@@ -828,7 +826,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				SendEstablishedEvent( last_context );
 
 				last_event = new GlishEvent( (const char *) "*new-context*",
-					new Value( es->Context().id() ) );
+					create_value( es->Context().id() ) );
 
 				return last_event;
 				}
@@ -921,7 +919,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		FD_Change( fd, 0 );
 
 		last_event = new GlishEvent( (const char *) "*end-context*",
-			new Value( last_context.id() ) );		
+			create_value( last_context.id() ) );		
 		}
 
 	return last_event;
@@ -1472,9 +1470,7 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 	if ( value && value->Type() == TYPE_STRING && value->Length() == 1 &&
 	     ! value->AttributePtr() )
 		{
-		const_args_list a;
-		a.append( value );
-		char* string_val = paste( &a );
+		char* string_val = value->StringVal( );
 
 		int size = strlen( string_val );
 		event_flags |= GLISH_STRING_EVENT;
@@ -1501,7 +1497,7 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 		else
 			{
 			if ( ! value )
-				value = new Value( glish_false );
+				value = create_value( glish_false );
 
 			sds = (int) sds_new( (char*) "" );
 

@@ -24,7 +24,7 @@ class BinOpExpr : public BinaryExpr {
     public:
 	BinOpExpr( binop op, Expr* op1, Expr* op2, const char* desc );
 
-	Value* Eval( eval_type etype ) = 0;
+	IValue* Eval( eval_type etype ) = 0;
 
     protected:
 	// Returns true if the expression's operands type-check, false
@@ -33,14 +33,14 @@ class BinOpExpr : public BinaryExpr {
 	//
 	// The third argument is set to true if this expression operates
 	// element-by-element on arrays, false otherwise.
-	virtual int TypeCheck( const Value* lhs, const Value* rhs,
+	virtual int TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const;
 
 	// What type the BinOpExpr's operands should be promoted to.  The
 	// default OperandsType implements numeric promotion (higher operand
 	// type is used, where the hierarchy is double, float, int, and
 	// bool is promoted to int).
-	virtual glish_type OperandsType( const Value* lhs, const Value* rhs )
+	virtual glish_type OperandsType( const IValue* lhs, const IValue* rhs )
 			const;
 
 	// Called after type-checking is done.  Checks array lengths
@@ -50,7 +50,7 @@ class BinOpExpr : public BinaryExpr {
 	// the length of rhs, otherwise the length of lhs).  Returns true
 	// all checking was okay, false otherwise (in which case lhs_len
 	// may not have been set).
-	int Compute( const Value* lhs, const Value* rhs, int& lhs_len ) const;
+	int Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const;
 
 	binop op;
 	};
@@ -65,7 +65,7 @@ class ArithExpr : public BinOpExpr {
 			const char* desc ) : BinOpExpr(op, op1, op2, desc)
 		{ }
 
-	Value* Eval( eval_type etype );
+	IValue* Eval( eval_type etype );
 
 	virtual void Compute( byte lhs[], byte rhs[],
 				int lhs_len, int rhs_incr ) = 0;
@@ -83,7 +83,7 @@ class ArithExpr : public BinOpExpr {
 				int lhs_len, int rhs_incr ) = 0;
 
     protected:
-	Value* OpCompute( Value* lhs, const Value* rhs, int lhs_len );
+	IValue* OpCompute( IValue* lhs, const IValue* rhs, int lhs_len );
 	};
 
 #define DECLARE_ARITH_EXPR(name, op, op_name, overloads)		\
@@ -107,11 +107,11 @@ DECLARE_ARITH_EXPR(AddExpr, OP_ADD, "+",)
 DECLARE_ARITH_EXPR(SubtractExpr, OP_SUBTRACT, "-",)
 DECLARE_ARITH_EXPR(MultiplyExpr, OP_MULTIPLY, "*",)
 DECLARE_ARITH_EXPR(DivideExpr, OP_DIVIDE, "/",
-	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;)
+	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;)
 DECLARE_ARITH_EXPR(ModuloExpr, OP_MODULO, "/",
-	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;)
+	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;)
 DECLARE_ARITH_EXPR(PowerExpr, OP_POWER, "^",
-	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;)
+	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;)
 
 
 // A BinOpExpr that performs a relational operation; i.e., an operation with
@@ -121,7 +121,7 @@ class RelExpr : public BinOpExpr {
 	RelExpr( binop op, Expr* op1, Expr* op2, const char* desc )
 			: BinOpExpr(op, op1, op2, desc) { }
 
-	Value* Eval( eval_type etype );
+	IValue* Eval( eval_type etype );
 
 	virtual void Compute( glish_bool lhs[], glish_bool rhs[],
 				glish_bool result[],
@@ -145,10 +145,10 @@ class RelExpr : public BinOpExpr {
 				int lhs_len, int rhs_incr ) = 0;
 
     protected:
-	int TypeCheck( const Value* lhs, const Value* rhs,
+	int TypeCheck( const IValue* lhs, const IValue* rhs,
 			int& element_by_element ) const;
-	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;
-	Value* OpCompute( const Value* lhs, const Value* rhs, int lhs_len );
+	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;
+	IValue* OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len );
 	};
 
 
@@ -214,9 +214,9 @@ class LogExpr : public RelExpr {
 			int lhs_len, int rhs_incr );
 
     protected:
-	int TypeCheck( const Value* lhs, const Value* rhs,
+	int TypeCheck( const IValue* lhs, const IValue* rhs,
 			int& element_by_element ) const;
-	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;
+	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;
 	};
 
 

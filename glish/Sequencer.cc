@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <stream.h>
 #include <osfcn.h>
+#include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
 
@@ -176,10 +177,10 @@ class ScriptAgent : public Agent {
 public:
 	ScriptAgent( Sequencer* s, Client* c ) : Agent(s)	{ client = c; }
 
-	Value* SendEvent( const char* event_name, parameter_list* args,
+	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int /* is_request */, int /* log */ )
 		{
-		Value* event_val = BuildEventValue( args, 1 );
+		IValue* event_val = BuildEventValue( args, 1 );
 		client->PostEvent( event_name, event_val, client->LastContext() );
 		Unref( event_val );
 		return 0;
@@ -204,7 +205,7 @@ void Scope::ClearGlobalRef(const char *c)
 	}
 
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
-			    Value* arg_value, Notifiee* arg_notifiee )
+			    IValue* arg_value, Notifiee* arg_notifiee )
 	{
 	notifier = arg_notifier;
 	field = strdup( arg_field );
@@ -245,7 +246,7 @@ void Sequencer::InitScriptClient()
 		script_expr->Assign( script_agent->AgentRecord() );
 
 		sys_val->SetField( "is_script_client",
-					new Value( glish_true ) );
+					new IValue( glish_true ) );
 
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
@@ -254,9 +255,9 @@ void Sequencer::InitScriptClient()
 
 	else
 		{
-		script_expr->Assign( new Value( glish_false ) );
+		script_expr->Assign( new IValue( glish_false ) );
 		sys_val->SetField( "is_script_client",
-					new Value( glish_false ) );
+					new IValue( glish_false ) );
 		}
 
 	ScriptCreated( 1 );
@@ -334,12 +335,12 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
 	system_expr->Assign( sys_val );
 
-	sys_val->SetField( "version", new Value( GLISH_VERSION ) );
+	sys_val->SetField( "version", new IValue( GLISH_VERSION ) );
 
 
 	// Create place for the script variable to be filled in later
 	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
-	script_expr->Assign( new Value( glish_false ) );
+	script_expr->Assign( new IValue( glish_false ) );
 
 	name = argv[0];
 	name_list *load_list = new name_list;
@@ -503,7 +504,7 @@ Sequencer::~Sequencer()
 void Sequencer::AddBuiltIn( BuiltIn* built_in )
 	{
 	Expr* id = InstallID( strdup( built_in->Name() ), GLOBAL_SCOPE );
-	id->Assign( new Value( built_in ) );
+	id->Assign( new IValue( built_in ) );
 	}
 
 
@@ -787,14 +788,14 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 	return result;
 	}
 
-const Value *Sequencer::LookupVal( const char *id )
+const IValue *Sequencer::LookupVal( const char *id )
 	{
 	Expr *expr = 0;
-	const Value *val = 0;
+	const IValue *val = 0;
 	if ( cur_sequencer && (expr = cur_sequencer->LookupID( strdup( id ), GLOBAL_SCOPE, 0 )) )
 		{
 		val = expr->ReadOnlyEval();
-		expr->ReadOnlyDone( val );
+		expr->ReadOnlyDone( val );	// **BUG**
 		}
 	return val;
 	}
@@ -831,7 +832,7 @@ Frame* Sequencer::CurrentFrame()
 	}
 
 
-Value* Sequencer::FrameElement( scope_type scope, int scope_offset,
+IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 					int frame_offset )
 	{
 	if ( scope_offset < 0 )
@@ -883,9 +884,9 @@ Value* Sequencer::FrameElement( scope_type scope, int scope_offset,
 	}
 
 void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
-					int frame_offset, Value* value )
+					int frame_offset, IValue* value )
 	{
-	Value* prev_value;
+	IValue* prev_value;
 
 	if ( scope_offset < 0 )
 		scope = GLOBAL_SCOPE;
@@ -906,7 +907,7 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
 		    "," , frames.length(), ")" );
 
-			Value*& frame_value =
+			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
 			prev_value = frame_value;
 			frame_value = value;
@@ -922,7 +923,7 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 		    "local frame error in Sequencer::SetFrameElement (",
 		    offset, " (", gs_off, "), ", frames.length(), ")" );
 
-			Value*& frame_value =
+			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
 			prev_value = frame_value;
 			frame_value = value;
@@ -1068,22 +1069,22 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 	}
 
 
-Value* Sequencer::AwaitReply( Task* task, const char* event_name,
+IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 				const char* reply_name )
 	{
 	GlishEvent* reply = recv_event( task->GetChannel()->ReadFD() );
-	Value* result = 0;
+	IValue* result = 0;
 
 	if ( ! reply )
 		{
 		warn->Report( task, " terminated without replying to ",
 				event_name, " request" );
-		result = error_value();
+		result = error_ivalue();
 		}
 
 	else if ( ! strcmp( reply->name, reply_name ) )
 		{
-		result = reply->value;
+		result = (IValue*) reply->value;
 		Ref( result );
 		}
 
@@ -1096,7 +1097,7 @@ Value* Sequencer::AwaitReply( Task* task, const char* event_name,
 		Ref( reply );	// So NewEvent doesn't throw it away.
 		NewEvent( task, reply );
 
-		result = reply->value;
+		result = (IValue*) reply->value;
 		Ref( result );	// So following Unref doesn't discard value.
 		}
 
@@ -1156,7 +1157,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 		return 0;
 		}
 
-	Value* v = establish_event->value;
+	IValue* v = (IValue*) (establish_event->value);
 	char* task_id;
 	int protocol;
 
@@ -1228,11 +1229,11 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 
 		// Abnormal termination - no "done" message first.
 		event = new GlishEvent( (const char*) "fail",
-					new Value( task->AgentID() ) );
+					(Value*)(new IValue( task->AgentID() )) );
 		}
 
 	const char* event_name = event->name;
-	Value* value = event->value;
+	IValue* value = (IValue*)event->value;
 
 	if ( verbose > 0 )
 		message->Report( name, ": received event ",
@@ -1376,7 +1377,7 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 
 void Sequencer::MakeEnvGlobal()
 	{
-	Value* env_value = create_record();
+	IValue* env_value = create_irecord();
 
 	extern char** environ;
 	for ( char** env_ptr = environ; *env_ptr; ++env_ptr )
@@ -1387,12 +1388,12 @@ void Sequencer::MakeEnvGlobal()
 			{
 			*delim = '\0';
 			env_value->AssignRecordElement( *env_ptr,
-						    new Value( delim + 1 ) );
+						    new IValue( delim + 1 ) );
 			*delim = '=';
 			}
 		else
 			env_value->AssignRecordElement( *env_ptr,
-						new Value( glish_false ) );
+						new IValue( glish_false ) );
 		}
 
 	Expr* env_expr = LookupID( strdup( "environ" ), GLOBAL_SCOPE );
@@ -1408,7 +1409,7 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc )
 	if ( argc > 0 && ! strcmp( argv[0], "--" ) )
 		++argv, --argc;
 
-	Value* argv_value = new Value( (charptr*) argv, argc, COPY_ARRAY );
+	IValue* argv_value = new IValue( (charptr*) argv, argc, COPY_ARRAY );
 	Expr* argv_expr = LookupID( strdup( "argv" ), GLOBAL_SCOPE );
 	argv_expr->Assign( argv_value );
 	}
@@ -1537,7 +1538,7 @@ void Sequencer::ActivateMonitor( char* monitor_client_name )
 		new TaskAttr( "*monitor*", "localhost", 0, 0, 0, 0 );
 
 	const_args_list monitor_args;
-	monitor_args.append( new Value( monitor_client_name ) );
+	monitor_args.append( new IValue( monitor_client_name ) );
 
 	monitor_task = new ClientTask( &monitor_args, monitor_attrs, this );
 
@@ -1550,15 +1551,15 @@ void Sequencer::ActivateMonitor( char* monitor_client_name )
 
 
 void Sequencer::LogEvent( const char* gid, const char* id,
-			const char* event_name, const Value* event_value,
+			const char* event_name, const IValue* event_value,
 			int is_inbound )
 	{
 	if ( ! monitor_task )
 		return;
 
-	Value gid_value( gid );
-	Value id_value( id );
-	Value name_value( event_name );
+	IValue gid_value( gid );
+	IValue id_value( id );
+	IValue name_value( event_name );
 
 	parameter_list args;
 
@@ -1584,17 +1585,17 @@ void Sequencer::LogEvent( const char* gid, const char* id,
 void Sequencer::LogEvent( const char* gid, const char* id, const GlishEvent* e,
 			int is_inbound )
 	{
-	LogEvent( gid, id, e->name, e->value, is_inbound );
+	LogEvent( gid, id, e->name, (IValue*) (e->value), is_inbound );
 	}
 
 
-void Sequencer::SystemEvent( const char* name, const Value* val )
+void Sequencer::SystemEvent( const char* name, const IValue* val )
 	{
 	system_agent->SendSingleValueEvent( name, val, 1 );
 	}
 
 
-void Sequencer::Rendezvous( const char* event_name, Value* value )
+void Sequencer::Rendezvous( const char* event_name, IValue* value )
 	{
 	char* source_id;
 	char* sink_id;
@@ -1630,7 +1631,7 @@ void Sequencer::Rendezvous( const char* event_name, Value* value )
 	}
 
 
-void Sequencer::ForwardEvent( const char* event_name, Value* value )
+void Sequencer::ForwardEvent( const char* event_name, IValue* value )
 	{
 	char* receipient_id;
 	char* new_event_name;
@@ -1668,7 +1669,11 @@ void Sequencer::EventLoop()
 		pending_task = 0;
 		}
 
+#if defined( GLISHTK )
+	while ( (ActiveClients() || tk_NumMainWindows > 0) && ! selector->DoSelection() )
+#else
 	while ( ActiveClients() && ! selector->DoSelection() )
+#endif
 		RunQueue();
 	}
 
@@ -1685,7 +1690,7 @@ void Sequencer::RunQueue()
 		if ( n->notifiee->frame )
 			PushFrame( n->notifiee->frame );
 
-		Value* notifier_val = n->notifier->AgentRecord();
+		IValue* notifier_val = n->notifier->AgentRecord();
 
 		if ( notifier_val->Type() == TYPE_RECORD &&
 		     notifier_val->HasRecordElement( n->field ) != n->value )
@@ -1788,7 +1793,7 @@ int ScriptSelectee::NotifyOfSelection()
 	// whole GlishEvent.
 	Ref( e->value );
 
-	script_agent->CreateEvent( e->name, e->value );
+	script_agent->CreateEvent( e->name, (IValue*)(e->value) );
 
 	return 0;
 	}
@@ -1844,7 +1849,7 @@ int DaemonSelectee::NotifyOfSelection()
 
 	if ( message_name )
 		{
-		Value message_val( daemon->Host() );
+		IValue message_val( daemon->Host() );
 		sequencer->SystemEvent( message_name, &message_val );
 		}
 
@@ -1873,7 +1878,7 @@ int ProbeTimer::DoExpiration()
 					" lost" );
 			r->SetState( DAEMON_LOST );
 
-			Value message_val( r->Host() );
+			IValue message_val( r->Host() );
 			sequencer->SystemEvent( "connection_lost",
 						&message_val );
 			}
@@ -1940,19 +1945,19 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 
 char* which_include( const char* file_name )
 	{
-	const Value *val;
-	const Value *pathv;
-	const Value *inclv;
+	const IValue *val;
+	const IValue *pathv;
+	const IValue *inclv;
 	charptr *paths = 0;
 
 	if ( (val = Sequencer::LookupVal( "system" )) && 
 			val->Type() == TYPE_RECORD &&
 			val->HasRecordElement( "path" ) &&
-			(pathv = val->ExistingRecordElement( "path" )) &&
+			(pathv = (const IValue*)(val->ExistingRecordElement( "path" ))) &&
 			pathv != false_value &&
 			pathv->Type() == TYPE_RECORD &&
 			pathv->HasRecordElement( "include" ) &&
-			(inclv = pathv->ExistingRecordElement("include")) &&
+			(inclv = (const IValue*)(pathv->ExistingRecordElement("include"))) &&
 			inclv != false_value && inclv->Type() == TYPE_STRING &&
 			inclv->Length() )
 		paths = inclv->StringPtr();

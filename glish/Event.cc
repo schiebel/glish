@@ -5,10 +5,9 @@ RCSID("@(#) $Id$")
 #include <stream.h>
 #include <string.h>
 
-#include "Glish/Value.h"
+#include "IValue.h"
 
 #include "Expr.h"
-#include "Func.h"
 #include "Agent.h"
 #include "Reporter.h"
 
@@ -33,7 +32,7 @@ EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
 Agent* EventDesignator::EventAgent( value_type val_type )
 	{
 	event_agent_ref = agent->RefEval( val_type );
-	Value* event_agent_val = event_agent_ref->Deref();
+	IValue* event_agent_val = (IValue*)(event_agent_ref->Deref());
 
 	if ( ! event_agent_val->IsAgentRecord() )
 		{
@@ -49,18 +48,18 @@ void EventDesignator::EventAgentDone()
 	Unref( event_agent_ref );
 	}
 
-Value* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
+IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 	{
 	name_list* nl = EventNames();
 
 	if ( ! nl )
 		{
 		error->Report( "->* illegal for sending an event" );
-		return is_request ? error_value() : 0;
+		return is_request ? error_ivalue() : 0;
 		}
 
 	Agent* a = EventAgent( VAL_REF );
-	Value* result = 0;
+	IValue* result = 0;
 
 	if ( a )
 		{
@@ -155,7 +154,7 @@ name_list* EventDesignator::EventNames()
 	if ( ! event_name_expr )
 		return 0;
 
-	const Value* index_val = event_name_expr->ReadOnlyEval();
+	const IValue* index_val = event_name_expr->ReadOnlyEval();
 
 	if ( index_val->Type() == TYPE_STRING )
 		{

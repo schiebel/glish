@@ -22,11 +22,15 @@ class Channel;
 // Searches "system.include.path" for the given file; returns a malloc()'d copy
 // of the path to the executable, which the caller should delete when
 // done with.
-char* which_include( const char* file_name );
+extern char* which_include( const char* file_name );
+
+// Attempt to retrieve the value associated with id. Returns 0 if the
+// value is not found.
+extern const Value *lookup_sequencer_value( const char *id );
 
 class Notification : public GlishObject {
 public:
-	Notification( Agent* notifier, const char* field, Value* value,
+	Notification( Agent* notifier, const char* field, IValue* value,
 			Notifiee* notifiee );
 	~Notification();
 
@@ -34,7 +38,7 @@ public:
 
 	Agent* notifier;
 	char* field;
-	Value* value;
+	IValue* value;
 	Notifiee* notifiee;
 	};
 
@@ -83,6 +87,7 @@ public:
 	void AddBuiltIn( BuiltIn* built_in );
 
 	void QueueNotification( Notification* n );
+	int NotificationQueueLength ( ) { return notification_queue.length(); }
 
 	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
@@ -100,7 +105,7 @@ public:
 
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
-	static const Value *LookupVal( const char *id );
+	static const IValue *LookupVal( const char *id );
 
 	void PushFrame( Frame* new_frame );
 	Frame* PopFrame();
@@ -108,9 +113,9 @@ public:
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame* CurrentFrame();
 
-	Value* FrameElement( scope_type scope, int scope_offset, int frame_offset );
+	IValue* FrameElement( scope_type scope, int scope_offset, int frame_offset );
 	void SetFrameElement( scope_type scope, int scope_offset, int frame_offset,
-				Value* value );
+				IValue* value );
 
 	// The last notification processed, or 0 if none received yet.
 	Notification* LastNotification()	{ return last_notification; }
@@ -157,7 +162,7 @@ public:
 
 	// Wait for a reply to the given event to arrive on the given
 	// channel and return its value.
-	Value* AwaitReply( Task* task, const char* event_name,
+	IValue* AwaitReply( Task* task, const char* event_name,
 				const char* reply_name );
 
 	// Inform the sequencer to expect a new, local (i.e., pipe-based)
@@ -192,13 +197,13 @@ public:
 	// come into the sequence; otherwise, the event is being sent
 	// to the agent.
 	void LogEvent( const char* gid, const char* id, const char* event_name,
-			const Value* event_value, int is_inbound );
+			const IValue* event_value, int is_inbound );
 	void LogEvent( const char* gid, const char* id, const GlishEvent* e,
 			int is_inbound );
 
 	// Report a "system" event; one that's reflected by the "system"
 	// global variable.
-	void SystemEvent( const char* name, const Value* val );
+	void SystemEvent( const char* name, const IValue* val );
 
 	// Read all of the events pending in a given task's channel input
 	// buffer, being careful to stop (and delete the channel) if the
@@ -249,8 +254,8 @@ protected:
 	// Sets err to a non-zero value if an error occurred
 	RemoteDaemon* OpenDaemonConnection( const char* host, int &err );
 	void ActivateMonitor( char* monitor_client );
-	void Rendezvous( const char* event_name, Value* value );
-	void ForwardEvent( const char* event_name, Value* value );
+	void Rendezvous( const char* event_name, IValue* value );
+	void ForwardEvent( const char* event_name, IValue* value );
 	void RunQueue();
 	void RemoveSelectee( Channel* chan );
 
@@ -269,7 +274,7 @@ protected:
 	frame_list frames;
 	offset_list global_frames;
 
-	value_list global_frame;
+	ivalue_list global_frame;
 
 	int last_task_id;
 	PDict(Task) ids_to_tasks;
@@ -313,7 +318,7 @@ protected:
 	// clients.
 	int argc_;
 	char **argv_;
-	Value *sys_val;
+	IValue *sys_val;
 
 	// Keeps track of the current sequencer...
 	// Later this may have to be a stack...

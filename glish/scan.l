@@ -16,12 +16,12 @@
 extern YYSTYPE yylval;
 extern Sequencer* current_sequencer;
 
-char* input_file_name;
+extern char* input_file_name;
 
 // Whether the last token might be the end of a statement.
 int statement_can_end = 0;
 
-int interactive = 0;
+extern int interactive;
 int first_line = 1;
 
 // When we convert a newline to a ';' we don't bump the line count just
@@ -64,7 +64,7 @@ static void new_file();
 #define RETURN_CONSTANT(value)					\
 	{							\
 	statement_can_end = 1;					\
-	yylval.expr = new ConstExpr( new Value( value ) );	\
+	yylval.expr = new ConstExpr( new IValue( value ) );	\
 	return TOK_CONSTANT;					\
 	}
 
@@ -281,7 +281,7 @@ include		BEGIN(INCL); break;
 			if ( is_double_quote )
 				{
 				statement_can_end = 1;
-				yylval.expr = new ConstExpr( split( literal ) );
+				yylval.expr = new ConstExpr( isplit( literal ) );
 				return TOK_CONSTANT;
 				}
 

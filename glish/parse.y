@@ -96,21 +96,21 @@ glish:
 			{
 			if ( interactive )
 				{
-				const Value *sys = Sequencer::LookupVal( "system" );
-				const Value *dbgv;
-				const Value *echov;
+				const IValue *sys = Sequencer::LookupVal( "system" );
+				const IValue *dbgv;
+				const IValue *echov;
 				if ( sys && sys->Type() == TYPE_RECORD &&
 					sys->HasRecordElement( "debug" ) &&
-					(dbgv = sys->ExistingRecordElement( "debug" )) &&
+					(dbgv = (const IValue*)(sys->ExistingRecordElement( "debug" ))) &&
 					dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
 					dbgv->HasRecordElement( "echo" ) &&
-					(echov = dbgv->ExistingRecordElement("echo")) &&
+					(echov = (const IValue*)(dbgv->ExistingRecordElement("echo"))) &&
 					echov != false_value && echov->Type() == TYPE_BOOL &&
 					echov->BoolVal() == glish_true )
 					message->Report( "\te> ", $2 );
 
 				stmt_flow_type flow;
-				Value* val = $2->Exec( 1, flow );
+				IValue* val = $2->Exec( 1, flow );
 
 				if ( flow != FLOW_NEXT )
 					warn->Report(
@@ -411,7 +411,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 
 			Func* func = new UserFunc( $4, $7, frame_size,
 							current_sequencer, $1 );
-			Value* func_val = new Value( func );
+			IValue* func_val = new IValue( func );
 
 			$$ = new ConstExpr( func_val );
 
@@ -424,7 +424,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 						current_sequencer->LookupID(
 							$2, LOCAL_SCOPE );
 
-					Value* ref = new Value( copy_value( func_val ),
+					IValue* ref = new IValue( copy_value( func_val ),
 							VAL_CONST );
 
 					func->Assign( ref );
@@ -535,7 +535,7 @@ actual_param:	scoped_expr
 				{
 				error->Report( "\"...\" not available" ); 
 				$$ = new ActualParameter( 0, VAL_VAL,
-					new ConstExpr( error_value() ) );
+					new ConstExpr( error_ivalue() ) );
 				}
 
 			else
@@ -597,7 +597,7 @@ opt_actual_param:	scoped_expr
 				{
 				error->Report( "\"...\" not available" ); 
 				$$ = new ActualParameter( 0, VAL_VAL,
-					new ConstExpr( error_value() ) );
+					new ConstExpr( error_ivalue() ) );
 				}
 
 			else

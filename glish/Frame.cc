@@ -3,17 +3,17 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <stream.h>
-#include "Glish/Value.h"
+#include "IValue.h"
 #include "Frame.h"
 #include "Reporter.h"
 
 
-Frame::Frame( int frame_size, Value* param_info, scope_type s )
+Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	{
 	scope = s;
 	size = frame_size;
-	missing = param_info ? param_info : empty_value();
-	values = new Value*[size];
+	missing = param_info ? param_info : empty_ivalue();
+	values = new IValue*[size];
 
 	for ( int i = 0; i < size; ++i )
 		values[i] = 0;
@@ -32,7 +32,7 @@ Frame::~Frame()
 	}
 
 
-Value*& Frame::FrameElement( int offset )
+IValue*& Frame::FrameElement( int offset )
 	{
 	if ( offset < 0 || offset >= size )
 		fatal->Report( "bad offset in Frame::FrameElement" );

@@ -62,14 +62,14 @@ Task::~Task()
 	delete write_pipe_str;
 	}
 
-Value* Task::SendEvent( const char* event_name, parameter_list* args,
+IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log )
 	{
 	if ( task_error )
-		return is_request ? error_value() : 0;
+		return is_request ? error_ivalue() : 0;
 
-	Value* event_val = BuildEventValue( args, 1 );
-	Value* result = 0;
+	IValue* event_val = BuildEventValue( args, 1 );
+	IValue* result = 0;
 
 	if ( is_request && ! channel )
 		{ // We need to synchronize; wait for the task to connect.
@@ -84,7 +84,7 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 
 		if ( ! channel )
 			// Connection problem, bail out.
-			return error_value();
+			return error_ivalue();
 		}
 
 	if ( ! channel )
@@ -115,14 +115,14 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 					 strlen( fmt ) + 1];
 			sprintf( reply_name, fmt, event_name );
 
-			Value* new_val = create_record();
+			IValue* new_val = create_irecord();
 			new_val->SetField( "*request*", event_val );
 			new_val->SetField( "*reply*", reply_name );
 
 			Unref( event_val );
 			event_val = new_val;
 
-			GlishEvent e( event_name, event_val );
+			GlishEvent e( event_name, (Value*)event_val );
 			e.SetIsRequest();
 			send_event( fd, &e );
 
@@ -133,7 +133,7 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 
 		else
 			{
-			GlishEvent e( event_name, (const Value*) event_val );
+			GlishEvent e( event_name, (Value*) event_val );
 			send_event( fd, &e );
 			}
 		}
@@ -327,7 +327,7 @@ void Task::Exec( const char** argv )
 void Task::SetActivity( int is_active )
 	{
 	active = is_active;
-	CreateEvent( "active", new Value( is_active ) );
+	CreateEvent( "active", new IValue( is_active ) );
 
 	if ( ! is_active )
 		CloseChannel();
@@ -369,7 +369,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
     : Task( task_attrs, s )
 	{
 	// Get the program name.
-	const Value* arg = (*args)[0]->Deref();
+	const IValue* arg = (const IValue*)((*args)[0]->Deref());
 
 	if ( arg->Type() == TYPE_STRING )
 		name = strdup( arg->StringPtr()[0] );
@@ -385,7 +385,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 	loop_over_list( *args, i )
 		{
-		arg = (*args)[i]->Deref();
+		arg = (const IValue*)((*args)[i]->Deref());
 
 		if ( arg->Type() == TYPE_STRING )
 			num_args += arg->Length();
@@ -402,7 +402,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 	loop_over_list( *args, j )
 		{
-		arg = (*args)[j]->Deref();
+		arg = (const IValue*)((*args)[j]->Deref());
 
 		if ( arg->Type() == TYPE_STRING )
 			{
@@ -453,7 +453,7 @@ void ClientTask::CreateAsyncClient( const char** argv )
 	for ( int argc = 0; argv[argc]; ++argc )
 		;
 
-	(void) CreateEvent( "activate", new Value( argv, argc, COPY_ARRAY ) );
+	(void) CreateEvent( "activate", new IValue( argv, argc, COPY_ARRAY ) );
 	}
 
 
@@ -476,7 +476,7 @@ TaskAttr::~TaskAttr()
 	}
 
 
-Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
+IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	{
 	// Arguments are:
 	//
@@ -492,7 +492,7 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( args.length() <= task_args_start )
 		{
 		error->Report( "too few arguments given to create_task" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	char* var_ID = GetString( args[0] );
@@ -504,13 +504,13 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( err )
 		{
 	  	error->Report( "remote task creation failed" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	if ( sequencer->LocalHost( hostname ) && channel )
 		{
 		char *client = GetString( args[task_args_start] );
-		Value val( client );
+		IValue val( client );
 		send_event( channel->WriteFD(), "client-up", &val );
 		GlishEvent* e = recv_event( channel->ReadFD() );
 		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
@@ -535,10 +535,10 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	int async_flag = args[3]->IntVal();
 	int ping_flag = args[4]->IntVal();
 	int suspend_flag = args[5]->IntVal();
-	Value* input = 0;
+	IValue* input = 0;
 
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )
-		input = new Value( (Value*) args[6], VAL_CONST );
+		input = new IValue( (IValue*) args[6], VAL_CONST );
 
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag, ping_flag,
 				suspend_flag );
@@ -548,7 +548,7 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	for ( int i = task_args_start; i < args.length(); ++i )
 		task_args.append( args[i] );
 
-	Value* result;
+	IValue* result;
 
 	if ( client_flag )
 		result = CreateClient( &task_args );
@@ -610,7 +610,7 @@ void CreateTaskBuiltIn::DoSideEffectsCall( const_args_list* args_val,
 	}
 
 
-char* CreateTaskBuiltIn::GetString( const Value* val )
+char* CreateTaskBuiltIn::GetString( const IValue* val )
 	{
 	if ( val->Type() == TYPE_BOOL && ! val->BoolVal() )
 		// False means "default".
@@ -620,7 +620,7 @@ char* CreateTaskBuiltIn::GetString( const Value* val )
 	}
 
 
-Value* CreateTaskBuiltIn::SynchronousShell( const char* command,
+IValue* CreateTaskBuiltIn::SynchronousShell( const char* command,
 						const char* input )
 	{
 	FILE* shell = popen_with_input( command, input );
@@ -629,10 +629,10 @@ Value* CreateTaskBuiltIn::SynchronousShell( const char* command,
 		{
 		warn->Report( "could not execute shell command \"", command,
 				"\"" );
-		return error_value();
+		return error_ivalue();
 		}
 
-	Value* result = GetShellCmdOutput( command, shell, 0 );
+	IValue* result = GetShellCmdOutput( command, shell, 0 );
 
 	int status = pclose_with_input( shell );
 
@@ -648,13 +648,13 @@ Value* CreateTaskBuiltIn::SynchronousShell( const char* command,
 	}
 
 
-Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
-							Value* input )
+IValue* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
+							IValue* input )
 
 	{
 	int fd = attrs->daemon_channel->WriteFD();
 
-	Value* r = create_record();
+	IValue* r = create_irecord();
 	r->SetField( "command", command );
 
 	if ( input )
@@ -667,7 +667,7 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	int was_okay = e->value->IntVal();
@@ -678,16 +678,16 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 		warn->Report( "could not execute shell command \"", command,
 				"\" on host ", attrs->hostname );
 
-		return error_value();
+		return error_ivalue();
 		}
 
-	Value* result = GetShellCmdOutput( command, 0, 1 );
+	IValue* result = GetShellCmdOutput( command, 0, 1 );
 
 	e = recv_event( attrs->daemon_channel->ReadFD() );
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
-		return error_value();
+		return error_ivalue();
 		}
 
 	int status = e->value->IntVal();
@@ -706,7 +706,7 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 	}
 
 
-Value* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
+IValue* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
 						int is_remote )
 	{
 #define MAX_CMD_OUTPUT_LINES 8192
@@ -747,7 +747,7 @@ Value* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
 
 	copy_array( event_values, event_values_copy, line_num, charptr );
 
-	return new Value( event_values_copy, line_num );
+	return new IValue( event_values_copy, line_num );
 	}
 
 
@@ -766,7 +766,7 @@ char* CreateTaskBuiltIn::NextRemoteShellCmdLine( char* line_buf )
 		return 0;
 		}
 
-	Value* v = e->value;
+	IValue* v = (IValue*)(e->value);
 
 	if ( v->Type() != TYPE_STRING )
 		{
@@ -785,7 +785,7 @@ char* CreateTaskBuiltIn::NextRemoteShellCmdLine( char* line_buf )
 	}
 
 
-Value* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
+IValue* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
 	{
 	Task* task = new ShellTask( args, attrs, sequencer );
 
@@ -795,7 +795,7 @@ Value* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
 	}
 
 
-Value* CreateTaskBuiltIn::CreateClient( const_args_list* args )
+IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args )
 	{
 	if ( attrs->async_flag )
 		{

@@ -9,6 +9,8 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "input.h"
 
+int interactive = 0;
+char* input_file_name = 0;
 
 class WarningReporter : public Reporter {
     public:

@@ -13,7 +13,8 @@ typedef PList(EventDesignator) event_list;
 class Expr;
 class Notifiee;
 class Agent;
-
+class ParameterPList;
+class Stmt;
 
 class EventDesignator : public GlishObject {
 public:
@@ -24,7 +25,7 @@ public:
 	// called already knows what the event name is.  If is_request is
 	// true than this is a request/response event, and the value of
 	// the response is returned; otherwise the function returns nil.
-	Value* SendEvent( ParameterPList* arguments, int is_request );
+	IValue* SendEvent( ParameterPList* arguments, int is_request );
 
 	// Used to register a "notifiee" (i.e., an event statement plus
 	// an associated Frame) as wanting to be notified of occurrences
@@ -62,7 +63,7 @@ protected:
 	Expr* agent;
 	Expr* event_name_expr;
 	const char* event_name_str;
-	Value* event_agent_ref;
+	IValue* event_agent_ref;
 	};
 
 extern void delete_name_list( name_list* nl );

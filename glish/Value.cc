@@ -12,12 +12,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Value.h"
 
 #include "glish_event.h"
-#include "BinOpExpr.h"
-#include "Func.h"
 #include "Reporter.h"
-#include "Sequencer.h"
-#include "Agent.h"
-
 
 int num_Values_created = 0;
 int num_Values_deleted = 0;
@@ -30,12 +25,7 @@ const char* type_names[NUM_GLISH_TYPES] =
 	"complex", "dcomplex", "opaque",
 	};
 
-
 const Value* false_value;
-
-
-#define AGENT_MEMBER_NAME "*agent*"
-
 
 class SDS_ValueManager : public GlishObject {
     public:
@@ -106,26 +96,10 @@ DEFINE_CONSTRUCTORS(complex,complexref)
 DEFINE_CONSTRUCTORS(dcomplex,dcomplexref)
 DEFINE_CONSTRUCTORS(charptr,charptrref)
 
-DEFINE_SINGLETON_CONSTRUCTOR(funcptr)
-DEFINE_ARRAY_CONSTRUCTOR(funcptr)
-
-Value::Value( agentptr value, array_storage_type storage )
+Value::Value( recordptr value )
 	{
 	InitValue();
-	if ( storage != COPY_ARRAY )
-		{
-		agentptr *ary = new agentptr[1];
-		copy_array(&value,ary,1,agentptr);
-		SetValue( ary, 1, storage );
-		}
-	else
-		SetValue( &value, 1, storage );
-	}
-
-Value::Value( recordptr value, Agent* agent )
-	{
-	InitValue();
-	SetValue( value, agent );
+	SetValue( value );
 	}
 
 
@@ -231,20 +205,6 @@ DEFINE_SET_VALUE(double,doubleref,TYPE_DOUBLE)
 DEFINE_SET_VALUE(complex,complexref,TYPE_COMPLEX)
 DEFINE_SET_VALUE(dcomplex,dcomplexref,TYPE_DCOMPLEX)
 
-void Value::SetValue( agentptr array[], int len, array_storage_type arg_storage )
-	{
-	SetType( TYPE_AGENT );
-	max_size = length = len;
-	storage = arg_storage;
-	if ( storage == COPY_ARRAY ) {
-		values = copy_values(array, agentptr);
-		for (int i = 0; i < len; i++)
-			Ref(array[i]);
-	} else
-		values = array;
-	}
-
-DEFINE_ARRAY_SET_VALUE(funcptr,TYPE_FUNC)
 DEFINE_REF_SET_VALUE(charptrref,TYPE_STRING)
 
 void Value::SetValue( const char* array[], int len,
@@ -269,16 +229,12 @@ void Value::SetValue( const char* array[], int len,
 	}
 
 
-void Value::SetValue( recordptr value, Agent* agent )
+void Value::SetValue( recordptr value )
 	{
 	SetType( TYPE_RECORD );
 	values = (void*) value;
 	max_size = length = 1;
 	storage = TAKE_OVER_ARRAY;
-
-	if ( agent )
-		RecordPtr()->Insert( strdup( AGENT_MEMBER_NAME ),
-					new Value( agent, TAKE_OVER_ARRAY ) );
 	}
 
 
@@ -388,12 +344,6 @@ void Value::DeleteValue()
 				}
 			break;
 
-		case TYPE_AGENT:
-			// Here we rely on the fact that Agent is derived
-			// GlishObject, which has a virtual destructor.
-			Unref( (GlishObject*) AgentVal() );
-			break;
-
 		case TYPE_RECORD:
 			{
 			delete_record( RecordPtr() );
@@ -488,16 +438,6 @@ int Value::IsNumeric() const
 	}
 
 
-int Value::IsAgentRecord() const
-	{
-	if ( VecRefDeref()->Type() == TYPE_RECORD &&
-	     (*RecordPtr())[AGENT_MEMBER_NAME] )
-		return 1;
-	else
-		return 0;
-	}
-
-
 #define DEFINE_CONST_ACCESSOR(name,tag,type)				\
 type Value::name() const						\
 	{								\
@@ -517,8 +457,6 @@ DEFINE_CONST_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*)
 DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*)
 DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*)
 DEFINE_CONST_ACCESSOR(StringPtr,TYPE_STRING,charptr*)
-DEFINE_CONST_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
-DEFINE_CONST_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 DEFINE_CONST_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr)
 
 
@@ -541,8 +479,6 @@ DEFINE_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*)
 DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*)
 DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*)
 DEFINE_ACCESSOR(StringPtr,TYPE_STRING,charptr*)
-DEFINE_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
-DEFINE_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 DEFINE_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr)
 
 #define DEFINE_CONST_REF_ACCESSOR(name,tag,type)			\
@@ -727,7 +663,7 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 			precv != false_value && precv->IsNumeric() &&
 			(tmp = precv->IntVal()) > 0 )
 		limit = tmp;
-	else if ( (val = Sequencer::LookupVal( "system" )) && 
+	else if ( (val = lookup_sequencer_value( "system" )) && 
 			val->Type() == TYPE_RECORD &&
 			val->HasRecordElement( "print" ) &&
 			(printv = val->ExistingRecordElement( "print" )) &&
@@ -1143,7 +1079,7 @@ unsigned int Value::PrintLimit( ) const
 			limitv != false_value && limitv->IsNumeric() &&
 			(tmp = limitv->IntVal()) > 0 )
 		limit = tmp;
-	else if ( (val = Sequencer::LookupVal( "system" )) &&
+	else if ( (val = lookup_sequencer_value( "system" )) &&
 			val->Type() == TYPE_RECORD &&
 			val->HasRecordElement( "print" ) && 
 			(printv = val->ExistingRecordElement( "print" )) &&
@@ -1207,44 +1143,6 @@ char* Value::RecordStringVal() const
 	strcpy( &result[strlen( result ) - 2], "]" );
 
 	return result;
-	}
-
-Agent* Value::AgentVal() const
-	{
-	if ( type == TYPE_AGENT )
-		return AgentPtr()[0];
-
-	if ( VecRefDeref()->Type() == TYPE_RECORD )
-		{
-		Value* member = (*RecordPtr())[AGENT_MEMBER_NAME];
-
-		if ( member )
-			return member->AgentVal();
-		}
-
-	error->Report( this, " is not an agent value" );
-	return 0;
-	}
-
-Func* Value::FuncVal() const
-	{
-	if ( type != TYPE_FUNC )
-		{
-		error->Report( this, " is not a function value" );
-		return 0;
-		}
-
-	if ( length == 0 )
-		{
-		error->Report( "empty function array" );
-		return 0;
-		}
-
-	if ( length > 1 )
-		warn->Report( "more than one function element in", this,
-				", excess ignored" );
-
-	return FuncPtr()[0];
 	}
 
 int Value::SDS_IndexVal() const
@@ -1682,22 +1580,6 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 	return result;
 	}
 
-funcptr* Value::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) const
-	{
-	if ( type != TYPE_FUNC )
-		fatal->Report( "non-func type in CoerceToFuncArray()" );
-
-	if ( size != length )
-		fatal->Report( "size != length in CoerceToFuncArray()" );
-
-	if ( result )
-		fatal->Report( "prespecified result in CoerceToFuncArray()" );
-
-	is_copy = 0;
-	return FuncPtr();
-	}
-
-
 Value* Value::operator []( const Value* index ) const
 	{
 	if ( index->Type() == TYPE_STRING )
@@ -1927,7 +1809,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 					cur[i] = 0;			\
 			}						\
 									\
-		result = new Value( ret, vecsize );			\
+		result = create_value( ret, vecsize );			\
 		if ( ! is_element )					\
 			{						\
 			for ( int x = 0, z = 0; x < shape_len; ++x )	\
@@ -1935,7 +1817,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 					len[z++] = len[x];		\
 									\
 			result->AssignAttribute( "shape",		\
-						new Value( len, z ) );	\
+						create_value( len, z ) );\
 			if ( op_val )					\
 				result->AssignAttribute( "op[]", op_val );\
 			}						\
@@ -2138,7 +2020,7 @@ Value* Value::Pick( const Value *index ) const
 			XLATE						\
 			ret[i] = COPY_FUNC( ptr[ OFFSET ] );		\
 			}						\
-		result = new Value( ret, ishape[0] );			\
+		result = create_value( ret, ishape[0] );		\
 		}							\
 		break;
 
@@ -2232,7 +2114,7 @@ Value* Value::PickRef( const Value *index )
 		ret[i] = offset + 1;
 		}
 
-	result = new Value((Value*)this,ret,ishape[0],VAL_REF);
+	result = create_value((Value*)this,ret,ishape[0],VAL_REF);
 
 	const attributeptr cap = result->AttributePtr();
 	if ( (*cap)["shape"] )
@@ -2499,7 +2381,7 @@ Value* Value::SubRef( const_value_list *args_val )
 		{
 		SUBOP_CLEANUP_1
 		++offset;
-		return new Value( (Value*) this, &offset, 1, VAL_REF );
+		return create_value( (Value*) this, &offset, 1, VAL_REF );
 		}
 
 	int* index_is_copy = new int[shape_len];
@@ -2576,14 +2458,14 @@ Value* Value::SubRef( const_value_list *args_val )
 				cur[i] = 0;
 		}
 
-	Value* result = new Value( (Value*) this, ret, vecsize, VAL_REF );
+	Value* result = create_value( (Value*) this, ret, vecsize, VAL_REF );
 	if ( ! is_element )
 		{
 		for ( int x = 0, z = 0; x < shape_len; ++x )
 			if ( len[x] > 1 )
 				len[z++] = len[x];
 
-		Value* len_v = new Value( len, z );
+		Value* len_v = create_value( len, z );
 		result->AssignAttribute( "shape", len_v );
 
 		if ( op_val )
@@ -2626,7 +2508,7 @@ Value* Value::RecordRef( const Value* index ) const
 				copy_value( ExistingRecordElement( key ) ) );
 		}
 
-	return new Value( new_record );
+	return create_value( new_record );
 	}
 
 
@@ -2680,7 +2562,7 @@ Value* Value::GetOrCreateRecordElement( const char* field )
 
 	if ( ! member )
 		{
-		member = new Value( glish_false );
+		member = create_value( glish_false );
 		RecordPtr()->Insert( strdup( field ), member );
 		}
 
@@ -2832,7 +2714,7 @@ DEFINE_FIELD_PTR(FieldStringPtr,TYPE_STRING,charptr*,StringPtr())
 #define DEFINE_SET_FIELD_SCALAR(type)					\
 void Value::SetField( const char* field, type val )			\
 	{								\
-	Value* field_elem = new Value( val );				\
+	Value* field_elem = create_value( val );			\
 	AssignRecordElement( field, field_elem );			\
 	Unref( field_elem );						\
 	}
@@ -2841,7 +2723,7 @@ void Value::SetField( const char* field, type val )			\
 void Value::SetField( const char* field, type val[], int num_elements,	\
 			array_storage_type arg_storage )		\
 	{								\
-	Value* field_elem = new Value( val, num_elements, arg_storage );\
+	Value* field_elem = create_value( val, num_elements, arg_storage );\
 	AssignRecordElement( field, field_elem );			\
 	Unref( field_elem );						\
 	}
@@ -2939,7 +2821,7 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 			XLATE						\
 			new_values[i] = copy_func(source_ptr[OFFSET]);	\
 			}						\
-		return new Value( new_values, num_indices );		\
+		return create_value( new_values, num_indices );		\
 		}
 
 ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),,indices[i]-1,)
@@ -2951,7 +2833,6 @@ ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr(),,indices[i]-1,)
 ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),,indices[i]-1,)
 ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),,indices[i]-1,)
 ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr(),strdup,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_FUNC,funcptr,FuncPtr(),,indices[i]-1,)
 
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
@@ -3011,7 +2892,7 @@ Value* Value::TrueArrayRef( int* indices, int num_indices ) const
 			return error_value();
 			}
 
-	return new Value( (Value*) this, indices, num_indices, VAL_REF );
+	return create_value( (Value*) this, indices, num_indices, VAL_REF );
 	}
 
 Value* Value::RecordSlice( int* indices, int num_indices ) const
@@ -3049,7 +2930,7 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 		new_record->Insert( strdup( key ), copy_value( new_member ) );
 		}
 
-	return new Value( new_record );
+	return create_value( new_record );
 	}
 
 
@@ -3662,8 +3543,6 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr(),
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr(),
-	CoerceToFuncArray,,)
 
 		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
@@ -3760,8 +3639,6 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
 	DcomplexPtr(),CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
 	CoerceToStringArray,strdup, delete (char*) (lhs[i]);)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr(),
-	CoerceToFuncArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -3892,42 +3769,6 @@ void Value::Not()
 	SetValue( result, length );
 	AssignAttributes( attr );
 	}
-
-
-#define DEFINE_XXX_ARITH_OP_COMPUTE(name,type,coerce_func)		\
-void Value::name( const Value* value, int lhs_len, ArithExpr* expr )	\
-	{								\
-	int lhs_copy, rhs_copy;					\
-	type* lhs_array = coerce_func( lhs_copy, lhs_len );		\
-	type* rhs_array = value->coerce_func( rhs_copy, value->Length() );\
-									\
-	int rhs_incr = value->Length() == 1 ? 0 : 1;			\
-									\
-	expr->Compute( lhs_array, rhs_array, lhs_len, rhs_incr );	\
-									\
-	if ( lhs_copy )							\
-		{							\
-		Value* attr = TakeAttributes();				\
-		/* Change our value to the new result. */		\
-		SetValue( lhs_array, lhs_len );				\
-		if ( attr )						\
-			AssignAttributes( attr );			\
-		else							\
-			CopyAttributes( value );			\
-		}							\
-									\
-	if ( rhs_copy )							\
-		delete rhs_array;					\
-	}
-
-
-DEFINE_XXX_ARITH_OP_COMPUTE(ByteOpCompute,byte,CoerceToByteArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(ShortOpCompute,short,CoerceToShortArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(IntOpCompute,int,CoerceToIntArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(FloatOpCompute,float,CoerceToFloatArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray)
-DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray)
 
 
 void Value::AddToSds( int sds, del_list* dlist, const char* name,
@@ -4171,14 +4012,13 @@ POLYMORPH_ACTION(TYPE_DOUBLE,double,CoerceToDoubleArray)
 POLYMORPH_ACTION(TYPE_COMPLEX,complex,CoerceToComplexArray)
 POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,CoerceToDcomplexArray)
 POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
-POLYMORPH_ACTION(TYPE_FUNC,funcptr,CoerceToFuncArray)
 
 		case TYPE_RECORD:
 			if ( length > 1 )
 				warn->Report(
 			"array values lost due to conversion to record type" );
 
-			SetValue( create_record_dict(), 0 );
+			SetValue( create_record_dict() );
 
 			break;
 
@@ -4224,7 +4064,7 @@ VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,strdup)
 				warn->Report(
 			"array values lost due to conversion to record type" );
 
-			SetValue( create_record_dict(), 0 );
+			SetValue( create_record_dict() );
 			break;
 
 		default:
@@ -4232,6 +4072,12 @@ VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,strdup)
 		}
 	}
 
+
+Value* Value::AttributeRef( const Value* index ) const
+	{
+	return attributes ? attributes->RecordRef( index ) :
+		create_value( glish_false );
+	}
 
 int Value::Grow( unsigned int new_size )
 	{
@@ -4310,13 +4156,7 @@ GROW_ACTION(TYPE_STRING,charptr,StringPtr(),strdup( "" ))
 
 void Value::DescribeSelf( ostream& s ) const
 	{
-	if ( type == TYPE_FUNC )
-		{
-		// ### what if we're an array of functions?
-		FuncVal()->Describe( s );
-		}
-
-	else if ( IsRef() )
+	if ( IsRef() )
 		{
 		if ( IsConst() )
 			s << "const ";
@@ -4338,17 +4178,17 @@ void Value::DescribeSelf( ostream& s ) const
 Value* empty_value()
 	{
 	int i = 0;
-	return new Value( &i, 0, COPY_ARRAY );
+	return create_value( &i, 0, COPY_ARRAY );
 	}
 
 Value* error_value()
 	{
-	return new Value( glish_false );
+	return create_value( glish_false );
 	}
 
 Value* create_record()
 	{
-	return new Value( create_record_dict() );
+	return create_value( create_record_dict() );
 	}
 
 recordptr create_record_dict()
@@ -4385,7 +4225,7 @@ Value* copy_value( const Value* value )
 		{
 #define COPY_VALUE(tag,accessor)					\
 	case tag:							\
-		copy = new Value( value->accessor, value->Length(),	\
+		copy = create_value( value->accessor, value->Length(),	\
 					COPY_ARRAY );			\
 		break;
 
@@ -4398,21 +4238,9 @@ COPY_VALUE(TYPE_DOUBLE,DoublePtr())
 COPY_VALUE(TYPE_COMPLEX,ComplexPtr())
 COPY_VALUE(TYPE_DCOMPLEX,DcomplexPtr())
 COPY_VALUE(TYPE_STRING,StringPtr())
-COPY_VALUE(TYPE_FUNC,FuncPtr())
-
-		case TYPE_AGENT:
-			copy = new Value( value->AgentVal() );
-			break;
 
 		case TYPE_RECORD:
 			{
-			if ( value->IsAgentRecord() )
-				{
-				warn->Report(
-		"cannot copy agent record value; returning reference instead" );
-				return new Value( (Value*) value, VAL_REF );
-				}
-
 			recordptr rptr = value->RecordPtr();
 			recordptr new_record = create_record_dict();
 
@@ -4425,7 +4253,7 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 							copy_value( member ) );
 				}
 
-			copy = new Value( new_record );
+			copy = create_value( new_record );
 			break;
 			}
 
@@ -4433,7 +4261,7 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 			{
 			// _AIX requires a temporary
 			SDS_Index tmp(value->SDS_IndexVal());
-			copy = new Value( tmp );
+			copy = create_value( tmp );
 			}
 			break;
 
@@ -4443,7 +4271,7 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 				{
 #define COPY_REF(tag,accessor)						\
 	case tag:							\
-		copy = new Value( value->accessor ); 			\
+		copy = create_value( value->accessor ); 		\
 		break;
 
 				COPY_REF(TYPE_BOOL,BoolRef())
@@ -4504,31 +4332,31 @@ static Value* read_single_value_from_SDS( GlishObject* manager,
 	switch ( sds_type )
 		{
 		case SDS_BYTE:
-			result = new Value( (byte *) addr, length );
+			result = create_value( (byte *) addr, length );
 			break;
 
 		case SDS_SHORT:
-			result = new Value( (short *) addr, length );
+			result = create_value( (short *) addr, length );
 			break;
 
 		case SDS_INT:
-			result = new Value( (int *) addr, length );
+			result = create_value( (int *) addr, length );
 			break;
 
 		case SDS_FLOAT:
-			result = new Value( (float *) addr, length );
+			result = create_value( (float *) addr, length );
 			break;
 
 		case SDS_DOUBLE:
-			result = new Value( (double *) addr, length );
+			result = create_value( (double *) addr, length );
 			break;
 
 		case SDS_COMPLEX:
-			result = new Value( (complex *) addr, length );
+			result = create_value( (complex *) addr, length );
 			break;
 
 		case SDS_DOUBLE_COMPLEX:
-			result = new Value( (dcomplex *) addr, length );
+			result = create_value( (dcomplex *) addr, length );
 			break;
 
 		case SDS_STRING:
@@ -4536,7 +4364,7 @@ static Value* read_single_value_from_SDS( GlishObject* manager,
 			int heap_len;
 			charptr* heap = make_string_array( (char*) addr,
 							length, heap_len );
-			result = new Value( heap, heap_len );
+			result = create_value( heap, heap_len );
 			do_value_manager = 0;
 			break;
 			}
@@ -4646,7 +4474,7 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 
 	if ( is_opaque_sds )
 		{
-		result = new Value( (SDS_Index&) SDS_Index(sds) );
+		result = create_value( (SDS_Index&) SDS_Index(sds) );
 		Ref( manager );
 		result->SetValueManager( manager );
 		}
@@ -4707,42 +4535,6 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 	}
 
 
-#define DEFINE_XXX_REL_OP_COMPUTE(name,type,coerce_func)		\
-Value* name( const Value* lhs, const Value* rhs, int lhs_len, RelExpr* expr )\
-	{								\
-	int lhs_copy, rhs_copy;					\
-	type* lhs_array = lhs->coerce_func( lhs_copy, lhs_len );	\
-	type* rhs_array = rhs->coerce_func( rhs_copy, rhs->Length() );	\
-	glish_bool* result = new glish_bool[lhs_len];			\
-									\
-	int rhs_incr = rhs->Length() == 1 ? 0 : 1;			\
-									\
-	expr->Compute( lhs_array, rhs_array, result, lhs_len, rhs_incr );\
-									\
-	if ( lhs_copy )							\
-		delete lhs_array;					\
-									\
-	if ( rhs_copy )							\
-		delete rhs_array;					\
-									\
-	Value* answer = new Value( result, lhs_len );			\
-	answer->CopyAttributes( lhs->AttributePtr() ? lhs : rhs );	\
-	return answer;							\
-	}
-
-
-DEFINE_XXX_REL_OP_COMPUTE(bool_rel_op_compute,glish_bool,CoerceToBoolArray)
-DEFINE_XXX_REL_OP_COMPUTE(byte_rel_op_compute,byte,CoerceToByteArray)
-DEFINE_XXX_REL_OP_COMPUTE(short_rel_op_compute,short,CoerceToShortArray)
-DEFINE_XXX_REL_OP_COMPUTE(int_rel_op_compute,int,CoerceToIntArray)
-DEFINE_XXX_REL_OP_COMPUTE(float_rel_op_compute,float,CoerceToFloatArray)
-DEFINE_XXX_REL_OP_COMPUTE(double_rel_op_compute,double,CoerceToDoubleArray)
-DEFINE_XXX_REL_OP_COMPUTE(complex_rel_op_compute,complex,CoerceToComplexArray)
-DEFINE_XXX_REL_OP_COMPUTE(dcomplex_rel_op_compute,dcomplex,
-	CoerceToDcomplexArray)
-DEFINE_XXX_REL_OP_COMPUTE(string_rel_op_compute,charptr,CoerceToStringArray)
-
-
 int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 	{
 	max_type = v1->VecRefDeref()->Type();
@@ -4774,7 +4566,7 @@ int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 
 void init_values()
 	{
-	false_value = new Value( glish_false );
+	false_value = create_value( glish_false );
 	}
 
 void delete_list( del_list* dlist )
@@ -4784,6 +4576,38 @@ void delete_list( del_list* dlist )
 			Unref( (*dlist)[i] );
 	}
 
+
+charptr *csplit( char* source, int &num_pieces, char* split_chars )
+	{
+	// First see how many pieces the split will result in.
+	num_pieces = 0;
+	char* source_copy = strdup( source );
+	charptr next_string = strtok( source_copy, split_chars );
+	while ( next_string )
+		{
+		++num_pieces;
+		next_string = strtok( 0, split_chars );
+		}
+	delete source_copy;
+
+	charptr* strings = new charptr[num_pieces];
+	charptr* sptr = strings;
+	next_string = strtok( source, split_chars );
+	while ( next_string )
+		{
+		*(sptr++) = strdup( next_string );
+		next_string = strtok( 0, split_chars );
+		}
+
+	return strings;
+	}
+
+Value *split( char* source, char* split_chars )
+	{
+	int i = 0;
+	charptr *s = csplit( source, i, split_chars );
+	return create_value( s, i );
+	}
 
 int text_to_integer( const char text[], int& successful )
 	{

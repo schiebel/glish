@@ -21,43 +21,46 @@ H = $(SRC)/include/Glish
 
 INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include $(PLUSINC)
 CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include
-CFLAGS = -DAUTHENTICATE @CFLAGS@
+CFLAGS = @GLISH_FLAGS@ @CFLAGS@
 
-GLISH_OBJS = \
+INTERP_OBJS = \
+	IValue.o \
 	Agent.o \
 	BinOpExpr.o \
 	BuiltIn.o \
+	Event.o \
+	Expr.o \
+	Frame.o \
+	Func.o \
+	Sequencer.o \
+	Select.o \
+	Stmt.o \
+	Task.o \
+	glish_init.o \
+	parse.o \
+	scan.o
+
+CLIENT_OBJS = \
+	Value.o \
 	Client.o \
 	Complex.o \
 	Daemon.o \
 	Dict.o \
-	Event.o \
 	Executable.o \
-	Expr.o \
-	Frame.o \
-	Func.o \
 	List.o \
 	LocalExec.o \
 	Object.o \
 	Queue.o \
 	RemoteExec.o \
 	Reporter.o \
-	Select.o \
-	Sequencer.o \
 	Socket.o \
-	Stmt.o \
-	Task.o \
-	Value.o \
 	VecRef.o \
-	glish_init.o \
-	input.o \
-	parse.o \
-	scan.o \
+	glishlib.o \
 	system.o
 
 KEY_HEADERS = \
 	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \
-	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h \
+	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(H)/glish.h
 
 ISTKPLACE = $(SRC)/..
@@ -74,7 +77,7 @@ build:
 		cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile all; \
 		else $(MAKE) $(MFLAGS) -f ../Makefile all; fi;
 
-all: libglish.a glish 
+all: libglish.a libinterp.a glish 
 
 install: $(ISTKLIBS)/libglish.a $(ISTKBIN)/glish
 	@rm -f $(ISTKPLACE)/include/Glish/*.h
@@ -86,13 +89,18 @@ install-all:
 	@cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile install
 	@cd clients; $(MAKE) $(MFLAGS) install-all
 
-glish: main.o libglish.a $(LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libglish.a $(LIBS) -lm @LIBS@
+glish: main.o libinterp.a libglish.a $(LIBS)
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a $(LIBS) $(XLIB) -lm @LIBS@
 
-libglish.a: $(GLISH_OBJS)
+libglish.a: $(CLIENT_OBJS)
 	rm -f libglish.a
-	ar r libglish.a $(GLISH_OBJS)
+	ar r libglish.a $(CLIENT_OBJS)
 	$(RANLIB) libglish.a
+
+libinterp.a: $(INTERP_OBJS)
+	rm -f libinterp.a
+	ar r libinterp.a $(INTERP_OBJS)
+	$(RANLIB) libinterp.a
 
 $(ISTKBIN)/glish: glish
 	$(INSTALL_PROGRAM) -s glish $(ISTKBIN)
@@ -154,13 +162,16 @@ Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
 Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
     $(SRC)/BuiltIn.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Task.cc
-Value.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
-			 $(H)/Object.h $(H)/glish.h
+Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Value.cc
+IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
+				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
+			 $(H)/Object.h $(H)/glish.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/IValue.cc
 VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(KEY_HEADERS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/VecRef.cc
-input.o: $(SRC)/input.cc $(SRC)/input.h $(SRC)/Sequencer.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/input.cc
+glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/glishlib.cc
 main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/main.cc
 
@@ -219,7 +230,7 @@ rcsinfo:
 
 clean:
 	@if [ -d $(ARCH) ]; then cd $(ARCH); fi; \
-		rm -f $(GLISH_OBJS) libglish.a main.o glish errs parse.cc \
+		rm -f $(CLIENT_OBJS) libinterp.a libglish.a main.o glish errs parse.cc \
 			    y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
 
 clean-all:

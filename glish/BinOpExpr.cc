@@ -6,7 +6,7 @@ RCSID("@(#) $Id$")
 #include <math.h>
 #include "Reporter.h"
 #include "BinOpExpr.h"
-#include "Glish/Value.h"
+#include "IValue.h"
 #include "Glish/Complex.h"
 
 
@@ -16,7 +16,7 @@ BinOpExpr::BinOpExpr( binop bin_op, Expr* op1, Expr* op2, const char* desc )
 	op = bin_op;
 	}
 
-int BinOpExpr::TypeCheck( const Value* lhs, const Value* rhs,
+int BinOpExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
@@ -31,7 +31,7 @@ int BinOpExpr::TypeCheck( const Value* lhs, const Value* rhs,
 		return 1;
 	}
 
-glish_type BinOpExpr::OperandsType( const Value* lhs, const Value* rhs ) const
+glish_type BinOpExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	{
 	glish_type t1 = lhs->Type();
 	glish_type t2 = rhs->Type();
@@ -74,7 +74,7 @@ glish_type BinOpExpr::OperandsType( const Value* lhs, const Value* rhs ) const
 		return t1;
 	}
 
-int BinOpExpr::Compute( const Value* lhs, const Value* rhs, int& lhs_len )
+int BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
     const
 	{
 	int lhs_scalar = lhs->Length() == 1;
@@ -103,10 +103,10 @@ int BinOpExpr::Compute( const Value* lhs, const Value* rhs, int& lhs_len )
 	}
 
 
-Value* ArithExpr::Eval( eval_type /* etype */ )
+IValue* ArithExpr::Eval( eval_type /* etype */ )
 	{
-	Value* result = left->CopyEval();
-	const Value* rhs = right->ReadOnlyEval();
+	IValue* result = left->CopyEval();
+	const IValue* rhs = right->ReadOnlyEval();
 
 	int lhs_len;
 	int element_by_element;
@@ -119,7 +119,7 @@ Value* ArithExpr::Eval( eval_type /* etype */ )
 	else
 		{
 		Unref( result );
-		result = error_value();
+		result = error_ivalue();
 		}
 
 	right->ReadOnlyDone( rhs );
@@ -127,7 +127,7 @@ Value* ArithExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
-Value* ArithExpr::OpCompute( Value* lhs, const Value* rhs, int lhs_len )
+IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len )
 	{
 	switch ( OperandsType( lhs, rhs ) )
 		{
@@ -223,7 +223,7 @@ COMPLEX_COMPUTE_DIV_OP(complex)
 COMPLEX_COMPUTE_DIV_OP(dcomplex)
 
 
-glish_type DivideExpr::OperandsType( const Value* lhs, const Value* rhs ) const
+glish_type DivideExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	{
 	glish_type ltype = lhs->Type();
 	glish_type rtype = rhs->Type();
@@ -239,8 +239,8 @@ glish_type DivideExpr::OperandsType( const Value* lhs, const Value* rhs ) const
 	}
 
 
-glish_type ModuloExpr::OperandsType( const Value* /* lhs */,
-					const Value* /* rhs */ ) const
+glish_type ModuloExpr::OperandsType( const IValue* /* lhs */,
+					const IValue* /* rhs */ ) const
 	{
 	return TYPE_INT;
 	}
@@ -284,7 +284,7 @@ void ModuloExpr::Compute( dcomplex*, dcomplex*, int, int )
 	}
 
 
-glish_type PowerExpr::OperandsType( const Value* lhs, const Value* rhs ) const
+glish_type PowerExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	{
 	glish_type t1 = lhs->Type();
 	glish_type t2 = rhs->Type();
@@ -338,12 +338,12 @@ void PowerExpr::Compute( dcomplex lhs[], dcomplex rhs[],
 
 
 
-Value* RelExpr::Eval( eval_type /* etype */ )
+IValue* RelExpr::Eval( eval_type /* etype */ )
 	{
-	const Value* lhs = left->ReadOnlyEval();
-	const Value* rhs = right->ReadOnlyEval();
+	const IValue* lhs = left->ReadOnlyEval();
+	const IValue* rhs = right->ReadOnlyEval();
 
-	Value* result;
+	IValue* result;
 	int lhs_len;
 	int element_by_element;
 	if ( TypeCheck( lhs, rhs, element_by_element ) &&
@@ -351,7 +351,7 @@ Value* RelExpr::Eval( eval_type /* etype */ )
 	      BinOpExpr::Compute( lhs, rhs, lhs_len )) )
 		result = OpCompute( lhs, rhs, lhs_len );
 	else
-		result = error_value();
+		result = error_ivalue();
 
 	left->ReadOnlyDone( lhs );
 	right->ReadOnlyDone( rhs );
@@ -359,7 +359,7 @@ Value* RelExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
-int RelExpr::TypeCheck( const Value* lhs, const Value* rhs,
+int RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
@@ -385,7 +385,7 @@ int RelExpr::TypeCheck( const Value* lhs, const Value* rhs,
 		}
 	}
 
-glish_type RelExpr::OperandsType( const Value* lhs, const Value* rhs ) const
+glish_type RelExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	{
 	glish_type t1 = lhs->Type();
 	glish_type t2 = rhs->Type();
@@ -401,9 +401,9 @@ glish_type RelExpr::OperandsType( const Value* lhs, const Value* rhs ) const
 		return BinOpExpr::OperandsType( lhs, rhs );
 	}
 
-Value* RelExpr::OpCompute( const Value* lhs, const Value* rhs, int lhs_len )
+IValue* RelExpr::OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len )
 	{
-	Value* result;
+	IValue* result;
 
 	switch ( OperandsType( lhs, rhs ) )
 		{
@@ -453,10 +453,10 @@ Value* RelExpr::OpCompute( const Value* lhs, const Value* rhs, int lhs_len )
 		case TYPE_RECORD:
 		case TYPE_OPAQUE:
 			if ( op == OP_EQ )
-				return new Value( glish_bool( lhs == rhs ) );
+				return new IValue( glish_bool( lhs == rhs ) );
 
 			else if ( op == OP_NE )
-				return new Value( glish_bool( lhs != rhs ) );
+				return new IValue( glish_bool( lhs != rhs ) );
 
 			else
 				fatal->Report(
@@ -529,7 +529,7 @@ DEFINE_LOG_EXPR_COMPUTE(complex, "complex")
 DEFINE_LOG_EXPR_COMPUTE(dcomplex, "dcomplex")
 DEFINE_LOG_EXPR_COMPUTE(charptr, "string")
 
-int LogExpr::TypeCheck( const Value* lhs, const Value* rhs,
+int LogExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
@@ -543,7 +543,7 @@ int LogExpr::TypeCheck( const Value* lhs, const Value* rhs,
 		}
 	}
 
-glish_type LogExpr::OperandsType( const Value*, const Value* ) const
+glish_type LogExpr::OperandsType( const IValue*, const IValue* ) const
 	{
 	return TYPE_BOOL;
 	}
