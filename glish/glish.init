@@ -64,6 +64,7 @@ function all(x) sum(!x) == 0
 function any(x) sum(as_boolean(x)) > 0
 
 len := length
+ceil := ceiling
 
 function ind(x) 1:len(x)
 
