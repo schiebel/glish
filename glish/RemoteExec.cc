@@ -10,6 +10,7 @@ RCSID("@(#) $Id$")
 
 #include "Channel.h"
 #include "RemoteExec.h"
+#include "system.h"
 
 
 RemoteExec::RemoteExec( Channel* arg_daemon_channel,

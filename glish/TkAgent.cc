@@ -17,6 +17,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Sequencer.h"
 #include "Expr.h"
+#include "system.h"
 
 
 Rivetobj TkAgent::root = 0;

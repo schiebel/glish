@@ -520,7 +520,7 @@ void delete_record( recordptr r )
 		const char* key;
 		while ( (member = r->NextEntry( key, c )) )
 			{
-			free_memory( key );
+			free_memory( (void*) key );
 			Unref( member );
 			}
 
