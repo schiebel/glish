@@ -74,7 +74,7 @@ void Agent::Done()
 	{
 	IterCookie* c = interested_parties.InitForIteration();
 
-	notification_list* list;
+	notifiee_list* list;
 	const char* key;
 	while ( (list = interested_parties.NextEntry( key, c )) )
 		{
@@ -132,11 +132,11 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 	if ( ! field )
 		field = INTERESTED_IN_ALL;
 
-	notification_list* interest_list = interested_parties[field];
+	notifiee_list* interest_list = interested_parties[field];
 
 	if ( ! interest_list )
 		{
-		interest_list = new notification_list;
+		interest_list = new notifiee_list;
 		interested_parties.Insert( field, interest_list );
 		}
 
@@ -160,7 +160,7 @@ void Agent::UnRegisterInterest( Stmt* s, const char* field )
 	if ( ! field )
 		field = INTERESTED_IN_ALL;
 
-	notification_list* list = interested_parties[field];
+	notifiee_list* list = interested_parties[field];
 
 	if ( ! list )
 		return;
@@ -180,7 +180,7 @@ void Agent::UnRegisterInterest( Stmt* s, const char* field )
 
 int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
 	{
-	notification_list* interest = interested_parties[field];
+	notifiee_list* interest = interested_parties[field];
 
 	if ( interest && SearchNotificationList( interest, stmt ) )
 		return 1;
@@ -199,7 +199,7 @@ IValue* Agent::AssociatedStatements()
 
 	IterCookie* c = interested_parties.InitForIteration();
 	const char* key;
-	notification_list* interest;
+	notifiee_list* interest;
 
 	while ( (interest = interested_parties.NextEntry( key, c )) )
 		num_stmts += interest->length();
@@ -294,7 +294,7 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 int Agent::NotifyInterestedParties( const char* field, IValue* value,
 				    NotifyTrigger *t )
 	{
-	notification_list* interested = interested_parties[field];
+	notifiee_list* interested = interested_parties[field];
 	int there_is_interest = 0;
 
 	if ( interested )
@@ -355,7 +355,7 @@ int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
 		return 0;
 	}
 
-int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
+int Agent::SearchNotificationList( notifiee_list* list, Stmt* stmt )
 	{
 	loop_over_list( *list, i )
 		if ( (*list)[i]->stmt() == stmt )

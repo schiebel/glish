@@ -38,8 +38,9 @@ class NotifyTrigger : public GlishObject {
 
 class Notification : public GlishObject {
 public:
+	enum Type { WHENEVER, AWAIT };
 	Notification( Agent* notifier, const char* field, IValue* value,
-			Notifiee* notifiee, NotifyTrigger *t=0 );
+			Notifiee* notifiee, NotifyTrigger *t=0, Type ty=WHENEVER );
 	~Notification();
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
@@ -47,10 +48,12 @@ public:
 		{ return Describe( s, ioOpt() ); }
 
 	void invalid( ) { valid = 0; }
+	Type type() { return type_; }
+	void type( Type t ) { type_ = t; }
 
 	// needed to get rid of Tk widgets which would
 	// otherwise be hanging around... i.e. they would be
-	// deleted if not for 'last_notification' in Sequencer
+	// deleted if not for 'LastNotification()' in Sequencer
 	void ClearNotifier( );
 
 	Agent* notifier;
@@ -59,12 +62,15 @@ public:
 	Notifiee* notifiee;
 	NotifyTrigger *trigger;
 	int valid;
+	Type type_;
 
 #ifdef GGC
 	void TagGC( ) { if ( value ) value->TagGC(); }
 #endif
 	};
 
+glish_declare(PList,Notification);
+typedef PList(Notification) notification_list;
 
 class Task;
 class BuiltIn;
@@ -344,7 +350,12 @@ public:
 				     int frame_offset, IValue* value, change_var_notice f=0 );
 
 	// The last notification processed, or 0 if none received yet.
-	Notification* LastNotification()	{ return last_notification; }
+	Notification* LastNotification() { return notes_inuse.length() ? notes_inuse[notes_inuse.length()-1] : 0; }
+	//
+	// These are used by UserFunc et al.
+	//
+	void PushNote( Notification *n );
+	void PopNote( int doing_func=0 );
 
 	// The last "whenever" statement executed, or 0 if none yet.
 	// Register the given statement as the most recently-executed
@@ -553,7 +564,7 @@ protected:
 	void ActivateMonitor( char* monitor_client );
 	void Rendezvous( const char* event_name, IValue* value );
 	void ForwardEvent( const char* event_name, IValue* value );
-	void RunQueue();
+	void RunQueue( int await_ended=0 );
 	void RemoveSelectee( Channel* chan );
 
 	void SetupSysValue( IValue * );
@@ -596,7 +607,13 @@ protected:
 	PDict(RemoteDaemon) daemons;
 	Dict(int) suspend_list;	// which variables' tasks to suspend
 	PQueue(Notification) notification_queue;
-	Notification* last_notification;
+
+	//
+	// handle "last" notifications for whenever statements, used with
+	// LastNotification(), PushNote() and PopNote() above...
+	//
+	notification_list notes_inuse;
+
 	Stmt* last_whenever_executed;
 	RegexMatch regex_match;
 	Stmt* stmts;

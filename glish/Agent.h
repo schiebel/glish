@@ -41,10 +41,10 @@ class Notifiee : public GlishRef {
 	};
 
 glish_declare(PList,Notifiee);
-typedef PList(Notifiee) notification_list;
+typedef PList(Notifiee) notifiee_list;
 
-glish_declare(PDict,notification_list);
-typedef PDict(notification_list) notification_dict;
+glish_declare(PDict,notifiee_list);
+typedef PDict(notifiee_list) notification_dict;
 
 glish_declare(PDict,agent_list);
 typedef PDict(agent_list) agent_dict;
@@ -154,7 +154,7 @@ class Agent : public GlishObject {
 
 	// Returns true if the given statement is on the given notification
 	// list, false otherwise.
-	int SearchNotificationList( notification_list* list, Stmt* stmt );
+	int SearchNotificationList( notifiee_list* list, Stmt* stmt );
 
 	Sequencer* sequencer;
 
