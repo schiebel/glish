@@ -12,6 +12,12 @@
 #include "sos/io.h"
 #include "sos/str.h"
 
+//
+// g++ -I../.. -I../../include -o out out.cc ../../convert.cc ../../header.cc ../../io.cc ../../longint.cc ../../types.cc ../../str.cc
+//
+//	note: str.cc is not needed if 'ENABLE_STR' is not defined
+//
+
 #define WORDFILE "/usr/dict/words"
 #if defined(VAX)
 #include <cvt.h>
@@ -20,14 +26,34 @@ void to_vaxd(double*, unsigned int);
 void to_vaxg(double*, unsigned int);
 #endif
 
-//	(X) TYPE_BOOL	(X) TYPE_BYTE	(X) TYPE_SHORT	(X) TYPE_DCOMPLEX
-//	(X) TYPE_FLOAT	(X) TYPE_DOUBLE	(X) TYPE_STRING (X) TYPE_COMPLEX
-//	(X) TYPE_INT	(X) TYPE_RECORD
-
 #define I_PERLINE 15
 #define C_PERLINE 30
 #define F_PERLINE 10
 #define D_PERLINE 7
+
+const char *words[80] = {
+        "AA",           "abc",         "abhorred",     "abominate",
+        "AAS",          "abdicate",    "abhorrent",    "aboriginal",
+        "ardvark",      "abdomen",     "abide",        "aborigine",
+        "arhus",        "abdominal",   "Abidjan",      "aborning",
+        "aron",         "abduct",      "Abigail",      "abort",
+        "BA",           "Abe",         "abject",       "abound",
+        "baba",         "abed",        "abjure",       "about",
+        "back",         "Abel",        "ablate",       "above",
+        "bacus",        "Abelian",     "ablaze",       "aboveboard",
+        "abalone",      "Abelson",     "able",         "aboveground",
+        "abandon",      "Aberdeen",    "ablution",     "abovementioned",
+        "abase",        "Abernathy",   "abnegation",   "abrade",
+        "abash",        "aberrant",    "Abner",        "Abraham",
+        "abate",        "aberrate",    "abnormal",     "Abram",
+        "abbas",        "abet",        "Abo",          "Abramson",
+        "abbe",         "abetted",     "aboard",       "abrasion",
+        "abbey",        "abetting",    "abode",        "abrasive",
+        "abbot",        "abeyance",    "abolish",      "abreact",
+        "Abbott",       "abeyant",     "abolition",    "abreast",
+        "abbreviate",   "abhor",       "abominable",   "abridge"
+};
+
 main(int argc, char **argv)
 	{
 	int x = 0;
@@ -76,11 +102,11 @@ main(int argc, char **argv)
 
 #if defined(VAX)
 	to_vaxf(f,fl);
-	so.put((char*)f_,SOS_VFLOAT,fl);
+	so.put((char*)f_,fl,SOS_VFLOAT);
 	to_vaxd(d,dl);
-	so.put((char*)d_,SOS_DVDOUBLE,dl);
+	so.put((char*)d_,dl,SOS_DVDOUBLE);
 	to_vaxg(d1,dl1);
-	so.put((char*)d1_,SOS_GVDOUBLE,dl1);
+	so.put((char*)d1_,dl1,SOS_GVDOUBLE);
 #else
 	so.put(f_,fl);
 	so.put(d_,dl);
@@ -89,40 +115,31 @@ main(int argc, char **argv)
 
 	cout << "---- ---- ---- ---- ----" << endl;
 
-	FILE *words = fopen( WORDFILE, "r");
-	char buf[1024];
-
 #if defined(STR)
 	str S(80);
 	for ( int W = 0; W < S.length(); W++ )
+		{
+		S[W] = words[W];
+		printf("%d: %s\n",W,S.get(W));
+		}
+	cout << endl;
+	so.put(S);
 #else
 	char *S[80];
 	for ( int W = 0; W < 80; W++ )
-#endif
-
 		{
-		fgets(buf, 1024, words);
-		buf[strlen(buf)-1] = '\0';
-#if defined(STR)
-		S[W] = buf;
-		printf("%d: %s\n",W,S.get(W));
-#else
-		S[W] = strdup(buf);
+		S[W] = strdup(words[W]);
 		printf("%d: %s\n",W,S[W]);
-#endif
 		}
-
 	cout << endl;
-#if defined(STR)
-	so.put(S);
-#else
 	so.put(S, 80);
 #endif
+
 	so.flush( );
 	}
 
 #if defined(VAX)
-extern void sos_cvt_float_vax2ieee(void *,int);
+extern float *vax2ieee_single(float *, unsigned int len);
 void to_vaxf(float *f, unsigned int l)
 	{
 	fprintf(stderr,"==============================\n");
@@ -133,7 +150,7 @@ void to_vaxf(float *f, unsigned int l)
 		float tmp1 = 0;
 		cvt_ftof( f, CVT_VAX_F, &tmp1, CVT_IEEE_S, 0 );
 		float tmp2 = *f;
-		sos_cvt_float_vax2ieee(&tmp2,1);
+		vax2ieee_single(&tmp2,1);
 		fprintf(stderr,"%.4g\t%.4g\t%.4g\n",tmp,tmp1,tmp2);
 		}
 	}
