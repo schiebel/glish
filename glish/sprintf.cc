@@ -236,7 +236,7 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 	val = (*ap)[index];						\
 	if ( val->Type() != TYPE_STRING )				\
 		{							\
-		if ( val->IsVecRef() == TYPE_SUBVEC_REF &&		\
+		if ( val->IsVecRef() &&					\
 		     val->VecRefDeref()->Type() == TYPE_STRING )	\
 			lhs = (char*) string_dup(val->StringRef()[off]); \
 		else							\
