@@ -83,7 +83,7 @@ public:
 	virtual ~Selector();
 
 	virtual void AddSelectee( Selectee* s );
-	virtual void DeleteSelectee( int selectee_fd );
+	virtual void DeleteSelectee( int selectee_fd, Selectee *replacement=0 );
 
 	void AwaitDone() { await_done = 1; }
 

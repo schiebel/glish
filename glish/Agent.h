@@ -130,6 +130,9 @@ class Agent : public GlishObject {
 	// statements etc.
 	virtual void Done( );
 
+	// This is a hack for the Tk widgets
+	virtual int IsPseudo( );
+
     protected:
 	IValue* BuildEventValue( parameter_list* args, int use_refs );
 

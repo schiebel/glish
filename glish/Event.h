@@ -56,6 +56,9 @@ public:
 
 	~EventDesignator();
 
+	// This is a hack for Tk widgets
+	void Reset( );
+
 protected:
 	Expr* agent;
 	Expr* event_name_expr;

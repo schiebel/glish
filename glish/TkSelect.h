@@ -15,7 +15,7 @@ class TkSelector : public Selector {
 	~TkSelector();
 
 	void AddSelectee( Selectee* s );
-	void DeleteSelectee( int selectee_fd );
+	void DeleteSelectee( int selectee_fd, Selectee *replacement=0 );
 
 	// If selection stops early due to non-zero return from Selectee's
 	// NotifyOfSelection(), returns that non-zero value.  Otherwise

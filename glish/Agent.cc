@@ -374,6 +374,11 @@ void Agent::UnRegisterUnref( Stmt *s )
 	unref_stmts.remove(s);
 	}
 
+int Agent::IsPseudo( )
+	{
+	return 0;
+	}
+
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 				int /* is_request */, int log )
 	{

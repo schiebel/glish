@@ -61,15 +61,23 @@ void EventDesignator::EventAgentDone()
 
 IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 	{
+	Agent* a = EventAgent( VAL_REF );
+
+	if ( a && a->IsPseudo() )
+		{
+		if ( names ) delete_name_list( names );
+		names = 0;
+		}
+
 	name_list &nl = EventNames();
 
 	if ( nl.length() == 0 )
 		{
+		EventAgentDone();
 		error->Report( "->* illegal for sending an event" );
 		return is_request ? error_ivalue() : 0;
 		}
 
-	Agent* a = EventAgent( VAL_REF );
 	IValue* result = 0;
 
 	if ( a )

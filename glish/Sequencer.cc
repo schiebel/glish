@@ -2592,7 +2592,8 @@ void Sequencer::SendSuspended( sos_status *ss, Value *v )
 	ss->finalize( unref_suspended_value, v );
 
 	Selectee *old = selector->FindSelectee( ss->fd() );
-	if ( old->type() != Selectee::WRITE )
+
+	if ( ! old || old->type() != Selectee::WRITE )
 		selector->AddSelectee( new SendSelectee( selector, ss, old ) );
 	}
 
@@ -3540,11 +3541,7 @@ SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Selectee *old_ ) :
 int SendSelectee::NotifyOfSelection()
 	{
 	if ( ! ss->resume( ) )
-		{
-		Selectee *cur = selector->FindSelectee( ss->fd() );
-		if ( old ) selector->AddSelectee( old );
-		delete cur;
-		}
+		selector->DeleteSelectee( ss->fd(), old );
 
 	return 0;
 	}

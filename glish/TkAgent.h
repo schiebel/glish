@@ -221,6 +221,8 @@ class TkAgent : public Agent {
 
 	virtual Rivetobj TopLevel( );
 
+	int IsPseudo();
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;

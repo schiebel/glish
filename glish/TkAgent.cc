@@ -1659,6 +1659,11 @@ Rivetobj TkAgent::TopLevel()
 	return frame ? frame->TopLevel() : 0;
 	}
 
+int TkAgent::IsPseudo( )
+	{
+	return 1;
+	}
+
 struct glishtk_bindinfo
 	{
 	TkAgent *agent;

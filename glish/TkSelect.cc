@@ -45,12 +45,12 @@ void TkSelector::AddSelectee( Selectee *S )
 		Tk_CreateFileHandler( S->FD(), TK_WRITABLE, TkFileProc, (ClientData) this );
 	}
 
-void TkSelector::DeleteSelectee( int selectee_fd )
+void TkSelector::DeleteSelectee( int selectee_fd, Selectee *replacement )
 	{
 	if ( selectee_fd < 0 )
 		return;
 	Tk_DeleteFileHandler( selectee_fd );
-	Selector::DeleteSelectee( selectee_fd );
+	Selector::DeleteSelectee( selectee_fd, replacement );
 	}
 
 int TkSelector::DoSelection( int )

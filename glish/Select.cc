@@ -194,7 +194,7 @@ void Selector::AddSelectee( Selectee* s )
 	++selectee_count;
 	}
 
-void Selector::DeleteSelectee( int selectee_fd )
+void Selector::DeleteSelectee( int selectee_fd, Selectee *replacement )
 	{
 	if ( selectee_fd < 0 )
 		return;
@@ -226,6 +226,10 @@ void Selector::DeleteSelectee( int selectee_fd )
 		delete s;
 
 	--selectee_count;
+
+	if ( replacement )
+		AddSelectee( replacement );
+
 	}
 
 Selectee* Selector::FindSelectee( int selectee_fd ) const
