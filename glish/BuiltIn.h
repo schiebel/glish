@@ -18,13 +18,14 @@ struct dcomplex;
 
 class BuiltIn : public Func {
     public:
-	BuiltIn( const char* name, int num )
+	BuiltIn( const char* name, int num, int do_ref_eval_=0 )
 		{
 		description = name;
 		num_args = num;
 		do_deref = 1;
 		side_effects_call_okay = 0;
 		handle_fail = 0;
+		do_ref_eval = do_ref_eval_;
 		}
 
 	const char* Name()				{ return description; }
@@ -56,6 +57,7 @@ class BuiltIn : public Func {
 	// true if side-effects-only call is okay
 	int side_effects_call_okay;
 	int handle_fail;
+	int do_ref_eval;
 	};
 
 
@@ -115,7 +117,6 @@ DERIVE_BUILTIN(RandomBuiltIn,NUM_ARGS_VARIES,"random",)
 DERIVE_BUILTIN(CbindBuiltIn,NUM_ARGS_VARIES,"cbind",)
 DERIVE_BUILTIN(RbindBuiltIn,NUM_ARGS_VARIES,"rbind",)
 
-DERIVE_BUILTIN(IsConstBuiltIn,1,"is_const",)
 DERIVE_BUILTIN(IsModifiableBuiltIn,1,"is_modifiable",)
 
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
@@ -130,6 +131,12 @@ DERIVE_BUILTIN(WheneverStmtsBuiltIn,1,"whenever_stmts",)
 
 DERIVE_BUILTIN(ActiveAgentsBuiltIn,0,"active_agents",)
 DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
+
+class IsConstBuiltIn : public BuiltIn {
+    public:
+	IsConstBuiltIn() : BuiltIn("is_const", 1, 1)	{  }
+	IValue* DoCall( const_args_list* args_vals );
+	};
 
 #define DERIVE_SEQUENCER_BUILTIN(name,num_args,description)		\
 class name : public BuiltIn {						\

@@ -47,7 +47,7 @@ IValue *Expr::SideEffectsEval()
 	return 0;
 	}
 
-IValue* Expr::RefEval( value_type val_type )
+IValue* Expr::RefEval( value_type val_type, int do_warn )
 	{
 	IValue* value = CopyEval();
 	IValue* result;
@@ -61,7 +61,7 @@ IValue* Expr::RefEval( value_type val_type )
 	else
 		result = new IValue( value, val_type );
 
-	if ( val_type == VAL_REF && value->IsConst() )
+	if ( do_warn && val_type == VAL_REF && value->IsConst() )
 		warn->Report( "\"const\" reference converted to \"ref\" in",
 				this );
 
@@ -228,7 +228,7 @@ IValue* VarExpr::Eval( eval_type etype )
 	return CopyOrRefValue( value, etype );
 	}
 
-IValue* VarExpr::RefEval( value_type val_type )
+IValue* VarExpr::RefEval( value_type val_type, int do_warn )
 	{
 	access = USE_ACCESS;
 	IValue* var = 0;
@@ -385,9 +385,9 @@ IValue* ValExpr::Eval( eval_type etype )
 	return CopyOrRefValue( val, etype );
 	}
 
-IValue* ValExpr::RefEval( value_type val_type )
+IValue* ValExpr::RefEval( value_type val_type, int do_warn )
 	{
-	if ( val_type == VAL_REF && val->IsConst() )
+	if ( do_warn && val_type == VAL_REF && val->IsConst() )
 		warn->Report( this, " is a \"const\" reference" );
 
 	return new IValue( val, val_type );
@@ -1139,7 +1139,7 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 	return result;
 	}
 
-IValue* ArrayRefExpr::RefEval( value_type val_type )
+IValue* ArrayRefExpr::RefEval( value_type val_type, int do_warn )
 	{
 	IValue* array_ref = op->RefEval( val_type );
 	IValue* array = (IValue*) array_ref->Deref();
@@ -1232,7 +1232,7 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 
 	arg->ReadOnlyDone( index_val );
 
-	if ( val_type == VAL_REF && result->IsConst() )
+	if ( do_warn && val_type == VAL_REF && result->IsConst() )
 		warn->Report( this, " is a \"const\" reference" );
 
 	result = new IValue( result, val_type );
@@ -1423,14 +1423,14 @@ IValue* RecordRefExpr::Eval( eval_type etype )
 	return result;
 	}
 
-IValue* RecordRefExpr::RefEval( value_type val_type )
+IValue* RecordRefExpr::RefEval( value_type val_type, int do_warn )
 	{
 	IValue* value_ref = op->RefEval( val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
 
 	value = (IValue*)(value->GetOrCreateRecordElement( field ));
 
-	if ( val_type == VAL_REF && value->IsConst() )
+	if ( do_warn && val_type == VAL_REF && value->IsConst() )
 		warn->Report( "record field", this,
 				" is a \"const\" reference" );
 
@@ -1555,7 +1555,7 @@ IValue* AttributeRefExpr::Eval( eval_type etype )
 	return result;
 	}
 
-IValue* AttributeRefExpr::RefEval( value_type val_type )
+IValue* AttributeRefExpr::RefEval( value_type val_type, int do_warn )
 	{
 	IValue* value_ref = left->RefEval( val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
@@ -1564,7 +1564,7 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 		{
 		value = (IValue*)(value->GetOrCreateAttribute( field ));
 
-		if ( val_type == VAL_REF && value->IsConst() )
+		if ( do_warn && val_type == VAL_REF && value->IsConst() )
 			warn->Report( "attribute field", this,
 					" is a \"const\" reference" );
 
@@ -1580,7 +1580,7 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 			{
 			value = (IValue*)(value->GetOrCreateAttribute( index_val ));
 
-			if ( val_type == VAL_REF && value->IsConst() )
+			if ( do_warn && val_type == VAL_REF && value->IsConst() )
 				warn->Report( "record field", this,
 						" is a \"const\" reference" );
 
@@ -2022,7 +2022,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 	return result;
 	}
 
-IValue* LastEventExpr::RefEval( value_type val_type )
+IValue* LastEventExpr::RefEval( value_type val_type, int do_warn )
 	{
 	Notification* n = sequencer->LastNotification();
 
@@ -2042,7 +2042,7 @@ IValue* LastEventExpr::RefEval( value_type val_type )
 
 	else if ( type == EVENT_VALUE )
 		{
-		if ( val_type == VAL_REF && n->value->IsConst() )
+		if ( do_warn && val_type == VAL_REF && n->value->IsConst() )
 			warn->Report( this, " is a \"const\" reference" );
 
 		result = new IValue( n->value, val_type );

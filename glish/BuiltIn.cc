@@ -120,7 +120,11 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 
 		else
 			{
-			arg_val = arg->Arg()->ReadOnlyEval();
+			if ( do_ref_eval )
+				arg_val = arg->Arg()->RefEval( VAL_REF, 0 );
+			else
+				arg_val = arg->Arg()->ReadOnlyEval();
+
 			if ( arg_val->Type() == TYPE_FAIL &&
 			     ! handle_fail )
 				{
@@ -165,10 +169,17 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 	else
 		result = fail ? fail : error_ivalue();
 
-	loop_over_list( *args, k )
+	if ( do_ref_eval )
 		{
-		if ( ! (*args)[k]->IsEllipsis() )
-			(*args)[k]->Arg()->ReadOnlyDone( (const IValue*) ((*args_vals)[k]));
+		loop_over_list( *args_vals, k )
+			if ( ! (*args)[k]->IsEllipsis() )
+				Unref((IValue*)(*args_vals)[k]);
+		}
+	else
+		{
+		loop_over_list( *args, k )
+			if ( ! (*args)[k]->IsEllipsis() )
+				(*args)[k]->Arg()->ReadOnlyDone( (const IValue*) ((*args_vals)[k]));
 		}
 
 	delete args_vals;
