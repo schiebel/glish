@@ -395,6 +395,15 @@ recordptr ValueKernel::modRecord( )
 	return record->record;
 	}
 
+unsigned long ValueKernel::RefCount( ) const
+	{
+	if ( mARRAY(mode) ) return array->ref_count;
+	if ( mRECORD(mode) || mFAIL(mode) ) return record->ref_count;
+	if ( mVALUE(mode) ) return (unsigned long) value->RefCount();
+	if ( mREF(mode) ) return (unsigned long) vecref->RefCount();
+	return 0;
+	}
+
 void ValueKernel::refOthers()
 	{
 	if ( mVALUE(mode) )

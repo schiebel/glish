@@ -136,7 +136,7 @@ void Value::SetFailMessage( Value *nv )
 	if ( Type() != TYPE_FAIL )
 		fatal->Report( "Value::SetFailValue called for non fail value" );
 
-	recordptr rptr = kernel.modRecord();
+	recordptr rptr = kernel.constRecord();
 	Unref( (Value*) rptr->Insert( strdup("message"), nv ) );
 	attributeptr attr = ModAttributePtr();
 	Unref( (Value*) attr->Insert( strdup("message"), copy_value(nv) ) );

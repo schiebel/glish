@@ -113,7 +113,7 @@ IValue::IValue( ) : Value( ) GGCTOR
 		{
 		kernel = other->kernel;
 		Value *v = 0;
-		recordptr rptr = kernel.modRecord();
+		recordptr rptr = kernel.constRecord();
 		if ( (v=(*rptr)["file"]) )
 			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
 		if ( (v=(*rptr)["line"]) )
@@ -156,7 +156,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		{
 		kernel = other->kernel;
 		Value *v = 0;
-		recordptr rptr = kernel.modRecord();
+		recordptr rptr = kernel.constRecord();
 		if ( (v=(*rptr)["file"]) )
 			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
 		if ( (v=(*rptr)["line"]) )
@@ -260,7 +260,9 @@ void IValue::DeleteValue()
 
 IValue::~IValue()
 	{
-	if ( Type() == TYPE_FAIL && ! FailMarked( ) )
+	if ( Type() == TYPE_FAIL &&
+	     kernel.RefCount() == 1 && 
+	     ! FailMarked( ) )
 		{
 		Sequencer::UnhandledFail(this);
 		MarkFail( );
