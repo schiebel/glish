@@ -568,7 +568,9 @@ int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 
 void IValue::TagGC( )
 	{
+	if ( gc.isTaged() ) return;
 	gc.tag();
+
 	if ( attributes )
 		((IValue*)attributes)->TagGC();
 
