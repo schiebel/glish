@@ -2879,6 +2879,35 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	PopAwait();
 	}
 
+int Sequencer::HaveStdinSelectee( ) const
+	{
+	return isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) );
+	}
+
+int Sequencer::AddStdinSelectee( )
+	{
+	if ( isatty( fileno( stdin ) ) )
+		{
+		if ( ! selector->FindSelectee( fileno( stdin ) ) )
+			selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
+		return 1;
+		}
+
+	return 0;
+	}
+
+int Sequencer::RemoveStdinSelectee( )
+	{
+	if ( isatty( fileno( stdin ) ) )
+		{
+		if ( selector->FindSelectee( fileno( stdin ) ) )
+			selector->DeleteSelectee( fileno( stdin ) );
+		return 1;
+		}
+
+	return 0;
+	}
+
 void Sequencer::PagerOutput( char *string, char **argv )
 	{
 	int removed_stdin = 0;

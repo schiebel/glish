@@ -433,6 +433,7 @@ IValue* WhichClientBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	return new IValue( (charptr*) ret, len );
 	}
 
+extern "C" void nb_reset_term( int );
 IValue* ReadlineBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
@@ -442,7 +443,28 @@ IValue* ReadlineBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 
 	char *prompt = v->StringVal();
 
+	int added_stdin = 0;
+	if ( ! sequencer->HaveStdinSelectee( ) )
+		{
+		sequencer->AddStdinSelectee( );
+		added_stdin = 1;
+#if USE_EDITLINE
+		//
+		// reset term so user can see what is typed
+		//
+		nb_reset_term(1);
+#endif
+		}
+
 	char *result = readline_read( prompt, 'A' );
+
+	if ( added_stdin )
+		{
+		sequencer->RemoveStdinSelectee( );
+#if USE_EDITLINE
+		nb_reset_term(0);
+#endif
+		}
 
 	free_memory( prompt );
 
@@ -2833,7 +2855,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new ComplexBuiltIn );
 
 	s->AddBuiltIn( new StrlenBuiltIn );
-	s->AddBuiltIn( new ReadlineBuiltIn );
+	s->AddBuiltIn( new ReadlineBuiltIn( s ) );
 
 	s->AddBuiltIn( new WhichIncludeBuiltIn );
 	s->AddBuiltIn( new WhichClientBuiltIn );

@@ -548,6 +548,15 @@ public:
 	// Retrieve the verbosity level
 	int Verbose( ) const { return verbose; }
 
+	// These are used by the internal "readline()" function to:
+	//     o  check to see if stdin events are enabled
+	//     o  add the stdin selectee
+	//     o  remove the stdin selectee
+	//
+	int HaveStdinSelectee( ) const;
+	int AddStdinSelectee( );
+	int RemoveStdinSelectee( );
+
 protected:
 	void MakeEnvGlobal( evalOpt &opt );
 	void MakeArgvGlobal( evalOpt &opt, char** argv, int argc, int append_name=0 );

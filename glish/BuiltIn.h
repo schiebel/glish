@@ -110,7 +110,6 @@ DERIVE_BUILTIN(ImagBuiltIn,1,"imag",)
 DERIVE_BUILTIN(StrlenBuiltIn,1,"strlen",)
 DERIVE_BUILTIN(WhichIncludeBuiltIn,1,"which_include",)
 DERIVE_BUILTIN(WhichClientBuiltIn,1,"which_client",)
-DERIVE_BUILTIN(ReadlineBuiltIn,1,"internal_readline",)
 DERIVE_BUILTIN(ComplexBuiltIn,NUM_ARGS_VARIES,"complex",)
 DERIVE_BUILTIN(SumBuiltIn,NUM_ARGS_VARIES,"sum",)
 DERIVE_BUILTIN(ProdBuiltIn,NUM_ARGS_VARIES,"prod",)
@@ -171,6 +170,7 @@ class name : public BuiltIn {						\
 	};
 
 
+DERIVE_SEQUENCER_BUILTIN(ReadlineBuiltIn,1,"internal_readline")
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
 
