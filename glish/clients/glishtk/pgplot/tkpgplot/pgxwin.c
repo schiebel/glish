@@ -285,7 +285,9 @@ PgxState *pgx_open(pgx)
  */
   state->image.npix = PGX_IMAGE_LEN;
   {
-    unsigned nbyte = ((pgx->color->vi->depth * state->image.npix + 31)/32) * 4;
+    int depth = pgx->color->vi->depth;
+    unsigned nbyte = (((depth <= 8 ? 8 : depth <= 16 ? 16 : 32) *
+		       state->image.npix + 31)/32) * 4;
     state->image.buff = (unsigned char *) malloc(nbyte * sizeof(char));
     if(!state->image.buff)  {
       fprintf(stderr, "%s: Failed to allocate image buffer.\n", PGX_IDENT);
