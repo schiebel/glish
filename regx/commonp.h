@@ -17,7 +17,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "regx/common.h"
-#include "gcmem/alloc.h"
+#include "sos/alloc.h"
 
 #ifdef __cplusplus
 extern "C" {

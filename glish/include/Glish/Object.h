@@ -5,7 +5,7 @@
 #define object_h
 #include "Glish/Str.h"
 #include "Glish/List.h"
-#include "gcmem/ref.h"
+#include "sos/ref.h"
 
 // GlishObject is the root of the class hierarchy.  GlishObjects know how to
 // describe themselves.
@@ -52,6 +52,8 @@ class ioOpt GC_FINAL_CLASS {
 class GlishObject : public GlishRef {
     public:
 	GlishObject() : file( file_name ), line(line_num)	{ }
+
+	GlishObject( const GlishObject &o ) : GlishRef(o), file(file_name), line(line_num)	{ }
 
 	virtual ~GlishObject()	{ }
 

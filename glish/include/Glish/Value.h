@@ -99,7 +99,7 @@ public:
 	void SetFail( const char *message, const char *xfile, int lineNum );
 	void SetFail( const char *message );
 
-	Value( const Value &v ) : kernel(v.kernel),
+	Value( const Value &v ) : GlishObject(v), kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )
 		{
 		DIAG2( (void*) this, "Value( const Value& )" )
@@ -581,6 +581,9 @@ public:
 	int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab="  ", int skip_first=0 ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
 	int ToMemBlock(char *memory, int offset = 0) const;
+
+	virtual void CycleUnref( );
+	void DoMirrorCheck( ) { kernel.DoMirrorCheck(); }
 
 protected:
 

@@ -17,6 +17,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
+int collect_cycles = 0;
 Parameter::~Parameter()
 	{
 	NodeUnref( arg );
@@ -199,6 +200,8 @@ void UserFunc::EstablishScope()
 		{
 		scope_established = 1;
 		stack = sequencer->LocalFrames();
+		if ( stack && collect_cycles )
+			AddCycleRoot( this );
 		}
 	}
 
@@ -553,6 +556,11 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 	return result;
 	}
 
+static void list_element_unref( void *vp )
+	{
+	Unref( (GcRef*) vp );
+	}
+
 IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	{
 	if ( subsequence_expr )
@@ -573,6 +581,20 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	unsigned short old_file_name = file_name;
 	file_name = file;
 	IValue* result = body->Exec( value_needed, flow );
+
+	if ( cycle_roots )
+		{
+		if ( result )
+			{
+			cycle_roots->set_finalize_handler( list_element_unref );
+			result->PropagateCycles( cycle_roots );
+			result->SetUnref( cycle_roots );
+			}
+
+		Unref( cycle_roots );
+		cycle_roots = 0;
+		}
+
 	file_name = old_file_name;
 
 	if ( subsequence_expr )

@@ -70,13 +70,13 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-OBJS = convert.o header.o io.o longint.o types.o list.o
+OBJS = convert.o header.o io.o longint.o types.o list.o ref.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
-	$(D)types.o $(D)list.o
+	$(D)types.o $(D)list.o $(D)ref.o
 
-GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o
+GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o
 GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
-	$(D)gctypes.o $(D)gclist.o
+	$(D)gctypes.o $(D)gclist.o $(D)gcref.o
 
 HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
 	$(INCDIR)/sos/header.h $(INCDIR)/sos/mdep.h $(INCDIR)/sos/list.h \
@@ -182,6 +182,12 @@ $(D)list.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
 
 $(D)gclist.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gclist.o $(SRC)/list.cc $(T)
+
+$(D)ref.o: $(SRC)/ref.cc $(H)/ref.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ref.cc $(T)
+
+$(D)gcref.o: $(SRC)/ref.cc $(H)/ref.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcref.o $(SRC)/ref.cc $(T)
 
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)

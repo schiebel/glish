@@ -2428,6 +2428,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
+				value->AddZero( &frame_value );
+				if ( prev_value ) prev_value->RemoveZero( );
 				}
 			}
 			break;
@@ -2450,6 +2452,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
+				value->AddZero( &frame_value );
+				if ( prev_value ) prev_value->RemoveZero( );
 				}
 			}
 			break;

@@ -28,6 +28,12 @@ RCSID("@(#) $Id$")
 
 const char *glish_charptrdummy = 0;
 
+extern int collect_cycles;
+void ivalue_copy_happening( void *p )
+	{
+	if ( collect_cycles ) fprintf( stderr, "copy=> 0x%x\n", p );
+	}
+
 void copy_agents( void *to_, void *from_, size_t len )
 	{
 	agentptr *to = (agentptr*) to_;
@@ -44,19 +50,28 @@ void delete_agents( void *ary_, size_t len )
 			Unref( ary[i] );
 	}
 
+extern int collect_cycles;
 void copy_funcs( void *to_, void *from_, size_t len )
 	{
 	funcptr *to = (funcptr*) to_;
 	funcptr *from = (funcptr*) from_;
 	copy_array(from,to,(int)len,funcptr);
 	for (unsigned int i = 0; i < len; i++)
-		Ref(to[i]);
+		{
+		if ( collect_cycles ) fprintf(stderr,"copy=> 0x%x/0x%x\n", to[i], &to[i]);
+		if ( to[i] ) to[i]->AddZero(&to[i]);
+		if ( to[i] ) Ref(to[i]);
+		}
 	}
 void delete_funcs( void *ary_, size_t len )
 	{
 	funcptr *ary = (funcptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
-		Unref(ary[i]);
+		{
+		if ( collect_cycles ) fprintf(stderr,"delete=> 0x%x/0x%x\n", ary[i], &ary[i]);
+// 		if ( ary[i] ) ary[i]->RemoveZero(&ary[i]);
+		if ( ary[i] ) Unref(ary[i]);
+		}
 	}
 
 void copy_regexs( void *to_, void *from_, size_t len )
@@ -195,11 +210,14 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	{
 	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
+	value->AddZero( ary );
+	if ( collect_cycles ) fprintf(stderr,"ctor#1=> 0x%x/0x%x\n", value, ary);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC)
 	{
+	if ( collect_cycles ) fprintf(stderr,"ctor#2=> 0x%x\n", value);
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
@@ -1935,6 +1953,122 @@ char *IValue::GetNSDesc( int evalable ) const
 		}
 
 	return 0;
+	}
+
+GcRef::cycle_type IValue::CycleMode( ) const
+	{
+	return Type() == TYPE_FUNC ? ROOT : NONROOT;
+	}
+
+void IValue::CycleUnref( )
+	{
+	glish_type type = Type();
+	if ( type == TYPE_REF )
+		Deref()->CycleUnref( );
+	else if ( type == TYPE_FUNC )
+		{
+		funcptr f = FuncVal();
+		if ( f->MirrorSet() )
+			{
+			fprintf( stderr, "cycleunref=> %x\n", f->mask );
+			Unref( FuncVal() );
+			}
+		}
+	}
+
+void IValue::ForceMirrorCheck( unsigned short num, ref_list *others )
+	{
+	glish_type type = Type();
+	if ( type == TYPE_REF )
+		((IValue*)Deref())->ForceMirrorCheck( num, others );
+	else if ( type == TYPE_RECORD )
+		kernel.ForceMirrorCheck( num, others );
+	}
+
+int IValue::MirrorSet( ) const
+	{
+	return CycleMode() == ROOT && Type() == TYPE_FUNC ? FuncVal()->MirrorSet( ) : GcRef::MirrorSet();
+	}
+
+void IValue::LocateCycles( ref_list *cyc, ref_list **direct, ref_list **indirect ) const
+	{
+	static value_list been_there;
+
+	if ( been_there.is_member( this ) ) return;
+	been_there.append( (IValue*) this );
+
+	glish_type type = Type();
+	if ( CycleMode() == ROOT && type == TYPE_FUNC )
+		{
+		Func *func = 0;
+		if ( cyc->is_member( (func=FuncVal()) ) )
+			{
+			if ( direct )
+				{
+				if ( ! *direct ) *direct = new ref_list;
+				(*direct)->append( func );
+				}
+			if ( indirect )
+				{
+				if ( ! *indirect ) *indirect = new ref_list;
+				(*indirect)->append( func );
+				}
+			}
+		}
+
+	if ( type == TYPE_RECORD )
+		{
+		recordptr r = RecordPtr(0);
+		IterCookie* c = r->InitForIteration();
+		Value* member;
+		const char* key;
+		while ( (member = r->NextEntry( key, c )) )
+			((IValue*)member)->LocateCycles( cyc, direct, indirect );
+		}
+	else if ( type == TYPE_REF )
+		{
+		((IValue*)Deref())->LocateCycles( cyc, 0, indirect );
+		}
+
+	been_there.remove( (IValue*) this );
+	}
+
+int IValue::PropagateCycles( ref_list *cyc )
+	{
+	static value_list been_there;
+	int ret = 0;
+
+	if ( been_there.is_member( this ) ) return 0;
+	been_there.append( (IValue*) this );
+
+	glish_type type = Type();
+	if ( type == TYPE_FUNC && cyc->is_member( FuncVal() ) )
+		{
+		++ret;
+		SetUnref( cyc, 1 );
+		}
+	else if ( type == TYPE_RECORD )
+		{
+		recordptr r = RecordPtr(0);
+		IterCookie* c = r->InitForIteration();
+		IValue* member;
+		const char* key;
+		while ( (member = (IValue*) r->NextEntry( key, c )) )
+			{
+			int mret = member->PropagateCycles( cyc );
+			if ( mret > 0 ) member->SetUnref( cyc, 1 );
+			ret += mret;
+			}
+		if ( ret > 0 ) SetUnref( cyc, 1 );
+		}
+	else if ( type == TYPE_REF )
+		{
+		ret = ((IValue*)Deref())->PropagateCycles( cyc );
+		if ( ret > 0 ) SetUnref( cyc, 1 );
+		}
+
+	been_there.remove( (IValue*) this );
+	return ret;
 	}
 
 void init_ivalues( )

@@ -9,7 +9,7 @@
 */
 #ifndef sos_sos_h
 #define sos_sos_h
-#include "gcmem/alloc.h"
+#include "sos/alloc.h"
 typedef unsigned char byte;
 
 /*

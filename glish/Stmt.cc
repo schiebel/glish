@@ -1315,7 +1315,6 @@ IValue* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 
 	if ( retval )
 		return retval->CopyEval();
-
 	else
 		return 0;
 	}

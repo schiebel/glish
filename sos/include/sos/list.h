@@ -26,12 +26,12 @@
 //
 // needed for class GcRef
 //
-#include "gcmem/ref.h"
 #include "sos/generic.h"
+#include "sos/ref.h"
 
 typedef void* void_ptr;
 typedef void_ptr ent;
-typedef void (*PFC)(char*);	// mostly for error handling
+typedef void (*FINAL)(ent);
 
 class BaseList : public GcRef {
     public:
@@ -41,13 +41,15 @@ class BaseList : public GcRef {
 	int length() const	{ return num_entries; }
 	int curlen() const	{ return max_entries; }
 
+	int operator==(BaseList&) const;
+
     protected:
 
 	virtual void *allocate( unsigned int s ) { return alloc_memory( s ); }
 
 	int resize( );
 
-	BaseList(int = 0, PFC = 0);
+	BaseList(int=0, FINAL=0);
 	BaseList(BaseList&);
 
 	void append( ent a )  { if ( num_entries == max_entries ) resize( );
@@ -62,7 +64,12 @@ class BaseList : public GcRef {
 	// Return 0 if ent is not in the list, ent otherwise.
 	ent is_member(ent) const;
 
-	PFC set_error_handler(PFC = 0);	//reset to default handler if null arg
+	// Set the handler which is called for each element during
+	// finialization. Really need a copy_handler which is called
+	// for each element during copying... for now, we'll save the
+	// four bytes & use this cautiously!
+	FINAL set_finalize_handler( FINAL=0 );
+
 	ent replace(int, ent);	// replace entry #i with a new value
 
 	// return nth ent of list (do not remove).
@@ -75,7 +82,7 @@ class BaseList : public GcRef {
 	int chunk_size;		// increase size by this amount when necessary
 	int max_entries;
 	int num_entries;
-	PFC error_handler;
+	FINAL finalize_handler;
 
 	friend class BaseListIterator;
 	};
@@ -118,8 +125,8 @@ class BaseListIterator GC_FINAL_CLASS {
 #define Listdeclare(type)						\
 struct List(type) : BaseList						\
 	{								\
-	List(type)(PFC eh =0) : BaseList(0,eh) {}			\
-	List(type)(int sz, PFC eh =0) : BaseList(sz,eh) {}		\
+	List(type)(FINAL fh=0) : BaseList(0,fh) {}			\
+	List(type)(int sz, FINAL fh=0) : BaseList(sz,fh) {}		\
 	List(type)(List(type)& l) : BaseList((BaseList&)l) {}		\
 									\
 	void operator=(List(type)& l)					\
@@ -136,8 +143,8 @@ struct List(type) : BaseList						\
 		{ return PASTE(void_to_,type)(BaseList::replace(i,PASTE(type,_to_void)(new_type))); } \
 	type is_member(type e)						\
 		{ return PASTE(void_to_,type)(BaseList::is_member(PASTE(type,_to_void)(e))); } \
-	PFC set_error_handler(PFC eh =0)				\
-		{ return BaseList::set_error_handler(eh); }		\
+	FINAL set_finalize_handler(FINAL fh=0)				\
+		{ return BaseList::set_finalize_handler(fh); }		\
 									\
 	type operator[](int i) const					\
 		{ return PASTE(void_to_,type)(BaseList::operator[](i)); } \
@@ -158,8 +165,8 @@ struct ListIterator(type) : BaseListIterator				\
 struct PList(type) : BaseList						\
 	{								\
 	PList(type)(type* ...);						\
-	PList(type)(PFC eh =0) : BaseList(0,eh) {}			\
-	PList(type)(int sz, PFC eh =0) : BaseList(sz,eh) {}		\
+	PList(type)(FINAL fh=0) : BaseList(0,fh) {}			\
+	PList(type)(int sz, FINAL fh=0) : BaseList(sz,fh) {}		\
 	PList(type)(PList(type)& l) : BaseList((BaseList&)l) {}		\
 									\
 	void operator=(PList(type)& l)					\
@@ -176,10 +183,10 @@ struct PList(type) : BaseList						\
 		{ return (type*)(BaseList::operator[](i)); }		\
 	type* replace(int i, type* new_type)				\
 		{ return (type*)BaseList::replace(i,ent(new_type)); }	\
-	type* is_member(type* e)					\
+	type* is_member(const type* e)					\
 		{ return (type*)BaseList::is_member(ent(e)); }		\
-	PFC set_error_handler(PFC eh =0)				\
-		{ return BaseList::set_error_handler(eh); }		\
+	FINAL set_finalize_handler(FINAL fh=0)				\
+		{ return BaseList::set_finalize_handler(fh); }		\
 	};								\
 									\
 struct PListIterator(type) : BaseListIterator				\
@@ -190,5 +197,7 @@ struct PListIterator(type) : BaseListIterator				\
 	type* operator()()						\
 		{ return (type*)(BaseListIterator::operator()()); }	\
 	}
+
+sos_declare(PList,GcRef);
 
 #endif /* list_h_ */

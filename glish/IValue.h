@@ -42,6 +42,7 @@ typedef PList(IValue) ivalue_list;
 
 extern void copy_agents( void *to_, void *from_, unsigned long len );
 extern void delete_agents( void *ary_, unsigned long len );
+extern void ivalue_copy_happening( void * );
 
 class IValue : public Value {
 public:
@@ -51,8 +52,8 @@ public:
 	IValue( const Value *val, const char *file, int lineNum ) :
 				Value( val, file, lineNum ) { }
 
-	IValue( const Value &v ) : Value(v) { }
-	IValue( const IValue &v ) : Value(v) { }
+	IValue( const Value &v ) : Value(v) { ivalue_copy_happening( this ); }
+	IValue( const IValue &v ) : Value(v) { ivalue_copy_happening( this ); }
 
 	IValue( glish_bool v ) : Value( v ) { }
 	IValue( byte v ) : Value( v ) { }
@@ -238,7 +239,16 @@ public:
 	// Get a description of a non-standard (i.e. interpreter specific) type
 	char *GetNSDesc( int evalable = 0 ) const;
 
+	cycle_type CycleMode( ) const;
+	// returns the number of time a cycle root (element of c) is referenced
+	int PropagateCycles( ref_list *c );
+	void LocateCycles( ref_list *c, ref_list **direct, ref_list **indirect ) const;
+	int MirrorSet( ) const;
+	void ForceMirrorCheck( unsigned short num, ref_list * );
+	void CycleUnref( );
+
 protected:
+
 	void DeleteValue();
 
 	// ** NOTE THIS CAN PROBABLY BE REMOVED, BUT IT IS LEFT IN FOR NOW **

@@ -4,7 +4,7 @@
 
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
-#include "gcmem/alloc.h"
+#include "sos/alloc.h"
 
 #include <stdlib.h>
 #include <iostream.h>
@@ -14,27 +14,21 @@ RCSID("@(#) $Id$")
 static const int DEFAULT_CHUNK_SIZE = 10;
 
 // Print message on stderr and exit.
-void default_error_handler(char* s)
+static void default_error_handler(char* s)
 	{
 	cerr << s << "\n";
 	exit(1);
 	}
 
-PFC BaseList::set_error_handler(PFC handler)
+FINAL BaseList::set_finalize_handler(FINAL handler)
 	{
-	PFC old = error_handler;
-
-	if ( handler == 0 )
-		error_handler = default_error_handler;
-	else
-		error_handler = handler;
-
+	FINAL old = finalize_handler;
+	finalize_handler = handler;
 	return old;
 	}
 
-BaseList::BaseList(int size, PFC handler)
+BaseList::BaseList(int size, FINAL handler)
 	{
-
 	if ( size <= 0 )
 		chunk_size = DEFAULT_CHUNK_SIZE;
 	else
@@ -54,10 +48,7 @@ BaseList::BaseList(int size, PFC handler)
 			max_entries = 0;
 		}
 
-	if ( handler == 0 )
-		error_handler = default_error_handler;
-	else
-		error_handler = handler;
+	finalize_handler = handler;
 	}
 
 
@@ -66,7 +57,8 @@ BaseList::BaseList(BaseList& b)
 	max_entries = b.max_entries;
 	chunk_size = b.chunk_size;
 	num_entries = b.num_entries;
-	error_handler = b.error_handler;
+	finalize_handler = b.finalize_handler;
+
 
 	if ( max_entries )
 		entry = (ent*) allocate( sizeof(ent)*max_entries );
@@ -87,7 +79,7 @@ void BaseList::operator=(BaseList& b)
 	max_entries = b.max_entries;
 	chunk_size = b.chunk_size;
 	num_entries = b.num_entries;
-	error_handler = b.error_handler;
+	finalize_handler = b.finalize_handler;
 
 	if ( max_entries )
 		entry = (ent*) allocate( sizeof(ent)*max_entries );
@@ -96,6 +88,18 @@ void BaseList::operator=(BaseList& b)
 
 	for ( int i = 0; i < num_entries; i++ )
 		entry[i] = b.entry[i];
+	}
+
+int BaseList::operator==(BaseList& b) const
+	{
+	if ( this == &b )
+		return 1;
+
+	if ( num_entries == b.num_entries && 
+	     ! memcmp( entry, b.entry, sizeof(ent)*num_entries ) )
+		return 1;
+
+	return 0;
 	}
 
 void BaseList::insert(ent a)
@@ -156,7 +160,7 @@ ent BaseList::get()
 	{
 	if ( num_entries == 0 )
 		{
-		error_handler("get from empty BaseList");
+		default_error_handler("get from empty BaseList");
 		return 0;
 		}
 
@@ -171,6 +175,9 @@ void BaseList::clear()
 
 BaseList::~BaseList()
 	{
+	if ( finalize_handler )
+		for ( int i = 0; i < num_entries; i++ )
+			finalize_handler(entry[i]);
 	free_memory( entry );
 	}
 

@@ -2802,6 +2802,8 @@ Value *ValueFromMemBlock( char *memory )
 	return ValueFromMemBlock( memory, offset );
 	}
 
+void Value::CycleUnref( ) { }
+
 
 Value* empty_value(glish_type t)
 	{
