@@ -704,17 +704,17 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 
 	opt = lopt;
 
-	if ( lopt.Return() )
-		lopt.set( evalOpt::RESULT_PERISHABLE );
+	if ( opt.Return() )
+		opt.set( evalOpt::RESULT_PERISHABLE );
 
-	IValue *l_err = left->Assign( lopt, r );
+	IValue *l_err = left->Assign( opt, r );
 
 	//
 	// In this case we had an expression like:
 	//
 	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
 	//
-	if ( l_err && lopt.result_perishable( ) )
+	if ( l_err && opt.result_perishable( ) )
 		return l_err;
 	else if ( r_err )
 		return r_err;
@@ -722,10 +722,10 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 		return (IValue*) Fail( l_err );
 
 	if ( lopt.copy() || lopt.copy_preserve() )
-		return left->CopyEval(opt);
+		return left->CopyEval(lopt);
 
 	else if ( lopt.read_only() || lopt.read_only_preserve() )
-		return (IValue*) left->ReadOnlyEval( opt, lopt.read_only_preserve() );
+		return (IValue*) left->ReadOnlyEval( lopt, lopt.read_only_preserve() );
 	else
 		return 0;
 	}
@@ -744,6 +744,10 @@ IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 		else if ( lopt.result_perishable( ) )
 			return ret;
 
+		fprintf( stdout, "------------------------------------------------------------\n" );
+		ret->Describe( message->Stream() );
+		fprintf( stdout, "\n------------------------------------------------------------\n" );
+		fprintf( stdout, "\n" );
 		fatal->Report(
 		"value unexpected returnedly in AssignExpr::SideEffectsEval" );
 		}

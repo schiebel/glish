@@ -664,7 +664,8 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 					}
 				else
 					{
-					warn->Report( "value (",result,") returned from subsequence replaced by ref self" );
+					if ( ! flow.result_perishable( ) )
+						warn->Report( "value (",result,") returned from subsequence replaced by ref self" );
 					Unref( result );
 					result = 0;
 					}

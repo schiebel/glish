@@ -190,8 +190,8 @@ Value::Value( Value* ref_value, value_type val_type )
 	INIT_VALUE_ACTION
 
 	int is_const = ref_value->IsConst() | ref_value->IsRefConst();
-	if ( val_type != VAL_CONST && val_type != VAL_REF )
-		fatal->Report( "bad value_type in Value::Value" );
+// 	if ( val_type != VAL_CONST && val_type != VAL_REF )
+// 		fatal->Report( "bad value_type in Value::Value" );
 
 	ref_value = ref_value->Deref();
 	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst() |
