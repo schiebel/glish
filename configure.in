@@ -967,19 +967,6 @@ char **foo = environ;
     AC_DEFINE(ENVIRON_NOT_DECLARED)])
 ])
 
-AC_CHECK_VAR(__environ,[
-AC_DEFINE(HAVE___ENVIRON)
-AC_MSG_CHECKING([for __environ declaration])
-AC_TRY_LINK([
-#include <stdlib.h>
-#include <unistd.h>
-], [
-char **foo = __environ;
-], AC_MSG_RESULT(present), [
-    AC_MSG_RESULT(missing)
-    AC_DEFINE(__ENVIRON_NOT_DECLARED)])
-])
-
 dnl##
 dnl## Find the scope of 'for' loop variables. Define
 dnl## LOOPDECL accordingly.

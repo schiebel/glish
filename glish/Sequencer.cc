@@ -3418,8 +3418,8 @@ void Sequencer::MakeEnvGlobal()
 	{
 	IValue* env_value = create_irecord();
 
-	if ( ENVIRON )
-		for ( char** env_ptr = ENVIRON; *env_ptr; ++env_ptr )
+	if ( environ )
+		for ( char** env_ptr = environ; *env_ptr; ++env_ptr )
 			{
 			char* delim = strchr( *env_ptr, '=' );
 

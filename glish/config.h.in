@@ -147,35 +147,11 @@
 /* If your version of TCL defines Tcl_GetSetringResult().  */
 #undef HAVE_TCL_GETSTRINGRESULT
 
-/* Setup environ stuff, had problems with some versions of linux */
 #undef ENVIRON_NOT_DECLARED
-#undef __ENVIRON_NOT_DECLARED
 #ifdef ENVIRON_NOT_DECLARED
 #ifdef __cplusplus
 extern "C" char **environ;
 #else
 extern char **environ;
 #endif
-#endif
-#ifdef __ENVIRON_NOT_DECLARED
-#ifdef __cplusplus
-extern "C" char **__environ;
-#else
-extern char **__environ;
-#endif
-#endif
-
-#undef HAVE_ENVIRON
-#undef HAVE___ENVIRON
-#ifdef HAVE_ENVIRON
-#ifdef HAVE___ENVIRON
-#define INIT_ENVIRON if ( ! environ && __environ ) environ = __environ;
-#define ENVIRON (environ ? environ : __environ)
-#else
-#define INIT_ENVIRON
-#define ENVIRON environ
-#endif
-#else
-#define INIT_ENVIRON
-#define ENVIRON __environ
 #endif

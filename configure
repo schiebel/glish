@@ -4366,93 +4366,9 @@ else
 fi
 
 
-echo $ac_n "checking for __environ""... $ac_c" 1>&6
-if eval "test \"`echo '$''{'ac_cv_func___environ'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  cat > $conftest.$ac_ext <<EOF
-#line 4375 "configure"
-#include "$confdefs.h"
-/* System header to define __stub macros and hopefully few prototypes,
-    which can conflict with char __environ(); below.  */
-#include <assert.h>
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-
-
-int strlen( char* );
-#ifdef __cplusplus
-extern "C"
-#endif
-
-/* We use char because int might match the return type of a gcc2
-    builtin and then its argument prototype would still apply.  */
-char* __environ;
-
-int main() { return 0; }
-int t() {
-
-strlen( __environ );
-
-; return 0; }
-EOF
-if { (eval echo configure:4402: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
-  rm -rf $conftest*
-  eval "ac_cv_func___environ=yes"
-else
-  rm -rf $conftest*
-  eval "ac_cv_func___environ=no"
-fi
-rm -f $conftest*
-
-fi
-if eval "test \"`echo '$ac_cv_func_'__environ`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-  
-cat >> $confdefs.h <<\EOF
-#define HAVE___ENVIRON 1
-EOF
-
-echo $ac_n "checking for __environ declaration""... $ac_c" 1>&6
-cat > $conftest.$ac_ext <<EOF
-#line 4421 "configure"
-#include "$confdefs.h"
-
-#include <stdlib.h>
-#include <unistd.h>
-
-int main() { return 0; }
-int t() {
-
-char **foo = __environ;
-
-; return 0; }
-EOF
-if { (eval echo configure:4434: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
-  rm -rf $conftest*
-  echo "$ac_t""present" 1>&6
-else
-  rm -rf $conftest*
-  
-    echo "$ac_t""missing" 1>&6
-    cat >> $confdefs.h <<\EOF
-#define __ENVIRON_NOT_DECLARED 1
-EOF
-
-fi
-rm -f $conftest*
-
-
-else
-  echo "$ac_t""no" 1>&6
-fi
-
-
 echo $ac_n "checking 'for' scope""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 4456 "configure"
+#line 4372 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -4463,7 +4379,7 @@ for ( int i=0; i < 1; i++ ) { ; }
 
 ; return 0; }
 EOF
-if { (eval echo configure:4467: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4383: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf $conftest*
   echo "$ac_t""local" 1>&6; cat >> $confdefs.h <<\EOF
 #define LOOPDECL int
@@ -4482,7 +4398,7 @@ rm -f $conftest*
 echo $ac_n "checking select parameters""... $ac_c" 1>&6
 for type in fd_set int long; do
 cat > $conftest.$ac_ext <<EOF
-#line 4486 "configure"
+#line 4402 "configure"
 #include "$confdefs.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_SELECT_H
@@ -4497,7 +4413,7 @@ $type rm;
 select(0, &rm, 0, 0, 0);
 ; return 0; }
 EOF
-if { (eval echo configure:4501: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4417: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf $conftest*
   select_type=$type
 else
@@ -4672,7 +4588,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4676 "configure"
+#line 4592 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4769,7 +4685,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4773 "configure"
+#line 4689 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4879,12 +4795,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4883 "configure"
+#line 4799 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4888: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4804: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4972,12 +4888,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4976 "configure"
+#line 4892 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4981: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4897: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -5392,7 +5308,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5396 "configure"
+#line 5312 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5400,7 +5316,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5404: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5320: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5423,7 +5339,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5427 "configure"
+#line 5343 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5431,7 +5347,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5435: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5351: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*

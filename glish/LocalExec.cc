@@ -71,7 +71,7 @@ void LocalExec::MakeExecutable( const char** argv )
 
 	if ( pid_ == 0 )
 		{ // child
-		char** env = ENVIRON;
+		char** env = environ;
 #ifndef POSIX
 		execve( executable, (char **)argv, env );
 #else
