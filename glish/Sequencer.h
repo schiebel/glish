@@ -34,6 +34,7 @@ class AcceptSelectee;
 class Selector;
 class RemoteDaemon;
 class await_type;
+struct func_name_info;
 
 glish_declare(PDict,Task);
 glish_declare(PDict,RemoteDaemon);
@@ -50,6 +51,9 @@ typedef PList(expr_list) expr_list_stack;
 
 glish_declare(PList,ivalue_list);
 typedef PList(ivalue_list) fail_stack_stack;
+
+glish_declare(PList, func_name_info);
+typedef PList(func_name_info) func_name_list;
 
 class Scope : public expr_dict {
 public:
@@ -334,7 +338,7 @@ public:
 
 	// This trio of functions supports keeping track of the
 	// function call stack. This is used in error reporting.
-	void PushFuncName( char *name );
+	void PushFuncName( const char *name, unsigned short file, unsigned short line );
 	void PopFuncName( );
 	static IValue *FuncNameStack( );
 
@@ -623,7 +627,7 @@ protected:
 
 	ivalue_list global_frame;
 
-	name_list func_names;
+	func_name_list func_names;
 
 	int last_task_id;
 	PDict(Task) ids_to_tasks;

@@ -101,6 +101,20 @@ fail_stack_stack *Sequencer::fail_stack = 0;
 // will be cleaned up properly, and this can be removed.
 int shutting_glish_down = 0;
 
+struct func_name_info {
+	func_name_info( const char *n, unsigned short f, unsigned short l ) :
+		name_(string_dup(n)), file_(f), line_(l) { }
+	~func_name_info( ) { free_memory(name_); }
+	const char *name( ) const { return name_; }
+	unsigned short file( ) const { return file_; }
+	unsigned short line( ) const { return line_; }
+    private:
+	char *name_;
+	unsigned short file_;
+	unsigned short line_;
+};
+
+
 await_type::await_type( await_type &o )
 	{
 	stmt_ = o.stmt_;
@@ -2615,9 +2629,9 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 	return ret;
 	}
 
-void Sequencer::PushFuncName( char *n )
+void Sequencer::PushFuncName( const char *n, unsigned short fle, unsigned short lne )
 	{
-	cur_sequencer->func_names.append( n );
+	cur_sequencer->func_names.append( new func_name_info( n, fle, lne ) );
 	}
 
 void Sequencer::PopFuncName( )
@@ -2628,22 +2642,52 @@ void Sequencer::PopFuncName( )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFuncName" );
 
-	char *top = cur_sequencer->func_names.remove_nth( top_pos );
+	func_name_info *top = cur_sequencer->func_names.remove_nth( top_pos );
 
-	free_memory( top );
+	delete top;
 	}
 
 IValue *Sequencer::FuncNameStack( )
 	{
 	int len = cur_sequencer->func_names.length();
 
-	if ( ! len )
-		return 0;
+	if ( ! len ) return 0;
 
 	char **strs = alloc_charptr( len );
 
+	int offset = 0;
+	func_name_list &names = cur_sequencer->func_names;
 	for ( int i=0; i < len; i++ )
-		strs[i] = string_dup( cur_sequencer->func_names[i] );
+		{
+		int nlen;
+		if ( names[i]->name() && (nlen=strlen(names[i]->name())) && nlen > offset )
+			offset = nlen;
+		}
+
+	char fmt[40],fmt_none[42];
+	offset = offset < 45 ? offset+2 : 45;
+	sprintf( fmt,      "%%%d.%ds(), %%s line %%d", offset, offset );
+	sprintf( fmt_none, "%%%d.%ds()", offset, offset );
+
+	for ( int i=0; i < len; i++ )
+		{
+		char *str = 0;
+		func_name_info *info = names[i];
+
+		const char *fle;
+		if ( info->file() && (fle = (*glish_files)[info->file()]) )
+			{
+			str = alloc_char( strlen( fle ) + offset + 27 );
+			sprintf( str, fmt, info->name(), fle, info->line( ) );
+			}
+		else
+			{
+			str = alloc_char( offset + 4 );
+			sprintf( str, fmt_none, info->name() );
+			}
+
+		strs[i] = str;
+		}
 
 	return new IValue( (charptr*) strs, len );
 	}

@@ -103,8 +103,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		int l = strlen(stack[--len]);
 		msg[cur] = alloc_char( l+20 );
 		strcpy(msg[cur],"\tStack:\t");
-		strcat(msg[cur],stack[len]);
-		strcat(msg[cur++],"()");
+		strcat(msg[cur++],stack[len]);
 		cnt += l + 13;
 		int x=cur;
 		for ( ; x < cur+4 && len; x++)
@@ -114,7 +113,6 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 			msg[x] = alloc_char( l+6 );
 			strcpy(msg[x],"\t\t");
 			strcat(msg[x],stack[len]);
-			strcat(msg[x],"()");
 			cnt += l + 6;
 			}
 		if ( len )

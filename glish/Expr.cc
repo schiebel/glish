@@ -2406,7 +2406,7 @@ IValue* CallExpr::Eval( evalOpt &opt )
 
 	IValue* result = 0;
 
-	sequencer->PushFuncName( string_dup(op->Description()) );
+	sequencer->PushFuncName( op->Description(), file, line );
 
 	opt = lopt;
 	if ( ! func_val || ! (result = func_val->Call(opt,args)) )
