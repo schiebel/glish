@@ -335,6 +335,9 @@ void IntervalList::build( elapse_options opt )
 			cur_time += min_delay;
 			}
 		}
+
+	else 
+		list.append( new Interval( tl[0]->delay(), tl[0] ) );
 	}
 
 Interval *IntervalList::next( )
