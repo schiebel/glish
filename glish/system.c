@@ -375,9 +375,49 @@ void maximize_num_fds()
 #endif
 	}
 
+/*
+**  The old behavior was:
+**
+**	return (signal_handler) signal( sig, (correct_sig_handler) handler );
+**
+**  but due to differences in SYSV & BSD it was changed.
+*/
 signal_handler install_signal_handler( int sig, signal_handler handler )
 	{
-	return (signal_handler) signal( sig, (correct_sig_handler) handler );
+	struct sigaction act, old;
+
+	act.sa_handler = (correct_sig_handler) handler;
+	sigemptyset( &act.sa_mask );
+	act.sa_flags = 0;
+	if ( sig == SIGALRM )
+		{
+#ifdef SA_INTERRUPT
+		act.sa_flags |= SA_INTERRUPT;		/* SunOS */
+#endif
+		}
+	else
+		{
+#ifdef SA_RESTART
+		act.sa_flags |= SA_RESTART;		/* SVR4, 4.3+BSD */
+#endif
+		}
+
+	if ( sigaction(sig, &act, &old) < 0 )
+		return (signal_handler) SIG_ERR;
+
+	return (signal_handler) old.sa_handler;
+	}
+
+/*
+** This is needed because a longjump in a signal handler
+** does not result in the signal being unblock.
+*/
+void unblock_signal( int sig )
+	{
+	sigset_t newmask, oldmask;
+	sigemptyset( &newmask );
+	sigaddset( &newmask, sig );
+	sigprocmask( SIG_UNBLOCK, &newmask, &oldmask );
 	}
 
 static int tcp_proto_number()

@@ -91,6 +91,10 @@ extern "C" {
 	signal_handler install_signal_handler( int signal,
 						signal_handler handler );
 
+	/* Unblock the signal specified by "sig" */
+	void unblock_signal( int sig );
+
+
 	/* Sets the terminal to character mode, thus select returns
 	 * as each character is typed. Needed for command line editing.
 	 */
