@@ -26,6 +26,9 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 #define memcpy_killbs( to, from, len ) \
 {char last='\0'; int j=0; for (int i=0; i<len; ++i) last=(((to)[j] = (from)[i])=='\\'?(last=='\\'?(++j,'\0'):'\\'):(to)[j++]);len=j;}
 
+#define move_ptrs(to,from,count)					\
+{for( int XIX=count-1; XIX>=0; --XIX ) (to)[XIX]=(from)[XIX];}
+
 #define SPLIT_SIG 65535
 
 #define SIZE_P								\
@@ -470,6 +473,7 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 
 		for ( int i=0,mc=0; i < len; ++i,++mc )
 			{
+			char *free_str = 0;
 			subst.splitReset();
 			EVAL_ACTION( strs[ in_place && ! swap_io ? i : mc ], SUBST_PLACE_ACTION )
 
@@ -488,14 +492,14 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 					{
 					int xlenx = len;
 					len += count * splits;
-					outs = (char**) realloc_memory(outs, sizeof(char*)*len);
+					outs = (char**) realloc_memory(outs, sizeof(char*)*(len+1));
 					if ( in_place && ! swap_io ) strs = outs;
 					resized = 1;
 
 					if ( i+1 < xlenx && in_place && ! swap_io )
-						memmove( &outs[i+count*splits+1], &outs[i+1], (xlenx-i-1)*sizeof(charptr) );
+						move_ptrs( &outs[i+count*splits+1], &outs[i+1], xlenx-i );
 
-					if ( in_place && free_it && ! swap_io ) free_memory(outs[i]);
+					if ( in_place && free_it && ! swap_io ) free_str = outs[i];
 
 					subst.split(&outs[i],regx_buffer);
 					i += count * splits;
@@ -508,14 +512,15 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 				}
 			else if ( ! in_place || swap_io )
 				{
-				cerr << "------------>   we're here" << endl;
-				if ( free_it ) free_memory(outs[i]);
-				outs[i] = strdup(strs[i]);
+				if ( free_it && ! swap_io ) free_str = outs[i];
+				outs[i] = strdup(strs[ in_place && ! swap_io ? i : mc ]);
 				}
-
 
 			MATCH_ACTION( count, mc+(cnt-1)%reg->nparens*len , index ,	\
 				     register int index = mc+cnt%reg->nparens*len )
+
+			if ( free_str ) free_memory( free_str );
+
 			}
 
 		if ( resized || swap_io ) strs = outs;
