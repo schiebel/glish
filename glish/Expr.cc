@@ -737,6 +737,8 @@ IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 	lopt.set(evalOpt::SIDE_EFFECTS);
 
 	IValue *ret = Eval(lopt);
+	opt.Backrefs() = lopt.Backrefs();
+
 	if ( ret )
 		{
 		if ( ret->Type() == TYPE_FAIL )
