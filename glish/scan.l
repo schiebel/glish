@@ -182,7 +182,7 @@ WS	[ \t]+
 OWS	[ \t]*
 D	[0-9]
 RXSTART	[!/#@%^&|~`;:]
-RXCONT	[^\n\\!/#@%^&|~`;:]
+RXCONT	[^\n\r\\!/#@%^&|~`;:]
 
 FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
@@ -319,10 +319,10 @@ T		RETURN_CONSTANT( glish_true );
 InClUdE		BEGIN(INCL); break;
 include		return TOK_INCLUDE;
 
-pragma{WS}shared{WS}user{OWS};?{OWS}\n		PRAGMA_SHARED(USER)
-pragma{WS}shared{WS}group{OWS};?{OWS}\n		PRAGMA_SHARED(GROUP)
-pragma{WS}shared{WS}world{OWS};?{OWS}\n		PRAGMA_SHARED(WORLD)
-pragma{WS}include{WS}once{OWS};?{OWS}\n		PRAGMA_ONCE
+pragma{WS}shared{WS}user{OWS};?{OWS}\r?\n	PRAGMA_SHARED(USER)
+pragma{WS}shared{WS}group{OWS};?{OWS}\r?\n	PRAGMA_SHARED(GROUP)
+pragma{WS}shared{WS}world{OWS};?{OWS}\r?\n	PRAGMA_SHARED(WORLD)
+pragma{WS}include{WS}once{OWS};?{OWS}\r?\n	PRAGMA_ONCE
 pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <INITIAL,NO_REGEX>{ID} {
@@ -371,7 +371,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		}
 		
 <REGEX>{RXCONT}+			literal( yytext ); break;
-<QUOTE,ATTR_QUOTE>[^'"\n\\]+		literal( yytext ); break;
+<QUOTE,ATTR_QUOTE>[^'"\r\n\\]+		literal( yytext ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
@@ -380,7 +380,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\e"		{ char escape[2] = { '\x01b', '\0' };
 					  literal( escape ); break; }
 <QUOTE,REGEX,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
-<QUOTE,REGEX,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\"\r?\n{OWS}	++line_num; break;
 <QUOTE,ATTR_QUOTE>"\\".			literal( &yytext[1] ); break;
 <REGEX>"\\".				literal( yytext ); break;
 
@@ -468,7 +468,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<END_REGEX>\n	|
+<END_REGEX>\r?\n |
 <END_REGEX>. {
 		statement_can_end = 1;
 		unput(yytext[0]);
@@ -489,7 +489,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		return TOK_REGEX;
 		}
 
-<REGEX>\n	{
+<REGEX>\r?\n	{
 		unput('\n');
 		char *bad = literal();
 		int len = strlen(bad)-1;
@@ -513,7 +513,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		}
 
 
-<QUOTE,ATTR_QUOTE>\n	{
+<QUOTE,ATTR_QUOTE>\r?\n	{
 		error->Report( "unmatched quote (",
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;
@@ -569,13 +569,13 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\r?\n	{
 		++line_num;
 		first_line = 0;
 		break;
 		}
 
-<ATTR>\n	{
+<ATTR>\r?\n	{
 		// Treat this case as ending the newline, so that
 		// "foo := bar::" works as expected.
 		BEGIN(INITIAL);
@@ -590,7 +590,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<*>\n		{
+<*>\r?\n	{
 		if ( newline_is_semi )
 			{
 			bump_line_num = 1;

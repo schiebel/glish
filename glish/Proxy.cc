@@ -18,13 +18,17 @@ RCSID("@(#) $Id$")
 
 class pxy_store_cbinfo {
     public:
-	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), data(data_) { }
-	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), data(data_) { }
+	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), cb3(0), data(data_) { }
+	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), cb3(0), data(data_) { }
+	pxy_store_cbinfo( PxyStoreCB3 cb ) : cb1(0), cb2(0), cb3(cb), data(0) { }
 	void invoke( ProxyStore *s, Value *v, GlishEvent *e )
-		{ if ( cb1 ) (*cb1)( s, v, e, data ); else (*cb2)( s, v, data ); }
+		{ if ( cb1 ) (*cb1)( s, v, e, data );
+		  else if ( cb2 ) (*cb2)( s, v, data );
+		  else if ( cb3 ) (*cb3)(s,v); }
     private:
 	PxyStoreCB1 cb1;
 	PxyStoreCB2 cb2;
+	PxyStoreCB3 cb3;
 	void *data;
 };
 
@@ -62,6 +66,17 @@ void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data )
 	{
 	char *s = strdup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
+	if ( old )
+		{
+		free_memory( s );
+		delete old;
+		}
+	}
+
+void ProxyStore::Register( const char *string, PxyStoreCB3 cb )
+	{
+	char *s = strdup(string);
+	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb ) );
 	if ( old )
 		{
 		free_memory( s );
