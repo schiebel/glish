@@ -19,6 +19,7 @@ Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
+unsigned long TkFrame::grab = 0;
 
 class ScrollbarTrigger : public NotifyTrigger {
     public:
@@ -892,11 +893,11 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+		  charptr height, charptr cursor, charptr title ) : TkAgent( s ), is_tl( 1 ),
+		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 
 	{
-	char *argv[13];
+	char *argv[15];
 
 	agent_ID = "<graphic:frame>";
 
@@ -948,6 +949,11 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	argv[c++] = (char*) height;
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
+	if ( cursor && *cursor )
+		{
+		argv[c++] = "-cursor";
+		argv[c++] = (char*) cursor;
+		}
 
 	self = rivet_create(FrameClass, pseudo ? pseudo : root, c, argv);
 
@@ -971,18 +977,22 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
 	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
+	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
+	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
+		  charptr width, charptr height, charptr cursor ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
 		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 	{
-	char *argv[12];
+	char *argv[14];
 	frame = frame_;
 
 	agent_ID = "<graphic:frame>";
 
+	id = ++frame_count;
 	if ( ! root )
 		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
 
@@ -1005,6 +1015,11 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	argv[c++] = (char*) height;
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
+	if ( cursor && *cursor )
+		{
+		argv[c++] = "-cursor";
+		argv[c++] = (char*) cursor;
+		}
 
 	self = rivet_create(FrameClass, frame->Self(), c, argv);
 
@@ -1025,6 +1040,9 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
 	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
+	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
+	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
@@ -1039,6 +1057,7 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 	agent_ID = "<graphic:frame>";
 
+	id = ++frame_count;
 	if ( ! root )
 		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
 
@@ -1081,10 +1100,15 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
 	procs.Insert("tag", new TkProc( this, &TkFrame::GetTag, glishtk_str ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
+	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
+	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
 
 void TkFrame::UnMap()
 	{
+	if ( grab && grab == id )
+		Release();
 
 	if ( canvas )
 		canvas->Remove( this );
@@ -1209,6 +1233,53 @@ char *TkFrame::SetExpand( parameter_list *args, int is_request, int log )
 	return "";
 	}
 
+char *TkFrame::Grab( int global_scope )
+	{
+	if ( grab ) return 0;
+
+	if ( global_scope )
+		rivet_va_func(self, Tk_GrabCmd, "set", "-global", rivet_path(self), 0);
+	else
+		rivet_va_func(self, Tk_GrabCmd, "set", rivet_path(self), 0);
+
+	grab = id;
+	return "";
+	}
+
+char *TkFrame::GrabCB( parameter_list *args, int, int )
+	{
+	if ( grab ) return 0;
+
+	int global_scope = 0;
+	if ( args->length() > 0 )
+		{
+		int c = 0;
+		EXPRDIM( str, "" )
+
+		if ( ! strcmp(str,"global") )
+			global_scope = 1;
+
+		EXPR_DONE( str )
+		}
+
+	return Grab( global_scope );
+	}
+
+char *TkFrame::Release( )
+	{
+	if ( ! grab || grab != id ) return 0;
+
+	rivet_va_func(self, Tk_GrabCmd, "release", rivet_path(self), 0);
+
+	grab = 0;
+	return "";
+	}
+
+char *TkFrame::ReleaseCB( parameter_list *, int, int )
+	{
+	return Release( );
+	}
+
 void TkFrame::PackSpecial( TkAgent *agent )
 	{
 	const char **instr = agent->PackInstruction();
@@ -1282,8 +1353,8 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret = 0;
 
-	if ( args_val->length() != 12 )
-		return InvalidNumberOfArgs(12);
+	if ( args_val->length() != 13 )
+		return InvalidNumberOfArgs(13);
 
 	int c = 1;
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -1296,18 +1367,19 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETDIM( width )
 	SETDIM( height )
+	SETSTR( cursor )
 	SETSTR( title )
 
 	if ( parent->Type() == TYPE_BOOL )
 		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
-				    background, width, height, title );
+				    background, width, height, cursor, title );
 	else
 		{
 		Agent *agent = parent->AgentVal();
 		if ( ! strcmp("<graphic:frame>", agent->AgentID()) )
 			ret =  new TkFrame( s, (TkFrame*)agent, relief,
 					    side, borderwidth, padx, pady, expand, background,
-					    width, height );
+					    width, height, cursor );
 		}
 
 	return ret;

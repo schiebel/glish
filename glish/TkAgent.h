@@ -163,10 +163,10 @@ class TkFrame : public TkAgent {
     public:
 	TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr title );
+		  charptr width, charptr height, charptr cursor, charptr title );
 	TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
-		  charptr background, charptr width, charptr height );
+		  charptr background, charptr width, charptr height, charptr cursor);
 	TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, const char *tag_ );
@@ -181,6 +181,11 @@ class TkFrame : public TkAgent {
 	char *SetPady( parameter_list *, int, int );
 	char *SetExpand( parameter_list *, int, int );
 	char *GetTag( parameter_list *, int, int );
+
+	char *Grab( int global_scope=0 );
+	char *Release( );
+	char *GrabCB( parameter_list *, int, int );
+	char *ReleaseCB( parameter_list *, int, int );
 
 	void Pack();
 	void PackSpecial( TkAgent * );
@@ -211,6 +216,7 @@ class TkFrame : public TkAgent {
 	static unsigned long top_created;
 	static unsigned long tl_count;
 	static unsigned long frame_count;
+	static unsigned long grab;
 	unsigned long id;
 	char is_tl;
 	Rivetobj pseudo;
