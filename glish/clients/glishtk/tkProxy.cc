@@ -291,6 +291,13 @@ int glishtk_xioerror_handler(Display *d)
 	}
 
 static int (*glishtk_dflt_xerror_handler)(Display *,XErrorEvent*) = 0;
+int  glishtk_tkerrorhandler(ClientData cd, XErrorEvent*e){
+	fprintf( stderr, "XError: error code %u\n", e->error_code );
+        fprintf( stderr, "XError: request code %u\n", e->request_code );
+        fprintf( stderr, "XError: minor code %u\n", e->minor_code );
+        fprintf( stderr, "XError: resource id %u\n", e->resourceid );
+	return 0;
+}
 int glishtk_xerror_handler(Display *d, XErrorEvent*e)
 	{
 	glish_cleanup();
@@ -328,9 +335,13 @@ const char *TkProxy::init_tk( int visible_root )
 			if ( tk_started == TCL_OK )
 				{
 				root = Tk_MainWindow(tcl);
+/*
 				glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
 				glishtk_dflt_xerror_handler = XSetErrorHandler(glishtk_xerror_handler);
 
+*/
+                                ClientData cd;
+                                Tk_CreateErrorHandler(Tk_Display(root), -1, -1, -1,  glishtk_tkerrorhandler, cd);
 				static char tk_follow[] = "tk_focusFollowsMouse";
 				Tcl_Eval(tcl, tk_follow);
 
@@ -657,7 +668,7 @@ int TkProxy::DoOneTkEvent( )
 	if ( hold_tk_events )
 		ret = Tk_DoOneEvent( TK_FILE_EVENTS | TK_TIMER_EVENTS );
 	else
-		ret = Tk_DoOneEvent( 0 );
+		ret = Tk_DoOneEvent( TK_ALL_EVENTS );
 
 	return ret;
 	}
