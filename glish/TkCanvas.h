@@ -7,10 +7,12 @@
 #include "Agent.h"
 #include "BuiltIn.h"
 #include "TkAgent.h"
+//
+//  For declare(Dict,int)
+//
+#include "Glish/Client.h"
 
-typedef unsigned long unsigned_long;
-declare(Dict,unsigned_long);
-typedef Dict(unsigned_long) canvas_item_count;
+typedef Dict(int) canvas_item_count;
 
 class TkCanvas : public TkAgent {
     public:
@@ -31,13 +33,13 @@ class TkCanvas : public TkAgent {
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkCanvas();
-	unsigned long CanvasCount() const { return count; }
-	unsigned long ItemCount(const char *) const;
-	unsigned long NewItemCount(const char *);
+	int CanvasCount() const { return count; }
+	int ItemCount(const char *) const;
+	int NewItemCount(const char *);
 	Sequencer *seq() { return sequencer; }
     protected:
 	char *fill;
-	static unsigned long count;
+	static int count;
 	canvas_item_count item_count;
 	tkagent_list frame_list;
 	};

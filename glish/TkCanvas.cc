@@ -17,7 +17,7 @@ RCSID("@(#) $Id$")
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
 
-unsigned long TkCanvas::count = 0;
+int TkCanvas::count = 0;
 
 static IValue *ScrollToValue( Scrollbar_notify_data *data )
 	{
@@ -827,14 +827,14 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
 	}
 
-unsigned long TkCanvas::ItemCount(const char *name) const
+int TkCanvas::ItemCount(const char *name) const
 	{
 	return item_count[name];
 	}
 
-unsigned long TkCanvas::NewItemCount(const char *name)
+int TkCanvas::NewItemCount(const char *name)
 	{
-	unsigned long cnt = item_count[name];
+	int cnt = item_count[name];
 	item_count.Insert(name,++cnt);
 	return cnt;
 	}
