@@ -50,6 +50,8 @@ ReflexPtrBase &ReflexPtrBase::operator=( ReflexObj *o )
 		key_ = 0;
 
 	if ( tobj ) tobj->PointerGone( this );
+
+	return *this;
 	}
 
 ReflexPtrBase &ReflexPtrBase::operator=( ReflexPtrBase &p )
@@ -66,6 +68,8 @@ ReflexPtrBase &ReflexPtrBase::operator=( ReflexPtrBase &p )
 		key_ = 0;
 
 	if ( tobj ) tobj->PointerGone( this );
+
+	return *this;
 	}
 
 ReflexObj::~ReflexObj( )
