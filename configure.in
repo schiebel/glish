@@ -999,7 +999,7 @@ AC_EGREP_CPP(yes,
 ], [KAI=yes], [KAI=no])
 AC_MSG_RESULT($KAI)
 
-AC_CHECK_HEADERS(osfcn.h)
+AC_CHECK_HEADERS(osfcn.h iostream.h)
 
 if test -n "$no_gettod_decl"; then
 AC_MSG_CHECKING([for gettimeofday declaration (c++)])
