@@ -94,10 +94,10 @@ INTERP_OBJS = IValue.o Agent.o BinOpExpr.o BuiltIn.o Daemon.o Event.o Expr.o Fil
 	Func.o Pager.o Reflex.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o \
 	glish_init.o parse.o sprintf.o scan.o
 
-CLIENT_OBJS = Value.o ValKern.o npdstubs.o Client.o Complex.o Dict.o Executable.o LocalExec.o Object.o \
+CLIENT_OBJS = Value.o ValKern.o Client.o Complex.o Dict.o Executable.o LocalExec.o Object.o \
 	Proxy.o Queue.o Reporter.o Socket.o Str.o Stream.o VecRef.o glishlib.o system.o @ARCH_OBJ@
 
-CLIENT_GCOBJS = gcValue.o gcValKern.o gcnpdstubs.o gcClient.o gcComplex.o gcDict.o gcExecutable.o gcLocalExec.o \
+CLIENT_GCOBJS = gcValue.o gcValKern.o gcClient.o gcComplex.o gcDict.o gcExecutable.o gcLocalExec.o \
 	gcObject.o gcProxy.o gcQueue.o gcReporter.o gcSocket.o gcStr.o gcStream.o gcVecRef.o \
 	gcsystem.o @ARCH_OBJ@
 
@@ -106,11 +106,11 @@ INTERP_OBJS_PROXY = $(D)IValue.o $(D)Agent.o $(D)BinOpExpr.o $(D)BuiltIn.o $(D)D
 	$(D)Reflex.o $(D)Regex.o $(D)RemoteExec.o $(D)Sequencer.o $(D)Select.o $(D)Stmt.o $(D)Task.o \
 	$(D)glish_init.o $(D)parse.o $(D)sprintf.o $(D)scan.o
 
-CLIENT_OBJS_PROXY = $(D)Value.o $(D)ValKern.o $(D)npdstubs.o $(D)Client.o $(D)Complex.o $(D)Dict.o \
+CLIENT_OBJS_PROXY = $(D)Value.o $(D)ValKern.o $(D)Client.o $(D)Complex.o $(D)Dict.o \
 	$(D)Executable.o $(D)LocalExec.o $(D)Object.o $(D)Proxy.o $(D)Queue.o $(D)Reporter.o \
 	$(D)Socket.o $(D)Str.o $(D)Stream.o $(D)VecRef.o $(D)glishlib.o $(D)system.o @ARCH_OBJ@
 
-CLIENT_GCOBJS_PROXY = $(D)gcValue.o $(D)gcValKern.o $(D)npdstubs.o $(D)gcClient.o $(D)gcComplex.o $(D)gcDict.o \
+CLIENT_GCOBJS_PROXY = $(D)gcValue.o $(D)gcValKern.o $(D)gcClient.o $(D)gcComplex.o $(D)gcDict.o \
 	$(D)gcExecutable.o $(D)gcLocalExec.o $(D)gcObject.o $(D)gcProxy.o $(D)gcQueue.o $(D)gcReporter.o \
 	$(D)gcSocket.o $(D)gcStr.o $(D)gcStream.o $(D)gcVecRef.o $(D)gcsystem.o @ARCH_OBJ@
 
@@ -312,12 +312,6 @@ $(D)IValue.o: $(SRC)/Value.cc $(SRC)/StringVal $(H)/Value.h $(SRC)/IValue.cc $(S
 				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
 			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/IValue.cc $(T)
-
-$(D)npdstubs.o: $(SRC)/npdstubs.cc
-	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -c $(SRC)/npdstubs.cc $(T)
-
-$(D)gcnpdstubs.o: $(SRC)/npdstubs.cc
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcnpdstubs.o $(SRC)/npdstubs.cc $(T)
 
 $(D)Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 		$(H)/Reporter.h $(SRC)/ports.h
