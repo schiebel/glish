@@ -108,7 +108,7 @@ void LocalExec::SetStatus( int s )
 	status = s;
 	has_exited = 1;
 
-	if ( ! WIFEXITED(status) )
+	if ( ! WIFEXITED(s) )
 		cerr << "LocalExec::SetStatus: abnormal child termination for "
 		     << executable << "\n";
 	}
