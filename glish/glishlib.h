@@ -10,6 +10,8 @@
 		{ return new type( ); }						\
 	Value *create_value( const char *message, const char *file, int line )	\
 		{ return new type( message, file, line ); }			\
+	Value *create_value( const Value *v, const char *file, int line )	\
+		{ return new type( v, file, line ); }				\
 	Value *create_value( const Value &value )				\
 		{ return new type( value ); }					\
 	Value *create_value( glish_bool value )					\

@@ -70,6 +70,15 @@ const Str GlishObject::strFail( const RMessage& m0,
 				   m10,m11,m12,m13,m14,m15,m16 );
 	}
 
+Value *GlishObject::Fail( const Value *v ) const
+	{
+	if ( v && v->Type() == TYPE_FAIL && file && glish_files )
+		return create_value( v, (*glish_files)[file], line );
+	else
+		return Fail( RMessage(v) );
+		
+	}
+
 Value *GlishObject::Fail( ) const
 	{
 	if ( file && glish_files )

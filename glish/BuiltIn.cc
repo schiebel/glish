@@ -419,12 +419,20 @@ IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 
 	char *prompt = v->StringVal();
 
-	char **ret = (char**) alloc_memory(sizeof(char*));
-	ret[0] = readline(prompt);
+	char *result = readline(prompt);
 
 	free_memory( prompt );
 
-	return new IValue( (charptr*) ret, 1 );
+	if ( result )
+		{
+		char **ret = (char**) alloc_memory(sizeof(char*));
+		ret[0] = result;
+		return new IValue( (charptr*) ret, 1 );
+		}
+
+	IValue *ret = empty_ivalue();
+	ret->Polymorph( TYPE_STRING );
+	return ret;
 	}
 
 
@@ -477,7 +485,13 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 			free_memory( r );				\
 		if ( i_is_copy )					\
 			free_memory( i );				\
+									\
 		result = new IValue( stor, maxlen );			\
+									\
+		if ( rv->GetAttributes() )				\
+			result->CopyAttributes(rv);			\
+		else if ( iv->GetAttributes() )				\
+			result->CopyAttributes(iv);			\
 		}							\
 		break;
 
@@ -527,7 +541,11 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 			}						\
 		if ( is_copy )						\
 			free_memory( vp );				\
+									\
 		result = new IValue( stor, vlen );			\
+									\
+		if ( v->GetAttributes() )				\
+			result->CopyAttributes(v);			\
 		}							\
 		break;
 

@@ -51,31 +51,48 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		return strdup( "<fail>" );
 
 	const Value *value1;
+	const Value *lnval;
+	int *ln = 0;
+	int lnlen = 0;
 	int len = 0;
 	char *intro = "<fail>";
-	char *msg[9];
+	char *msg[20] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	int cnt = 7;
 	int lines = 2;
+	int cur = 1;
 
-	msg[0] = msg[1] = msg[2] = msg[3] = msg[4] = msg[5] = msg[6] = msg[7] = msg[8] = 0;
 	if ( (value1 = (*attr)["message"]) )
 		{
 		msg[0] = value1->StringVal(sep, max_elements, useAttributes );
 		cnt += strlen(msg[0]);
 		}
 
-	if ( (value1 = (*attr)["file"]) && value1->Type() == TYPE_STRING )
+	if ( (lnval = (*attr)["line"]) && lnval->Type() == TYPE_INT )
 		{
-		msg[1] = value1->StringVal( sep, max_elements, useAttributes );
-		cnt += strlen(msg[1]);
+		ln = lnval->IntPtr(0);
+		lnlen = lnval->Length();
 		}
 
-	if ( (value1 = (*attr)["line"]) && value1->IsNumeric() )
+	if ( (value1 = (*attr)["file"]) && value1->Type() == TYPE_STRING )
 		{
-		int l = value1->IntVal();
-		msg[2] = (char*) alloc_memory( sizeof(char)*48 );
-		sprintf(msg[2],"Line: %d",l);
-		cnt += strlen(msg[2]);
+		charptr *strs = value1->StringPtr(0);
+		int len = value1->Length();
+		int C = 0;
+		for ( int x=0; C < 5 && x < len && x < lnlen; ++x )
+			{
+			int found = 0;
+			for ( int y=0; ! found && y < x; ++y )
+				if ( ! strcmp( strs[y], strs[x] ) && ln[y] == ln[x] )
+					found = 1;
+			if ( ! found )
+				{
+				msg[cur] = (char*) alloc_memory( strlen(strs[x]) + 30 );
+				sprintf( msg[cur], "\tFile:\t%s, Line %d", strs[x], ln[x] );
+				cnt += strlen(msg[cur++]);
+				++C;
+				}
+			}
 		}
 
 	if ( (value1 = (*attr)["stack"]) &&
@@ -84,66 +101,48 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		{
 		charptr *stack = value1->StringPtr(0);
 		int l = strlen(stack[--len]);
-		msg[3] = (char*) alloc_memory( sizeof(char)*(l+10) );
-		strcpy(msg[3],"Stack:\t");
-		strcat(msg[3],stack[len]);
-		strcat(msg[3],"()");
+		msg[cur] = (char*) alloc_memory( sizeof(char)*(l+10) );
+		strcpy(msg[cur],"\tStack:\t");
+		strcat(msg[cur],stack[len]);
+		strcat(msg[cur++],"()");
 		cnt += l + 13;
-		for (int x=4; x < 8 && len; x++)
+		int x=cur;
+		for ( ; x < cur+4 && len; x++)
 			{
 			++lines;
 			l = strlen(stack[--len]);
-			msg[x] = (char*) alloc_memory( sizeof(char)*(l+4) );
-			strcpy(msg[x],"\t");
+			msg[x] = (char*) alloc_memory( sizeof(char)*(l+6) );
+			strcpy(msg[x],"\t\t");
 			strcat(msg[x],stack[len]);
 			strcat(msg[x],"()");
-			cnt += l + 4;
+			cnt += l + 6;
 			}
 		if ( len )
 			{
-			msg[8] = "\t...";
-			cnt += 5;
+			msg[x] = "\t\t...";
+			cnt += 7;
 			}
 		}
 
 	if ( prefix ) cnt += lines * strlen(prefix);
 
 	// Add some for line feeds etc...
-	char *result = (char*) alloc_memory( sizeof(char)*(cnt + 24) );
+	char *result = (char*) alloc_memory( sizeof(char)*(cnt + 34) );
 
 	result[0] = '\0';
 	if ( prefix ) strcat( result, prefix );
 	strcat(result, intro);
-	if ( msg[0] ) { strcat(result, ": "); strcat(result, msg[0]); }
-	if ( msg[1] )
+	if ( msg[0] ) { strcat( result, ": "); strcat( result, msg[0] ); }	
+	for ( int i=1; i < 20 && msg[i]; ++i )
 		{
 		strcat(result, "\n");
 		if ( prefix ) strcat(result, prefix);
-		strcat(result,"\tFile: ");
-		strcat(result, msg[1]);
-		}
-	if ( msg[2] )
-		{
-		if ( msg[1] ) strcat( result, ", ");
-		else
-			{
-			strcat( result, "\n" );
-			if ( prefix ) strcat( result, prefix );
-			strcat( result, "\t");
-			}
-		strcat( result, msg[2] );
-		}
-	for ( int x=3; x <= 8; x++ )
-		if ( msg[x] )
-			{
-			strcat(result, "\n");
-			if ( prefix ) strcat( result, prefix );
-			strcat( result, "\t");
-			strcat(result, msg[x]);
-			}
+		strcat(result,msg[i]);
+		}		
 
-	for ( int i=0; i < 8; i++ )
-		if ( msg[i] ) free_memory( msg[i] );
+	if ( msg[0] ) free_memory( msg[0] );
+	for ( int i=1; i < 20 && msg[i]; i++ )
+		free_memory( msg[i] );
 
 	return result;
 	}

@@ -88,6 +88,39 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 		rptr->Insert( strdup("message"), create_value( message ) );
 	}
 
+Value::Value( const Value *val, const char *xfile, int lineNum )
+	{
+	DIAG2( (void*) this, "Value( const Value *, const char *, int )" )
+	INIT_VALUE_ACTION
+	kernel = val->kernel;
+	recordptr rptr = kernel.modRecord();
+	Value *v = (*rptr)["file"];
+	if ( v )
+		{
+		charptr *sptr = v->StringPtr(0);
+		charptr *sary = (charptr*) alloc_memory( sizeof(charptr) * (v->Length() + 1) );
+		int x = 0;
+		for ( ; x < v->Length(); ++x )
+			sary[x] = strdup(sptr[x]);
+		sary[x] = (charptr) alloc_memory( strlen((*glish_files)[file]) + 1);
+		strcpy( (char*) sary[x], (*glish_files)[file] );
+		rptr->Insert("file",create_value( sary, v->Length() + 1 ));
+		Unref(v);
+		}
+	v = (*rptr)["line"];
+	if ( v )
+		{
+		int *iptr = v->IntPtr(0);
+		int *iary = (int*) alloc_memory( sizeof(int) * (v->Length() + 1) );
+		int x = 0;
+		for ( ; x < v->Length(); ++x )
+			iary[x] = iptr[x];
+		iary[x] = line;
+		rptr->Insert("line",create_value( iary, v->Length() + 1 ));
+		}
+	}
+
+
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\

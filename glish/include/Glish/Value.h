@@ -100,6 +100,7 @@ public:
 	// Create a <fail> value
 	Value( );
 	Value( const char *message, const char *file, int lineNum );
+	Value( const Value *val, const char *file, int lineNum );
 
 	Value( const Value &v ) : kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )
@@ -707,6 +708,7 @@ extern Value *Fail( );
 // and return a Value*
 extern Value *create_value( );
 extern Value *create_value( const char *message, const char *file, int line );
+extern Value *create_value( const Value *val, const char *file, int line );
 extern Value *create_value( const Value &value );
 extern Value *create_value( glish_bool value );
 extern Value *create_value( byte value );

@@ -3172,7 +3172,7 @@ IValue *Sequencer::Include( const char *file )
 	int is_interactive = interactive;
 	set_flex_buffer(new_buf);
 	unsigned short old_line_num = line_num;
-	line_num = 1;
+	line_num = 0;
 
 
 	error->SetCount(0);

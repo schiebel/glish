@@ -37,6 +37,8 @@ public:
 	// Create a <fail> value
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
+	IValue( const Value *val, const char *file, int lineNum ) :
+				Value( val, file, lineNum ) GGCTOR { }
 
 	IValue( const Value &v ) : Value(v) GGCTOR { }
 	IValue( const IValue &v ) : Value(v) GGCTOR { }
