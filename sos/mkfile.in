@@ -80,7 +80,7 @@ GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
 
 HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
 	$(INCDIR)/sos/header.h $(INCDIR)/sos/mdep.h $(INCDIR)/sos/list.h \
-	$(INCDIR)/sos/generic.h
+	$(INCDIR)/sos/generic.h $(INCDIR)/sos/ref.h $(INCDIR)/sos/alloc.h
 
 TAR_FILE = sos.tar
 
@@ -244,6 +244,14 @@ $(INCDIR)/sos/list.h: $(H)/list.h
 $(INCDIR)/sos/generic.h: $(H)/generic.h
 	@rm -f $@
 	cp $(H)/generic.h $@
+
+$(INCDIR)/sos/ref.h: $(H)/ref.h
+	@rm -f $@
+	cp $(H)/ref.h $@
+
+$(INCDIR)/sos/alloc.h: $(H)/alloc.h
+	@rm -f $@
+	cp $(H)/alloc.h $@
 
 INSTALL_:
 
