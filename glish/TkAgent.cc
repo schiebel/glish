@@ -383,6 +383,20 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		return 0;						\
 		}
 
+#define EXPRDOUBLE(var,EVENT)                                           \
+        Expr *var##_expr_ = (*args)[c++]->Arg();                        \
+        const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();        \
+        int var = 0;                                                    \
+        if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
+                var##_val_ ->Length() <= 0 )                            \
+                {                                                       \
+                error->Report("bad value for ", EVENT);                 \
+                var##_expr_ ->ReadOnlyDone(var##_val_);                 \
+                return 0;                                   		\
+                }                                                       \
+        else                                                            \
+                var = var##_val_ ->DoubleVal();
+
 #define EXPRDOUBLEPTR(var, NUM, EVENT)					\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
@@ -1043,7 +1057,6 @@ extern "C" int rivet_menuentry_set(Rivetobj,char*,char*,char*);
 char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
 				int is_request, int log )
 	{
-	char index[100];
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
 	char *ret = 0;
@@ -1051,8 +1064,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
 	HASARG( args, > 0 )
 	int c = 0;
 	EXPRSTR( str, event_name )
-	sprintf(index,"%d",Parent->Index(Self) - 1);
-	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", index, (char*) cmd, (char*) str, 0 );
+	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(), (char*) cmd, (char*) str, 0 );
 	EXPR_DONE( str )
 	return ret;
 	}
@@ -1060,7 +1072,6 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
 char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, const char *pfalse,
 				parameter_list *args, int is_request, int log )
 	{
-	char index[100];
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
 	char *ret = 0;
@@ -1068,8 +1079,7 @@ char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, con
 	HASARG( args, > 0 )
 	int c = 0;
 	EXPRINT( i, event_name )
-	sprintf(index,"%d",Parent->Index(Self));
-	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", index, (char*) cmd, (char*)(i ? ptrue : pfalse), 0 );
+	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(), (char*) cmd, (char*)(i ? ptrue : pfalse), 0 );
 	EXPR_DONE( i )
 	return ret;
 	}
@@ -1279,7 +1289,7 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr cursor, charptr title ) : TkAgent( s ), is_tl( 1 ),
+		  charptr height, charptr cursor, charptr title, charptr icon ) : TkAgent( s ), is_tl( 1 ),
 		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 
 	{
@@ -1348,8 +1358,18 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
-	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
-		      rivet_new_callback((int (*)()) glishtk_delframe_cb,(ClientData) this, 0), 0);
+	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)),
+		      "WM_DELETE_WINDOW",rivet_new_callback( (int (*)()) glishtk_delframe_cb,
+							     (ClientData) this, 0), 0 );
+
+	if ( strlen( icon ) )
+		{
+		char *icon_ = (char*) alloc_memory(strlen(icon)+2);
+		sprintf(icon_,"@%s",icon);
+		rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
+			      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+		free_memory( icon_ );
+		}
 
 	//
 	// Clearing the height/width of toplevel frames fixes problems
@@ -1375,6 +1395,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
+	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon ));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
@@ -1569,6 +1590,23 @@ TkFrame::~TkFrame( )
 	if ( ! tl_count )
 		// Empty queue
 		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
+	}
+
+char *TkFrame::SetIcon( parameter_list *args, int is_request, int log )
+	{
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRSTR( icon, "" )
+	if ( icon && strlen(icon) )
+		{
+		char *icon_ = (char*) alloc_memory(strlen(icon)+2);
+		sprintf(icon_,"@%s",icon);
+		rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
+			      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+		free_memory( icon_ );
+		}
+	EXPR_DONE( icon )
+	return "";
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
@@ -1804,8 +1842,8 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret = 0;
 
-	if ( args_val->length() != 13 )
-		return InvalidNumberOfArgs(13);
+	if ( args_val->length() != 14 )
+		return InvalidNumberOfArgs(14);
 
 	int c = 1;
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -1820,10 +1858,11 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( height )
 	SETSTR( cursor )
 	SETSTR( title )
+	SETSTR( icon )
 
 	if ( parent->Type() == TYPE_BOOL )
 		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
-				    background, width, height, cursor, title );
+				    background, width, height, cursor, title, icon );
 	else
 		{
 		Agent *agent = parent->AgentVal();
@@ -1878,28 +1917,33 @@ int TkFrame::CanExpand() const
 
 void TkButton::UnMap()
 	{
-	if ( self && frame )
+	if ( unmapped ) return;
+	unmapped = 1;
+
+	if ( type == MENU )
 		{
-		if ( type == MENU )
-			while ( entry_list.length() )
-				{
-				TkAgent *a = entry_list.remove_nth( 0 );
-				a->UnMap( );
-				}
+		while ( entry_list.length() )
+			{
+			TkAgent *a = entry_list.remove_nth( 0 );
+			a->UnMap( );
+			}
 
 		rivet_destroy_window( self );
 		}
+
 	else if ( menu )
 		{
-		char index[100];
-		sprintf(index,"%d",menu->Index(this));
-		rivet_va_cmd( menu->Menu(), "delete", index, 0 );
 		menu->Remove(this);
+		rivet_va_cmd( Menu(), "delete", Index(), 0 );
 		}
+
+	else
+		TkAgent::UnMap();
 
 	menu = 0;
 	frame = 0;
 	self = 0;
+	menu_base = 0;
 	}
 
 TkButton::~TkButton( )
@@ -1929,20 +1973,13 @@ int tk_button_menupost(Rivetobj menu, XEvent *unused1, ClientData ignored, Clien
 	return TCL_OK;
 	}
 
-int TkButton::Index( TkButton *item ) const
-	{
-	for ( int i=0; i < entry_list.length(); i++ )
-		if ( item == entry_list[i] )
-			return i+1;
-
-	return 0;
-	}
 
 TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val, charptr fill_ )
-			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0), menu_base(0), fill(0)
+			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0),
+			  menu_base(0), fill(0), menu_index(0), unmapped(0)
 	{
 	type = PLAIN;
 	frame = frame_;
@@ -2062,7 +2099,8 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val )
-			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu_base(0)
+			: value(0), TkAgent( s ), state(0), next_menu_entry(0),
+			  menu_base(0), menu_index(0), unmapped(0)
 	{
 	type = PLAIN;
 
@@ -2076,7 +2114,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	if ( ! menu || ! menu->Self() ) return;
 
-	char *argv[34];
+	char *argv[38];
 
 	id = ++button_count;
 
@@ -2105,6 +2143,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		argv[c++] = "-value";
 		argv[c++] = val_name;
 		}
+
 
 #if 0
 	argv[c++] = "-padx";
@@ -2147,23 +2186,39 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		{
 		case RADIO:
 			argv[2] = "radio";
-			rivet_cmd(menu->Menu(), c, argv);
+			rivet_cmd(Menu(), c, argv);
+			self = Menu();
 			break;
 		case CHECK:
 			argv[2] = "check";
+			rivet_cmd(Menu(), c, argv);
+			self = Menu();
+			break;
+		case MENU:
+			{
+			argv[2] = "cascade";
+			char *av[10];
+			av[0] = av[1] = 0;
+			av[2] = "-tearoff";
+			av[3] = "0";
+			self = menu_base = rivet_create(MenuClass, menu->Menu(), 4, av);
+			argv[c++] = "-menu";
+			argv[c++] = rivet_path(self);
 			rivet_cmd(menu->Menu(), c, argv);
+			}
 			break;
 		default:
 			argv[2] = "command";
-			rivet_cmd(menu->Menu(), c, argv);
+			rivet_cmd(Menu(), c, argv);
+			self = Menu();
 			break;
 		}
 
-	self = menu->Menu();
-
 	value = val ? copy_value( val ) : 0;
 
-	menu->Add(this);
+	menu_index = strdup( rivet_va_cmd(menu->Menu(), "index", "last", 0) );
+
+        menu->Add(this);
 
 	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr));
@@ -2274,11 +2329,7 @@ void TkButton::State(unsigned char s)
 		if ( frame )
 			rivet_va_cmd( self, "invoke", 0 );
 		else if ( menu )
-			{
-			char index[100];
-			sprintf(index,"%d",menu->Index(this)-1);
-			rivet_va_cmd( menu->Menu(), "invoke", index, 0 );
-			}
+			rivet_va_cmd( Menu(), "invoke", Index(), 0 );
 		}
 	}
 
@@ -2325,35 +2376,57 @@ STD_EXPAND_CANEXPAND(TkButton)
 
 DEFINE_DTOR(TkScale)
 
+unsigned int TkScale::scale_count = 0;
 int scalecb(Rivetobj scale, XEvent *unused1, ClientData assoc, ClientData calldata)
 	{
 	((TkScale*)assoc)->ValueSet( *((double*) calldata ) );
 	return TCL_OK;
 	}
 
+char *glishtk_scale_value(TkAgent *a, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "scale value function";
+
+	int c = 0;
+	if ( args->length() >= 1 )
+		{
+		EXPRDOUBLE( d, event_name )
+		((TkScale*)a)->SetValue( d );
+		EXPR_DONE( d )
+		}
+
+	return 0;
+	}
+
 TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 		   charptr text, charptr orient, charptr relief, charptr borderwidth,
 		   charptr foreground, charptr background, charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkAgent( s ), fill(0), from_(from), to_(to)
 	{
+	char var_name[256];
 	frame = frame_;
-	char *argv[22];
-	char from_[40];
-	char to_[40];
+	char *argv[24];
+	char from_c[40];
+	char to_c[40];
+	id = ++scale_count;
 
 	agent_ID = "<graphic:scale>";
 
 	if ( ! frame || ! frame->Self() ) return;
 
-	sprintf(from_,"%d",from);
-	sprintf(to_,"%d",to);
+	sprintf(var_name,"ScAlE%d\n",id);
+
+	sprintf(from_c,"%d",from);
+	sprintf(to_c,"%d",to);
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-from";
-	argv[c++] = from_;
+	argv[c++] = from_c;
 	argv[c++] = "-to";
-	argv[c++] = to_;
+	argv[c++] = to_c;
 	argv[c++] = "-length";
 	argv[c++] = (char*) len;
 	argv[c++] = "-orient";
@@ -2368,6 +2441,8 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	argv[c++] = (char*) foreground;
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background;
+	argv[c++] = "-variable";
+	argv[c++] = var_name;
 	argv[c++] = "-command";
 	argv[c++] = rivet_new_callback((int (*)()) scalecb, (ClientData) this, 0);
 
@@ -2382,6 +2457,7 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 		fill = (orient && ! strcmp(orient,"vertical")) ? strdup("y") :
 				(orient && ! strcmp(orient,"horizontal")) ? strdup("x") : 0;
 
+	SetValue(from_);
 	frame->AddElement( this );
 	frame->Pack();
 
@@ -2390,11 +2466,24 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	procs.Insert("text", new TkProc("-label", glishtk_onestr));
 	procs.Insert("end", new TkProc("-to", glishtk_oneint));
 	procs.Insert("start", new TkProc("-from", glishtk_oneint));
+	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
 	}
 
 void TkScale::ValueSet( double d )
 	{
 	PostTkEvent( "value", new IValue( d ) );
+	}
+
+void TkScale::SetValue( double d )
+	{
+	char var_name[256];
+	char val[256];
+	if ( d >= from_ && d <= to_ )
+		{
+		sprintf(var_name,"ScAlE%d\n",id);
+		sprintf(val,"%g",d);
+		Tcl_SetVar( self->interp, var_name, val, TCL_GLOBAL_ONLY );
+		}
 	}
 
 IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
