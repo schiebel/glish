@@ -49,7 +49,7 @@ class VecRef : public GlishObject {
 class SubVecRef(type) : public VecRef {					\
     public:								\
 	type& operator[]( int index );					\
-	type* DupVec() const;						\
+	type* DupVec( type *ret = 0 ) const;				\
 									\
     protected:								\
 	friend class VecRef;						\
@@ -62,9 +62,11 @@ class SubVecRef(type) : public VecRef {					\
 	}
 
 #define SubVecRefimplement2(type,func)					\
-type* SubVecRef(type)::DupVec() const					\
+type* SubVecRef(type)::DupVec( type *ret ) const			\
 	{								\
-	type* ret = new type[Length()];					\
+	if ( ! ret )							\
+		ret = new type[Length()];				\
+									\
 	for ( int i = 0; i < Length(); ++i )				\
 		{							\
 		int err;						\
