@@ -133,7 +133,7 @@ static int authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in *s
 	{
 	unsigned char *answer, *peer_answer;
 	char peer_hostname[256];
-	char peer_username[8];
+	char peer_username[9];
 	long peer_addr;
 	u_long ip_addr;
 	int answer_len, peer_answer_len;
