@@ -34,6 +34,9 @@ RCSID("@(#) $Id$")
 extern "C" int writev(int, const struct iovec *, int);
 #endif
 
+#if defined(__alpha)
+#define MAXIOV 16
+#else
 #if defined(IOV_MAX)
 #define MAXIOV IOV_MAX
 #elif defined(UIO_MAXIOV)
@@ -42,6 +45,7 @@ extern "C" int writev(int, const struct iovec *, int);
 #define MAXIOV MAX_IOVEC
 #else
 #define MAXIOV 16
+#endif
 #endif
 
 sos_status *sos_err_status = (sos_status*) -1;
@@ -228,7 +232,8 @@ sos_status *sos_fd_sink::flush( )
 				{
 				sos_fd_buf_kernel *l = buf.last();
 				if ( l->cnt >= l->size ) buf.add( );
-				// resource temporarily unavailable
+				// resource temporarily unavailable OR
+				// operation would block
 				if ( errno == EAGAIN ) return this;
 				// broken pipe
 				if ( errno == EPIPE ) { reset(); return 0; }
