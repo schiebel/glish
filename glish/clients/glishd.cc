@@ -127,8 +127,8 @@ int main( int /* argc */, char** argv )
 	// it to go away when we do.
 	mark_close_on_exec( a.FD() );
 
-	int suspend = 1;
-	while ( suspend ) sleep( 1 );
+// 	int suspend = 1;
+// 	while ( suspend ) sleep( 1 );
 
 	for ( ; ; )
 		{
