@@ -4,9 +4,9 @@ AC_INIT(glish)
 ## Copyright (c) 1993 The Regents of the University of California.
 ## Copyright (c) 1997 Associated Universities Inc.
 ##
-##
 ## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
 ## from ftp.ee.lbl.gov.
+##
 
 AC_CACHE_VAL(_cv_version,[_cv_version=`cat glish/version.h | head -1 | sed ['s/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/']`])
 AC_MSG_WARN(_cv_version: $_cv_version)
