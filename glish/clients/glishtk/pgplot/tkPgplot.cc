@@ -421,6 +421,13 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 		rec->Insert( strdup("type"), new Value( "unknown" ) );
 
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+
+	if ( type == 2 || type == 3 )
+		{
+		rec->Insert( strdup("key"), new Value( argv[6]));
+		rec->Insert( strdup("sym"), new Value(argv[5]));
+		}
+
 	rec->Insert( strdup("id"), 0 );
 
 	Value *val = new Value( rec );
@@ -470,7 +477,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, list);
 			(*glishtk_pgplot_table).Insert( strdup(cback), list );
 			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
-				     " {", cback, " %x %y %b %T }", (char *)NULL );
+				     " {", cback, " %x %y %b %T %K %A }", (char *)NULL );
 
 			}
 
@@ -656,12 +663,6 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	argv[c++] = cmap_share ? "true" : "false";
 	argv[c++] = "-takefocus";
 	argv[c++] = "1";
-//	argv[c++] = "-xscrollcommand";
-//	argv[c++] = rivet_new_callback((int (*)())pgplot_xscrollcb,
-// 					(ClientData)this, 0);
-//	argv[c++] = "-yscrollcommand";
-//	argv[c++] = rivet_new_callback((int (*)())pgplot_yscrollcb,
-// 					(ClientData)this, 0);
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
