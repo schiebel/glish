@@ -3,16 +3,18 @@
 ** Copyright (c) 1997,1998 Associated Universities Inc.
 */
 
-%token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
-%token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
-%token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LINK
-%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
-%token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
-%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
-%token TOK_REGEX TOK_APPLYRX
-%token TOK_FLEX_ERROR
-%token NULL_TOK
+%token START_KEYWORDS
+%token TOK_ACTIVATE TOK_AWAIT TOK_BREAK TOK_DO TOK_ELSE TOK_EXCEPT TOK_EXIT
+%token TOK_FAIL TOK_FOR TOK_FUNCTION TOK_GLOBAL TOK_IF TOK_IN TOK_INCLUDE
+%token TOK_LINK TOK_LOCAL TOK_NEXT TOK_ONLY TOK_PRINT TOK_RETURN
+%token TOK_SUBSEQUENCE TOK_TO TOK_UNLINK TOK_WHENEVER TOK_WHILE TOK_WIDER
+%token TOK_REF TOK_VAL
+%token END_KEYWORDS
+%token TOK_CONST
+%token TOK_CONSTANT TOK_ID TOK_REGEX
+%token TOK_ELLIPSIS TOK_APPLYRX TOK_ATTR 
 %token TOK_LAST_EVENT TOK_LAST_REGEX
+%token TOK_FLEX_ERROR NULL_TOK
 
 %left ','
 %right TOK_ASSIGN
@@ -97,6 +99,10 @@ extern "C" {
 	void yyerror( char msg[] );
 }
 
+/* returns non-zero if look-ahead should be cleared */
+extern int begin_literal_ids( int );
+extern void end_literal_ids();
+
 expr_list *glish_current_subsequence = 0;
 /* reset glish state after an error */
 static void error_reset( );
@@ -120,6 +126,9 @@ static int scope_depth = 0;
 static Stmt *cur_stmt = null_stmt;
 static evalOpt *eval_options;
 
+static int *lookahead = 0;
+static int empty_token = 0;
+
 int first_line = 1;
 extern int glish_regex_matched;
 extern void putback_token( int );
@@ -136,12 +145,16 @@ glish:
 			glish_regex_matched = 0;
 			if ( interactive( ) )
 				status = 0;
-        		static int *lookahead = & ( yyclearin );
-			static int empty = *lookahead;
+
+			if ( ! lookahead )
+				{
+				lookahead = & ( yyclearin );
+				empty_token = *lookahead;
+				}
 
 			cur_stmt = $2;
 
-			if ( *lookahead != empty )
+			if ( *lookahead != empty_token )
 				putback_token( *lookahead );
 
 			YYACCEPT;
@@ -393,8 +406,8 @@ expression:
 	|	'[' '=' ']'
 			{ $$ = new ConstructExpr( 0 ); }
 
-	|	'[' array_record_ctor_list ']'
-			{ $$ = new ConstructExpr( $2 ); }
+	|	'[' begin_literal_ids array_record_ctor_list end_literal_ids ']'
+			{ $$ = new ConstructExpr( $3 ); }
 
 	|	expression ':' expression	%prec '^'
 			{ $$ = new RangeExpr( $1, $3 ); }
@@ -938,6 +951,21 @@ cont:			{ clear_statement_can_end( ); }
 	;
 
 no_cont:		{ set_statement_can_end( ); }
+	;
+
+begin_literal_ids:
+			{
+			if ( begin_literal_ids( *lookahead == empty_token ? NULL_TOK : *lookahead ) )
+				{
+				yyclearin;
+				}
+			}
+	;
+
+end_literal_ids:
+			{
+			end_literal_ids();
+			}
 	;
 
 %%

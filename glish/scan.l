@@ -51,6 +51,16 @@ static int statement_can_end = 0;
 static int paren_count = 0;
 static List(int) *paren_count_stack = 0;
 
+static int literal_ids = 0;
+#define LITERAL_SECTION (literal_ids & 1)
+#define set_LITERAL_SECTION literal_ids |= 1
+#define clear_LITERAL_SECTION literal_ids &= ~1
+#define LITERAL_CURRENT (literal_ids & 1<<1)
+#define set_LITERAL_CURRENT literal_ids |= 1<<1
+#define clear_LITERAL_CURRENT literal_ids &= ~(1<<1)
+static List(int) *literal_ids_stack = 0;
+#define TEST_LITERALS LITERAL_SECTION && LITERAL_CURRENT
+
 extern int first_line;
 
 //Transition Variables
@@ -82,6 +92,7 @@ protected:
 	int save_bump_line_num;
 	int save_statement_can_end;
 	int save_paren_count;
+	int save_literal_ids;
 	FILE *file;
 	YY_BUFFER_STATE newbuf;
 	};
@@ -140,11 +151,18 @@ static char *literal( const char *s = 0, int clear = 0 );
 	return TOK_APPLYRX;					\
 	}
 
-#define RETURN_ACTIVATE(is_activate)				\
+#define RETURN_KEYWORD(TOKEN,EXTRA)				\
 	{							\
-	SET_STATEMENT_CAN_END;					\
-	YYLVAL(ival) = is_activate;				\
-	return TOK_ACTIVATE;					\
+	if ( TEST_LITERALS )					\
+		{						\
+		YYLVAL(id) = string_dup( yytext );		\
+		return TOK_ID;					\
+		}						\
+	else							\
+		{						\
+		EXTRA						\
+		return TOKEN;					\
+		}						\
 	}
 
 #define PRAGMA_SHARED(type)					\
@@ -174,7 +192,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX END_REGEX
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX END_REGEX
 
 	static int is_double_quote = 0;
 	int glish_regex_matched = 0;
@@ -204,29 +222,58 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 	statement_can_end = 0;
 
 
-[!:;,|&[+*/%^=-]	return yytext[0];
+[!:;|&+*/%^-]	return yytext[0];
 
-[{]		{
-		paren_count_stack->append(paren_count);
-		paren_count = 0;
+[,]		{
+		set_LITERAL_CURRENT;
+		return yytext[0];
+		}
+
+[=]		{
+		clear_LITERAL_CURRENT;
+		return yytext[0];
+		}
+
+[[]		{
+		literal_ids_stack->append(literal_ids);
+		clear_LITERAL_SECTION;
+		clear_LITERAL_CURRENT;
 		return yytext[0];
 		}
 
 [\]]		{
+		literal_ids = literal_ids_stack->remove_nth(literal_ids_stack->length()-1);
 		SET_STATEMENT_CAN_END;
 		return yytext[0];
 		}
 
-[(]		++paren_count; return yytext[0];
+[(]		{
+		++paren_count;
+		literal_ids_stack->append(literal_ids);
+		clear_LITERAL_SECTION;
+		clear_LITERAL_CURRENT;
+		return yytext[0];
+		}
 
 [)]		{
+		literal_ids = literal_ids_stack->remove_nth(literal_ids_stack->length()-1);
 		if ( --paren_count < 0 ) paren_count = 0;
 		SET_STATEMENT_CAN_END;
 		return yytext[0];
 		}
 
-"}"		{
+[{]		{
+		paren_count_stack->append(paren_count);
+		paren_count = 0;
+		literal_ids_stack->append(literal_ids);
+		clear_LITERAL_SECTION;
+		clear_LITERAL_CURRENT;
+		return yytext[0];
+		}
+
+[}]		{
 		paren_count = paren_count_stack->remove_nth(paren_count_stack->length()-1);
+		literal_ids = literal_ids_stack->remove_nth(literal_ids_stack->length()-1);
 		if ( newline_is_semi )
 			{
 			unput( '}' );
@@ -277,61 +324,36 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 "!~"		RETURN_APPLYRX(yytext[0]);
 "~"		RETURN_APPLYRX(0);
 
-activate	RETURN_ACTIVATE(1);
-await		return TOK_AWAIT;
-break		statement_can_end = 1; return TOK_BREAK;
+activate	RETURN_KEYWORD( TOK_ACTIVATE, SET_STATEMENT_CAN_END; YYLVAL(ival) = 1; );
+await		RETURN_KEYWORD( TOK_AWAIT, );
+break		RETURN_KEYWORD( TOK_BREAK, statement_can_end = 1; );
 const		return TOK_CONST;
-deactivate	RETURN_ACTIVATE(0);
-do		return TOK_DO;
-else		return TOK_ELSE;
-except		return TOK_EXCEPT;
-exit		statement_can_end = 1; return TOK_EXIT;
-for		return TOK_FOR;
-func(tion)?	return TOK_FUNCTION;
-if		return TOK_IF;
-in		return TOK_IN;
-link		return TOK_LINK;
-local		return TOK_LOCAL;
-global		return TOK_GLOBAL;
-wider		return TOK_WIDER;
-next|continue	statement_can_end = 1; return TOK_NEXT;
-only		return TOK_ONLY;
-print		return TOK_PRINT;
-fail		statement_can_end = 1; return TOK_FAIL;
-ref		return TOK_REF;
-return		statement_can_end = 1; return TOK_RETURN;
-request		{
-		if ( interactive( ) && yyin == stdin )
-			{
-			warn->Report("'request' is deprecated, leave out this keyword");
-			request_cnt = 1;
-			}
-		else if ( ! request_cnt )
-			{
-			warn->Report("'request' is deprecated, leave out this keyword");
-			request_cnt = 1;
-			}
-		break;
-		}
-send		{
-		if ( interactive( ) && yyin == stdin )
-			{
-			warn->Report("'send' is deprecated, leave out this keyword");
-			send_cnt = 1;
-			}
-		else if ( ! send_cnt )
-			{
-			warn->Report("'send' is deprecated, leave out this keyword");
-			send_cnt = 1;
-			}
-		break;
-		}
-subseq(uence)?	return TOK_SUBSEQUENCE;
-to		return TOK_TO;
-unlink		return TOK_UNLINK;
-val		return TOK_VAL;
-whenever	return TOK_WHENEVER;
-while		return TOK_WHILE;
+deactivate	RETURN_KEYWORD( TOK_ACTIVATE, SET_STATEMENT_CAN_END; YYLVAL(ival) = 0; );
+do		RETURN_KEYWORD( TOK_DO, );
+else		RETURN_KEYWORD( TOK_ELSE, );
+except		RETURN_KEYWORD( TOK_EXCEPT, );
+exit		RETURN_KEYWORD( TOK_EXIT, statement_can_end = 1; );
+for		RETURN_KEYWORD( TOK_FOR, );
+func(tion)?	RETURN_KEYWORD( TOK_FUNCTION, );
+if		RETURN_KEYWORD( TOK_IF, );
+in		RETURN_KEYWORD( TOK_IN, );
+link		RETURN_KEYWORD( TOK_LINK, );
+local		RETURN_KEYWORD( TOK_LOCAL, );
+global		RETURN_KEYWORD( TOK_GLOBAL, );
+wider		RETURN_KEYWORD( TOK_WIDER, );
+next|continue	RETURN_KEYWORD( TOK_NEXT, statement_can_end = 1; );
+only		RETURN_KEYWORD( TOK_ONLY, );
+print		RETURN_KEYWORD( TOK_PRINT, );
+fail		RETURN_KEYWORD( TOK_FAIL, statement_can_end = 1; );
+ref		RETURN_KEYWORD( TOK_REF, );
+return		RETURN_KEYWORD( TOK_RETURN, statement_can_end = 1; );
+subseq(uence)?	RETURN_KEYWORD( TOK_SUBSEQUENCE, );
+to		RETURN_KEYWORD( TOK_TO, );
+unlink		RETURN_KEYWORD( TOK_UNLINK, );
+val		RETURN_KEYWORD( TOK_VAL, );
+whenever	RETURN_KEYWORD( TOK_WHENEVER, );
+while		RETURN_KEYWORD( TOK_WHILE, );
+include		RETURN_KEYWORD( TOK_INCLUDE, );
 
 "$agent"	RETURN_LAST_EVENT( EVENT_AGENT )
 "$name"		RETURN_LAST_EVENT( EVENT_NAME )
@@ -340,9 +362,6 @@ while		return TOK_WHILE;
 
 F		RETURN_CONSTANT( glish_false )
 T		RETURN_CONSTANT( glish_true )
-
-InClUdE		BEGIN(INCL); break;
-include		return TOK_INCLUDE;
 
 pragma{WS}shared{WS}user{OWS};?{OWS}\r?\n	PRAGMA_SHARED(USER)
 pragma{WS}shared{WS}group{OWS};?{OWS}\r?\n	PRAGMA_SHARED(GROUP)
@@ -549,41 +568,8 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		}
 
 
-<INCL>\"[^"]*\"	{
-		yytext[yyleng - 1] = '\0';	// nuke trailing quote
-		char* filename = which_include( &yytext[1] );	// skip leading quote
-
-		if ( ! filename )
-			error->Report( "can't open include file \"",
-					&yytext[1], "\"" );
-		else
-			{
-			FILE* file = fopen( filename, "r" );
-
-			if ( ! file )
-				{
-				error->Report( "can't open include file \"",
-						filename, "\"" );
-				delete filename;
-				}
-			else
-				{
-				// Save current file information.
-				YY_BUFFER_STATE incl_buf =
-					yy_create_buffer( file, YY_BUF_SIZE );
-				file_list.append( new InputFileInfo( file, incl_buf ) );
-				yy_switch_to_buffer( incl_buf );
-				new_file();
-				}
-
-			}
-
-		BEGIN(INITIAL);
-		break;
-		}
-
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*			break; // comment
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,UNKNOWN_PRAGMA,ATTR>{WS}	break; // eat whitespace
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,UNKNOWN_PRAGMA,ATTR>{WS}	break; // eat whitespace
 
 <UNKNOWN_PRAGMA>.*	{
 		static Dict(int) unknown_pragma;
@@ -867,9 +853,32 @@ void delete_flex_buffer(void *old_buf)
 	delete buf;
 	}
 
+int begin_literal_ids( int lookahead )
+	{
+	int clear_lookahead = 0;
+	if ( lookahead != NULL_TOK &&
+	     lookahead > START_KEYWORDS &&
+	     lookahead < END_KEYWORDS )
+		{
+		YYLVAL(id) = string_dup( yytext );
+		putback_token(TOK_ID);
+		clear_lookahead = 1;
+		}
+	set_LITERAL_SECTION;
+	set_LITERAL_CURRENT;
+	return clear_lookahead;
+	}
+
+void end_literal_ids()
+	{
+	clear_LITERAL_SECTION;
+	clear_LITERAL_CURRENT;
+	}
+
 void init_scanner( )
 	{
 	paren_count_stack = new List(int);
+	literal_ids_stack = new List(int);
 	}
 
 void set_statement_can_end( )
