@@ -117,7 +117,7 @@ class name : public ArithExpr {							\
 			int rhs_incr, const char *&err = glish_charptrdummy );	\
 	};
 
-DECLARE_ARITH_EXPR(AddExpr, OP_ADD, "+", IValue* Eval( eval_type etype );)
+DECLARE_ARITH_EXPR(AddExpr, OP_ADD, "+",)
 DECLARE_ARITH_EXPR(SubtractExpr, OP_SUBTRACT, "-",)
 DECLARE_ARITH_EXPR(MultiplyExpr, OP_MULTIPLY, "*",)
 DECLARE_ARITH_EXPR(DivideExpr, OP_DIVIDE, "/",
