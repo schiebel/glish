@@ -6,46 +6,41 @@
 
 TAR_FILE = npd.tar
 
+BUILD_DIR=$$ARCH
+
+
 all:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libs
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing npd ...
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS install
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS install);	\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS install)
 
 build: all
-
-install-all:
-	@echo Installing npd ...
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	if test "$(PFX)" = "1"; then				\
-		cd $$ARCH; $(MAKE) $$FLGS prefix-install;	\
-	else	cd $$ARCH; $(MAKE) $$FLGS install; fi;
 
 libnpd.a:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libnpd.a
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS libnpd.a
 
 genkey:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS genkey
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS genkey
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -68,17 +63,12 @@ clean:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS clean
-
-clean-all: clean
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS clean
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS distclean
-
-distclean-all: distclean
-
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS distclean
