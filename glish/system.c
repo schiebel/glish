@@ -223,6 +223,15 @@ int remote_connection( int sock, const char* hostname, int port )
 	struct hostent *target_host;
 	struct sockaddr_in target_addr;
 
+	//
+	// On a machine with the network configuration messed up,
+	// e.g. pip.aoc.nrao.edu connected to the *.tuc.nrao.edu
+	// network, failure to use "localhost" will cause glish
+	// to hang unnecessarily...
+	//
+	if ( ! strcmp( hostname, local_host_name() ) )
+		hostname = "localhost";
+
 	target_host = gethostbyname( (char*) hostname );
 
 	if ( ! target_host )
@@ -392,7 +401,7 @@ int send_fd( int pipe, int fd )
 	msg.msg_accrights = (caddr_t) &fd;
 	msg.msg_accrightslen = sizeof(int);
 #else
-	if ( cmptr == 0 && (cmptr = (struct cmsghdr *) malloc(CONTROLLEN)) == NULL )
+	if ( cmptr == 0 && (cmptr = (struct cmsghdr *) calloc(CONTROLLEN,1)) == NULL )
 		return -1;
 	cmptr->cmsg_level = SOL_SOCKET;
 	cmptr->cmsg_type = SCM_RIGHTS;
