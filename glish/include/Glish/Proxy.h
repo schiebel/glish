@@ -12,6 +12,7 @@ typedef PList(Proxy) proxy_list;
 
 typedef void (*PxyStoreCB1)( ProxyStore *, Value *, GlishEvent *, void * );
 typedef void (*PxyStoreCB2)( ProxyStore *, Value *, void * );
+typedef void (*PxyStoreCB3)( ProxyStore *, Value * );
 class pxy_store_cbinfo;
 glish_declare(PDict,pxy_store_cbinfo);
 typedef PDict(pxy_store_cbinfo) pxy_store_cbdict;
@@ -26,6 +27,7 @@ friend class Proxy;
 
 	virtual void Register( const char *string, PxyStoreCB1 cb, void *data = 0 );
 	virtual void Register( const char *string, PxyStoreCB2 cb, void *data = 0 );
+	virtual void Register( const char *string, PxyStoreCB3 cb );
 
 	Proxy *GetProxy( const ProxyId &proxy_id );
 
