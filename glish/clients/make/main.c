@@ -174,7 +174,7 @@ MainParseArgs(argc, argv)
 		argv[0] = "";		/* avoid problems in getopt */
 
 	optind = 1;	/* since we're called more than once */
-# define OPTFLAGS "D:I:d:ef:ij:knt"
+# define OPTFLAGS "D:I:d:ef::"
 rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		switch(c) {
 		case 'D':
@@ -195,12 +195,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 				case 'A':
 					debug = ~0;
 					break;
-				case 'a':
-					debug |= DEBUG_ARCH;
-					break;
-				case 'c':
-					debug |= DEBUG_COND;
-					break;
 				case 'd':
 					debug |= DEBUG_DIR;
 					break;
@@ -216,9 +210,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 						debug |= DEBUG_GRAPH2;
 						++modules;
 					}
-					break;
-				case 'j':
-					debug |= DEBUG_JOB;
 					break;
 				case 'm':
 					debug |= DEBUG_MAKE;
@@ -248,22 +239,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			break;
 		case 'f':
 			(void)Lst_AtEnd(makefiles, (ClientData)optarg);
-			break;
-		case 'i':
-			ignoreErrors = TRUE;
-			Var_Append(MAKEFLAGS, "-i", VAR_GLOBAL);
-			break;
-		case 'k':
-			keepgoing = TRUE;
-			Var_Append(MAKEFLAGS, "-k", VAR_GLOBAL);
-			break;
-		case 'n':
-			noExecute = TRUE;
-			Var_Append(MAKEFLAGS, "-n", VAR_GLOBAL);
-			break;
-		case 't':
-			touchFlag = TRUE;
-			Var_Append(MAKEFLAGS, "-t", VAR_GLOBAL);
 			break;
 		default:
 		case '?':

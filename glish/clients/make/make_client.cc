@@ -70,7 +70,7 @@ int main( int argc, char** argv ) {
 		Value *value = val->NthField(2);
 		if ( name->Type() == TYPE_STRING && name->Length() > 0 &&
 		     value->Type() == TYPE_STRING && value->Length() > 0 &&
-		     name->Length() == value->Length() ) {
+		     (name->Length() == value->Length() || value->Length() == 1) ) {
 		    bMake_Define( name->StringPtr(0), name->Length(),
 				  value->StringPtr(0), value->Length() );
 		} else {
