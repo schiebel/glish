@@ -333,7 +333,7 @@ $(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h ./Makefile
 	LIBDIR_P_FULL=`cd $(LIBDIR_P); pwd`; \
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DRCDIR=\"$(RCDIR)\" \
-		-DKEYDIR=\"$(KEYDIR)\" -DLIBDIR=\"$$LIBDIR_P_FULL:$(LIBDIR)\" \
+		-DKEYDIR=\"$(KEYDIR)\" -DLIBDIR=\"@LOADPATH@$$LIBDIR_P_FULL\" \
 		-DSCRIPTDIR=\"$(SCRIPTDIR)\" -DUSENPD=@USENPD@ $(GCFLAG) -c $(SRC)/Sequencer.cc $(T)
 
 $(D)Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
