@@ -98,10 +98,10 @@ void SeqStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( lhs ) lhs->CollectUnref( del_list );
 		if ( rhs ) rhs->CollectUnref( del_list );
 		lhs = rhs = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -160,9 +160,9 @@ void WheneverStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( stmt ) stmt->CollectUnref( del_list );
 		stmt = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -406,9 +406,9 @@ void AwaitStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( except_stmt ) except_stmt->CollectUnref( del_list );
 		except_stmt = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -559,10 +559,10 @@ void IfStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( true_branch ) true_branch->CollectUnref( del_list );
 		if ( false_branch ) false_branch->CollectUnref( del_list );
 		true_branch = false_branch = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -639,9 +639,9 @@ void ForStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( body ) body->CollectUnref( del_list );
 		body = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -727,9 +727,9 @@ void WhileStmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( body ) body->CollectUnref( del_list );
 		body = 0;
-		del_list.append( this );
 		}
 	}
 
@@ -1030,9 +1030,9 @@ void StmtBlock::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		{
+		del_list.append( this );
 		if ( stmt ) stmt->CollectUnref( del_list );
 		stmt = 0;
-		del_list.append( this );
 		}
 	}
 
