@@ -1175,6 +1175,15 @@ int TkAgent::DoOneTkEvent( )
 	return Tk_DoOneEvent( 0 );
 	}
 
+static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
+int glishtk_xioerror_handler(Display *d)
+	{
+	glish_cleanup();
+	if ( glishtk_dflt_xioerror_handler )
+		(*glishtk_dflt_xioerror_handler)(d);
+	exit(1);
+	}
+
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
@@ -1193,6 +1202,8 @@ TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 		argv[1] = 0;
 
 		root = rivet_init(1, argv);
+		glishtk_dflt_xioerror_handler = 
+			XSetIOErrorHandler(glishtk_xioerror_handler);
 		}
 
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr));
