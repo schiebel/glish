@@ -188,6 +188,9 @@ public:
 	// bool, integer, or floating-point).
 	int IsNumeric() const;
 
+	// True if the value is a record corresponding to a  Proxy agent.
+	virtual int IsAgentRecord() const;
+
 	// Returns the "n"'th element coereced to the corresponding type.
 	glish_bool BoolVal( int n = 1, Str &err = glish_errno ) const;
 	byte ByteVal( int n = 1, Str &err = glish_errno ) const;

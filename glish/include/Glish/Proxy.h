@@ -25,6 +25,8 @@ friend class Proxy;
 
 	virtual void Register( const char *string, PxyStoreCB cb, void *data = 0 );
 
+	Proxy *GetProxy( const ProxyId &proxy_id );
+
 	virtual void Loop( );
 
     protected:

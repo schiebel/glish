@@ -48,6 +48,8 @@ char* strdup( const char* );
 #include "system.h"
 #include "ports.h"
 
+#define AGENT_MEMBER_NAME "*agent*"
+
 #if defined(__alpha) || defined(__alpha__)
 extern "C" void glish_sigfpe();
 extern int glish_alpha_sigfpe_init;
@@ -203,6 +205,38 @@ void GlishEvent::SetValue( const Value *v )
 		Unref( (Value*) value );
 	value = (Value*) v;
 	delete_value = 0;
+	}
+
+ProxyId::ProxyId( const Value *val )
+	{
+	if ( val && val->Type() == TYPE_RECORD )
+		{
+		const Value *v = (*val->RecordPtr(0))[AGENT_MEMBER_NAME];
+		if ( ! v )
+			{
+			ary[0]=ary[1]=ary[2]=0;
+			}
+		else
+			{
+			v = v->Deref();
+			if ( v->Type() == TYPE_INT && v->Length() == ProxyId::len() )
+				{
+				int *a = v->IntPtr(0);
+				ary[0] = a[0];
+				ary[1] = a[1];
+				ary[2] = a[2];
+				}
+			else
+				{
+				ary[0]=ary[1]=ary[2]=0;
+				}
+			}
+		}
+
+	else
+		{
+		ary[0]=ary[1]=ary[2]=0;
+		}
 	}
 
 
@@ -1596,14 +1630,15 @@ GlishEvent* recv_event( sos_source &in )
 	}
 
 
-void write_value( sos_out &sos, Value *val, const char *label, char *name, unsigned char flags )
+void write_value( sos_out &sos, Value *val, const char *label, char *name,
+		  unsigned char flags, const ProxyId &proxy_id )
 	{
 	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	static Value *empty = empty_value( );
 
 	if ( ! val )
 		{
-		write_value( sos, empty, label, name, flags );
+		write_value( sos, empty, label, name, flags, proxy_id );
 		return;
 		}
 
@@ -1611,13 +1646,13 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name, unsig
 		{
 		Value* copy = copy_value( val );
 //		dlist->append( new DelObj( copy ) );	/*!!! LEAK !!!*/
-		write_value( sos, copy, label, name, flags );
+		write_value( sos, copy, label, name, flags, proxy_id );
 		return;
 		}
 
 	if ( val->IsRef() )
 		{
-		write_value( sos, val->Deref(), label, name, flags );
+		write_value( sos, val->Deref(), label, name, flags, proxy_id );
 		return;
 		}
 
@@ -1667,20 +1702,24 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name, unsig
 			for ( i = 0; i < len; ++i )
 				{
 				member = rec->NthEntry( i, key );
-				write_value( sos, (Value*) member, key );
+				write_value( sos, (Value*) member, key, proxy_id );
 				}
 			}
 			break;
 		case TYPE_AGENT:
-			warn->Report( "skipping agent value \"", (label ? label : "?"),
-					"\" in creation of dataset" );
-			write_value( sos, (Value*) false_value, label, name );
-			return;
+			if ( &proxy_id == &glish_proxyid_dummy ||
+			     ! write_agent( sos, val, head, proxy_id ) )
+				{
+				warn->Report( "skipping agent value \"", (label ? label : "?"),
+					      "\" in creation of dataset" );
+				write_value( sos, (Value*) false_value, label, name, proxy_id );
+				return;
+				}
 			break;
 		case TYPE_FUNC:
 			warn->Report( "skipping function value \"", (label ? label : "?"),
 					"\" in creation of dataset" );
-			write_value( sos, (Value*) false_value, label, name );
+			write_value( sos, (Value*) false_value, label, name, proxy_id );
 			return;
 			break;
                 default:
@@ -1690,15 +1729,16 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name, unsig
 	if ( name ) sos.write( name, strlen(name), sos_sink::COPY );
 
 	if ( val->AttributePtr() )
-		write_value( sos, (Value*) val->GetAttributes(), name );
+		write_value( sos, (Value*) val->GetAttributes(), name, proxy_id );
 	}
 
-sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e, int can_suspend )
+sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e,
+			int can_suspend, const ProxyId &proxy_id )
 	{
 	static sos_out sos;
 	sos.set(&out);
 
-	write_value( sos, e->value, name, (char*) name, e->Flags() );
+	write_value( sos, e->value, name, (char*) name, e->Flags(), proxy_id );
 	sos_status *ss = sos.flush();
 	if ( ! ss || can_suspend ) return ss;
 	while ( (ss = ss->resume( )) );
@@ -1719,9 +1759,9 @@ Value *read_value( sos_in &sos )
 	return result;
 	}
 
-void write_value( sos_out &sos, const Value *v )
+void write_value( sos_out &sos, const Value *v, const ProxyId &proxy_id )
 	{
-	write_value( sos, (Value*) v, 0, 0, 0 );
+	write_value( sos, (Value*) v, 0, 0, 0, proxy_id );
 	sos.flush();
 	}
 

@@ -1174,9 +1174,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	sys_value->SetField( "version", ver );
 	Unref(ver);
 
-	IValue *pid_ = new IValue( pid );
-	sys_value->SetField( "pid", pid_ );
-	Unref(pid_);
+	IValue *pid = new IValue( xpid );
+	sys_value->SetField( "pid", pid );
+	Unref(pid);
 
 	IValue *ppid = new IValue( (int) getppid() );
 	sys_value->SetField( "ppid", ppid );
@@ -1250,7 +1250,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 int *Sequencer::NewObjId( Task *t )
 	{
 	int *ret = (int*) alloc_memory(sizeof(int)*3);
-	ret[0] = pid;
+	ret[0] = xpid;
 	ret[1] = t->TaskIDi();
 	ret[2] = ++obj_cnt;
 	return ret;
@@ -1269,7 +1269,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	argv_ = argv;
 
 	obj_cnt = 0;
-	pid = (int) getpid();
+	xpid = (int) getpid();
 
 	error_result = 0;
 
@@ -1330,7 +1330,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	int n = strlen( tag_fmt ) + strlen( connection_host ) + /* slop */ 32;
 
 	interpreter_tag = (char*) alloc_memory(sizeof(char)*n);
-	sprintf( interpreter_tag, tag_fmt, connection_host, pid );
+	sprintf( interpreter_tag, tag_fmt, connection_host, xpid );
 
 	monitor_task = 0;
 	last_whenever_executed = 0;
@@ -2919,7 +2919,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 				  nid->Type() == TYPE_INT && nid->Length() == ProxyId::len())
 				{
 				ProxyId id(nid->IntPtr(0));
-				ProxyTask *pxy = task->FetchProxy(id);
+				ProxyTask *pxy = task->GetProxy(id);
 				if ( pxy )
 					{
 					event->SetValue((Value*)copy_value(nval));

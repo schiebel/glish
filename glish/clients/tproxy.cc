@@ -1,6 +1,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Glish/Proxy.h"
+#include "Reporter.h"
 
 class ProxyA : public Proxy {
     public:
@@ -19,6 +20,7 @@ ProxyA::~ProxyA( )
 
 void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
 	{
+	message->Report( e->Val() );
 	ProxyA *np = new ProxyA( s );
 	np->SendCtor("newtp");
 	}

@@ -118,6 +118,11 @@ class ProxyId {
 		{ ary[0]=a[0]; ary[1]=a[1]; ary[2]=a[2]; }
 	ProxyId( const ProxyId &o )
 		{ ary[0] = o.ary[0]; ary[1] = o.ary[1]; ary[2] = o.ary[2]; }
+	//
+	// takes client-side agent record
+	//
+	ProxyId( const Value * );
+
 	int interp() const { return ary[0]; }
 	int task() const { return ary[1]; }
 	int id() const { return ary[2]; }
@@ -130,7 +135,7 @@ class ProxyId {
 	int operator!=( const ProxyId &o ) const
 		{ return ary[0] != o.ary[0] || ary[1] != o.ary[1] || ary[2] != o.ary[2]; }
 	ProxyId &operator=( const ProxyId &o )
-		{ ary[0] = o.ary[0]; ary[1] = o.ary[1]; ary[2] = o.ary[2]; }
+		{ ary[0] = o.ary[0]; ary[1] = o.ary[1]; ary[2] = o.ary[2]; return *this; }
 	void set( )
 		{ ary[0]=0; ary[1]=0; ary[2]=0; }
 	void set( int interp_, int task_, int id_ )
@@ -433,24 +438,37 @@ class Client {
 	};
 
 Value *read_value( sos_in & );
-void write_value( sos_out &, const Value * );
-void write_value( sos_out &, Value *, const char *, char *name = 0, unsigned char flags = 0 );
+void write_value( sos_out &, const Value *, const ProxyId &proxy_id=glish_proxyid_dummy );
+void write_value( sos_out &, Value *, const char *, char *name,
+		  unsigned char flags, const ProxyId &proxy_id=glish_proxyid_dummy );
+inline void write_value( sos_out &s, Value *v, const char *k, char *name, 
+			 const ProxyId &proxy_id=glish_proxyid_dummy )
+		{ write_value( s, v, k, name, 0, proxy_id ); }
+inline void write_value( sos_out &s, Value *v, const char *k,
+			 const ProxyId &proxy_id=glish_proxyid_dummy )
+		{ write_value( s, v, k, 0, 0, proxy_id ); }
+
+// returns zero on failure...
+int write_agent( sos_out &, Value *, sos_header &, const ProxyId & );
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 extern GlishEvent* recv_event( sos_source &in );
 
 extern sos_status *send_event( sos_sink &out, const char* event_name,
-			const GlishEvent* e, int can_suspend = 0 );
+			       const GlishEvent* e, int can_suspend = 0,
+			       const ProxyId &proxy_id=glish_proxyid_dummy );
 
-inline sos_status *send_event( sos_sink &out, const GlishEvent* e, int can_suspend = 0 )
+inline sos_status *send_event( sos_sink &out, const GlishEvent* e, int can_suspend = 0,
+			       const ProxyId &proxy_id=glish_proxyid_dummy )
 	{
-	return send_event( out, e->name, e, can_suspend );
+	return send_event( out, e->name, e, can_suspend, proxy_id );
 	}
 
-inline sos_status *send_event( sos_sink &out, const char* name, const Value* value, int can_suspend = 0 )
+inline sos_status *send_event( sos_sink &out, const char* name, const Value* value,
+			       int can_suspend = 0, const ProxyId &proxy_id=glish_proxyid_dummy )
 	{
 	GlishEvent e( name, value );
-	return send_event( out, name, &e, can_suspend );
+	return send_event( out, name, &e, can_suspend, proxy_id );
 	}
 
 #endif	/* client_h */

@@ -196,12 +196,12 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			if ( &proxy_id != &glish_proxyid_dummy )
 				{
 				e.SetIsProxy( );
-				agent = FetchProxy( proxy_id );
+				agent = GetProxy( proxy_id );
 				if ( ! agent )
 					return (IValue*) Fail( "bad proxy identifier" );
 				}
 
-			sendEvent( sink, &e, 0 );
+			sendEvent( sink, &e, 0, ProxyId(sequencer->pid(),idi,0) );
 
 			result = sequencer->AwaitReply( agent, event_name,
 							reply_name );
@@ -212,7 +212,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
 			if ( &proxy_id != &glish_proxyid_dummy ) e.SetIsProxy( );
-			sendEvent( sink, &e );
+			sendEvent( sink, &e, ProxyId(sequencer->pid(),idi,0) );
 			}
 		}
 
@@ -220,14 +220,14 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 	}
 
 IValue* Task::SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, const ProxyId &id )
+			int is_request, int log, const ProxyId &proxy_id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
 
 	IValue* event_val = BuildEventValue( args, 1 );
 
-	IValue* result = SendEvent( event_name, event_val, is_request, log, id );
+	IValue* result = SendEvent( event_name, event_val, is_request, log, proxy_id );
 
 	Unref( event_val );
 
@@ -1045,25 +1045,25 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 
 
 void Task::sendEvent( sos_sink &fd, const char* event_name,
-		      const GlishEvent* e, int can_suspend )
+		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, can_suspend );
+	sos_status *ss = send_event( fd, event_name, e, can_suspend, proxy_id );
 	if ( ss )
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask *Task::FetchProxy( const ProxyId &id )
+ProxyTask *Task::GetProxy( const ProxyId &proxy_id )
 	{
 	loop_over_list( ptlist, i )
-		if ( ptlist[i]->Id() == id )
+		if ( ptlist[i]->Id() == proxy_id )
 			return ptlist[i];
 	return 0;
 	}
 
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
-		      const GlishEvent* e, int can_suspend )
+		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, can_suspend );
+	sos_status *ss = send_event( fd, event_name, e, can_suspend, proxy_id );
 	if ( ss )
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
@@ -1106,6 +1106,11 @@ IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log )
 	{
 	return task->SendEvent( event_name, args, is_request, log, id );
+	}
+
+int ProxyTask::IsProxy( ) const
+	{
+	return 1;
 	}
 
 int same_host( Task* t1, Task* t2 )

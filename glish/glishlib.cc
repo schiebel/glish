@@ -11,6 +11,10 @@ RCSID("@(#) $Id$")
 #include <strstream.h>
 #include "system.h"
 
+class sos_out;
+class sos_header;
+class ProxyId;
+
 DEFINE_CREATE_VALUE(Value)
 
 #if defined(__alpha) || defined(__alpha__)
@@ -76,6 +80,9 @@ Value *copy_value( const Value *value )
 
 	return copy;
 	}
+
+int write_agent( sos_out &, Value *, sos_header &, const ProxyId & )
+	{ return 0; }
 
 Value *generate_error( const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
@@ -160,3 +167,4 @@ void glish_cleanup( ) { }
 
 int glish_silent = 0;
 int glish_collecting_garbage = 0;
+

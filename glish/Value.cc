@@ -11,9 +11,12 @@ RCSID("@(#) $Id$")
 #include <ctype.h>
 
 #include "Glish/Value.h"
+#include "Glish/Client.h"
 
 #include "glish_event.h"
 #include "Reporter.h"
+
+#define AGENT_MEMBER_NAME "*agent*"
 
 extern int glish_collecting_garbage;
 
@@ -356,6 +359,22 @@ int Value::IsNumeric() const
 		}
 	}
 
+
+int Value::IsAgentRecord() const
+	{
+	if ( Type() == TYPE_RECORD )
+		{
+		Value *v = (*RecordPtr(0))[AGENT_MEMBER_NAME];
+		if ( ! v ) return 0;
+		v = v->Deref();
+		if ( v->Type() == TYPE_INT && v->Length() == ProxyId::len() )
+			return 1;
+		else
+			return 0;
+		}
+	else
+		return 0;
+	}
 
 #define DEFINE_CONST_ACCESSOR(name,tag,type,MOD,CONST)			\
 type Value::name( int modify ) const					\

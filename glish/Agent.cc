@@ -389,7 +389,12 @@ void Agent::UnRegisterUnref( Stmt *s )
 	unref_stmts.remove(s);
 	}
 
-int Agent::IsPseudo( )
+int Agent::IsProxy( ) const
+	{
+	return 0;
+	}
+
+int Agent::IsPseudo( ) const
 	{
 	return 0;
 	}

@@ -74,6 +74,7 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "Sequencer.h"
 #include "IValue.h"
+#include "Task.h"
 
 #if defined(GLISHTK)
 #include "TkAgent.h"
@@ -352,6 +353,31 @@ DEFINE_CREATE_VALUE(IValue)
 Value *copy_value( const Value *value )
 	{
 	return (Value*)copy_value( (const IValue*) value );
+	}
+
+int write_agent( sos_out &sos, Value *val_, sos_header &head, const ProxyId &proxy_id )
+	{
+	if ( val_->Type() != TYPE_AGENT )
+		return 0;
+
+	IValue *val = (IValue*) val_;
+	Agent *agent = val->AgentVal();
+	if ( ! agent || ! agent->IsProxy() )
+		{
+		warn->Report( "non-proxy agent" );
+		return 0;
+		}
+
+	ProxyTask *pxy = (ProxyTask*) agent;
+	if ( pxy->Id().interp() != proxy_id.interp() ||
+	     pxy->Id().task() != proxy_id.task() )
+		{
+		warn->Report( "attempt to pass proxy agent to client which did not create it" );
+		return 0;
+		}
+
+	sos.put( (int*) pxy->Id().array(), ProxyId::len(), head, sos_sink::COPY );
+	return 1;
 	}
 
 int lookup_print_precision( )

@@ -90,6 +90,14 @@ const ProxyId ProxyStore::getId( )
 	return ProxyId(reply->Val()->IntPtr(0));
 	}
 
+Proxy *ProxyStore::GetProxy( const ProxyId &proxy_id )
+	{
+	loop_over_list( pxlist, i )
+		if ( pxlist[i]->Id() == proxy_id )
+			return pxlist[i];
+	return 0;
+	}
+
 void ProxyStore::Loop( )
 	{
 	for ( GlishEvent* e; (e = NextEvent()); )

@@ -230,8 +230,14 @@ IValue::~IValue()
 
 int IValue::IsAgentRecord() const
 	{
-	if ( Type() == TYPE_RECORD && (*RecordPtr(0))[AGENT_MEMBER_NAME] )
-		return 1;
+	if ( Type() == TYPE_RECORD )
+		{
+		Value *v = (*RecordPtr(0))[AGENT_MEMBER_NAME];
+		if ( v && v->Deref()->Type() == TYPE_AGENT )
+			return 1;
+		else
+			return 0;
+		}
 	else
 		return 0;
 	}

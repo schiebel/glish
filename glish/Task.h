@@ -68,7 +68,7 @@ class Task : public Agent {
 			int is_request, int log, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
 			   int is_request=0, int log=0,
-			   const ProxyId &id=glish_proxyid_dummy );
+			   const ProxyId &proxy_id=glish_proxyid_dummy );
 
 	void SetActive()	{ SetActivity( 1 ); }
 	void SetDone()		{ SetActivity( 0 );
@@ -88,23 +88,33 @@ class Task : public Agent {
 		{ return Describe( s, ioOpt() ); }
 
 	virtual void sendEvent( sos_sink &fd, const char* event_name,
-			const GlishEvent* e, int can_suspend = 1 );
+			const GlishEvent* e, int can_suspend,
+			const ProxyId &proxy_id=glish_proxyid_dummy );
 
-	void sendEvent( sos_sink &fd, const GlishEvent* e, int can_suspend = 1 )
-		{ sendEvent( fd, e->name, e, can_suspend ); }
+	void sendEvent( sos_sink &fd, const char* event_name, const GlishEvent* e,
+			const ProxyId &proxy_id=glish_proxyid_dummy )
+		{ sendEvent( fd, event_name, e, 1, proxy_id ); }
 
-	void sendEvent( sos_sink &fd, const char* nme,
-			const Value* value, int can_suspend = 1 )
+	void sendEvent( sos_sink &fd, const GlishEvent* e, int can_suspend,
+			const ProxyId &proxy_id=glish_proxyid_dummy )
+		{ sendEvent( fd, e->name, e, can_suspend, proxy_id ); }
+
+	void sendEvent( sos_sink &fd, const GlishEvent* e,
+			const ProxyId &proxy_id=glish_proxyid_dummy )
+		{ sendEvent( fd, e->name, e, 1, proxy_id ); }
+
+	void sendEvent( sos_sink &fd, const char* nme, const Value* value,
+			int can_suspend = 1, const ProxyId &proxy_id=glish_proxyid_dummy )
 		{
 		GlishEvent e( nme, value );
-		sendEvent( fd, &e, can_suspend );
+		sendEvent( fd, &e, can_suspend, proxy_id );
 		}
 
 	void RegisterProxy( ProxyTask *p )
 		{ if ( ! ptlist.is_member(p) ) ptlist.append( p ); }
 	void UnregisterProxy( ProxyTask *p )
 		{ ptlist.remove(p); }
-	ProxyTask *FetchProxy( const ProxyId &id );
+	ProxyTask *GetProxy( const ProxyId &proxy_id );
 
     protected:
 	// Creates and returns an argv vector with room for num_args arguments.
@@ -157,7 +167,8 @@ class ClientTask : public Task {
     public:
 	ClientTask( const_args_list* args, TaskAttr* task_attrs, Sequencer* s, int shm_flag=0 );
 	void sendEvent( sos_sink &fd, const char* event_name,
-			const GlishEvent* e, int can_suspend = 1 );
+			const GlishEvent* e, int can_suspend = 1,
+			const ProxyId &proxy_id=glish_proxyid_dummy );
     protected:
 	int useshm;
 	void CreateAsyncClient( const char** argv );
@@ -229,6 +240,8 @@ class ProxyTask : public Agent {
 	const ProxyId &Id() const { return id; }
 
 	void WrapperGone( const IValue *v );
+
+	int IsProxy( ) const;
 
     private:
 	Task *task;

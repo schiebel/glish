@@ -269,6 +269,8 @@ public:
 	Sequencer( int& argc, char**& argv );
 	~Sequencer();
 
+	int pid() const { return xpid; }
+
 	const char* Name()		{ return name; }
 	const char* Path()		{ return interpreter_path; }
 
@@ -574,7 +576,7 @@ protected:
 	void CurrentAwaitDone();
 
 	int *NewObjId( Task *t );
-	int pid;
+	int xpid;
 	int obj_cnt;
 
 	char *name;
