@@ -106,6 +106,7 @@ STATIC int		TTYwidth;
 STATIC int		TTYrows;
 
 STATIC CHAR		still_collecting_data = 0;
+STATIC CHAR		force_refresh = 0;
 
 /* Display print 8-bit chars as `M-x' or as the actual 8-bit char? */
 int		rl_meta_chars = 1;
@@ -1186,13 +1187,12 @@ nb_reset_term( int enter )
 		if ( ! count && still_collecting_data )
 			{
 			rl_ttyset(0);
-			TTYput('\r');
-
-			/* do these two instead of redisplay()
-			 * to avoid generating a new line
+			/*
+			 * delay refresh until more characters are read
+			 * (i.e. "nb_readline()" is called) to avoid
+			 * "loading up" the buffer.
 			 */
-			TTYputs((STRING)Prompt);
-			TTYstring(Line);
+			force_refresh = 1;
 			}
 		}
 	}
@@ -1211,6 +1211,7 @@ nb_readline(prompt)
     }
 
     if (!still_collecting_data) {
+	force_refresh = 0;
 	TTYinfo();
 	rl_ttyset(0);
 	hist_add(NIL);
@@ -1219,6 +1220,19 @@ nb_readline(prompt)
 	Screen = NEW(char, ScreenSize);
 	TTYputs((STRING)Prompt);
     }
+
+    if ( force_refresh ) {
+	force_refresh = 0;
+
+	TTYput('\r');
+
+	/* do these two instead of redisplay()
+	 * to avoid generating a new line
+	 */
+	TTYputs((STRING)Prompt);
+	TTYstring(Line);
+    }
+
 
     if ((line = nb_editinput()) != NULL && line != rl_data_incomplete) {
 	line = (CHAR *)strdup((char *)line);
