@@ -270,6 +270,8 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 	frames_ = new frame_list;
 	offsets_ = new offset_list;
 
+	GC_register_disappearing_link((void**)&frames_);
+
 	int len = clip && other.frame_len() >= 0 ? other.frame_len() : other.frames()->length();
 	for ( int i = 0; i < len; i++ )
 		{
@@ -291,7 +293,7 @@ stack_type::~stack_type( )
 	{
 	static frame_list been_there;
 
-	if ( ! delete_on_spot_ )
+	if ( frames_ && ! delete_on_spot_ )
 		{
 		for ( int i=frames_->length()-1;i >= 0; i-- )
 			{
