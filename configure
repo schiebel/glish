@@ -5222,6 +5222,7 @@ fi
 	fi
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".so"
+	SLIB_LABEL="-h "
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 
@@ -5385,7 +5386,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5389 "configure"
+#line 5390 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5393,7 +5394,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5397: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5398: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5416,7 +5417,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5420 "configure"
+#line 5421 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5424,7 +5425,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5428: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5429: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
