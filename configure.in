@@ -267,7 +267,14 @@ AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr shmget)
+AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr)
+AC_CHECK_FUNC(shmget,[
+AC_DEFINE(HAVE_SHMGET)
+AC_MSG_CHECKING([for shmget declaration])
+AC_EGREP_HEADER(shmget, sys/shm.h, AC_MSG_RESULT(present), [
+    AC_MSG_RESULT(missing)
+    AC_DEFINE(SHMGET_NOT_DECLARED)])
+])
 
 dnl##--------------------------------------------------------------------
 dnl##
