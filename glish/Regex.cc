@@ -333,7 +333,9 @@ Regex::Regex( const Regex *o )
 
 #define EVAL_LOOP( KEY, SUBST_ACTION, COND )				\
 	{								\
-	KEY ( COND regxexec( reg, s, s_end, orig, 0,0,1 ) )		\
+	/* don't match same null twice */				\
+	KEY ( COND regxexec( reg, s, s_end, orig,			\
+			     count && reg->endp[0] == reg->startp[0] ? 1 : 0,0,1 ) ) \
 		{							\
 		++count;						\
 									\

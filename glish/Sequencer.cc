@@ -1839,7 +1839,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var, int &creat
 void Sequencer::SetErrorResult( IValue *err )
 	{
 	Unref(cur_sequencer->error_result);
-	cur_sequencer->error_result = err;
+	cur_sequencer->error_result = err ? new IValue( *err ) : 0;
 	}
 
 Sequencer *Sequencer::CurSeq ( )
