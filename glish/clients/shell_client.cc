@@ -87,7 +87,7 @@ int get_pty_pair( int pty[2] );
 
 // Handler for when the child exits.  All it does is close the writing
 // end of the following pipe, which we can subsequently detect via select().
-void child_exit_handler( int );
+void child_exit_handler( );
 int child_exit_pipe[2];
 
 
@@ -401,7 +401,7 @@ int get_pty_pair( int pty[2] )
 	}
 
 
-void child_exit_handler( int )
+void child_exit_handler( )
 	{
 	close( child_exit_pipe[1] );
 	}

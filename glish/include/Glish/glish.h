@@ -11,7 +11,7 @@ typedef unsigned char byte;
 #define loop_over_list(list, iterator)	\
 	for ( int iterator = 0; iterator < (list).length(); ++iterator )
 
-typedef void (*glish_signal_handler)(int);
+typedef void (*glish_signal_handler)( );
 
 #if ! defined(DIAG) && defined(__cplusplus)
 #if defined(DO_DIAG)

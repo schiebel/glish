@@ -261,7 +261,7 @@ class Client {
 	const EventContext &LastContext() { return last_context; }
 
     protected:
-	friend void Client_signal_handler( int );
+	friend void Client_signal_handler( );
 
 	// Performs Client initialization that doesn't depend on the
 	// arguments with which the client was invoked.
