@@ -514,6 +514,15 @@ AC_LANG_CPLUSPLUS
 AC_MSG_CHECKING(C++ details)
 AC_MSG_RESULT()
 
+AC_REQUIRE_CPP()
+AC_MSG_CHECKING(Are we using the KAI compiler)
+AC_EGREP_CPP(yes,
+[#ifdef __KCC
+  yes
+#endif
+], [KAI=yes], [KAI=no])
+AC_MSG_RESULT($KAI)
+
 AC_CHECK_HEADERS(osfcn.h)
 
 if test ! -z "$no_gettod_decl"; then
@@ -891,18 +900,25 @@ case $host_os in
 	;;
     solaris2*)
 	SLIB_CFLAGS="-K PIC"
-	SLIB_CXXFLAGS="-PIC"
-	SLIB_LD="/usr/ccs/bin/ld -G -z text"
+	if test "$KAI" = yes; then
+	    LDI="--backend "
+	    SLIB_LD="$CXX"
+	    SLIB_CXXFLAGS="-KPIC"
+	else
+	    LDI=""
+	    SLIB_LD="/usr/ccs/bin/ld -G -z text"
+	    SLIB_CXXFLAGS="-PIC"
+	fi
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".so"
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    LD_SEARCH_FLAGS="-R $full_libdir_p:$full_libdir"
+	    LD_SEARCH_FLAGS="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
 	fi
         if test -n "$x_libraries"; then
 	    if test -z "$LD_SEARCH_FLAGS"; then
-		LD_SEARCH_FLAGS="-R $x_libraries"
+		LD_SEARCH_FLAGS="${LDI}-R ${LDI}$x_libraries"
 	    else
 		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
 	    fi
