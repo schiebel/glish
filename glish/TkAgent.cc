@@ -1618,6 +1618,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	procs.Insert("map", new TkProc(this, "M", glishtk_agent_map));
 	procs.Insert("unmap", new TkProc(this, "U", glishtk_agent_map));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
@@ -1687,6 +1689,8 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 void TkFrame::UnMap()
