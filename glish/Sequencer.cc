@@ -60,7 +60,7 @@ Sequencer *Sequencer::cur_sequencer = 0;
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
 public:
-	ScriptClient( int& argc, char** argv );
+	ScriptClient( int& argc, char** argv, int multi = 0 );
 
 	// Inform the ScriptClient as to which selector and agent
 	// it should use for getting and propagating events.
@@ -230,10 +230,47 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+void Sequencer::InitScriptClient()
+	{
+	// Create "script" global.
+	script_client = new ScriptClient( argc_, argv_, MultiClientScript() );
+
+	if ( script_client->HasSequencerConnection() )
+		{
+		// Set up script agent to deal with incoming and outgoing
+		// events.
+		ScriptAgent* script_agent =
+			new ScriptAgent( this, script_client );
+		script_client->SetInterface( selector, script_agent );
+		script_expr->Assign( script_agent->AgentRecord() );
+
+		sys_val->SetField( "is_script_client",
+					new Value( glish_true ) );
+
+		// Include ourselves as an active process; otherwise
+		// we'll exit once our child processes are gone.
+		++num_active_processes;
+		}
+
+	else
+		{
+		script_expr->Assign( new Value( glish_false ) );
+		sys_val->SetField( "is_script_client",
+					new Value( glish_false ) );
+		}
+
+	ScriptCreated( 1 );
+	}
 
 Sequencer::Sequencer( int& argc, char**& argv )
 	{
 	cur_sequencer = this;
+
+	multi_script = 0;
+	script_created = 0;
+	doing_init = 1;
+	argc_ = argc;
+	argv_ = argv;
 
 	init_reporters();
 	init_values();
@@ -292,46 +329,27 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	// Create the "system" global variable.
 	system_agent = new UserAgent( this );
-	Value* system_val = system_agent->AgentRecord();
+	sys_val = system_agent->AgentRecord();
 
 	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
-	system_expr->Assign( system_val );
+	system_expr->Assign( sys_val );
 
-	system_val->SetField( "version", new Value( GLISH_VERSION ) );
+	sys_val->SetField( "version", new Value( GLISH_VERSION ) );
 
 
-	// Create "script" global.
-	script_client = new ScriptClient( argc, argv );
-
-	Expr* script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
-
-	if ( script_client->HasSequencerConnection() )
-		{
-		// Set up script agent to deal with incoming and outgoing
-		// events.
-		ScriptAgent* script_agent =
-			new ScriptAgent( this, script_client );
-		script_client->SetInterface( selector, script_agent );
-		script_expr->Assign( script_agent->AgentRecord() );
-
-		system_val->SetField( "is_script_client",
-					new Value( glish_true ) );
-
-		// Include ourselves as an active process; otherwise
-		// we'll exit once our child processes are gone.
-		++num_active_processes;
-		}
-
-	else
-		{
-		script_expr->Assign( new Value( glish_false ) );
-		system_val->SetField( "is_script_client",
-					new Value( glish_false ) );
-		}
+	// Create place for the script variable to be filled in later
+	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
+	script_expr->Assign( new Value( glish_false ) );
 
 	name = argv[0];
 	name_list *load_list = new name_list;
 
+	// Skip past client parameters
+	for ( ++argv, --argc; argc > 0; ++argv, --argc )
+		if ( ! strcmp( argv[0], "-+-" ) )
+			break;
+
+	// Process startup parameters
 	for ( ++argv, --argc; argc > 0; ++argv, --argc )
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
@@ -451,6 +469,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		++argv, --argc;
 		}
 
+	if ( ! ScriptCreated() )
+		InitScriptClient();
+
 	MakeArgvGlobal( argv, argc );
 
 	if ( do_interactive )
@@ -554,7 +575,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
-	Expr* result = new VarExpr( id, scope, scope_offset, frame_offset, this );
+	Expr* result = CreateVarExpr( id, scope, scope_offset, frame_offset, this );
 
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
@@ -1851,7 +1872,7 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv ) : Client( argc, argv, 1 )
+ScriptClient::ScriptClient( int& argc, char** argv, int multi ) : Client( argc, argv, multi )
 	{
 	selector = 0;
 	agent = 0;

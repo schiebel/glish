@@ -2,7 +2,6 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <math.h>
 #include "Glish/Complex.h"
 #include "Glish/glish.h"
 
@@ -53,6 +52,13 @@ dcomplex log( const dcomplex v )
 	double h = hypot( v.r, v.i );
 	/* THROW EXCEPTION if h <= 0*/
 	return dcomplex( log(h), atan2(v.i, v.r) );
+	}
+
+dcomplex log10( const dcomplex v )
+	{
+	double log10e = 0.4342944819032518276511289;
+	dcomplex l = log(v);
+	return dcomplex( l.r * log10e, l.i * log10e );
 	}
 
 dcomplex sin( const dcomplex v )

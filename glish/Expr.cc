@@ -211,6 +211,49 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return ret;
 	}
 
+Expr *ScriptVarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	Expr *ret = 0;
+	if ( sequencer->ScriptCreated() )
+		return VarExpr::DoBuildFrameInfo( m, dl );
+	else
+		{
+		sequencer->ScriptCreated( 1 );
+		ret = VarExpr::DoBuildFrameInfo( m, dl );
+		sequencer->ScriptCreated( 0 );
+		}
+
+	if ( ! ret )
+		return ret;
+
+	if ( ((VarExpr*)ret)->Scope() == GLOBAL_SCOPE )
+		{
+		const Value *v = ret->ReadOnlyEval();
+		if ( v->Type() == TYPE_BOOL )
+			sequencer->InitScriptClient();
+		ret->ReadOnlyDone( v );
+		}
+
+	return ret;
+	}
+
+VarExpr *CreateVarExpr( char *id, Sequencer *seq )
+	{
+	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
+			! strcmp( id, "script" ) )
+		return new ScriptVarExpr( id, seq );
+	return new VarExpr( id, seq );
+	}
+
+VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff, 
+			Sequencer *seq )
+	{
+	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
+			! strcmp( id, "script" ) )
+		return new ScriptVarExpr( id, sc, soff, foff, seq );
+	return new VarExpr( id, sc, soff, foff, seq );
+	}
+
 Value* ValExpr::Eval( eval_type etype )
 	{
 	return CopyOrRefValue( val, etype );

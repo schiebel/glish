@@ -326,6 +326,9 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 		event_sources.append( es );
 		}
 
+	if ( argc > 0 && streq( argv[0], "-+-" ) )
+		--argc, ++argv;
+
 	if ( suspend )
 		{
 		int pid = int( getpid() );

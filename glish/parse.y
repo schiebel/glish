@@ -24,7 +24,8 @@
 %type <ival> TOK_ACTIVATE TOK_ASSIGN
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
-%type <expr> TOK_CONSTANT expression scoped_expr var function formal_param_default
+%type <expr> TOK_CONSTANT expression var function formal_param_default
+%type <expr> scoped_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
 %type <event> event
@@ -148,6 +149,16 @@ statement_list:
 	;
 
 
+scoped_expr:
+		expression
+			{ $$ = $$->BuildFrameInfo( SCOPE_UNKNOWN ); }
+	;
+
+scoped_lhs_var:
+		var
+			{ $$ = $$->BuildFrameInfo( SCOPE_LHS ); }
+	;
+
 statement:
 		block
 
@@ -200,10 +211,9 @@ statement:
 	|	TOK_IF '(' scoped_expr ')' cont statement TOK_ELSE statement
 			{ $$ = new IfStmt( $3, $6, $8 ); }
 
-	|	TOK_FOR '(' var TOK_IN scoped_expr ')' cont statement
+	|	TOK_FOR '(' scoped_lhs_var TOK_IN scoped_expr ')' cont statement
 			{
-			$$ = new ForStmt( $3->BuildFrameInfo( SCOPE_LHS ),
-							$5, $8 );
+			$$ = new ForStmt( $3, $5, $8 );
 			}
 
 	|	TOK_WHILE '(' scoped_expr ')' cont statement
@@ -235,11 +245,6 @@ statement:
 
 	|	';'
 			{ $$ = null_stmt; }
-	;
-
-scoped_expr:
-		expression
-			{ $$ = $$->BuildFrameInfo( SCOPE_UNKNOWN ); }
 	;
 
 expression:
@@ -642,7 +647,7 @@ var:		TOK_ID
 			{
 			$$ = current_sequencer->LookupID( strdup($1), LOCAL_SCOPE, 0 );
 			if ( ! $$ )
-				$$ = new VarExpr( $1, current_sequencer );
+				$$ = CreateVarExpr( $1, current_sequencer );
 			}
 	;
 

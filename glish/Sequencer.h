@@ -221,6 +221,21 @@ public:
 
 	scope_type GetScope() const;
 
+	int MultiClientScript() { return multi_script; }
+	int MultiClientScript( int set_to )
+		{
+		multi_script = set_to;
+		return multi_script;
+		}
+	int DoingInit( ) { return doing_init; }
+	int ScriptCreated( ) { return script_created; }
+	int ScriptCreated( int set_to ) 
+		{
+		script_created = set_to;
+		return script_created;
+		}
+	void InitScriptClient();
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc );
@@ -243,6 +258,7 @@ protected:
 
 	UserAgent* system_agent;
 
+	Expr *script_expr;
 	ScriptClient* script_client;
 
 	scope_list scopes;
@@ -281,6 +297,21 @@ protected:
 	char* interpreter_tag;
 
 	int num_active_processes;
+
+	// Used to indicate that the current script client should be
+	// started as a multi-threaded client.
+	int multi_script;
+	// Used to indicate that the sequencer is in the initialization
+	// phase of startup.
+	int doing_init;
+	int script_created;
+
+	// These three values are used in the process of initializing
+	// "script" value. This was complicated by "multi-threaded"
+	// clients.
+	int argc_;
+	char **argv_;
+	Value *sys_val;
 
 	// Keeps track of the current sequencer...
 	// Later this may have to be a stack...

@@ -141,6 +141,7 @@ class VarExpr : public Expr {
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
+	scope_type Scope()	{ return scope; }
 	void set( scope_type scope, int scope_offset, int frame_offset );
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -153,6 +154,27 @@ class VarExpr : public Expr {
 	Sequencer* sequencer;
 	};
 
+
+class ScriptVarExpr : public VarExpr {
+    public:
+	ScriptVarExpr( char* vid, scope_type sc, int soff, 
+			int foff, Sequencer* sq ) 
+		: VarExpr( vid, sc, soff, foff, sq ) { }
+
+	ScriptVarExpr( char *vid, Sequencer *sq )
+		: VarExpr ( vid, sq ) { }
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+	};
+
+
+// These functions are used to create the VarExpr. There may be times
+// when a  variable must be initialized just before it is first used,
+// e.g. "script" which cannot be initialized earlier because it isn't
+// known if it is multithreaded or not.
+VarExpr *CreateVarExpr( char *id, Sequencer *seq );
+VarExpr *CreateVarExpr( char *id, scope_type scope, int scope_offset,
+			int frame_offset, Sequencer *seq );
 
 class ValExpr : public Expr {
     public:

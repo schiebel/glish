@@ -217,6 +217,8 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	if ( attrs->ping_flag )
 		++argc;		// room for -ping flag
 
+	argc += 1;		// room for the end of client args
+
 	const char** argv = new string[argc + 1];	// + 1 for final nil
 	int argp = 0;
 
@@ -264,6 +266,8 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 	if ( attrs->ping_flag )
 		argv[argp++] = "-ping";
+
+	argv[argp++] = "-+-";
 
 	if ( argp != argc - num_args )
 		fatal->Report( "inconsistent argv in Task::CreateArgs" );

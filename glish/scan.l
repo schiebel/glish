@@ -14,6 +14,7 @@
 #include "y.tab.h"
 
 extern YYSTYPE yylval;
+extern Sequencer* current_sequencer;
 
 char* input_file_name;
 
@@ -98,7 +99,7 @@ static void new_file();
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL ATTR ATTR_QUOTE
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL PRAGMA ATTR ATTR_QUOTE
 
 	static char literal[512];
 	static int is_double_quote;
@@ -109,7 +110,7 @@ WS	[ \t]+
 OWS	[ \t]*
 D	[0-9]
 
-FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))(e[-+]?{D}+)?
+FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
 %%
 	// Whether to return a ';' token if a newline is seen.
@@ -210,6 +211,7 @@ F		RETURN_CONSTANT( glish_false );
 T		RETURN_CONSTANT( glish_true );
 
 include		BEGIN(INCL); break;
+"@pragma"	BEGIN(PRAGMA); break;
 
 {ID}		{
 		statement_can_end = 1;
@@ -315,6 +317,25 @@ include		BEGIN(INCL); break;
 		RETURN_CONSTANT( glish_false );
 		}
 
+<PRAGMA>multi	{
+		current_sequencer->MultiClientScript( 1 );
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA>uni	{
+		current_sequencer->MultiClientScript( 0 );
+		BEGIN(INITIAL);
+		break;
+		}
+
+<PRAGMA>\n	{
+		error->Report( "pragma directive not found" );
+		++line_num;
+		BEGIN(INITIAL);
+		break;
+		}
+
 <INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote
 		char* filename = which_include( &yytext[1] );	// skip leading quote
@@ -350,7 +371,7 @@ include		BEGIN(INCL); break;
 		}
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*		break; // comment
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,ATTR>{WS}+	break; // eat whitespace
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,PRAGMA,ATTR>{WS}+	break; // eat whitespace
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
 		++line_num;
