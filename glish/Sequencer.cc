@@ -66,13 +66,6 @@ extern int glish_include_jmpbuf_set;
 #include "ports.h"
 #include "version.h"
 
-#if defined(GLISHTK)
-#include "Rivet/tcl.h"
-#include "Rivet/rivet.h"
-#include "TkSelect.h"
-#include "TkAgent.h"
-#endif
-
 #define GLISH_RC_FILE ".glishrc"
 #define RCDIR_VAR "GLISHROOT"
 const char * const LD_PATH = "LD_LIBRARY_PATH";
@@ -559,14 +552,6 @@ int Notification::Describe( OStream& s, const ioOpt &opt ) const
 	s << ") for ";
 	notifiee->stmt()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	return 1;
-	}
-
-void Notification::ClearNotifier( )
-	{
-#if defined( GLISHTK )
-	if ( notifier && notifier->IsPseudo() && notifier->RefCount() == 1 )
-		((TkAgent*)notifier)->UnMap();
-#endif
 	}
 
 #define LOG_CLEANUP_ONE(VAR)						\
@@ -1333,11 +1318,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	connection_socket = new AcceptSocket( 0, INTERPRETER_DEFAULT_PORT );
 	mark_close_on_exec( connection_socket->FD() );
 
-#if defined( GLISHTK )
-	selector = new TkSelector( this );
-#else
 	selector = new Selector;
-#endif
+
 	selector->AddSelectee( new AcceptSelectee( this, connection_socket ) );
 	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
@@ -1367,19 +1349,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	system_expr->Assign( sys_val );
 
 	SetupSysValue( sys_val );
-
-#if defined( GLISHTK )
-	IValue *tkversion = new IValue( TK_VERSION );
-	sys_val->SetField( "tk", tkversion );
-	Unref(tkversion);
-	attributeptr tkattr = tkversion->ModAttributePtr();
-	tkattr->Insert( strdup( "rivet" ), new IValue(RIVET_VERSION) );
-	tkattr->Insert( strdup( "tcl" ), new IValue(TCL_VERSION) );
-#else
-	IValue *tkversion = new IValue( glish_false );
-	sys_val->SetField( "tk", tkversion );
-	Unref(tkversion);
-#endif
 
 	// Create place for the script variable to be filled in later
 	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
@@ -3649,22 +3618,13 @@ int Sequencer::EventLoop( int in_await )
 		pending_task = 0;
 		}
 
-#if defined( GLISHTK )
-	while ( (doing_pager || ActiveClients() || TkFrame::TopLevelCount() > 0) &&
-		! selector->DoSelection() )
-#else
 	while ( (doing_pager || ActiveClients()) && ! selector->DoSelection() )
-#endif
 		{
 		RunQueue();
 		if ( in_await && current_await_done ) break;
 		}
 
-#if defined( GLISHTK )
-	return ActiveClients() || TkFrame::TopLevelCount() > 0;
-#else
 	return ActiveClients();
-#endif
 	}
 
 void Sequencer::RunQueue( int await_ended )

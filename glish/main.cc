@@ -76,10 +76,6 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Task.h"
 
-#if defined(GLISHTK)
-#include "TkAgent.h"
-#endif
-
 static Sequencer* s = 0;
 // used to recover from a ^C typed while glish
 // is executing an instruction
@@ -328,11 +324,7 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 #endif
 
 	char* ret;
-#if defined( GLISHTK )
-	if ( current_sequencer->ActiveClients() || TkFrame::TopLevelCount() > 0 )
-#else
 	if ( current_sequencer->ActiveClients() )
-#endif
 		{
 		ret = nb_readline( prompt );
 

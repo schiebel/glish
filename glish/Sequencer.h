@@ -51,11 +51,6 @@ public:
 	Type type() { return type_; }
 	void type( Type t ) { type_ = t; }
 
-	// needed to get rid of Tk widgets which would
-	// otherwise be hanging around... i.e. they would be
-	// deleted if not for 'LastNotification()' in Sequencer
-	void ClearNotifier( );
-
 	Agent* notifier;
 	char* field;
 	IValue* value;

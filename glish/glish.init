@@ -16,6 +16,7 @@ func is_dcomplex( const x )	type_name(x) == "dcomplex"
 func is_string( const x )	type_name(x) == "string"
 func is_record( const x )	type_name(x) == "record"
 func is_function( const x )	type_name(x) == "function"
+func is_regex( const x )	type_name(x) == "regex"
 
 func to_lower( str )	tr('[A-Z]','[a-z]',str)
 func to_upper( str )	tr('[a-z]','[A-Z]',str)

@@ -34,14 +34,6 @@ RCSID("@(#) $Id$")
 #include "glishlib.h"
 #include "input.h"
 
-#ifdef GLISHTK
-#include "TkAgent.h"
-#include "TkCanvas.h"
-#ifdef TKPGPLOT
-#include "TkPgplot.h"
-#endif
-#endif
-
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
 #if defined(HUGE_VAL)
 #define HUGE HUGE_VAL
@@ -2070,99 +2062,6 @@ IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return user_agent->AgentRecord();
 	}
 
-
-#ifdef GLISHTK
-IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
-	{
-	int len = args_val->length();
-
-	const IValue* arg = (*args_val)[0];
-
-	if ( len < 1 )
-		return (IValue*) Fail( this, " requires at least one argument");
-
-	if ( arg->Type() != TYPE_STRING )
-		return (IValue*) Fail( this, " requires a string as the first argument");
-
-	const char *type = arg->StringPtr(0)[0];
-	IValue *agent = 0;
-
-	if ( type[0] == 'f' && ! strcmp( type, "frame" ) )
-		agent = TkFrame::Create( sequencer, args_val );
-	else if ( type[0] == 'b' && ! strcmp( type, "button" ) )
-		agent = TkButton::Create( sequencer, args_val );
-	else if ( type[0] == 's' && ! strcmp( type, "scrollbar" ) )
-		agent = TkScrollbar::Create( sequencer, args_val );
-	else if ( type[0] == 's' && ! strcmp( type, "scale" ) )
-		agent = TkScale::Create( sequencer, args_val );
-	else if ( type[0] == 't' && ! strcmp( type, "text" ) )
-		agent = TkText::Create( sequencer, args_val );
-	else if ( type[0] == 'l' && ! strcmp( type, "label" ) )
-		agent = TkLabel::Create( sequencer, args_val );
-	else if ( type[0] == 'e' && ! strcmp( type, "entry" ) )
-		agent = TkEntry::Create( sequencer, args_val );
-	else if ( type[0] == 'm' && ! strcmp( type, "message" ) )
-		agent = TkMessage::Create( sequencer, args_val );
-	else if ( type[0] == 'l' && ! strcmp( type, "listbox" ) )
-		agent = TkListbox::Create( sequencer, args_val );
-	else if ( type[0] == 'c' && ! strcmp( type, "canvas" ) )
-		agent = TkCanvas::Create( sequencer, args_val );
-#ifdef TKPGPLOT
-	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
-		agent = TkPgplot::Create( sequencer, args_val );
-#else
-	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
-		return (IValue*) Fail("This Glish was not configured for PGPLOT");
-#endif
-
-	return agent ? agent : error_ivalue();
-	}
-
-IValue* TkBuiltIns::DoCall( const_args_list* args_val )
-	{
-	int len = args_val->length();
-
-	if ( args_val->length() != 1 && args_val->length() != 2 )
-		return (IValue*) Fail( this, " requires one or two arguments");
-
-	const IValue* arg = (*args_val)[0];
-	if ( arg->Type() != TYPE_INT )
-		return (IValue*) Fail( this, " requires one integer argument");
-
-	IValue *ret = 0;
-	switch( arg->IntVal() )
-		{
-		case 1:
-			ret = new IValue( TkHaveGui() ? glish_true : glish_false );
-			break;
-		case 2:
-			TkAgent::HoldEvents();
-			break;
-		case 3:
-			TkAgent::ReleaseEvents();
-			break;
-		case 4:
-			{
-			const IValue* path = (*args_val)[1];
-			if ( path->Type() != TYPE_STRING )
-				return (IValue*) Fail( this, " requires one string argument");
-
-			TkAgent::SetBitmapPath( path );
-			break;
-			}
-		default:
-			ret = new IValue( glish_false );
-		}
-
-	return ret ? ret : new IValue( glish_true );
-	}
-#else
-IValue* CreateGraphicBuiltIn::DoCall( const_args_list* )
-	{ return (IValue*) Fail("This Glish was not configured for graphic clients"); }
-IValue* TkBuiltIns::DoCall( const_args_list* )
-	{ return new IValue( glish_false ); }
-#endif
-
 IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
@@ -2837,9 +2736,6 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
-
-	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );
-	s->AddBuiltIn( new TkBuiltIns );
 
 	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );
