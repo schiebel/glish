@@ -1361,11 +1361,13 @@ TkAgent::TkAgent( Sequencer *s ) : Agent( s ), dont_map( 0 ), disable_count(0)
 		argv[0] = "glish";
 		argv[1] = 0;
 
-		root = rivet_init(1, argv);
-		glishtk_dflt_xioerror_handler = 
-			XSetIOErrorHandler(glishtk_xioerror_handler);
+		if ( (root = rivet_init(1, argv)) )
+			{
+			glishtk_dflt_xioerror_handler = 
+				XSetIOErrorHandler(glishtk_xioerror_handler);
 		
-		rivet_focus_follows_mouse(root);
+			rivet_focus_follows_mouse(root);
+			}
 		}
 
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr));

@@ -1414,10 +1414,14 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 
 	else
 		{
-		if ( index->Type() == TYPE_STRING &&
-		     lhs_value->Type() == TYPE_BOOL )
+		if ( lhs_value->Type() == TYPE_BOOL && lhs_value->Length() == 1 )
+			{
 			// ### assume uninitialized variable
-			lhs_value->Polymorph( TYPE_RECORD );
+			if ( index->Type() == TYPE_STRING )
+				lhs_value->Polymorph( TYPE_RECORD );
+			else if ( new_value->Type() == TYPE_STRING )
+				lhs_value->Polymorph( TYPE_STRING );
+			}
 
 		lhs_value->AssignElements( index, new_value );
 		}

@@ -653,6 +653,7 @@ InputFileInfo::~InputFileInfo()
 // If non-null, we're scanning an array of strings, with our present
 // position given by input_offset.
 static const char** input_strings;
+static const char* save_string = 0;
 static int input_offset;
 
 void scan_strings( const char** strings )
@@ -677,8 +678,19 @@ int scanner_read( char buf[], int max_size )
 			{
 			int len = strlen( s );
 			if ( len >= max_size )
+				{
+				// Uh-oh, we've hit a line which is bigger
+				// than max_size, we've got to chunk it up.
+				if ( buf == bufptr )
+					{
+					memcpy( buf, s, max_size );
+					if ( ! save_string ) save_string = s;
+					input_strings[input_offset] = &s[max_size];
+					bufptr += max_size;
+					}
 				// Okay, we've read enough.
 				return bufptr - buf;
+				}
 
 			strcpy( bufptr, s );
 			bufptr[len] = '\n';
@@ -686,6 +698,13 @@ int scanner_read( char buf[], int max_size )
 			bufptr += len;
 			max_size -= len;
 
+			// We were fed a string longer than max_size, and so we
+			// had to chunk it up, now we're fixing things back
+			if ( save_string )
+				{
+				input_strings[input_offset] = save_string;
+				save_string = 0;
+				}
 			// Move on to the next string.
 			s = input_strings[++input_offset];
 			}

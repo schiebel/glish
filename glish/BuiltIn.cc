@@ -389,7 +389,7 @@ IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
-	if ( ! v->Type() == TYPE_STRING )
+	if ( v->Type() != TYPE_STRING )
 		return (IValue*) Fail( this, " requires a string argument" );
 
 	int len = v->Length();

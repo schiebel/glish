@@ -1032,9 +1032,20 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 
 	if ( VecRefDeref()->Type() != TYPE_STRING )
 		{
-		error->Report( "non-string type in coercion of", this,
-				"to string" );
-		return 0;
+		// As with records (see Value::Polymprph()), we allow boolean
+		// values of length 1 to be converted to strings; assuming that
+		// they are uninitialized variables. This if-clause permits this
+		// conversion.
+		if ( size > 1 )
+			warn->Report( "array values lost due to conversion to string type" );
+		is_copy = 1;
+		char **ary = (char**) alloc_memory(sizeof(char*)*size);
+		for ( int x=0; x < size; ++x )
+			{
+			ary[x] = (char*) alloc_memory(1);
+			ary[x][0] = '\0';
+			}
+		return (charptr*)ary;
 		}
 
 	if ( ! result && Length() == size && ! IsVecRef() )
