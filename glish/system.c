@@ -437,6 +437,9 @@ const char* local_host_name()
 
 void* alloc_memory( unsigned int size )
 	{
+#if defined(_AIX)
+	if ( ! size ) size += 8;
+#endif
 	return (void*) malloc( size );
 	}
 
