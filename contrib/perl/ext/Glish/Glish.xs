@@ -23,10 +23,15 @@
 **    ever read sources, credits must appear in the documentation.
 ** 4. This notice may not be removed or altered.
 */
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#ifdef __cplusplus
+}
+#endif
 
 #include <Glish/Value.h>
 #include <Glish/Client.h>
