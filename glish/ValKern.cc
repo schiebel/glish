@@ -5,6 +5,9 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
+#if defined(DO_STAT)
+#include "Reporter.h"
+#endif
 #include "system.h"
 #include <string.h>
 #include <stdlib.h>
@@ -169,6 +172,7 @@ void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 
 void ValueKernel::unrefArray(int del)
 	{
+	STAT9("array unref (", (void*) this, "/", (void*) array," ref ",array->ref_count,", del ",del,")");
 	if ( array && --array->ref_count == 0 )
 		if ( del )
 			{
@@ -186,6 +190,7 @@ void ValueKernel::unrefArray(int del)
 
 void ValueKernel::unrefRecord(int del)
 	{
+	STAT9("record unref (", (void*) this, "/", (void*) record," ref ",record->ref_count,", del ",del,")");
 	if ( record && --record->ref_count == 0 )
 		if ( del )
 			{
@@ -321,6 +326,7 @@ void *ValueKernel::modArray( )
 		return array->values;
 	else
 		{
+		STAT7("array copy (", (void*) this, "/", (void*) array," ref ",array->ref_count,")");
 		array_t *k = array;
 		unrefArray();
 		array->SetType( k->type, k->copy, k->zero );
@@ -342,6 +348,7 @@ recordptr ValueKernel::modRecord( )
 		return record->record;
 	else
 		{
+		STAT7("array copy (", (void*) this, "/", (void*) array," ref ",array->ref_count,")");
 		record_t *a = record;
 		unrefRecord();
 		record = 0;
@@ -393,13 +400,13 @@ recordptr copy_record_dict( recordptr rptr )
 	{
 	recordptr new_record = create_record_dict();
 
-	for ( int i = 0; i < rptr->Length(); ++i )
-		{
-		const char* key;
-		Value* member = rptr->NthEntry( i, key );
+	IterCookie *c = rptr->InitForIteration();
+	const Value* member;
+	const char* key;
+	while ( (member = rptr->NextEntry( key, c )) ) 
 		new_record->Insert( strdup( key ),
 				    copy_value( member ) );
-		}
+	return new_record;
 	}
 
 void copy_strings(void *tgt, void *src, unsigned long len)
