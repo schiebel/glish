@@ -325,19 +325,22 @@ int Selector::DoSelection( int CanBlock )
 		{
 		if ( FD_ISSET( i, &read_mask ) )
 			{
-			current_selectee = selectees[i];
-			nuke_current_selectee = 0;
 
-			int selectee_value =
-				current_selectee->NotifyOfSelection();
+			if ( current_selectee = selectees[i] )
+				{
+				nuke_current_selectee = 0;
 
-			if ( nuke_current_selectee )
-				delete current_selectee;
+				int selectee_value =
+					current_selectee->NotifyOfSelection();
 
-			current_selectee = 0;
+				if ( nuke_current_selectee )
+					delete current_selectee;
 
-			if ( selectee_value )
-				return selectee_value;
+				current_selectee = 0;
+
+				if ( selectee_value )
+					return selectee_value;
+				}
 
 			--status;
 			}
