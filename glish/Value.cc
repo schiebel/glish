@@ -597,9 +597,12 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 		limit = lookup_print_precision( );
 
 	if ( limit >= 0 )
-		sprintf(prec,"%%.%df",limit);
+		{
+		sprintf(prec,"%%.%dg",limit);
+		return prec;
+		}
 
-	return limit >= 0 ? prec : default_fmt;
+	return default_fmt;
 	}
 
 static char *format_error_message( const Value *, char, unsigned int, int );

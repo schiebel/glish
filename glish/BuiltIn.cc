@@ -1353,35 +1353,51 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
 	{
 	const Value* val = (*args_val)[0];
+	glish_type type;
 
-	if ( val && (val->Type() == TYPE_FLOAT || val->Type() == TYPE_DOUBLE ))
+	if ( val && ((type = val->Type()) == TYPE_FLOAT || 
+		     type == TYPE_DOUBLE ||
+		     type == TYPE_COMPLEX ||
+		     type == TYPE_DCOMPLEX ))
 		{
 		int len = val->Length();
 		if ( len > 1 )
 			{
 			glish_bool *ret = new glish_bool[len];
-			switch( val->Type() )
+			switch( type )
 				{
-#define ISNAN_ACTION(tag,type,accessor) 		\
+#define ISNAN_ACTION(tag,type,accessor,extra) 		\
 case tag:						\
 	{						\
 	type *v = val->accessor();			\
 	for (int i = 0; i < len; i++)			\
-		ret[i] = ( is_a_nan( v[i] ) ) ? glish_true : glish_false; \
+		ret[i] = ( is_a_nan( v[i] extra ) ) ? glish_true : glish_false; \
 	}						\
 	break;
+#define ISNAN_ACTION_CPX_EXTRA  .r ) || ( is_a_nan( v[i].i )
 
-				ISNAN_ACTION(TYPE_FLOAT,float,FloatPtr)
-				ISNAN_ACTION(TYPE_DOUBLE,double,DoublePtr)
+				ISNAN_ACTION(TYPE_FLOAT,float,FloatPtr,)
+				ISNAN_ACTION(TYPE_DOUBLE,double,DoublePtr,)
+				ISNAN_ACTION(TYPE_COMPLEX,complex,ComplexPtr, ISNAN_ACTION_CPX_EXTRA)
+				ISNAN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr, ISNAN_ACTION_CPX_EXTRA)
 				}
 
 			return new IValue(ret, len);
 			}
 		else
 			{
-			double nv = val->DoubleVal();
-			return new IValue( ( is_a_nan(nv) ) ? 
-					   glish_true : glish_false );
+			if ( type == TYPE_FLOAT || type == TYPE_DOUBLE )
+				{
+				double nv = val->DoubleVal();
+				return new IValue( ( is_a_nan(nv) ) ? 
+						   glish_true : glish_false );
+				}
+			else
+				{
+				dcomplex nv = val->DcomplexVal();
+				return new IValue( ( is_a_nan(nv.r) || is_a_nan(nv.i) ) ?
+						   glish_true : glish_false );
+				}
 			}
 		}
 
