@@ -663,6 +663,19 @@ void Client::Error( const char* fmt, const char* arg, const ProxyId &proxy_id )
 	Error( buf, proxy_id );
 	}
 
+void Client::Error( const Value *v, const ProxyId &proxy_id )
+	{
+	if ( last_event )
+		{
+		char *msg = v->StringVal();
+		PostEvent( "error", "bad \"%s\" event: %s",
+				last_event->name, msg, proxy_id );
+		free_memory(msg);
+		}
+	else
+		PostEvent( "error", v, proxy_id );
+	}
+
 void Client::PostEvent( const GlishEvent* event, const EventContext &context )
 	{
 	SendEvent( event, -1, context );

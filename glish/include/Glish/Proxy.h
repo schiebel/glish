@@ -64,6 +64,7 @@ friend class ProxyStore;
 	void Error( const char* msg ) { store->Error( msg, id ); }
 	void Error( const char* fmt, const char* arg )
 				{ store->Error( fmt, arg, id ); }
+	void Error( Value *val ) { store->Error( val, id ); }
 
 	void PostEvent( const GlishEvent* event, const EventContext &context = glish_ec_dummy )
 				{ store->PostEvent( event, context ); }

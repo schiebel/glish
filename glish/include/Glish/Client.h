@@ -238,6 +238,7 @@ class Client {
 	// Called to report that the current event has an error.
 	void Error( const char* msg, const ProxyId &proxy_id=glish_proxyid_dummy );
 	void Error( const char* fmt, const char* arg, const ProxyId &proxy_id=glish_proxyid_dummy );
+	void Error( const Value *v, const ProxyId &proxy_id=glish_proxyid_dummy );
 
 	// Sends an event with the given name and value.
 	void PostEvent( const GlishEvent* event, const EventContext &context = glish_ec_dummy );
