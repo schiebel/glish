@@ -501,16 +501,19 @@ int get_our_userid()
 
 const char *get_our_username()
 	{
-	struct passwd *pw;
-	static char name[1024];
-	pw = getpwuid(get_our_userid());
-	if ( pw )
-		if ( strlen(pw->pw_name) + 1 > sizeof(name) )
-			return 0;
+	static char *name = 0;
+	if ( ! name )
+		{
+		struct passwd *pw = getpwuid(get_our_userid());
+
+		if ( pw && pw->pw_name )
+			{
+			name = (char*) my_alloc(strlen(pw->pw_name) + 1);
+			strcpy(name, pw->pw_name);
+			}
 		else
-			strcpy(name,pw->pw_name);
-	else
-		return 0;
+			return 0;
+		}
 
 	return name;
 	}
