@@ -48,6 +48,19 @@ AC_EGREP_CPP(yes,
 AIX=yes], [AIX=no])
 AC_MSG_RESULT($AIX)])
 
+AC_DEFUN(HAVE_ALPHA,
+[AC_MSG_CHECKING(for __alpha)
+AC_EGREP_CPP(yes,
+[#ifdef __alpha
+  yes
+#else
+#ifdef __alpha__
+  yes
+#endif
+#endif
+], [ALPHA=yes], [ALPHA=no])
+AC_MSG_RESULT($ALPHA)])
+
 dnl##
 dnl## Attempt to strip off the automounter mount point
 dnl##
@@ -238,6 +251,7 @@ dnl## Checks for programs.
 dnl##
 AC_PROG_CC
 HAVE_AIX
+HAVE_ALPHA
 AC_C_CONST
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -468,6 +482,19 @@ if test "$AIX" = yes; then
     CFLAGS="$CFLAGS -D_ALL_SOURCE"
     CXXFLAGS="$CXXFLAGS -D_ALL_SOURCE"
 fi
+
+dnl##
+dnl##  Set ALTCC for certain architectures
+dnl##
+if test "$ALPHA" = yes; then
+    ALTCC="/bin/cc -ieee"
+    ARCH_OBJ="alpha.o"
+else
+    ALTCC="$CC"
+    ARCH_OBJ=""
+fi
+AC_SUBST(ALTCC)
+AC_SUBST(ARCH_OBJ)
 
 dnl##--------------------------------------------------------------------
 dnl##

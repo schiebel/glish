@@ -146,13 +146,10 @@ void StringReporter::Epilog() { }
 void StringReporter::Prolog() { }
 static StringReporter *srpt = 0;
 
-static void setup_sigfpe( );
-
 int main( int argc, char** argv )
 	{
 	srpt = new StringReporter( new SOStream );
 
-	setup_sigfpe();
 	install_terminate_handlers();
 
 	(void) install_signal_handler( SIGINT, glish_sigint );
@@ -188,7 +185,7 @@ DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL,DUMP_CORE)
 #ifdef SIGEMT
 DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT,DUMP_CORE)
 #endif
-DEFINE_SIG_FWD(glish_sigfpe_die,"floating point exception",SIGFPE,DUMP_CORE)
+DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP,DUMP_CORE)
 #ifdef SIGSYS
 DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS,DUMP_CORE)
@@ -202,6 +199,7 @@ static void install_terminate_handlers()
 #ifdef SIGEMT
 	(void) install_signal_handler( SIGEMT, glish_sigemt );
 #endif
+	(void) install_signal_handler( SIGFPE, glish_sigfpe );
 	(void) install_signal_handler( SIGTRAP, glish_sigtrap );
 #ifdef SIGSYS
 	(void) install_signal_handler( SIGSYS, glish_sigsys );
@@ -488,38 +486,26 @@ static void glish_dump_core( const char *file )
 	sos.flush( );
 	}
 
-
+//
+//  Handle SIGFPE, the complications are:
+//
+//	o  solaris 2.* must use sigfpe()
+//	o  alpha must compile with -ieee and isolate portions
+//		which need -ieee due to performance hit
+//
+//  note that these signal handlers are only used to trap integer
+//  division problems, floats should happen with IEEE NaN and Inf
+//
 static int sigfpe_trap = 0;
-static union { void (*f)(float*,float*); void (*d)(double*,double*); } sigfpe_func;
-static union { byte *b; short *s; int *i;
-	       float *f; double *d; } sigfpe_array[2];
-static enum { FLOAT, DOUBLE, SITONHANDS } sigfpe_type;
-
-#define FPE_SETVAL							\
-	switch ( sigfpe_type )						\
-		{							\
-	    case SITONHANDS: break;					\
-	    case DOUBLE:						\
-		(*sigfpe_func.d)(sigfpe_array[0].d, sigfpe_array[1].d);	\
-		break;							\
-	    case FLOAT:							\
-		(*sigfpe_func.f)(sigfpe_array[0].f, sigfpe_array[1].f);	\
-		break;							\
-		}
-
 void glish_sigfpe_recover( )
 	{
 	sigfpe_trap = 1;
-	FPE_SETVAL
-	(void) install_signal_handler( SIGFPE, (signal_handler) SIG_IGN );
-	unblock_signal(SIGFPE);
 	}
 
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
 	{
 	sigfpe_trap = 1;
-	FPE_SETVAL
 	/*
 	**  Increment program counter; ieee_handler does this by
 	**  default, but here we have to use sigfpe() to set up the
@@ -529,38 +515,9 @@ void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
 	}
 #endif
 
-
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-#define DEFINE_FPE_ENTER( type, item, T )				\
-void glish_fpe_enter( type *lhs, type *rhs, void (*func)(type*,type*) )	\
-	{								\
-	sigfpe_trap = 0;						\
-	sigfpe_array[0].item = lhs;					\
-	sigfpe_array[1].item = rhs;					\
-	sigfpe_func.item = func;					\
-	sigfpe_type = T;						\
-	sigfpe(FPE_INTDIV, (void(*)())glish_sigfpe_intdiv);		\
-	}
-#else
-#define DEFINE_FPE_ENTER( type, item, T )				\
-void glish_fpe_enter( type *lhs, type *rhs, void (*func)(type*,type*) )	\
-	{								\
-	sigfpe_trap = 0;						\
-	sigfpe_array[0].item = lhs;					\
-	sigfpe_array[1].item = rhs;					\
-	sigfpe_func.item = func;					\
-	sigfpe_type = T;						\
-	(void) install_signal_handler( SIGFPE, glish_sigfpe_recover );	\
-	}
-#endif
-
-DEFINE_FPE_ENTER( float, f, FLOAT )
-DEFINE_FPE_ENTER( double, d, DOUBLE )
-
 void glish_fpe_enter( )
 	{
 	sigfpe_trap = 0;
-	sigfpe_type = SITONHANDS;
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);
 #else
@@ -575,18 +532,9 @@ int glish_fpe_exit( )
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 	sigfpe(FPE_INTDIV, SIGFPE_DEFAULT);
 #else
-	(void) install_signal_handler( SIGFPE, glish_sigfpe_die );
+	(void) install_signal_handler( SIGFPE, glish_sigfpe );
 #endif
 	return ret;
-	}
-
-void setup_sigfpe( )
-	{
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-/*	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);*/
-#else
-	(void) install_signal_handler( SIGFPE, glish_sigfpe_die );
-#endif
 	}
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";

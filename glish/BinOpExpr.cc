@@ -248,15 +248,26 @@ DEFINE_ARITH_EXPR(MultiplyExpr,*=,mul_fpe_errmsg)
 COMPLEX_COMPUTE_MUL_OP(complex,mul_fpe_errmsg)
 COMPLEX_COMPUTE_MUL_OP(dcomplex,mul_fpe_errmsg)
 
+#if defined(__alpha) || defined(__alpha__)
+#define ALPHA_DIV_OP(type,func)					\
+void DivideExpr::Compute( type lhs[], type rhs[], int lhs_len,	\
+		    int rhs_incr, const char *&err )		\
+	{							\
+	err = 0;						\
+	glish_fpe_enter( ); /* reset FPE trap */		\
+	func( lhs, rhs, lhs_len, rhs_incr );			\
+	if ( glish_fpe_exit( ) ) err = div_fpe_errmsg;		\
+	}
+ALPHA_DIV_OP(float,glish_fdiv)
+ALPHA_DIV_OP(double,glish_ddiv)
+#else
+COMPUTE_OP(DivideExpr,/=,float,div_fpe_errmsg)
+COMPUTE_OP(DivideExpr,/=,double,div_fpe_errmsg)
+#endif
+
 COMPUTE_OP(DivideExpr,/=,byte,div_fpe_errmsg)
 COMPUTE_OP(DivideExpr,/=,short,div_fpe_errmsg)
 COMPUTE_OP(DivideExpr,/=,int,div_fpe_errmsg)
-//
-// Some OSes generate a SIGFPE (OSF1), and others don't (SunOS)
-// assume that on divide all is OK (for now) with floating point
-//
-COMPUTE_OP(DivideExpr,/=,float,0)
-COMPUTE_OP(DivideExpr,/=,double,0)
 COMPLEX_COMPUTE_DIV_OP(complex,div_fpe_errmsg)
 COMPLEX_COMPUTE_DIV_OP(dcomplex,div_fpe_errmsg)
 

@@ -142,6 +142,11 @@ extern "C" {
 	char *strdup( const char *str );
 #endif
 
+#if defined(__alpha) || defined(__alpha__)
+void glish_fdiv( float *, float *, int, int );
+void glish_ddiv( double *, double *, int, int );
+#endif
+
 #ifdef __cplusplus
 	}
 #endif

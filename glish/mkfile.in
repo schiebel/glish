@@ -41,6 +41,7 @@ INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
 CC = @CC@
+ALTCC = @ALTCC@
 CPLUS = @CXX@
 LFLAGS = -s
 YACC = @YACC@
@@ -56,6 +57,7 @@ SH = $(SHELL)
 SRC = ../..
 
 H = $(SRC)/include/Glish
+
 
 INTERP_OBJS = \
 	IValue.o \
@@ -75,7 +77,7 @@ INTERP_OBJS = \
 	TkSelect.o \
 	glish_init.o \
 	parse.o \
-	scan.o
+	scan.o @ARCH_OBJ@
 
 CLIENT_OBJS = \
 	Value.o \
@@ -115,7 +117,7 @@ INTERP_OBJS_PROXY = \
 	$(D)TkSelect.o \
 	$(D)glish_init.o \
 	$(D)parse.o \
-	$(D)scan.o
+	$(D)scan.o @ARCH_OBJ@
 
 CLIENT_OBJS_PROXY = \
 	$(D)Value.o \
@@ -393,10 +395,15 @@ $(D)scan.o: $(SRC)/scan.l y.tab.h $(KEY_HEADERS)
 
 glish_init.cc: $(SRC)/glish.init $(SRC)/mkinit.sh
 	$(SH) $(SRC)/mkinit.sh $(SRC)/glish.init >glish_init.cc
+
 $(D)glish_init.o: glish_init.cc
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c glish_init.cc $(T)
 
 $(D)system.o: $(SRC)/system.c $(SRC)/system.h
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/system.c $(T)
 
+alpha.o: $(SRC)/alpha.c
+	$(ALTCC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/alpha.c
+
 INSTALL_:
+
