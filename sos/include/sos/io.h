@@ -7,7 +7,13 @@
 #ifndef sos_io_h
 #define sos_io_h
 #include "sos/header.h"
+
+#if defined(ENABLE_STR)
 #include "sos/str.h"
+#else
+typedef const char * const * const_charptr;
+typedef const char* charptr;
+#endif
 
 class SINK {
     public:
@@ -90,8 +96,10 @@ public:
 	void put( char **cv, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD )
 		{ put( (charptr*)cv, l, h, type ); }
 
+#if defined(ENABLE_STR)
 	void put( const str & );
 	void put( const str &, sos_header &h );
+#endif
 
 	void put_record_start( unsigned int l );
 	void put_record_start( unsigned int l, sos_header &h );

@@ -31,7 +31,6 @@ RCSID("@(#) $Id$")
 unsigned int FD_SINK::tmp_buf_count = 10;
 unsigned int FD_SINK::tmp_buf_size = 1024;
 
-
 SINK::~SINK() { }
 SOURCE::~SOURCE() { }
 
@@ -251,10 +250,12 @@ void sos_sink::put( charptr *s, unsigned int len, SINK::buffer_type type )
 void sos_sink::put( charptr *s, unsigned int len, sos_header &h, SINK::buffer_type type )
 	PUTCHARPTR_BODY(h.iBuffer() + 18)
 
+#if defined(ENABLE_STR)
 void sos_sink::put( const str &s )
 	PUTSTR_BODY(zero_user_area)
 void sos_sink::put( const str &s, sos_header &h )
 	PUTSTR_BODY(h.iBuffer() + 18)
+#endif
 
 
 #define PUTREC_BODY( SOURCE )				\
@@ -414,6 +415,7 @@ void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &hea
 	return result_;
 	}
 
+#if defined(ENABLE_STR)
 void *sos_source::get_string( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
@@ -445,6 +447,9 @@ void *sos_source::get_string( unsigned int &len, sos_header &head )
 	free_memory( buf );
 	return ns;
 	}
+#else
+void *sos_source::get_string( unsigned int &, sos_header & ) { return 0; }
+#endif
 
 void *sos_source::get_chars( unsigned int &len, sos_header &head )
 	{
