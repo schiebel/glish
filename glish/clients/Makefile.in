@@ -76,16 +76,13 @@ make-bindir:
 
 install:  make-bindir $(INSTALLED_CLIENTS)
 
-npdstubs.o: $(SRC)/npdstubs.c 
-	$(CC) -DUSENPD=@USENPD@ $(INCLUDE) $(CFLAGS) -c $(SRC)/npdstubs.c
-
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
 		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
 		$(GLISH_SRC)/ports.h
 	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -c $(SRC)/glishd.cc 
 
-glishd: glishd.o npdstubs.o $(GLISH_LIBS)
-	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -o glishd glishd.o npdstubs.o $(LIBS)
+glishd: glishd.o $(GLISH_LIBS)
+	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -o glishd glishd.o $(LIBS)
 
 $(BINDIR_P)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(BINDIR_P)

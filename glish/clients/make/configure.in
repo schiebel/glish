@@ -182,7 +182,11 @@ dnl##
 dnl## Configure authentication
 dnl##
 dnl##--------------------------------------------------------------------
-do_npd='no'
+if test -z "$NO_AUTH" && test -d ../../../npd && test -f ../../../npd/config.h.in; then
+    do_npd='yes'
+else
+    do_npd='no'
+fi
 
 dnl##--------------------------------------------------------------------
 dnl##

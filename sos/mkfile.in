@@ -70,9 +70,9 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-OBJS = convert.o header.o io.o longint.o types.o list.o ref.o alloc.o
+OBJS = convert.o header.o io.o longint.o types.o list.o ref.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
-	$(D)types.o $(D)list.o $(D)ref.o $(D)alloc.o
+	$(D)types.o $(D)list.o $(D)ref.o
 
 GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o
 GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
@@ -188,9 +188,6 @@ $(D)ref.o: $(SRC)/ref.cc $(H)/ref.h
 
 $(D)gcref.o: $(SRC)/ref.cc $(H)/ref.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcref.o $(SRC)/ref.cc $(T)
-
-$(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h
-	$(CC) $(INCLUDE) $(CFLAGS) -c $(SRC)/alloc.c $(T)
 
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)
