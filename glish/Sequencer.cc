@@ -3381,25 +3381,26 @@ void Sequencer::MakeEnvGlobal()
 	IValue* env_value = create_irecord();
 
 	extern char** environ;
-	for ( char** env_ptr = environ; *env_ptr; ++env_ptr )
-		{
-		char* delim = strchr( *env_ptr, '=' );
+	if ( environ )
+		for ( char** env_ptr = environ; *env_ptr; ++env_ptr )
+			{
+			char* delim = strchr( *env_ptr, '=' );
 
-		if ( delim )
-			{
-			*delim = '\0';
-			IValue *val = new IValue( delim + 1 );
-			env_value->AssignRecordElement( *env_ptr, val );
-			Unref(val);
-			*delim = '=';
+			if ( delim )
+				{
+				*delim = '\0';
+				IValue *val = new IValue( delim + 1 );
+				env_value->AssignRecordElement( *env_ptr, val );
+				Unref(val);
+				*delim = '=';
+				}
+			else
+				{
+				IValue *val = new IValue( glish_false );
+				env_value->AssignRecordElement( *env_ptr, val );
+				Unref(val);
+				}
 			}
-		else
-			{
-			IValue *val = new IValue( glish_false );
-			env_value->AssignRecordElement( *env_ptr, val );
-			Unref(val);
-			}
-		}
 
 	Expr* env_expr = LookupID( string_dup( "environ" ), GLOBAL_SCOPE );
 	env_expr->Assign( env_value );
