@@ -417,7 +417,7 @@ void SystemInfo::update_output( )
 				if ( nf == log_name )
 					{
 					if ( log_file ) close( log_file );
-					if ( access(log_name, F_OK) )
+					if ( ! access(log_name, F_OK) )
 						log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
 					else
 						{
@@ -699,7 +699,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
 
-		if ( ! strcmp( argv[0], "-w" ) )
+		else if ( ! strcmp( argv[0], "-w" ) )
 			++allwarn;
 
 		else if ( ! strcmp( argv[0], "-l" ) )
@@ -801,18 +801,19 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 		}
 
 	int do_interactive = 1;
-
-	if ( argc > 0 && strcmp( argv[0], "--" ) )
+	char *runfile = 0;
+	if ( argc > 0 && strcmp( argv[0], "--" ) && (runfile = which_include(argv[0])) )
 		{
-		Parse( argv[0] );
+		MakeArgvGlobal( argv, argc );
+		Parse( runfile );
 		do_interactive = 0;
-		++argv, --argc;
+		delete runfile;
 		}
+	else
+		MakeArgvGlobal( argv, argc, 1 );
 
 	if ( ! ScriptCreated() )
 		InitScriptClient();
-
-	MakeArgvGlobal( argv, argc );
 
 	if ( do_interactive )
 		Parse( stdin );
@@ -2054,7 +2055,7 @@ void Sequencer::MakeEnvGlobal()
 	}
 
 
-void Sequencer::MakeArgvGlobal( char** argv, int argc )
+void Sequencer::MakeArgvGlobal( char** argv, int argc, int append_name )
 	{
 	// If there's an initial "--" argument, remove it, it's a vestige
 	// from when "--" was needed to separate script files from their
@@ -2062,7 +2063,18 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc )
 	if ( argc > 0 && ! strcmp( argv[0], "--" ) )
 		++argv, --argc;
 
-	IValue* argv_value = new IValue( (charptr*) argv, argc, COPY_ARRAY );
+	IValue *argv_value = 0;
+	if ( ! append_name )
+		argv_value = new IValue( (charptr*) argv, argc, COPY_ARRAY );
+	else
+		{
+		char **av = new char*[argc+1];
+		av[0] = strdup(name);
+		for ( int i = 0; i < argc; i++ )
+			av[i+1] = strdup(argv[i]);
+		argv_value = new IValue( (charptr*) av, argc+1 );
+		}
+
 	Expr* argv_expr = LookupID( strdup( "argv" ), GLOBAL_SCOPE );
 	argv_expr->Assign( argv_value );
 	}

@@ -365,7 +365,7 @@ public:
 
 protected:
 	void MakeEnvGlobal();
-	void MakeArgvGlobal( char** argv, int argc );
+	void MakeArgvGlobal( char** argv, int argc, int append_name=0 );
 	void BuildSuspendList();
 	IValue *Parse( FILE* file, const char* filename = 0, int value_needed=0 );
 	IValue *Parse( const char file[], int value_needed=0 );
