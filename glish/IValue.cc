@@ -82,7 +82,7 @@ IValue::IValue( ) : Value( ) GGCTOR
 	else
 		{
 
-		if ( file_name && ! interactive )
+		if ( file_name && ! interactive && glish_files )
 			{
 			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
 			if ( line_num > 0 )
@@ -108,7 +108,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		}
 	else
 		{
-		if ( ! fle && file_name && ! interactive )
+		if ( ! fle && file_name && ! interactive && glish_files )
 			{
 			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
 			if ( lne <= 0 && line_num > 0 )
