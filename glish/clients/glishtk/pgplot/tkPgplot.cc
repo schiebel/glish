@@ -496,6 +496,8 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	argv[c++] = (char *)maxcolors_str;
 	argv[c++] = "-share";
 	argv[c++] = cmap_share ? "true" : "false";
+	argv[c++] = "-takefocus";
+	argv[c++] = "1";
 //	argv[c++] = "-xscrollcommand";
 //	argv[c++] = rivet_new_callback((int (*)())pgplot_xscrollcb,
 // 					(ClientData)this, 0);
