@@ -38,8 +38,8 @@ friend class stack_type;
 
 	const char *Description() const;
 
-	void SetCycleRoots( observed_list *cr ) { roots = cr; }
-	observed_list *GetCycleRoots( ) { return roots; }
+	void SetCycleRoots( NodeList *cr ) { roots = cr; }
+	NodeList *GetCycleRoots( ) { return roots; }
 
     protected:
 	void clear();
@@ -47,7 +47,7 @@ friend class stack_type;
 	IValue** values;
 	IValue* missing;
 	scope_type scope;
-	observed_list *roots;
+	NodeList *roots;
 	};
 
 glish_declare(PList,Frame);

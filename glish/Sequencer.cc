@@ -1802,6 +1802,12 @@ void Sequencer::PopNote( int doing_func )
 		notes_inuse.append(sticky[j]);
 	}
 
+static void expr_list_element_unref( void *vp )
+	{
+	Expr *p = (Expr*) vp;
+	Unref( p );
+	}
+
 void Sequencer::PushScope( scope_type s )
 	{
 	Scope *newscope = new Scope( s );
@@ -1809,7 +1815,11 @@ void Sequencer::PushScope( scope_type s )
 	if ( s != LOCAL_SCOPE )
 		global_scopes.append( scopes.length() - 1 );
 	if ( s == FUNC_SCOPE )
-		back_refs.append( new expr_list );
+		{
+		expr_list *el = new expr_list;
+		el->set_finalize_handler( expr_list_element_unref );
+		back_refs.append( el );
+		}
 	}
 
 int Sequencer::PopScope( back_offsets_type **back_ref_ptr )
@@ -2260,6 +2270,16 @@ const IValue *Sequencer::LookupVal( evalOpt &opt, const char *id )
 	return val;
 	}
 
+Frame *Sequencer::FindCycleFrame( int start_off )
+        {
+        frame_list &t = frames();
+	if ( start_off < 0 ) start_off = t.length()-1;
+        for ( int x=start_off; x >= 0; --x )
+                if ( t[x] && t[x]->GetCycleRoots( ) )
+                        return t[x];
+        return t[start_off];
+        }
+
 // Messy, messy
 void Sequencer::DeleteVal( const char* id )
 	{
@@ -2678,7 +2698,10 @@ void Sequencer::RegisterBackRef( VarExpr *var )
 	int len = back_refs.length();
 
 	if ( len > 0 && ! back_refs[len-1]->is_member( var ) )
+		{
+		Ref( var );
 		back_refs[len-1]->append(var);
+		}
 	}
 
 void Sequencer::NotifieeDone( Notifiee *gone )

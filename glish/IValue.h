@@ -4,12 +4,14 @@
 #ifndef ivalue_h
 #define ivalue_h
 #include "Glish/Value.h"
+#include "Reflex.h"
+
 
 extern const char *glish_charptrdummy;
 
 class Agent;
 class Func;
-class observed_list;
+class NodeList;
 class Regex;
 class RegexMatch;
 class File;
@@ -18,7 +20,8 @@ class RelExpr;
 class Frame;
 class IValue;
 
-class IValue;
+glish_declare(ReflexPtr,NodeList);
+
 #define alloc_ivalueptr( num ) (IValue**) alloc_memory( sizeof(IValue*) * (num) )
 #define realloc_ivalueptr( ptr, num ) (IValue**) realloc_memory( ptr, sizeof(IValue*) * (num) )
 
@@ -53,9 +56,9 @@ public:
 				unref(0), Value( val, file, lineNum ) { }
 
 	IValue( const Value &v ) : unref(0), Value(v)
-		{ if ( v.doPropagate( ) ) SetUnref( ((const IValue &)v).unref ); }
+		{ if ( v.doPropagate( ) ) SetUnref( ((IValue &)v).unref ); }
 	IValue( const IValue &v ) : unref(0), Value(v)
-		{ if ( v.doPropagate( ) ) SetUnref( v.unref ); }
+		{ if ( v.doPropagate( ) ) SetUnref( ((IValue &)v).unref ); }
 
 	IValue( glish_bool v ) : unref(0), Value( v ) { }
 	IValue( byte v ) : unref(0), Value( v ) { }
@@ -242,7 +245,7 @@ public:
 	char *GetNSDesc( int evalable = 0 ) const;
 
 	// returns the number of time a cycle root (element of c) is referenced
-	int PropagateCycles( observed_list *c, int prune=0 );
+	int PropagateCycles( NodeList *c, int prune=0 );
 
 	// value can be part of a frame so it can't be deleted, but needs
 	// to have everything possible freed...
@@ -252,9 +255,7 @@ public:
 	// *before* this value is actually deleted.
 	void PreDelete( );
 
-	void UnrefGone( observed_list *u ) { if ( u == unref ) unref = 0; }
-
-	void SetUnref( observed_list *r, int propagate_only=0 );
+	void SetUnref( NodeList *r, int propagate_only=0 );
 	void ClearUnref( );
 
 	void TakeValue( Value* new_value, Str &err = glish_errno );
@@ -270,7 +271,7 @@ protected:
 				Value* value, int rhs_len );
 	void AssignArrayElements( Value* value );
 
-	observed_list *unref;
+	ReflexPtr(NodeList) unref;
 
 	// Note: if member variables are added, Value::TakeValue()
 	//       will need to be examined

@@ -17,108 +17,12 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
-int observed_list::IsThisAnObservedList( )
-	{
-	return 1;
-	}
-
-void observed_list::prune( GcRef *r )
-	{
-	GcRef *x = remove(r);
-	if ( x ) pruned.append(x);
-	}
-
-void observed_list::AppendList( observed_list *root_list )
-	{
-	Ref( root_list );
-	append( root_list );
-	root_list->RegisterOwner(this);
-	}
-
-static observed_list *cycle_roots;
+static NodeList *cycle_roots;
 static void AddCycleRoot( UserFunc *root )
 	{
 	if ( ! root ) return;
-	if ( ! cycle_roots ) cycle_roots = new observed_list;
+	if ( ! cycle_roots ) cycle_roots = new NodeList;
 	cycle_roots->append( root );
-	root->watched_by( cycle_roots );
-	}
-
-void observed_list::ObservedGone( GcRef *o )
-	{
-	remove(o);
-	pruned.remove(o);
-	}
-
-void observed_list::RegisterOwner( IValue *v )
-	{
-	if ( ! owners.is_member(v) ) owners.append(v);
-	}
-
-void observed_list::UnregisterOwner( IValue *v )
-	{
-	owners.remove(v);
-	}
-
-void observed_list::RegisterOwner( observed_list *v )
-	{
-	if ( ! lowners.is_member(v) ) lowners.append(v);
-	}
-
-void observed_list::UnregisterOwner( observed_list *v )
-	{
-	lowners.remove(v);
-	}
-
-void observed_list::UnrefGone( observed_list *u )
-	{
-	remove(u);
-	pruned.remove(u);
-	}
-
-// If this is called, it means we were added to another
-// root_list (which means we were Ref()ed...
-void observed_list::ObserverGone( GcRef *o )
-	{
-	Unref(this);
-	}
-
-observed_list::~observed_list( )
-	{
-	for ( int i = 0; i < num_entries; i++ )
-		((GcRef*)entry[i])->ObserverGone(this);
-
-	for ( int j = 0; j < pruned.length(); ++j )
-		pruned[j]->ObserverGone(this);
-
-	for ( int k = 0; k < owners.length(); ++k )
-		owners[k]->UnrefGone( this );
-
-	for ( int l = 0; l < lowners.length(); ++l )
-		((observed_list*)lowners[l])->UnrefGone( this );
-	}
-
-Observed::~Observed( )
-	{
-	loop_over_list( observers, x )
-		observers[x]->ObservedGone( this );
-	}
-
-void Observed::watched_by( GcRef *o )
-	{
-	if ( ! observers.is_member(o) )
-		observers.append(o);
-	}
-
-void Observed::ObserverGone( GcRef *o )
-	{
-
-	observers.remove(o);
-	}
-
-void Observed::ObserverChanged( GcRef *Old, GcRef *New )
-	{
-	observers.swap( Old, New );
 	}
 
 Parameter::~Parameter()
@@ -673,8 +577,10 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 
 static void list_element_unref( void *vp )
 	{
-	if ( ((GcRef*)vp)->SoftDelete() )
-		Unref((GcRef*)vp);
+	ReflexPtr(CycleNode) *p = (ReflexPtr(CycleNode)*) vp;
+
+	if ( ! p->isNull( ) && (*p)->SoftDelete() )
+		Unref(p->ptr( ));
 	}
 
 IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
@@ -700,7 +606,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	unsigned short old_file_name = file_name;
 	file_name = file;
 
-	observed_list *old_cycle_roots = cycle_roots;
+	NodeList *old_cycle_roots = cycle_roots;
 	cycle_roots = 0;
 
 	IValue* result = body->Exec( flow );
@@ -708,7 +614,21 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	if ( cycle_roots && cycle_roots->length() > 0 )
 		{
 		cycle_roots->set_finalize_handler( list_element_unref );
-		if ( result && result->PropagateCycles( cycle_roots ) > 0 )
+
+		if ( opt.getfc() > 1 )
+			{
+			if ( ! old_cycle_roots )
+				{
+				old_cycle_roots = cycle_roots;
+				Ref( cycle_roots );
+				}
+			else
+				{
+				old_cycle_roots->append( cycle_roots );
+				cycle_roots->MarkSoftDel();
+				}
+			}
+		else if ( result && result->PropagateCycles( cycle_roots ) > 0 )
 			{
 			result->SetUnref( cycle_roots );
 			Frame *frame = sequencer->GetLocalFrame();
@@ -763,23 +683,15 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 					IValue *v = sequencer->GetFunc( off, back_refs->offset(X));
 					if ( v && v->PropagateCycles( cycle_roots ) > 0 )
 						{
-						Frame *frame = sequencer->GetFuncFrame( off );
-						observed_list *cyc = frame->GetCycleRoots( );
+						Frame *frame = sequencer->FindCycleFrame( off );
+						NodeList *cyc = frame->GetCycleRoots( );
 						if ( cyc ) 
-							cyc->AppendList( cycle_roots );
+							cyc->append( cycle_roots );
 						else
 							v->SetUnref( cycle_roots );
 						}
 					}
 				}
-			}
-
-		if ( opt.getfc() > 1 )
-			{
-			if ( ! old_cycle_roots ) old_cycle_roots = new observed_list;
-			old_cycle_roots->append( cycle_roots );
-			cycle_roots->MarkSoftDel();
-			Ref( cycle_roots );
 			}
 
 		}

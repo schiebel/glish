@@ -5,6 +5,7 @@
 #define func_h
 
 #include "Expr.h"
+#include "Reflex.h"
 
 class Sequencer;
 class Stmt;
@@ -17,48 +18,7 @@ class Parameter;
 glish_declare(PList,Parameter);
 typedef PList(Parameter) parameter_list;
 
-class observed_list : public ref_list {
-    public:
-	observed_list( observed_list &o ) : ref_list(o) {}
-	observed_list(FINAL fh=0) : ref_list(fh) {}
-	observed_list(int sz, FINAL fh=0) : ref_list(sz,fh) {}
-	void prune(GcRef *a);
-	void AppendList( observed_list * );
-	int IsThisAnObservedList( );
-
-	void ObservedGone( GcRef * );
-	// observed_lists can be appeneded to other observed_lists...
-	// this piggy-back approach turns out to be the only to allow
-	// all of the depencencies to be attached to the necessary values
-	void ObserverGone( GcRef *o );
-
-	void RegisterOwner( IValue *v );
-	void UnregisterOwner( IValue *v );
-
-	void RegisterOwner( observed_list *v );
-	void UnregisterOwner( observed_list *v );
-	void UnrefGone( observed_list *u );
-
-	~observed_list( );
-    protected:
-	ref_list pruned;
-	ivalue_list owners;
-	ref_list lowners;
-};
-
-class Observed : public GlishObject {
-    public:
-	Observed() { }
-	Observed( const Observed &o ) : GlishObject(o) { }
-	~Observed( );
-	void watched_by( GcRef *o );
-	void ObserverGone( GcRef *o );
-	void ObserverChanged( GcRef *Old, GcRef *New );
-    private:
-	ref_list observers;
-};
-
-class Func : public Observed {
+class Func : public CycleNode {
     public:
 	virtual IValue* Call( evalOpt &opt, parameter_list* args ) = 0;
 

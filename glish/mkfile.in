@@ -91,7 +91,7 @@ H = $(SRC)/include/Glish
 
 
 INTERP_OBJS = IValue.o Agent.o BinOpExpr.o BuiltIn.o Daemon.o Event.o Expr.o File.o Frame.o \
-	Func.o Pager.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o \
+	Func.o Pager.o Reflex.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o \
 	glish_init.o parse.o sprintf.o scan.o
 
 CLIENT_OBJS = Value.o ValKern.o Client.o Complex.o Dict.o Executable.o LocalExec.o Object.o \
@@ -103,7 +103,7 @@ CLIENT_GCOBJS = gcValue.o gcValKern.o gcClient.o gcComplex.o gcDict.o gcExecutab
 
 INTERP_OBJS_PROXY = $(D)IValue.o $(D)Agent.o $(D)BinOpExpr.o $(D)BuiltIn.o $(D)Daemon.o \
 	$(D)Event.o $(D)Expr.o $(D)File.o $(D)Frame.o $(D)Func.o $(D)Pager.o \
-	$(D)Regex.o $(D)RemoteExec.o $(D)Sequencer.o $(D)Select.o $(D)Stmt.o $(D)Task.o \
+	$(D)Reflex.o $(D)Regex.o $(D)RemoteExec.o $(D)Sequencer.o $(D)Select.o $(D)Stmt.o $(D)Task.o \
 	$(D)glish_init.o $(D)parse.o $(D)sprintf.o $(D)scan.o
 
 CLIENT_OBJS_PROXY = $(D)Value.o $(D)ValKern.o $(D)Client.o $(D)Complex.o $(D)Dict.o \
@@ -279,6 +279,9 @@ $(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
 
 $(D)Pager.o: $(SRC)/Pager.cc $(SRC)/Pager.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Pager.cc $(T)
+
+$(D)Reflex.o: $(SRC)/Reflex.cc $(SRC)/Reflex.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Reflex.cc $(T)
 
 $(D)Regex.o: $(SRC)/Regex.cc $(SRC)/Regex.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Regex.cc $(T)

@@ -2402,7 +2402,9 @@ IValue* EvalBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 		
 		lines[len] = 0;
 
-		result = sequencer->Eval( opt, (const char **) lines );
+		evalOpt xopt( opt );
+		xopt.clearfc( );
+		result = sequencer->Eval( xopt, (const char **) lines );
 
 		for ( int j = 0; j < len; j++ )
 			free_memory( lines[j] );
