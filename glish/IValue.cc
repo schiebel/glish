@@ -654,25 +654,6 @@ int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 		if ( prefix ) s << prefix;
 		FuncVal()->Describe( s );
 		}
-// 	else if ( Type() == TYPE_REGEX )
-// 		{
-// 		int len = Length();
-// 		if ( prefix ) s << prefix;
-// 		if (  len > 1 )
-// 			{
-// 			regexptr *reg = RegexPtr(0);
-// 			s << "[ ";
-// 			for (int i=0; i < len; ++i )
-// 				{
-// 				reg[i]->Describe( s );
-// 				if ( i != len-1 )
-// 					s << ", ";
-// 				}
-// 			s << " ]";
-// 			}
-// 		else
-// 			RegexVal()->Describe( s );
-// 		}
 	else
 		return Value::DescribeSelf( s, prefix );
 

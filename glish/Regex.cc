@@ -421,7 +421,7 @@ else									\
 
 
 IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
-		     int return_matches, int can_resize, char **alt_src = 0 )
+		     int return_matches, int can_resize, char **alt_src )
 	{
 
 	if ( ! reg || ! match )

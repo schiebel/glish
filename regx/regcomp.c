@@ -54,6 +54,7 @@
  * regular-expression syntax might require a total rethink.
  */
 #include <string.h>
+#define CAN_PROTOTYPE
 #define DOINIT
 #include "regcomp.h"
 #undef DOINIT
