@@ -990,7 +990,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 		region = region_->CoerceToIntArray( region_is_copy, 4 );
 
 	if ( region )
-		sprintf(region_str ,"%d %d %d %d", region[0], region[1], region[2], region[3]);
+		sprintf(region_str ,"{%d %d %d %d}", region[0], region[1], region[2], region[3]);
 
 	int c = 0;
 	argv[c++] = "canvas";
@@ -1020,7 +1020,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	if ( region_is_copy )
 		free_memory( region );
 
-	Tk_CanvasCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	agent_ID = "<graphic:canvas>";
@@ -1036,37 +1036,26 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("height", new TkProc("-height", glishtk_heightwidth_query, glishtk_StrToInt));
-	procs.Insert("width", new TkProc("-width", glishtk_heightwidth_query, glishtk_StrToInt));
+	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
+	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
 	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
-	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("rectangle", new TkProc(this, "create", "rectangle", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_textfunc,glishtk_str));
 	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));
-	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
-	procs.Insert("move", new TkProc("", glishtk_canvas_move));
-	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
+	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
 	procs.Insert("frame", new TkProc(this, "", glishtk_canvas_frame, glishtk_tkcast));
+	procs.Insert("height", new TkProc("-height", glishtk_heightwidth_query, glishtk_StrToInt));
+	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("move", new TkProc("", glishtk_canvas_move));
+	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("rectangle", new TkProc(this, "create", "rectangle", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist_query, glishtk_splitsp_int));
-	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
 	procs.Insert("tagabove", new TkProc("addtag","above", 2, glishtk_canvas_tagfunc));
 	procs.Insert("tagbelow", new TkProc("addtag","below", 2, glishtk_canvas_tagfunc));
-	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
-
-	//
-	// Hack to make sure row 1 column 1 is visible initially.
-	//
-// 	Scrollbar_notify_data data;
-// 	data.scrollbar_is_vertical = 1;
-// 	data.scroll_op = 2;
-// 	data.newpos = 1;
-// 	rivet_scrollbar_set_client_view( self, &data );
-// 	data.scrollbar_is_vertical = 0;
-// 	rivet_scrollbar_set_client_view( self, &data );
+	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_textfunc,glishtk_str));
+	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
+	procs.Insert("width", new TkProc("-width", glishtk_heightwidth_query, glishtk_StrToInt));
 	}
 
 int TkCanvas::ItemCount(const char *name) const

@@ -1807,7 +1807,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = "-background";
 		argv[c++] = (char*) background;
 
-		Tk_ToplevelCmd( root, tcl, c, argv );
+		tcl_ArgEval( tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
 			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " {", title, "}", 0 );
@@ -1875,7 +1875,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = (char*) cursor;
 		}
 
-	Tk_FrameCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -1913,28 +1913,24 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	else
 		Pack();
 
-	procs.Insert("padx", new TkProc( this, &TkFrame::SetPadx, glishtk_strtoint ));
-	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady, glishtk_strtoint ));
-	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand, glishtk_str ));
-	procs.Insert("side", new TkProc( this, &TkFrame::SetSide, glishtk_str ));
-	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
-	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
-	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
-	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr, glishtk_str));
-	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon, glishtk_str ));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-
-	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
-	procs.Insert("height", new TkProc("", glishtk_height, glishtk_valcast));
-
+	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr, glishtk_str));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
-
+	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand, glishtk_str ));
+	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
+	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("height", new TkProc("", glishtk_height, glishtk_valcast));
+	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon, glishtk_str ));
 	procs.Insert("map", new TkProc(this, "MT", glishtk_agent_map));
-	procs.Insert("unmap", new TkProc(this, "UT", glishtk_agent_map));
-
+	procs.Insert("padx", new TkProc( this, &TkFrame::SetPadx, glishtk_strtoint ));
+	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady, glishtk_strtoint ));
 	procs.Insert("raise", new TkProc( this, &TkFrame::Raise ));
+	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
+	procs.Insert("side", new TkProc( this, &TkFrame::SetSide, glishtk_str ));
 	procs.Insert("title", new TkProc( this, &TkFrame::Title ));
+	procs.Insert("unmap", new TkProc(this, "UT", glishtk_agent_map));
+	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
 
 	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
 	if ( ! tlead )
@@ -1992,7 +1988,7 @@ TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_
 		argv[c++] = (char*) cursor;
 		}
 
-	Tk_FrameCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -2065,7 +2061,7 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
 
-	Tk_FrameCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -2805,7 +2801,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = "-height";
 		argv[c++] = height_;
 		argv[c++] = "-text";
-		argv[c++] = (char*) label;
+		argv[c++] = glishtk_quote_string(label);
 		}
 
 	argv[c++] = "-anchor";
@@ -2839,17 +2835,17 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		{
 		case RADIO:
 			argv[0] = "radiobutton";
-			Tk_RadiobuttonCmd( root, tcl, c, argv );
+			tcl_ArgEval( tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case CHECK:
 			argv[0] = "checkbutton";
-			Tk_CheckbuttonCmd( root, tcl, c, argv );
+			tcl_ArgEval( tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case MENU:
 			argv[0] = "menubutton";
-			Tk_MenubuttonCmd( root, tcl, c, argv );
+			tcl_ArgEval( tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2857,7 +2853,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			argv[1] = (char*) NewName(self);
 			argv[2] = "-tearoff";
 			argv[3] = "0";
-			Tk_MenuCmd( root, tcl, 4, argv );
+			tcl_ArgEval( tcl, 4, argv );
 			menu_base = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2865,7 +2861,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			break;
 		default:
 			argv[0] = "button";
-			Tk_ButtonCmd( root, tcl, c, argv );
+			tcl_ArgEval( tcl, c, argv );
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		}
@@ -2886,21 +2882,20 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
+	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("bitmap", new TkProc("-bitmap", glishtk_bitmap, glishtk_str));
-	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("height", new TkProc("-height", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
-
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
-	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	}
 
 TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type_,
@@ -3037,7 +3032,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 			av[1] = (char*) NewName(menu->Menu());
 			av[2] = "-tearoff";
 			av[3] = "0";
-			Tk_MenuCmd( root, tcl, 4, av );
+			tcl_ArgEval( tcl, 4, av );
 			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -3306,7 +3301,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	if ( text && *text )
 		{
 		argv[c++] = "-label";
-		argv[c++] = (char*) text;
+		argv[c++] = glishtk_quote_string(text);
 		}
 	argv[c++] = "-width";
 	argv[c++] = (char*) width_;
@@ -3326,7 +3321,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = "-variable";
 	argv[c++] = var_name;
 
-	Tk_ScaleCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	// Can't set command as part of initialization...
@@ -3352,16 +3347,16 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		Tcl_SetVar( tcl, var_name, val, TCL_GLOBAL_ONLY );
 		}
 
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("end", new TkProc("-to", glishtk_onedouble, glishtk_strtofloat));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
-	procs.Insert("text", new TkProc("-label", glishtk_onestr, glishtk_str));
-	procs.Insert("end", new TkProc("-to", glishtk_onedouble, glishtk_strtofloat));
-	procs.Insert("start", new TkProc("-from", glishtk_onedouble, glishtk_strtofloat));
-	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
+	procs.Insert("start", new TkProc("-from", glishtk_onedouble, glishtk_strtofloat));
+	procs.Insert("text", new TkProc("-label", glishtk_onestr, glishtk_str));
+	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 void TkScale::ValueSet( double d )
@@ -3570,27 +3565,25 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	frame->AddElement( this );
 	frame->Pack();
 
+	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
+	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_text_append));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));
+	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
+	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
+	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
+	procs.Insert("height", new TkProc("-height", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("insert", new TkProc(this, "insert", 0, glishtk_text_append));
+	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_text_append));
+	procs.Insert("ranges", new TkProc("tag", "ranges", glishtk_text_rangesfunc, glishtk_splitsp_str));
+	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("height", new TkProc("-height", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("wrap", new TkProc("-wrap", glishtk_onestr, glishtk_str));
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
-
-	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
-	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
-	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
-	procs.Insert("insert", new TkProc(this, "insert", 0, glishtk_text_append));
-	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_text_append));
-	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_text_append));
-	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
-	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
-	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));
-	procs.Insert("ranges", new TkProc("tag", "ranges", glishtk_text_rangesfunc, glishtk_splitsp_str));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
-	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 void TkText::Create( ProxyStore *s, Value *args, void * )
@@ -3711,7 +3704,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
-	Tk_ScrollbarCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 	
 	if ( ! self )
@@ -3818,7 +3811,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "label";
 	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-text";
-	argv[c++] = (char*) text;
+	argv[c++] = glishtk_quote_string(text);
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-padx";
@@ -3843,7 +3836,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	Tk_LabelCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -3855,15 +3848,16 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
-	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
-	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
+
+//	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
 	}
 
 void TkLabel::Create( ProxyStore *s, Value *args, void * )
@@ -3981,7 +3975,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	argv[c++] = "-xscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, entry_xscrollcb, this );
 
-	Tk_EntryCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -3995,20 +3989,19 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
-	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
-	procs.Insert("show", new TkProc("-show", glishtk_onebool));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("get", new TkProc("get", glishtk_nostr, glishtk_splitnl));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_strandidx));
-	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
-	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
+	procs.Insert("show", new TkProc("-show", glishtk_onebool));
+	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	}
 
 void TkEntry::ReturnHit( )
@@ -4093,7 +4086,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[0] = "message";
 	argv[1] = (char*) NewName( frame->Self() );
 	argv[c++] = "-text";
-	argv[c++] = (char*) text;
+	argv[c++] = glishtk_quote_string(text);
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-width";
@@ -4118,7 +4111,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	Tk_MessageCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -4130,14 +4123,14 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
+	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
+	procs.Insert("justify", new TkProc("-justify", glishtk_onestr, glishtk_str));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
+	procs.Insert("text", new TkProc("-text", glishtk_onestr, glishtk_str));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	}
 
 void TkMessage::Create( ProxyStore *s, Value *args, void * )
@@ -4263,7 +4256,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = "-xscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, listbox_xscrollcb, this );
 
-	Tk_ListboxCmd( root, tcl, c, argv );
+	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
@@ -4277,21 +4270,21 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
-	procs.Insert("mode", new TkProc("-selectmode", glishtk_onestr, glishtk_str));
-	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
-	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
-	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
-	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
-	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));
-	procs.Insert("select", new TkProc(this, "select", "set", glishtk_listbox_select));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_listbox_select));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
-	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
+	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr, glishtk_str));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
-	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("nearest", new TkProc(this, "", glishtk_listbox_nearest, glishtk_strtoint));
+	procs.Insert("mode", new TkProc("-selectmode", glishtk_onestr, glishtk_str));
+	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
+	procs.Insert("select", new TkProc(this, "select", "set", glishtk_listbox_select));
+	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));
+	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	}
 
 void TkListbox::Create( ProxyStore *s, Value *args, void * )
