@@ -83,8 +83,8 @@ tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 
 gPgplot$(SUFFIX): $(OBJS)
 	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -lgtkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -lgtkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
 	else										\
 	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\

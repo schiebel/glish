@@ -7,11 +7,12 @@ VERSION = 0.0
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_LIBRARY = $(INSTALL_PROGRAM)
 
-MK_LIB = @MAKE_LIB@
-LD_LIBS =
-CFLAGS = @DEFS@ @CFLAGS@
-RANLIB = @RANLIB@
+MK_LIB = @MAKE_SLIB@
+LD_LIBS =  @SLIB_LD_LIBS@
+CFLAGS = @DEFS@ @CFLAGS@ @SLIB_CFLAGS@
+LIB_SUFFIX = @GLISH_SLIB_SUFFIX@
 INSTALL_LIBRARY = $(INSTALL_DATA)
 
 CC = @CC@
@@ -21,12 +22,13 @@ SH = $(SHELL)
 
 SRC = ..
 
+DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
 CINCLUDE = -I$(SRC) -I$(SRC)/tkpgplot @TK_INCL@ $(XINC)
 
-LIBS = $(XLIB) @LIBS@ @MATH_LIBS@
+LIBS = $(XLIB) @LIBS@ @MATH_LIBS@ $(DL_LIBS)
 
 OBJS=grexec.o pgxwin.o tkpgplot.o
 
@@ -45,16 +47,27 @@ LIBDIR = @libdir@
 
 MKHIER = $(top)/config/mkhier
 
-all: libtkpgdrv.a
+all: make-libdir_p $(LIBDIR_P)/libgtkpgdrv$(LIB_SUFFIX)
 
-install:
+make-libdir_p:
+	$(MKHIER) $(LIBDIR_P)
 
-lib_tgt: libtkpgdrv.a
+make-libdir:
+	$(MKHIER) $(LIBDIR)
 
-libtkpgdrv.a: $(OBJS_PROXY)
+install: make-libdir $(LIBDIR)/libgtkpgdrv$(LIB_SUFFIX)
+
+libgtkpgdrv$(LIB_SUFFIX): $(OBJS_PROXY)
 	rm -f $@
 	$(MK_LIB) $@ $(OBJS) $(LD_LIBS)
-	$(RANLIB) $@
+
+$(LIBDIR_P)/libgtkpgdrv$(LIB_SUFFIX): libgtkpgdrv$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) libgtkpgdrv$(LIB_SUFFIX) $(LIBDIR_P)
+
+$(LIBDIR)/libgtkpgdrv$(LIB_SUFFIX): libgtkpgdrv$(LIB_SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) libgtkpgdrv$(LIB_SUFFIX) $(LIBDIR)
 
 clean:
 	rm -f *.a $(OBJS_PROXY) *.o core errs *~ \#* TAGS *.E a.out errors tktest wish \
