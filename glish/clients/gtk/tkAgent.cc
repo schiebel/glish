@@ -3349,16 +3349,11 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		fill = (orient && ! strcmp(orient,"vertical")) ? strdup("y") :
 				(orient && ! strcmp(orient,"horizontal")) ? strdup("x") : 0;
 
-	SetValue(from_);
 	frame->AddElement( this );
 	frame->Pack();
 
-	if ( value > from && value <= to )
-		{
-		char val[256];
-		sprintf(val,"%g",value);
-		Tcl_SetVar( tcl, var_name, val, TCL_GLOBAL_ONLY );
-		}
+	if ( value < from || value > to ) value = from;
+	SetValue(value);
 
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("end", new TkProc("-to", glishtk_onedouble, glishtk_strtofloat));
@@ -3381,13 +3376,11 @@ void TkScale::ValueSet( double d )
 
 void TkScale::SetValue( double d )
 	{
-	char var_name[256];
-	char val[256];
 	if ( d >= from_ && d <= to_ )
 		{
-		sprintf(var_name,"ScAlE%d\n",id);
+		char val[256];
 		sprintf(val,"%g",d);
-		Tcl_SetVar( tcl, var_name, val, TCL_GLOBAL_ONLY );
+		Tcl_VarEval( tcl, Tk_PathName(self), " set ", val, 0 );
 		}
 	}
 
