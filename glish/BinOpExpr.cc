@@ -32,8 +32,11 @@ IValue *BinOpExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 	element_by_element = 1;
 
 	if ( ! lhs->IsNumeric() || ! rhs->IsNumeric() )
-		return (IValue*) Fail( "non-numeric operand in expression:", this );
-
+		{
+		if ( lhs->Type() == TYPE_FAIL ) return (IValue*) Fail(lhs);
+		else if ( rhs->Type() == TYPE_FAIL ) return (IValue*) Fail(rhs);
+		else return (IValue*) Fail( "non-numeric operand in expression:", this );
+		}
 	else
 		return 0;
 	}
@@ -42,6 +45,9 @@ glish_type BinOpExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 	{
 	glish_type t1 = lhs->Type();
 	glish_type t2 = rhs->Type();
+
+	if ( t1 == TYPE_FAIL || t2 == TYPE_FAIL )
+		return TYPE_FAIL;
 
 	if ( t1 == TYPE_DCOMPLEX || t2 == TYPE_DCOMPLEX )
 		return TYPE_DCOMPLEX;
@@ -171,6 +177,11 @@ IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len,
 
 		case TYPE_DCOMPLEX:
 			lhs->DcomplexOpCompute( rhs, lhs_len, this, err );
+			break;
+
+		case TYPE_FAIL:
+			if ( lhs->Type() == TYPE_FAIL ) return (IValue*) Fail( lhs );
+			else return (IValue*) Fail( rhs );
 			break;
 
 		default:
@@ -503,6 +514,11 @@ IValue* RelExpr::OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len )
 			else
 				fatal->Report(
 				"bad operands type in RelExpr::OpCompute()" );
+			break;
+
+		case TYPE_FAIL:
+			if ( lhs->Type() == TYPE_FAIL ) return (IValue*) Fail( lhs );
+			else return (IValue*) Fail( rhs );
 			break;
 
 		default:

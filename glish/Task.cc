@@ -646,6 +646,19 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 		}
 
+	else if ( ! client_flag && sequencer->LocalHost( hostname ) )
+		{
+		//
+		// if this is a local shell client, prevent it from
+		// being started by the daemon
+		//
+		if ( hostname )
+			free_memory( hostname );
+
+		hostname = 0;
+		channel = 0;
+		}
+
 	IValue* input = 0;
 
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )
