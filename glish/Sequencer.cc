@@ -92,6 +92,60 @@ int Sequencer::hold_queue = 0;
 // will be cleaned up properly, and this can be removed.
 int shutting_glish_down = 0;
 
+void await_type::operator=( await_type &o )
+	{
+	stmt_ = o.stmt_;
+	except_ = o.except_;
+	only_ = o.only_;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = o.dict_;
+	o.dict_ = 0;
+	}
+
+void await_type::set( )
+	{
+	stmt_ = except_ = 0;
+	only_ = 0;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = 0;
+	}
+
+void await_type::set( Stmt *s, Stmt *e, int o )
+	{
+	stmt_ = s;
+	except_ = e;
+	only_ = o;
+
+	if ( dict_ ) delete_agent_dict( dict_ );
+
+	dict_ = new agent_dict( ORDERED );
+	event_list *el = ((AwaitStmt*)stmt_)->AwaitList();
+	loop_over_list ( *el, X )
+		{
+		name_list &nl = (*el)[X]->EventNames();
+		if ( nl.length() == 0 ) continue;
+		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
+
+		if ( ! await_agent )
+			continue;
+
+		loop_over_list( nl, Y )
+			{
+			char *nme = nl[Y];
+			agent_list *al = (*dict_)[nme];
+			if ( ! al )
+				{
+				al = new agent_list;
+				dict_->Insert(strdup(nme),al);
+				}
+
+			al->append(await_agent);
+			}
+
+		(*el)[X]->EventAgentDone();
+		}
+	}
+
 // Used to flag changes in the system agent.
 void system_change_function(IValue *, IValue *n)
 	{
@@ -369,19 +423,14 @@ protected:
 
 class awaitinfo {
 public:
-	awaitinfo( Stmt *stmt_arg, Stmt *except_arg, int await_only_arg, agent_dict *ad_ ) :
-		stmt(stmt_arg), except(except_arg), await_only(await_only_arg),
-		value(0), agent(0), name(0), ad(ad_) {}
+	awaitinfo( await_type &aw ) : await(aw), value(0), agent(0), name(0) {}
 	~awaitinfo();
 	int SetValue( Agent *agent_, const char *name_, IValue *val );
 
-	Stmt *stmt;
-	Stmt *except;
-	int await_only;
+	await_type await;
 	IValue *value;
 	Agent *agent;
 	char *name;
-	agent_dict *ad;
 };
 
 awaitinfo::~awaitinfo()
@@ -396,7 +445,7 @@ int awaitinfo::SetValue( Agent *agent_, const char *name_, IValue *val )
 	{
 	agent_list *al = 0;
 	if ( value || name || agent ) return 0;
-	if ( ad && ( !(al = (*ad)[name_]) || !al->is_member(agent_) ) )
+	if ( await.dict() && ( !(al = (*await.dict())[name_]) || !al->is_member(agent_) ) )
 		return 0;
 
 	value = val;
@@ -1036,19 +1085,11 @@ void Sequencer::toplevelreset()
 	for ( int len = await_list.length(); len > 0; len-- )
 		{
 		awaitinfo *last = await_list.remove_nth(len-1);
-		if ( last )
-			{
-			if ( last->ad ) delete_agent_dict( last->ad );
-			delete last;
-			}
+		if ( last ) delete last;
 		}
 
+	await.set( );
 	if ( last_await_info ) delete last_await_info;
-	if ( await_dict ) delete_agent_dict( await_dict );
-
-	await_dict = 0;
-	await_stmt = except_stmt = 0;
-	await_only_flag = 0;
 	last_await_info = 0;
 	current_await_done = 0;
 	}
@@ -1210,9 +1251,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	stmts = null_stmt;
 	last_task_id = my_id = 1;
 
-	await_stmt = except_stmt = 0;
-	await_dict = 0;
-	await_only_flag = 0;
 	current_await_done = 0;
 	last_await_info = 0;
 	pending_task = 0;
@@ -1859,7 +1897,7 @@ Sequencer *Sequencer::CurSeq ( )
 
 const AwaitStmt *Sequencer::ActiveAwait ( )
 	{
-	return (const AwaitStmt*) cur_sequencer->await_stmt;
+	return (const AwaitStmt*) cur_sequencer->await.stmt();
 	}
 
 #define DECLARE_PATHFUNC( NAME )					\
@@ -2379,16 +2417,15 @@ void Sequencer::CurrentAwaitDone()
 void Sequencer::PushAwait( )
 	{
 	
-	if ( await_stmt )
+	if ( await.active() )
 		{
-		if ( current_await_done && last_await_info && last_await_info->stmt == await_stmt )
+		if ( current_await_done && last_await_info && last_await_info->await.stmt() == await.stmt() )
 			{
 			await_list.append( last_await_info );
 			last_await_info = 0;
 			}
 		else
-			await_list.append( new awaitinfo(await_stmt, except_stmt,
-							 await_only_flag, await_dict) );
+			await_list.append( new awaitinfo(await) );
 		}
 
 	current_await_done = 0;
@@ -2402,11 +2439,7 @@ void Sequencer::PopAwait( )
 		awaitinfo *last = await_list.remove_nth(len-1);
 		if ( last )
 			{
-			if ( await_dict ) delete_agent_dict( await_dict );
-			await_dict = last->ad;
-			await_stmt = last->stmt;
-			except_stmt = last->except;
-			await_only_flag = last->await_only;
+			await = last->await;
 			if ( last->value && last->name && last->agent )
 				{
 				CurrentAwaitDone();
@@ -2418,12 +2451,7 @@ void Sequencer::PopAwait( )
 			}
 		}
 	else
-		{
-		if ( await_dict ) delete_agent_dict( await_dict );
-		await_dict = 0;
-		await_stmt = except_stmt = 0;
-		await_only_flag = 0;
-		}
+		await.set( );
 	}
 
 void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
@@ -2433,36 +2461,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 	PushAwait( );
 
-	await_stmt = arg_await_stmt;
-	await_only_flag = only_flag;
-	except_stmt = arg_except_stmt;
-
-	await_dict = new agent_dict( ORDERED );
-	event_list *el = ((AwaitStmt*)await_stmt)->AwaitList();
-	loop_over_list ( *el, X )
-		{
-		name_list &nl = (*el)[X]->EventNames();
-		if ( nl.length() == 0 ) continue;
-		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
-
-		if ( ! await_agent )
-			continue;
-
-		loop_over_list( nl, Y )
-			{
-			char *nme = nl[Y];
-			agent_list *al = (*await_dict)[nme];
-			if ( ! al )
-				{
-				al = new agent_list;
-				await_dict->Insert(strdup(nme),al);
-				}
-
-			al->append(await_agent);
-			}
-
-		(*el)[X]->EventAgentDone();
-		}
+	await.set( arg_await_stmt, arg_except_stmt, only_flag );
 
 	if ( yyin && isatty( fileno( yyin ) ) &&
 	     selector->FindSelectee( fileno( yyin ) ) )
@@ -2824,7 +2823,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 
 void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	{
-	if ( await_stmt && agent->HasRegisteredInterest( await_stmt, event_name ) )
+	if ( await.stmt() && agent->HasRegisteredInterest( await.stmt(), event_name ) )
 		selector->AwaitDone();
 	}
 
@@ -2833,14 +2832,14 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	int ignore_event = 0;						\
 	int await_finished = 0;						\
 									\
-	if ( await_stmt )						\
+	if ( await.stmt() )						\
 		{							\
 		int found_match = 0;					\
 									\
 		/* Look ahead into queued awaits for future handling */	\
 		loop_over_list( await_list, X )				\
 			{						\
-			if ( agent->HasRegisteredInterest( await_list[X]->stmt, event_name ) ) \
+			if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) ) \
 				{					\
 				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
 					break;				\
@@ -2849,10 +2848,10 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 									\
 		if ( ! found_match )					\
 			{						\
-			await_finished = agent->HasRegisteredInterest( await_stmt, event_name ); \
+			await_finished = agent->HasRegisteredInterest( await.stmt(), event_name ); \
 									\
-			if ( ! await_finished && await_only_flag && 	\
-			     ! agent->HasRegisteredInterest( except_stmt, event_name ) ) \
+			if ( ! await_finished && await.only( ) && 	\
+			     ! agent->HasRegisteredInterest( await.except(), event_name ) ) \
 				ignore_event = 1;			\
 			}						\
 		}							\

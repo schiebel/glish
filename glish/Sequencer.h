@@ -224,6 +224,25 @@ class EnvHolder {
 	PDict(char) strings;
 };
 
+class await_type {
+    public:
+	await_type() : stmt_(0), except_(0), only_(0), dict_(0) { }
+	~await_type( ) { set( ); }
+	void operator=( await_type &o );
+	void set( );
+	void set( Stmt *s, Stmt *e, int o );
+	Stmt *stmt() { return stmt_; }
+	Stmt *except() { return except_; }
+	int only() { return only_; }
+	agent_dict *dict() { return dict_; }
+	int active( ) { return stmt_ ? 1 : 0; }
+    private:
+	Stmt *stmt_;
+	Stmt *except_;
+	int only_;
+	agent_dict *dict_;
+};
+
 class Sequencer {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
@@ -578,10 +597,7 @@ protected:
 	ivalue_list registered_values;
 #endif
 
-	Stmt* await_stmt;
-	agent_dict* await_dict;
-	int await_only_flag;
-	Stmt* except_stmt;
+	await_type await;
 	awaitinfo_list await_list;
 	awaitinfo *last_await_info;
 	int current_await_done;
