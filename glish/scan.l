@@ -438,9 +438,6 @@ include		BEGIN(INCL); break;
 		int nesting = file_list.length();
 		if ( nesting > 0 )
 			{
-			// We're done with this include file, delete it.
-			yy_delete_buffer( YY_CURRENT_BUFFER );
-
 			// Pop back to previous file.
 			delete file_list.remove_nth( nesting - 1 );
 			break;

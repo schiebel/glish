@@ -133,7 +133,7 @@ public:
 
 	// Subref constructor.
 	Value( Value* ref_value, int index[], int num_elements,
-		value_type val_type );
+		value_type val_type, int take_index = 0 );
 
 	Value( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
@@ -650,7 +650,7 @@ protected:
 	void SetValue( charptrref& value_ref );
 
 	void SetValue( Value *ref_value, int index[], int num_elements, 
-			value_type val_type );
+			value_type val_type, int take_index = 0 );
 
 	virtual void DeleteValue();
 	void DeleteAttributes();
@@ -678,7 +678,7 @@ protected:
 	Value* ArrayRef( int* indices, int num_indices ) const;
 
 	// Return a new value holding a reference the specified subelement(s).
-	Value* TrueArrayRef( int* indices, int num_indices ) const;
+	Value* TrueArrayRef( int* indices, int num_indices, int take_indices = 0 ) const;
 
 	// Returns a slice of a record at the given indices.
 	Value* RecordSlice( int* indices, int num_indices ) const;
@@ -771,7 +771,8 @@ extern Value *create_value( const char* value );
 extern Value *create_value( recordptr value );
 extern Value *create_value( SDS_Index& sds_index );
 extern Value *create_value( Value* ref_value, value_type val_type );
-extern Value *create_value( Value* ref_value, int index[], int num_elements, value_type val_type );
+extern Value *create_value( Value* ref_value, int index[], int num_elements,
+			    value_type val_type, int take_index = 0 );
 extern Value *create_value( glish_bool value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
 extern Value *create_value( byte value[], int num_elements,

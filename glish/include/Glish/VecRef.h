@@ -5,7 +5,8 @@
 
 class VecRef : public GlishObject {
     public:
-	VecRef( Value* value, int arg_indices[], int num, int Max_Index );
+	VecRef( Value* value, int arg_indices[], int num, int Max_Index,
+		int take_indicies = 0);
 	virtual ~VecRef();
 
 	Value* Val()		{ return val; }

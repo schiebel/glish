@@ -142,11 +142,11 @@ Value::Value( Value* ref_value, value_type val_type )
 	}
 
 Value::Value( Value* ref_value, int index[], int num_elements,
-		value_type val_type )
+		value_type val_type, int take_index )
 	{
 	DIAG2( (void*) this, "Value( Value*, int[], int, value_type )" )
 	InitValue();
-	SetValue( ref_value, index, num_elements, val_type );
+	SetValue( ref_value, index, num_elements, val_type, take_index );
 	attributes = ref_value->CopyAttributePtr();
 	}
 
@@ -200,7 +200,7 @@ void Value::SetValue( SDS_Index& value )
 
 
 void Value::SetValue( Value* ref_value, int index[], int num_elements,
-			value_type val_type )
+			value_type val_type, int take_index )
 	{
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
 		fatal->Report( "bad value_type in Value::Value" );
@@ -231,8 +231,12 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 		case TYPE_DCOMPLEX:
 		case TYPE_STRING:
 		case TYPE_SUBVEC_REF:
-			kernel.SetVecRef( new VecRef( ref_value, index,
-						num_elements, max_index ) );
+			{
+			VecRef *vr = new VecRef( ref_value, index,
+						num_elements, max_index, take_index );
+			kernel.SetVecRef( vr );
+			Unref(vr);
+			}
 			break;
 
 		default:
@@ -2019,7 +2023,7 @@ Value* Value::PickRef( const Value *index )
 		ret[i] = offset + 1;
 		}
 
-	result = create_value((Value*)this,ret,ishape[0],VAL_REF);
+	result = create_value((Value*)this,ret,ishape[0],VAL_REF,1);
 
 	const attributeptr cap = result->AttributePtr();
 	if ( (*cap)["shape"] )
@@ -2173,15 +2177,7 @@ Value* Value::SubRef( const Value* index )
 	int* indices = GenerateIndices( index, num_indices, indices_are_copy );
 
 	if ( indices )
-		{
-		Value* result = TrueArrayRef( indices, num_indices );
-
-		if ( indices_are_copy )
-			delete indices;
-
-		return result;
-		}
-
+		return TrueArrayRef( indices, num_indices, indices_are_copy );
 	else
 		return error_value();
 	}
@@ -2364,7 +2360,7 @@ Value* Value::SubRef( const_value_list *args_val )
 				cur[i] = 0;
 		}
 
-	Value* result = create_value( (Value*) this, ret, vecsize, VAL_REF );
+	Value* result = create_value( (Value*) this, ret, vecsize, VAL_REF, 1 );
 	if ( ! is_element )
 		{
 		int z = 0;
@@ -2790,7 +2786,7 @@ ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE
 	return 0;
 	}
 
-Value* Value::TrueArrayRef( int* indices, int num_indices ) const
+Value* Value::TrueArrayRef( int* indices, int num_indices, int take_indices ) const
 	{
 	if ( IsRef() )
 		return Deref()->TrueArrayRef( indices, num_indices );
@@ -2803,10 +2799,14 @@ Value* Value::TrueArrayRef( int* indices, int num_indices ) const
 			{
 			error->Report( "index (=", indices[i],
 				") out of range, array length =", kernel.Length() );
+
+			if ( take_indices )
+				delete indices;
+
 			return error_value();
 			}
 
-	return create_value( (Value*) this, indices, num_indices, VAL_REF );
+	return create_value( (Value*) this, indices, num_indices, VAL_REF, take_indices );
 	}
 
 Value* Value::RecordSlice( int* indices, int num_indices ) const

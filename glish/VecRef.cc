@@ -34,7 +34,8 @@ VecRef::TranslateIndex( int index, int* error ) const
 	return offset - 1;
 	}
 
-VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index )
+VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index,
+		int take_indices )
 	{
 	len = num;
 	max_index = arg_max_index;
@@ -48,9 +49,14 @@ VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index )
 	if ( ! v->IsNumeric() && v->Type() != TYPE_STRING)
 		  error->Report( "bad type in VecRef::VecRef()" );
 
-	indices = new int[len];
-	for ( int i = 0; i < len; ++i )
-		indices[i] = arg_indices[i];
+	if ( ! take_indices )
+		{
+		indices = new int[len];
+		memcpy(indices, arg_indices, len * sizeof(int));
+		}
+	else
+		indices = arg_indices;
+
 	val = FindIndices( value, indices, num );
 	Ref( val );
 	}

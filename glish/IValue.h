@@ -48,8 +48,9 @@ public:
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
-		value_type val_type ) :
-			Value( ref_value, index, num_elements, val_type ) { }
+		value_type val_type, int take_index = 0 ) :
+			Value( ref_value, index, num_elements,
+			       val_type, take_index ) { }
 
 	IValue( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
