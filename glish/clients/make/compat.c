@@ -418,8 +418,9 @@ CompatMake (gnp, pgnp)
 	} else if (keepgoing) {
 	    pgn->make = FALSE;
 	} else {
-	    printf ("\n\nStop.\n");
-	    exit (1);
+	    /* printf ("\n\nStop.\n"); */
+	    /* exit (1); */
+	    pgn->make = FALSE;
 	}
     } else if (gn->made == ERROR) {
 	/*

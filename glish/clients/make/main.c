@@ -738,6 +738,9 @@ Error(va_alist)
 	(void)fflush(stderr);
 }
 
+
+extern void handle_fatal_error( const char * );
+
 /*-
  * Fatal --
  *	Produce a Fatal error message. If jobs are running, waits for them
@@ -758,6 +761,7 @@ Fatal(va_alist)
 	va_dcl
 #endif
 {
+	char buff[2048];
 	va_list ap;
 #ifdef __STDC__
 	va_start(ap, fmt);
@@ -770,14 +774,13 @@ Fatal(va_alist)
 	if (jobsRunning)
 		Job_Wait();
 
-	(void)vfprintf(stderr, fmt, ap);
+	(void)vsprintf(buff, fmt, ap);
 	va_end(ap);
-	(void)fprintf(stderr, "\n");
-	(void)fflush(stderr);
 
 	if (DEBUG(GRAPH2))
 		Targ_PrintGraph(2);
-	exit(2);		/* Not 1 so -q can distinguish error */
+
+	handle_fatal_error( buff );
 }
 
 /*

@@ -19,6 +19,10 @@ inline int streq( const char* a, const char* b )
         }
 
 static Client *client = 0;
+
+static char    *completion_event = 0;
+static int skip_completion_event = 0;
+
 static void action_handler( char *cmd, int ack ) {
 
     if ( ! cmd ) return;
@@ -122,19 +126,42 @@ int main( int argc, char** argv ) {
 	    }
 	} else if ( streq(e->name, "make" ) ) {
             Value *tgt = 0;
+	    skip_completion_event = 0;
+
 	    if ( val->Type() == TYPE_STRING && val->Length() > 0 )
  	        bMake_SetMain( val->StringPtr(0), val->Length() );
 	    if ( ! bMake_HasMain( ) )
-	        c.Error( "no root target specified" );
+		c.Error( "no root target specified" );
 	    else {
 	        bMake( );
 		if ( c.ReplyPending() ) {
 		    Value r(glish_false);
 		    c.Reply(&r);
 		}
+		if ( completion_event && ! skip_completion_event ) {
+		    Value result( glish_true );
+		    c.PostEvent( completion_event, &result );
+		}
 	    }
+
 	} else if ( streq(e->name, "dump" ) ) {
 	    Targ_PrintGraph (2);
+
+	} else if ( streq(e->name, "bind" ) ) {
+	    if ( val->Type() == TYPE_RECORD && val->Length() == 2 ) {
+		Value *event = val->NthField(1);
+		Value *binding = val->NthField(2);
+		if ( event->Type() == TYPE_STRING && event->Length() > 0 &&
+		     binding->Type() == TYPE_STRING && binding->Length() > 0 ) {
+		    if ( ! strcasecmp( event->StringPtr(0)[0], "<completion>" ) ) {
+			if ( completion_event ) free_memory( completion_event );
+			completion_event = strdup(binding->StringPtr(0)[0]);
+		    } else {
+			c.Error( "unknown binding event type" );
+		    }
+		}
+	    }
+
 	} else {
 	    c.Error( "unknown event ('%s') or bad value", e->name );
 	    continue;
@@ -148,4 +175,13 @@ int main( int argc, char** argv ) {
 
     bMake_Finish( );
     return 0;
+}
+
+extern "C" void handle_fatal_error( const char * );
+
+void handle_fatal_error( const char *buff ) {
+
+    skip_completion_event = 1;
+    if ( client ) client->Error( buff );
+
 }
