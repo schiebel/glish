@@ -2,7 +2,6 @@
 
 #ifndef list_h
 #define list_h
-
 // BaseList.h --
 //	Interface for class BaseList, current implementation is as an
 //	array of ent's.  This implementation was chosen to optimize
@@ -21,7 +20,7 @@
 //
 //	Entries must be either a pointer to the data or nonzero data with
 //	sizeof(data) <= sizeof(void*).
-
+#include <Glish/Object.h>
 #include <generic.h>
 #include <stdarg.h>
 
@@ -41,7 +40,7 @@ typedef void* void_ptr;
 typedef void_ptr ent;
 typedef void (*PFC)(char*);	// mostly for error handling
      
-class BaseList {
+class BaseList : public GlishRef {
     public:
 	~BaseList()		{ clear(); }
 

@@ -16,19 +16,16 @@ BinOpExpr::BinOpExpr( binop bin_op, Expr* op1, Expr* op2, const char* desc )
 	op = bin_op;
 	}
 
-int BinOpExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
+IValue *BinOpExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
 
 	if ( ! lhs->IsNumeric() || ! rhs->IsNumeric() )
-		{
-		error->Report( "non-numeric operand in expression:", this );
-		return 0;
-		}
+		return (IValue*) Fail( "non-numeric operand in expression:", this );
 
 	else
-		return 1;
+		return 0;
 	}
 
 glish_type BinOpExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
@@ -74,7 +71,7 @@ glish_type BinOpExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 		return t1;
 	}
 
-int BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
+IValue *BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
     const
 	{
 	int lhs_scalar = lhs->Length() == 1;
@@ -88,10 +85,9 @@ int BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
 
 	if ( lhs_len != rhs_len && ! lhs_scalar && ! rhs_scalar )
 		{
-		error->Report( "different-length operands in expression (",
+		return (IValue*) Fail( "different-length operands in expression (",
 				lhs_len, " vs. ", rhs_len, "):\n\t",
 				this );
-		return 0;
 		}
 
 	if ( lhs_scalar )
@@ -99,7 +95,7 @@ int BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
 		// the same length as the right-hand-side.
 		lhs_len = rhs_len;
 
-	return 1;
+	return 0;
 	}
 
 
@@ -110,16 +106,16 @@ IValue* ArithExpr::Eval( eval_type /* etype */ )
 
 	int lhs_len;
 	int element_by_element;
-	if ( TypeCheck( result, rhs, element_by_element ) &&
+	IValue *err = 0;
+	if ( ! ( err = TypeCheck( result, rhs, element_by_element )) &&
 	     (! element_by_element ||
-	      // Stupid cfront requires the BinOpExpr:: here ...
-	      BinOpExpr::Compute( result, rhs, lhs_len )) )
+	      ! ( err = Compute( result, rhs, lhs_len ) )))
 		result = OpCompute( result, rhs, lhs_len );
 
 	else
 		{
 		Unref( result );
-		result = error_ivalue();
+		result = err ? err : (IValue*) Fail("ArithExpr::Eval()");
 		}
 
 	right->ReadOnlyDone( rhs );
@@ -346,12 +342,13 @@ IValue* RelExpr::Eval( eval_type /* etype */ )
 	IValue* result;
 	int lhs_len;
 	int element_by_element;
-	if ( TypeCheck( lhs, rhs, element_by_element ) &&
+	IValue *err = 0;
+	if ( ! ( err = TypeCheck( lhs, rhs, element_by_element )) &&
 	     (! element_by_element ||
-	      BinOpExpr::Compute( lhs, rhs, lhs_len )) )
+	     ! ( err = Compute( lhs, rhs, lhs_len )) ))
 		result = OpCompute( lhs, rhs, lhs_len );
 	else
-		result = error_ivalue();
+		result = err ? err : (IValue*) Fail("RelExpr::Eval()");
 
 	left->ReadOnlyDone( lhs );
 	right->ReadOnlyDone( rhs );
@@ -359,13 +356,13 @@ IValue* RelExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
-int RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
+IValue *RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
 
 	if ( lhs->Type() == TYPE_STRING && rhs->Type() == TYPE_STRING )
-		return 1;
+		return 0;
 
 	else if ( lhs->IsNumeric() || rhs->IsNumeric() )
 		return BinOpExpr::TypeCheck( lhs, rhs, element_by_element );
@@ -377,11 +374,11 @@ int RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 		if ( op == OP_EQ || op == OP_NE )
 			{
 			element_by_element = 0;
-			return 1;
+			return 0;
 			}
 
 		else
-			return 0;
+			return (IValue*) Fail("bad types for ", description);
 		}
 	}
 
@@ -529,18 +526,15 @@ DEFINE_LOG_EXPR_COMPUTE(complex, "complex")
 DEFINE_LOG_EXPR_COMPUTE(dcomplex, "dcomplex")
 DEFINE_LOG_EXPR_COMPUTE(charptr, "string")
 
-int LogExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
+IValue *LogExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const
 	{
 	element_by_element = 1;
 
 	if ( lhs->Type() == TYPE_BOOL && rhs->Type() == TYPE_BOOL )
-		return 1;
-	else
-		{
-		error->Report( "non-boolean operands to", this );
 		return 0;
-		}
+	else
+		return (IValue*) Fail( "non-boolean operands to", this );
 	}
 
 glish_type LogExpr::OperandsType( const IValue*, const IValue* ) const

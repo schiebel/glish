@@ -25,8 +25,6 @@ extern YYSTYPE yylval;
 
 extern Sequencer* current_sequencer;
 
-extern char* input_file_name;
-
 // Whether the last token might be the end of a statement.
 int statement_can_end = 0;
 
@@ -211,6 +209,7 @@ wider		return TOK_WIDER;
 next|continue	statement_can_end = 1; return TOK_LOOP;
 only		return TOK_ONLY;
 print		return TOK_PRINT;
+fail		statement_can_end = 1; return TOK_FAIL;
 ref		return TOK_REF;
 request		return TOK_REQUEST;
 return		statement_can_end = 1; return TOK_RETURN;
@@ -229,7 +228,9 @@ while		return TOK_WHILE;
 F		RETURN_CONSTANT( glish_false );
 T		RETURN_CONSTANT( glish_true );
 
-include		BEGIN(INCL); break;
+InClUdE		BEGIN(INCL); break;
+include		return TOK_INCLUDE;
+
 "@pragma"	BEGIN(PRAGMA); break;
 
 {ID}		{
@@ -378,7 +379,6 @@ include		BEGIN(INCL); break;
 				YY_BUFFER_STATE incl_buf =
 					yy_create_buffer( file, YY_BUF_SIZE );
 				file_list.append( new InputFileInfo( file, incl_buf ) );
-				input_file_name = filename;
 				yy_switch_to_buffer( incl_buf );
 				new_file();
 				}
@@ -433,8 +433,6 @@ include		BEGIN(INCL); break;
 		}
 
 <<EOF>>		{
-		delete input_file_name;		// done with file name
-
 		int nesting = file_list.length();
 		if ( nesting > 0 )
 			{
@@ -452,7 +450,6 @@ include		BEGIN(INCL); break;
 InputFileInfo::InputFileInfo( FILE *f, YY_BUFFER_STATE s )
 	{
 	buf = YY_CURRENT_BUFFER;
-	filename = input_file_name;
 	line = line_num;
 	save_first_line = first_line;
 	save_bump_line_num = bump_line_num;
@@ -464,7 +461,6 @@ InputFileInfo::InputFileInfo( FILE *f, YY_BUFFER_STATE s )
 InputFileInfo::~InputFileInfo()
 	{
 	yy_switch_to_buffer( buf );
-	input_file_name = filename;
 	line_num = line;
 	first_line = save_first_line;
 	bump_line_num = save_bump_line_num;
@@ -614,9 +610,9 @@ void *current_flex_buffer()
 	return YY_CURRENT_BUFFER;
 	}
 
-void *new_flex_buffer()
+void *new_flex_buffer( FILE *fptr )
 	{
-	return yy_create_buffer(0,YY_BUF_SIZE);
+	return yy_create_buffer(fptr, YY_BUF_SIZE);
 	}
 
 void set_flex_buffer(void *new_buf)

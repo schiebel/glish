@@ -148,10 +148,10 @@ void FormalParameter::Describe( ostream& s ) const
 
 
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-			Sequencer* arg_sequencer, Expr* arg_subsequence_expr )
+			Sequencer* arg_sequencer, Expr* arg_subsequence_expr, IValue *&err )
 	{
 	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size,
-				    arg_sequencer, arg_subsequence_expr);
+				    arg_sequencer, arg_subsequence_expr, err);
 	sequencer = arg_sequencer;
 	scope_established = 0;
 	local_frames = 0;
@@ -205,7 +205,7 @@ void UserFunc::Describe( ostream& s ) const
 	}
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-			Sequencer* arg_sequencer, Expr* arg_subsequence_expr )
+			Sequencer* arg_sequencer, Expr* arg_subsequence_expr, IValue *&err )
 	{
 	formals = arg_formals;
 	body = arg_body;
@@ -214,6 +214,7 @@ UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int
 	subsequence_expr = arg_subsequence_expr;
 
 	valid = 1;
+	err = 0;
 
 	has_ellipsis = 0;
 	loop_over_list( *formals, i )
@@ -221,7 +222,7 @@ UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int
 			{
 			if ( has_ellipsis )
 				{
-				error->Report(
+				err = (IValue*) Fail(
 			"\"...\" appears more than once in parameter list" );
 				valid = 0;
 				break;
@@ -240,14 +241,13 @@ UserFuncKernel::~UserFuncKernel()
 	delete formals;	      
 
 	NodeUnref(subsequence_expr);
-
-	Unref(body);
+	Unref( body );
 	}
 
 IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames )
 	{
 	if ( ! valid )
-		return error_ivalue();
+		return error_ivalue( "function not valid" );
 
 	args_list args_vals;
 	int do_call = 1;
@@ -295,6 +295,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 
 	// Match until a named argument is encountered.
 	int i;
+	IValue *fail = 0;
 	loop_over_list_nodecl( *args, i )
 		{
 		Parameter* arg = (*args)[i];
@@ -304,8 +305,8 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 
 		if ( arg->IsEllipsis() )
 			{
-			AddEllipsisArgs( &args_vals, arg, num_args, num_formals,
-					ellipsis_value, do_call );
+			fail = AddEllipsisArgs( &args_vals, arg, num_args, num_formals,
+						ellipsis_value );
 			for ( int j = 0; j < arg->NumEllipsisVals(); ++j )
 				ADD_MISSING_INFO(glish_false)
 			}
@@ -321,26 +322,21 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 					Expr* dflt = f ? f->DefaultValue() : 0;
 					if ( dflt )
 						{
-						ArgOverFlow( dflt, num_args,
-							num_formals,
-							ellipsis_value,
-							do_call );
+						fail = ArgOverFlow( dflt, num_args,
+								    num_formals,
+								    ellipsis_value );
 						ADD_MISSING_INFO(glish_true)
 						}
 					else
-						{
-						error->Report(
+						fail = (IValue*) Fail(
 						"Missing parameter ", i+1,
 						", no default available" );
-						do_call = 0;
-						}
 					}
 				else
 					{
-					ArgOverFlow( p->Arg(), num_args,
-							num_formals,
-							ellipsis_value,
-							do_call );
+					fail = ArgOverFlow( p->Arg(), num_args,
+							    num_formals,
+							    ellipsis_value );
 					ADD_MISSING_INFO(glish_false)
 					}
 				}
@@ -354,81 +350,78 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 					Expr* dflt = f ? f->DefaultValue() : 0;
 					if ( dflt )
 						{
-						args_vals.append(
-							EvalParam( f, dflt ) );
+						IValue *v = EvalParam( f, dflt, fail );
+						if ( fail ) break;
+						args_vals.append( v );
 						ADD_MISSING_INFO(glish_true)
 						}
 					else
-					  	{
-						error->Report(
+						fail = (IValue*) Fail(
 						"Missing parameter ", i+1, 
 						", no default available." );
-						do_call = 0;
-						}
 					}
 				else
 					{
-					args_vals.append( EvalParam( f,
-							(*args)[i]->Arg() ) );
+					IValue *v = EvalParam( f, (*args)[i]->Arg(), fail );
+					if ( fail ) break;
+					args_vals.append( v );
 					ADD_MISSING_INFO(glish_false)
 					}
 
 				++num_args;
 				}
 			}
+
+		if ( fail ) break;
 		}
 
 	int first_named_arg = i;
 
-	// Check the named arguments to see if they're valid.
-	for ( int named_arg = first_named_arg; named_arg < num_supplied_args;
-	      ++named_arg )
+	if ( ! fail && do_call )
 		{
-		const char* arg_name = (*args)[named_arg]->Name();
-
-		if ( ! arg_name )
+		// Check the named arguments to see if they're valid.
+		for ( int named_arg = first_named_arg; named_arg < num_supplied_args ;
+		      ++named_arg )
 			{
-			if ( do_call )
-				{
-				error->Report( "unnamed arg (position",
-						named_arg,
-					") given after named arg in call to",
-						this );
-				do_call = 0;
-				}
-			}
+			const char* arg_name = (*args)[named_arg]->Name();
 
-		else
-			{
-			int j;
-			loop_over_list_nodecl( *formals, j )
+			if ( ! arg_name )
 				{
-				const char* formal_name = (*formals)[j]->Name();
-
-				if ( formal_name &&
-				     ! strcmp( formal_name, arg_name ) )
-					break;
+				if ( do_call )
+					fail = (IValue*) Fail( "unnamed arg (position",
+							named_arg,
+						") given after named arg in call to",
+							this );
 				}
 
-			if ( j >= formals->length() )
+			else
 				{
-				error->Report( "named arg \"", arg_name,
-				    "\" does not match any formal in call to",
-						this );
-				do_call = 0;
+				int j;
+				loop_over_list_nodecl( *formals, j )
+					{
+					const char* formal_name = (*formals)[j]->Name();
+
+					if ( formal_name &&
+					     ! strcmp( formal_name, arg_name ) )
+						break;
+					}
+
+				if ( j >= formals->length() )
+					fail = (IValue*) Fail( "named arg \"", arg_name,
+					    "\" does not match any formal in call to",
+							this );
+
+				else if ( j < args_vals.length() )
+					fail = (IValue*) Fail( "formal \"", arg_name,
+				    "\" matched by both positional and named arg in call to",
+							this );
 				}
 
-			else if ( j < args_vals.length() )
-				{
-				error->Report( "formal \"", arg_name,
-		    "\" matched by both positional and named arg in call to",
-						this );
-				do_call = 0;
-				}
+			if ( fail ) break;
 			}
 		}
 
-	if ( do_call )
+	if ( do_call && ! fail )
 		{
 		// Fill in remaining formals, looking for matching named
 		// arguments or else using the formal's default value (if
@@ -460,8 +453,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 
 			if ( match < num_supplied_args )
 				{
-				args_vals.append( EvalParam( f,
-						(*args)[match]->Arg() ) );
+				IValue *v = EvalParam( f, (*args)[match]->Arg(), fail );
+				if ( fail ) break;
+				args_vals.append( v );
 				ADD_MISSING_INFO(glish_false)
 				}
 			else
@@ -469,27 +463,26 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 				Expr* default_value = f->DefaultValue();
 
 				if ( ! default_value )
-					{
-					error->Report( "parameter \"",
+					fail = (IValue*) Fail( "parameter \"",
 							f->Name(),
 							"\" missing in call to",
 							this );
-					do_call = 0;
-					}
-
 				else
 					{
-					args_vals.append( EvalParam( f,
-							default_value ) );
+					IValue *v = EvalParam( f, default_value, fail );
+					if ( fail ) break;
+					args_vals.append( v );
 					ADD_MISSING_INFO(glish_true)
 					}
 				}
+
+			if ( fail ) break;
 			}
 		}
 
 	IValue* result;
 
-	if ( do_call )
+	if ( do_call && ! fail )
 		{
 		IValue* missing_val = missing_len > 0 ?
 			new IValue( missing, missing_len, PRESERVE_ARRAY ) : 0;
@@ -503,7 +496,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 		loop_over_list( args_vals, k )
 			Unref( args_vals[k] );
 
-		result = error_ivalue();
+		result = fail ? fail : error_ivalue();
 		}
 
 	free_memory( (void*) missing );
@@ -534,11 +527,26 @@ IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* m
 	stmt_flow_type flow;
 	IValue* result = body->Exec( value_needed, flow );
 
+	if ( sequencer->PopFrame() != call_frame )
+		fatal->Report( "frame inconsistency in UserFunc::DoCall" );
+
+	if ( local_frames )
+		sequencer->PopFrame( local_frames->length() );
+
+	Unref( call_frame );
+
 	if ( subsequence_expr )
 		{
+		Str err;
 		if ( result &&
-		     (result->Type() != TYPE_BOOL || result->BoolVal()) )
+		     (result->Type() != TYPE_BOOL || result->BoolVal(1,err)) )
 			{
+			if ( err.chars() )
+				{
+				Unref( result );
+				return (IValue*) Fail(err.chars());
+				}
+
 			warn->Report( "value (", result,
 			") returned from subsequence replaced by ref self" );
 			Unref( result );
@@ -549,14 +557,6 @@ IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* m
 		if ( etype == EVAL_SIDE_EFFECTS )
 			warn->Report( "agent returned by subsequence ignored" );
 		}
-
-	if ( sequencer->PopFrame() != call_frame )
-		fatal->Report( "frame inconsistency in UserFunc::DoCall" );
-
-	if ( local_frames )
-		sequencer->PopFrame( local_frames->length() );
-
-	Unref( call_frame );
 
 	return result;
 	}
@@ -571,27 +571,48 @@ void UserFuncKernel::Describe( ostream& s ) const
 	}
 
 
-IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual )
+IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual, IValue *&fail )
 	{
+	fail = 0;
 	value_type param_type = p->ParamType();
 
 	if ( param_type == VAL_CONST )
 		{
 		IValue *ret = actual->CopyEval();
+		if ( ret->Type() == TYPE_FAIL )
+			{
+			fail = ret;
+			return 0;
+			}
 		ret->MakeConst( );
 		return ret;
 		}
 	else if ( param_type == VAL_VAL )
-		return actual->CopyEval();
+		{
+		IValue *ret = actual->CopyEval();
+		if ( ret->Type() == TYPE_FAIL )
+			{
+			fail = ret;
+			return 0;
+			}
+		return ret;
+		}
 	else
-		return actual->RefEval( param_type );
+		{
+		IValue *ret = actual->RefEval( param_type );
+		if ( ret->Type() == TYPE_FAIL )
+			{
+			fail = ret;
+			return 0;
+			}
+		return ret;
+		}
 	}
 
 
-void UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
+IValue *UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
 				Parameter* actual_ellipsis, int& num_args,
-				int num_formals, IValue* formal_ellipsis_value,
-				int& do_call )
+				int num_formals, IValue* formal_ellipsis_value )
 	{
 	int len = actual_ellipsis->NumEllipsisVals();
 
@@ -602,13 +623,9 @@ void UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
 		if ( num_args >= num_formals )
 			{
 			if ( ! formal_ellipsis_value )
-				{
-				error->Report( "too many arguments (> ",
+				return (IValue*) Fail( "too many arguments (> ",
 						num_formals,
 						") supplied in call to", this );
-				do_call = 0;
-				return;
-				}
 
 			char field_name[256];
 			sprintf( field_name, "%d",
@@ -629,13 +646,9 @@ void UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
 		Parameter* f = (*formals)[num_args];
 
 		if ( f->ParamType() == VAL_REF )
-			{
-			error->Report(
+			return (IValue*) Fail(
 				"\"...\" is a \"const\" reference, formal",
 					f->Name(), " is \"ref\"" );
-			do_call = 0;
-			return;
-			}
 
 		val = actual_ellipsis->NthEllipsisVal( i );
 
@@ -650,6 +663,8 @@ void UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
 
 		++num_args;
 		}
+
+	return 0;
 	}
 
 
@@ -666,23 +681,19 @@ void UserFuncKernel::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	}
 
 
-void UserFuncKernel::ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				IValue* ellipsis_value, int& do_call )
+IValue *UserFuncKernel::ArgOverFlow( Expr* arg, int num_args, int num_formals,
+				IValue* ellipsis_value )
 	{
 	if ( ellipsis_value )
 		AddEllipsisValue( ellipsis_value, arg );
 
 	else
-		{
 		if ( num_args == num_formals )
-			{
-			error->Report( "too many arguments (> ",
+			return (IValue*) Fail( "too many arguments (> ",
 				num_formals, ") supplied in call to",
 				this );
-			}
 
-		do_call = 0;
-		}
+	return 0;
 	}
 
 

@@ -88,6 +88,7 @@ CLIENT_OBJS = \
 	RemoteExec.o \
 	Reporter.o \
 	Socket.o \
+	Str.o \
 	VecRef.o \
 	glishlib.o \
 	system.o
@@ -127,6 +128,7 @@ CLIENT_OBJS_PROXY = \
 	$(D)RemoteExec.o \
 	$(D)Reporter.o \
 	$(D)Socket.o \
+	$(D)Str.o \
 	$(D)VecRef.o \
 	$(D)glishlib.o \
 	$(D)system.o
@@ -321,6 +323,9 @@ $(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
 
 $(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc $(T)
+
+$(D)Str.o: $(SRC)/Str.cc $(H)/Str.h
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Str.cc $(T)
 
 $(D)Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Stmt.cc $(T)

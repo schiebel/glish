@@ -101,7 +101,7 @@ class Expr : public ParseNode {
 
 
 	// Evaluates the Expr just for side-effects.
-	virtual void SideEffectsEval();
+	virtual IValue *SideEffectsEval();
 
 
 	// Returns a reference to the value of the event expression.
@@ -126,7 +126,7 @@ class Expr : public ParseNode {
 	// used by their values as soon as the function call is complete,
 	// rather than waiting for the next call to the function (and
 	// subsequent assignment to the formal parameters).
-	virtual void Assign( IValue* new_value );
+	virtual IValue *Assign( IValue* new_value );
 
 	// Returns true if, when evaluated as a statement, this expression's
 	// value should be "invisible" - i.e., the statement's value is "no
@@ -168,7 +168,7 @@ class VarExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
-	void Assign( IValue* new_value );
+	IValue *Assign( IValue* new_value );
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
@@ -311,7 +311,7 @@ class AssignExpr : public BinaryExpr {
 	AssignExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype );
-	void SideEffectsEval();
+	IValue *SideEffectsEval();
 	int Invisible() const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -347,11 +347,14 @@ class ConstructExpr : public Expr {
 	IValue* BuildArray();
 	IValue* BuildRecord();
 
-	int TypeCheck( const IValue* values[], int num_values,
-			glish_type& max_type );
-	int MaxNumeric( const IValue* values[], int num_values,
+	//
+	//  0 => OK, !0 == error value
+	//
+	IValue *AllEquivalent( const IValue* values[], int num_values,
 				glish_type& max_type );
-	int AllEquivalent( const IValue* values[], int num_values,
+	IValue *TypeCheck( const IValue* values[], int num_values,
+			       glish_type& max_type );
+	IValue *MaxNumeric( const IValue* values[], int num_values,
 				glish_type& max_type );
 
 	IValue* ConstructArray( const IValue* values[], int num_values,
@@ -359,6 +362,7 @@ class ConstructExpr : public Expr {
 
 	int is_array_constructor;
 	ParameterPList* args;
+	const char *err;
 	};
 
 
@@ -369,7 +373,7 @@ class ArrayRefExpr : public UnaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
-	void Assign( IValue* new_value );
+	IValue *Assign( IValue* new_value );
 
 	void Describe( ostream& s ) const;
 
@@ -388,7 +392,7 @@ class RecordRefExpr : public UnaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
-	void Assign( IValue* new_value );
+	IValue *Assign( IValue* new_value );
 
 	void Describe( ostream& s ) const;
 
@@ -408,7 +412,7 @@ class AttributeRefExpr : public BinaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
-	void Assign( IValue* new_value );
+	IValue *Assign( IValue* new_value );
 
 	void Describe( ostream& s ) const;
 
@@ -426,7 +430,7 @@ class RefExpr : public UnaryExpr {
 	RefExpr( Expr* op, value_type type );
 
 	IValue* Eval( eval_type etype );
-	void Assign( IValue* new_value );
+	IValue *Assign( IValue* new_value );
 
 	void Describe( ostream& s ) const;
 
@@ -445,10 +449,10 @@ class RangeExpr : public BinaryExpr {
 
 class CallExpr : public UnaryExpr {
     public:
-	CallExpr( Expr* func, ParameterPList* args );
+	CallExpr( Expr* func, ParameterPList* args, Sequencer *seq_arg );
 
 	IValue* Eval( eval_type etype );
-	void SideEffectsEval();
+	IValue *SideEffectsEval();
 
 	void Describe( ostream& s ) const;
 
@@ -456,6 +460,15 @@ class CallExpr : public UnaryExpr {
 
     protected:
 	ParameterPList* args;
+	Sequencer* sequencer;
+	};
+
+class IncludeExpr : public UnaryExpr {
+    public:
+	IncludeExpr( Expr* file, Sequencer *seq_arg );
+	IValue* Eval( eval_type etype );
+    protected:
+	Sequencer* sequencer;
 	};
 
 
@@ -465,7 +478,7 @@ class SendEventExpr : public Expr {
 			int is_request_reply );
 
 	IValue* Eval( eval_type etype );
-	void SideEffectsEval();
+	IValue* SideEffectsEval();
 
 	void Describe( ostream& s ) const;
 

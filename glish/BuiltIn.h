@@ -23,6 +23,7 @@ class BuiltIn : public Func {
 		num_args = num;
 		do_deref = 1;
 		side_effects_call_okay = 0;
+		handle_fail = 0;
 		}
 
 	const char* Name()				{ return description; }
@@ -39,17 +40,21 @@ class BuiltIn : public Func {
 	// If false, they are left alone.
 	void SetDeref( int deref )
 		{ do_deref = deref; }
+	void SetFailHandling( int do_fail )
+		{ handle_fail = do_fail; }
 
 	void DescribeSelf( ostream& s ) const;
 
     protected:
-	int AllNumeric( const_args_list* args_vals, glish_type& max_type,
+	// returns 0 if everything is OK
+	IValue *AllNumeric( const_args_list* args_vals, glish_type& max_type,
 			int strings_okay = 0 );
 
 	int num_args;
 	int do_deref;
 	// true if side-effects-only call is okay
 	int side_effects_call_okay;
+	int handle_fail;
 	};
 
 

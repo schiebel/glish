@@ -268,6 +268,44 @@ class PrintStmt : public Stmt {
 	};
 
 
+class FailStmt : public Stmt {
+    public:
+	FailStmt( Expr* arg_arg )
+		{
+		arg = arg_arg;
+		description = "fail";
+		}
+
+	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	void Describe( ostream& s ) const;
+
+	~FailStmt();
+
+    protected:
+	Expr* arg;
+	};
+
+
+class IncludeStmt : public Stmt {
+    public:
+	IncludeStmt( Expr* arg_arg, Sequencer* arg_sequencer ) :
+			sequencer( arg_sequencer )
+		{
+		arg = arg_arg;
+		description = "include";
+		}
+
+	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	void Describe( ostream& s ) const;
+
+	~IncludeStmt();
+
+    protected:
+	Expr* arg;
+	Sequencer* sequencer;
+	};
+
+
 class ExprStmt : public Stmt {
     public:
 	ExprStmt( Expr* arg_expr )

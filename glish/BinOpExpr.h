@@ -27,13 +27,13 @@ class BinOpExpr : public BinaryExpr {
 	IValue* Eval( eval_type etype ) = 0;
 
     protected:
-	// Returns true if the expression's operands type-check, false
-	// (and generates an error message) otherwise.  The default TypeCheck
-	// implements arithmetic type-checking (operands must be numeric).
+	// Returns 0 if the expression's operands type-check, otherwise
+	// returns a error value.  The default TypeCheck implements
+	// arithmetic type-checking (operands must be numeric).
 	//
 	// The third argument is set to true if this expression operates
 	// element-by-element on arrays, false otherwise.
-	virtual int TypeCheck( const IValue* lhs, const IValue* rhs,
+	virtual IValue *TypeCheck( const IValue* lhs, const IValue* rhs,
 				int& element_by_element ) const;
 
 	// What type the BinOpExpr's operands should be promoted to.  The
@@ -47,10 +47,10 @@ class BinOpExpr : public BinaryExpr {
 	// for compatibility and promotes scalars to arrays as necessary.
 	// Returns in lhs_len the array length at which lhs should be
 	// used (if lhs is a scalar and rhs is an array then this will be
-	// the length of rhs, otherwise the length of lhs).  Returns true
-	// all checking was okay, false otherwise (in which case lhs_len
-	// may not have been set).
-	int Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const;
+	// the length of rhs, otherwise the length of lhs).  Returns 0
+	// all checking was okay, otherwise an error message (in which case
+	// lhs_len may not have been set).
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const;
 
 	binop op;
 	};
@@ -66,6 +66,9 @@ class ArithExpr : public BinOpExpr {
 		{ }
 
 	IValue* Eval( eval_type etype );
+
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
 
 	virtual void Compute( byte lhs[], byte rhs[],
 				int lhs_len, int rhs_incr ) = 0;
@@ -92,6 +95,10 @@ class name : public ArithExpr {						\
 	name( Expr* op1, Expr* op2 )					\
 		: ArithExpr(op, op1, op2, op_name)	{ }		\
 	overloads							\
+									\
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }\
+									\
 	void Compute( byte lhs[], byte rhs[], int lhs_len, int rhs_incr );\
 	void Compute( short lhs[], short rhs[], int lhs_len, int rhs_incr );\
 	void Compute( int lhs[], int rhs[], int lhs_len, int rhs_incr );\
@@ -123,6 +130,9 @@ class RelExpr : public BinOpExpr {
 
 	IValue* Eval( eval_type etype );
 
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
+
 	virtual void Compute( glish_bool lhs[], glish_bool rhs[],
 				glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
@@ -145,7 +155,7 @@ class RelExpr : public BinOpExpr {
 				int lhs_len, int rhs_incr ) = 0;
 
     protected:
-	int TypeCheck( const IValue* lhs, const IValue* rhs,
+	IValue *TypeCheck( const IValue* lhs, const IValue* rhs,
 			int& element_by_element ) const;
 	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;
 	IValue* OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len );
@@ -157,6 +167,10 @@ class name : public RelExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
 		: RelExpr(op, op1, op2, op_name)	{ }		\
+									\
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); } \
+									\
 	void Compute( glish_bool lhs[], glish_bool rhs[],		\
 			glish_bool result[],				\
 			int lhs_len, int rhs_incr );			\
@@ -193,6 +207,8 @@ class LogExpr : public RelExpr {
 	LogExpr( binop op_, Expr* op1, Expr* op2, const char* desc )
 			: RelExpr(op_, op1, op2, desc)	{ }
 
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
 
 	void Compute( glish_bool lhs[], glish_bool rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
@@ -214,7 +230,7 @@ class LogExpr : public RelExpr {
 			int lhs_len, int rhs_incr );
 
     protected:
-	int TypeCheck( const IValue* lhs, const IValue* rhs,
+	IValue *TypeCheck( const IValue* lhs, const IValue* rhs,
 			int& element_by_element ) const;
 	glish_type OperandsType( const IValue* lhs, const IValue* rhs ) const;
 	};
@@ -225,6 +241,9 @@ class name : public LogExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
 		: LogExpr(op, op1, op2, op_name)	{ }		\
+									\
+	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
+			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); } \
 									\
 	void Compute( glish_bool lhs[], glish_bool rhs[],		\
 			glish_bool result[], int lhs_len, int rhs_incr );\

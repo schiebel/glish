@@ -4,9 +4,12 @@
 RCSID("@(#) $Id$")
 #include <stream.h>
 #include "Glish/Object.h"
+#include "Glish/Value.h"
+#include "Reporter.h"
 
-
-int line_num;
+int line_num = 0;
+Str *file_name = 0;
+Str glish_errno( (const char*) "" );
 
 void GlishObject::Describe( ostream& s ) const
 	{
@@ -16,4 +19,62 @@ void GlishObject::Describe( ostream& s ) const
 void GlishObject::DescribeSelf( ostream& s ) const
 	{
 	s << description;
+	}
+
+Value *GlishObject::Fail( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		) const
+	{
+	if ( file )
+		return generate_error( file->Chars(), line, m0,m1,
+				       m2,m3,m4,m5,m6,m7,m8,m9,
+				       m10,m11,m12,m13,m14,m15,m16 );
+	else
+		return generate_error( m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,
+				       m10,m11,m12,m13,m14,m15,m16 );
+	}
+
+const Str GlishObject::strFail( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		) const
+	{
+	return generate_error_str( m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,
+				   m10,m11,m12,m13,m14,m15,m16 );
+	}
+
+Value *GlishObject::Fail( Value *err ) const
+	{
+	if ( err && file && file->chars() )
+		{
+		err->AssignAttribute( "file", create_value(file->Chars()) );
+		err->AssignAttribute( "line", create_value(line) );
+		}
+	else
+		{
+		err->DeleteAttribute( "file" );
+		err->DeleteAttribute( "line" );
+		}
+	return err;
+	}
+
+Value *GlishObject::Fail( ) const
+	{
+	if ( file )
+		return error_value( 0, file->Chars(), line );
+	else
+		return error_value( );
 	}

@@ -2,25 +2,43 @@
 
 #ifndef object_h
 #define object_h
-
+#include "Glish/Str.h"
 
 // GlishObject is the root of the class hierarchy.  GlishObjects know how to
 // describe themselves.
 
-// Line number to associate with newly created objects..
+//
+// Line number and file to associate with newly created objects..
+//
 extern int line_num;
-
+extern Str *file_name;
 class ostream;
+class Value;
+class RMessage;
+extern RMessage EndMessage;
+extern Str glish_errno;
 
-class GlishObject {
+class GlishRef {
     public:
-	GlishObject()		{ line = line_num; ref_count = 1; }
-	virtual ~GlishObject()	{ }
-
-	int Line()		{ return line; }
+	GlishRef() : ref_count(1) 	{ }
+	virtual ~GlishRef()		{ }
 
 	// Return the ref count so other classes can do intelligent copying.
 	int RefCount() const	{ return ref_count; }
+    protected:
+	friend inline void Ref( GlishRef* object );
+	friend inline void Unref( GlishRef* object );
+
+	int ref_count;
+};
+
+class GlishObject : public GlishRef {
+    public:
+	GlishObject() : file( file_name ? new Str(*file_name) : 0 ),
+			line(line_num) { }
+	virtual ~GlishObject()	{ }
+
+	int Line()		{ return line; }
 
 	// Generate a long description of the object to the
 	// given stream.  This typically includes descriptions of
@@ -41,22 +59,44 @@ class GlishObject {
 	void DescribeSelf( ostream& stream )
 		{ ((const GlishObject*) this)->DescribeSelf( stream ); }
 
-    protected:
-	friend inline void Ref( GlishObject* object );
-	friend inline void Unref( GlishObject* object );
+	const Str strFail( const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		) const;
 
+	Value *Fail( const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		) const;
+
+	Value *Fail( Value * ) const;
+	Value *Fail( ) const;
+
+    protected:
 	const char* description;
 	int line;
-	int ref_count;
+	Str *file;
 	};
 
 
-inline void Ref( GlishObject* object )
+inline void Ref( GlishRef* object )
 	{
 	++object->ref_count;
 	}
 
-inline void Unref( GlishObject* object )
+inline void Unref( GlishRef* object )
 	{
 	if ( object && --object->ref_count == 0 )
 		delete object;

@@ -10,7 +10,7 @@ RCSID("@(#) $Id$")
 #include "input.h"
 
 int interactive = 0;
-char* input_file_name = 0;
+extern Str *file_name;
 
 class WarningReporter : public Reporter {
     public:
@@ -226,8 +226,8 @@ void Reporter::Prolog()
 	{
 	if ( ! interactive )
 		{
-		if ( input_file_name )
-			stream << "\"" << input_file_name << "\", ";
+		if ( file_name )
+			stream << "\"" << file_name->Chars() << "\", ";
 
 		if ( line_num > 0 )
 			stream << "line " << line_num << ": ";
@@ -288,3 +288,4 @@ void finalize_reporters()
 	delete fatal;
 	delete message;
 	}
+

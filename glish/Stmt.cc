@@ -132,6 +132,7 @@ IValue* WheneverStmt::DoExec( int /* value_needed */,
 	loop_over_list( *trigger, i )
 		(*trigger)[i]->Register( new Notifiee( this, frames ) );
 
+	Unref( frames );
 	active = 1;
 
 	sequencer->WheneverExecuted( this );
@@ -201,15 +202,18 @@ LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
 
 IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
+	IValue *err = 0;
 	loop_over_list( *source, i )
 		{
+		if ( err ) break;
+
 		EventDesignator* src = (*source)[i];
 		Agent* src_agent = src->EventAgent( VAL_CONST );
 
 		if ( ! src_agent )
 			{
-			error->Report( src->EventAgentExpr(),
-					"is not an agent" );
+			err = (IValue*) Fail( src->EventAgentExpr(),
+					      "is not an agent" );
 			continue;
 			}
 
@@ -217,7 +221,7 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 		if ( ! src_task )
 			{
-			error->Report( src->EventAgentExpr(),
+			err = (IValue*) Fail( src->EventAgentExpr(),
 				"is not a client" );
 			continue;
 			}
@@ -226,19 +230,21 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 		if ( ! name_list )
 			{
-			error->Report( this,
+			err = (IValue*) Fail( this,
 				"linking of all events not yet supported" );
 			continue;
 			}
 
 		loop_over_list( *sink, j )
 			{
+			if ( err ) break;
+
 			EventDesignator* snk = (*sink)[j];
 			Agent* snk_agent = snk->EventAgent( VAL_REF );
 
 			if ( ! snk_agent )
 				{
-				error->Report( snk->EventAgentExpr(),
+				err = (IValue*) Fail( snk->EventAgentExpr(),
 					"is not an agent" );
 				continue;
 				}
@@ -247,7 +253,7 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 			if ( ! snk_task )
 				{
-				error->Report( snk->EventAgentExpr(),
+				err = (IValue*) Fail( snk->EventAgentExpr(),
 					"is not a client" );
 				continue;
 				}
@@ -255,16 +261,18 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 			PList(char)* sink_list = snk->EventNames();
 
 			if ( sink_list && sink_list->length() > 1 )
-				error->Report(
+				err = (IValue*) Fail(
 				"multiple event names not allowed in \"to\":",
 						this );
-
-			loop_over_list( *name_list, k )
+			else
 				{
-				const char* name = (*name_list)[k];
+				loop_over_list( *name_list, k )
+					{
+					const char* name = (*name_list)[k];
 
-				MakeLink( src_task, name, snk_task,
-					sink_list ? (*sink_list)[0] : name );
+					MakeLink( src_task, name, snk_task,
+						sink_list ? (*sink_list)[0] : name );
+					}
 				}
 
 			delete_name_list( sink_list );
@@ -275,7 +283,7 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 		src->EventAgentDone();
 		}
 
-	return 0;
+	return err;
 	}
 
 void LinkStmt::Describe( ostream& s ) const
@@ -423,6 +431,7 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 IValue* ActivateStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
+	IValue *result = 0;
 	if ( expr )
 		{
 		IValue* index_value = expr->CopyEval();
@@ -435,9 +444,9 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 
 			if ( ! s )
 				{
-				error->Report( i,
-			"does not designate a valid \"whenever\" statement" );
-				break;
+				Unref( index_value );
+				return (IValue*) Fail(i, 
+				"does not designate a valid \"whenever\" statement" );
 				}
 
 			s->SetActivity( activate );
@@ -449,20 +458,13 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	else
 		{
 		if ( whenever_index < 0 )
-			{
-			error->Report(
-	"\"activate\"/\"deactivate\" executed without previous \"whenever\"" );
-			return 0;
-			}
-
+			return (IValue*) Fail(
+			"\"activate\"/\"deactivate\" executed without previous \"whenever\"" );
 		Stmt *s = sequencer->LookupStmt( whenever_index );
 
 		if ( ! s )
-			{
-			error->Report( whenever_index,
-		"does not designate a valid \"whenever\" statement" );
-			return 0;
-			}
+			return (IValue*) Fail( whenever_index,
+			"does not designate a valid \"whenever\" statement" );
 
 		s->SetActivity( activate );
 		}
@@ -504,8 +506,12 @@ IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	{
 	const IValue* test_value = expr->ReadOnlyEval();
-	int take_true_branch = test_value->BoolVal();
+	Str err;
+	int take_true_branch = test_value->BoolVal(1,err);
 	expr->ReadOnlyDone( test_value );
+
+	if ( err.chars() )
+		return (IValue*) Fail(err.chars());
 
 	IValue* result = 0;
 
@@ -563,9 +569,8 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	IValue* result = 0;
 
 	if ( ! range_value->IsNumeric() && range_value->Type() != TYPE_STRING )
-		error->Report( "range (", range,
+		result = (IValue*) Fail( "range (", range,
 				") in for loop is not numeric or string" );
-
 	else
 		{
 		int len = range_value->Length();
@@ -620,13 +625,20 @@ WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
 
 IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
+	Str err;
 	IValue* result = 0;
 
 	while ( 1 )
 		{
 		const IValue* test_value = test->ReadOnlyEval();
-		int do_test = test_value->BoolVal();
+		int do_test = test_value->BoolVal(1,err);
 		test->ReadOnlyDone( test_value );
+
+		if ( err.chars() )
+			{
+			result = (IValue*) Fail(err.chars());
+			break;
+			}
 
 		if ( do_test )
 			{
@@ -689,6 +701,64 @@ void PrintStmt::Describe( ostream& s ) const
 	}
 
 
+FailStmt::~FailStmt()
+	{
+	if ( arg ) NodeUnref( arg );
+	}
+
+IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
+	{
+	flow = FLOW_RETURN;
+	IValue *ret = (IValue*) Fail( );
+
+	//
+	// Assign message separately so that the message is preserved.
+	//
+	if ( arg )
+		ret->AssignAttribute( "message", arg->CopyEval() );
+
+	return ret;
+	}
+
+void FailStmt::Describe( ostream& s ) const
+	{
+	s << "fail ";
+
+	if ( arg )
+		arg->Describe( s );
+
+	s << ";";
+	}
+
+
+IncludeStmt::~IncludeStmt()
+	{
+	if ( arg ) NodeUnref( arg );
+	}
+
+IValue* IncludeStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
+	{
+	const IValue *str_val = arg->ReadOnlyEval();
+	char *str = str_val->StringVal();
+	arg->ReadOnlyDone( str_val );
+
+	IValue *ret = sequencer->Include( str );
+
+	delete str;
+	return ret;
+	}
+
+void IncludeStmt::Describe( ostream& s ) const
+	{
+	s << "include ";
+
+	if ( arg )
+		arg->Describe( s );
+
+	s << ";";
+	}
+
+
 ExprStmt::~ExprStmt()
 	{
 	NodeUnref( expr );
@@ -699,10 +769,7 @@ IValue* ExprStmt::DoExec( int value_needed, stmt_flow_type& /* flow */ )
 	if ( value_needed && ! expr->Invisible() )
 		return expr->CopyEval();
 	else
-		{
-		expr->SideEffectsEval();
-		return 0;
-		}
+		return expr->SideEffectsEval();
 	}
 
 void ExprStmt::Describe( ostream& s ) const

@@ -21,6 +21,7 @@ typedef enum {
 	TYPE_RECORD,
 	TYPE_COMPLEX,
 	TYPE_DCOMPLEX,
+	TYPE_FAIL,
 	TYPE_OPAQUE
 #define NUM_GLISH_TYPES (((int) TYPE_OPAQUE) + 1)
 	} glish_type;

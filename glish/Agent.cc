@@ -45,6 +45,7 @@ Notifiee::Notifiee( Stmt* arg_stmt, PList(Frame)* arg_frames ) : frame(0)
 
 	if ( frames )
 		{
+		Ref( frames );
 		loop_over_list( *frames, i )
 			if ( (*frames)[i] )
 				Ref( (*frames)[i] );
@@ -59,7 +60,7 @@ Notifiee::~Notifiee()
 		{
 		loop_over_list( *frames, i )
 			Unref( (*frames)[i] );
-		delete frames;
+		Unref( frames );
 		}
 	}
 
@@ -71,7 +72,6 @@ Agent::Agent( Sequencer* s )
 	string_copies = 0;
 
 	agent_value = new IValue( create_record_dict(), this );
-
 	(*agents).append( this );
 	}
 

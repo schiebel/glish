@@ -118,7 +118,7 @@ class ActualParameter : public Parameter {
 class UserFuncKernel : public GlishObject {
     public:
 	UserFuncKernel( parameter_list* formals, Stmt* body, int size,
-			Sequencer* sequencer, Expr* subsequence_expr );
+			Sequencer* sequencer, Expr* subsequence_expr, IValue *&err );
 	~UserFuncKernel();
 
 	IValue* Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames = 0);
@@ -127,18 +127,20 @@ class UserFuncKernel : public GlishObject {
 	void Describe( ostream& s ) const;
 
     protected:
-	IValue* EvalParam( Parameter* p, Expr* actual );
+	IValue* EvalParam( Parameter* p, Expr* actual, IValue *&fail );
 
 	// Decode an actual "..." argument.
-	void AddEllipsisArgs( args_list* args_vals, Parameter* actual_ellipsis,
+	// returning 0 means OK, non-zero indicates error
+	IValue *AddEllipsisArgs( args_list* args_vals, Parameter* actual_ellipsis,
 				int& num_args, int num_formals,
-				IValue* formal_ellipsis_value, int& do_call );
+				IValue* formal_ellipsis_value );
 
 	// Add to a formal "..." parameter.
 	void AddEllipsisValue( IValue* ellipsis_value, Expr* arg );
 
-	void ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				IValue* ellipsis_value, int& do_call );
+	// returning 0 means OK, non-zero indicates error
+	IValue *ArgOverFlow( Expr* arg, int num_args, int num_formals,
+				IValue* ellipsis_value );
 
 	parameter_list* formals;
 	Stmt* body;
@@ -153,7 +155,7 @@ class UserFuncKernel : public GlishObject {
 class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
-			Sequencer* sequencer, Expr* subsequence_expr );
+			Sequencer* sequencer, Expr* subsequence_expr, IValue *&err );
 	UserFunc( const UserFunc *f );
 
 	~UserFunc();

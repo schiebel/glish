@@ -3,6 +3,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <stream.h>
+#include <strstream.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -20,18 +21,27 @@ int ParseNode::canDelete() const
 
 Expr::~Expr() { }
 
-void Expr::SideEffectsEval()
+IValue *Expr::SideEffectsEval()
 	{
 	const IValue* v = ReadOnlyEval();
 
 	if ( v )
 		{
 		glish_type t = v->Type();
-		ReadOnlyDone( v );
 
-		if ( t != TYPE_FUNC )
+		if ( t == TYPE_FAIL )
+			{
+			IValue *ret = copy_value(v);
+			ReadOnlyDone( v );
+			return ret;
+			}
+		else if ( t != TYPE_FUNC )
 			warn->Report( "expression value ignored:", this );
+
+		ReadOnlyDone( v );
 		}
+
+	return 0;
 	}
 
 IValue* Expr::RefEval( value_type val_type )
@@ -57,9 +67,9 @@ IValue* Expr::RefEval( value_type val_type )
 	return result;
 	}
 
-void Expr::Assign( IValue* /* new_value */ )
+IValue *Expr::Assign( IValue* /* new_value */ )
 	{
-	error->Report( this, "is not a valid target for assignment" );
+	return (IValue*) Fail( this, "is not a valid target for assignment" );
 	}
 
 int Expr::Invisible() const
@@ -175,7 +185,7 @@ IValue* VarExpr::Eval( eval_type etype )
 		warn->Report( "uninitialized ",
 				scope == GLOBAL_SCOPE ? "global" : "local",
 				" variable", this, "used" );
-		value = error_ivalue();
+		value = false_ivalue();
 		sequencer->SetFrameElement( scope, scope_offset, 
 						frame_offset, value );
 		}
@@ -193,7 +203,7 @@ IValue* VarExpr::RefEval( value_type val_type )
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
-		var = new IValue( glish_false );
+		var = false_ivalue();
 		sequencer->SetFrameElement( scope, scope_offset,
 						frame_offset, var );
 		}
@@ -204,11 +214,12 @@ IValue* VarExpr::RefEval( value_type val_type )
 	return new IValue( var, val_type );
 	}
 
-void VarExpr::Assign( IValue* new_value )
+IValue *VarExpr::Assign( IValue* new_value )
 	{
 	access = USE_ACCESS;
-	sequencer->SetFrameElement( scope, scope_offset, frame_offset,
-					new_value );
+	const char *err = sequencer->SetFrameElement( scope, scope_offset,
+						      frame_offset, new_value );
+	return err ? (IValue*) Fail(err) : 0;
 	}
 
 Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
@@ -446,7 +457,16 @@ AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, ":=")
 
 IValue* AssignExpr::Eval( eval_type etype )
 	{
-	left->Assign( right->CopyEval() );
+	IValue *r_err = 0;
+	IValue *r = right->CopyEval();
+	if ( r->Type() == TYPE_FAIL )
+		r_err = copy_value(r);
+	IValue *l_err = left->Assign( r );
+
+	if ( r_err )
+		return r_err;
+	if ( l_err && l_err->Type() == TYPE_FAIL )
+		return (IValue*) Fail( l_err );
 
 	if ( etype == EVAL_COPY )
 		return left->CopyEval();
@@ -458,11 +478,19 @@ IValue* AssignExpr::Eval( eval_type etype )
 		return 0;
 	}
 
-void AssignExpr::SideEffectsEval()
+IValue *AssignExpr::SideEffectsEval()
 	{
-	if ( Eval( EVAL_SIDE_EFFECTS ) )
+	IValue *ret = Eval( EVAL_SIDE_EFFECTS );
+	if ( ret )
+		{
+		if ( ret->Type() == TYPE_FAIL )
+			return ret;
+
 		fatal->Report(
 		"value unexpected returnedly in AssignExpr::SideEffectsEval" );
+		}
+
+	return 0;
 	}
 
 int AssignExpr::Invisible() const
@@ -484,9 +512,18 @@ OrExpr::OrExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "||")
 
 IValue* OrExpr::Eval( eval_type etype )
 	{
+	Str err;
 	const IValue* left_value = left->ReadOnlyEval();
 
-	if ( left_value->BoolVal() )
+	int cond = left_value->BoolVal(1,err);
+
+	if ( err.chars() )
+		{
+		left->ReadOnlyDone( left_value );
+		return (IValue*) Fail(err.chars());
+		}
+
+	if ( cond )
 		{
 		if ( etype == EVAL_COPY )
 			{
@@ -513,16 +550,20 @@ AndExpr::AndExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "&&")
 
 IValue* AndExpr::Eval( eval_type etype )
 	{
+	Str err;
 	const IValue* left_value = left->ReadOnlyEval();
-	int left_is_true = left_value->BoolVal();
+	int left_is_true = left_value->BoolVal(1,err);
 	left->ReadOnlyDone( left_value );
+
+	if ( err.chars() )
+		return (IValue*) Fail(err.chars());
 
 	if ( etype == EVAL_COPY )
 		{
 		if ( left_is_true )
 			return right->CopyEval();
 		else
-			return new IValue( glish_false );
+			return false_ivalue();
 		}
 
 	else
@@ -530,7 +571,7 @@ IValue* AndExpr::Eval( eval_type etype )
 		if ( left_is_true )
 			return (IValue*) right->ReadOnlyEval();
 		else
-			return new IValue( glish_false );
+			return false_ivalue();
 		}
 	}
 
@@ -546,7 +587,9 @@ ConstructExpr::~ConstructExpr()
 
 ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
 	{
+	const char *msg = "mixed array/record constructor: ";
 	is_array_constructor = 1;
+	err = 0;
 
 	args = arg_args;
 
@@ -558,9 +601,7 @@ ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
 				{
 				if ( i > 0 && is_array_constructor )
 					{
-					error->Report(
-					"mixed array/record constructor: ",
-							this );
+					err = msg;
 					break;
 					}
 
@@ -569,9 +610,7 @@ ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
 
 			else if ( ! is_array_constructor )
 				{
-				error->Report(
-					"mixed array/record constructor: ",
-						this );
+				err = msg;
 				is_array_constructor = 1;
 				break;
 				}
@@ -581,6 +620,9 @@ ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
 
 IValue* ConstructExpr::Eval( eval_type /* etype */ )
 	{
+	if ( err )
+		return (IValue*) Fail( err, this );
+
 	if ( ! args )
 		return create_irecord();
 
@@ -608,8 +650,6 @@ void ConstructExpr::Describe( ostream& s ) const
 
 IValue* ConstructExpr::BuildArray()
 	{
-	IValue* result;
-
 	typedef const IValue* const_value_ptr;
 
 	int num_values = 0;
@@ -649,11 +689,11 @@ IValue* ConstructExpr::BuildArray()
 		}
 
 	glish_type max_type;
-	if ( TypeCheck( values, num_values, max_type ) )
+	IValue *result = TypeCheck( values, num_values, max_type );
+
+	if ( ! result )
 		result = ConstructArray( values, num_values, total_length,
 					max_type );
-	else
-		result = error_ivalue();
 
 	for ( LOOPDECL i = 0; i < args->length(); ++i )
 		if ( ! (*args)[i]->IsEllipsis() )
@@ -664,13 +704,13 @@ IValue* ConstructExpr::BuildArray()
 	return result;
 	}
 
-int ConstructExpr::TypeCheck( const IValue* values[], int num_values,
+IValue *ConstructExpr::TypeCheck( const IValue* values[], int num_values,
 					glish_type& max_type )
 	{
 	if ( num_values == 0 )
 		{
 		max_type = TYPE_BOOL;	// Compatible with the constant F
-		return 1;
+		return 0;
 		}
 
 	for ( int i = 0; i < num_values; ++i )
@@ -681,47 +721,37 @@ int ConstructExpr::TypeCheck( const IValue* values[], int num_values,
 			return MaxNumeric( values, num_values, max_type );
 		}
 
-	int result = AllEquivalent( values, num_values, max_type );
+	IValue *result = AllEquivalent( values, num_values, max_type );
 
 	if ( max_type == TYPE_RECORD )
-		{
-		error->Report( "arrays of records are not supported" );
-		return 0;
-		}
+		return (IValue*) Fail( "arrays of records are not supported" );
 
 	return result;
 	}
 
-int ConstructExpr::MaxNumeric( const IValue* values[], int num_values,
+IValue *ConstructExpr::MaxNumeric( const IValue* values[], int num_values,
 					glish_type& max_type )
 	{
 	const IValue* v = (const IValue*) (values[0]->VecRefDeref());
 	if ( ! v->IsNumeric() )
-		{
-		error->Report( "non-numeric type in array constructor",
-				this );
-		return 0;
-		}
+		return (IValue*) Fail("non-numeric type in array constructor", this);
 
 	max_type = v->Type();
 
 	for ( int i = 1; i < num_values; ++i )
 		{
 		v = (const IValue*)(values[i]->VecRefDeref());
+
 		if ( ! v->IsNumeric() )
-			{
-			error->Report( "non-numeric type in array constructor",
-					this );
-			return 0;
-			}
+			return (IValue*) Fail( "non-numeric type in array constructor", this );
 
 		max_type = max_numeric_type( v->Type(), max_type );
 		}
 
-	return 1;
+	return 0;
 	}
 
-int ConstructExpr::AllEquivalent( const IValue* values[], int num_values,
+IValue *ConstructExpr::AllEquivalent( const IValue* values[], int num_values,
 					glish_type& max_type )
 	{
 	max_type = TYPE_BOOL;
@@ -741,15 +771,10 @@ int ConstructExpr::AllEquivalent( const IValue* values[], int num_values,
 		const IValue* v = (const IValue*)(values[i]->VecRefDeref());
 
 		if ( v->Length() > 0 && v->Type() != max_type )
-			{
-			error->Report(
-				"incompatible types in array constructor",
-					this );
-			return 0;
-			}
+			return (IValue*) Fail( "incompatible types in array constructor", this );
 		}
 
-	return 1;
+	return 0;
 	}
 
 IValue* ConstructExpr::ConstructArray( const IValue* values[],
@@ -821,13 +846,11 @@ BUILD_WITH_NON_COERCE_TYPE(TYPE_STRING, charptr, StringPtr(), COPY_ARRAY)
 BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY)
 
 		case TYPE_AGENT:
-			error->Report( "can't construct array of agents" );
-			result = error_ivalue();
+			return (IValue*) Fail( "can't construct array of agents" );
 			break;
 
 		case TYPE_OPAQUE:
-			error->Report( "can't construct array opaque values" );
-			result = error_ivalue();
+			return (IValue*) Fail( "can't construct array opaque values" );
 			break;
 
 		default:
@@ -954,9 +977,8 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 	Expr* arg = (*args)[0];
 	if ( ! arg )
 		{
-		error->Report( "invalid missing parameter" );
 		op->ReadOnlyDone( array );
-		return error_ivalue();
+		return (IValue*) Fail( "invalid missing parameter" );
 		}
 
 	const IValue* index_val = arg->ReadOnlyEval();
@@ -1082,9 +1104,8 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 
 	if ( ! (arg = (*args)[0]) )
 		{
-		error->Report( this, ": invalid missing parameter" );
 		Unref( array_ref );
-		return error_ivalue();
+		return (IValue*) Fail( this, ": invalid missing parameter" );
 		}
 
 	const IValue* index_val = arg->ReadOnlyEval();
@@ -1136,7 +1157,7 @@ IValue* ArrayRefExpr::CallFunc( Func *fv, eval_type etype,
 	return ret;
 	}
 
-void ArrayRefExpr::Assign( IValue* new_value )
+IValue *ArrayRefExpr::Assign( IValue* new_value )
 	{
 	IValue* lhs_value_ref = op->RefEval( VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
@@ -1145,9 +1166,8 @@ void ArrayRefExpr::Assign( IValue* new_value )
 	     lhs_value_ref->VecRefDeref()->Type() != TYPE_RECORD &&
 	     (lhs_value_ref->IsModConst() || lhs_value->IsModConst()) )
 		{
-		error->Report( "'const' values cannot be modified." );
 		Unref( lhs_value_ref );
-		return;
+		return (IValue*) Fail( "'const' values cannot be modified." );
 		}
 
 	const attributeptr ptr = lhs_value->AttributePtr();
@@ -1196,7 +1216,7 @@ void ArrayRefExpr::Assign( IValue* new_value )
 			Unref( vecref );
 			Unref( lhs_value_ref );
 
-			return;
+			return 0;
 			}
 
 		if ( (*ptr)["shape"] && args->length() > 1 )
@@ -1216,16 +1236,15 @@ void ArrayRefExpr::Assign( IValue* new_value )
 					arg->ReadOnlyDone( (const IValue*)(val_list[i]) );
 
 			Unref( lhs_value_ref );
-			return;
+			return 0;
 			}
 		}
 
 	if ( args->length() != 1 )
 		{
-		warn->Report( this, " invalid array addressing" );
 		Unref( new_value );
 		Unref( lhs_value_ref );
-		return;
+		return (IValue*) Fail( this, " invalid array addressing" );
 		}
 
 	const IValue* index = (*args)[0]->ReadOnlyEval();
@@ -1264,6 +1283,7 @@ void ArrayRefExpr::Assign( IValue* new_value )
 	(*args)[0]->ReadOnlyDone( index );
 
 	Unref( lhs_value_ref );
+	return 0;
 	}
 
 void ArrayRefExpr::Describe( ostream& s ) const
@@ -1321,7 +1341,7 @@ IValue* RecordRefExpr::RefEval( value_type val_type )
 	return value;
 	}
 
-void RecordRefExpr::Assign( IValue* new_value )
+IValue *RecordRefExpr::Assign( IValue* new_value )
 	{
 	IValue* lhs_value_ref = op->RefEval( VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
@@ -1329,17 +1349,15 @@ void RecordRefExpr::Assign( IValue* new_value )
 	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
 	     lhs_value_ref->IsRefConst() || lhs_value->VecRefDeref()->IsRefConst() )
 		{
-		error->Report( "'const' values cannot be modified." );
 		Unref( lhs_value_ref );
-		return;
+		return (IValue*) Fail( "'const' values cannot be modified." );
 		}
 
 	if ( lhs_value->VecRefDeref()->IsFieldConst() &&
 	     ! lhs_value->VecRefDeref()->HasRecordElement(field) )
 		{
-		error->Report( "fields cannot be added to a 'const' record." );
 		Unref( lhs_value_ref );
-		return;
+		return (IValue*) Fail( "fields cannot be added to a 'const' record." );;
 		}
 
 	if ( lhs_value->Type() == TYPE_BOOL && lhs_value->Length() == 1 )
@@ -1349,10 +1367,15 @@ void RecordRefExpr::Assign( IValue* new_value )
 	if ( lhs_value->VecRefDeref()->Type() == TYPE_RECORD )
 		lhs_value->AssignRecordElement( field, new_value );
 	else
-		error->Report( op, "is not a record" );
+		{
+		Unref( new_value );
+		Unref( lhs_value_ref );
+		return (IValue*) Fail( op, "is not a record" );
+		}
 
 	Unref( new_value );
 	Unref( lhs_value_ref );
+	return 0;
 	}
 
 void RecordRefExpr::Describe( ostream& s ) const
@@ -1481,7 +1504,7 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 	return value;
 	}
 
-void AttributeRefExpr::Assign( IValue* new_value )
+IValue *AttributeRefExpr::Assign( IValue* new_value )
 	{
 	IValue* lhs_value_ref = left->RefEval( VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
@@ -1501,8 +1524,12 @@ void AttributeRefExpr::Assign( IValue* new_value )
 			}
 
 		else
-			warn->Report( this, " invalid attribute access" );
-
+			{
+			right->ReadOnlyDone( index_val );
+			Unref( new_value );
+			Unref( lhs_value_ref );
+			return (IValue*) Fail( this, " invalid attribute access" );
+			}
 		right->ReadOnlyDone( index_val );
 		}
 
@@ -1517,11 +1544,16 @@ void AttributeRefExpr::Assign( IValue* new_value )
 				lhs_value->AssignAttributes( 0 );
 			}
 		else
-			warn->Report( this, " invalid attribute assignment" );
+			{
+			Unref( new_value );
+			Unref( lhs_value_ref );
+			return (IValue*) Fail( this, " invalid attribute assignment" );
+			}
 		}
 
 	Unref( new_value );
 	Unref( lhs_value_ref );
+	return 0;
 	}
 
 void AttributeRefExpr::Describe( ostream& s ) const
@@ -1564,18 +1596,26 @@ IValue* RefExpr::Eval( eval_type /* etype */ )
 	return val;
 	}
 
-void RefExpr::Assign( IValue* new_value )
+IValue *RefExpr::Assign( IValue* new_value )
 	{
+	Str err;
+	const char *ret = 0;
 	if ( type == VAL_VAL )
 		{
 		IValue* value = op->RefEval( VAL_REF );
 
 		if ( value->VecRefDeref()->IsConst() )
-			error->Report( "'const' values cannot be modified." );
+			{
+			Unref( value );
+			ret = "'const' values cannot be modified.";
+			}
 		else if ( value->Deref()->IsVecRef() )
 			value->AssignElements( new_value );
 		else
-			value->Deref()->TakeValue( new_value );
+			{
+			value->Deref()->TakeValue( new_value, err );
+			ret = err.chars();
+			}
 
 		Unref( value );
 		}
@@ -1587,6 +1627,8 @@ void RefExpr::Assign( IValue* new_value )
 		}
 	else
 		Expr::Assign( new_value );
+
+	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}
 
 void RefExpr::Describe( ostream& s ) const
@@ -1614,21 +1656,20 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 	IValue* result;
 
 	if ( ! left_val->IsNumeric() || ! right_val->IsNumeric() )
-		{
-		error->Report( "non-numeric value in", this );
-		result = error_ivalue();
-		}
-
+		result = (IValue*) Fail( "non-numeric value in", this );
 	else if ( left_val->Length() > 1 || right_val->Length() > 1 )
-		{
-		error->Report( "non-scalar value in", this );
-		result = error_ivalue();
-		}
-
+		result = (IValue*) Fail( "non-scalar value in", this );
 	else
 		{
-		int start = left_val->IntVal();
-		int stop = right_val->IntVal();
+		Str err;
+		int stop = right_val->IntVal(1,err);
+		int start = left_val->IntVal(1,err);
+		if ( err.chars() )
+			{
+			left->ReadOnlyDone( left_val );
+			right->ReadOnlyDone( right_val );
+			return (IValue*) Fail(err.chars());
+			}
 
 		int direction = (start > stop) ? -1 : 1;
 		int num_values = (stop - start) * direction + 1;
@@ -1665,8 +1706,8 @@ CallExpr::~CallExpr()
 		}
 	}
 
-CallExpr::CallExpr( Expr* func, parameter_list* args_args )
-    : UnaryExpr(func, "func()")
+CallExpr::CallExpr( Expr* func, parameter_list* args_args, Sequencer* seq_arg )
+    : UnaryExpr(func, "func()"), sequencer(seq_arg)
 	{
 	args = args_args;
 	}
@@ -1678,26 +1719,39 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	IValue* result = 0;
 
+	strstream sout;
+	op->Describe( sout );
+	sout << '\0';
+	char *str = new char[ strlen(sout.str())+1 ];
+	strcpy(str,sout.str());
+	sequencer->PushFuncName( str );
+
 	if ( ! func_val || ! (result = func_val->Call( args, etype )) )
 		{
 		if ( etype != EVAL_SIDE_EFFECTS )
-			result = error_ivalue();
+			result = false_ivalue();
 		}
 
 	op->ReadOnlyDone( func );
+	sequencer->PopFuncName( );
 
 	return result;
 	}
 
-void CallExpr::SideEffectsEval()
+IValue *CallExpr::SideEffectsEval()
 	{
 	IValue* result = Eval( EVAL_SIDE_EFFECTS );
 
 	if ( result )
 		{
+		if ( result->Type() == TYPE_FAIL )
+			return result;
+
 		warn->Report( "function return value ignored" );
 		Unref( result );
 		}
+
+	return 0;
 	}
 
 void CallExpr::Describe( ostream& s ) const
@@ -1714,6 +1768,27 @@ void CallExpr::Describe( ostream& s ) const
 	s << ")";
 	}
 
+
+IncludeExpr::IncludeExpr( Expr* file, Sequencer* seq_arg )
+    : UnaryExpr(file, "include "), sequencer(seq_arg) { }
+
+IValue* IncludeExpr::Eval( eval_type etype )
+	{
+	const IValue* file_val = op->ReadOnlyEval();
+	char *file = file_val->StringVal();
+	op->ReadOnlyDone( file_val );
+
+	IValue *ret = sequencer->Include( file );
+
+	if ( etype == EVAL_SIDE_EFFECTS )
+		{
+		Unref(ret);
+		ret = 0;
+		}
+
+	delete file;
+	return ret ? ret : new IValue( glish_true );
+	}
 
 SendEventExpr::~SendEventExpr()
 	{
@@ -1751,11 +1826,19 @@ IValue* SendEventExpr::Eval( eval_type etype )
 		return result;
 	}
 
-void SendEventExpr::SideEffectsEval()
+IValue *SendEventExpr::SideEffectsEval()
 	{
-	if ( Eval( EVAL_SIDE_EFFECTS ) )
+	IValue *result = Eval( EVAL_SIDE_EFFECTS );
+	if ( result )
+		{
+		if ( result->Type() == TYPE_FAIL )
+			return result;
+
 		fatal->Report(
-	"value unexpectedly returned in SendEventExpr::SideEffectsEval" );
+		"value unexpectedly returned in SendEventExpr::SideEffectsEval" );
+		}
+
+	return 0;
 	}
 
 void SendEventExpr::Describe( ostream& s ) const

@@ -500,10 +500,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	int task_args_start = 7;
 
 	if ( args.length() <= task_args_start )
-		{
-		error->Report( "too few arguments given to create_task" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "too few arguments given to create_task" );
 
 	char* var_ID = GetString( args[0] );
 	char* hostname = GetString( args[1] );
@@ -512,10 +509,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	Channel* channel = sequencer->GetHostDaemon( hostname, err );
 
 	if ( err )
-		{
-	  	error->Report( "remote task creation failed" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "remote task creation failed" );
 
 	if ( sequencer->LocalHost( hostname ) && channel )
 		{
@@ -820,7 +814,7 @@ IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args )
 	if ( attrs->async_flag )
 		{
 		if ( attrs->hostname && strcmp( attrs->hostname, "localhost" ) )
-			error->Report(
+			return (IValue*) Fail(
 		"hostname option is incompatible with asynchronous client" );
 
 		if ( attrs->suspend_flag )

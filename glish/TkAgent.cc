@@ -838,8 +838,7 @@ TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 
 IValue *TkAgent::UnrecognizedEvent( )
 	{
-	error->Report(this," unrecognized event");
-	return error_ivalue();
+	return (IValue*) Fail(this," unrecognized event");
 	}
 
 void TkAgent::UnMap()
@@ -859,10 +858,7 @@ IValue *TkAgent::SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log )
 	{
 	if ( ! IsValid() )
-		{
-		error->Report("graphic is defunct");
-		return error_ivalue();
-		}
+		return (IValue*) Fail("graphic is defunct");
 
 	TkProc *proc = procs[event_name];
 

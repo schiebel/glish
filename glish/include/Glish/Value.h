@@ -94,7 +94,9 @@ extern Value* copy_value( const Value* value );
 
 extern const Value* false_value;
 extern Value* empty_value();
-extern Value* error_value();
+extern Value* error_value( );
+extern Value* error_value( const char *message );
+extern Value* error_value( const char *message, const char *file, int line );
 
 extern Value* create_record();
 
@@ -106,6 +108,10 @@ extern int num_Values_deleted;
 class Value : public GlishObject {
 friend class IValue;
 public:
+	// Create a <fail> value
+	Value( );
+	Value( const char *message, const char *file, int lineNum );
+
 	Value( const Value &v ) : kernel(v.kernel), attributes( v.CopyAttributePtr() ),
 				value_manager(0)
 		{
@@ -166,7 +172,7 @@ public:
 
 
 	// Discard present value and instead take new_value.
-	void TakeValue( Value* new_value );
+	void TakeValue( Value* new_value, Str &err = glish_errno );
 
 	virtual ~Value();
 
@@ -207,14 +213,14 @@ public:
 	int IsNumeric() const;
 
 	// Returns the "n"'th element coereced to the corresponding type.
-	glish_bool BoolVal( int n = 1 ) const;
-	byte ByteVal( int n = 1 ) const;
-	short ShortVal( int n = 1 ) const;
-	int IntVal( int n = 1 ) const;
-	float FloatVal( int n = 1 ) const;
-	double DoubleVal( int n = 1 ) const;
-	complex ComplexVal( int n = 1 ) const;
-	dcomplex DcomplexVal( int n = 1 ) const;
+	glish_bool BoolVal( int n = 1, Str &err = glish_errno ) const;
+	byte ByteVal( int n = 1, Str &err = glish_errno ) const;
+	short ShortVal( int n = 1, Str &err = glish_errno ) const;
+	int IntVal( int n = 1, Str &err = glish_errno ) const;
+	float FloatVal( int n = 1, Str &err = glish_errno ) const;
+	double DoubleVal( int n = 1, Str &err = glish_errno ) const;
+	complex ComplexVal( int n = 1, Str &err = glish_errno ) const;
+	dcomplex DcomplexVal( int n = 1, Str &err = glish_errno ) const;
 
 	// Returns the entire value converted to a single string, with
 	// "sep" used to separate array elements.  "max_elements" allows
@@ -226,7 +232,7 @@ public:
 	//
 	// Returns a new string, which should be delete'd when done with.
 	char* StringVal( char sep = ' ', unsigned int max_elements = 0, 
-			 int use_attr = 0 ) const;
+			 int use_attr = 0, Str &err = glish_errno ) const;
 
 	// Returns the limit on the number elements to be printed given
 	// the state of the "system" value, and the attributes of this
@@ -423,14 +429,14 @@ public:
 	// false.  The optional third argument specifies which element of a
 	// multi-element value to return (not applicable when returning a
 	// string).
-	int FieldVal( const char field[], glish_bool& val, int n = 1 );
-	int FieldVal( const char field[], byte& val, int n = 1 );
-	int FieldVal( const char field[], short& val, int n = 1 );
-	int FieldVal( const char field[], int& val, int n = 1 );
-	int FieldVal( const char field[], float& val, int n = 1 );
-	int FieldVal( const char field[], double& val, int n = 1 );
-	int FieldVal( const char field[], complex& val, int n = 1 );
-	int FieldVal( const char field[], dcomplex& val, int n = 1 );
+	int FieldVal( const char field[], glish_bool& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], byte& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], short& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], int& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], float& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], double& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], complex& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], dcomplex& val, int n = 1, Str &err = glish_errno );
 
 	// Returns a new string in "val".
 	int FieldVal( const char field[], char*& val );
@@ -635,7 +641,7 @@ public:
 
 protected:
 
-	Value ( ) { }			// for IValue
+	Value ( glish_type ) { }		// for IValue
 
 	void SetValue( SDS_Index& array );
 
@@ -711,7 +717,9 @@ protected:
 	// is returned.
 	int IndexRange( int* indices, int num_indices, int& max_index ) const;
 
-	char* RecordStringVal() const; // returns a new string
+	// returns a new string
+	char* RecordStringVal( char sep = ' ', unsigned int max_elements = 0, 
+			int use_attr = 0, Str &err = glish_errno ) const;
 
 	// Increase array size from present value to given size.
 	// If successful, true is returned.  If this can't be done for
@@ -752,12 +760,27 @@ extern dcomplex text_to_dcomplex( const char text[], int& successful );
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt = "%g" );
 
 
+extern Value *Fail( const RMessage&, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage, const RMessage& = EndMessage,
+	const RMessage& = EndMessage 
+	);
+
+extern Value *Fail( );
+
 // This is a real bother, but it is the best compromise available. C++ has
 // no virtual constructors, but when compiling the Glish interpreter, we
 // want IValues to be created, and when compiling the clients, we want
 // Values to be created. In main.cc, these are defined and return an
 // IValue* they are also defined in glishlib.cc (which goes into libglish)
 // and return a Value*
+extern Value *create_value( );
+extern Value *create_value( const char *message, const char *file, int line );
 extern Value *create_value( const Value &value );
 extern Value *create_value( glish_bool value );
 extern Value *create_value( byte value );

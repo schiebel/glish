@@ -6,6 +6,7 @@
 #include "Glish/Object.h"
 
 class ostream;
+class Value;
 
 class RMessage {
     public:
@@ -84,4 +85,59 @@ extern Reporter* message;
 extern void init_reporters();
 extern void finalize_reporters();
 
+extern void report_error( const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		);
+
+extern void report_error( const char *file, int line,
+		const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		);
+
+extern Value *generate_error( const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		);
+extern Value *generate_error( const char *file, int line,
+		const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		);
+
+extern const Str generate_error_str( const RMessage&, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage, const RMessage& = EndMessage,
+		const RMessage& = EndMessage 
+		);
 #endif	/* reporter_h */

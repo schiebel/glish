@@ -59,30 +59,22 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			}
 
 		if ( num_args_present != num_args )
-			{
-			error->Report( this, " takes", num_args, " argument",
+			return (IValue*) Fail( this, " takes", num_args, " argument",
 					num_args == 1 ? ";" : "s;",
 					num_args_present, " given" );
-
-			return error_ivalue();
-			}
 		}
 
+	IValue *fail = 0;
 	loop_over_list( *args, j )
 		{
 		Parameter* arg = (*args)[j];
 		if ( ! arg->Arg() )
-			{
-			error->Report( "missing parameter invalid for", this );
-			return error_ivalue();
-			}
+			return (IValue*) Fail( "missing parameter invalid for", this );
+
 		if ( arg->Name() )
-			{
-			error->Report( this,
+			return (IValue*) Fail( this,
 					" does not have a parameter named \"",
 					arg->Name(), "\"" );
-			return error_ivalue();
-			}
 		}
 
 	const_args_list* args_vals = new const_args_list;
@@ -101,6 +93,12 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			for ( int j = 0; j < len; ++j )
 				{
 				arg_val = arg->NthEllipsisVal( j );
+				if ( arg_val->Type() == TYPE_FAIL &&
+				     ! handle_fail )
+					{
+					fail = copy_value( arg_val );
+					break;
+					}
 				if ( do_deref )
 					arg_val = (const IValue*) (arg_val->Deref());
 
@@ -111,6 +109,12 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 		else
 			{
 			arg_val = arg->Arg()->ReadOnlyEval();
+			if ( arg_val->Type() == TYPE_FAIL &&
+			     ! handle_fail )
+				{
+				fail = copy_value( arg_val );
+				break;
+				}
 			if ( do_deref )
 				arg_val = (const IValue*) (arg_val->Deref());
 
@@ -120,7 +124,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 
 	IValue* result;
 
-	if ( do_call )
+	if ( do_call && ! fail )
 		{
 		if ( etype == EVAL_SIDE_EFFECTS )
 			{
@@ -138,7 +142,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			result = DoCall( args_vals );
 		}
 	else
-		result = error_ivalue();
+		result = fail ? fail : error_ivalue();
 
 	loop_over_list( *args, k )
 		{
@@ -163,14 +167,14 @@ void BuiltIn::DescribeSelf( ostream& s ) const
 	s << description << "()";
 	}
 
-int BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
+IValue *BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 	int strings_okay )
 	{
 	max_type = TYPE_STRING;
 
 	loop_over_list( *args_vals, i )
 		{
-		const IValue* arg = (*args_vals)[i];
+		const IValue* arg = (const IValue*)((*args_vals)[i]->VecRefDeref());
 
 		if ( arg->IsNumeric() )
 			{
@@ -181,12 +185,11 @@ int BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 		if ( strings_okay && arg->Type() == TYPE_STRING )
 			continue;
 
-		error->Report( "argument #", i + 1, "to", this,
+		return (IValue*) Fail( "argument #", i + 1, "to", this,
 			"is not numeric", strings_okay ? " or a string" : "" );
-		return 0;
 		}
 
-	return 1;
+	return 0;
 	}
 
 
@@ -202,10 +205,7 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	IValue* result;
 
 	if ( ! arg->IsNumeric() )
-		{
-		error->Report( this, " requires a numeric argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " requires a numeric argument" );
 
 	int len = arg->Length();
 	glish_type type = arg->Type();
@@ -239,10 +239,7 @@ IValue* RealBuiltIn::DoCall( const_args_list* args_val )
 	const IValue* v = (*args_val)[0];
 
 	if ( ! v->IsNumeric() )
-		{
-		error->Report( this, " requires a numeric argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " requires a numeric argument" );
 
 	IValue* result;
 
@@ -287,8 +284,8 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 		delete stor;					\
 		if ( is_copy )					\
 			delete from;				\
-		error->Report("invalid index (=",i+1,"), sub-vector reference may be bad");\
-		return error_ivalue();				\
+		return (IValue*) Fail("invalid index (=",i+1,"),\
+			sub-vector reference may be bad");	\
 		}
 
 RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
@@ -311,10 +308,7 @@ IValue* ImagBuiltIn::DoCall( const_args_list* args_val )
 	const IValue* v = (*args_val)[0];
 
 	if ( ! v->IsNumeric() )
-		{
-		error->Report( this, " requires a numeric argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " requires a numeric argument" );
 
 	IValue* result;
 
@@ -353,10 +347,7 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 	IValue* result;
 
 	if ( len < 1 || len > 2 )
-		{
-		error->Report( this, " takes 1 or 2 arguments" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes 1 or 2 arguments" );
 
 	if ( len == 2 )
 		{
@@ -364,11 +355,8 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 		const IValue* iv = (*args_val)[1];
 
 		if ( ! rv->IsNumeric() || ! iv->IsNumeric() )
-			{
-			error->Report( this,
+			return (IValue*) Fail( this,
 				" requires one or two numeric arguments" );
-			return error_ivalue();
-			}
 
 		int rlen = rv->Length();
 		int ilen = iv->Length();
@@ -377,13 +365,10 @@ IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 		int iscalar = ilen == 1;
 
 		if ( rlen != ilen && ! rscalar && ! iscalar )
-			{
-			error->Report(
+			return (IValue*) Fail(
 				"different-length operands in expression (",
 					rlen, " vs. ", ilen, "):\n\t",
 					this );
-			return error_ivalue();
-			}
 
 		glish_type maxt = max_numeric_type( rv->Type(), iv->Type() );
 
@@ -438,11 +423,8 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 		const IValue* v = (*args_val)[0];
 
 		if ( ! v->IsNumeric() )
-			{
-			error->Report( this,
+			return (IValue*) Fail( this,
 				" requires one or two numeric arguments" );
-			return error_ivalue();
-			}
 
 #define COMPLEXBUILTIN_ONEPARM_ACTION(tag,type,rettype,accessor,coerce)	\
 	case tag:						\
@@ -490,8 +472,8 @@ IValue* SumBuiltIn::DoCall( const_args_list* args_val )
 	glish_type max_type;
 	IValue* result;
 
-	if ( ! AllNumeric( args_val, max_type ) )
-		return error_ivalue();
+	if ( (result = AllNumeric( args_val, max_type )) )
+		return result;
 
 #define SUM_BUILTIN_ACTION(type,accessor)			\
 	{							\
@@ -523,8 +505,8 @@ IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
 	glish_type max_type;
 	IValue* result;
 
-	if ( ! AllNumeric( args_val, max_type ) )
-		return error_ivalue();
+	if ( (result = AllNumeric( args_val, max_type )) )
+		return result;
 
 	switch ( max_type )
 		{
@@ -559,7 +541,7 @@ IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
 			PRODBUILTIN_ACTION(double,CoerceToDoubleArray)
 
 		default:
-			error->Report( "bad type in ProdBuiltIn::DoCall()" );
+			fatal->Report( "bad type in ProdBuiltIn::DoCall()" );
 			return 0;
 		}
 
@@ -590,8 +572,8 @@ IValue* RangeBuiltIn::DoCall( const_args_list* args_val )
 	glish_type max_type;
 	IValue* result;
 
-	if ( ! AllNumeric( args_val, max_type ) )
-		return error_ivalue();
+	if ( (result = AllNumeric( args_val, max_type )) )
+		return result;
 
 #define RANGEBUILTIN_ARG_ACTION(tag,src_type,tgt_type,accessor,INDEX,src_elem,XLATE) \
 	case tag:							\
@@ -614,11 +596,8 @@ IValue* RangeBuiltIn::DoCall( const_args_list* args_val )
 	int err;							\
 	int off = ref->TranslateIndex( j , &err );			\
 	if ( err )							\
-		{							\
-		error->Report("invalid index (=",j+1,			\
-			      "), sub-vector reference may be bad");	\
-		return error_ivalue();					\
-		}
+		return (IValue*) Fail("invalid index (=",j+1,		\
+			      "), sub-vector reference may be bad");
 
 #define RANGEBUILTIN_ACTION(tag,type,max,src_elem)			\
 case tag:								\
@@ -697,10 +676,7 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 	int len = args_val->length();
 
 	if ( len == 0 || len > 3 )
-		{
-		error->Report( this, " takes from one to three arguments" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes from one to three arguments" );
 
 	double starting_point = 1.0;
 	double stopping_point;
@@ -712,10 +688,15 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 		{
 		arg = (*args_val)[0];
 
-		if ( arg->Length() != 1 )
+		if ( arg->Length() > 1 )
 			stopping_point = double( arg->Length() );
 		else
-			stopping_point = double( arg->IntVal() );
+			{
+			Str err;
+			stopping_point = double( arg->IntVal(1,err) );
+			if ( err.chars() )
+				return (IValue*) Fail( err.chars() );
+			}
 		}
 
 	else
@@ -731,28 +712,19 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 		}
 
 	if ( stride == 0 )
-		{
-		error->Report( "in call to ", this, ", stride = 0" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "in call to ", this, ", stride = 0" );
 
 	if ( (starting_point < stopping_point && stride < 0) ||
 	     (starting_point > stopping_point && stride > 0) )
-		{
-		error->Report( "in call to ", this,
+		return (IValue*) Fail( "in call to ", this,
 				", stride has incorrect sign" );
-		return error_ivalue();
-		}
 
 	double range = stopping_point - starting_point;
 	int num_vals = int( range / stride ) + 1;
 
 	if ( num_vals > 1e6 )
-		{
-		error->Report( "ridiculously large sequence in call to ",
+		return (IValue*) Fail( "ridiculously large sequence in call to ",
 				this );
-		return error_ivalue();
-		}
 
 	double* result = new double[num_vals];
 
@@ -779,17 +751,11 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	const IValue* times = (*args_val)[1];
 
 	if ( ! times->IsNumeric() )
-		{
-		error->Report( "non-numeric parameters invalid for", this );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "non-numeric parameters invalid for", this );
 
 	if ( times->Length() != 1 && times->Length() != element->Length() )
-		{
-		error->Report( this,
+		return (IValue*) Fail( this,
 				": parameter vectors have unequal lengths" );
-		return error_ivalue();
-		}
 
 	int times_is_copy;
 	int times_len = times->Length();
@@ -798,11 +764,10 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	for ( int x = 0; x < times_len; ++x )
 		if ( times_vec[x] < 0 )
 			{
-			error->Report( "invalid replication parameter, 2nd (",
-					times_vec[x], "), in ", this );
 			if ( times_is_copy )
 				delete times_vec;
-			return error_ivalue();
+			return (IValue*) Fail( "invalid replication parameter, 2nd (",
+					times_vec[x], "), in ", this );
 			}
 
 	IValue* ret = 0;
@@ -841,7 +806,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,strdup)
 
 			default:
-				error->Report(
+				fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 			}
 		}
@@ -876,7 +841,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,strdup,delete (char *)val;)
 
 				default:
-					error->Report(
+					fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 				}
 			}
@@ -912,7 +877,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,strdup)
 
 				default:
-					error->Report(
+					fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 				}
 			}
@@ -932,22 +897,19 @@ IValue* NumArgsBuiltIn::DoCall( const_args_list* args_val )
 IValue* NthArgBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
+	Str err;
 
 	if ( len <= 0 )
-		{
-		error->Report( "first argument missing in call to", this );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "first argument missing in call to", this );
 
-	int n = (*args_val)[0]->IntVal();
+	int n = (*args_val)[0]->IntVal(1,err);
+	if ( err.chars() )
+		return (IValue*) Fail(err.chars());
 
 	if ( n < 0 || n >= len )
-		{
-		error->Report( "first argument (=", n, ") to", this,
+		return (IValue*) Fail( "first argument (=", n, ") to", this,
 				" out of range: ", len - 1,
 				"additional arguments supplied" );
-		return error_ivalue();
-		}
 
 	return copy_value( (*args_val)[n] );
 	}
@@ -958,25 +920,22 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 	const IValue *val = 0;
 	int arg1 = 0;
 	int arg2 = 0;
+	Str err;
 
 	if ( len > 2 )
-		{
-		error->Report( this, " takes from zero to two arguments" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes from zero to two arguments" );
 
 	if ( len >= 1 )
 		{
 		val = (*args_val)[0];
 
 		if ( ! val->IsNumeric() )
-			{
-			error->Report( "non-numeric parameter invalid for",
+			return (IValue*) Fail( "non-numeric parameter invalid for",
 						this );
-			return error_ivalue();
-			}
 
-		arg1 = val->IntVal();
+		arg1 = val->IntVal(1,err);
+		if ( err.chars() )
+			return (IValue*) Fail(err.chars());
 		}
 
 	if ( len == 2 ) 
@@ -984,13 +943,12 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 		val = (*args_val)[1];
 
 		if ( ! val->IsNumeric() )
-			{
-			error->Report( "non-numeric parameter invalid for",
+			return (IValue*) Fail( "non-numeric parameter invalid for",
 						this );
-			return error_ivalue();
-			}
 
-		arg2 = val->IntVal();
+		arg2 = val->IntVal(1,err);
+		if ( err.chars() )
+			return (IValue*) Fail(err.chars());
 
 		if ( arg1 > arg2 )
 			{
@@ -1018,11 +976,9 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 		{
 		int diff = arg2 - arg1;
 		if ( diff <= 0 )
-			{
-			error->Report( "invalid range for",
+			return (IValue*) Fail( "invalid range for",
 						this );
-			return error_ivalue();
-			}
+
 		ret =  new IValue( (int)((unsigned long)random_long() % 
 						(diff+1)) + arg1 );
 		}
@@ -1032,7 +988,7 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 
 #define XBIND_MIXTYPE_ERROR						\
 	{								\
-	error->Report( "both numeric and non-numeric arguments" );	\
+	return (IValue*) Fail( "both numeric and non-numeric arguments" );\
 	return error_ivalue();						\
 	}
 
@@ -1113,10 +1069,7 @@ XBIND_ACTION(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr,index,xlate,.r,stride,COLS,O
 #define XBIND_XLATE							\
 	int index = ref->TranslateIndex( vecoff, &err );		\
 	if ( err )							\
-		{							\
-		error->Report( "invalid sub-vector" );			\
-		return error_ivalue();					\
-		}
+		return (IValue*) Fail( "invalid sub-vector" );
 
 #define XBIND_RETURN_ACTION(tag,type)					\
 	case tag:							\
@@ -1131,10 +1084,7 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 	glish_type result_type = TYPE_BOOL;				\
 									\
 	if ( args_vals->length() < 2 )					\
-		{							\
-		error->Report(this, " takes at least two arguments");	\
-		return error_ivalue();					\
-		}							\
+		return (IValue*) Fail(this, " takes at least two arguments");\
 									\
 	loop_over_list( *args_vals, i )					\
 		{							\
@@ -1164,21 +1114,16 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 				result_type = TYPE_STRING;		\
 				}					\
 		else							\
-			{						\
-			error->Report("invalid type (argument ",i+1,")");\
-			return error_ivalue();				\
-			}						\
+			return (IValue*) Fail("invalid type (argument ",i+1,")");\
 									\
 		if (  attr && (shape_v = (const IValue*)((*attr)["shape"])) &&	\
 		      shape_v != false_value && shape_v->IsNumeric() &&	\
 		      (shape_len = shape_v->Length()) > 1 )		\
 			{						\
 			if ( shape_len > 2 )				\
-				{					\
-				error->Report( "argument (",i+1,	\
+				return (IValue*) Fail( "argument (",i+1,\
 				  ") with dimensionality greater than 2" );\
-				return error_ivalue();			\
-				}					\
+									\
 			int* shape =					\
 				shape_v->CoerceToIntArray( shape_is_copy,\
 							   shape_len );	\
@@ -1189,10 +1134,9 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 				if ( shape[ROWS] != rows || 		\
 				     (minrows >= 0 && minrows < rows ) )\
 					{				\
-					error->Report( 			\
-					"mismatch in number of rows" );	\
 					XBIND_CLEANUP			\
-					return error_ivalue();		\
+					return (IValue*) Fail( 		\
+					"mismatch in number of rows" );	\
 					}				\
 				}					\
 			else						\
@@ -1205,11 +1149,8 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 			if ( minrows < 0 || minrows > arg_len )		\
 				minrows = arg_len;			\
 			if ( rows >= 0 && minrows < rows )		\
-				{					\
-				error->Report( 				\
+				return (IValue*) Fail( 			\
 					"mismatch in number of rows" );	\
-				return error_ivalue();			\
-				}					\
 			}						\
 		}							\
 									\
@@ -1219,10 +1160,7 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 	void *result;							\
 	IValue *result_value = 0;					\
 	if ( result_type == TYPE_STRING )				\
-		{							\
-		error->Report("sorry not implemented for strings yet");	\
-		return error_ivalue();					\
-		}							\
+		return (IValue*) Fail("sorry not implemented for strings yet");	\
 									\
 	switch ( result_type )						\
 		{							\
@@ -1315,10 +1253,7 @@ IValue* IsConstBuiltIn::DoCall( const_args_list* args_val )
 	int len = args_val->length();
 
 	if ( len != 1 )
-		{
-		error->Report( "is_const() takes only one argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "is_const() takes only one argument" );
 
 	return new IValue( (*args_val)[0]->IsConst() ? glish_true : glish_false );
 	}
@@ -1328,10 +1263,7 @@ IValue* IsModifiableBuiltIn::DoCall( const_args_list* args_val )
 	int len = args_val->length();
 
 	if ( len != 1 )
-		{
-		error->Report( "is_const() takes only one argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "is_const() takes only one argument" );
 
 	const IValue *val = (*args_val)[0];
 	return new IValue( ! val->IsConst() && ! val->IsModConst() ? glish_true : glish_false );
@@ -1340,10 +1272,7 @@ IValue* IsModifiableBuiltIn::DoCall( const_args_list* args_val )
 IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	{
 	if ( args_val->length() == 0 )
-		{
-		error->Report( "paste() invoked with no arguments" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "paste() invoked with no arguments" );
 
 	// First argument gives separator string.
 	char* separator = (*args_val)[0]->StringVal();
@@ -1388,10 +1317,7 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 	int len = args_val->length();
 
 	if ( len < 1 || len > 2 )
-		{
-		error->Report( this, " takes 1 or 2 arguments" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes 1 or 2 arguments" );
 
 	char* source = (*args_val)[0]->StringVal();
 
@@ -1457,12 +1383,8 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	IValue* result;
 
 	if ( sds < 0 )
-		{
-		error->Report( "could not read value from \"", file_name,
+		result = (IValue*) Fail( "could not read value from \"", file_name,
 				"\"" );
-		result = error_ivalue();
-		}
-
 	else
 		result = read_ivalue_from_SDS( sds );
 
@@ -1477,31 +1399,23 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	char* file_name = (*args_val)[1]->StringVal();
 	const IValue* v = (*args_val)[0];
 
-	int result = 1;
+	IValue *ret = 0;
 
 	if ( v->Type() == TYPE_OPAQUE )
 		{
 		int sds = v->SDS_IndexVal();
 
 		if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
-			{
-			error->Report( "could not save opaque value to \"",
+			ret = (IValue*) Fail( "could not save opaque value to \"",
 					file_name, "\"" );
-			result = 0;
-			}
 		}
-
 	else
 		{
 		int sds = (int) sds_new( (char*) "" );
 
 		if ( sds < 0 )
-			{
-			error->Report( "problem saving value to \"", file_name,
+			ret = (IValue*) Fail( "problem saving value to \"", file_name,
 					"\", SDS error code = ", sds );
-			result = 0;
-			}
-
 		else
 			{
 			del_list d;
@@ -1509,11 +1423,8 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 			(*args_val)[0]->AddToSds( sds, &d );
 
 			if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
-				{
-				error->Report( "could not save value to \"",
+				ret = (IValue*) Fail( "could not save value to \"",
 						file_name, "\"" );
-				result = 0;
-				}
 
 			sds_destroy( sds );
 
@@ -1523,7 +1434,7 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 
 	delete file_name;
 
-	return new IValue( result );
+	return ret ? ret : new IValue( 1 );
 	}
 
 
@@ -1532,8 +1443,7 @@ IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
 	Agent* agent = (*args_val)[0]->AgentVal();
 
 	if ( ! agent )
-		return error_ivalue();
-
+		return (IValue*) Fail("no agent for ", this);
 	else
 		return agent->AssociatedStatements();
 	}
@@ -1577,16 +1487,10 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 	const IValue* arg = (*args_val)[0];
 
 	if ( len < 1 )
-		{
-		error->Report( this, " requires at least one argument");
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " requires at least one argument");
 
 	if ( arg->Type() != TYPE_STRING )
-		{
-		error->Report( this, " requires a string as the first argument");
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " requires a string as the first argument");
 
 	const char *type = arg->StringPtr(0)[0];
 	TkAgent *agent = 0;
@@ -1614,8 +1518,7 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 
 	return agent ? agent->AgentRecord() : error_ivalue();
 #else
-	error->Report("This Glish was not configured for graphic clients");
-	return error_ivalue();
+	return (IValue*) Fail("This Glish was not configured for graphic clients");
 #endif
 	}
 
@@ -1637,20 +1540,14 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 		return error_ivalue();
 
 	if ( len > 1 )
-		{
-		error->Report( this, " takes 0 or 1 argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes 0 or 1 argument" );
 
 	const IValue *func_val = len > 0 ? (*args_val)[0] : 0 ;
 	funcptr func = 0;
 
 	if ( func_val )
  		if ( func_val->Type() != TYPE_FUNC )
-			{
-			error->Report( this, " only takes a function as an argument");
-			return error_ivalue();
-			}
+			return (IValue*) Fail( this, " only takes a function as an argument");
 		else
 			func = func_val->FuncVal();
 
@@ -1691,10 +1588,7 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	const IValue *str = (*args_val)[0];
 
 	if ( ! str || str->Type() != TYPE_STRING )
-		{
-		error->Report( this, " takes 1 string argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes 1 string argument" );
 
 	charptr *strs = str->StringPtr(0);
 	recordptr rptr = create_record_dict();
@@ -1717,10 +1611,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	int len = args_val->length();
 
 	if ( len < 1 || len > 2 )
-		{
-		error->Report( this, " takes either 1 record argument or a string and a value" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes either 1 record argument or a string and a value" );
 
 	const IValue *arg1 = (*args_val)[0];
 	const IValue *arg2 = len > 1 ? (*args_val)[1] : 0;
@@ -1728,10 +1619,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	if ( ! arg2 )
 		{
 		if ( arg1->Type() != TYPE_RECORD )
-			{
-			error->Report( "wrong type for argument 1, record expected" );
-			return error_ivalue();
-			}
+			return (IValue*) Fail( "wrong type for argument 1, record expected" );
 
 		recordptr rptr = arg1->RecordPtr(0);
 		IterCookie *c = rptr->InitForIteration();
@@ -1746,10 +1634,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	else
 		{
 		if ( arg1->Type() != TYPE_STRING )
-			{
-			error->Report( "wrong type for argument 1, string expected" );
-			return error_ivalue();
-			}
+			return (IValue*) Fail( "wrong type for argument 1, string expected" );
 
 		charptr *strs = arg1->StringPtr(0);
 		Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
@@ -1765,10 +1650,7 @@ IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
 	const IValue *str = (*args_val)[0];
 
 	if ( ! str || str->Type() != TYPE_STRING )
-		{
-		error->Report( this, " takes 1 string argument" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, " takes 1 string argument" );
 
 	charptr *strs = str->StringPtr(0);
 
@@ -1792,10 +1674,7 @@ IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	Notification* n = sequencer->LastNotification();
 
 	if ( ! n )
-		{
-		error->Report( "no active whenever, in call to", this );
-		return new IValue( 0 );
-		}
+		return (IValue*) Fail( "no active whenever, in call to", this );
 
 	return new IValue( n->notifiee->stmt->Index() );
 	}
@@ -1821,7 +1700,7 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 		delete lines;
 		}
 
-	return result ? result : error_ivalue();
+	return result ? result : empty_ivalue();
 	}
 
 IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
@@ -1829,10 +1708,7 @@ IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
 	Stmt* s = sequencer->LastWheneverExecuted();
 
 	if ( ! s )
-		{
-		error->Report( "no whenever's executed, in call to", this );
-		return new IValue( 0 );
-		}
+		return (IValue*) Fail( "no whenever's executed, in call to", this );
 
 	return new IValue( s->Index() );
 	}
@@ -1855,10 +1731,7 @@ IValue* name( const IValue* arg )					\
 		}							\
 									\
 	if ( ! arg->IsNumeric() )					\
-		{							\
-		error->Report( "non-numeric argument to ", text );	\
-		return new IValue( type(zero) );			\
-		}							\
+		return (IValue*) Fail( "non-numeric argument to ", text );\
 									\
 	if ( arg->Type() == tag )					\
 		return copy_value( arg );				\
@@ -1927,10 +1800,7 @@ IValue* as_byte_built_in( const IValue* arg )
 
 	int len = arg->Length();
 	if ( ! arg->IsNumeric() )
-		{
-		error->Report( "non-numeric argument to ", "byte" );
-		return new IValue( byte(0) );
-		}
+		return (IValue*) Fail( "non-numeric argument to ", "byte" );
 
 	if ( arg->Type() == TYPE_BYTE )
 		return copy_value( arg );
@@ -1948,10 +1818,7 @@ IValue* as_string_built_in( const IValue* arg )
 		return copy_value( arg );
 
 	if ( ! arg->IsNumeric() )
-		{
-		error->Report( "non-numeric argument to as_string()" );
-		return new IValue( "" );
-		}
+		return (IValue*) Fail( "non-numeric argument to as_string()" );
 
 	int len = arg->Length();
 
@@ -1993,9 +1860,8 @@ IValue* as_string_built_in( const IValue* arg )
 	int index = ref->TranslateIndex( i, &err );		\
 	if ( err )						\
 		{						\
-		error->Report( "invalid sub-vector" );		\
 		delete result;					\
-		return error_ivalue();			\
+		return (IValue*) Fail( "invalid sub-vector" );	\
 		}
 #define COERCE_XXX_TO_STRING(tag,type,accessor,format,INDX,rest,XLATE,FORMAT)	\
 	case tag:							\
@@ -2107,10 +1973,7 @@ IValue* length_built_in( const IValue* arg )
 IValue* field_names_built_in( const IValue* arg )
 	{
 	if ( arg->Type() != TYPE_RECORD )
-		{
-		error->Report( "argument to field_names is not a record" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( "argument to field_names is not a record" );
 
 	recordptr record_dict = arg->RecordPtr(0);
 	IterCookie* c = record_dict->InitForIteration();
@@ -2182,10 +2045,12 @@ char* paste( const_args_list* args )
 
 
 static void add_one_arg_built_in( Sequencer* s, value_func_1_value_arg func,
-					const char* name, int do_deref = 1 )
+					const char* name, int do_deref = 1,
+					int handle_fail = 0 )
 	{
 	BuiltIn* b = new OneValueArgBuiltIn( func, name );
 	b->SetDeref( do_deref );
+	b->SetFailHandling( handle_fail );
 	s->AddBuiltIn( b );
 	}
 
@@ -2222,7 +2087,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	add_one_arg_built_in( s, as_dcomplex_built_in, "as_dcomplex" );
 	add_one_arg_built_in( s, as_string_built_in, "as_string" );
 
-	add_one_arg_built_in( s, type_name_built_in, "type_name", 0 );
+	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
 	add_one_arg_built_in( s, field_names_built_in, "field_names" );
 
 	s->AddBuiltIn( new NumericVectorBuiltIn( sqrt, sqrt, "sqrt" ) );

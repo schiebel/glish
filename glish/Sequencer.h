@@ -127,6 +127,12 @@ public:
 	// Note that only the last frame popped is returned (are the others leaked?).
 	Frame* PopFrame( unsigned int howmany=1 );
 
+	// This trio of functions supports keeping track of the
+	// function call stack. This is used in error reporting.
+	void PushFuncName( char *name );
+	void PopFuncName( );
+	static IValue *FuncNameStack( );
+
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame* CurrentFrame();
 	// Returns a list of the frames that are currently local, i.e. up to and
@@ -137,8 +143,9 @@ public:
 	frame_list* LocalFrames();
 
 	IValue* FrameElement( scope_type scope, int scope_offset, int frame_offset );
-	void SetFrameElement( scope_type scope, int scope_offset, int frame_offset,
-				IValue* value );
+	// returns error message
+	const char *SetFrameElement( scope_type scope, int scope_offset,
+				     int frame_offset, IValue* value );
 
 	// The last notification processed, or 0 if none received yet.
 	Notification* LastNotification()	{ return last_notification; }
@@ -179,6 +186,12 @@ public:
 
 	IValue *Exec( int startup_script = 0, int value_needed = 0 );
 	IValue *Eval( const char* strings[] );
+	IValue *Include( const char* file );
+
+	static void SetErrorResult( IValue *err );
+	void ClearErrorResult()
+		{ Unref(error_result); error_result = 0; }
+	const IValue *ErrorResult() const { return error_result; }
 
 	// Wait for an event in which await_stmt has expressed interest,
 	// though while waiting process any of the events in which
@@ -280,9 +293,9 @@ protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc );
 	void BuildSuspendList();
-	void Parse( FILE* file, const char* filename = 0 );
-	void Parse( const char file[] );
-	void Parse( const char* strings[] );
+	IValue *Parse( FILE* file, const char* filename = 0, int value_needed=0 );
+	IValue *Parse( const char file[], int value_needed=0 );
+	IValue *Parse( const char* strings[], int value_needed=0 );
 
 	RemoteDaemon* CreateDaemon( const char* host );
 	// Sets err to a non-zero value if an error occurred
@@ -309,6 +322,8 @@ protected:
 	offset_list global_frames;
 
 	ivalue_list global_frame;
+
+	name_list func_names;
 
 	int last_task_id;
 	PDict(Task) ids_to_tasks;
@@ -354,6 +369,8 @@ protected:
 	char **argv_;
 	IValue *sys_val;
 
+	IValue *error_result;
+
 	// Keeps track of the current sequencer...
 	// Later this may have to be a stack...
 	static Sequencer *cur_sequencer;
@@ -361,5 +378,7 @@ protected:
 	// Called from Sequencer::TopLevelReset()
 	void toplevelreset();
 	};
+
+extern IValue *glish_parser( Stmt *&stmt );
 
 #endif /* sequencer_h */

@@ -38,6 +38,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <strstream.h>
 
 #include "input.h"
 #include "glishlib.h"
@@ -52,6 +53,8 @@ RCSID("@(#) $Id$")
 static Sequencer* s = 0;
 int glish_jmpbuf_set = 0;
 jmp_buf glish_top_level;
+int allwarn = 0;
+static unsigned int error_count = 0;
 
 #if USE_EDITLINE
 extern "C" void nb_readline_cleanup();
@@ -234,4 +237,142 @@ const Value *lookup_sequencer_value( const char *id )
 	return Sequencer::LookupVal( id );
 	}
 
+class StringReporter : public Reporter {
+    public:
+	StringReporter( ostream& reporter_stream ) :
+		Reporter( reporter_stream ) { }
+	void Epilog();
+	void Prolog();
+	};
+
+void StringReporter::Epilog() { }
+void StringReporter::Prolog() { }
+
+Value *generate_error( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		    )
+	{
+	strstream sout;
+	StringReporter srpt( sout );
+
+	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	sout << '\0';
+	IValue *ret = error_ivalue( sout.str() );
+	if ( allwarn )
+		{
+		cerr << "E[" << ++error_count << "]: ";
+		ret->Describe( cerr );
+		cerr << endl;
+		}
+	return ret;
+	}
+
+Value *generate_error( const char *file, int line,
+		       const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		    )
+	{
+	strstream sout;
+	StringReporter srpt( sout );
+
+	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	sout << '\0';
+	IValue *ret = error_ivalue( sout.str(), file, line );
+	if ( allwarn )
+		{
+		cerr << "E[" << ++error_count << "]: ";
+		ret->Describe( cerr );
+		cerr << endl;
+		}
+	return ret;
+	}
+
+const Str generate_error_str( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		    )
+	{
+	strstream sout;
+	StringReporter srpt( sout );
+
+	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	sout << '\0';
+	if ( allwarn )
+		cerr << "E[" << ++error_count << "]: " <<
+		  sout.str() << endl;
+	return Str( (const char *) sout.str() );
+	}
+
+void report_error( const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		    )
+	{
+	strstream sout;
+	StringReporter srpt( sout );
+
+	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	sout << '\0';
+	IValue *ret = error_ivalue( sout.str() );
+	if ( allwarn )
+		{
+		cerr << "E[" << ++error_count << "]: ";
+		ret->Describe( cerr );
+		cerr << endl;
+		}
+	Sequencer::SetErrorResult( ret );
+	}
+
+void report_error( const char *file, int line,
+		       const RMessage& m0,
+		       const RMessage& m1, const RMessage& m2,
+		       const RMessage& m3, const RMessage& m4,
+		       const RMessage& m5, const RMessage& m6,
+		       const RMessage& m7, const RMessage& m8,
+		       const RMessage& m9, const RMessage& m10,
+		       const RMessage& m11, const RMessage& m12,
+		       const RMessage& m13, const RMessage& m14,
+		       const RMessage& m15, const RMessage& m16
+		    )
+	{
+	strstream sout;
+	StringReporter srpt( sout );
+
+	srpt.Report(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	sout << '\0';
+	IValue *ret = error_ivalue( sout.str(), file, line );
+	if ( allwarn )
+		{
+		cerr << "E[" << ++error_count << "]: ";
+		ret->Describe( cerr );
+		cerr << endl;
+		}
+	Sequencer::SetErrorResult( ret );
+	}
 #endif

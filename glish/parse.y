@@ -3,9 +3,9 @@
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
-%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
-%token TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
-%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE
+%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_LOOP TOK_ONLY TOK_PRINT TOK_FAIL
+%token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
+%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
 %token NULL_TOK
 
 %left ','
@@ -26,7 +26,7 @@
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
 %type <expr> TOK_CONSTANT expression var function formal_param_default
-%type <expr> scoped_expr scoped_lhs_var
+%type <expr> scoped_expr opt_scoped_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
 %type <event> event
@@ -98,9 +98,11 @@ extern int glish_jmpbuf_set;
 Sequencer* current_sequencer = 0;
 int in_func_decl = 0;
 int current_whenever_index = -1;
+static IValue *parse_error = 0;
 
 /* Communication of status between glish_parser() and yyparse() */
 static int status;
+static Stmt *cur_stmt = null_stmt;
 
 extern void putback_token( int );
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
@@ -115,7 +117,7 @@ glish:
         		static int *lookahead = & ( yyclearin );
 			static int empty = *lookahead;
 
-			current_sequencer->AddStmt( $1 );
+			cur_stmt = $1;
 
 			if ( *lookahead != empty )
 				putback_token( *lookahead );
@@ -154,6 +156,12 @@ scoped_expr:
 		expression
 			{ $$ = $$->BuildFrameInfo( SCOPE_UNKNOWN ); }
 	;
+
+opt_scoped_expr:	scoped_expr
+	|
+			{ $$ = 0; }
+	;
+
 
 scoped_lhs_var:
 		var
@@ -247,6 +255,9 @@ statement:
 	|	TOK_PRINT actual_param_list ';'
 			{ $$ = new PrintStmt( $2 ); }
 
+	|	TOK_FAIL opt_scoped_expr ';'
+			{ $$ = new FailStmt( $2 ); }
+
 	|	scoped_expr ';'
 			{ $$ = new ExprStmt( $1 ); }
 
@@ -332,7 +343,7 @@ expression:
 			{ $$ = new RangeExpr( $1, $3 ); }
 
 	|	expression '(' opt_actual_param_list ')'
-			{ $$ = new CallExpr( $1, $3 ); }
+			{ $$ = new CallExpr( $1, $3, current_sequencer ); }
 
 	|	value_type expression	%prec '^'
 			{ $$ = new RefExpr( $2, $1 ); }
@@ -342,6 +353,9 @@ expression:
 
 	|	TOK_LAST_EVENT
 			{ $$ = new LastEventExpr( current_sequencer, $1 ); }
+
+	|	TOK_INCLUDE expression	%prec '!'
+			{ $$ = new IncludeExpr( $2, current_sequencer ); }
 
 	|	function
 
@@ -459,37 +473,47 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 		no_cont
 			{
 			int frame_size = current_sequencer->PopScope();
+			IValue *err = 0;
 
 			UserFunc* ufunc = new UserFunc( $4, $7, frame_size,
-							current_sequencer, $1 );
-
-			$$ = new FuncExpr( ufunc );
-
-			if ( $2 )
+							current_sequencer, $1, err );
+			if ( ! err )
 				{
-				if ( current_sequencer->GetScopeType() == GLOBAL_SCOPE )
-					{ 
-					// Create global reference to function.
-					Expr* func =
-						current_sequencer->LookupID(
+				$$ = new FuncExpr( ufunc );
+
+				if ( $2 )
+					{
+					if ( current_sequencer->GetScopeType() == GLOBAL_SCOPE )
+						{ 
+						// Create global reference to function.
+						Expr* func =
+							current_sequencer->LookupID(
 							$2, LOCAL_SCOPE );
 
-					IValue* ref = new IValue( ufunc );
-					func->Assign( ref );
+						IValue* ref = new IValue( ufunc );
+						func->Assign( ref );
 
-					/* keep ufunc from being deleted with $$ */
-					Ref(ufunc);
+						/* keep ufunc from being deleted with $$ */
+						Ref(ufunc);
+						}
+					else
+						{
+						Expr *lhs = 
+							current_sequencer->LookupID( $2, LOCAL_SCOPE);
+						Ref(lhs);
+						$$ = compound_assignment( lhs, 0, $$ );
+						}
 					}
-				else
-					{
-					Expr *lhs = 
-						current_sequencer->LookupID( $2, LOCAL_SCOPE);
-					Ref(lhs);
-					$$ = compound_assignment( lhs, 0, $$ );
-					}
+
+				in_func_decl = 0;
 				}
-
-			in_func_decl = 0;
+			else
+				{
+				$$ = new ValExpr( err );
+				Ref(err);
+				Unref( ufunc );
+				in_func_decl = 0;
+				}
 			}
 	;
 
@@ -536,13 +560,10 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 
 	|	TOK_ELLIPSIS formal_param_default
 			{
-			Expr* ellipsis =
-				current_sequencer->InstallID(
-					strdup( "..." ), LOCAL_SCOPE );
+			Expr* ellipsis = current_sequencer->LookupID(strdup("..."), LOCAL_SCOPE, 1, 0 );
 
 			Ref(ellipsis);
-			$$ = new FormalParameter( VAL_CONST,
-							ellipsis, 1, $2 );
+			$$ = new FormalParameter( VAL_CONST, ellipsis, 1, $2 );
 			}
 	;
 
@@ -824,25 +845,35 @@ void yyerror( char msg[] )
 
 	current_whenever_index = -1;
 
-	error->Report( msg, " at or near '", yytext, "'" );
+	parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
 	}
 
 
-int glish_parser()
+void clear_error()
+	{
+	status = 0;
+	}
+
+IValue *glish_parser( Stmt *&stmt )
 	{
 	int ret;
+	cur_stmt = stmt = null_stmt;
 
 	error->SetCount(0);
 	status = 0;
 	while ( ! (ret = yyparse()) )
 		{
-		if ( interactive )
+		if ( ! interactive )
+			stmt = merge_stmts( stmt, cur_stmt );
+
+		else
 			{
 			const IValue *sys = Sequencer::LookupVal( "system" );
 			const IValue *dbgv;
 			const IValue *echov;
-			Stmt *stmt = current_sequencer->GetStmt();
-			Ref(stmt);
+
+			Stmt *loc_stmt = cur_stmt;
+			cur_stmt = null_stmt;
 
 			if ( sys && sys->Type() == TYPE_RECORD &&
 			     sys->HasRecordElement( "debug" ) &&
@@ -853,7 +884,7 @@ int glish_parser()
 			     echov != false_value && echov->Type() == TYPE_BOOL &&
 			     echov->BoolVal() == glish_true )
 				{
-				message->Report( "\te> ", stmt );
+				message->Report( "\te> ", loc_stmt );
 				}
 
 			IValue *val = 0;
@@ -861,26 +892,33 @@ int glish_parser()
 				{
 				glish_jmpbuf_set = 1;
 				stmt_flow_type flow;
-				val = stmt->Exec( 1, flow );
+				val = loc_stmt->Exec( 1, flow );
 				if ( flow != FLOW_NEXT )
 					warn->Report("control flow (loop/break/return) ignored" );
 				}
 
 			glish_jmpbuf_set = 0;
-			current_sequencer->ClearStmt();
 
-			if ( val )
+			if ( current_sequencer->ErrorResult() )
+				{
+				message->Report( current_sequencer->ErrorResult() );
+				current_sequencer->ClearErrorResult();
+				}
+			else if ( val )
 				{
 				message->Report( val );
 				Unref( val );
 				}
 
-			Unref(stmt);
+			NodeUnref(loc_stmt);
 			first_line = 1;
 			}
 		}
 
-	return status;
+	if ( ! status ) return 0;
+	IValue *tmp = parse_error;
+	parse_error = 0;
+	return tmp ? tmp : error_ivalue( "parse error" );
 	}
 
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )

@@ -88,6 +88,7 @@ class ValueKernel {
 	inline unsigned int OPAQUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
 	inline unsigned int MOD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
+	inline unsigned int FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<7; }
 
 	union {
 		array_t *array;
@@ -180,6 +181,8 @@ class ValueKernel {
 	// Shouldn't return 0
 	recordptr modRecord();
 	recordptr modRecord() const { return (((ValueKernel*)this)->modRecord()); }
+
+	void SetFail( );
 
 	void SetValue( Value *v );
 	Value *GetValue() const { return value; }

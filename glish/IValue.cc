@@ -6,6 +6,7 @@ RCSID("@(#) $Id$")
 
 #include <string.h>
 #include <stream.h>
+#include <strstream.h>
 #include <stdlib.h>
 
 #include "Sds/sdsgen.h"
@@ -51,7 +52,36 @@ void delete_funcs( void *ary_, unsigned int len )
 		Unref(ary[i]);
 	}
 
-IValue::IValue( funcptr value )
+extern int interactive;
+IValue::IValue( ) : Value( )
+	{
+	if ( file_name && ! interactive )
+		{
+		AssignAttribute( "file", new IValue( file_name->Chars() ) );
+		if ( line_num > 0 && ! interactive )
+			AssignAttribute( "line", new IValue( line_num ));
+		}
+
+	IValue *stack = Sequencer::FuncNameStack();
+	if ( stack )
+		AssignAttribute( "stack", stack );
+	}
+
+IValue::IValue( const char *message, const char *file, int line ) : Value( message, file, line )
+	{
+	if ( ! file && file_name && ! interactive )
+		{
+		AssignAttribute( "file", new IValue( file_name->Chars() ) );
+		if ( line <= 0 && line_num > 0 && ! interactive )
+			AssignAttribute( "line", new IValue( line_num ));
+		}
+
+	IValue *stack = Sequencer::FuncNameStack();
+	if ( stack  )
+		AssignAttribute( "stack", stack );
+	}
+
+IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	{
 	InitValue();
 	funcptr *ary = new funcptr[1];
@@ -59,14 +89,14 @@ IValue::IValue( funcptr value )
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
 	}
 
-IValue::IValue( funcptr value[], int len, array_storage_type s )
+IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC)
 	{
 	InitValue();
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY,
 			 copy_funcs, 0, delete_funcs );
 	}
 
-IValue::IValue( agentptr value, array_storage_type storage )
+IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 	{
 	InitValue();
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
@@ -79,7 +109,7 @@ IValue::IValue( agentptr value, array_storage_type storage )
 		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1, copy_agents, 0, delete_agents );
 	}
 
-IValue::IValue( recordptr value, Agent* agent )
+IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT)
 	{
 	InitValue();
 	value->Insert( strdup( AGENT_MEMBER_NAME ),
@@ -523,6 +553,7 @@ IValue *copy_value( const IValue *value )
 		case TYPE_STRING:
 		case TYPE_AGENT:
 		case TYPE_FUNC:
+		case TYPE_FAIL:
 			copy = new IValue( *value );
 			break;
 		case TYPE_RECORD:
@@ -564,12 +595,12 @@ IValue *copy_value( const IValue *value )
 
 				default:
 					fatal->Report(
-						"bad type in copy_value()" );
+						"bad type in copy_value ()" );
 				}
 			break;
 
 		default:
-			fatal->Report( "bad type in copy_value()" );
+			fatal->Report( "bad type in copy_value ()" );
 		}
 
 	return copy;

@@ -23,7 +23,7 @@ const char* type_names[NUM_GLISH_TYPES] =
 	"error", "ref", "subref",
 	"boolean", "byte", "short", "integer",
 	"float", "double", "string", "agent", "function", "record",
-	"complex", "dcomplex", "opaque",
+	"complex", "dcomplex", "fail", "opaque",
 	};
 
 const Value* false_value;
@@ -60,6 +60,30 @@ DelObj::~DelObj()
 	delete ptr;
 	}
 
+
+Value::Value( )
+	{
+	DIAG4( (void*) this, "Value(", " ",")" )
+	InitValue();
+	kernel.SetFail( );
+	}
+
+Value::Value( const char *message, const char *file, int lineNum )
+	{
+	DIAG4( (void*) this, "Value(", " ",")" )
+	InitValue();
+	kernel.SetFail( );
+
+	if ( file )
+		{
+		AssignAttribute( "file", create_value( file ));
+		if ( lineNum > 0 )
+			AssignAttribute( "line", create_value( lineNum ));
+		}
+
+	if ( message )
+		AssignAttribute( "message", create_value( message ));
+	}
 
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
@@ -151,13 +175,13 @@ Value::Value( Value* ref_value, int index[], int num_elements,
 	}
 
 
-void Value::TakeValue( Value* new_value )
+void Value::TakeValue( Value* new_value, Str &err )
 	{
 	new_value = new_value->Deref();
 
 	if ( new_value == this )
 		{
-		error->Report( "reference loop created" );
+		err = strFail( "reference loop created" );
 		return;
 		}
 
@@ -321,6 +345,7 @@ int Value::IsNumeric() const
 		case TYPE_FUNC:
 		case TYPE_RECORD:
 		case TYPE_OPAQUE:
+		case TYPE_FAIL:
 			return 0;
 
 		case TYPE_SUBVEC_REF:
@@ -420,25 +445,31 @@ DEFINE_REF_ACCESSOR(StringRef,TYPE_STRING,charptrref)
 
 
 #define XXX_VAL(name, val_type, rhs_elm, conv, text_func, type_name, zero) \
-val_type Value::name( int n ) const					\
+val_type Value::name( int n, Str &err ) const				\
 	{								\
+	glish_type type = Type();					\
+									\
+	if ( type == TYPE_FAIL)						\
+		return zero;						\
+									\
 	if ( IsRef() )							\
 		return Deref()->name( n );				\
 									\
 	if ( kernel.Length() < 1 )					\
 		{							\
-		error->Report( "empty array converted to ", type_name );\
+		err = strFail( "empty array converted to ", type_name );\
 		return zero;						\
 		}							\
 									\
 	if ( n < 1 || n > kernel.Length() )				\
 		{							\
-		error->Report( "in conversion to ", type_name, " index (=", n,\
-				") out of bounds, length =", kernel.Length() );	\
+		err = strFail( "in conversion to ", type_name,		\
+			" index (=", n, ") out of bounds, length =",	\
+			kernel.Length() );				\
 		return zero;						\
 		}							\
 									\
-	switch ( Type() )						\
+	switch ( type )							\
 		{							\
 		case TYPE_BOOL:						\
 			return val_type( BoolPtr(0)[n - 1] ? 1 : 0 );	\
@@ -472,7 +503,7 @@ val_type Value::name( int n ) const					\
 			{						\
 			int successful;					\
 			val_type result = val_type(			\
-				text_func( StringPtr(0)[n - 1], successful ) );\
+				text_func( StringPtr(0)[n - 1], successful ) ); \
 									\
 			if ( ! successful )				\
 				warn->Report( "string \"", this,	\
@@ -484,20 +515,20 @@ val_type Value::name( int n ) const					\
 		case TYPE_FUNC:						\
 		case TYPE_RECORD:					\
 		case TYPE_OPAQUE:					\
-			error->Report( "bad type", type_names[Type()],	\
+			err = strFail( "bad type", type_names[type],	\
 				"converted to ", type_name, ":", this );\
 			return zero;					\
 									\
 		case TYPE_SUBVEC_REF:					\
 			{						\
 			VecRef* ref = VecRefPtr();			\
-			int err;					\
-			int off = ref->TranslateIndex( n-1, &err );	\
-			if ( err )					\
+			int error;					\
+			int off = ref->TranslateIndex( n-1, &error );	\
+			if ( error )					\
 				{					\
-				error->Report( "bad sub-vector subscript" );\
+				err = strFail( "bad sub-vector subscript" ); \
 				return zero;				\
-			}						\
+				}					\
 			return ref->Val()->name( off );			\
 			}						\
 									\
@@ -581,8 +612,9 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 	return limit >= 0 ? prec : default_fmt;
 	}
 
+static char *format_error_message( const Value *, char, unsigned int, int );
 char* Value::StringVal( char sep, unsigned int max_elements,
-			int useAttributes ) const
+			int useAttributes, Str &err ) const
 	{
 	glish_type type = Type();
 	int length = kernel.Length();
@@ -590,13 +622,15 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	if ( IsRef() )
 		return Deref()->StringVal( sep, max_elements, useAttributes );
 	if ( type == TYPE_RECORD )
-		return RecordStringVal();
+		return RecordStringVal( sep, max_elements, useAttributes, err );
 	if ( type == TYPE_AGENT )
 		return strdup( "<agent>" );
 	if ( type == TYPE_FUNC )
 		return strdup( "<function>" );
 	if ( type == TYPE_OPAQUE )
 		return strdup( "<opaque>" );
+	if ( type == TYPE_FAIL )
+		return format_error_message( this, sep, max_elements, useAttributes );
 	if ( length == 0 )
 		return strdup( "" );
 
@@ -731,13 +765,13 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		case TYPE_SUBVEC_REF:					\
 			{						\
 			VecRef* ref = VecRefPtr();			\
-			int err;					\
-			int index = ref->TranslateIndex( indx, &err );	\
-			if ( err )					\
+			int erri;					\
+			int index = ref->TranslateIndex( indx, &erri );	\
+			if ( erri )					\
 				{					\
-				error->Report( "invalid sub-vector" );	\
+				err = strFail( "invalid sub-vector" );	\
 				delete alloced;				\
-				return strdup( "error" );		\
+				return strdup( " " );			\
 				}					\
 			switch ( ref->Type() )				\
 				{					\
@@ -999,7 +1033,8 @@ unsigned int Value::PrintLimit( ) const
 	return limit;
 	}
 
-char* Value::RecordStringVal() const
+char* Value::RecordStringVal( char sep, unsigned int max_elements, 
+			int use_attr, Str &err ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		fatal->Report( "non-record type in Value::RecordStringVal()" );
@@ -1022,7 +1057,7 @@ char* Value::RecordStringVal() const
 			fatal->Report(
 				"bad record in Value::RecordStringVal()" );
 
-		element_strs[i] = nth_val->StringVal();
+		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, err );
 		total_len += strlen( element_strs[i] ) + strlen( key_strs[i] );
 		}
 
@@ -1530,19 +1565,14 @@ Value* Value::operator []( const_value_list* args_val ) const
 	delete cur;							\
 	}
 
-#define SUBOP_ABORT(length,retval)				\
+#define SUBOP_CLEANUP(length)					\
 	SUBOP_CLEANUP_2(length)					\
-	delete len;						\
-	return retval;
+	delete len;
 
 	int length = kernel.Length();
 
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
-		{
-		error->Report( "invalid type in n-D array operation:",
-				this );
-		return error_value();
-		}
+		return Fail( "invalid type in n-D array operation:", this );
 
 	// Collect attributes.
 	int args_len = args_val->length();
@@ -1560,10 +1590,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 
 	int shape_len = shape_val->Length();
 	if ( shape_len != args_len )
-		{
-		error->Report( "invalid number of indexes for:", this );
-		return error_value();
-		}
+		return Fail( "invalid number of indexes for:", this );
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
@@ -1581,11 +1608,9 @@ Value* Value::operator []( const_value_list* args_val ) const
 			{
 			if ( ! arg->IsNumeric() )
 				{
-				error->Report( "index #", i+1, "into", this,
-						"is not numeric");
-
 				SUBOP_CLEANUP_1
-				return error_value();
+				return Fail( "index #", i+1, "into", this,
+						"is not numeric");
 				}
 
 			if ( arg->Length() > max_len )
@@ -1596,10 +1621,9 @@ Value* Value::operator []( const_value_list* args_val ) const
 				int ind = arg->IntVal();
 				if ( ind < 1 || ind > shape[i] )
 					{
-					error->Report( "index #", i+1, "into",
-						this, "is out of range");
 					SUBOP_CLEANUP_1
-					return error_value();
+					return Fail( "index #", i+1, "into",
+						this, "is out of range");
 					}
 
 				offset += cur_factor * (ind - 1);
@@ -1621,9 +1645,8 @@ Value* Value::operator []( const_value_list* args_val ) const
 	// Check to see if we're valid.
 	if ( cur_factor > Length() )
 		{
-		error->Report( "\"::shape\"/length mismatch" );
 		SUBOP_CLEANUP_1
-		return error_value();
+		return Fail( "\"::shape\"/length mismatch" );
 		}
 
 	if ( max_len == 1 ) 
@@ -1675,15 +1698,15 @@ Value* Value::operator []( const_value_list* args_val ) const
 				     index[i][j] <= shape[i] )
 					continue;
 
+				SUBOP_CLEANUP(i)
 				if ( len[i] > 1 )
-					error->Report( "index #", i+1, ",",
+					return Fail( "index #", i+1, ",",
 							j+1, " into ", this, 
 							"is out of range.");
 				else
-					error->Report( "index #", i+1, "into",
+					return Fail( "index #", i+1, "into",
 						this, "is out of range.");
 
-				SUBOP_ABORT(i, error_value())
 				}
 			}
 		}
@@ -1809,7 +1832,7 @@ Value* Value::Pick( const Value *index ) const
 		delete indx;			\
 	delete factor;
 
-#define PICK_INITIALIZE(error_return,SHORT)				\
+#define PICK_INITIALIZE(ERR_RET,SHORT)					\
 	const attributeptr attr = AttributePtr();			\
 	const attributeptr iattr = index->AttributePtr();		\
 	const Value* shape_val = 0;					\
@@ -1832,31 +1855,27 @@ Value* Value::Pick( const Value *index ) const
 									\
 	if ( ! ishape_len )						\
 		{							\
+		Value *err = 0;						\
 		if ( ishape_val )					\
-			error->Report("error in the array \"::shape\": ",\
-				ishape_val );				\
+			ERR_RET(("error in the array \"::shape\": ",	\
+				ishape_val))				\
 		else							\
-			error->Report( "no \"::shape\" for ", index,	\
-				" but the array has \"::shape\"" );	\
-		return error_return;					\
+			ERR_RET(("no \"::shape\" for ", index,		\
+				" but the array has \"::shape\""))	\
 		}							\
 	if ( ! shape_len )						\
 		{							\
 		if ( shape_val )					\
-			error->Report("error in the array \"::shape\": ",\
-				shape_val );				\
+			ERR_RET(("error in the array \"::shape\": ",	\
+				shape_val))				\
 		else							\
-			error->Report( "no \"::shape\" for ", this,	\
-				" but the index has \"::shape\"" );	\
-		return error_return;					\
+			ERR_RET(("no \"::shape\" for ", this,		\
+				" but the index has \"::shape\""))	\
 		}							\
 									\
 	if ( ishape_len > 2 )						\
-		{							\
-		error->Report("invalid index of dimension (=", ishape_len, \
-				") greater than 2");			\
-		return error_return;					\
-		}							\
+		ERR_RET(("invalid index of dimension (=", ishape_len, \
+				") greater than 2"))			\
 									\
 	int shape_is_copy = 0;						\
 	int ishape_is_copy = 0;						\
@@ -1874,15 +1893,13 @@ Value* Value::Pick( const Value *index ) const
 	if ( ishape[1] != shape_len )					\
 		{							\
 		PICK_CLEANUP						\
-		error->Report( "wrong number of columns in index (=",	\
-			ishape[1], ") expected ", shape_len );		\
-		return error_return;					\
+		ERR_RET(("wrong number of columns in index (=",		\
+			ishape[1], ") expected ", shape_len))		\
 		}							\
 	if ( ilen < ishape[0] * ishape[1] )				\
 		{							\
 		PICK_CLEANUP						\
-			error->Report( "Index \"::shape\"/length mismatch" );\
-		return error_return;					\
+		ERR_RET(("Index \"::shape\"/length mismatch"))		\
 		}							\
 	for ( int i = 0; i < shape_len; ++i )				\
 		{							\
@@ -1893,11 +1910,13 @@ Value* Value::Pick( const Value *index ) const
 	if ( len < offset )						\
 		{							\
 		PICK_CLEANUP						\
-		error->Report("Array \"::shape\"/length mismatch");	\
-		return error_return;					\
+		ERR_RET(("Array \"::shape\"/length mismatch"))		\
 		}
 
-	PICK_INITIALIZE(error_value(),return this->operator[]( index );)
+#define PICK_FAIL_IVAL(x) return Fail x;
+#define PICK_FAIL_VOID(x) { error->Report x; return; }
+
+	PICK_INITIALIZE( PICK_FAIL_IVAL, return this->operator[]( index );)
 
 	switch ( Type() )
 		{
@@ -1920,9 +1939,8 @@ Value* Value::Pick( const Value *index ) const
 					PICK_CLEANUP			\
 					CLEANUP				\
 					delete ret;			\
-					error->Report( "index number ", j,\
+					return Fail( "index number ", j,\
 					" (=", cur, ") is out of range" );\
-					return error_value();		\
 					}				\
 				offset += factor[j] * (cur-1);		\
 				}					\
@@ -1960,9 +1978,8 @@ Value* Value::Pick( const Value *index ) const
 		{							\
 		CLEANUP							\
 		delete ret;						\
-		error->Report( "index number ", j, " (=",cur,		\
+		return Fail( "index number ", j, " (=",cur,		\
 			") is out of range. Sub-vector reference may be invalid" );\
-		return error_value();					\
 		}
 
 PICK_ACTION(TYPE_BOOL,glish_bool,theVal->BoolPtr,off,,PICK_ACTION_XLATE(;),)
@@ -1994,13 +2011,10 @@ PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,strdup,
 Value* Value::PickRef( const Value *index )
 	{
 	if ( ! IsNumeric() && Type() != TYPE_STRING )
-		{
-		error->Report( "non-numeric type in subreference operation:",
+		return Fail( "non-numeric type in subreference operation:",
 				this );
-		return error_value();
-		}
 
-	PICK_INITIALIZE(error_value(),return this->operator[]( index );)
+	PICK_INITIALIZE(PICK_FAIL_IVAL, return this->operator[]( index );)
 
 	int* ret = new int[ishape[0]];
 	int cur = 0;
@@ -2014,9 +2028,8 @@ Value* Value::PickRef( const Value *index )
 				{
 				PICK_CLEANUP
 				delete ret;
-				error->Report( "index number ", j, " (=",cur,
+				return Fail( "index number ", j, " (=",cur,
 						") is out of range" );
-				return error_value();
 				}
 			offset += factor[j] * (cur-1);
 			}
@@ -2047,7 +2060,7 @@ void Value::PickAssign( const Value* index, Value* value )
 	AssignElements( index, value );	\
 	return;
 
-	PICK_INITIALIZE(,PICKASSIGN_SHORT)
+	PICK_INITIALIZE(PICK_FAIL_VOID, PICKASSIGN_SHORT)
 
 	switch ( Type() )
 		{
@@ -2163,11 +2176,8 @@ Value* Value::SubRef( const Value* index )
 
 		Value* ret = NthField( index->IntVal() );
 		if ( ! ret )
-			{
-			error->Report( "record index (=", index->IntVal(),
+			return Fail( "record index (=", index->IntVal(),
 				") out of range (> ", Length(), ")" );
-			return error_value();
-			}
 
 		return ret;
 		}
@@ -2185,11 +2195,8 @@ Value* Value::SubRef( const Value* index )
 Value* Value::SubRef( const_value_list *args_val )
 	{
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
-		{
-		error->Report( "invalid type in subreference operation:",
+		return Fail( "invalid type in subreference operation:",
 				this );
-		return error_value();
-		}
 
 	// Collect attributes.
 	const attributeptr ptr = AttributePtr();
@@ -2202,19 +2209,13 @@ Value* Value::SubRef( const_value_list *args_val )
 		if ( arg )
 			return SubRef( arg );
 		else
-			{
-			error->Report( "invalid missing argument" );
-			return error_value();
-			}
+			return Fail( "invalid missing argument" );
 		}
 
 	int shape_len = shape_val->Length();
 	int args_len = (*args_val).length();
 	if ( shape_len != args_len )
-		{
-		error->Report( "invalid number of indexes for:", this );
-		return error_value();
-		}
+		return Fail( "invalid number of indexes for:", this );
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
@@ -2232,11 +2233,9 @@ Value* Value::SubRef( const_value_list *args_val )
 			{
 			if ( ! arg->IsNumeric() )
 				{
-				error->Report( "index #", i+1, "into", this,
-						"is not numeric");
-
 				SUBOP_CLEANUP_1
-				return error_value();
+				return Fail( "index #", i+1, "into", this,
+						"is not numeric");
 				}
 
 			if ( arg->Length() > max_len )
@@ -2247,10 +2246,9 @@ Value* Value::SubRef( const_value_list *args_val )
 				int ind = arg->IntVal();
 				if ( ind < 1 || ind > shape[i] )
 					{
-					error->Report( "index #", i+1, "into",
-						this, "is out of range");
 					SUBOP_CLEANUP_1
-					return error_value();
+					return Fail( "index #", i+1, "into",
+						this, "is out of range");
 					}
 
 				offset += cur_factor * (ind - 1);
@@ -2273,9 +2271,8 @@ Value* Value::SubRef( const_value_list *args_val )
 	// Check to see if we're valid.
 	if ( cur_factor > Length() )
 		{
-		error->Report( "\"::shape\"/length mismatch" );
 		SUBOP_CLEANUP_1
-		return error_value();
+		return Fail( "\"::shape\"/length mismatch" );
 		}
 
 	if ( max_len == 1 ) 
@@ -2326,15 +2323,15 @@ Value* Value::SubRef( const_value_list *args_val )
 				     index[i][j] <= shape[i] )
 					continue;
 
+				SUBOP_CLEANUP(i)
 				if ( len[i] > 1 )
-					error->Report( "index #", i+1, ",",
+					return Fail( "index #", i+1, ",",
 							j+1, " into ", this, 
 							"is out of range.");
 				else
-					error->Report( "index #", i+1, "into",
+					return Fail( "index #", i+1, "into",
 						this, "is out of range.");
 
-				SUBOP_ABORT(i, error_value())
 				}
 			}
 		}
@@ -2385,16 +2382,10 @@ Value* Value::SubRef( const_value_list *args_val )
 Value* Value::RecordRef( const Value* index ) const
 	{
 	if ( Type() != TYPE_RECORD )
-		{
-		error->Report( this, "is not a record" );
-		return error_value();
-		}
+		return Fail( this, "is not a record" );
 
 	if ( index->Type() != TYPE_STRING )
-		{
-		error->Report( "non-string index in record reference:", index );
-		return error_value();
-		}
+		return Fail( "non-string index in record reference:", index );
 
 	if ( index->Length() == 1 )
 		// Don't create a new record, just return the given element.
@@ -2570,13 +2561,15 @@ char* Value::NewFieldName()
 
 
 #define DEFINE_FIELD_VAL(tag,type,valfunc)				\
-int Value::FieldVal( const char* field, type& val, int num )		\
+int Value::FieldVal( const char* field, type& val, int num, Str &err )	\
 	{								\
 	Value* result = Field( field, tag );				\
 	if ( ! result )							\
+		{							\
+		err = strFail( "field (", field, ") not found" );	\
 		return 0;						\
-									\
-	val = result->valfunc( num );					\
+		}							\
+	val = result->valfunc( num, err );				\
 	return 1;							\
 	}
 
@@ -2713,11 +2706,8 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 
 	for ( int i = 0; i < num_indices; ++i )
 		if ( indices[i] < 1 || indices[i] > kernel.Length() )
-			{
-			error->Report( "index (=", indices[i],
+			return Fail( "index (=", indices[i],
 				") out of range, array length =", kernel.Length() );
-			return error_value();
-			}
 
 	switch ( Type() )
 		{
@@ -2757,8 +2747,7 @@ ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,)
 		{					\
 		EXTRA_ERROR				\
 		delete new_values;			\
-		error->Report("invalid index (=",indices[i],"), sub-vector reference may be bad");\
-		return error_value();			\
+		return Fail("invalid index (=",indices[i],"), sub-vector reference may be bad");\
 		}
 
 ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,off,ARRAY_REF_ACTION_XLATE(;))
@@ -2797,13 +2786,11 @@ Value* Value::TrueArrayRef( int* indices, int num_indices, int take_indices ) co
 	for ( int i = 0; i < num_indices; ++i )
 		if ( indices[i] < 1 || indices[i] > kernel.Length() )
 			{
-			error->Report( "index (=", indices[i],
-				") out of range, array length =", kernel.Length() );
-
 			if ( take_indices )
 				delete indices;
 
-			return error_value();
+			return Fail( "index (=", indices[i],
+				") out of range, array length =", kernel.Length() );
 			}
 
 	return create_value( (Value*) this, indices, num_indices, VAL_REF, take_indices );
@@ -2821,11 +2808,8 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 	recordptr rptr = RecordPtr(0);
 
 	if ( max_index > rptr->Length() )
-		{
-		error->Report( "record index (=", max_index,
+		return Fail( "record index (=", max_index,
 			") out of range (> ", rptr->Length(), ")" );
-		return error_value();
-		}
 
 	if ( num_indices == 1 )
 		return copy_value( NthField( indices[0] ) );
@@ -3413,7 +3397,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 					{
 
 
-#define ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE					\
+#define ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE				\
 	int err;							\
 	int off = ref->TranslateIndex( offset, &err );			\
 	if ( err )							\
@@ -3497,6 +3481,7 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 				     index[i][j] <= shape[i] )
 					continue;
 
+				SUBOP_CLEANUP(i)
 				if ( len[i] > 1 )
 					error->Report( "index #", i+1, ",",
 							j+1, " into ", this, 
@@ -3504,8 +3489,6 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 				else
 					error->Report( "index #", i+1, "into",
 						this, "is out of range.");
-
-				SUBOP_ABORT(i,)
 				}
 			}
 		}
@@ -3681,6 +3664,14 @@ COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,-)
 
 void Value::Not()
 	{
+	if ( Type() == TYPE_FAIL )
+		{
+		glish_bool *ary = new glish_bool[1];
+		ary[0] = glish_true;
+		kernel.SetArray( ary, 1 );
+		return;
+		}
+
 	if ( ! IsNumeric() )
 		{
 		error->Report( "logical negation of non-numeric value:", this );
@@ -4136,9 +4127,19 @@ Value* empty_value()
 	return create_value( &i, 0, COPY_ARRAY );
 	}
 
-Value* error_value()
+Value* error_value( )
 	{
-	return create_value( glish_false );
+	return create_value( );
+	}
+
+Value* error_value( const char *message )
+	{
+	return create_value( message, (const char*) 0, 0 );
+	}
+
+Value* error_value( const char *message, const char *file, int line )
+	{
+	return create_value( message, file, line );
 	}
 
 Value* create_record()
@@ -4557,4 +4558,111 @@ glish_type max_numeric_type( glish_type t1, glish_type t2 )
 	else TEST_TYPE(TYPE_BYTE)
 	else
 		return TYPE_BOOL;
+	}
+
+static char *format_error_message( const Value *val, char sep, 
+				   unsigned int max_elements,
+				   int useAttributes )
+	{
+	if ( ! val || val->Type() != TYPE_FAIL )
+		return 0;
+
+	const attributeptr attr = val->AttributePtr();
+
+	if ( ! attr )
+		return strdup( "<fail>" );
+
+	const Value *value1;
+	int len = 0;
+	char *intro = "<fail>";
+	char *msg[9];
+	int cnt = 7;
+
+	msg[0] = msg[1] = msg[2] = msg[3] = msg[4] = msg[5] = msg[6] = msg[7] = msg[8] = 0;
+	if ( (value1 = (*attr)["message"]) )
+		{
+		msg[0] = value1->StringVal(sep, max_elements, useAttributes );
+		cnt += strlen(msg[0]);
+		}
+
+	if ( (value1 = (*attr)["file"]) && value1->Type() == TYPE_STRING )
+		{
+		msg[1] = value1->StringVal( sep, max_elements, useAttributes );
+		cnt += strlen(msg[1]);
+		}
+
+	if ( (value1 = (*attr)["line"]) && value1->IsNumeric() )
+		{
+		int l = value1->IntVal();
+		msg[2] = new char[48];
+		sprintf(msg[2],"Line: %d",l);
+		cnt += strlen(msg[2]);
+		}
+
+	if ( (value1 = (*attr)["stack"]) &&
+	     value1->Type() == TYPE_STRING &&
+	     (len = value1->Length()) )
+		{
+		charptr *stack = value1->StringPtr(0);
+		int l = strlen(stack[--len]);
+		msg[3] = new char[l+10];
+		strcpy(msg[3],"Stack:\t");
+		strcat(msg[3],stack[len]);
+		strcat(msg[3],"()");
+		cnt += l + 13;
+		for (int x=4; x < 8 && len; x++)
+			{
+			l = strlen(stack[--len]);
+			msg[x] = new char[l+4];
+			strcpy(msg[x],"\t");
+			strcat(msg[x],stack[len]);
+			strcat(msg[x],"()");
+			cnt += l + 4;
+			}
+		if ( len )
+			{
+			msg[8] = "\t...";
+			cnt += 5;
+			}
+		}
+
+	// Add some for line feeds etc...
+	char *result = new char[ cnt + 24 ];
+
+	strcpy(result, intro);
+	if ( msg[0] ) { strcat(result, ": "); strcat(result, msg[0]); }
+	if ( msg[1] ) { strcat(result, "\n\tFile: "); strcat(result, msg[1]); }
+	if ( msg[2] )
+		{
+		if ( msg[1] ) strcat( result, ", ");
+		else strcat( result, "\n\t");
+		strcat( result, msg[2] );
+		}
+	for ( int x=3; x <= 8; x++ )
+		if ( msg[x] ) { strcat(result, "\n\t"); strcat(result, msg[x]); }
+
+	for ( int i=0; i < 8; i++ )
+		if ( msg[i] ) delete msg[i];
+
+	return result;
+	}
+
+Value *Fail( const RMessage& m0,
+	       const RMessage& m1, const RMessage& m2,
+	       const RMessage& m3, const RMessage& m4,
+	       const RMessage& m5, const RMessage& m6,
+	       const RMessage& m7, const RMessage& m8,
+	       const RMessage& m9, const RMessage& m10,
+	       const RMessage& m11, const RMessage& m12,
+	       const RMessage& m13, const RMessage& m14,
+	       const RMessage& m15, const RMessage& m16
+	   )
+	{
+	return generate_error( m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,
+			       m10,m11,m12,m13,m14,m15,m16 );
+	}
+
+Value *Fail( )
+	{
+	return error_value( );
 	}

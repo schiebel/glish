@@ -34,7 +34,8 @@ glish:
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS glish
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS)
 
 libglish.a:
 	@if test -z "$(ARCH)"; then 				\

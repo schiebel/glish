@@ -61,6 +61,8 @@ int system( const char* string );
 // Interval between subsequent probes, in seconds.
 #define PROBE_INTERVAL 5
 
+extern int allwarn;
+
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
 
@@ -336,6 +338,8 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	argc_ = argc;
 	argv_ = argv;
 
+	error_result = 0;
+
 	agents = new agent_list;
 	init_reporters();
 	init_values();
@@ -449,6 +453,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
 
+		if ( ! strcmp( argv[0], "-w" ) )
+			++allwarn;
+
 		else if ( ! strcmp( argv[0], "-l" ) )
 			if ( argc > 1 )
 				{
@@ -528,9 +535,6 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	if ( load_list->length() )
 		{
-		// Handle the .glishrc startup so that we can use any include
-		// path which might be specified in there.
-		Exec( 1 );
 		loop_over_list( *load_list, i )
 			{
 			char *expanded_name = which_include((*load_list)[i]);
@@ -553,14 +557,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	int do_interactive = 1;
 
 	if ( argc > 0 && strcmp( argv[0], "--" ) )
-		{ // We have a file to parse.
-		// Handle the .glishrc (or "-l") startup scripts so that we can use any
-		// include path which might be specified in there.
-		Exec( 1 );
-
-		// Prevent re-executing the .glishrc statements
-		ClearStmt();
-
+		{
 		Parse( argv[0] );
 		do_interactive = 0;
 		++argv, --argc;
@@ -937,6 +934,12 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 	return result;
 	}
 
+void Sequencer::SetErrorResult( IValue *err )
+	{
+	Unref(cur_sequencer->error_result);
+	cur_sequencer->error_result = err;
+	}
+
 const IValue *Sequencer::LookupVal( const char *id )
 	{
 	Expr *expr = 0;
@@ -1135,9 +1138,10 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 	return 0;
 	}
 
-void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
+const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 					int frame_offset, IValue* value )
 	{
+	const char *ret = 0;
 	IValue* prev_value;
 
 	if ( scope_offset < 0 )
@@ -1162,7 +1166,7 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
 			if ( frame_value && frame_value->IsConst() )
-				error->Report( "'const' values cannot be modified." );
+				ret = "'const' values cannot be modified.";
 			else
 				{
 				prev_value = frame_value;
@@ -1183,7 +1187,7 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
 			if ( frame_value && frame_value->IsConst() )
-				error->Report( "'const' values cannot be modified." );
+				ret = "'const' values cannot be modified.";
 			else
 				{
 				prev_value = frame_value;
@@ -1200,7 +1204,7 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			if ( prev_value && prev_value->IsConst() )
 				{
 				prev_value = global_frame.replace( frame_offset, prev_value );
-				error->Report( "'const' values cannot be modified." );
+				ret = "'const' values cannot be modified.";
 				}
 			}
 			break;
@@ -1210,8 +1214,42 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 		}
 	Unref( prev_value );
+	return ret;
 	}
 
+void Sequencer::PushFuncName( char *name )
+	{
+	cur_sequencer->func_names.append( name );
+	}
+
+void Sequencer::PopFuncName( )
+	{
+	int top_pos = cur_sequencer->func_names.length() - 1;
+
+	if ( top_pos < 0 )
+		fatal->Report(
+			"local frame stack underflow in Sequencer::PopFuncName" );
+
+	char *top = cur_sequencer->func_names.remove_nth( top_pos );
+
+	delete top;
+	}
+
+IValue *Sequencer::FuncNameStack( )
+	{
+	int len = cur_sequencer->func_names.length();
+
+	if ( ! len )
+		return 0;
+
+	charptr *strs = new char*[len];
+
+	for ( int i=0; i < len; i++ )
+		strs[i] = strdup( cur_sequencer->func_names[i] );
+
+	return new IValue( strs, len );
+	}
+		
 
 char* Sequencer::RegisterTask( Task* new_task )
 	{
@@ -1307,22 +1345,30 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 		return 0;
 		}
 
-	IValue *ret = 0;
-
 	stmt_flow_type flow;
 	Stmt *cur_stmts = stmts;		// do this dance with stmts to
 	Ref(cur_stmts);				// prevent stmts from being freed
 						// or reassigned as part of an eval()
-	if ( value_needed )
-		ret = cur_stmts->Exec( 1, flow );
-	else
-		Unref( cur_stmts->Exec( 0, flow ) );
+
+	IValue *ret = cur_stmts->Exec( 1, flow );
+
+	if ( ! value_needed )
+		{
+		if ( ret && ret->Type() == TYPE_FAIL )
+			{
+			ret->Describe( cerr );
+			cerr << endl;
+			}
+		Unref( ret );
+		ret = 0;
+		}
 
 	Unref(cur_stmts);
 
 	if ( ! startup_script )
 		EventLoop();
 
+	ClearStmt();
 	return ret;
 	}
 
@@ -1746,81 +1792,126 @@ void Sequencer::BuildSuspendList()
 	}
 
 
-void Sequencer::Parse( FILE* file, const char* filename )
+IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 	{
 	restart_yylex( file );
 
 	yyin = file;
 	current_sequencer = this;
 	line_num = 1;
-	input_file_name = filename ? strdup( filename ) : 0;
 
 	if ( yyin && isatty( fileno( yyin ) ) )
 		{
 		message->Report( "Glish version ", GLISH_VERSION, ". " );
-
-		// We're about to enter the "interactive" loop, so
-		// first execute any statements we've seen so far due
-		// to .glishrc files.
-		Exec( 1 );
-		ClearStmt();
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 		interactive = 1;
 		}
 	else
-		{
-		// Handle the .glishrc startup so that we can use any include
-		// path which might be specified in there.
-		Exec( 1 );
-
-		ClearStmt();
-
 		interactive = 0;
-		}
 
-	if ( glish_parser() )
+	Str *old_file_name = file_name;
+	Str new_file_name(filename);
+	file_name = &new_file_name;
+
+	NodeUnref( stmts );
+	IValue *ret = glish_parser( stmts );
+
+	if ( ret )
+		{
 		error->Report( "syntax errors parsing input" );
+		SetErrorResult( ret );
+		}
+	else
+		ret = Exec( 1, value_needed );
 
-	// Don't need to delete input_file_name, yylex() already did
-	// that on <<EOF>>.
-	input_file_name = 0;
 
 	line_num = 0;
+
+	file_name = old_file_name;
+
+	return ret;
 	}
 
 
-void Sequencer::Parse( const char file[] )
+IValue *Sequencer::Parse( const char file[], int value_needed )
 	{
 	FILE* f = fopen( file, "r" );
 
 	if ( ! f )
-		error->Report( "can't open file \"", file, "\"" );
-	else
-		Parse( f, file );
+		return (IValue*) generate_error( "can't open file \"", file, "\"" );
+
+
+	return Parse( f, file, value_needed );
 	}
 
-void Sequencer::Parse( const char* strings[] )
+IValue *Sequencer::Parse( const char* strings[], int value_needed )
 	{
 	scan_strings( strings );
-	Parse( 0, "glish internal initialization" );
+	return Parse( 0, "glish internal initialization", value_needed );
 	}
 
 extern void *current_flex_buffer();
-extern void *new_flex_buffer();
+extern void *new_flex_buffer( FILE * );
 extern void delete_flex_buffer(void*);
 extern void set_flex_buffer(void*);
 IValue *Sequencer::Eval( const char* strings[] )
 	{
 	void *old_buf = current_flex_buffer();
-	void *new_buf = new_flex_buffer();
+	void *new_buf = new_flex_buffer( 0 );
 	int is_interactive = interactive;
 	set_flex_buffer(new_buf);
 	ClearStmt();
 	scan_strings( strings );
-	Parse( 0, "glish eval" );
-	IValue *ret = Exec( 1, 1 );
+	IValue *ret = Parse( 0, "glish eval", 1 );
+	set_flex_buffer(old_buf);
+	delete_flex_buffer(new_buf);
+	interactive = is_interactive;
+	return ret;
+	}
+
+extern void clear_error();
+IValue *Sequencer::Include( const char *file )
+	{
+
+	char *expanded_name = which_include( file );
+
+	if ( ! expanded_name )
+		return error_ivalue();
+
+	FILE *fptr = fopen( expanded_name, "r");
+
+	if ( ! fptr )
+		return error_ivalue();
+
+	Str *old_file_name = file_name;
+	Str new_file_name(file);
+	file_name = &new_file_name;
+	void *old_buf = current_flex_buffer();
+	void *new_buf = new_flex_buffer( fptr );
+	int is_interactive = interactive;
+	set_flex_buffer(new_buf);
+
+	error->SetCount(0);
+	interactive = 0;
+
+	NodeUnref( stmts );
+	IValue *ret = glish_parser( stmts );
+
+	if ( ! ret )
+		{
+		ret = Exec( 1, 1 );
+		if ( ret && ret->Type() != TYPE_FAIL )
+			{
+			Unref( ret );
+			ret = 0;
+			}
+		}
+
+	file_name = old_file_name;
+	clear_error();
+	error->SetCount(0);
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
 	interactive = is_interactive;

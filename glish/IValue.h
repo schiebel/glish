@@ -18,6 +18,10 @@ extern void delete_agents( void *ary_, unsigned long len );
 
 class IValue : public Value {
 public:
+	// Create a <fail> value
+	IValue( );
+	IValue( const char *message, const char *file, int lineNum );
+
 	IValue( const Value &v ) : Value(v) { }
 	IValue( const IValue &v ) : Value(v) { }
 
@@ -165,9 +169,12 @@ typedef PList(IValue) ivalue_list;
 
 extern IValue* copy_value( const IValue* value );
 
-#define false_ivalue (const IValue *) false_value
 inline IValue* empty_ivalue() { return (IValue*) empty_value(); }
-inline IValue* error_ivalue() { return (IValue*) error_value(); }
+inline IValue* error_ivalue( ) { return (IValue*) error_value(); }
+inline IValue* error_ivalue( const char *message ) { return (IValue*) error_value(message); }
+inline IValue* error_ivalue( const char *message, const char *file, int line )
+		{ return (IValue*) error_value(message, file, line); }
+inline IValue* false_ivalue() { return new IValue( glish_false ); }
 inline IValue* create_irecord() { return (IValue*) create_record(); }
 inline IValue* isplit( char* source, char* split_chars = " \t\n" )
 	{ return (IValue*) split(source, split_chars); }

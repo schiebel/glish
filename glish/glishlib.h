@@ -4,6 +4,10 @@
 #define glishlib_h
 
 #define DEFINE_CREATE_VALUE(type)						\
+	Value *create_value( )							\
+		{ return new type( ); }						\
+	Value *create_value( const char *message, const char *file, int line )	\
+		{ return new type( message, file, line ); }			\
 	Value *create_value( const Value &value )				\
 		{ return new type( value ); }					\
 	Value *create_value( glish_bool value )					\
