@@ -84,7 +84,7 @@ func any(x) sum(as_boolean(x)) > 0
 len := length
 ceil := ceiling
 
-func ind(x) 1:len(x)
+func ind(x) { if ( len(x) > 0 ) 1:len(x); else [] }
 
 func paste(...,sep=' ')
 	internal_paste(sep, ...)
