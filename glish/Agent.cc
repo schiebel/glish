@@ -78,6 +78,7 @@ Agent::~Agent()
 		{
 		loop_over_list( *list, i )
 			delete (*list)[i];
+		delete list;
 		}
 
 
@@ -90,7 +91,10 @@ Agent::~Agent()
 			}
 
 		delete string_copies;
-		}
+		}	
+
+	loop_over_list( unref_stmts, i )
+		NodeUnref( unref_stmts[i] );
 
 	}
 
@@ -345,6 +349,20 @@ int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
 			return 1;
 
 	return 0;
+	}
+
+void Agent::RegisterUnref( Stmt *s )
+	{
+	if ( ! unref_stmts.is_member(s) )
+		{
+		Ref( s );
+		unref_stmts.append( s );
+		}
+	}
+
+void Agent::UnRegisterUnref( Stmt *s )
+	{
+	Stmt *stmt = unref_stmts.remove(s);
 	}
 
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,

@@ -30,6 +30,11 @@ EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
 	event_agent_ref = 0;
 	}
 
+EventDesignator::~EventDesignator( )
+	{
+	NodeUnref( agent );
+	NodeUnref( event_name_expr );
+	}
 
 Agent* EventDesignator::EventAgent( value_type val_type )
 	{

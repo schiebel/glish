@@ -60,6 +60,8 @@ public:
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	~EventDesignator();
+
 protected:
 	Expr* agent;
 	Expr* event_name_expr;

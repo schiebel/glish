@@ -81,6 +81,15 @@ class Agent : public GlishObject {
 	// Undo RegisterInterest()
 	void UnRegisterInterest( Stmt* s, const char* field = 0 );
 
+	//
+	// Statements to be Unref'ed when this agent goes away...
+	//
+	void RegisterUnref( Stmt *s );
+	//
+	// Avoid Unref'ing, but caller must Unref 's' if it is no
+	// longer needed...
+	//
+	void UnRegisterUnref( Stmt *s );
 
 	// True if the given statement has expressed interested in
 	// this Agent for the given field (or for all fields).
@@ -137,6 +146,8 @@ class Agent : public GlishObject {
 
 	notification_dict interested_parties;
 	string_list* string_copies;
+
+	stmt_list unref_stmts;
 
 	const char* agent_ID;
 	IValue* agent_value;

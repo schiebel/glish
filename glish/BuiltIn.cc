@@ -1308,17 +1308,54 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	// First argument gives separator string.
 	char* separator = (*args_val)[0]->StringVal();
 
-	charptr* string_vals = (charptr*) alloc_memory( sizeof(charptr)*args_val->length() );
+	charptr* string_vals = 0;
 
 	int len = 1;	// Room for end-of-string.
 	int sep_len = strlen( separator );
 
 	int i = 1;
-	for ( ; i < args_val->length(); ++i )
+	if ( args_val->length() != 2 || (*args_val)[1]->VecRefDeref()->Type() != TYPE_STRING )
 		{
-		unsigned int limit = (*args_val)[i]->PrintLimit();
-		string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
-		len += strlen( string_vals[i] ) + sep_len;
+		string_vals = (charptr*) alloc_memory( sizeof(charptr)*args_val->length() );
+		for ( ; i < args_val->length(); ++i )
+			{
+			unsigned int limit = (*args_val)[i]->PrintLimit();
+			string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
+			len += strlen( string_vals[i] ) + sep_len;
+			}
+		}
+	else
+		{
+		const IValue *val = (IValue*)((*args_val)[1]->Deref());
+		if ( val->Type() == TYPE_STRING )
+			{
+			charptr *strs = val->StringPtr(0);
+			int xlen = val->Length();
+			string_vals = (charptr*) alloc_memory( sizeof(charptr)*(xlen+1) );
+			for ( ; i < xlen+1; ++i )
+				{
+				string_vals[i] = strdup(strs[i-1]);
+				len += strlen( string_vals[i] ) + sep_len;
+				}
+			}
+		else if ( val->Type ( ) == TYPE_SUBVEC_REF )
+			{
+			VecRef* ref = val->VecRefPtr();
+			int xlen = ref->Length();
+			string_vals = (charptr*) alloc_memory( sizeof(charptr)*(xlen+1) );
+			IValue* theVal = (IValue*) ref->Val();
+			charptr *strs = theVal->StringPtr(0);
+			int err = 0;
+			for ( ; i < xlen+1; ++i )
+				{
+				int off = ref->TranslateIndex( i-1, &err );
+				if ( err ) return (IValue*) Fail("paste");
+				string_vals[i] = strdup(strs[off]);
+				len += strlen( string_vals[i] ) + sep_len;
+				}
+			}
+
+			
 		}
 
 	char* paste_val = (char*) alloc_memory( sizeof(char)*(len+1) );

@@ -77,6 +77,8 @@ void nb_reset_term( int );
 // Interval between subsequent probes, in seconds.
 #define PROBE_INTERVAL 5
 
+int glish_dummy_int =  0;
+
 extern int allwarn;
 
 // Keeps track of the current sequencer...
@@ -94,6 +96,7 @@ void system_change_function(IValue *, IValue *n)
 	{
 	Sequencer::CurSeq()->System().SetVal(n);
 	}
+
 
 stack_type::stack_type( )
 	{
@@ -1547,9 +1550,10 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 	return var;
 	}
 
-Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
+Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var, int &created )
 	{
 	Expr *result = 0;
+	created = 0;
 
 	switch ( scope )
 		{
@@ -1566,17 +1570,20 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				{
 				scopes[off]->MarkGlobalRef( id );
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
-					return CreateVarExpr( id, 
-							      ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 && 
-								((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE ) 
-							      ? GLOBAL_SCOPE : LOCAL_SCOPE,
+					{
+					created = 1;
+					return CreateVarExpr( id, ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 && 
+								    ((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE ) 
+								    ? GLOBAL_SCOPE : LOCAL_SCOPE,
 							      cnt+1 - goff + ((VarExpr*)((*scopes[cnt+1])[id]))->soffset(),
 							      ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
+					}
 				}
 
 			if ( ! result )
 				return InstallVar( id, GLOBAL_SCOPE, var );
 			}
+
 			break;
 		case LOCAL_SCOPE:
 			{
@@ -1993,6 +2000,11 @@ int Sequencer::RegisterStmt( Stmt* stmt )
 	{
 	registered_stmts.append( stmt );
 	return registered_stmts.length();
+	}
+
+void Sequencer::UnregisterStmt( Stmt* stmt )
+	{
+	registered_stmts.remove( stmt );
 	}
 
 Stmt* Sequencer::LookupStmt( int index )

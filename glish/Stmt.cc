@@ -237,16 +237,29 @@ void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *a
 	stack = sequencer->LocalFrames();
 
 	loop_over_list( *trigger, i )
+		{
 		(*trigger)[i]->Register( new Notifiee( this, stack ) );
+		(*trigger)[i]->EventAgent( VAL_CONST )->RegisterUnref( this );
+		(*trigger)[i]->EventAgentDone( );
+		}
 
 	active = 1;
+
+	if ( RefCount() > 1 )
+		Unref(this);
+	else
+		{
+		Str err = strFail( "WheneverStmt ref count" );
+		cerr << err.Chars() << endl;
+		}
 
 	sequencer->WheneverExecuted( this );
 	}
 
 int WheneverStmt::canDelete() const
 	{
-	return shutting_glish_down;
+// 	return shutting_glish_down;
+	return 1;
 	}
 
 void WheneverStmt::Notify( Agent* /* agent */ )
@@ -298,6 +311,8 @@ void WheneverStmt::TagGC( )
 
 WheneverStmt::~WheneverStmt()
 	{
+	sequencer->UnregisterStmt( this );
+
 	NodeUnref( stmt );
 
 	if ( trigger && trigger->RefCount() == 1 )

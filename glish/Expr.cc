@@ -286,16 +286,17 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 
 	Expr *ret = 0;
 
+	int created = 0;
 	switch ( m )
 		{
 		case SCOPE_LHS:
 			ret = sequencer->LookupVar( strdup(id), LOCAL_SCOPE,
-							this );
+							this, created );
 			break;
 		case SCOPE_UNKNOWN:
 		case SCOPE_RHS:
 			ret = sequencer->LookupVar( strdup(id), ANY_SCOPE,
-							this );
+							this, created );
 			break;
 		default:
 			fatal->Report("bad scope modifier tag in VarExpr::DoBuildFrameInfo()");
@@ -306,7 +307,8 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 		if ( ! dl.is_member(this) )
 			dl.append( this );
 
-		Ref(ret);
+		if ( ! created )
+			Ref(ret);
 
 		if ( RefCount() > 1 )
 			Unref(this);
@@ -459,7 +461,13 @@ int UnaryExpr::DescribeSelf( OStream &s, charptr prefix ) const
 
 Expr *UnaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	{
-	op = op->DoBuildFrameInfo( m, dl );
+	Expr *n = op->DoBuildFrameInfo( m, dl );
+	if ( n != op )
+		{
+		if ( ! dl.is_member(op) )
+			dl.append(op);
+		op = n;
+		}
 	return this;
 	}
 
@@ -571,8 +579,22 @@ int AssignExpr::Invisible() const
 
 Expr *AssignExpr::DoBuildFrameInfo( scope_modifier, expr_list &dl )
 	{
-	right = right->DoBuildFrameInfo( SCOPE_RHS, dl );
-	left = left->DoBuildFrameInfo( SCOPE_LHS, dl );
+	Expr *n = right->DoBuildFrameInfo( SCOPE_RHS, dl );
+	if ( n != right )
+		{
+		if ( ! dl.is_member(right) )
+			dl.append(right);
+		right = n;
+		}
+
+	n = left->DoBuildFrameInfo( SCOPE_LHS, dl );
+	if ( n != left )
+		{
+		if ( ! dl.is_member(left) )
+			dl.append(left);
+		left = n;
+		}
+
 	return this;
 	}
 

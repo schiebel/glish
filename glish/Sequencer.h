@@ -176,6 +176,8 @@ private:
 };
 	
 
+extern int glish_dummy_int;
+
 class Sequencer {
 public:
 	friend class SystemInfo;
@@ -208,7 +210,8 @@ public:
 			int local_search_all=1 );
 
 	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
-	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
+	Expr* LookupVar( char* id, scope_type scope, VarExpr *var,
+			 int &created = glish_dummy_int );
 
 	static Sequencer *CurSeq( );
 	static const AwaitStmt *ActiveAwait( );
@@ -280,6 +283,7 @@ public:
 	// can be used to retrieve the statement using LookupStmt().
 	// Indexes are small positive integers.
 	int RegisterStmt( Stmt* stmt );
+	void UnregisterStmt( Stmt* stmt );
 
 	// Returns 0 if the index is invalid.
 	Stmt* LookupStmt( int index );
