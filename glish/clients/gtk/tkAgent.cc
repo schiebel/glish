@@ -88,47 +88,6 @@ glishtk_event::~glishtk_event()
 	free_memory( nme );
 	}
 
-// static Value *ScrollToValue( Scrollbar_notify_data *data )
-// 	{
-// 	recordptr rec = create_record_dict();
-
-// 	rec->Insert( strdup("vertical"), new Value( data->scrollbar_is_vertical ) );
-// 	rec->Insert( strdup("op"), new Value( data->scroll_op ) );
-// 	rec->Insert( strdup("newpos"), new Value( data->newpos ) );
-
-// 	return new Value( rec );
-// 	}
-
-// static Scrollbar_notify_data *ValueToScroll( const Value *data )
-// 	{
-// 	if ( data->Type() != TYPE_RECORD )
-// 		return 0;
-
-// 	Value *vertical;
-// 	Value *op;
-// 	Value *newpos;
-// 	if ( ! (vertical = (Value*) (data->HasRecordElement( "vertical" )) ) ||
-// 	     ! (op = (Value*) (data->HasRecordElement( "op" ) )) ||
-// 	     ! (newpos = (Value*) (data->HasRecordElement( "newpos" ) )) )
-// 		return 0;
-
-// 	if ( vertical->Type() != TYPE_INT ||
-// 	     ! vertical->Length() ||
-// 	     op->Type() != TYPE_INT ||
-// 	     ! op->Length() ||
-// 	     newpos->Type() != TYPE_DOUBLE ||
-// 	     ! newpos->Length() )
-// 		return 0;
-
-// 	Scrollbar_notify_data *ret = new Scrollbar_notify_data;
-
-// 	ret->scrollbar_is_vertical = vertical->IntVal();
-// 	ret->scroll_op = op->IntVal();
-// 	ret->newpos = newpos->DoubleVal();
-
-// 	return ret;
-// 	}
-
 Value *glishtk_splitnl( char *str )
 	{
 	char *prev = str;
@@ -1213,33 +1172,29 @@ char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-
-char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *data )
+char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
 	{
-// 	static char ret[5];
-// 	Scrollbar_notify_data *data_ = ValueToScroll( data );
-// 	if ( ! data_ ) return 0;
-// 	rivet_scrollbar_set_client_view( self, data_ );
-// 	delete data_;
-// 	ret[0] = (char) 0;
-// 	return ret;
+	if ( val->Type() != TYPE_STRING || val->Length() != 1 )
+		return 0;
+
+	Tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], 0 );
+	cout << "update: " << Tk_PathName(self) << SP << val->StringPtr(0)[0] << endl;
 	return 0;
 	}
 
-char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window self, const char *, Value *val )
+char *glishtk_scrollbar_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
 	{
-// 	static char ret[5];
+	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
+		{
+		global_store->Error("scrollbar update function");
+		return 0;
+		}
 
-// 	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
-// 		{
-// 		global_store->Error("scrollbar update function");
-// 		return 0;
-// 		}
+	double *firstlast = val->DoublePtr(0);
 
-// 	double *firstlast = val->DoublePtr(0);
-// 	rivet_scrollbar_set( self, firstlast[0], firstlast[1] );
-// 	ret[0] = (char) 0;
-// 	return ret;
+	char args[75];
+	sprintf( args," set %f %f", firstlast[0], firstlast[1] );
+	Tcl_VarEval( tcl, Tk_PathName(self), args, 0 );
 	return 0;
 	}
 
@@ -2610,7 +2565,6 @@ void TkButton::UnMap()
 			}
 		else
 			{
-			if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " configure -postcommand \"\"", 0 );
 			Tk_DestroyWindow( self );
 			}
 		}
@@ -2661,12 +2615,6 @@ int buttoncb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	((TkButton*)data)->ButtonPressed();
 	return TCL_OK;
 	}
-
-int tk_button_menupost(Tk_Window, XEvent *, ClientData, ClientData)
-	{
-	return TCL_OK;
-	}
-
 
 void TkButton::EnterEnable()
 	{
@@ -2838,14 +2786,15 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
-//  			rivet_set(self, "-postcommand", rivet_new_callback( (int (*)()) tk_button_menupost, (ClientData) this, 0));
 			argv[0] = "menu";
 			argv[1] = NewName(self);
 			argv[2] = "-tearoff";
 			argv[3] = "0";
-			tcl_ArgEval( tcl, c, argv );
+			tcl_ArgEval( tcl, 4, argv );
 			menu_base = Tk_NameToWindow( tcl, argv[1], root );
-			Tcl_VarEval( tcl, Tk_PathName(self), " -menu ", Tk_PathName(menu_base), 0 );
+			if ( ! menu_base )
+				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -menu ", Tk_PathName(menu_base), 0 );
 			break;
 		default:
 			argv[0] = "button";
@@ -3020,8 +2969,10 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 			av[1] = NewName(menu->Menu());
 			av[2] = "-tearoff";
 			av[3] = "0";
-			tcl_ArgEval( tcl, c, argv );
+			tcl_ArgEval( tcl, 4, argv );
 			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
+			if ( ! menu_base )
+				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 			argv[c++] = "-menu";
 			argv[c++] = Tk_PathName(self);
 			tcl_ArgEval( tcl, c, argv );
@@ -3415,17 +3366,21 @@ void TkText::UnMap()
 	TkAgent::UnMap();
 	}
 
-int text_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int text_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkText*)assoc)->yScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkText*)data)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int text_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int text_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkText*)assoc)->xScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkText*)data)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
@@ -3527,10 +3482,13 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		argv[c++] = "-font";
 		argv[c++] = (char*) font;
 		}
-// 	argv[c++] = "-yscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) text_yscrollcb, (ClientData) this, 0);
-// 	argv[c++] = "-xscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) text_xscrollcb, (ClientData) this, 0);
+
+	// STRANGE TCL/Tk 8.0 seems to have exchanged
+	// the sense of xscroll and yscroll?????
+	argv[c++] = "-yscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, text_xscrollcb, this );
+	argv[c++] = "-xscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, text_yscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 
@@ -3632,12 +3590,28 @@ void TkScrollbar::UnMap()
 	TkAgent::UnMap();
 	}
 
-// int scrollbarcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
-// 	{
-// 	Scrollbar_notify_data *data = (Scrollbar_notify_data*) calldata;
-// 	((TkScrollbar*)assoc)->Scrolled( ScrollToValue( data ) );
-// 	return TCL_OK;
-// 	}
+int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
+	{
+	char buf[256];
+	int vert = 0;
+	Tcl_VarEval( tcl, Tk_PathName(((TkScrollbar*)data)->Self()), " cget -orient", 0 );
+	charptr res = Tcl_GetStringResult(tcl);
+	if ( *res == 'v' ) vert = 1;
+
+	if ( argc == 4 )
+		if ( vert )
+			sprintf( buf, "yview %s %s %s", argv[1], argv[2], argv[3] );
+		else
+			sprintf( buf, "xview %s %s %s", argv[1], argv[2], argv[3] );
+	else
+		if ( vert )
+			sprintf( buf, "yview %s %s", argv[1], argv[2] );
+		else
+			sprintf( buf, "xview %s %s", argv[1], argv[2] );
+
+	((TkScrollbar*)data)->Scrolled( new Value( buf ));
+	return TCL_OK;
+	}
 
 TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 			  int width, charptr foreground, charptr background )
@@ -3660,8 +3634,8 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = (char*) orient;
 	argv[c++] = "-width";
 	argv[c++] = width_;
-// 	argv[c++] = "-command";
-// 	argv[c++] = rivet_new_callback((int (*)()) scrollbarcb, (ClientData) this, 0);
+	argv[c++] = "-command";
+	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
