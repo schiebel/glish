@@ -485,6 +485,7 @@ IValue* AssignExpr::Eval( eval_type etype )
 	{
 	IValue *r_err = 0;
 	IValue *r = right->CopyEval();
+	if ( ! r ) return 0;
 	if ( r->Type() == TYPE_FAIL )
 		r_err = copy_value(r);
 	IValue *l_err = left->Assign( r );
