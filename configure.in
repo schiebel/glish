@@ -1152,7 +1152,7 @@ RPATH_PREFIX="-L"
 TK_CXX_RPATH=""
 GC_LOW_OPT=""
 GC_MACH_DEP=""
-MACH_SYSINFO=sysinfo/dummy.cc
+MACH_SYSINFO=sysinfo/stub.cc
 
 case $host_os in
     aix*)
@@ -1620,7 +1620,7 @@ case $host_os in
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	GC_MACH_DEP=sparc_mach_dep.o
 	MACH_SYSINFO=sysinfo/solaris.cc
-        GLIBS="$GLIBS -lkvm -lkstat"
+        GLIBS="$GLIBS -lkstat"
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
