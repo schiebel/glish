@@ -256,6 +256,7 @@ AC_CHECK_HEADERS(sys/signal.h fp.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(stdlib.h)
 AC_CHECK_HEADERS(dirent.h termio.h sys/shm.h)
+AC_CHECK_HEADERS(siginfo.h ucontext.h floatingpoint.h)
 
 dnl##
 dnl## Checks for typedefs, structures, and compiler characteristics.
@@ -275,6 +276,20 @@ AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr)
+
+AC_CHECK_FUNC(sigfpe,[
+AC_DEFINE(HAVE_SIGFPE)
+AC_MSG_CHECKING([for FPE_INTDIV define])
+AC_TRY_COMPILE(,[
+#ifdef HAVE_SIGINFO_H
+#include <siginfo.h>
+#endif
+#ifdef HAVE_UCONTEXT_H
+#include <ucontext.h>
+#endif
+int i = FPE_INTDIV;
+],[AC_MSG_RESULT(defined); AC_DEFINE(HAVE_FPE_INTDIV)],AC_MSG_RESULT(not defined))
+])
 
 AC_CHECK_FUNC(writev,[
 AC_DEFINE(HAVE_WRITEV)
