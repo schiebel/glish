@@ -1379,11 +1379,15 @@ void TkAgent::Version( ProxyStore *s, Value *, void *)
 	{
 	Value *tkv = new Value( TK_VERSION );
 	attributeptr tka = tkv->ModAttributePtr();
+#if defined(TK_PATCH_LEVEL)
         tka->Insert( strdup( "patch" ), new Value(TK_PATCH_LEVEL) );
+#endif
 	Value *tclv = new Value(TCL_VERSION);
         tka->Insert( strdup( "tcl" ), tclv );
+#if defined(TCL_PATCH_LEVEL)
 	attributeptr tcla = tclv->ModAttributePtr();
 	tcla->Insert( strdup( "patch" ), new Value(TCL_PATCH_LEVEL) );
+#endif
 
 	if ( s->ReplyPending() )
 		s->Reply( tkv );
