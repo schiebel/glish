@@ -209,7 +209,9 @@ int main( int argc, char** argv )
 
 	seed_random_number_generator();
 
+#ifdef GGC
 	Garbage::init();
+#endif
 
 	s = new Sequencer( argc, argv );
 
@@ -220,7 +222,9 @@ int main( int argc, char** argv )
 	delete s;
 	delete srpt;
 
+#ifdef GGC
 	Garbage::finalize();
+#endif
 
 	return 0;
 	}

@@ -3,7 +3,6 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef stmt_h
 #define stmt_h
-
 #include "Glish/List.h"
 #include "Func.h"
 #include "Event.h"
@@ -85,7 +84,9 @@ class Stmt : public ParseNode {
 	//
 	virtual void CollectUnref( stmt_list & );
 
+#ifdef GGC
 	virtual void TagGC( );
+#endif
 
     protected:
 	// DoExec() does the real work of executing the statement.
@@ -134,7 +135,9 @@ class WheneverStmt : public Stmt {
 
 	int canDelete() const;
 
+#ifdef GGC
 	void TagGC( );
+#endif
 
     protected:
 	event_list* trigger;

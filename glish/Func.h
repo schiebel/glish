@@ -28,7 +28,9 @@ class Func : public GlishObject {
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
 
+#ifdef GGC
 	virtual void TagGC();
+#endif
 
     protected:
 	int mark;
@@ -171,7 +173,9 @@ class UserFunc : public Func {
 
 	void Describe( OStream& s ) const;
 
+#ifdef GGC
 	void TagGC();
+#endif
 
     protected:
 	Sequencer* sequencer;

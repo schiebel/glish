@@ -54,7 +54,7 @@ void delete_funcs( void *ary_, unsigned int len )
 	}
 
 extern int interactive;
-IValue::IValue( ) : Value( ), gc(this)
+IValue::IValue( ) : Value( ) GGCTOR
 	{
 	const IValue *other = 0;
 	if ( other = FailStmt::GetFail() )
@@ -81,7 +81,7 @@ IValue::IValue( ) : Value( ), gc(this)
 		}
 	}
 
-IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ), gc(this)
+IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ) GGCTOR
 	{
 	const IValue *other = 0;
 	if ( !message && (other = FailStmt::GetFail()) )
@@ -107,7 +107,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		}
 	}
 
-IValue::IValue( funcptr value ) : Value(TYPE_FUNC), gc(this)
+IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
 	InitValue();
 	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
@@ -115,14 +115,14 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC), gc(this)
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
 	}
 
-IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC), gc(this)
+IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
 	{
 	InitValue();
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY,
 			 copy_funcs, 0, delete_funcs );
 	}
 
-IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT), gc(this)
+IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
 	InitValue();
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
@@ -135,7 +135,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1, copy_agents, 0, delete_agents );
 	}
 
-IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT), gc(this)
+IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
 	{
 	InitValue();
 	value->Insert( strdup( AGENT_MEMBER_NAME ),
@@ -566,6 +566,7 @@ int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 	return 1;
 	}
 
+#ifdef GGC
 void IValue::TagGC( )
 	{
 	if ( gc.isTaged() ) return;
@@ -596,6 +597,7 @@ void IValue::TagGC( )
 			break;
 		}
 	}
+#endif
 
 IValue *copy_value( const IValue *value )
 	{

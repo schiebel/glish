@@ -1777,11 +1777,13 @@ IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return copy_value( cur->Missing() );
 	}
 
+#ifdef GGC
 IValue* GarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	sequencer->CollectGarbage( );
 	return new IValue( glish_true );
 	}
+#endif
 
 IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -2248,7 +2250,10 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new IsConstBuiltIn );
 	s->AddBuiltIn( new IsModifiableBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
+
+#ifdef GGC
 	s->AddBuiltIn( new GarbageBuiltIn( s ) );
+#endif
 
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );

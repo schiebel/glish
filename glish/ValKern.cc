@@ -11,7 +11,9 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef GGC
 extern int glish_collecting_garbage;
+#endif
 
 void ValueKernel::record_t::clear()
 	{
@@ -409,7 +411,11 @@ void ValueKernel::refOthers()
 
 void ValueKernel::unrefOthers()
 	{
-	if ( VALUE(mode) && ! glish_collecting_garbage )
+	if ( VALUE(mode) 
+#ifdef GGC
+	     && ! glish_collecting_garbage
+#endif
+	     )
 		Unref( value );
 	else if ( REF(mode) )
 		Unref( vecref );
@@ -512,10 +518,12 @@ void delete_record( recordptr r )
 		Value* member;
 		const char* key;
 
+#ifdef GGC
 		if ( glish_collecting_garbage )
 			while ( (member = r->NextEntry( key, c )) )
 				free_memory( (void*) key );
 		else
+#endif
 			while ( (member = r->NextEntry( key, c )) )
 				{
 				free_memory( (void*) key );

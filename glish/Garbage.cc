@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1997 Associated Universities Inc.
-
+#ifdef GGC
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "Garbage.h"
@@ -39,3 +39,4 @@ void Garbage::collect( int report )
 		}
 	glish_collecting_garbage = 0;
 	}
+#endif

@@ -12,7 +12,9 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "system.h"
 
+#ifdef GGC
 extern int glish_collecting_garbage;
+#endif
 
 glish_implement(SubVecRef,glish_bool)
 glish_implement(SubVecRef,byte)
@@ -88,7 +90,10 @@ VecRef::~VecRef()
 		free_memory( indices );
 
 	Unref( ref );
+
+#ifdef GGC
 	if ( ! glish_collecting_garbage )
+#endif
 		Unref( val );
 	}
 

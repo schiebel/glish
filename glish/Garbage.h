@@ -2,6 +2,7 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef garbage_h_
 #define garbage_h_
+#ifdef GGC
 #include "Glish/Value.h"
 
 class Garbage;
@@ -21,7 +22,7 @@ public:
 
 	static void collect( int report = 0 );
 	void tag( ) { mark = 1; }
-	int clear( ) { mark = 0; }
+	void clear( ) { mark = 0; }
 	int isTaged( ) { return (int) mark; }
 
 protected:
@@ -32,5 +33,5 @@ private:
 	void *operator new( size_t ) { return 0; }
 	Garbage( const Garbage & ) { }
 };
-
+#endif
 #endif

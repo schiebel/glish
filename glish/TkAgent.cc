@@ -1235,7 +1235,9 @@ void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest
 	{
 	if ( hold_glish_events )
 		{
+#ifdef GGC
 		sequencer->RegisterValue(v);
+#endif
 		tk_queue->EnQueue( new glishtk_event( sequencer, this, s, v, complain_if_no_interest, t ) );
 		}
 	else
@@ -1251,7 +1253,9 @@ void TkAgent::FlushGlishEvents()
 		hold_glish_events = 0;
 		while ( (e = tk_queue->DeQueue()) )
 			{
+#ifdef GGC
 			Sequencer::CurSeq()->UnregisterValue(e->value());
+#endif
 			e->Post();
 			delete e;
 			}
@@ -2248,7 +2252,9 @@ TkButton::~TkButton( )
 
 	if ( value )
 		{
+#ifdef GGC
 		sequencer->UnregisterValue( value );
+#endif
 		Unref(value);
 		}
 
@@ -2302,7 +2308,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val, charptr fill_ )
 			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0),
-			  menu_base(0), fill(0), menu_index(0), unmapped(0)
+			  menu_base(0), fill(0), menu_index(0), unmapped(0), radio_id(0)
 	{
 	type = PLAIN;
 	frame = frame_;
@@ -2402,7 +2408,9 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 
 	value = val ? copy_value( val ) : 0;
+#ifdef GGC
 	if ( value ) sequencer->RegisterValue( value );
+#endif
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2430,7 +2438,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val )
 			: value(0), TkAgent( s ), state(0), next_menu_entry(0),
-			  menu_base(0), menu_index(0), unmapped(0)
+			  menu_base(0), menu_index(0), unmapped(0), radio_id(0)
 	{
 	type = PLAIN;
 
@@ -2546,7 +2554,9 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		}
 
 	value = val ? copy_value( val ) : 0;
+#ifdef GGC
 	if ( value ) sequencer->RegisterValue( value );
+#endif
 
 	menu_index = strdup( rivet_va_cmd(menu->Menu(), "index", "last", 0) );
 

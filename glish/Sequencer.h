@@ -3,11 +3,8 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef sequencer_h
 #define sequencer_h
-
 #include <stdio.h>
-
 #include "Glish/Client.h"
-
 #include "Stmt.h"
 #include "Queue.h"
 #include "Agent.h"
@@ -51,7 +48,10 @@ public:
 	IValue* value;
 	Notifiee* notifiee;
 	NotifyTrigger *trigger;
+
+#ifdef GGC
 	void TagGC( ) { if ( value ) value->TagGC(); }
+#endif
 	};
 
 
@@ -100,7 +100,10 @@ struct stack_type : GlishRef {
 	offset_list *offsets;
 	int olen;
 	int delete_on_spot;
+
+#ifdef GGC
 	void TagGC( );
+#endif
 };
 
 glish_declare(PList,stack_type);
@@ -419,6 +422,7 @@ public:
 	//
 	void UpdateBinPath( const char *host = 0 );
 
+#ifdef GGC
 	//
 	// go through all values and delete any which aren't
 	// referenced via the globals
@@ -432,6 +436,7 @@ public:
 		{ registered_values.append(v); }
 	void UnregisterValue( IValue *v )
 		{ registered_values.remove(v); }
+#endif
 
 	//
 	// register current whenever ctor, for use in
@@ -505,7 +510,9 @@ protected:
 	Stmt* stmts;
 	PList(Stmt) registered_stmts;
 
+#ifdef GGC
 	ivalue_list registered_values;
+#endif
 
 	Stmt* await_stmt;
 	agent_dict* await_dict;

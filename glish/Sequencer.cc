@@ -137,6 +137,7 @@ stack_type::~stack_type( )
 	Unref( offsets );
 	}
 
+#ifdef GGC
 void stack_type::TagGC( )
 	{
 	if ( ! frames ) return;
@@ -144,6 +145,7 @@ void stack_type::TagGC( )
 		if ( (*frames)[i] )
 			(*frames)[i]->TagGC();
 	}
+#endif
 
 // A special type of Client used for script clients.  It overrides
 // FD_Change() to create or delete ScriptSelectee's as needed.
@@ -3102,6 +3104,7 @@ void Sequencer::ClearWhenevers( )
 		cur_whenever.remove_nth(--len);
 	}
 
+#ifdef GGC
 void Sequencer::CollectGarbage( )
 	{
 	((IValue*)false_value)->TagGC();
@@ -3123,6 +3126,7 @@ void Sequencer::CollectGarbage( )
 
 	Garbage::collect( 1 );
 	}
+#endif
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
     : Selectee( t->GetChannel()->Source().fd() )

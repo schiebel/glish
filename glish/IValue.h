@@ -3,9 +3,10 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef ivalue_h
 #define ivalue_h
-
 #include "Glish/Value.h"
+#ifdef GGC
 #include "Garbage.h"
+#endif
 
 extern const char *glish_charptrdummy;
 
@@ -20,24 +21,30 @@ typedef Agent* agentptr;
 extern void copy_agents( void *to_, void *from_, unsigned long len );
 extern void delete_agents( void *ary_, unsigned long len );
 
+#ifdef GGC
+#define GGCTOR	, gc(this)
+#else
+#define GGCTOR
+#endif
+
 class IValue : public Value {
 public:
 	// Create a <fail> value
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
 
-	IValue( const Value &v ) : Value(v), gc(this) { }
-	IValue( const IValue &v ) : Value(v), gc(this) { }
+	IValue( const Value &v ) : Value(v) GGCTOR { }
+	IValue( const IValue &v ) : Value(v) GGCTOR { }
 
-	IValue( glish_bool v ) : Value( v ), gc(this) { }
-	IValue( byte v ) : Value( v ), gc(this) { }
-	IValue( short v ) : Value( v ), gc(this) { }
-	IValue( int v ) : Value( v ), gc(this) { }
-	IValue( float v ) : Value( v ), gc(this) { }
-	IValue( double v ) : Value( v ), gc(this) { }
-	IValue( complex v ) : Value( v ), gc(this) { }
-	IValue( dcomplex v ) : Value( v ), gc(this) { }
-	IValue( const char* v ) : Value( v ), gc(this) { }
+	IValue( glish_bool v ) : Value( v ) GGCTOR { }
+	IValue( byte v ) : Value( v ) GGCTOR { }
+	IValue( short v ) : Value( v ) GGCTOR { }
+	IValue( int v ) : Value( v ) GGCTOR { }
+	IValue( float v ) : Value( v ) GGCTOR { }
+	IValue( double v ) : Value( v ) GGCTOR { }
+	IValue( complex v ) : Value( v ) GGCTOR { }
+	IValue( dcomplex v ) : Value( v ) GGCTOR { }
+	IValue( const char* v ) : Value( v ) GGCTOR { }
 	IValue( funcptr v );
 
 	// If "storage" is set to "COPY_ARRAY", then the underlying
@@ -45,58 +52,58 @@ public:
 	// "TAKE_OVER_ARRAY" it will simply be used.
 	IValue( agentptr value, array_storage_type storage = COPY_ARRAY );
 
-	IValue( recordptr v ) : Value( v ), gc(this) { }
+	IValue( recordptr v ) : Value( v ) GGCTOR { }
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
-			Value( ref_value, val_type ), gc(this) { }
+			Value( ref_value, val_type ) GGCTOR { }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
 		value_type val_type, int take_index = 0 ) :
 			Value( ref_value, index, num_elements,
-			       val_type, take_index ), gc(this) { }
+			       val_type, take_index ) GGCTOR { }
 
 	IValue( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( byte value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( short value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( int value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( float value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( double value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( complex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( charptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ), gc(this) { }
+			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
-	IValue( glish_boolref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( byteref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( shortref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( intref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( floatref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( doubleref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( complexref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( dcomplexref& value_ref ) : Value( value_ref ), gc(this) { }
-	IValue( charptrref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( glish_boolref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( byteref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( shortref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( intref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( floatref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( doubleref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( complexref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( dcomplexref& value_ref ) : Value( value_ref ) GGCTOR { }
+	IValue( charptrref& value_ref ) : Value( value_ref ) GGCTOR { }
 
 	~IValue();
 
@@ -145,7 +152,9 @@ public:
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+#ifdef GGC
 	virtual void TagGC( );
+#endif
 
 protected:
 	void DeleteValue();
@@ -162,7 +171,10 @@ protected:
 
 	// Note: if member variables are added, Value::TakeValue()
 	//       will need to be examined
+
+#ifdef GGC
 	Garbage gc;
+#endif
 	};
 
 typedef const IValue* const_ivalue;

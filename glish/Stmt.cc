@@ -68,9 +68,11 @@ void Stmt::SetActivity( int /* activate */ )
 	{
 	}
 
+#ifdef GGC
 void Stmt::TagGC( )
 	{
 	}
+#endif
 
 SeqStmt::~SeqStmt()
 	{
@@ -301,6 +303,7 @@ IValue* WheneverStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	return 0;
 	}
 
+#ifdef GGC
 void WheneverStmt::TagGC( )
 	{
 	if ( stack ) stack->TagGC( );
@@ -309,6 +312,7 @@ void WheneverStmt::TagGC( )
 			if ( (*misc)[i] )
 				(*misc)[i]->TagGC( );
 	}
+#endif
 
 WheneverStmt::~WheneverStmt()
 	{

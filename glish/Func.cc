@@ -17,7 +17,9 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Reporter.h"
 
+#ifdef GGC
 void Func::TagGC() { }
+#endif
 
 Parameter::~Parameter()
 	{
@@ -207,6 +209,7 @@ void UserFunc::Describe( OStream& s ) const
 	kernel->Describe(s);
 	}
 
+#ifdef GGC
 void UserFunc::TagGC( )
 	{
 	if ( stack ) stack->TagGC( );
@@ -215,6 +218,7 @@ void UserFunc::TagGC( )
 			if ( (*misc)[i] )
 				(*misc)[i]->TagGC( );
 	}
+#endif
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			Sequencer* arg_sequencer, Expr* arg_subsequence_expr, IValue *&err )

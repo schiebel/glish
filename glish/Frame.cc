@@ -27,7 +27,10 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 
 Frame::~Frame()
 	{
+
+#ifdef GGC
 	if ( ! glish_collecting_garbage )
+#endif
 		{
 		Unref( missing );
 
@@ -47,6 +50,7 @@ IValue*& Frame::FrameElement( int offset )
 	return values[offset];
 	}
 
+#ifdef GGC
 void Frame::TagGC( )
 	{
 	for ( int i = 0; i < size; ++i )
@@ -55,3 +59,4 @@ void Frame::TagGC( )
 	if ( missing)
 		missing->TagGC( );
 	}
+#endif
