@@ -93,8 +93,8 @@ gPgplot$(SUFFIX): $(OBJS)
 $(SCRIPTDIR_P)/pgplot.g: pgplot.g
 	$(INSTALL_DATA) pgplot.g $(SCRIPTDIR_P)
 
-$(SCRIPTDIR)/pgplot.g: $(SRC)/pgplot.g
-	$(INSTALL_DATA) $(SRC)/pgplot.g $(SCRIPTDIR)
+$(SCRIPTDIR)/pgplot.g: pgplot.g
+	$(INSTALL_DATA) pgplot.g $(SCRIPTDIR)
 
 $(LIBDIR_P)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
