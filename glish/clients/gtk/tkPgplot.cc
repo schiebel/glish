@@ -300,7 +300,7 @@ TkPgplot::~TkPgplot ()
 }
 
 int
-pgplot_yscrollcb (Tk_Window button, XEvent *unused1, ClientData assoc,
+pgplot_yscrollcb (Tk_Window, XEvent*, ClientData assoc,
 		  ClientData calldata)
 {
   double *firstlast = (double *)calldata;
@@ -311,7 +311,7 @@ pgplot_yscrollcb (Tk_Window button, XEvent *unused1, ClientData assoc,
 }
 
 int
-pgplot_xscrollcb (Tk_Window button, XEvent *unused1, ClientData assoc,
+pgplot_xscrollcb (Tk_Window, XEvent*, ClientData assoc,
 		  ClientData calldata)
 {
   double *firstlast = (double *)calldata;
@@ -358,7 +358,7 @@ struct glishtk_pgplot_bindinfo
   char *tk_event_name;
   glishtk_pgplot_bindinfo (TkPgplot *c, const char *event,
 			   const char *tk_event) :
-    tk_event_name (strdup (tk_event)), event_name (strdup (event)), pgplot (c)
+    pgplot (c), event_name (strdup (event)), tk_event_name (strdup (tk_event))
     {
     }
   ~glishtk_pgplot_bindinfo ()
@@ -368,10 +368,9 @@ struct glishtk_pgplot_bindinfo
     }
 };
 
-int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *argv[] )
 	{
 	glishtk_pgplot_bindinfo *info = (glishtk_pgplot_bindinfo*) data;
-	int dummy;
 	Tcl_Interp *tcl = info->pgplot->Interp();
 	Tk_Window self = info->pgplot->Self();
 
@@ -396,7 +395,7 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[]
 	}
 
 char *
-glishtk_pgplot_bind (TkAgent *agent, const char *cmd, Value *args)
+glishtk_pgplot_bind (TkAgent *agent, const char*, Value *args)
 {
   char *event_name = "pgplot bind function";
   EXPRINIT(event_name)
@@ -450,7 +449,6 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   frame = frame_;
   Tk_Window frameSelf = 0;
   int region_is_copy = 0;
-  int axis_is_copy = 0;
   float *region = 0;
   int axis = 0;
   int nxsub = 1, nysub = 1;
@@ -772,7 +770,7 @@ TkPgplot::Pgask (Value *args)
 
 //PGBBUF -- begin batch of output (buffer)
 char *
-TkPgplot::Pgbbuf (Value *args)
+TkPgplot::Pgbbuf (Value*)
 {
   cpgslct (id);
   cpgbbuf ();
@@ -858,7 +856,7 @@ TkPgplot::Pgcirc (Value *args)
 
 //PGCLOS -- close the selected graphics device
 char *
-TkPgplot::Pgclos (Value *args)
+TkPgplot::Pgclos (Value*)
 {
   cpgslct (id);
   cpgclos ();
@@ -1004,7 +1002,7 @@ TkPgplot::Pgdraw (Value *args)
 
 //PGEBUF -- end batch of output (buffer)
 char *
-TkPgplot::Pgebuf (Value *args)
+TkPgplot::Pgebuf (Value*)
 {
   cpgslct (id);
   cpgebuf ();
@@ -1014,7 +1012,7 @@ TkPgplot::Pgebuf (Value *args)
 
 //PGEND -- terminate PGPLOT
 char *
-TkPgplot::Pgend (Value *args)
+TkPgplot::Pgend (Value*)
 {
   // JAU: Using this and then calling ~TkPgplot causes PGPLOT to whine!
   cpgslct (id);
@@ -1051,7 +1049,7 @@ TkPgplot::Pgenv (Value *args)
 
 //PGERAS -- erase all graphics from current page
 char *
-TkPgplot::Pgeras (Value *args)
+TkPgplot::Pgeras (Value*)
 {
   cpgslct (id);
   cpgeras ();
@@ -1122,7 +1120,7 @@ TkPgplot::Pgerry (Value *args)
 // JAU: Not listed in current Glish/PGPLOT documentation.
 // (An effective no-op anyway....)
 char *
-TkPgplot::Pgetxt (Value *args)
+TkPgplot::Pgetxt (Value*)
 {
   cpgslct (id);
   cpgetxt ();
@@ -1197,7 +1195,7 @@ TkPgplot::Pghist (Value *args)
 
 //PGIDEN -- write username, date, and time at bottom of plot
 char *
-TkPgplot::Pgiden (Value *args)
+TkPgplot::Pgiden (Value*)
 {
   cpgslct (id);
   cpgiden ();
@@ -1244,7 +1242,7 @@ TkPgplot::Pglab (Value *args)
 
 //PGLDEV -- list available device types
 char *
-TkPgplot::Pgldev (Value *args)
+TkPgplot::Pgldev (Value*)
 {
   cpgslct (id);
   cpgldev ();
@@ -1369,7 +1367,7 @@ TkPgplot::Pgopen (Value *args)
 
 //PGPAGE -- advance to new page
 char *
-TkPgplot::Pgpage (Value *args)
+TkPgplot::Pgpage (Value*)
 {
   cpgslct (id);
   cpgpage ();
@@ -1504,7 +1502,7 @@ TkPgplot::Pgptxt (Value *args)
 
 //PGQAH -- inquire arrow-head style
 char *
-TkPgplot::Pgqah (Value *args)
+TkPgplot::Pgqah (Value*)
 {
   static tk_farrayRec qah;
   int fs = 0;			// Gets returned as float; can't mix types.
@@ -1520,7 +1518,7 @@ TkPgplot::Pgqah (Value *args)
 
 //PGQCF -- inquire character font
 char *
-TkPgplot::Pgqcf (Value *args)
+TkPgplot::Pgqcf (Value*)
 {
   static tk_iarrayRec qcf;
 
@@ -1534,7 +1532,7 @@ TkPgplot::Pgqcf (Value *args)
 
 //PGQCH -- inquire character height
 char *
-TkPgplot::Pgqch (Value *args)
+TkPgplot::Pgqch (Value*)
 {
   static tk_farrayRec qch;
 
@@ -1548,7 +1546,7 @@ TkPgplot::Pgqch (Value *args)
 
 //PGQCI -- inquire color index
 char *
-TkPgplot::Pgqci (Value *args)
+TkPgplot::Pgqci (Value*)
 {
   static tk_iarrayRec qci;
 
@@ -1562,7 +1560,7 @@ TkPgplot::Pgqci (Value *args)
 
 //PGQCIR -- inquire color index range
 char *
-TkPgplot::Pgqcir (Value *args)
+TkPgplot::Pgqcir (Value*)
 {
   static tk_iarrayRec qcir;
 
@@ -1576,7 +1574,7 @@ TkPgplot::Pgqcir (Value *args)
 
 //PGQCOL -- inquire color capability
 char *
-TkPgplot::Pgqcol (Value *args)
+TkPgplot::Pgqcol (Value*)
 {
   static tk_iarrayRec qcol;
 
@@ -1630,7 +1628,7 @@ TkPgplot::Pgqcs (Value *args)
 
 //PGQFS -- inquire fill-area style
 char *
-TkPgplot::Pgqfs (Value *args)
+TkPgplot::Pgqfs (Value*)
 {
   static tk_iarrayRec qfs;
 
@@ -1644,7 +1642,7 @@ TkPgplot::Pgqfs (Value *args)
 
 //PGQHS -- inquire hatching style
 char *
-TkPgplot::Pgqhs (Value *args)
+TkPgplot::Pgqhs (Value*)
 {
   static tk_farrayRec qhs;
 
@@ -1658,7 +1656,7 @@ TkPgplot::Pgqhs (Value *args)
 
 //PGQID -- inquire current device identifier
 char *
-TkPgplot::Pgqid (Value *args)
+TkPgplot::Pgqid (Value*)
 {
   static tk_iarrayRec qid;
 
@@ -1694,7 +1692,7 @@ TkPgplot::Pgqinf (Value *args)
 
 //PGQITF -- inquire image transfer function
 char *
-TkPgplot::Pgqitf (Value *args)
+TkPgplot::Pgqitf (Value*)
 {
   static tk_iarrayRec qitf;
 
@@ -1708,7 +1706,7 @@ TkPgplot::Pgqitf (Value *args)
 
 //PGQLS -- inquire line style
 char *
-TkPgplot::Pgqls (Value *args)
+TkPgplot::Pgqls (Value*)
 {
   static tk_iarrayRec qls;
 
@@ -1722,7 +1720,7 @@ TkPgplot::Pgqls (Value *args)
 
 //PGQLW -- inquire line width
 char *
-TkPgplot::Pgqlw (Value *args)
+TkPgplot::Pgqlw (Value*)
 {
   static tk_iarrayRec qlw;
 
@@ -1736,7 +1734,7 @@ TkPgplot::Pgqlw (Value *args)
 
 //PGQPOS -- inquire current pen position
 char *
-TkPgplot::Pgqpos (Value *args)
+TkPgplot::Pgqpos (Value*)
 {
   static tk_farrayRec qpos;
 
@@ -1750,7 +1748,7 @@ TkPgplot::Pgqpos (Value *args)
 
 //PGQTBG -- inquire text background color index
 char *
-TkPgplot::Pgqtbg (Value *args)
+TkPgplot::Pgqtbg (Value*)
 {
   static tk_iarrayRec qtbg;
 
@@ -1831,7 +1829,7 @@ TkPgplot::Pgqvsz (Value *args)
 
 //PGQWIN -- inquire window boundary coordinates
 char *
-TkPgplot::Pgqwin (Value *args)
+TkPgplot::Pgqwin (Value*)
 {
   static tk_farrayRec qwin;
 
@@ -1920,7 +1918,7 @@ TkPgplot::Pgsah (Value *args)
 
 //PGSAVE -- save PGPLOT attributes
 char *
-TkPgplot::Pgsave (Value *args)
+TkPgplot::Pgsave (Value*)
 {
   cpgslct (id);
   cpgsave ();
@@ -2247,7 +2245,7 @@ TkPgplot::Pgtext (Value *args)
 
 //PGUPDT -- update display
 char *
-TkPgplot::Pgupdt (Value *args)
+TkPgplot::Pgupdt (Value*)
 {
   cpgslct (id);
   cpgupdt ();
@@ -2257,7 +2255,7 @@ TkPgplot::Pgupdt (Value *args)
 
 //PGUNSA -- restore PGPLOT attributes
 char *
-TkPgplot::Pgunsa (Value *args)
+TkPgplot::Pgunsa (Value*)
 {
   cpgslct (id);
   cpgunsa ();
@@ -2310,7 +2308,7 @@ TkPgplot::Pgvsiz (Value *args)
 
 //pgvstd -- set standard (default) viewport
 char *
-TkPgplot::Pgvstd (Value *args)
+TkPgplot::Pgvstd (Value*)
 {
   cpgslct (id);
   cpgvstd ();
