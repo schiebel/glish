@@ -93,7 +93,7 @@ static char *rcsid = "$Id$";
 #include "dir.h"
 #include "job.h"
 #include "pathnames.h"
-#include "bmake.h"
+#include "make_client.h"
 
 #ifndef	DEFMAXLOCAL
 #define	DEFMAXLOCAL DEFMAXJOBS
