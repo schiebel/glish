@@ -310,7 +310,8 @@ void Task::SetChannel( Channel* c, Selector* s )
 			GlishEvent* e = (*pending_events)[i];
 
 			sequencer->LogEvent( id, name, e, 0 );
-			send_event( channel->Sink(), e );
+
+			send_event( channel->Sink(), e, (FILE*) TranscriptFile( ) );
 
 			Unref( e );
 			}
@@ -467,6 +468,7 @@ void Task::Exec( const char** argv )
 		const char *tmp = argv[0];
 		argv[0] = exec_name;
 		executable = new TaskLocalExec( exec_name, argv, this );
+		SetPid( ((TaskLocalExec*)executable)->pid() );
 		argv[0] = tmp;
 
 		if ( ! attrs->force_sockets )
@@ -515,13 +517,20 @@ void Task::SetActivity( State is_active )
 		CloseChannel();
 	}
 
-
 void Task::AbnormalExit( int status )
 	{
 	loop_over_list( ptlist, i )
 		ptlist[i]->AbnormalExit( status );
 	sequencer->NewEvent( this, 0, 1 );
 	}
+
+void *Task::getTranscriptFile( )
+	{
+	if ( attrs->transcript && attrs->pid && ! attrs->transcript_file )
+		attrs->OpenTranscript( );
+	return attrs->transcript_file;
+	}
+
 
 ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 			Sequencer* s )
@@ -668,6 +677,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channe
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
 	transcript = transcript_;
+	transcript_file = 0;
 	daemon_channel = arg_daemon_channel;
 	async_flag = arg_async_flag;
 	ping_flag = arg_ping_flag;
@@ -675,6 +685,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channe
 	useshm = 0;
 	name = name_ ? string_dup(name_) : 0;
 	force_sockets = arg_force_sockets;
+	pid = 0;
 	}
 
 TaskAttr::~TaskAttr()
@@ -683,6 +694,23 @@ TaskAttr::~TaskAttr()
 	free_memory( hostname );
 	free_memory( name );
 	free_memory( transcript );
+	if ( transcript_file ) fclose( (FILE*) transcript_file );
+	}
+
+void TaskAttr::OpenTranscript( )
+	{
+	if ( transcript && pid && ! transcript_file )
+		{
+		char *file = alloc_char( strlen(transcript)+34 );
+		sprintf( file, "%s.%0.5ui.gts", transcript, pid );
+		if ( ! (transcript_file = fopen( file, "w" )) )
+			{
+			perror( "couldn't open transcript file" );
+			free_memory( transcript );
+			transcript = 0;
+			}
+		free_memory( file );
+		}
 	}
 
 
@@ -1139,7 +1167,7 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 void Task::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id );
+	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id, (FILE*) TranscriptFile( ) );
 	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
@@ -1154,7 +1182,7 @@ ProxyTask *Task::GetProxy( const ProxyId &proxy_id )
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id );
+	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id, (FILE*) TranscriptFile( ) );
 	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 

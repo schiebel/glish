@@ -105,10 +105,10 @@ void sos_header::scratch( )
 
 void sos_header::useti( unsigned int i )
 	{
-	kernel->buf_[20] = i & 0xff; i >>= 8;
-	kernel->buf_[21] = i & 0xff; i >>= 8;
-	kernel->buf_[22] = i & 0xff; i >>= 8;
-	kernel->buf_[23] = i & 0xff; i >>= 8;
+	kernel->buf_[24] = i & 0xff; i >>= 8;
+	kernel->buf_[25] = i & 0xff; i >>= 8;
+	kernel->buf_[26] = i & 0xff; i >>= 8;
+	kernel->buf_[27] = i & 0xff; i >>= 8;
 	}
 
 void sos_header::stamp( struct timeval &initial )
@@ -131,7 +131,7 @@ void sos_header::stamp( struct timeval &initial )
 	*ptr++ = l & 0xff; l >>= 8;		// 9
 	*ptr++ = l & 0xff; l >>= 8;		// 10
 	*ptr++ = l & 0xff; l >>= 8;		// 11
-	// time
+	// time seconds
 	struct timeval tp;
 	struct timezone tz;
 	gettimeofday(&tp, &tz);
@@ -148,11 +148,37 @@ void sos_header::stamp( struct timeval &initial )
 	*ptr++ = t & 0xff; t >>= 8;		// 14
 	*ptr++ = t & 0xff; t >>= 8;		// 15
 
+	// time useconds
+	t = tp.tv_usec;
+
+	*ptr++ = t & 0xff; t >>= 8;		// 16
+	*ptr++ = t & 0xff; t >>= 8;		// 17
+	*ptr++ = t & 0xff; t >>= 8;		// 18
+	*ptr++ = t & 0xff; t >>= 8;		// 19
+
 	// future use
 	*ptr++ = 0x0;
 	*ptr++ = 0x0;
 
 	// next 6 bytes user space
+	}
+
+void sos_header::adjust_version( )
+	{
+	if ( version() == 0 )
+		{
+		unsigned char *buf = kernel->buf_;
+		buf[27] = buf[23];
+		buf[26] = buf[22];
+		buf[25] = buf[21];
+		buf[24] = buf[20];
+		buf[23] = buf[19];
+		buf[22] = buf[18];
+		buf[21] = buf[17];
+		buf[20] = buf[16];
+		buf[16] = buf[17] = buf[18] = buf[19] = 0;
+		buf[0] = 1;
+		}
 	}
 
 ostream &operator<< (ostream &ios, const sos_header &h)
@@ -188,7 +214,7 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 		}
 
 	ios << endl << "\tuser: ";
-	char *user = (char*) ((sos_header &)h).iBuffer() + 18;
+	char *user = (char*) ((sos_header &)h).iBuffer() + 22;
 	for ( int C = 0; C < 6; C++ )
 		ios << (void*) user[C] << " ";
 

@@ -50,6 +50,7 @@ char* strdup( const char* );
 #include "ports.h"
 
 #define AGENT_MEMBER_NAME "*agent*"
+#define TRANSCRIPT_USEC_SCALE 0.1
 
 #if defined(__alpha) || defined(__alpha__)
 extern "C" void glish_sigfpe();
@@ -415,7 +416,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 			const char *filename = argv[1];
 			argc -= 2, argv += 2;
 			char *file = alloc_char( strlen(filename)+34 );
-			sprintf( file, "%s.%0.5u.gts", filename, getpid() );
+			sprintf( file, "%s.%0.5uc.gts", filename, getpid() );
 			if ( ! (transcript_file = fopen( file, "w" )) )
 				perror( "couldn't open transcript file" );
 			free_memory( file );
@@ -1712,14 +1713,17 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
 			struct timezone tz;
 			gettimeofday(&cur, &tz);
 
-			char buf[1034];
+			char buf1[512];
+			char buf2[512];
 			struct tm *ltime = localtime( &sent.tv_sec );
-			int len = strftime( buf, 1034, "%Y/%m/%d.%H:%M:%S.%z ", ltime );
+			int len = strftime( buf1, 512, "%Y/%m/%d*%H:%M:%S.%%05.0f*%z", ltime );
 			if ( len > 0 )
 				{
+				len = sprintf( buf2, buf1, head.utime() * TRANSCRIPT_USEC_SCALE );
 				ltime = localtime( &cur.tv_sec );
-				len += (int) strftime( &buf[len], 1034-len, "%Y/%m/%d.%H:%M:%S.%z", ltime );
-				fprintf( transcript, "%s %s %s\n", buf, name, type_names[val->Type()] );
+				len = strftime( buf1, 512, "%%s %Y/%m/%d*%H:%M:%S.%%05.0f*%z %%s %%s\n", ltime );
+				if ( len > 0 )
+					fprintf( transcript, buf1, buf2, cur.tv_usec * TRANSCRIPT_USEC_SCALE, name, type_names[val->Type()] );
 				}
 			}
 
@@ -1879,11 +1883,11 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 	if ( transcript )
 		{
 		struct timeval sent = sos.get_stamp( );
-		char buf[1034];
+		char buf[512];
 		struct tm *ltime = localtime( &sent.tv_sec );
-		int len = strftime( buf, 1034, "%Y/%m/%d.%H:%M:%S.%z", ltime );
-		fprintf( transcript, "%s                           %s %s\n",
-			 buf, name ? name : "", type_names[val->Type()] );
+		int len = strftime( buf, 512, "%Y/%m/%d*%H:%M:%S.%%05.0f*%z                                 %%s %%s\n", ltime );
+		if ( len > 0 )
+			fprintf( transcript, buf, sent.tv_usec * TRANSCRIPT_USEC_SCALE, name ? name : "", type_names[val->Type()] );
 		}
 	}
 

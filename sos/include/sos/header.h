@@ -11,8 +11,10 @@
 #include "sos/mdep.h"
 #include "sos/alloc.h"
 
-#define SOS_HEADER_SIZE		24
-#define SOS_VERSION		0
+#define SOS_HEADER_0_SIZE	24
+#define SOS_HEADER_1_SIZE	28
+#define SOS_HEADER_SIZE		SOS_HEADER_1_SIZE
+#define SOS_VERSION		1
 
 #include <iostream.h>
 
@@ -33,7 +35,8 @@ struct sos_header_kernel GC_FINAL_CLASS {
 	int		freeit_;
 };
 
-//	sos header structure
+//==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ====
+//	sos (version #0) header structure
 //							      offset
 //		1 byte version number				0
 //		1 byte architecture				1
@@ -45,6 +48,21 @@ struct sos_header_kernel GC_FINAL_CLASS {
 //		2 byte future use				16
 //		2 byte user data				18
 //		4 byte user data				20
+//
+//==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ====
+//	sos (version #1) header structure
+//							      offset
+//		1 byte version number				0
+//		1 byte architecture				1
+//		1 byte type					2
+//		1 byte type length				3
+//		4 byte magic number				4
+//		4 byte length					8
+//		4 byte time stamp				12
+//		4 byte time stamp				16
+//		2 byte future use				20
+//		2 byte user data				22
+//		4 byte user data				24
 //
 //	( should provide a way for user control info... )
 //
@@ -60,8 +78,10 @@ public:
 	unsigned int magic() const { return *((int*)&kernel->buf_[4]); }
 	unsigned int length() const { return kernel->buf_[8] + (kernel->buf_[9] << 8) +
 				      (kernel->buf_[10] << 16) + (kernel->buf_[11] << 24); }
-	unsigned int time() const { return kernel->buf_[12] + (kernel->buf_[13] << 8) +
-				    (kernel->buf_[14] << 16) + (kernel->buf_[15] << 24); }
+	unsigned int time() const  { return kernel->buf_[12] + (kernel->buf_[13] << 8) +
+				     (kernel->buf_[14] << 16) + (kernel->buf_[15] << 24); }
+	unsigned int utime() const { return kernel->buf_[16] + (kernel->buf_[17] << 8) +
+				     (kernel->buf_[18] << 16) + (kernel->buf_[19] << 24); }
 
 	//
 	// information "local" to the class
@@ -124,14 +144,14 @@ public:
 	//
 	// access to user data
 	//
-	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[18 + (off % 6)]; }
-	unsigned short ugets( int off = 0 ) const { off = 18 + (off % 3) * 2;
+	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[22 + (off % 6)]; }
+	unsigned short ugets( int off = 0 ) const { off = 22 + (off % 3) * 2;
 			return kernel->buf_[off] + (kernel->buf_[off+1] << 8); }
-	unsigned int ugeti( ) const { return kernel->buf_[20] + (kernel->buf_[21] << 8) +
-			(kernel->buf_[22] << 16) + (kernel->buf_[23] << 24); }
+	unsigned int ugeti( ) const { return kernel->buf_[24] + (kernel->buf_[25] << 8) +
+			(kernel->buf_[26] << 16) + (kernel->buf_[27] << 24); }
 
-	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[18 + (off % 6)] = c; }
-	void usets( unsigned short s, int off = 0 ) { off = 18 + (off % 3) * 2;
+	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[22 + (off % 6)] = c; }
+	void usets( unsigned short s, int off = 0 ) { off = 22 + (off % 3) * 2;
 			kernel->buf_[off] = s & 0xff; kernel->buf_[off+1] = (s >> 8) & 0xff; }
 	void useti( unsigned int i );
 
@@ -141,6 +161,8 @@ public:
 // 		{ buf = (unsigned char*) b; type_ = type(); length_ = length(); }
 
 private:
+	friend class sos_in;
+	void adjust_version( );
 	static unsigned char current_version;
 	static unsigned char current_header_size;
 	sos_header_kernel *kernel;

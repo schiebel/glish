@@ -22,9 +22,20 @@ typedef const char* charptr;
 
 typedef void (*final_func)(void*);
 
+class sos_common {
+    public:
+	sos_common( ) : remote_version_( SOS_VERSION ) { }
+	int remote_version( ) const { return remote_version_; }
+	void set_remote_version( int v ) { if ( v <= SOS_VERSION ) remote_version_ = v; }
+    protected:
+        int remote_version_;
+};
+
 class sos_status GC_FINAL_CLASS {
     public:
 	enum Type { WRITE, READ, UNKNOWN };
+
+	sos_status( sos_common *c ) : common(c) { }
 
 	virtual Type type() { return UNKNOWN; }
 	virtual int fd() { return -1; }
@@ -34,6 +45,12 @@ class sos_status GC_FINAL_CLASS {
 
 	virtual void finalize( final_func, void * ) { }
 	virtual sos_status *resume( ) { return 0; }
+
+	int remote_version( ) const { return common ? common->remote_version() : -1; }
+	void set_remote_version( int v ) { if ( common ) common->set_remote_version( v ); }
+
+    protected:
+	sos_common *common;
 };
 
 extern sos_status *sos_err_status;
@@ -41,6 +58,7 @@ extern sos_status *sos_err_status;
 class sos_sink : public sos_status {
     public:
 	enum buffer_type { FREE, HOLD, COPY };
+	sos_sink( sos_common *c ) : sos_status( c ) { }
 	virtual sos_status *write( const char *, unsigned int, buffer_type type = HOLD ) = 0;
 	sos_status *write( void *buf, unsigned int len, buffer_type type = HOLD )
 			{ return write( (const char *) buf, len, type ); }
@@ -51,6 +69,7 @@ class sos_sink : public sos_status {
 
 class sos_source : public sos_status {
     public:
+	sos_source( sos_common *c ) : sos_status( c ) { }
 	virtual unsigned int read( char *, unsigned int ) = 0;
 	unsigned int read( unsigned char *buf, unsigned int len )
 		{ return read((char*)buf, len); }
@@ -87,7 +106,7 @@ class sos_fd_buf GC_FINAL_CLASS {
 
 class sos_fd_sink : public sos_sink {
     public:
-	sos_fd_sink( int fd_ = -1 );
+	sos_fd_sink( int fd_ = -1, sos_common *c=0 );
 	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
 	sos_status *flush( );
 
@@ -124,7 +143,7 @@ class sos_fd_sink : public sos_sink {
 
 class sos_fd_source : public sos_source {
     public:
-	sos_fd_source( int fd__ = -1 ) : fd_(fd__) { }
+	sos_fd_source( int fd__ = -1, sos_common *c=0 ) : sos_source(c), fd_(fd__) { }
 	unsigned int read( char *, unsigned int );
 
 	~sos_fd_source();
@@ -197,9 +216,12 @@ public:
 	void *get( unsigned int &length, sos_code &type );
 	void *get( unsigned int &length, sos_code &type, sos_header &h );
 
-	void read( char *buf, unsigned int len )
-		{ if ( buffer_contents > 0 ) readback( buf, len ); else if ( in ) in->read( buf, len ); }
-	void unread( char *buf, unsigned int len );
+	int read( unsigned char *buf, unsigned int len )
+		{ return buffer_contents > 0 ? readback( buf, len ) : in ? in->read( buf, len ) : 0; }
+	int read( char *buf, unsigned int len )
+		{ return read( (unsigned char *) buf, len ); }
+
+	void unread( unsigned char *buf, int len );
 
 	~sos_in( );
 
@@ -209,7 +231,7 @@ private:
 	void *get_numeric( sos_code &, unsigned int & );
 	void *get_string( unsigned int & );
 	void *get_chars( unsigned int & );
-	void readback( char *buf, unsigned int len );
+	int readback( unsigned char *buf, unsigned int len );
 	sos_header head;
 	int use_str;
 	int not_integral;

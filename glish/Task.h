@@ -24,6 +24,7 @@ class TaskAttr GC_FINAL_CLASS {
 		  const char *name_ = 0, char *transcript_=0 );
 
 	~TaskAttr();
+	void OpenTranscript( );
 
 	char* task_var_ID;
 	char* hostname;
@@ -35,6 +36,8 @@ class TaskAttr GC_FINAL_CLASS {
 	char *name;
 	int force_sockets;
 	char *transcript;
+	void *transcript_file;
+	int pid;
 	};
 
 
@@ -78,6 +81,11 @@ class Task : public Agent {
 	void SetActive()	{ SetActivity( ACTIVE ); }
 	void SetFinished()	{ SetActivity( FINISHED );
 				  if ( executable ) executable->DoneReceived(); }
+
+	int  GetPid( ) const    { return attrs->pid; }
+	void SetPid( int pid )  { attrs->pid = pid; }
+
+	void *TranscriptFile( ) { return attrs->transcript ? getTranscriptFile( ) : 0; }
 
 	void SetChannel( Channel* c, Selector* s );
 	void CloseChannel();
@@ -135,6 +143,8 @@ class Task : public Agent {
 
 	void Exec( const char** argv );
 	void SetActivity( State );
+
+	void *getTranscriptFile( );
 
 	char* name;
 	char* id;

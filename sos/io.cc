@@ -185,7 +185,7 @@ sos_fd_buf_kernel *sos_fd_buf::add( )
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-sos_fd_sink::sos_fd_sink( int fd__ ) : sent(0), start(0), buf_holder(0), fd_(fd__) { }
+sos_fd_sink::sos_fd_sink( int fd__, sos_common *c ) : sos_sink(c), sent(0), start(0), buf_holder(0), fd_(fd__) { }
 
 void sos_fd_sink::setFd( int fd__ )
 	{
@@ -391,7 +391,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	if ( not_integral )						\
 		{							\
 		head.set(l,SOSTYPE);					\
-		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
+		memcpy( head.iBuffer() + 22, SOURCE, 6 );		\
 		head.stamp( initial_stamp );				\
 		out->write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
 		return out->write( a, l * sos_size(SOSTYPE), type ); 	\
@@ -399,7 +399,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	else								\
 		{							\
 		head.set(a,l PARAM);					\
-		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
+		memcpy( head.iBuffer() + 22, SOURCE, 6 );		\
 		head.stamp( initial_stamp );				\
 		return out->write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   SOS_HEADER_SIZE, type );			\
@@ -413,7 +413,7 @@ sos_status *sos_out::put( TYPE *a, unsigned int l,			\
 	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)			\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_header &h,	\
 		    sos_sink::buffer_type type ) 			\
-	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
+	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 22)
 
 PUTNUMERIC(byte,SOS_BYTE)
 PUTNUMERIC(short,SOS_SHORT)
@@ -428,7 +428,7 @@ sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
 	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)		\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
 		    sos_header &h, sos_sink::buffer_type type )		\
-	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
+	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 22)
 
 PUTCHAR(char)
 PUTCHAR(unsigned char)
@@ -454,7 +454,7 @@ PUTCHAR(unsigned char)
 	lptr = (unsigned int *) (buf + SOS_HEADER_SIZE + 4);		\
 									\
 	head.set(buf,total,SOS_STRING);					\
-	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	memcpy( head.iBuffer() + 22, SOURCE, 6 );			\
 	head.stamp( initial_stamp );					\
 									\
 	char *cptr = (char*)(&lptr[len]);				\
@@ -498,7 +498,7 @@ PUTCHAR(unsigned char)
 	char *buf = alloc_char( total + SOS_HEADER_SIZE );		\
 									\
 	head.set(buf,total,SOS_STRING);					\
-	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	memcpy( head.iBuffer() + 22, SOURCE, 6 );			\
 	head.stamp( initial_stamp );					\
 									\
 	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
@@ -530,13 +530,13 @@ PUTCHAR(unsigned char)
 sos_status *sos_out::put( charptr *s, unsigned int len, sos_sink::buffer_type type )
 	PUTCHARPTR_BODY(zero_user_area)
 sos_status *sos_out::put( charptr *s, unsigned int len, sos_header &h, sos_sink::buffer_type type )
-	PUTCHARPTR_BODY(h.iBuffer() + 18)
+	PUTCHARPTR_BODY(h.iBuffer() + 22)
 
 #if defined(ENABLE_STR)
 sos_status *sos_out::put( const str &s )
 	PUTSTR_BODY(zero_user_area)
 sos_status *sos_out::put( const str &s, sos_header &h )
-	PUTSTR_BODY(h.iBuffer() + 18)
+	PUTSTR_BODY(h.iBuffer() + 22)
 #endif
 
 
@@ -552,7 +552,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 	else								\
 		head.set(buf,l,SOS_RECORD);				\
 									\
-	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	memcpy( head.iBuffer() + 22, SOURCE, 6 );			\
 	head.stamp( initial_stamp );					\
 									\
 	return out->write( head.iBuffer(), SOS_HEADER_SIZE,		\
@@ -562,7 +562,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 sos_status *sos_out::put_record_start( unsigned int l )
 	PUTREC_BODY(zero_user_area)
 sos_status *sos_out::put_record_start( unsigned int l, sos_header &h )
-	PUTREC_BODY(h.iBuffer() + 18)
+	PUTREC_BODY(h.iBuffer() + 22)
 
 #if defined(VAXFP)
 #define FOREIGN_FLOAT   SOS_IFLOAT
@@ -598,8 +598,15 @@ void *sos_in::get( unsigned int &len, sos_code &type )
 		return Error( NO_SOURCE );
 
 	type = SOS_UNKNOWN;
-	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
+	if ( read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
 		return 0;
+
+	if ( head.version( ) == 0 )
+		{
+		if ( in ) in->set_remote_version( 0 );
+		unread( head.iBuffer() + SOS_HEADER_0_SIZE, SOS_HEADER_SIZE - SOS_HEADER_0_SIZE );
+		head.adjust_version( );
+		}
 
 	type = head.type();
 	len = head.length();
@@ -621,8 +628,15 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 		return Error( NO_SOURCE );
 
 	type = SOS_UNKNOWN;
-	if ( in->read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
+	if ( read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
 		return 0;
+
+	if ( head.version( ) == 0 )
+		{
+		if ( in ) in->set_remote_version( 0 );
+		unread( head.iBuffer() + SOS_HEADER_0_SIZE, SOS_HEADER_SIZE - SOS_HEADER_0_SIZE );
+		head.adjust_version( );
+		}
 
 	type = head.type();
 	len = head.length();
@@ -678,7 +692,7 @@ void *sos_in::get_numeric( sos_code &type, unsigned int &len )
 		result  = result_ + SOS_HEADER_SIZE;
 		}
 
-	in->read( result, len * head.typeLen());
+	read( result, len * head.typeLen());
 	if ( ! (head.magic() & SOS_MAGIC) )
 		switch( type ) {
 		    case SOS_SHORT:
@@ -714,7 +728,7 @@ void *sos_in::get_string( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = alloc_char(len);
-	in->read( buf, len );
+	read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
 	len = *lptr++;
@@ -749,7 +763,7 @@ void *sos_in::get_chars( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = alloc_char(len);
-	in->read( buf, len );
+	read( buf, len );
 
 	unsigned int *lptr = (unsigned int*) buf;
 	len = *lptr++;
@@ -774,7 +788,7 @@ void *sos_in::get_chars( unsigned int &len )
 	return ary;
 	}
 
-void sos_in::unread( char *buf, unsigned int len )
+void sos_in::unread( unsigned char *buf, int len )
 	{
 	if ( ! buffer )
 		buffer = (char*) alloc_memory( buffer_length = len * 2 );
@@ -789,7 +803,7 @@ void sos_in::unread( char *buf, unsigned int len )
 	buffer_contents += len;
 	}
 
-void sos_in::readback( char *buf, unsigned int len )
+int sos_in::readback( unsigned char *buf, unsigned int len )
 	{
 	if ( buffer_contents >= len )
 		{
@@ -797,12 +811,14 @@ void sos_in::readback( char *buf, unsigned int len )
 		char *to = buffer;
 		for ( char *from = buffer + len; from < buffer + buffer_contents; *to++ = *from++ );
 		buffer_contents -= len;
+		return len;
 		}
 	else
 		{
-		memcpy( buf, buffer, buffer_contents );
-		if ( in ) in->read( buf + buffer_contents, len - buffer_contents );
+		int contents = buffer_contents;
 		buffer_contents = 0;
+		memcpy( buf, buffer, contents );
+		return in ? contents + in->read( buf + contents, len - contents ) : contents;
 		}
 	}
 

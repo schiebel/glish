@@ -35,7 +35,7 @@ class Channel : public GlishRef {
     public:
 
 	// Create a new Channel with the given input and output fd's.
-	Channel( int rfd, int wfd ) : source(rfd), sink(wfd)
+	Channel( int rfd, int wfd ) : source(rfd, &common), sink(wfd, &common)
 		{ state = CHAN_VALID; }
 
 	// True if data pending in channel read buf.  This is a vestigial
@@ -54,6 +54,7 @@ class Channel : public GlishRef {
 
     protected:
 	ChanState state;
+	sos_common common;
 	sos_fd_source source;
 	sos_fd_sink sink;
 	};

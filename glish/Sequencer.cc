@@ -3113,6 +3113,11 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 	else
 		{
 		task->SetProtocol( protocol );
+
+		const IValue *pidv = 0;
+		if ( ! task->GetPid( ) && (pidv = (IValue*) v->Field( "pid" )) && pidv->IsNumeric( ) )
+			task->SetPid( pidv->IntVal() );
+
 		AssociateTaskWithChannel( task, connection_channel );
 
 		//
@@ -3569,13 +3574,13 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 		Ref( task );
 		Ref( c );
 		if ( force_read )
-			status = NewEvent( task, recv_event( c->Source() ) );
+			status = NewEvent( task, recv_event( c->Source(), (FILE*) task->TranscriptFile( ) ));
 
 		while ( status == 0 &&
 			c->ChannelState() == CHAN_IN_USE &&
 			c->DataInBuffer() )
 			{
-			status = NewEvent( task, recv_event( c->Source() ));
+			status = NewEvent( task, recv_event( c->Source(), (FILE*) task->TranscriptFile( ) ));
 			}
 
 		if ( c->ChannelState() == CHAN_INVALID )
