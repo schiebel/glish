@@ -43,6 +43,10 @@ class BaseList : public GcRef {
 
 	int operator==(BaseList&) const;
 
+	// value can be part of a frame so it can't be deleted, but needs to have
+	// everything possible freed...
+	int SoftDelete( );
+
     protected:
 
 	virtual void *allocate( unsigned int s ) { return alloc_memory( s ); }

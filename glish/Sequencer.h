@@ -45,6 +45,9 @@ glish_declare(PList, WheneverStmtCtor);
 typedef PDict(Expr) expr_dict;
 typedef PList(awaitinfo) awaitinfo_list;
 
+glish_declare(PList,expr_list);
+typedef PList(expr_list) expr_list_stack;
+
 class Scope : public expr_dict {
 public:
 	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
@@ -62,6 +65,21 @@ private:
 glish_declare(PList,Scope);
 typedef PList(Scope) scope_list;
 typedef List(int) offset_list;
+
+class back_offsets_type {
+    public:
+	back_offsets_type( int size );
+	int length( ) const { return len; }
+	int &offset( int i ) { return frame[i]; }
+	int &soffset( int i ) { return scope[i]; }
+	scope_type &type( int i ) { return  s[i]; }
+	~back_offsets_type( );
+    private:
+	int *scope;
+	int *frame;
+	scope_type *s;
+	int len;
+};
 
 class stack_type : public GlishRef {
     public:
@@ -242,7 +260,13 @@ public:
 	int NotificationQueueLength ( ) { return notification_queue.length(); }
 
 	void PushScope( scope_type s = LOCAL_SCOPE );
-	int PopScope();		// returns size of frame corresponding to scope
+
+	// Returns size of frame corresponding to scope. If the address of a
+	// back_offsets class pointer is passed and we're poping a function scope,
+	// the pointer will be filled with the back offsets to wider variables,
+	// e.g. global. This is important for identifying ways that the life of
+	// local variables, especially functions, can be extended.
+	int PopScope( back_offsets_type **p = 0 );
 
 	void StashScope();
 	void RestoreScope();
@@ -282,6 +306,13 @@ public:
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
 	static const IValue *LookupVal( evalOpt &opt, const char *id );
+
+	// things which ought not to be done...
+	IValue *GetGlobal( int offset ) { return global_frame[offset]; }
+	IValue *GetFunc( int frame, int offset ) { fprintf( stderr, "---> 0x%x\n", frames().length()); return frames()[frame]->FrameElement(offset); }
+	Frame *GetFuncFrame( int frame ) { return frames()[frame]; }
+	Frame *GetLocalFrame( ) { frame_list &t = frames(); return t[t.length()-1]; }
+
 	// Deletes a given global value. This is used by 'symbol_delete()' which
 	// is the only way to get rid of a 'const' value.
 	void DeleteVal( const char* id );
@@ -351,6 +382,11 @@ public:
 	// Indexes are small positive integers.
 	int RegisterStmt( Stmt* stmt );
 	void UnregisterStmt( Stmt* stmt );
+
+	// Register expressions which refer back to a larger scope,
+	// e.g. global. This is important for tracking how the life
+	// of function local variables can be extended...
+	void RegisterBackRef( VarExpr * );
 
 	// Notifiee has been deleted, tag queued events
 	// for this notifiee
@@ -558,6 +594,7 @@ protected:
 	scope_list scopes;
 	offset_list global_scopes;
 	static Scope *stashed_scope;
+	expr_list_stack back_refs;
 
 	stack_list stack;
 	const frame_list &frames() const { return *(stack[stack.length()-1]->frames()); }

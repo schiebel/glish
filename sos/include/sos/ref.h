@@ -25,10 +25,10 @@ extern void sos_do_unref( GcRef * );
 
 class GcRef GC_FINAL_CLASS {
     public:
-	GcRef() : zero(0), unref(0), mask(0), ref_count(1) { }
+	GcRef() : unref(0), mask(0), ref_count(1) { }
 	GcRef( const GcRef & );
 
-	virtual ~GcRef()		{ if ( zero ) do_zero(); }
+	virtual ~GcRef();
 
 	// Return the ref count so other classes can do intelligent copying.
 	unsigned short RefCount() const		 { return ref_count; }
@@ -36,36 +36,34 @@ class GcRef GC_FINAL_CLASS {
 	// Register probable cycles
 	static void AddCycleRoot( GcRef * );
 
-	// Add the pointer to be zeroed when
-	// this value is deleted.
-	void AddZero( void *p );
-	void RemoveZero( void *p=0 );
-
 	void SetUnref( GcRef *r, int propagate_only=0 );
 	void ClearUnref( );
 
-    protected:
-	inline refmode_t mZERO( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<0; }
-	inline refmode_t mZEROLIST( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<1; }
-	inline refmode_t mUNREF( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<2; }
-	inline refmode_t mUNREF_REVERT( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<3; }
-	inline refmode_t mPROPAGATE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<4; }
+	void MarkFrame( ) { mask |= mCALLFRAME(); }
+	void ClearFrame( ) { mask &= ~ mCALLFRAME(); }
+	int FrameMember( ) const { return mCALLFRAME(mask); }
 
-	inline refmode_t get_revert_count( ) const { return mask>>5; }
-	inline void set_revert_count( unsigned short value ) { mask = mask & 0x1F | value << 5; }
+	virtual int SoftDelete( );
+
+    protected:
+	inline refmode_t mUNREF( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<0; }
+	inline refmode_t mUNREF_REVERT( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<1; }
+	inline refmode_t mPROPAGATE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<2; }
+	inline refmode_t mCALLFRAME( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<3; }
+
+	inline refmode_t get_revert_count( ) const { return mask>>4; }
+	inline void set_revert_count( unsigned short value ) { mask = mask & 0xF | value<<4; }
 
 	friend inline void Ref( GcRef* object );
 	friend inline void Unref( GcRef* object );
 	friend void sos_do_unref( GcRef * );
 
-	void do_zero( );
 	void unref_revert( );
 
 	int doUnref( ) const { return mUNREF(mask) | mUNREF_REVERT(mask); }
 	int doRevert( ) const { return mUNREF_REVERT(mask); }
 	int doPropagate( ) const { return mPROPAGATE(mask); }
 
-	void *zero;
 	GcRef *unref;
 	refmode_t mask;
 	unsigned short ref_count;

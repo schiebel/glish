@@ -37,12 +37,16 @@ friend class stack_type;
 
 	const char *Description() const;
 
+	void SetCycleRoots( ref_list *cr ) { roots = cr; }
+	ref_list *GetCycleRoots( ) { return roots; }
+
     protected:
 	void clear();
 	int size;
 	IValue** values;
 	IValue* missing;
 	scope_type scope;
+	ref_list *roots;
 	};
 
 glish_declare(PList,Frame);

@@ -560,7 +560,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 
 
 block:		block_head statement_list '}'
-			{ 
+			{
 			int frame_size = current_sequencer->PopScope();
 
 			$$ = new StmtBlock( frame_size, $2, current_sequencer );
@@ -580,7 +580,8 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes co
 			IValue *attributes = $7 ? $7->CopyEval(*eval_options) : 0;
 			Unref($7);
 
-			int frame_size = current_sequencer->PopScope();
+			back_offsets_type *back_refs = 0;
+			int frame_size = current_sequencer->PopScope( &back_refs );
 			IValue *err = 0;
 
 			// handle values (from ConstExpr~s) which must be
@@ -606,8 +607,9 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes co
 					gc_list->append( (*gc_registry)[off] );
 				}
 #endif
-			UserFunc* ufunc = new UserFunc( $4, $9, frame_size, current_sequencer,
-							$1, err, attributes, gc_list );
+			UserFunc* ufunc = new UserFunc( $4, $9, frame_size, back_refs,
+							current_sequencer, $1, err,
+							attributes, gc_list );
 
 			if ( ! err )
 				{

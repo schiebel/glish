@@ -211,3 +211,14 @@ ent BaseList::is_member(ent e) const
 
 	return (i == length()) ? 0 : e;
 	}
+
+int BaseList::SoftDelete( )
+	{
+	if ( finalize_handler )
+		{
+		for ( int i = 0; i < num_entries; i++ )
+			finalize_handler(entry[i]);
+		clear();
+		}
+	return 1;
+	}

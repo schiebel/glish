@@ -50,11 +50,7 @@ void copy_funcs( void *to_, void *from_, size_t len )
 	funcptr *from = (funcptr*) from_;
 	copy_array(from,to,(int)len,funcptr);
 	for (unsigned int i = 0; i < len; i++)
-		if ( to[i] )
-			{
-			to[i]->AddZero(&to[i]);
-			Ref(to[i]);
-			}
+		if ( to[i] ) Ref(to[i]);
 	}
 void delete_funcs( void *ary_, size_t len )
 	{
@@ -199,7 +195,6 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	{
 	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
-	value->AddZero( ary );
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
@@ -1942,7 +1937,7 @@ char *IValue::GetNSDesc( int evalable ) const
 	return 0;
 	}
 
-int IValue::PropagateCycles( ref_list *cyc )
+int IValue::PropagateCycles( ref_list *cyc, int prune )
 	{
 	static value_list been_there;
 	int ret = 0;
@@ -1951,10 +1946,15 @@ int IValue::PropagateCycles( ref_list *cyc )
 	been_there.append( (IValue*) this );
 
 	glish_type type = Type();
+
 	if ( type == TYPE_FUNC && cyc->is_member( FuncVal() ) )
 		{
 		++ret;
 		SetUnref( cyc, 1 );
+		if ( prune )
+			{
+			cyc->remove( FuncVal() );
+			}
 		}
 	else if ( type == TYPE_RECORD )
 		{
@@ -1964,7 +1964,7 @@ int IValue::PropagateCycles( ref_list *cyc )
 		const char* key;
 		while ( (member = (IValue*) r->NextEntry( key, c )) )
 			{
-			int mret = member->PropagateCycles( cyc );
+			int mret = member->PropagateCycles( cyc, prune );
 			if ( mret > 0 ) member->SetUnref( cyc, 1 );
 			ret += mret;
 			}
@@ -1972,13 +1972,35 @@ int IValue::PropagateCycles( ref_list *cyc )
 		}
 	else if ( type == TYPE_REF )
 		{
-		ret = ((IValue*)Deref())->PropagateCycles( cyc );
+		ret = ((IValue*)Deref())->PropagateCycles( cyc, prune );
 		if ( ret > 0 ) SetUnref( cyc, 1 );
 		}
 
 	been_there.remove( (IValue*) this );
 	return ret;
 	}
+
+int IValue::SoftDelete( )
+	{
+	fprintf( stderr, "\nSOFT DELETE: %s\n", type_names[Type()] );
+	if ( Type() == TYPE_RECORD )
+		{
+		recordptr r = RecordPtr();
+		IterCookie* c = r->InitForIteration();
+
+		Value* member;
+		const char* key;
+		while ( (member = r->NextEntry( key, c )) )
+			{
+			free_memory( (void*) key );
+			Unref( member );
+			}
+
+		r->Clear();
+		}
+	return 0;
+	}
+
 
 void init_ivalues( )
 	{

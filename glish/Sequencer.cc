@@ -256,6 +256,20 @@ static char *join_path( const char **path, int len, const char *var_name = 0 )
 	}
 
 
+back_offsets_type::back_offsets_type( int size )
+	{
+	len = size;
+	scope = (int*) alloc_memory_atomic( sizeof(int) * len );
+	frame = (int*) alloc_memory_atomic( sizeof(int) * len );
+	s = (scope_type*) alloc_memory_atomic( sizeof(scope_type) * len );
+	}
+
+back_offsets_type::~back_offsets_type( )
+	{
+	if ( scope ) free_memory( scope );
+	if ( frame ) free_memory( frame );
+	}
+
 stack_type::stack_type( )
 	{
 	frames_ = new frame_list;
@@ -304,8 +318,6 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 
 stack_type::~stack_type( )
 	{
-	static frame_list been_there;
-
 	if ( frames_ && ! delete_on_spot_ )
 		{
 		for ( int i=frames_->length()-1;i >= 0; i-- )
@@ -1772,9 +1784,11 @@ void Sequencer::PushScope( scope_type s )
 	scopes.append( newscope );
 	if ( s != LOCAL_SCOPE )
 		global_scopes.append( scopes.length() - 1 );
+	if ( s == FUNC_SCOPE )
+		back_refs.append( new expr_list );
 	}
 
-int Sequencer::PopScope()
+int Sequencer::PopScope( back_offsets_type **back_ref_ptr )
 	{
 	int top_scope_pos = scopes.length() - 1;
 
@@ -1788,6 +1802,31 @@ int Sequencer::PopScope()
 
 	if ( top_scope->GetScopeType() != LOCAL_SCOPE )
 		global_scopes.remove( top_scope_pos );
+
+	if ( top_scope->GetScopeType() == FUNC_SCOPE )
+		{
+		int back_ref_top = back_refs.length()-1;
+
+		if ( back_ref_top < 0 )
+			fatal->Report( "back reference underflow in Sequencer::PopScope" );
+
+		expr_list *back = back_refs.remove_nth( back_ref_top );
+
+		if ( back )
+			{
+			if ( back_ref_ptr && back->length() > 0 )
+				{
+				*back_ref_ptr = new back_offsets_type( back->length() );
+				loop_over_list( *back, X )
+					{
+					(**back_ref_ptr).offset(X) = ((VarExpr*)(*back)[X])->offset();
+					(**back_ref_ptr).soffset(X) = ((VarExpr*)(*back)[X])->soffset();
+					(**back_ref_ptr).type(X) = ((VarExpr*)(*back)[X])->Scope();
+					}
+				}
+			Unref( back );
+			}
+		}
 
 	delete top_scope;
 
@@ -2431,8 +2470,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
-				value->AddZero( &frame_value );
-				if ( prev_value ) prev_value->RemoveZero( );
+				value->MarkFrame( );
+				if ( prev_value ) prev_value->ClearFrame( );
 				}
 			}
 			break;
@@ -2455,8 +2494,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
-				value->AddZero( &frame_value );
-				if ( prev_value ) prev_value->RemoveZero( );
+				value->MarkFrame( );
+				if ( prev_value ) prev_value->ClearFrame( );
 				}
 			}
 			break;
@@ -2608,6 +2647,14 @@ int Sequencer::RegisterStmt( Stmt* stmt )
 void Sequencer::UnregisterStmt( Stmt* stmt )
 	{
 	registered_stmts.remove( stmt );
+	}
+
+void Sequencer::RegisterBackRef( VarExpr *var )
+	{
+	int len = back_refs.length();
+
+	if ( len > 0 && ! back_refs[len-1]->is_member( var ) )
+		back_refs[len-1]->append(var);
 	}
 
 void Sequencer::NotifieeDone( Notifiee *gone )

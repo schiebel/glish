@@ -191,6 +191,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	sequencer = var_sequencer;
 	func = 0;
 	hold_frames = 0;
+	if ( scope_offset < 0 ) sequencer->RegisterBackRef( this );
 	}
 
 VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
@@ -201,6 +202,7 @@ VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS
 	scope_offset = 0;
 	func = 0;
 	hold_frames = 0;
+	if ( scope_offset < 0 ) sequencer->RegisterBackRef( this );
 	}
 
 void VarExpr::set( scope_type var_scope, int var_scope_offset,
@@ -209,6 +211,7 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 	scope = var_scope;
 	frame_offset = var_frame_offset;
 	scope_offset = var_scope_offset;
+	if ( scope_offset < 0 ) sequencer->RegisterBackRef( this );
 	}
 
 IValue* VarExpr::Eval( evalOpt &opt )

@@ -151,11 +151,12 @@ int FormalParameter::Describe( OStream& s, const ioOpt &opt ) const
 
 
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-		    Sequencer* arg_sequencer, Expr* arg_subsequence_expr,
-		    IValue *&err, const IValue *attributes, ivalue_list *misc_values )
+		    back_offsets_type *back_refs, Sequencer* arg_sequencer,
+		    Expr* arg_subsequence_expr, IValue *&err, const IValue *attributes,
+		    ivalue_list *misc_values )
 	{
-	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size, arg_sequencer,
-				    arg_subsequence_expr, attributes, err);
+	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size, back_refs,
+				    arg_sequencer, arg_subsequence_expr, attributes, err);
 	sequencer = arg_sequencer;
 	misc = misc_values;
 	scope_established = 0;
@@ -172,11 +173,22 @@ UserFunc::UserFunc( const UserFunc *f ) : sequencer(f->sequencer), kernel(f->ker
 UserFunc::~UserFunc()
 	{
 	Unref(kernel);
-	
-	if ( stack )
-		Unref( stack );
-	if ( misc )
-		Unref( misc );
+	Unref( stack );
+	Unref( misc );
+	}
+
+int UserFunc::SoftDelete( )
+	{
+	Unref( kernel );
+	kernel = 0;
+	Unref( misc );
+	misc = 0;
+	// sometimes Unref()ing the stack
+	// causes the deletion of this object
+	stack_type *ts = stack;
+	stack = 0;
+	Unref( ts );
+	return 0;
 	}
 
 IValue* UserFunc::Call( evalOpt &opt, parameter_list* args )
@@ -199,7 +211,7 @@ void UserFunc::EstablishScope()
 		{
 		scope_established = 1;
 		stack = sequencer->LocalFrames();
-// 		if ( stack ) AddCycleRoot( this );
+		if ( stack ) AddCycleRoot( this );
 		}
 	}
 
@@ -209,14 +221,15 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	}
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-				Sequencer* arg_sequencer, Expr* arg_subsequence_expr,
-				const IValue *attributes, IValue *&err )
+				back_offsets_type *arg_back_refs, Sequencer* arg_sequencer,
+				Expr* arg_subsequence_expr, const IValue *attributes, IValue *&err )
 	{
 	formals = arg_formals;
 	body = arg_body;
 	frame_size = arg_size;
 	sequencer = arg_sequencer;
 	subsequence_expr = arg_subsequence_expr;
+	back_refs = arg_back_refs;
 
 	const Value *tmp = 0;
 	reflect_events = subsequence_expr && attributes && attributes->Type() == TYPE_RECORD &&
@@ -248,7 +261,9 @@ UserFuncKernel::~UserFuncKernel()
 	loop_over_list( *formals, i )
 		Unref((*formals)[i]);
 
-	delete formals;	      
+	delete formals;
+
+	if ( back_refs ) delete back_refs;
 
 	NodeUnref(subsequence_expr);
 	NodeUnref( body );
@@ -554,11 +569,17 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 
 static void list_element_unref( void *vp )
 	{
-	Unref( (GcRef*) vp );
+	if ( ((GcRef*)vp)->SoftDelete() )
+		Unref((GcRef*)vp);
 	}
 
-IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
+IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	{
+	static unsigned int COUNT = 0;
+	for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
+	fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
+	++COUNT;
+
 	if ( subsequence_expr )
 		{
 		UserAgent* self = new UserAgent( sequencer, 1 );
@@ -574,32 +595,102 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 	//
 	// need to set "file_name" for errors during execution
 	//
-	static int top_func_initialized = 0;
-	int top_func = 0;
-	if ( ! top_func_initialized )
-		{
-		top_func = 1;
-		top_func_initialized = 1;
-		}
+
 	unsigned short old_file_name = file_name;
 	file_name = file;
+
+	ref_list *old_cycle_roots = cycle_roots;
+	cycle_roots = 0;
+
 	IValue* result = body->Exec( flow );
 
-	if ( top_func )
+	if ( cycle_roots )
 		{
-		top_func_initialized = 0;
-		if ( cycle_roots )
+
+		cycle_roots->set_finalize_handler( list_element_unref );
+		if ( result && result->PropagateCycles( cycle_roots ) > 0 )
 			{
-			if ( result && result->PropagateCycles( cycle_roots ) > 0 )
-				{
-				cycle_roots->set_finalize_handler( list_element_unref );
-				result->SetUnref( cycle_roots );
-				}
-			Unref( cycle_roots );
-			cycle_roots = 0;
+			result->SetUnref( cycle_roots );
+			Frame *frame = sequencer->GetLocalFrame();
+			if ( frame ) frame->SetCycleRoots( cycle_roots );
 			}
+
+		// Check "ref" parameters
+		if ( stack )
+			{
+			frame_list &frames = *stack->frames();
+			int frame_len = frames.length();
+			if ( formals )
+				{
+				loop_over_list( *formals, i )
+					if ( (*formals)[i]->ParamType( ) == VAL_REF )
+						{
+						Frame *frame = frames[frame_len-1];
+						IValue *&v = frame->FrameElement(((VarExpr*)(*formals)[i]->Arg())->offset( ));
+						if ( v->PropagateCycles( cycle_roots ) > 0 )
+							{
+							// Now this is a pain, the argument to the function was Ref()ed as part
+							// of creating the "ref" parameter, but now the stack is tied up by the
+							// argument. We mark it as a frame value (because it now is one) thus
+							// preventing it from being nuked out from under the call frame, and we
+							// Unref() it to undo the effect of the initial Ref()ing. This might
+							// come back to bite us when we're not paying attention, though...
+							IValue *X = (IValue*) v->Deref();
+							X->SetUnref( cycle_roots );
+							X->MarkFrame();
+							Unref(X);
+							}
+						}
+				}
+			}
+
+		// Check "wider" and "global" variables
+		if ( back_refs )
+			{
+			for ( int X=0; X < back_refs->length(); ++X )
+				{
+				int flen = sequencer->FrameLen();
+				int off =  flen - 1 + back_refs->soffset(X);
+
+				if ( back_refs->type(X) == GLOBAL_SCOPE )
+					{
+					IValue *v = sequencer->GetGlobal( back_refs->offset(X) );
+					if ( v && v->PropagateCycles( cycle_roots, 1 ) > 0 )
+						v->SetUnref( cycle_roots );
+					}
+				else
+					{
+					IValue *v = sequencer->GetFunc( off, back_refs->offset(X));
+					if ( v && v->PropagateCycles( cycle_roots ) > 0 )
+						{
+						Frame *frame = sequencer->GetFuncFrame( off );
+						ref_list *cyc = frame->GetCycleRoots( );
+						if ( cyc ) 
+							{
+							cyc->append( cycle_roots );
+							Ref( cycle_roots );
+							cycle_roots->MarkFrame();
+							}
+						else
+							v->SetUnref( cycle_roots );
+						}
+					}
+				}
+			}
+
+		if ( COUNT > 1 )
+			{
+			if ( ! old_cycle_roots ) old_cycle_roots = new ref_list;
+			old_cycle_roots->append( cycle_roots );
+			cycle_roots->MarkFrame();
+			Ref( cycle_roots );
+			}
+
+		Unref( cycle_roots );
+		cycle_roots = 0;
 		}
 
+	cycle_roots = old_cycle_roots;
 	file_name = old_file_name;
 
 	if ( subsequence_expr )
@@ -608,14 +699,24 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 		if ( result )
 			{
 			if ( result->Type() == TYPE_FAIL )
+{
+--COUNT;
+for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
+fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
 				return result;
+}
 
 			if ( result->Type() != TYPE_BOOL || result->BoolVal(1,err) )
 				{
 				if ( err.chars() )
 					{
 					Unref( result );
+{
+--COUNT;
+for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
+fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
 					return (IValue*) Fail(err.chars());
+}
 					}
 
 				warn->Report( "value (", result,
@@ -632,6 +733,10 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 		if ( opt.side_effects() )
 			warn->Report( "agent returned by subsequence ignored" );
 		}
+
+	--COUNT;
+	for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
+	fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
 
 	return result;
 	}

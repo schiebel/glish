@@ -239,7 +239,11 @@ public:
 	char *GetNSDesc( int evalable = 0 ) const;
 
 	// returns the number of time a cycle root (element of c) is referenced
-	int PropagateCycles( ref_list *c );
+	int PropagateCycles( ref_list *c, int prune=0 );
+
+	// value can be part of a frame so it can't be deleted, but needs to have
+	// everything possible freed...
+	int SoftDelete( );
 
 protected:
 

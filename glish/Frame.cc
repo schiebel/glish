@@ -17,6 +17,7 @@ const char *Frame::Description() const
 
 Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	{
+	roots = 0;
 	scope = s;
 	size = frame_size;
 	missing = param_info ? param_info : empty_ivalue();
@@ -35,7 +36,14 @@ void Frame::clear()
 	missing = 0;
 
 	for ( int i = 0; i < size; ++i )
-		Unref( values[i] );
+		{
+		IValue *val = values[i];
+		if ( val )
+			{
+			val->ClearFrame( );
+			Unref( val );
+			}
+		}
 
 	free_memory( values );
 	values = 0;

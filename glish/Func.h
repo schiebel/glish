@@ -9,6 +9,7 @@
 class Sequencer;
 class Stmt;
 class stack_type;
+class back_offsets_type;
 
 typedef PList(IValue) args_list;
 
@@ -119,8 +120,9 @@ class ActualParameter : public Parameter {
 class UserFuncKernel : public GlishObject {
     public:
 	UserFuncKernel( parameter_list* formals, Stmt* body, int size,
-			Sequencer* sequencer, Expr* subsequence_expr,
-			const IValue *attributes, IValue *&err );
+			back_offsets_type *back_refs, Sequencer* sequencer,
+			Expr* subsequence_expr, const IValue *attributes, IValue *&err );
+
 	~UserFuncKernel();
 
 	IValue* Call( evalOpt &opt, parameter_list* args, stack_type *stack = 0);
@@ -147,6 +149,7 @@ class UserFuncKernel : public GlishObject {
 				IValue* ellipsis_value );
 
 	parameter_list* formals;
+	back_offsets_type *back_refs;
 	Stmt* body;
 	int frame_size;
 	Sequencer* sequencer;
@@ -160,9 +163,9 @@ class UserFuncKernel : public GlishObject {
 class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
-		  Sequencer* sequencer, Expr* subsequence_expr,
-		  IValue *&err, const IValue *attributes=0,
-		  ivalue_list *misc_values = 0 );
+		  back_offsets_type *back_refs, Sequencer* sequencer,
+		  Expr* subsequence_expr, IValue *&err,
+		  const IValue *attributes=0, ivalue_list *misc_values = 0 );
 	UserFunc( const UserFunc *f );
 
 	~UserFunc();
@@ -175,6 +178,10 @@ class UserFunc : public Func {
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
+
+	// value can be part of a frame so it can't be deleted, but needs to have
+	// everything possible freed...
+	int SoftDelete( );
 
     protected:
 	Sequencer* sequencer;
