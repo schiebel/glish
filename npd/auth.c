@@ -1,5 +1,4 @@
 /* $Header$ */
-static char *rcsid_ = "@(#) $Id$";
 
 /* Routines to do npd authentication. */
 
@@ -10,6 +9,7 @@ static char *rcsid_ = "@(#) $Id$";
 
 #include "Npd/md5.h"
 #include "Npd/util.h"
+RCSID("@(#) $Id$")
 #include "Npd/auth.h"
 
 #define MD5_DIGEST_SIZE 16

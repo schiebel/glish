@@ -2,9 +2,9 @@
 **
 **  Main editing routines for editline library.
 */
-static char *rcsid_ = "@(#) $Id$";
 
 #include "editline.h"
+RCSID("@(#) $Id$")
 #include <signal.h>
 #include <ctype.h>
 #include <sys/time.h>

@@ -1,5 +1,4 @@
 /* $Header$ */
-static char *rcsid_ = "@(#) $Id$";
 
 /*
  * Copyright (c) 1994
@@ -37,6 +36,7 @@ static char *rcsid_ = "@(#) $Id$";
 #include <netinet/in.h>
 
 #include "Npd/util.h"
+RCSID("@(#) $Id$")
 #include "Npd/auth.h"
 #include "version.h"
 

@@ -1,6 +1,7 @@
 // $Header$
-static char *rcsid_ = "@(#) $Id$";
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include <memory.h>
 #include <string.h>
 

@@ -2,9 +2,9 @@
 **
 **  Unix system-dependant routines for editline library.
 */
-static char *rcsid_ = "@(#) $Id$";
 
 #include "editline.h"
+RCSID("@(#) $Id$")
 
 #if	defined(HAVE_TCGETATTR)
 #include <termios.h>

@@ -1,5 +1,4 @@
 /* $Header$ */
-static char *rcsid_ = "@(#) $Id$";
 
 /* Utility routines for npd and npd_control. */
 
@@ -34,6 +33,7 @@ static char *rcsid_ = "@(#) $Id$";
 #endif
 
 #include "Npd/util.h"
+RCSID("@(#) $Id$")
 
 /* Maximum word that a peer can send us. */
 #define MAX_WORD 512

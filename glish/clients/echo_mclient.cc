@@ -1,8 +1,9 @@
 // $Header$
-static char *rcsid_ = "@(#) $Id$";
 //
 // Glish "echo" client - echoes back any event sent to it.
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "Glish/Client.h"
 
 int main( int argc, char** argv )

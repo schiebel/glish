@@ -1,5 +1,4 @@
 // $Header$
-static char *rcsid_ = "@(#) $Id$";
 
 // Copyright (c) 1993 The Regents of the University of California.
 // All rights reserved.
@@ -30,6 +29,8 @@ static char *rcsid_ = "@(#) $Id$";
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE.
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "system.h"
 #include <signal.h>
 #include <osfcn.h>

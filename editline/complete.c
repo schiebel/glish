@@ -2,9 +2,9 @@
 **
 **  History and file completion functions for editline library.
 */
-static char *rcsid_ = "@(#) $Id$";
 
 #include "editline.h"
+RCSID("@(#) $Id$")
 
 #if	defined(NEED_STRDUP)
 /*

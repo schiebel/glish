@@ -1,8 +1,5 @@
 /* MD5C.C - RSA Data Security, Inc., MD5 message-digest algorithm */
 
-/* $Header$ */
-static char *rcsid_ = "@(#) $Id$";
-
 /* Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
  * rights reserved.
  * 
@@ -25,10 +22,13 @@ static char *rcsid_ = "@(#) $Id$";
  * documentation and/or software.
  */
 
-#include <memory.h>
+/* $Header$ */
 
+#include <memory.h>
 #include "config.h"
 #include "Npd/md5.h"
+#include "Npd/util.h"
+RCSID("@(#) $Id$")
 
 /* Constants for MD5Transform routine. */
 

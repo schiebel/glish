@@ -1,5 +1,4 @@
 // $Header$
-static char *rcsid_ = "@(#) $Id$";
 //
 // Glish "multiplexer" client:
 //
@@ -11,6 +10,8 @@ static char *rcsid_ = "@(#) $Id$";
 //	unknown is returned if there is no forwarding address
 //		for a non-handle or non-unhandle request
 //
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
