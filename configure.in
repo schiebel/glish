@@ -68,6 +68,53 @@ AC_EGREP_CPP(yes,
 AC_MSG_RESULT($ALPHA)])
 
 dnl##
+dnl## Grep on the link output
+dnl## EGREP_LINK(pattern, action-if-found, [action-if-not-found], [output-var])
+dnl##
+AC_DEFUN(EGREP_LINK,
+[cat > $conftest.$ac_ext <<EOF
+dnl This sometimes fails to find $confdefs.h, for some reason.
+dnl [#]line __oline__ "[$]0"
+[#]line __oline__ "configure"
+int main() { return 0; }
+EOF
+dnl eval is necessary to expand ac_link.
+dnl Ultrix and Pyramid sh refuse to redirect output of eval, so use subshell.
+if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
+  egrep "$1" 2>&AC_FD_CC > $conftest.egp; then
+  ifelse([$2], , :, [ifelse([$4], , :, [$4=`cat $conftest.egp`])
+  rm -rf $conftest*
+  $2])
+ifelse([$3], , , [else
+  ifelse([$4], , :, [$4=`cat $conftest.egp`])
+  rm -rf $conftest*
+  $3
+])dnl
+fi
+ifelse([$4], , :, [$4=`cat $conftest.egp`])
+rm -f $conftest*
+])
+
+dnl##
+dnl## Check SGI application binary interface
+dnl## for shared library linking
+dnl##
+AC_DEFUN(SGI_ABI,
+[AC_MSG_CHECKING(application binary interface)
+AC_CACHE_VAL(_cv_sgiabi,[
+SAVED_CFLAGS="$CFLAGS"
+CFLAGS="-show $CFLAGS"
+EGREP_LINK([\-o32|\-n32|\-64],,,tmp_outv)
+CFLAGS="$SAVED_CFLAGS"
+_cv_sgiabi=`echo $tmp_outv | tail -1 | sed -e ['s/^.*\(-[no]32\).*$/\1/' -e 's/^.*\(-64\).*$/\1/']`
+if test "$_cv_sgiabi" != "-o32" -a "$_cv_sgiabi" != "-n32" -a "$_cv_sgiabi" != "-64"; then
+    _cv_sgiabi=""
+fi])
+AC_MSG_RESULT($_cv_sgiabi)
+])
+
+
+dnl##
 dnl## Attempt to strip off the automounter mount point
 dnl##
 AC_DEFUN(STRIP_AUTOMOUNT,
@@ -768,6 +815,8 @@ case $host_os in
 		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
 	    fi
 	fi
+	SGI_ABI	
+	SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
