@@ -5,6 +5,7 @@
 #define ivalue_h
 
 #include "Glish/Value.h"
+#include "Garbage.h"
 
 extern const char *glish_charptrdummy;
 
@@ -25,18 +26,18 @@ public:
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
 
-	IValue( const Value &v ) : Value(v) { }
-	IValue( const IValue &v ) : Value(v) { }
+	IValue( const Value &v ) : Value(v), gc(this) { }
+	IValue( const IValue &v ) : Value(v), gc(this) { }
 
-	IValue( glish_bool v ) : Value( v ) { }
-	IValue( byte v ) : Value( v ) { }
-	IValue( short v ) : Value( v ) { }
-	IValue( int v ) : Value( v ) { }
-	IValue( float v ) : Value( v ) { }
-	IValue( double v ) : Value( v ) { }
-	IValue( complex v ) : Value( v ) { }
-	IValue( dcomplex v ) : Value( v ) { }
-	IValue( const char* v ) : Value( v ) { }
+	IValue( glish_bool v ) : Value( v ), gc(this) { }
+	IValue( byte v ) : Value( v ), gc(this) { }
+	IValue( short v ) : Value( v ), gc(this) { }
+	IValue( int v ) : Value( v ), gc(this) { }
+	IValue( float v ) : Value( v ), gc(this) { }
+	IValue( double v ) : Value( v ), gc(this) { }
+	IValue( complex v ) : Value( v ), gc(this) { }
+	IValue( dcomplex v ) : Value( v ), gc(this) { }
+	IValue( const char* v ) : Value( v ), gc(this) { }
 	IValue( funcptr v );
 
 	// If "storage" is set to "COPY_ARRAY", then the underlying
@@ -44,58 +45,58 @@ public:
 	// "TAKE_OVER_ARRAY" it will simply be used.
 	IValue( agentptr value, array_storage_type storage = COPY_ARRAY );
 
-	IValue( recordptr v ) : Value( v ) { }
+	IValue( recordptr v ) : Value( v ), gc(this) { }
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
-			Value( ref_value, val_type ) { }
+			Value( ref_value, val_type ), gc(this) { }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
 		value_type val_type, int take_index = 0 ) :
 			Value( ref_value, index, num_elements,
-			       val_type, take_index ) { }
+			       val_type, take_index ), gc(this) { }
 
 	IValue( glish_bool value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( byte value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( short value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( int value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( float value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( double value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( complex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( charptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
-			Value( value, num_elements, storage ) { }
+			Value( value, num_elements, storage ), gc(this) { }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
-	IValue( glish_boolref& value_ref ) : Value( value_ref ) { }
-	IValue( byteref& value_ref ) : Value( value_ref ) { }
-	IValue( shortref& value_ref ) : Value( value_ref ) { }
-	IValue( intref& value_ref ) : Value( value_ref ) { }
-	IValue( floatref& value_ref ) : Value( value_ref ) { }
-	IValue( doubleref& value_ref ) : Value( value_ref ) { }
-	IValue( complexref& value_ref ) : Value( value_ref ) { }
-	IValue( dcomplexref& value_ref ) : Value( value_ref ) { }
-	IValue( charptrref& value_ref ) : Value( value_ref ) { }
+	IValue( glish_boolref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( byteref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( shortref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( intref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( floatref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( doubleref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( complexref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( dcomplexref& value_ref ) : Value( value_ref ), gc(this) { }
+	IValue( charptrref& value_ref ) : Value( value_ref ), gc(this) { }
 
 	~IValue();
 
@@ -144,6 +145,8 @@ public:
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	virtual void TagGC( );
+
 protected:
 	void DeleteValue();
 
@@ -157,10 +160,9 @@ protected:
 				Value* value, int rhs_len );
 	void AssignArrayElements( Value* value );
 
-
-    protected:
 	// Note: if member variables are added, Value::TakeValue()
 	//       will need to be examined
+	Garbage gc;
 	};
 
 typedef const IValue* const_ivalue;

@@ -30,6 +30,7 @@ extern YYSTYPE yylval;
 #endif
 
 extern Sequencer* current_sequencer;
+extern ivalue_list *gc_value_list;
 
 // Whether the last token might be the end of a statement.
 int statement_can_end = 0;
@@ -91,7 +92,10 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define RETURN_CONSTANT(value)					\
 	{							\
 	statement_can_end = 1;					\
-	YYLVAL(expr) = new ConstExpr( new IValue( value ) );	\
+	IValue *v = new IValue( value );			\
+	if ( gc_value_list )					\
+		gc_value_list->append( v );			\
+	YYLVAL(expr) = new ConstExpr( v );			\
 	return TOK_CONSTANT;					\
 	}
 
@@ -349,7 +353,10 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			if ( is_double_quote )
 				{
 				statement_can_end = 1;
-				YYLVAL(expr) = new ConstExpr( isplit( literal() ) );
+				IValue *v = isplit( literal());
+				if ( gc_value_list )
+					gc_value_list->append( v );
+				YYLVAL(expr) = new ConstExpr( v );
 				return TOK_CONSTANT;
 				}
 

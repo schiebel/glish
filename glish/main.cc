@@ -85,6 +85,7 @@ static Sequencer* s = 0;
 int glish_jmpbuf_set = 0;
 jmp_buf glish_top_level;
 int glish_silent = 0;
+int glish_collecting_garbage = 0;
 
 int allwarn = 0;
 static unsigned int error_count = 0;
@@ -208,6 +209,8 @@ int main( int argc, char** argv )
 
 	seed_random_number_generator();
 
+	Garbage::init();
+
 	s = new Sequencer( argc, argv );
 
 	s->Exec();
@@ -216,6 +219,8 @@ int main( int argc, char** argv )
 
 	delete s;
 	delete srpt;
+
+	Garbage::finalize();
 
 	return 0;
 	}

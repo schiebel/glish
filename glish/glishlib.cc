@@ -159,3 +159,4 @@ void show_glish_stack( OStream& ) { }
 void glish_cleanup( ) { }
 
 int glish_silent = 0;
+int glish_collecting_garbage = 0;

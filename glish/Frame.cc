@@ -27,10 +27,14 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 
 Frame::~Frame()
 	{
-	Unref( missing );
+	if ( ! glish_collecting_garbage )
+		{
+		Unref( missing );
 
-	for ( int i = 0; i < size; ++i )
-		Unref( values[i] );
+		for ( int i = 0; i < size; ++i )
+			Unref( values[i] );
+		}
+
 	free_memory( values );
 	}
 
@@ -41,4 +45,11 @@ IValue*& Frame::FrameElement( int offset )
 		fatal->Report( "bad offset in Frame::FrameElement" );
 
 	return values[offset];
+	}
+
+void Frame::TagGC( )
+	{
+	for ( int i = 0; i < size; ++i )
+		values[i]->TagGC( );
+	missing->TagGC( );
 	}

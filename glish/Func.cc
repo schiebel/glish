@@ -17,6 +17,8 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Reporter.h"
 
+void Func::TagGC() { }
+
 Parameter::~Parameter()
 	{
 	NodeUnref( arg );
@@ -149,19 +151,22 @@ void FormalParameter::Describe( OStream& s ) const
 
 
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-			Sequencer* arg_sequencer, Expr* arg_subsequence_expr, IValue *&err )
+		    Sequencer* arg_sequencer, Expr* arg_subsequence_expr,
+		    IValue *&err, ivalue_list *misc_values )
 	{
 	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size,
 				    arg_sequencer, arg_subsequence_expr, err);
 	sequencer = arg_sequencer;
+	misc = misc_values;
 	scope_established = 0;
 	stack = 0;
 	}
 
 UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), stack(0),
-			scope_established(0), sequencer(f->sequencer)
+			scope_established(0), sequencer(f->sequencer), misc(f->misc)
 	{
 	Ref(kernel);
+	if ( misc ) Ref(misc);
 	}
 
 UserFunc::~UserFunc()
@@ -170,6 +175,8 @@ UserFunc::~UserFunc()
 	
 	if ( stack )
 		Unref( stack );
+	if ( misc )
+		Unref( misc );
 	}
 
 IValue* UserFunc::Call( parameter_list* args, eval_type etype )
@@ -198,6 +205,14 @@ void UserFunc::EstablishScope()
 void UserFunc::Describe( OStream& s ) const
 	{
 	kernel->Describe(s);
+	}
+
+void UserFunc::TagGC( )
+	{
+	if ( stack ) stack->TagGC( );
+	if ( misc )
+		loop_over_list( *misc, i )
+			(*misc)[i]->TagGC( );
 	}
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,

@@ -98,6 +98,7 @@ struct stack_type : GlishRef {
 	offset_list *offsets;
 	int olen;
 	int delete_on_spot;
+	void TagGC( );
 };
 
 glish_declare(PList,stack_type);
@@ -411,6 +412,12 @@ public:
 	// host=0 implies local bin path
 	//
 	void UpdateBinPath( const char *host = 0 );
+
+	//
+	// go through all values and delete any which aren't
+	// referenced via the globals
+	//
+	void CollectGarbage( );
 
 protected:
 	void MakeEnvGlobal();

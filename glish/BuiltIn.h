@@ -131,7 +131,6 @@ DERIVE_BUILTIN(WheneverStmtsBuiltIn,1,"whenever_stmts",)
 DERIVE_BUILTIN(ActiveAgentsBuiltIn,0,"active_agents",)
 DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
 
-
 #define DERIVE_SEQUENCER_BUILTIN(name,num_args,description)		\
 class name : public BuiltIn {						\
     public:								\
@@ -147,6 +146,7 @@ class name : public BuiltIn {						\
 
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
+DERIVE_SEQUENCER_BUILTIN(GarbageBuiltIn,0,"collect_garbage")
 
 DERIVE_SEQUENCER_BUILTIN(SymbolNamesBuiltIn,NUM_ARGS_VARIES,"symbol_names")
 DERIVE_SEQUENCER_BUILTIN(SymbolValueBuiltIn,1,"symbol_value")

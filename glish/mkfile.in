@@ -69,6 +69,7 @@ INTERP_OBJS = \
 	Expr.o \
 	Frame.o \
 	Func.o \
+	Garbage.o \
 	RemoteExec.o \
 	Sequencer.o \
 	Select.o \
@@ -109,6 +110,7 @@ INTERP_OBJS_PROXY = \
 	$(D)Expr.o \
 	$(D)Frame.o \
 	$(D)Func.o \
+	$(D)Garbage.o \
 	$(D)RemoteExec.o \
 	$(D)Sequencer.o \
 	$(D)Select.o \
@@ -140,7 +142,7 @@ CLIENT_OBJS_PROXY = \
 	$(D)system.o @ARCH_OBJ@
 
 KEY_HEADERS = \
-	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \
+	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h $(SRC)/Garbage.h \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(H)/glish.h
 
@@ -299,6 +301,9 @@ $(D)Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
 $(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Func.cc $(T)
 
+$(D)Garbage.o: $(SRC)/Garbage.cc $(SRC)/Garbage.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Garbage.cc $(T)
+
 $(D)LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/LocalExec.cc $(T)
 
@@ -360,7 +365,7 @@ $(D)IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
 			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/IValue.cc $(T)
 
-$(D)VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(KEY_HEADERS)
+$(D)VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(H)/Value.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/VecRef.cc $(T)
 
 $(D)glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h

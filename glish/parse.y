@@ -108,6 +108,9 @@ static int status;
 static int scope_depth = 0;
 static Stmt *cur_stmt = null_stmt;
 
+/* collect values for garbage collection w/ functions */
+ivalue_list *gc_value_list = 0;
+
 extern void putback_token( int );
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
@@ -479,8 +482,17 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 			int frame_size = current_sequencer->PopScope();
 			IValue *err = 0;
 
-			UserFunc* ufunc = new UserFunc( $4, $7, frame_size,
-							current_sequencer, $1, err );
+			if ( gc_value_list && gc_value_list->length() == 0 )
+				{
+				Unref( gc_value_list );
+				gc_value_list = 0;
+				}
+
+			UserFunc* ufunc = new UserFunc( $4, $7, frame_size, current_sequencer,
+							$1, err, gc_value_list );
+
+			gc_value_list = 0;
+
 			if ( ! err )
 				{
 				$$ = new FuncExpr( ufunc );
@@ -521,6 +533,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 function_head:	TOK_FUNCTION
 			{
 			current_sequencer->PushScope( FUNC_SCOPE );
+			gc_value_list = new ivalue_list;
 			$$ = 0;
 			}
 
@@ -612,9 +625,12 @@ actual_param:	scoped_expr
 
 			if ( ! ellipsis )
 				{
-				error->Report( "\"...\" not available" ); 
+				error->Report( "\"...\" not available" );
+				IValue *v = error_ivalue();
+				if ( gc_value_list )
+					gc_value_list->append( v );
 				$$ = new ActualParameter( VAL_VAL,
-					new ConstExpr( error_ivalue() ) );
+					new ConstExpr( v ) );
 				}
 
 			else
@@ -665,8 +681,11 @@ array_record_param:	scoped_expr
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
+				IValue *v = error_ivalue();
+				if ( gc_value_list )
+					gc_value_list->append( v );
 				$$ = new ActualParameter( VAL_VAL,
-					new ConstExpr( error_ivalue() ) );
+					new ConstExpr( v ) );
 				}
 
 			else
@@ -729,8 +748,11 @@ opt_actual_param:	scoped_expr
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
+				IValue *v = error_ivalue();
+				if ( gc_value_list )
+					gc_value_list->append( v );
 				$$ = new ActualParameter( VAL_VAL,
-					new ConstExpr( error_ivalue() ) );
+					new ConstExpr( v ) );
 				}
 
 			else

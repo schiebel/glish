@@ -26,7 +26,7 @@ const char* type_names[NUM_GLISH_TYPES] =
 	"complex", "dcomplex", "fail",
 	};
 
-const Value* false_value;
+const Value* false_value = 0;
 
 class DelObj : public GlishObject {
 public:
@@ -4112,7 +4112,8 @@ int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 
 void init_values()
 	{
-	false_value = create_value( glish_false );
+	if ( ! false_value )
+		false_value = create_value( glish_false );
 	}
 
 void finalize_values()

@@ -134,6 +134,13 @@ stack_type::~stack_type( )
 	Unref( offsets );
 	}
 
+void stack_type::TagGC( )
+	{
+	if ( ! frames ) return;
+	loop_over_list( *frames, i )
+		(*frames)[i]->TagGC();
+	}
+
 // A special type of Client used for script clients.  It overrides
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
@@ -3065,6 +3072,14 @@ void Sequencer::RunQueue()
 		Unref(notifier_val);
 		Unref( n );
 		}
+	}
+
+void Sequencer::CollectGarbage( )
+	{
+	((IValue*)false_value)->TagGC();
+	loop_over_list( global_frame, i )
+		global_frame[i]->TagGC();
+	Garbage::collect();
 	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )

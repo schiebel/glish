@@ -28,6 +28,8 @@ class Func : public GlishObject {
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
 
+	virtual void TagGC();
+
     protected:
 	int mark;
 	};
@@ -156,7 +158,8 @@ class UserFuncKernel : public GlishObject {
 class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
-			Sequencer* sequencer, Expr* subsequence_expr, IValue *&err );
+		  Sequencer* sequencer, Expr* subsequence_expr,
+		  IValue *&err, ivalue_list *misc_values );
 	UserFunc( const UserFunc *f );
 
 	~UserFunc();
@@ -168,11 +171,15 @@ class UserFunc : public Func {
 
 	void Describe( OStream& s ) const;
 
+	void TagGC();
+
     protected:
 	Sequencer* sequencer;
 	UserFuncKernel *kernel;
 	int scope_established;
 	stack_type *stack;
+	ivalue_list *misc;	// extra values to be protected
+				// from garbage collection
 	};
 
 
