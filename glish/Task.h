@@ -256,6 +256,8 @@ class ProxyTask : public Agent {
 
 	int IsProxy( ) const;
 
+	void AbnormalExit( int );
+
     private:
 	recordptr bundle;
 	int       bundle_size;

@@ -509,6 +509,8 @@ void Task::SetActivity( State is_active )
 
 void Task::AbnormalExit( int status )
 	{
+	loop_over_list( ptlist, i )
+		ptlist[i]->AbnormalExit( status );
 	sequencer->NewEvent( this, 0, 1 );
 	}
 
@@ -1243,6 +1245,17 @@ int ProxyTask::FlushEvents( )
 int ProxyTask::IsProxy( ) const
 	{
 	return 1;
+	}
+
+void ProxyTask::AbnormalExit( int status )
+	{
+	recordptr rec = create_record_dict();
+	rec->Insert(string_dup("id"), new IValue((int*)id.array(),ProxyId::len(),COPY_ARRAY));
+	rec->Insert(string_dup("value"), new IValue( task->AgentID() ));
+	GlishEvent *event = new GlishEvent( (const char*) "fail", (Value*)(new IValue( rec )) );
+	event->SetIsProxy( );
+	event->SetIsQuiet( );
+	sequencer->NewEvent( task, event, 0 );
 	}
 
 void TaskLocalExec::AbnormalExit( int status )
