@@ -203,6 +203,7 @@ class dUser : public GlishDaemon {
 	// running without a master (dServer)
 	//
 	Client *LookupClient( const char *s );
+	void ClientGone( const char *s );
 	int RecvFd( ) { return ! fd_pipe ? -1 : recv_fd( fd_pipe ); }
 	void ProcessConnect();			// connection, via dServer
 	void ProcessInterps( fd_set * );	// existing interpreters
@@ -265,6 +266,7 @@ class dServer : public GlishDaemon {
 	void Register( Value *, const char *user_name );
 	void CreateClient( Value *, const char *user_name );
 	void ClientRunning( Value *, const char *user_name, dUser * );
+	void ClientGone( Value *, const char *user_name, dUser * );
 	void clear_clients_registered_to( const char *user );
 
 	char *id;
@@ -495,9 +497,15 @@ Client *dUser::LookupClient( const char *s )
 	{
 	Client *ret = clients[s];
 	if ( ret ) return ret;
-	ret = clients[s];
-	if ( ret ) return ret;
-	return LookupClientInMaster( s );	
+// 	ret = clients[s];
+// 	if ( ret ) return ret;
+	return LookupClientInMaster( s );
+	}
+
+void dUser::ClientGone( const char *s )
+	{
+	if ( ! master ) return;
+	master->PostEvent( "client-gone", s );
 	}
 
 int dUser::AddInputMask( fd_set* mask )
@@ -555,14 +563,14 @@ void dUser::loop( )
 
 		if ( ! valid ) continue;
 
+		// See if anything is up with our shared clients
+		ProcessClients( mask );
+
 		// Process events from master
 		ProcessMaster( mask );
 
 		// Accept requests from our intrepreters
 		ProcessInterps( mask );
-
-		// See if anything is up with our shared clients
-		ProcessClients( mask );
 
 		// Now look for any new interpreters contacting us, via dServer.
 		if ( FD_ISSET( fd_pipe, mask ) )
@@ -663,6 +671,7 @@ void dUser::ProcessClients( fd_set *mask )
 
 			if ( ! e )	// "shared" client exited
 				{
+				ClientGone( key );
 				// free key
 				free_memory( clients.Remove( key ) );
 				delete client;
@@ -1003,6 +1012,32 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 	user->PostEvent( "client-up-reply", false_value );
 	}
 
+void dServer::ClientGone( Value* client, const char *user_name, dUser *user )
+	{
+	client->Polymorph( TYPE_STRING );
+
+	int argc = client->Length();
+
+	if ( argc < 1 )
+		{
+		syslog( LOG_ERR, "\"client-gone\" event with no client name" );
+		return;
+		}
+
+	charptr *strs = client->StringPtr();
+	const char *name_str = strs[0];
+
+	char *registering_user = 0;
+	const char *group = get_group_name( get_user_group( user_name ) );
+
+	str_dict *map = group_clients[group];
+	if ( map && ( (registering_user = (*map)[name_str]) ))
+		(*map).Remove( name_str );
+
+	else if ( (registering_user = world_clients[name_str]) )
+		world_clients.Remove( name_str );
+	}
+
 void dServer::ProcessUsers( fd_set *mask)
 	{
 	const char* key = 0;
@@ -1030,6 +1065,8 @@ void dServer::ProcessUsers( fd_set *mask)
 					CreateClient( e->value, key );
 				if ( ! strcmp( e->name, "client-up" ) )
 					ClientRunning( e->value, key, user );
+				if ( ! strcmp( e->name, "client-gone" ) )
+					ClientGone( e->value, key, user );
 				}
 			}
 	}
