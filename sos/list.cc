@@ -166,9 +166,12 @@ ent BaseList::get()
 
 void BaseList::clear()
 	{
+	num_entries = 0;
+	}
+
+BaseList::~BaseList()
+	{
 	sos_free_memory( entry );
-	entry = 0;
-	num_entries = max_entries = 0;
 	}
 
 ent BaseList::replace(int ent_index,ent new_ent)

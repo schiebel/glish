@@ -35,7 +35,7 @@ typedef void (*PFC)(char*);	// mostly for error handling
 
 class BaseList : public SosRef {
     public:
-	~BaseList()		{ clear(); }
+	~BaseList();
 
 	void clear();		// remove all entries
 	int length() const	{ return num_entries; }
