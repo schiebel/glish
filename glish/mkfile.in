@@ -161,7 +161,7 @@ INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(PLIB) $(INCDIR)/Glish $(HDRS)
 INSTALL_bin_tgt: $(BINDIR)/glish
 
 glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(GSUFFIX) $(PLIB_P) $(GLIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(MALLIB) $(GLISH_LIBS) @LIBS@
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(MALLIB) $(GLISH_LIBS) @LIBS@ @EXTRA_LIBS@
 
 libglish$(GSUFFIX): $(CLIENT_OBJS_PROXY)
 	rm -f libglish$(GSUFFIX)
