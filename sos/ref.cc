@@ -124,7 +124,45 @@ void GcRef::do_zero( )
 		}
 	}
 
-void sos_do_unref( GcRef *ref )
+void GcRef::unref_revert( )
 	{
-	Unref( ref );
+	if ( unref && doPropagate() && ! doUnref() )
+		{
+		Ref(unref);
+		if ( ref_count-1 > 0xFFFF >> 5 )
+			{
+			// Here we just can't revert to the no-unref status
+			// because the reference count we need to save is
+			// greater than the bits we have available to store it
+			// So we must leak the memory.
+			mask |= mUNREF();
+			}
+		else
+			{
+			// We store off the current reference count, and when it
+			// it reaches zero, we revert to propagate with no unref
+			// and the old reference count.
+			set_revert_count( ref_count-1 );
+			ref_count = 1;
+			mask |= mUNREF_REVERT();
+			}
+		}
+	}
+
+void sos_do_unref( GcRef *object )
+	{
+	GcRef *unref = object->doUnref() ? object->unref : 0;
+
+	if ( object->doRevert( ) )
+		{
+		object->mask &= ~ object->mUNREF_REVERT();
+		object->ref_count = object->get_revert_count( );
+		}
+	else
+		{
+		if ( object->zero ) object->do_zero( );
+		delete object;
+		}
+
+	Unref( unref );
 	}
