@@ -170,8 +170,13 @@ public:
 		{ return kernel.Type() == TYPE_REF; }
 
 	// True if the value is a constant value.
-	int IsConst() const { return kernel.IsConst(); }
-	void MakeConst() { kernel.MakeConst(); }
+	int IsConst( ) const { return kernel.IsConst( ); }
+	void MakeConst( ) { kernel.MakeConst( ); }
+
+	// Set/check unitialized values
+	int IsUninitialized( ) const { return kernel.IsUninitialized( ); }
+	void MarkUninitialized( ) { kernel.MarkUninitialized( ); }
+	void ClearUninitialized( ) { kernel.ClearUninitialized( ); }
 
 	// A value can be reassigned, but not changed, e.g. by array operations
 	void MakeModConst() { kernel.MakeModConst(); }

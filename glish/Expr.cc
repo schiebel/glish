@@ -260,11 +260,10 @@ IValue* VarExpr::Eval( evalOpt &opt )
 
 	if ( ! value )
 		{
-		warn->Report( "uninitialized ",
-			      scope == GLOBAL_SCOPE ? "global" : "local",
-			      " variable", this, "used",
-			      ! strcmp(id,"quit") ? "; use \"exit\" to quit" : "" );
-		value = false_ivalue();
+		value = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+					" variable", this, "used", ! strcmp(id,"quit") ?
+					"; use \"exit\" to quit" : "" );
+		value->MarkUninitialized( );
 		sequencer->SetFrameElement( scope, scope_offset, 
 						frame_offset, value );
 		}
@@ -289,7 +288,10 @@ IValue* VarExpr::RefEval( evalOpt &opt, value_reftype val_type )
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
-		var = false_ivalue();
+		var = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+					" variable", this, "used", ! strcmp(id,"quit") ?
+					"; use \"exit\" to quit" : "" );
+		var->MarkUninitialized( );
 		sequencer->SetFrameElement( scope, scope_offset,
 						frame_offset, var );
 		}
@@ -343,13 +345,10 @@ IValue *VarExpr::ApplyRegx( regexptr* rptr, int rlen, RegexMatch &match )
 
 	if ( ! value )
 		{
-		warn->Report( "uninitialized ",
-				scope == GLOBAL_SCOPE ? "global" : "local",
-				" variable", this, "used" );
-		value = false_ivalue();
-		sequencer->SetFrameElement( scope, scope_offset, 
-						frame_offset, value );
-
+		value = (IValue*) Fail( "uninitialized ", scope == GLOBAL_SCOPE ? "global" : "local",
+					" variable", this, "used" );
+		value->MarkUninitialized( );
+		sequencer->SetFrameElement( scope, scope_offset, frame_offset, value );
 		return (IValue*) Fail( "bad type for regular expression application" );
 		}
 
@@ -1522,6 +1521,11 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		result = (IValue*)array->PickRef( index_val, err );
 	else
 		{
+		// If we have an uninitalized value and the index is a string,
+		// then we know it needs to be coerced to a record...
+		if ( array->IsUninitialized( ) && index_val->VecRefDeref()->Type() == TYPE_STRING )
+			array->Polymorph( TYPE_RECORD );
+
 		// Currently SubRef does not properly handle multi-element index
 		// vectors for record indexing. This causes problems in situations
 		// like:
@@ -1539,7 +1543,9 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		if ( array->Type() == TYPE_RECORD && index_val->Length() > 1 )
 			result = (IValue*)(*array)[index_val];
 		else
+			{
 			result = (IValue*)array->SubRef( index_val, err, val_type );
+			}
 		}
 
 	arg->ReadOnlyDone( index_val );
@@ -1694,7 +1700,7 @@ IValue *ArrayRefExpr::Assign( evalOpt &opt, IValue* new_value )
 
 	else
 		{
-		if ( lhs_value->Type() == TYPE_BOOL && lhs_value->Length() == 1 )
+		if ( lhs_value->IsUninitialized( ) )
 			{
 			// ### assume uninitialized variable
 			if ( index->Type() == TYPE_STRING )
@@ -1804,7 +1810,7 @@ IValue *RecordRefExpr::Assign( evalOpt &opt, IValue* new_value )
 		return (IValue*) Fail( "fields cannot be added to a 'const' record." );;
 		}
 
-	if ( lhs_value->Type() == TYPE_BOOL && lhs_value->Length() == 1 )
+	if ( lhs_value->Deref()->IsUninitialized( ) )
 		// ### assume uninitialized variable
 		lhs_value->Polymorph( TYPE_RECORD );
 
@@ -1814,6 +1820,7 @@ IValue *RecordRefExpr::Assign( evalOpt &opt, IValue* new_value )
 		{
 		Unref( new_value );
 		Unref( lhs_value_ref );
+		message->Report( lhs_value );
 		return (IValue*) Fail( op, "is not a record" );
 		}
 

@@ -116,6 +116,7 @@ class ValueKernel GC_FINAL_CLASS {
 	inline vkmode_t mCONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<4; }
 	inline vkmode_t mMOD_CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<5; }
 	inline vkmode_t mFAIL( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<6; }
+	inline vkmode_t mUNINITIALIZED( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<7; }
 
 	vkmode_t mode;
 
@@ -157,6 +158,10 @@ class ValueKernel GC_FINAL_CLASS {
 	void MakeModConst() { mode |= mMOD_CONST(); }
 	int IsConst() const { return mCONST(mode); }
 	int IsModConst() const { return mMOD_CONST(mode); }
+
+	void MarkUninitialized() { mode |= mUNINITIALIZED( ); }
+	void ClearUninitialized() { mode &= ~mUNINITIALIZED( ); }
+	int IsUninitialized() const { return mUNINITIALIZED(mode); }
 
 	ValueKernel() : array(0), mode(0) { }
 	ValueKernel( const ValueKernel &v ) : mode( v.mode & ~ mCONST() ),

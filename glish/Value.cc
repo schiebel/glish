@@ -1165,7 +1165,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 	if ( IsVecRef() )
 		{
 		VecRef* ref = VecRefPtr();
-	for ( i = 0, j = 0; i < size; ++i, j += incr )
+		for ( i = 0, j = 0; i < size; ++i, j += incr )
 		    	{
 			int err;
 			int off  = ref->TranslateIndex( j, &err );
@@ -1249,13 +1249,19 @@ Value* Value::GetOrCreateRecordElement( const Value* index )
 Value* Value::GetOrCreateRecordElement( const char* field )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		return Fail( "operand to .", field, " is not a record" );
+		{
+		if ( IsUninitialized( ) )
+			Polymorph( TYPE_RECORD );
+		else
+			return Fail( "operand to .", field, " is not a record" );
+		}
 
 	Value* member = (*RecordPtr())[field];
 
 	if ( ! member )
 		{
 		member = create_value( glish_false );
+		member->MarkUninitialized( );
 		RecordPtr()->Insert( string_dup( field ), member );
 		}
 
@@ -2499,6 +2505,7 @@ void Value::Polymorph( glish_type new_type )
 	{
 	glish_type type = Type();
 	int length = kernel.Length();
+	ClearUninitialized();
 
 	if ( type == new_type )
 		return;
