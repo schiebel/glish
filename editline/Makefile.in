@@ -19,15 +19,15 @@ INC = -I$(SRCDIR)/include -I.
 EDITLIB = $(ISTKLIBS)/libedit.a
 LOCAL_CFLAGS = -DANSI_ARROWS -DHIDE -DSYS_UNIX
 
-INSTALLDIR = @top_srcdir@
-LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
+ROOT = @top_srcdir@
+LIBDIR = $(ROOT)/lib/$(ARCH)
 
 ##
 ## prefix may be used as part of '@exec_prefix@'
 ##
 prefix = @prefix@
-PFX_INSTALLDIR = @exec_prefix@
-PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
+PFX_ROOT = @exec_prefix@
+PFX_LIBDIR = $(PFX_ROOT)/lib
 
 OBJS = complete.o editline.o sysunix.o
 

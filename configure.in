@@ -44,7 +44,6 @@ else
     NPD_LIB=""
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in)
 fi
-AC_SUBST(NPD_LIB)
     
 dnl Checks for programs.
 AC_PROG_CC
@@ -160,8 +159,8 @@ if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
     fi
     #--------------------------------------------------------------------
     GLISH_FLAGS="$GLISH_FLAGS -DGLISHTK"
-    GLISH_INCL="$GLISH_INCL -I../../include/Rivet"
-    GLISH_LIB="$GLISH_LIB -L../../rivet/rivet -lrivet"
+    TK_INCL="-I../../include/Rivet"
+    TK_LIB="$(INSTALLDIR)/rivet/rivet/librivet.a"
     GLISH_TK="GLISH_TK"
 
     #------propagate the hostname on down--------------------------------
@@ -171,6 +170,8 @@ else
     XLIBSW=""
     XINCLUDES=""
     GLISH_TK=""
+    TK_LIB=""
+    TK_INCL=""
 fi
 
 
@@ -214,13 +215,16 @@ for ( int i=0; i < 1; i++ ) { ; }
 [AC_MSG_RESULT(non-local); AC_DEFINE(LOOPDECL,)])
 AC_LANG_C
 
+AC_SUBST(GLISH_FLAGS)
+AC_SUBST(LOOPDECL)
+
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBSW)
-AC_SUBST(GLISH_FLAGS)
-AC_SUBST(GLISH_INCL)
-AC_SUBST(GLISH_LIB)
+
 AC_SUBST(GLISH_TK)
+AC_SUBST(TK_LIB)
+AC_SUBST(TK_INCL)
+AC_SUBST(NPD_LIB)
 AC_SUBST(GLISH_NPD)
-AC_SUBST(LOOPDECL)
 
 AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/Makefile:npd/Makefile.in sds/$ARCH/Makefile:sds/Makefile.in editline/$ARCH/Makefile:editline/Makefile.in glish/$ARCH/Makefile:glish/Makefile.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)

@@ -3947,6 +3947,9 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 	}
 
 
+//
+// If you change this function also change IValue::Polymorph
+//
 void Value::Polymorph( glish_type new_type )
 	{
 	glish_type type = Type();
@@ -3972,7 +3975,7 @@ void Value::Polymorph( glish_type new_type )
 		// type is defined using an enumeration instead of as "int",
 		// so a compiler might choose a smaller type.  Fixing this
 		// is on the to-do list.
-		type = new_type;
+		kernel.BoolToInt();
 		return;
 		}
 

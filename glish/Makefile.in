@@ -26,8 +26,8 @@ H = $(SRC)/include/Glish
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC)
+INCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @TK_INCL@ $(XINC)
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
 
@@ -75,24 +75,24 @@ KEY_HEADERS = \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(H)/glish.h
 
-INSTALLDIR = @top_srcdir@
-INCDIR = $(INSTALLDIR)/include
-LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
-BINDIR = $(INSTALLDIR)/bin/$(ARCH)
+ROOT = @top_srcdir@
+INCDIR = $(ROOT)/include
+LIBDIR = $(ROOT)/lib/$(ARCH)
+BINDIR = $(ROOT)/bin/$(ARCH)
 
 ##
 ## prefix may be used as part of '@exec_prefix@'
 ##
 prefix = @prefix@
-PFX_INSTALLDIR = @exec_prefix@
+PFX_ROOT = @exec_prefix@
 PFX_INCDIR = @prefix@/include
-PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
-PFX_BINDIR = $(PFX_INSTALLDIR)/bin
+PFX_LIBDIR = $(PFX_ROOT)/lib
+PFX_BINDIR = $(PFX_ROOT)/bin
 
 
 GLISHROOT = @GLISHROOT@
 
-LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a @NPD_LIB@
+LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a @NPD_LIB@ @TK_LIB@
 
 TAR_FILE = glish.tar
 
@@ -100,7 +100,7 @@ all: libglish.a libinterp.a glish
 
 glish: main.o libinterp.a libglish.a $(LIBS)
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
-		 $(LIBS) @GLISH_LIB@ $(XLIB) -lm @LIBS@
+		 $(LIBS) $(XLIB) -lm @LIBS@
 
 libglish.a: $(CLIENT_OBJS)
 	rm -f libglish.a

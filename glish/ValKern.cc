@@ -223,6 +223,13 @@ void ValueKernel::SetType( glish_type t, unsigned int l,
 	array->Grow( l );
 	}
 
+void ValueKernel::BoolToInt()
+	{
+	if ( Type() != TYPE_BOOL ) return;
+	modArray();
+	array->type = TYPE_INT;
+	}
+
 // void ValueKernel::SetArray( void *storage, unsigned int l, glish_type t, int copy,
 // 			    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 // 	{

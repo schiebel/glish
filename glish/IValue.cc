@@ -417,7 +417,9 @@ DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray,DoublePtr
 DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray,ComplexPtr)
 DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray,DcomplexPtr)
 
-
+//
+// If you change this function check Value::Polymorph
+//
 void IValue::Polymorph( glish_type new_type )
 	{
 	glish_type type = Type();
@@ -443,7 +445,7 @@ void IValue::Polymorph( glish_type new_type )
 		// type is defined using an enumeration instead of as "int",
 		// so a compiler might choose a smaller type.  Fixing this
 		// is on the to-do list.
-		type = new_type;
+		kernel.BoolToInt();
 		return;
 		}
 
