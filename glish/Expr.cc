@@ -710,7 +710,7 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 	//
 	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
 	//
-	if ( opt.result_perishable( ) )
+	if ( l_err && opt.result_perishable( ) )
 		return l_err;
 	else if ( r_err )
 		return r_err;
@@ -1847,15 +1847,6 @@ IValue *AttributeRefExpr::Assign( evalOpt &opt, IValue* new_value )
 
 	IValue* lhs_value_ref = left->RefEval( lopt, VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
-
-	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
-	     lhs_value_ref->VecRefDeref()->Type() != TYPE_RECORD &&
-	     (lhs_value_ref->IsModConst() || lhs_value->IsModConst()) )
-		{
-		Unref( new_value );
-		Unref( lhs_value_ref );
-		return (IValue*) Fail( "'const' values cannot be modified." );
-		}
 
 	if ( field )
 		lhs_value->AssignAttribute( field, new_value );
