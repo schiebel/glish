@@ -369,7 +369,7 @@ class TkMessage : public TkProxy {
 		   charptr justify, charptr font, charptr padx, charptr pady,
 		   charptr relief, charptr borderwidth,
 		   charptr foreground, charptr background, charptr anchor, charptr fill,
-		   charptr hlcolor, charptr hlbackground, charptr hlthickness );
+		   charptr hlcolor, charptr hlbackground, charptr hlthickness, int aspect_ );
 
 	static void Create( ProxyStore *, Value * );
 
