@@ -1683,9 +1683,14 @@ IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( ret, len );
 	}
 
-IValue* SReadBuiltIn::DoCall( const_args_list* args_val )
+IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	{
+	if ( args_val->length() < 2 )
+		return (IValue*) Fail( "too few arguments for \"read\"" );
+
 	const IValue *file_val = (*args_val)[0];
+	const IValue *num_val = (*args_val)[1];
+	int num = num_val->IsNumeric() ? num_val->IntVal() : 1;
 
 	if ( file_val->Type() != TYPE_FILE )
 		return (IValue*) Fail( "argument to sread is not a file" );
@@ -1697,13 +1702,20 @@ IValue* SReadBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot read from this file" );
 
-	char *string = file->read();
+	charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
+
+	int i=1;
+	rstrs[0] = file->read();
+	for (; rstrs[i-1] && i < num; ++i)
+		rstrs[i] = file->read();
+
 	IValue *result = 0;
 
-	if ( string )
-		result = new IValue( string );
+	if ( rstrs[0] )
+		result = new IValue( rstrs, rstrs[i-1] ? i : i-1 );
 	else
 		{
+		free_memory(rstrs);
 		result = empty_ivalue();
 		result->Polymorph( TYPE_STRING );
 		}
@@ -1711,9 +1723,13 @@ IValue* SReadBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-IValue* SWriteBuiltIn::DoCall( const_args_list* args_val )
+IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	{
+	if ( args_val->length() < 2 )
+		return (IValue*) Fail( "too few arguments for \"write\"" );
+
 	const IValue *file_val = (*args_val)[0];
+	const IValue *sep_val = (*args_val)[1];
 
 	if ( file_val->Type() != TYPE_FILE )
 		return (IValue*) Fail( "argument 1 to sread is not a file" );
@@ -1725,13 +1741,62 @@ IValue* SWriteBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot write to this file" );
 
-	for ( int i=1; i < args_val->length(); ++i )
+	char *sep = sep_val->Length() > 0 ? sep_val->StringVal() : 0;
+
+	if ( args_val->length() > 2 )
+
+		for ( int i=2; i < args_val->length(); ++i )
+			{
+			char *string = (*args_val)[i]->StringVal();
+			file->write( string );
+			if ( sep ) file->write(sep);
+			free_memory(string);
+			}
+
+	else if ( sep )
+
+		file->write( sep );
+
+	if ( sep ) free_memory(sep);
+	return new IValue( glish_true );
+	}
+
+IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
+	{
+	int len = args_val->length();
+	if ( len < 1 )
+		return (IValue*) Fail( "too few arguments for \"sprintf\"" );
+
+	int maxlen = 0;
+	for ( int i=0; i < len; ++i )
+		if ( (*args_val)[i]->Length() > maxlen )
+			maxlen = (*args_val)[i]->Length();
+
+	if ( maxlen == 0 )
 		{
-		char *string = (*args_val)[i]->StringVal();
-		file->write( string );
-		free_memory(string);
+		IValue *ret = empty_ivalue();
+		ret->Polymorph( TYPE_STRING );
+		return ret;
 		}
 
+	const IValue *pat_val = (*args_val)[0];
+
+	if ( pat_val->Type() != TYPE_STRING || len == 1 )
+		{
+		charptr *rstrs = (charptr*) alloc_memory( sizeof(charptr)*len );
+		for ( int j=0; j < len; ++j )
+			rstrs[j] = (*args_val)[j]->StringVal();
+		return new IValue( rstrs, len );
+		}
+
+	char *pat = pat_val->StringVal();
+
+	charptr *rstrs = (charptr*) alloc_memory( sizeof(charptr)*maxlen );
+	for ( int k=0; k < maxlen; ++k )
+		{
+		}
+
+	if ( pat ) free_memory(pat);
 	return new IValue( glish_true );
 	}
 
@@ -2591,8 +2656,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new IsNaNBuiltIn );
 
 	s->AddBuiltIn( new OpenBuiltIn );
-	s->AddBuiltIn( new SReadBuiltIn );
-	s->AddBuiltIn( new SWriteBuiltIn );
+	s->AddBuiltIn( new ReadBuiltIn );
+	s->AddBuiltIn( new WriteBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

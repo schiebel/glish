@@ -89,6 +89,12 @@ func ind(x) { if ( len(x) > 0 ) 1:len(x); else [] }
 func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
+func write(file, ..., sep='\n')
+	internal_write(file, sep, ...)
+
+func read(file, num=1)
+	internal_read(file, num)
+
 func readline(prompt='>> ')
 	internal_readline(prompt)
 
