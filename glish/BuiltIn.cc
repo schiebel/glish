@@ -1309,6 +1309,33 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 XBINDBUILTIN(CbindBuiltIn,0,1,1,1,off,off)
 XBINDBUILTIN(RbindBuiltIn,1,0,cols,shape[0],offset+shape[0],offset+1)
 
+IValue* IsConstBuiltIn::DoCall( const_args_list* args_val )
+	{
+	int len = args_val->length();
+
+	if ( len != 1 )
+		{
+		error->Report( "is_const() takes only one argument" );
+		return error_ivalue();
+		}
+
+	return new IValue( (*args_val)[0]->IsConst() ? glish_true : glish_false );
+	}
+
+IValue* IsModifiableBuiltIn::DoCall( const_args_list* args_val )
+	{
+	int len = args_val->length();
+
+	if ( len != 1 )
+		{
+		error->Report( "is_const() takes only one argument" );
+		return error_ivalue();
+		}
+
+	const IValue *val = (*args_val)[0];
+	return new IValue( ! val->IsConst() && ! val->IsModConst() ? glish_true : glish_false );
+	}
+
 IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	{
 	if ( args_val->length() == 0 )
@@ -2153,6 +2180,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new RandomBuiltIn );
 	s->AddBuiltIn( new CbindBuiltIn );
 	s->AddBuiltIn( new RbindBuiltIn );
+	s->AddBuiltIn( new IsConstBuiltIn );
+	s->AddBuiltIn( new IsModifiableBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
 
 	s->AddBuiltIn( new PasteBuiltIn );

@@ -87,7 +87,14 @@ Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 	{
 	if ( etype == EVAL_COPY )
-		return copy_value( value );
+		{
+		IValue *result = copy_value( value );
+		if ( value->IsConst() )
+			result->MakeConst();
+		if ( value->IsModConst() )
+			result->MakeModConst();
+		return result;
+		}
 
 	else if ( etype == EVAL_READ_ONLY )
 		{
