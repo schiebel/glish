@@ -1200,12 +1200,22 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 		}
 	}
 
+
 void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
 	{
-	if ( eventPtr->xany.type == ConfigureNotify )
+	TkFrameP *f = (TkFrameP*) clientData;
+	switch ( eventPtr->xany.type )
 		{
-		TkFrameP *f = (TkFrameP*) clientData;
-		f->LeaderMoved();
+		case ConfigureNotify:
+			f->LeaderMoved( );
+			break;
+		case UnmapNotify:
+			f->LeaderUnmapped( );
+			break;
+		case MapNotify:
+			f->LeaderMapped( );
+			break;
+		default:;
 		}
 	}
 
@@ -2063,6 +2073,19 @@ void TkFrameP::LeaderMoved( )
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
 	tcl_VarEval( tcl, "wm geometry ", Tk_PathName(topwin), SP, geometry, (char *)NULL );
+	tcl_VarEval( tcl, "raise ", Tk_PathName(topwin), (char *)NULL );
+	}
+
+void TkFrameP::LeaderUnmapped( )
+	{
+	if ( ! tlead ) return;
+	tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(topwin), (char *)NULL );
+	}
+
+void TkFrameP::LeaderMapped( )
+	{
+	if ( ! tlead ) return;
+	tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(topwin), (char *)NULL );
 	tcl_VarEval( tcl, "raise ", Tk_PathName(topwin), (char *)NULL );
 	}
 

@@ -67,6 +67,8 @@ class TkFrameP : public TkFrame {
 	void KillFrame( );
 	void ResizeEvent( );
 	void LeaderMoved( );
+	void LeaderMapped( );
+	void LeaderUnmapped( );
 
 	char *SetSide( Value * );
 	char *SetPadx( Value * );
