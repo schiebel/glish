@@ -84,6 +84,9 @@
 #if !defined(sgi) && !defined(__sgi__)
 #define MIPS_SWAPPED
 #endif 
+#if(_MIPS_SZLONG==64)
+#define SOS_BIGADDR 1
+#endif
 #define SOS_SHMEM 1
 #define SOS_MEMMAP 1
 #define SOS_ARC SOS_SPARC
