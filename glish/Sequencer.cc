@@ -3361,7 +3361,7 @@ void Sequencer::ForwardEvent( const char* event_name, IValue* value )
 	}
 
 
-void Sequencer::EventLoop( int in_await )
+int Sequencer::EventLoop( int in_await )
 	{
 	RunQueue();
 
@@ -3388,7 +3388,11 @@ void Sequencer::EventLoop( int in_await )
 		if ( in_await && current_await_done ) break;
 		}
 
-
+#if defined( GLISHTK )
+	return ActiveClients() || TkFrame::TopLevelCount() > 0;
+#else
+	return ActiveClients();
+#endif
 	}
 
 void Sequencer::RunQueue()
@@ -3424,7 +3428,9 @@ void Sequencer::RunQueue()
 		last_notification = n;
 
 		Ref( n );
+		Ref( n->notifiee );
 		Ref(notifier_val);
+		Ref(n->notifiee->stmt());
 		n->notifiee->stmt()->Notify( n->notifier );
 
 		// This extra check is necessary because a 'whenever' stmt which
@@ -3446,7 +3452,9 @@ void Sequencer::RunQueue()
 		if ( n->trigger )
 			n->trigger->NotifyDone( );
 
+		Unref(n->notifiee->stmt());
 		Unref(notifier_val);
+		Unref( n->notifiee );
 		Unref( n );
 		}
 	}

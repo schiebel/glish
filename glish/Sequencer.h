@@ -433,8 +433,8 @@ public:
 	// the responses is to terminate (because an "exit" statement
 	// was encountered, or because there are no longer any active
 	// clients) or we detect keyboard activity (when running
-	// interactively).
-	void EventLoop( int in_await = 0 );
+	// interactively). Returns non-null value if active clients remain.
+	int EventLoop( int in_await = 0 );
 
 	const char* ConnectionHost()	{ return connection_host; }
 	const char* ConnectionPort()	{ return connection_port; }

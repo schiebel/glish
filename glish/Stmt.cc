@@ -1172,6 +1172,8 @@ IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 	int exit_val = status ? status->CopyEval()->IntVal() : 0;
 
+	exit( exit_val );
+
 	delete sequencer;
 
 	exit( exit_val );

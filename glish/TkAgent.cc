@@ -1382,6 +1382,8 @@ void TkAgent::UnMap()
 	if ( self )
 		rivet_destroy_window( self );
 
+	Done();
+
 	frame = 0;
 	self = 0;
 	}
@@ -1810,6 +1812,7 @@ void TkFrame::UnMap()
 	if ( canvas )
 		{
 		rivet_va_cmd( canvas->Self(), "delete", tag, 0 );
+		Done();
 		frame = 0;
 		self = 0;
 		}
@@ -2231,11 +2234,13 @@ void TkButton::UnMap()
 			{
 			menu->Remove(this);
 			rivet_va_cmd( Menu(), "delete", Index(), 0 );
+			Done();
 			}
 		else
 			{
 			if ( self ) rivet_set( self, "-postcommand", "" );
 			rivet_destroy_window( self );
+			Done();
 			}
 		}
 
@@ -2243,6 +2248,7 @@ void TkButton::UnMap()
 		{
 		menu->Remove(this);
 		rivet_va_cmd( Menu(), "delete", Index(), 0 );
+		Done();
 		}
 
 	else

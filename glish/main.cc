@@ -332,8 +332,8 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 
 		while ( ret == rl_data_incomplete )
 			{
-			current_sequencer->EventLoop();
-			ret = nb_readline( prompt );
+			int clc = current_sequencer->EventLoop();
+			ret = clc ? nb_readline( prompt ) : readline( prompt );
 			}
 		}
 	else
@@ -427,6 +427,11 @@ const Str generate_error_str( const RMessage& m0,
 		error->Stream() << "E[" << ++error_count << "]: " <<
 		  ((SOStream&)srpt->Stream()).str() << endl;
 	return Str( (const char *) ((SOStream&)srpt->Stream()).str() );
+	}
+
+void describe_value( IValue *v )
+	{
+	message->Report(v);
 	}
 
 void report_error( const RMessage& m0,

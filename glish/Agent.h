@@ -126,6 +126,10 @@ class Agent : public GlishObject {
 	// until the client terminates (right?)
 	void WrapperGone( const IValue *v ) { if ( agent_value == v ) agent_value = 0; }
 
+	// Called when the agent is finished. It unrefs dangling
+	// statements etc.
+	virtual void Done( );
+
     protected:
 	IValue* BuildEventValue( parameter_list* args, int use_refs );
 

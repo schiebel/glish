@@ -66,10 +66,8 @@ Agent::Agent( Sequencer* s )
 	(*agents).append( this );
 	}
 
-Agent::~Agent()
+void Agent::Done()
 	{
-	(void) (*agents).remove( this );
-
 	IterCookie* c = interested_parties.InitForIteration();
 
 	notification_list* list;
@@ -79,8 +77,18 @@ Agent::~Agent()
 		loop_over_list( *list, i )
 			Unref( (*list)[i] );
 		delete list;
+		interested_parties.Remove( key );
 		}
 
+	for ( int i=unref_stmts.length()-1; i >= 0; --i )
+		NodeUnref( unref_stmts.remove_nth(i) );
+	}
+
+Agent::~Agent()
+	{
+	(void) (*agents).remove( this );
+
+	Done();
 
 	if ( string_copies )
 		{
@@ -92,10 +100,6 @@ Agent::~Agent()
 
 		delete string_copies;
 		}	
-
-	loop_over_list( unref_stmts, i )
-		NodeUnref( unref_stmts[i] );
-
 	}
 
 void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
