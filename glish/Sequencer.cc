@@ -549,42 +549,6 @@ void Scope::ClearGlobalRef(const char *c)
 	free_memory( v );
 	}
 
-void NotifyTrigger::NotifyDone() { }
-NotifyTrigger::~NotifyTrigger() { }
-
-Notification::Notification( Agent* arg_notifier, const char* arg_field,
-			    IValue* arg_value, Notifiee* arg_notifiee,
-			    NotifyTrigger *t, Type ty ) : valid(1), type_(ty)
-	{
-	notifier = arg_notifier;
-	field = string_dup( arg_field );
-	value = arg_value;
-	notifiee = arg_notifiee;
-	trigger = t;
-
-	Ref( value );
-	Ref( notifier );
-	}
-
-Notification::~Notification()
-	{
-	free_memory( field );
-	Unref( value );
-	Unref( trigger );
-	Unref( notifier );
-	}
-
-int Notification::Describe( OStream& s, const ioOpt &opt ) const
-	{
-	s << "notification of ";
-	notifier->Describe( s, ioOpt(opt.flags(),opt.sep()) );
-	s << "." << field << " (";
-	value->Describe( s, ioOpt(opt.flags(),opt.sep()) );
-	s << ") for ";
-	notifiee->stmt()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
-	return 1;
-	}
-
 #define LOG_CLEANUP_ONE(VAR)						\
 	{								\
 	if ( VAR##_file ) { fclose( VAR##_file ); VAR##_file = 0; }	\
@@ -3331,7 +3295,79 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 			 int complain_if_no_interest, NotifyTrigger *t, int preserve )
 	{
-	NEWEVENT_BODY
+
+	int ignore_event = 0;
+	int reply_event = 0;
+	int await_finished = 0;
+
+	if ( await.active() )
+		{
+		int found_match = 0;
+
+		/* Look ahead into queued awaits for future handling */
+		loop_over_list( await_list, X )
+			{
+			Agent *la = 0;
+			if ( (la=await_list[X]->await.agent()) && la == agent &&
+			     ! strcmp( await_list[X]->await.name(), event_name ) )
+				{
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
+					{
+					reply_event = 1;
+					break;
+					}
+				}
+			else if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) )
+				{
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
+					break;
+				}
+			}
+
+		if ( ! found_match )
+			{
+			if ( await.agent() && await.agent() == agent &&
+			     ! strcmp( await.name(), event_name ) )
+				{
+				reply_event = 1;
+				await_finished = 1;
+				last_reply = value;
+				Ref(last_reply);
+				}
+			else if ( await.stmt() )
+				{
+				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
+
+				if ( ! await_finished && await.only( ) &&
+				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
+					ignore_event = 1;
+				}
+			}
+		}
+
+	if ( ! reply_event )
+		{
+		if ( ignore_event )
+			warn->Report( "event ", agent->Name(), ".", event_name,
+				      " ignored due to \"await\"" );
+		else if ( ! await.agent() || ! await_finished )
+			{
+			/* We're going to want to keep the event value as a */
+			/* field in the agent's AgentRecord.                */
+			Ref( value );
+
+			int was_interest = agent->CreateEvent( event_name,
+							       value, t, preserve );
+
+			if ( ! was_interest && complain_if_no_interest )
+				warn->Report( "event ", agent->Name(), ".",
+					      event_name, " (", value,
+					      ") dropped" );
+
+			/* process effects of CreateEvent() */
+			RunQueue( await_finished );
+			}
+		}
 
 	Unref( value );
 	return await_finished ? 1 : 0;
@@ -3343,7 +3379,78 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 	const char* event_name = event->name;
 	IValue* value = (IValue*)event->value;
 
-	NEWEVENT_BODY
+	int ignore_event = 0;
+	int reply_event = 0;
+	int await_finished = 0;
+
+	if ( await.active() )
+		{
+		int found_match = 0;
+
+		/* Look ahead into queued awaits for future handling */
+		loop_over_list( await_list, X )
+			{
+			Agent *la = 0;
+			if ( (la=await_list[X]->await.agent()) && la == agent &&
+			     ! strcmp( await_list[X]->await.name(), event_name ) )
+				{
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
+					{
+					reply_event = 1;
+					break;
+					}
+				}
+			else if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) )
+				{
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
+					break;
+				}
+			}
+
+		if ( ! found_match )
+			{
+			if ( await.agent() && await.agent() == agent &&
+			     ! strcmp( await.name(), event_name ) )
+				{
+				reply_event = 1;
+				await_finished = 1;
+				last_reply = value;
+				Ref(last_reply);
+				}
+			else if ( await.stmt() )
+				{
+				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
+
+				if ( ! await_finished && await.only( ) &&
+				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
+					ignore_event = 1;
+				}
+			}
+		}
+
+	if ( ! reply_event )
+		{
+		if ( ignore_event )
+			warn->Report( "event ", agent->Name(), ".", event_name,
+				      " ignored due to \"await\"" );
+		else if ( ! await.agent() || ! await_finished )
+			{
+			/* We're going to want to keep the event value as a */
+			/* field in the agent's AgentRecord.                */
+			Ref( value );
+
+			int was_interest = agent->CreateEvent( event_name,
+							       value, t, preserve );
+
+			if ( ! was_interest && complain_if_no_interest )
+				warn->Report( "event ", agent->Name(), ".",
+					      event_name, " (", value,
+					      ") dropped" );
+
+			/* process effects of CreateEvent() */
+			RunQueue( await_finished );
+			}
+		}
 
 	Unref( event );
 	return await_finished ? 1 : 0;

@@ -27,39 +27,6 @@ extern char* which_include( const char* file_name );
 extern int lookup_print_precision( );
 extern int lookup_print_limit( );
 
-// This is used for notification of when an event has been handled, i.e.
-// completion of a notification.
-class NotifyTrigger : public GlishObject {
-    public:
-	virtual void NotifyDone( );
-	NotifyTrigger() { }
-	virtual ~NotifyTrigger();
-};
-
-class Notification : public GlishObject {
-public:
-	enum Type { WHENEVER, AWAIT, STICKY };
-	Notification( Agent* notifier, const char* field, IValue* value,
-			Notifiee* notifiee, NotifyTrigger *t=0, Type ty=WHENEVER );
-	~Notification();
-
-	int Describe( OStream& s, const ioOpt &opt ) const;
-	int Describe( OStream &s ) const
-		{ return Describe( s, ioOpt() ); }
-
-	void invalid( ) { valid = 0; }
-	Type type() { return type_; }
-	void type( Type t ) { type_ = t; }
-
-	Agent* notifier;
-	char* field;
-	IValue* value;
-	Notifiee* notifiee;
-	NotifyTrigger *trigger;
-	int valid;
-	Type type_;
-	};
-
 class Task;
 class BuiltIn;
 class AcceptSocket;

@@ -22,6 +22,41 @@ IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
 unsigned int WheneverStmt::notify_count = 0;
 
+void NotifyTrigger::NotifyDone() { }
+NotifyTrigger::~NotifyTrigger() { }
+
+Notification::Notification( Agent* arg_notifier, const char* arg_field,
+			    IValue* arg_value, Notifiee* arg_notifiee,
+			    NotifyTrigger *t, Type ty ) : valid(1), type_(ty)
+	{
+	notifier = arg_notifier;
+	field = string_dup( arg_field );
+	value = arg_value;
+	notifiee = arg_notifiee;
+	trigger = t;
+
+	Ref( value );
+	Ref( notifier );
+	}
+
+Notification::~Notification()
+	{
+	free_memory( field );
+	Unref( value );
+	Unref( trigger );
+	Unref( notifier );
+	}
+
+int Notification::Describe( OStream& s, const ioOpt &opt ) const
+	{
+	s << "notification of ";
+	notifier->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	s << "." << field << " (";
+	value->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	s << ") for ";
+	notifiee->stmt()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
+	}
 
 Stmt::~Stmt() { }
 
@@ -31,6 +66,11 @@ void Stmt::CollectUnref( stmt_list &del_list )
 		NodeUnref( this );
 	else if ( ! del_list.is_member( this ) )
 		del_list.append( this );
+	}
+
+Notification::Type Stmt::NoteType( ) const 
+	{
+	exit(1);
 	}
 
 IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
@@ -220,6 +260,11 @@ const char *WheneverStmt::Description() const
 unsigned int WheneverStmt::NotifyCount()
 	{
 	return notify_count;
+	}
+
+Notification::Type WheneverStmt::NoteType( ) const
+	{
+	return Notification::WHENEVER;
 	}
 
 WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
@@ -630,6 +675,11 @@ void AwaitStmt::Notify( Agent* /* agent */ )
 			cached_notes.append(note);
 			}
 		}
+	}
+
+Notification::Type AwaitStmt::NoteType( ) const
+	{
+	return Notification::AWAIT;
 	}
 
 void AwaitStmt::ClearCachedNote()

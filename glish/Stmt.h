@@ -12,7 +12,39 @@ class EventDesignator;
 class Agent;
 class Task;
 class Sequencer;
-class Notification;
+
+// This is used for notification of when an event has been handled, i.e.
+// completion of a notification.
+class NotifyTrigger : public GlishObject {
+    public:
+	virtual void NotifyDone( );
+	NotifyTrigger() { }
+	virtual ~NotifyTrigger();
+};
+
+class Notification : public GlishObject {
+public:
+	enum Type { WHENEVER, AWAIT, STICKY, UNKNOWN };
+	Notification( Agent* notifier, const char* field, IValue* value,
+			Notifiee* notifiee, NotifyTrigger *t=0, Type ty=WHENEVER );
+	~Notification();
+
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
+
+	void invalid( ) { valid = 0; }
+	Type type() { return type_; }
+	void type( Type t ) { type_ = t; }
+
+	Agent* notifier;
+	char* field;
+	IValue* value;
+	Notifiee* notifiee;
+	NotifyTrigger *trigger;
+	int valid;
+	Type type_;
+	};
 
 glish_declare(PList,Notification);
 typedef PList(Notification) notification_list;
@@ -89,6 +121,8 @@ class Stmt : public ParseNode {
 	//
 	virtual void CollectUnref( stmt_list & );
 
+	virtual Notification::Type NoteType( ) const;
+
     protected:
 	// DoExec() does the real work of executing the statement.
 	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
@@ -132,6 +166,8 @@ class WheneverStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Notify( Agent* agent );
+
+	Notification::Type NoteType( ) const;
 
 	//
 	// Currently these two stmts do the same thing...
@@ -258,6 +294,8 @@ class AwaitStmt : public Stmt {
 	void CollectUnref( stmt_list & );
 
 	const char *Description() const;
+
+	Notification::Type NoteType( ) const;
 
 	void ClearCachedNote( );
 

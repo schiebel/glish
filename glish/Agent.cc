@@ -369,7 +369,7 @@ int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
 		if ( t ) Ref(t);
 
 		Notification* note = new Notification( this, field, value, n, t,
-			StickyNotes() ? Notification::STICKY : Notification::WHENEVER );
+			StickyNotes() ? Notification::STICKY : s->NoteType() );
 
 		sequencer->QueueNotification( note );
 
