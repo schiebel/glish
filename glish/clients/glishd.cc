@@ -23,6 +23,7 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "Socket.h"
 #include "ports.h"
+#include "config.h"
 
 
 extern "C" {
@@ -151,12 +152,12 @@ int main( int /* argc */, char** argv )
 			threads[i]->Interpreter()->AddInputMask( mask );
 			}
 
-		for ( i=0 ; i < transition.length() ; ++i )
+		for ( LOOPDECL i=0 ; i < transition.length() ; ++i )
 			{
 			transition[i]->AddInputMask( mask );
 			}
 
-		for ( i=0 ; i < mpcs.length() ; ++i )
+		for ( LOOPDECL i=0 ; i < mpcs.length() ; ++i )
 			{
 			mpcs[i]->AddInputMask( mask );
 			}
@@ -176,7 +177,7 @@ int main( int /* argc */, char** argv )
 		GlishEvent* e;
 
 		// Look for any threads that have activity.
-		for ( i = 0; i < threads.length(); ++i )
+		for ( LOOPDECL i = 0; i < threads.length(); ++i )
 			{
 			d = threads[i];
 
@@ -198,7 +199,7 @@ int main( int /* argc */, char** argv )
 				}
 			}
 
-		for ( i=0 ; i<mpcs.length() ; ++i )
+		for ( LOOPDECL i=0 ; i<mpcs.length() ; ++i )
 			{
 			c = mpcs[i];
 
@@ -239,7 +240,7 @@ int main( int /* argc */, char** argv )
 				transition.append( c );
 			}
 
-		for ( i=0 ; i<transition.length() ; ++i )
+		for ( LOOPDECL i=0 ; i<transition.length() ; ++i )
 			{
 			c = transition[i];
 
