@@ -95,7 +95,7 @@ func stat( file, bytes=100, follow=F )
 func is_asciifile( f, bytes=100 )
 	{
 	if ( len(f) )
-		stat(f,bytes)["type"] == 'ascii'
+		len(tmp:=stat(f,bytes)) > 0 && tmp["type"] == 'ascii'
 	else
 		F
 	}
