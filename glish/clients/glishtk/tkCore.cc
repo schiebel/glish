@@ -2939,7 +2939,7 @@ Tk_Window TkButton::TopLevel( )
 	return frame ? frame->TopLevel() : menu ? menu->TopLevel() : 0;
 	}
 
-DEFINE_DTOR(TkScale,)
+DEFINE_DTOR( TkScale, if (fill) free_memory(fill); )
 
 void TkScale::UnMap()
 	{
@@ -3695,7 +3695,7 @@ void TkScrollbar::Scrolled( Value *data )
 	}
 
 
-DEFINE_DTOR(TkLabel,)
+DEFINE_DTOR( TkLabel, if (fill) free_memory(fill); )
 
 TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
@@ -3843,7 +3843,7 @@ STD_EXPAND_PACKINSTRUCTION(TkLabel)
 STD_EXPAND_CANEXPAND(TkLabel)
 
 
-DEFINE_DTOR(TkEntry,)
+DEFINE_DTOR(TkEntry, if (fill) free_memory(fill); )
 
 void TkEntry::UnMap()
 	{
@@ -4048,7 +4048,7 @@ charptr TkEntry::IndexCheck( charptr s )
 STD_EXPAND_PACKINSTRUCTION(TkEntry)
 STD_EXPAND_CANEXPAND(TkEntry)
 
-DEFINE_DTOR(TkMessage,)
+DEFINE_DTOR( TkMessage, if (fill) free_memory(fill); )
 
 TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
@@ -4188,7 +4188,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 STD_EXPAND_PACKINSTRUCTION(TkMessage)
 STD_EXPAND_CANEXPAND(TkMessage)
 
-DEFINE_DTOR(TkListbox,)
+DEFINE_DTOR( TkListbox, if (fill) free_memory(fill); )
 
 void TkListbox::UnMap()
 	{
