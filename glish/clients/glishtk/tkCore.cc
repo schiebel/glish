@@ -1625,7 +1625,9 @@ char *TkFrameP::Raise( Value *args )
 char *TkFrameP::Title( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
-		tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), SP, args->StringPtr(0)[0], 0 );
+{
+		tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), " {", args->StringPtr(0)[0], "}", 0 );
+}
 	else
 		global_store->Error("wrong type, string expected");
 
