@@ -1982,7 +1982,6 @@ int IValue::PropagateCycles( NodeList *cyc, int prune )
 
 int IValue::SoftDelete( )
 	{
-	fprintf( stderr, "\nSOFT DELETE: %s\n", type_names[Type()] );
 	if ( Type() == TYPE_RECORD )
 		{
 		recordptr r = RecordPtr();
@@ -1998,6 +1997,10 @@ int IValue::SoftDelete( )
 
 		r->Clear();
 		}
+
+	else
+		fprintf( stderr, "\nSOFT DELETE (%s) REQUIRED\n", type_names[Type()] );
+
 	return 0;
 	}
 
