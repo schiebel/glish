@@ -40,8 +40,8 @@ func init_glishtk( ) {
 					   relief, borderwidth, foreground, background, fill )
 
     ret.scrollbar := func ( parent, orient='vertical', width=15, foreground='black',
-			    background='lightgrey' )
-				gtk->scrollbar( parent, orient, width, foreground, background )
+			    background='lightgrey', jump=F )
+				gtk->scrollbar( parent, orient, width, foreground, background, jump )
 
     ret.label := func ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0,
 			relief='flat', borderwidth=2, foreground='black', background='lightgrey',

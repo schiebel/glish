@@ -253,7 +253,7 @@ char *glishtk_onebinary(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const 
 	char *ret = 0;
 
 	if ( args->IsNumeric() && args->Length() > 0 )
-		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " ", (char*)(args->IntVal() ? ptrue : pfalse), 0 );
 	else
 		global_store->Error("wrong type, numeric expected");
 	
@@ -3131,7 +3131,7 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	}
 
 TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
-			  int width, charptr foreground, charptr background )
+			  int width, charptr foreground, charptr background, int jump )
 				: TkProxy( s )
 	{
 	frame = frame_;
@@ -3151,6 +3151,11 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = (char*) orient;
 	argv[c++] = "-width";
 	argv[c++] = width_;
+	if ( jump )
+		{
+		argv[c++] = "-jump";
+		argv[c++] = "true";
+		}
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
@@ -3174,6 +3179,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+	procs.Insert("jump", new TkProc("-jump", glishtk_onebool));
 	}
 
 const char **TkScrollbar::PackInstruction()
@@ -3210,8 +3216,8 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	{
 	TkScrollbar *ret;
 
-	if ( args->Length() != 5 )
-		InvalidNumberOfArgs(5);
+	if ( args->Length() != 6 )
+		InvalidNumberOfArgs(6);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3219,10 +3225,11 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	SETINT( width )
 	SETSTR( foreground )
 	SETSTR( background )
+	SETINT( jump )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background );
+		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background, jump );
 	else
 		{
 		SETDONE

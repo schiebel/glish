@@ -281,7 +281,7 @@ class TkText : public TkProxy {
 class TkScrollbar : public TkProxy {
     public:
 	TkScrollbar( ProxyStore *, TkFrame *, charptr orient, int width,
-		     charptr foreground, charptr background );
+		     charptr foreground, charptr background, int jump );
 
 	const char **PackInstruction();
 	int CanExpand() const;
