@@ -33,3 +33,5 @@
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
+/* Define if compiler does not support const keyword */
+#undef const

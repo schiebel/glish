@@ -3,7 +3,7 @@
 /* Generates to stdout a key to be used for npd communication. */
 
 #include <stdio.h>
-
+#include "config.h"
 #include "Npd/util.h"
 RCSID("@(#) $Id$")
 
