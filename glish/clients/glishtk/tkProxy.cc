@@ -634,7 +634,7 @@ TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ),
 
 	if ( init_graphic )
 		{
-		const char *err = init_tk( );
+		const char *err = init_tk(0);
 		if ( err ) SetError( new Value(err) );
 
 		procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));

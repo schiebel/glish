@@ -122,7 +122,6 @@ class TkFrameP : public TkFrame {
 	static unsigned long grab;
 
 	char is_tl;
-	Tk_Window pseudo;
 
 	unsigned char reject_first_resize;
 
