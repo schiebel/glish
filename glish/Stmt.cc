@@ -582,13 +582,18 @@ AwaitStmt::AwaitStmt( event_dsg_list* arg_await_list, int arg_only_flag,
 
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
+	Notifiee *note = new Notifiee( this, sequencer );
 	loop_over_list( *await_list, i )
-		(*await_list)[i]->Register( new Notifiee( this, sequencer ) );
+		(*await_list)[i]->Register( note );
+	Unref( note );
 
 	if ( except_list )
+		{
+		note = new Notifiee( except_stmt, sequencer );
 		loop_over_list( *except_list, j )
-			(*except_list)[j]->Register(
-					new Notifiee( except_stmt, sequencer ) );
+			(*except_list)[j]->Register( note );
+		Unref( note );
+		}
 
 	sequencer->Await( this, only_flag, except_stmt );
 
