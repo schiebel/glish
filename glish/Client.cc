@@ -1721,7 +1721,7 @@ GlishEvent* recv_event( sos_source &in )
 		break;
 #define WRITE_RECORD_ACTION(ACCESSOR)						\
 	{									\
-	(*been_there).append( val );						\
+	been_there.append( val );						\
 										\
 	int len = val->Length();						\
 	recordptr rec = val->ACCESSOR( 0 );					\
@@ -1744,12 +1744,12 @@ GlishEvent* recv_event( sos_source &in )
 		member = rec->NthEntry( i, key );				\
 		write_value_recur( sos, (Value*) member, key, 0, 0, proxy_id, been_there ); \
 		}								\
-	(*been_there).remove( val );						\
+	been_there.remove( val );						\
 	}
 
 static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			       char *name, unsigned char flags,
-			       const ProxyId &proxy_id, value_list *been_there )
+			       const ProxyId &proxy_id, value_list &been_there )
 	{
 	sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	static Value *empty = empty_value( );
@@ -1770,7 +1770,7 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 	if ( val->IsRef() )
 		{
 		Value *unrefed = val->Deref();
-		if ( ! (*been_there).is_member(unrefed) )
+		if ( ! been_there.is_member(unrefed) )
 			write_value_recur( sos, unrefed, label, name, flags, proxy_id, been_there );
 		else
 			{
@@ -1828,9 +1828,8 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 void write_value( sos_out &sos, Value *val, const char *label, char *name,
 		  unsigned char flags, const ProxyId &proxy_id )
 	{
-	value_list *been_there = new value_list;
+	value_list been_there;
 	write_value_recur( sos, val, label, name, flags, proxy_id, been_there );
-	delete been_there;
 	}
 
 sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e,
