@@ -215,6 +215,15 @@ func sort(x)
 	return [sort(x[x < pivot]), x[x == pivot], sort(x[x > pivot])]
 	}
 
+func unique( s, sorted=F )
+        {
+        if ( ! sorted ) s := sort(s)
+        l := len(s)
+        if ( l > 1 && s[l] != s[1] )
+                return s[s != [s[l], s[1:(l-1)]]]
+        return s[1]
+        }
+
 func sort_pair(x, y)
 	{
 	if ( len(x) <= 1 )

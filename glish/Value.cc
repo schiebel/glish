@@ -2266,6 +2266,12 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 	if ( IsRef() )
 		return Deref()->ArrayRef( indices, num_indices );
 
+	if ( Type() == TYPE_FAIL )
+		return Fail( );
+
+	if ( Type() == TYPE_FUNC )
+		return Fail( "bad type in array access" );
+
 	if ( Type() == TYPE_RECORD )
 		return RecordSlice( indices, num_indices );
 
