@@ -7,6 +7,17 @@
 RCSID("@(#) $Id$")
 #include "Glish/Complex.h"
 
+//
+// this because it's not defined in the HPUX11 includes
+//
+#if !defined(HUGE)
+#if defined(HUGE_VAL)
+#define HUGE HUGE_VAL
+#else
+#define HUGE (infinity())
+#endif
+#endif
+
 // Defined in "Value.cc".
 extern glish_dcomplex text_to_dcomplex( const char text[], int& successful );
 
