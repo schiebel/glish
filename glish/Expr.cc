@@ -14,6 +14,7 @@ RCSID("@(#) $Id$")
 #include "Expr.h"
 #include "Agent.h"
 #include "Func.h"
+#include "Frame.h"
 #include "system.h"
 #include "config.h"
 
@@ -134,6 +135,15 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 void Expr::SetChangeNotice(change_var_notice) { }
 void Expr::ClearChangeNotice( ) { }
 
+
+void VarExpr::PopFrame( )
+	{
+	int len = frames.length();
+	if ( len )
+		frames.remove_nth( len - 1 );
+	HoldFrames( );
+	}
+
 VarExpr::~VarExpr()
 	{
 	//
@@ -168,6 +178,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	scope_offset = var_scope_offset;
 	sequencer = var_sequencer;
 	func = 0;
+	hold_frames = 0;
 	}
 
 VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
@@ -178,6 +189,7 @@ VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
 	scope = ANY_SCOPE;
 	scope_offset = 0;
 	func = 0;
+	hold_frames = 0;
 	}
 
 void VarExpr::set( scope_type var_scope, int var_scope_offset,
@@ -191,8 +203,15 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 IValue* VarExpr::Eval( eval_type etype )
 	{
 	access = USE_ACCESS;
-	IValue* value = sequencer->FrameElement( scope, scope_offset,
-						frame_offset );
+
+	IValue *value = 0;
+	int len = frames.length();
+	if ( len && ! hold_frames )
+		value = frames[len-1]->FrameElement( frame_offset );
+	else
+		value = sequencer->FrameElement( scope, scope_offset,
+						 frame_offset );
+
 	if ( ! value )
 		{
 		warn->Report( "uninitialized ",
@@ -211,8 +230,14 @@ IValue* VarExpr::Eval( eval_type etype )
 IValue* VarExpr::RefEval( value_type val_type )
 	{
 	access = USE_ACCESS;
-	IValue* var = sequencer->FrameElement( scope, scope_offset,
-						frame_offset );
+	IValue* var = 0;
+	int len = frames.length();
+	if ( len && ! hold_frames )
+		var = frames[len-1]->FrameElement( frame_offset );
+	else
+		var = sequencer->FrameElement( scope, scope_offset,
+					       frame_offset );
+
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
@@ -233,8 +258,20 @@ IValue* VarExpr::RefEval( value_type val_type )
 IValue *VarExpr::Assign( IValue* new_value )
 	{
 	access = USE_ACCESS;
-	const char *err = sequencer->SetFrameElement( scope, scope_offset,
-						      frame_offset, new_value, func );
+	const char *err = 0;
+
+	int len = frames.length();
+	if ( len && ! hold_frames )
+		{
+		IValue*& frame_value = frames[len-1]->FrameElement( frame_offset );
+		IValue *prev_value = frame_value;
+		frame_value = new_value;
+		Unref( prev_value );
+		}
+	else
+		err = sequencer->SetFrameElement( scope, scope_offset,
+						  frame_offset, new_value, func );
+
 	return err ? (IValue*) Fail(err) : 0;
 	}
 

@@ -5,9 +5,18 @@
 #define frame_h
 
 #include "Glish/Object.h"
-#include "Expr.h"
+#include "Glish/List.h"
 
 class IValue;
+
+// Different scopes to use when resolving identifiers; used by the VarExpr
+// and Sequencer classes.
+//	LOCAL_SCOPE  --  local to the narrowest block
+//      FUNC_SCOPE   --  local to a function
+//      GLOBAL_SCOPE --  global to the current name space
+//      ANY_SCOPE    --  any scope from the narrowest block to global
+//
+typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
 
 class Frame : public GlishObject {
     public:
@@ -31,5 +40,8 @@ class Frame : public GlishObject {
 	IValue* missing;
 	scope_type scope;
 	};
+
+declare(PList,Frame);
+typedef PList(Frame) frame_list;
 
 #endif /* frame_h */

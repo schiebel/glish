@@ -62,7 +62,6 @@ class Selector;
 class RemoteDaemon;
 class awaitinfo;
 
-declare(PList,Frame);
 declare(PDict,Task);
 declare(PDict,RemoteDaemon);
 declare(PDict,char);
@@ -88,7 +87,6 @@ private:
 
 declare(PList,Scope);
 typedef PList(Scope) scope_list;
-typedef PList(Frame) frame_list;
 typedef List(int) offset_list;
 
 struct stack_type : GlishRef {

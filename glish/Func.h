@@ -123,7 +123,7 @@ class UserFuncKernel : public GlishObject {
 	~UserFuncKernel();
 
 	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
-	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing, stack_type *stack = 0 );
+	IValue* DoCall( eval_type etype, stack_type *stack = 0 );
 
 	void Describe( OStream& s ) const;
 
@@ -132,7 +132,7 @@ class UserFuncKernel : public GlishObject {
 
 	// Decode an actual "..." argument.
 	// returning 0 means OK, non-zero indicates error
-	IValue *AddEllipsisArgs( args_list* args_vals, Parameter* actual_ellipsis,
+	IValue *AddEllipsisArgs( Frame *, int &arg_cnt, Parameter* actual_ellipsis,
 				int& num_args, int num_formals,
 				IValue* formal_ellipsis_value );
 

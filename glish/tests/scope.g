@@ -215,4 +215,25 @@ func try()
     }
 assert(the,200)
 # --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
-exit
+mark()
+func parm1( x, y = x*3 )
+	{
+	return y
+	}
+func parm2( x, y = x*2 )
+	{
+	return parm1(y)
+	}
+assert(parm1(4),12)
+assert(parm1(4,20),20)
+assert(parm2(2),12)
+assert(parm2(2,8),24)
+# --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+mark()
+func elip( ... )
+	{
+	return [...] ^ 2
+	}
+assert(sum(elip(1,3,5)),35)
+# --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+#exit

@@ -6,6 +6,7 @@
 
 #include "Glish/Dict.h"
 #include "IValue.h"
+#include "Frame.h"
 
 class Stmt;
 class Expr;
@@ -14,6 +15,7 @@ class UserFunc;
 class EventDesignator;
 class Sequencer;
 class ParameterPList;
+class Frame;
 
 declare(PList,Expr);
 declare(PDict,Expr);
@@ -42,15 +44,6 @@ inline void NodeUnref( ParseNode *obj )
 	if ( obj && obj->canDelete() )
 		Unref( obj );
 	}
-
-// Different scopes to use when resolving identifiers; used by the VarExpr
-// and Sequencer classes.
-//	LOCAL_SCOPE  --  local to the narrowest block
-//      FUNC_SCOPE   --  local to a function
-//      GLOBAL_SCOPE --  global to the current name space
-//      ANY_SCOPE    --  any scope from the narrowest block to global
-//
-typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
 
 // Different variable access; used by the VarExpr
 //	PARSE_ACCESS --  the variable has been parsed for the purpose of
@@ -180,8 +173,6 @@ class VarExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
-	IValue *Assign( IValue* new_value );
-
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
 	int soffset()		{ return scope_offset; }
@@ -199,6 +190,38 @@ class VarExpr : public Expr {
 	void SetChangeNotice(change_var_notice);
 	void ClearChangeNotice( );
 
+	//
+	// These prevent/allow these preliminary frames to be used
+	// in preference to 'sequencer'. It is necessary to disable
+	// these preliminary frames when "invoking" the function
+	// (i.e. just after the parameters have been assigned) due
+	// to recursive function calls.
+	//
+	void HoldFrames( ) { hold_frames = 1; }
+	void ReleaseFrames( ) { hold_frames = 0; }
+
+	//
+	// These are local frames which are only used in the process
+	// of establishing invocation parameters for a function.
+	// 'PopFrame()' does an implicit 'HoldFrames()' because this
+	// is typically what you want when filling function parameters,
+	// and 'PushFrame()' does an implicit 'ReleaseFrames()'.
+	//
+	// These 'Push/PopFrame()', 'Hold/ReleaseFrame()' functions
+	// were needed for function invocation to handle things like:
+	//
+	//	func foo( x, y = x * 8 ) { return y }
+	//
+	//
+	void PushFrame( Frame *f ) { frames.append(f); ReleaseFrames(); }
+	void PopFrame( );
+
+	IValue *Assign( IValue* new_value );
+	// This Assignment forces VarExpr to use 'f' instead of going
+	// to the 'sequencer'. This result in a 'PushFrame(f)' too.
+	IValue *Assign( IValue* new_value, Frame *f )
+		{ PushFrame( f ); Assign( new_value ); }
+
     protected:
 	char* id;
 	scope_type scope;
@@ -207,6 +230,8 @@ class VarExpr : public Expr {
 	Sequencer* sequencer;
 	access_type access;
 	change_var_notice func;
+	frame_list frames;
+	int hold_frames;
 	};
 
 
