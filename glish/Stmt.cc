@@ -70,7 +70,7 @@ void Stmt::CollectUnref( stmt_list &del_list )
 
 Notification::Type Stmt::NoteType( ) const 
 	{
-	exit(1);
+	return Notification::UNKNOWN;
 	}
 
 IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
