@@ -44,6 +44,7 @@ OBJS = main.o tkAgent.o tkCanvas.o tkPgplot.o malloc.o
 
 RCDIR = @RCDIR@
 TK_LIB = @TK_LIB@ 
+DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
@@ -88,12 +89,12 @@ main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
 gtk: $(OBJS) $(GLISH_LIBS)
-	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB); \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB); \
-	else										\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB);		\
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB);		\
+	@if test -d $(SRC)/tkpgplot; then							\
+	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	else											\
+	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);	\
+	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	fi
 
 $(BINDIR_P)/gtk: gtk

@@ -385,6 +385,13 @@ AC_EGREP_CPP(select, [#include <sys/types.h>
     AC_MSG_RESULT(missing)
     AC_DEFINE(SELECT_NOT_DECLARED)])
 
+dnl##
+dnl## Check for existence of -ldl library.  This is needed because
+dnl## Linux can use either -ldl or -ldld for dynamic loading.
+dnl##
+AC_CHECK_LIB(dl, dlopen, have_dl=yes; dl_lib="-ldl", have_dl=no; dl_lib="")
+
+
 dnl##--------------------------------------------------------------------
 dnl##
 dnl## These things require something to run, need to be fixed up so that
@@ -620,15 +627,15 @@ if test -z "$NO_TK"; then
         LDFLAGS="-L$tcl_path $LDFLAGS"
 	for ext in $tcl_ext 8.0 ''; do
             AC_CHECK_LIB(tcl$ext,main,
-                AC_CHECK_LIB(tk$ext,main,tcl_lib="-L$tcl_path -ltk$ext -ltcl$ext"; tcl_library="$tcl_path"; break, tcl_lib="", -ltcl$ext),
-                tcl_lib="")
+                AC_CHECK_LIB(tk$ext,main,tcl_lib="-L$tcl_path -ltk$ext -ltcl$ext"; tcl_library="$tcl_path"; break, tcl_lib="", -ltcl$ext $XLIBSW $dl_lib),
+                tcl_lib="", $dl_lib)
         done
 	LDFLAGS="$saved_LDFLAGS"
     else
 	for ext in $tcl_ext 8.0 ''; do
             AC_CHECK_LIB(tcl$ext,main,
-                AC_CHECK_LIB(tk$ext,main,tcl_lib="-ltk$ext -ltcl$ext"; break, tcl_lib="", -ltcl$ext),
-                tcl_lib="")
+                AC_CHECK_LIB(tk$ext,main,tcl_lib="-ltk$ext -ltcl$ext"; break, tcl_lib="", -ltcl$ext $XLIBSW $dl_lib),
+                tcl_lib="", $dl_lib)
         done
     fi
 
@@ -639,17 +646,19 @@ if test -z "$NO_TK"; then
         AC_MSG_CHECKING(for tcl library)
         dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib"
         for i in $dirs ; do
-            tmp=`ls -1 $i/libtcl* 2> /dev/null`
-            if test -n "$tmp"; then
-                tcl_ext=`echo $tmp | sed ['s/.*libtcl(.*)\.[a-z][a-z]*$/$1/']`
-		tmp=`ls -1 $i/libtk* 2> /dev/null`
+            for f in `ls -1 $i/libtcl* 2> /dev/null | grep -v tclx | \
+                      sed -e 's/^.*\/libtcl/tcl/' -e ['s/\.[a-z][a-z]*$//'] | sort -u -r`; do
+                ext=`echo $f | sed 's/^tcl//'`
+                tmp=`ls -1 $i/libtk$ext.* 2> /dev/null`
                 if test -n "$tmp"; then
-                    tk_ext=`echo $tmp | sed ['s/.*libtk(.*)\.[a-z][a-z]*$/$1/']`
-                    tcl_lib="-L$i -ltk$tk_ext -ltcl$tcl_ext"
+                    tcl_lib="-L$i -ltk$ext -ltcl$ext"
                     tcl_libp="$i"
                     tcl_library="$i"
                     break
                 fi
+            done
+            if test -n "$tcl_libp"; then
+                break
             fi
         done
         if test -z "$tcl_lib"; then
@@ -887,12 +896,6 @@ dnl##
 if test -z "$host_os"; then
     AC_CANONICAL_HOST()
 fi
-
-dnl##
-dnl## Check for existence of -ldl library.  This is needed because
-dnl## Linux can use either -ldl or -ldld for dynamic loading.
-dnl##
-AC_CHECK_LIB(dl, dlopen, have_dl=yes, have_dl=no)
 
 dnl##
 dnl## Set up configuration options based on system name and version.
@@ -1267,7 +1270,6 @@ else
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS $DL_LIBS"
     fi
 fi
 
@@ -1340,6 +1342,7 @@ AC_SUBST(BUILD_TK)
 AC_SUBST(TK_LIB)
 AC_SUBST(TK_INCL)
 AC_SUBST(TK_FLAGS)
+AC_SUBST(DL_LIBS)
 AC_SUBST(NPD_LIB)
 AC_SUBST(BUILD_NPD)
 AC_SUBST(top_off)
