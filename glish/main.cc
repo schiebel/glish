@@ -526,56 +526,10 @@ void show_glish_stack( OStream &s )
 
 static void glish_dump_core( const char *file )
 	{
-	glish_silent = 1;
-	int fd = open(file,O_WRONLY|O_CREAT|O_TRUNC,0600);
-	if ( fd < 0 ) return;
-
-	// 's' above has not *yet* been assigned
-	Scope *scope = Sequencer::CurSeq()->GetScope( );
-	int len = scope->Length();
-
-	char **fields = alloc_charptr( len );
-	const IValue **vals = (const IValue**) alloc_ivalueptr( len );
-	if ( ! fields || ! vals ) return;
-
-	IterCookie *c = scope->InitForIteration();
-	const Expr *member;
-	const char *key;
-
-	sos_fd_sink sink( fd );
-	sos_out sos( &sink );
-
-	c = scope->InitForIteration( );
-
-	int alen = 0;
-	while ( (member = scope->NextEntry( key, c )) )
-		{
-		if ( key && key[0] == '*' && key[strlen(key)-1] == '*' )
-			continue;
-
-		if ( member && ((VarExpr*)member)->Access() == USE_ACCESS )
-			{
-			// "val" may be LEAKED, but we don't care;
-			//  we're dumping core
-			evalOpt opt;
-			const IValue *val = ((Expr*)member)->ReadOnlyEval( opt );
-
-			glish_type type = val->Type();
-			if ( type != TYPE_FUNC && type != TYPE_AGENT &&
-			     (type != TYPE_RECORD || ! val->IsAgentRecord()) )
-				{
-				fields[alen] = (char*) key;
-				vals[alen++] = val;
-				}
-			}
-		}
-
-	sos.put_record_start( alen );
-	sos.put( fields, alen );
-	for ( int i=0; i < alen; i++ )
-		write_value( sos, (Value*) vals[i], "" );
-
-	sos.flush( );
+	IValue *stack = Sequencer::FuncNameStack();
+	charptr *cptr = stack->StringPtr(0);
+	for ( int i=0; i < stack->Length(); ++i )
+		fprintf( stderr, "\t%s\n", cptr[i] );
 	}
 
 //
