@@ -383,6 +383,8 @@ int Selector::DoSelection( int CanBlock )
 				{
 				nuke_current_selectee = 0;
 
+				int static count = 0;
+				int last = ++count;
 				int selectee_value =
 					current_selectee->NotifyOfSelection();
 
@@ -393,6 +395,15 @@ int Selector::DoSelection( int CanBlock )
 
 				if ( selectee_value )
 					return selectee_value;
+
+				// We must watch because recursive calls to
+				// Selector::DoSelection() can read all of the
+				// active file descriptors and leave us hanging.
+				if ( count != last )
+					{
+					status = 0;
+					break;
+					}
 				}
 
 			--status;
