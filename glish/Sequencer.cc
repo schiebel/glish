@@ -77,6 +77,8 @@ extern "C" {
 #endif
 
 #define GLISH_RC_FILE ".glishrc"
+#define GLISH_RC_FILE_PRE ".glishrc.pre"
+#define GLISH_RC_FILE_POST ".glishrc.post"
 #define GLISH_HISTORY_FILE ".glishlog"
 #define RCDIR_VAR "GLISHROOT"
 const char * const LD_PATH = "LD_LIBRARY_PATH";
@@ -1574,6 +1576,24 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 	FILE* glish_rc_file;
 	int loaded_system_glishrc = 0;
+
+	//
+	// Before anything else look for $HOME/.glishrc.pre
+	//
+	if ( (glish_rc_dir = getenv( "HOME" )) )
+		{
+		sprintf( glish_rc_filename, "%s/%s",
+			 glish_rc_dir, GLISH_RC_FILE_PRE );
+
+		if ( is_regular_file(glish_rc_filename) &&
+		     (glish_rc_file = fopen( glish_rc_filename, "r")) )
+			{
+			if ( VERB_INCL(verbose_mask) )
+				cerr << "vi " << glish_rc_filename << endl;
+			Parse( opt, glish_rc_file, glish_rc_filename );
+			}
+		}
+
 	glish_rc_dir = getenv( RCDIR_VAR );
 
 	//
@@ -1650,6 +1670,25 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				}
 			}
 		}
+
+	//
+	// Before anything else look for $HOME/.glishrc.post
+	//
+	if ( (glish_rc_dir = getenv( "HOME" )) )
+		{
+		sprintf( glish_rc_filename, "%s/%s",
+			 glish_rc_dir, GLISH_RC_FILE_POST );
+
+		if ( is_regular_file(glish_rc_filename) &&
+		     (glish_rc_file = fopen( glish_rc_filename, "r")) )
+			{
+			if ( VERB_INCL(verbose_mask) )
+				cerr << "vi " << glish_rc_filename << endl;
+			Parse( opt, glish_rc_file, glish_rc_filename );
+			}
+		}
+
+
 
 	// after glishrc update timer settings to register
 	// any change to system.client.ping
