@@ -13,12 +13,13 @@
 #include "input.h"
 #include "y.tab.h"
 
-#if ! defined(YY_PURE_PARSER)
+#if ! defined(PURE_PARSER)
 extern YYSTYPE yylval;
 #define YYLVAL(x) yylval.x
+#define YY_DECL int yy_flex ( )
 #else
 #define YYLVAL(x) yylval->x
-#define YY_DECL int yylex YY_PROTO(( YYSTYPE *yylval ))
+#define YY_DECL int yy_flex YY_PROTO(( YYSTYPE *yylval ))
 #endif
 
 extern Sequencer* current_sequencer;
@@ -529,6 +530,34 @@ void restart_yylex( FILE* input_file )
 		first_call = 0;
 	else
 		yyrestart( yyin );
+	}
+
+static int put_back_token = NULL_TOK;
+int
+#if ! defined(PURE_PARSER)
+yylex ( )
+#else
+yylex ( YYSTYPE *yylval )
+#endif
+	{
+	if ( put_back_token == NULL_TOK )
+		return 
+#if ! defined(PURE_PARSER)
+			yy_flex ( );
+#else
+			yy_flex ( yylval );
+#endif
+	else
+		{
+		int cur_token = put_back_token;
+		put_back_token = NULL_TOK;
+		return cur_token;
+		}
+	}
+
+void putback_token( int tok )
+	{
+	put_back_token = tok;
 	}
 
 void new_file()

@@ -261,7 +261,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 
 #define EXPRSTR(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_STRING ||	\
 		var##_val_ ->Length() <= 0 )				\
@@ -274,7 +274,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		var = ( var##_val_ ->StringPtr(0) )[0];
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
 	charptr var = 0;						\
 	char var##_char_[30];						\
 	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
@@ -296,7 +296,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 
 #define EXPRINT(var,EVENT)                                              \
         Expr *var##_expr_ = (*args)[c++]->Arg();                        \
-        const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();         \
+        const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();        \
         int var = 0;                                                    \
         if ( ! var##_val_ || ! var##_val_ ->IsNumeric() ||              \
                 var##_val_ ->Length() <= 0 )                            \
@@ -311,7 +311,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 
 #define EXPRINT2(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
         char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
@@ -337,7 +337,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 
 #define EXPRDOUBLEPTR(var, NUM, EVENT)					\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
 	double *var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_DOUBLE ||	\
 		var##_val_ ->Length() < NUM )				\
@@ -905,7 +905,7 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr cursor, charptr title ) : TkAgent( s ), is_tl( 1 ),
-		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0), mark(0)
+		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 
 	{
 	char *argv[15];
@@ -996,7 +996,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0), mark(0)
+		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 	{
 	char *argv[14];
 	frame = frame_;
@@ -1059,7 +1059,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
-		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0), mark(0)
+		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0)
 	{
 	char *argv[12];
 	frame = 0;
@@ -1423,9 +1423,11 @@ const char **TkFrame::PackInstruction()
 		ret[c++] = "-fill";
 		ret[c++] = expand;
 
-		if ( ! frame || ! strcmp(expand,"both") || 
-		     strcmp(frame->expand,"both") && ExpandNum(0,1) ||
-		     frame->CanExpand() && frame->ExpandNum(this,1) == 0 )
+		if ( ! canvas && (! frame || ! strcmp(expand,"both") ||
+			! strcmp(expand,"x") && (! strcmp(frame->side,"left") || 
+						 ! strcmp(frame->side,"right"))  ||
+			! strcmp(expand,"y") && (! strcmp(frame->side,"top") || 
+						 ! strcmp(frame->side,"bottom"))) )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";
@@ -1444,26 +1446,12 @@ const char **TkFrame::PackInstruction()
 
 int TkFrame::CanExpand() const
 	{
-	if ( mark ) return 0;
-
-        ((TkFrame*)this)->mark = 1;
-	if ( strcmp(expand,"none") && 						// no expand
-	     ! canvas &&							// nested in a canvas
-	     ( ! frame || 							// top level frame
-	       ! strcmp(expand,"both") || 					// expands in both directions
-	       strcmp(frame->expand,"both") && ExpandNum(0,1) ||		// parent expansion is limited,
-										//	and we have expanding elements
-	       strcmp(frame->expand,"none") && frame->ExpandNum(this,1) == 0 ))	// parent expansion and
-										// 	we're the only expanding child
-		{
-		((TkFrame*)this)->mark = 0;
-		return 1;
-		}
-
-	((TkFrame*)this)->mark = 0;
-	return 0;
+	return ! canvas && (! frame || ! strcmp(expand,"both") ||
+		! strcmp(expand,"x") && (! strcmp(frame->side,"left") || 
+					 !strcmp(frame->side,"right")) ||
+		! strcmp(expand,"y") && (! strcmp(frame->side,"top") || 
+					 ! strcmp(frame->side,"bottom")) );
 	}
-
 
 void TkButton::UnMap()
 	{

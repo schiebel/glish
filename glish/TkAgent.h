@@ -228,7 +228,6 @@ class TkFrame : public TkAgent {
 	unsigned long id;
 	char is_tl;
 	Rivetobj pseudo;
-	int mark;
 
 	unsigned long radio_id;
 	};

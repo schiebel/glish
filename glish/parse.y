@@ -6,6 +6,7 @@
 %token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
 %token TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
 %token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE
+%token NULL_TOK
 
 %left ','
 %right TOK_ASSIGN
@@ -84,7 +85,7 @@ extern "C" {
 	void yyerror( char msg[] );
 }
 
-#if ! defined(YY_PURE_PARSER)
+#if ! defined(PURE_PARSER)
 extern int yylex();
 #else
 extern int yylex( YYSTYPE * );
@@ -101,6 +102,7 @@ int current_whenever_index = -1;
 /* Communication of status between glish_parser() and yyparse() */
 static int status;
 
+extern void putback_token( int );
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
 
@@ -110,7 +112,14 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 glish:
 		statement
 			{
+        		static int *lookahead = & yyclearin;
+			static int empty = *lookahead;
+
 			current_sequencer->AddStmt( $1 );
+
+			if ( *lookahead != empty )
+				putback_token( *lookahead );
+
 			YYACCEPT;
 			}
 
