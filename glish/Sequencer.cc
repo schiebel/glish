@@ -309,11 +309,24 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		}
 
 	name = argv[0];
+	name_list *load_list = new name_list;
 
 	for ( ++argv, --argc; argc > 0; ++argv, --argc )
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
+
+		else if ( ! strcmp( argv[0], "-l" ) )
+			if ( argc > 1 )
+				{
+				++argv; --argc;
+				if ( argv[0] && strlen(argv[0]) )
+					load_list->append( argv[0] );
+				else
+					fatal->Report("bad file name with \"-l\".");
+				}
+			else
+				fatal->Report("\"-l\" given with no file to load.");
 
 		else if ( strchr( argv[0], '=' ) )
 			putenv( argv[0] );
@@ -358,6 +371,30 @@ Sequencer::Sequencer( int& argc, char**& argv )
 				Parse( glish_rc_filename );
 				}
 			}
+		}
+
+
+	if ( load_list->length() )
+		{
+		// Handle the .glishrc startup so that we can use any include
+		// path which might be specified in there.
+		Exec();
+		loop_over_list( *load_list, i )
+			{
+			char *expanded_name = which_include((*load_list)[i]);
+			if ( expanded_name )
+				load_list->replace(i,expanded_name);
+			else
+				fatal->Report("Can't include file \"",
+						      (*load_list)[i],"\".");
+			}
+
+		// Prevent re-executing the .glishrc statements
+		stmts = null_stmt;
+		loop_over_list( *load_list, j )
+			Parse( (*load_list)[j] );
+
+		delete_name_list( load_list );
 		}
 
 	int do_interactive = 1;
@@ -1516,4 +1553,45 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 		selector->AddSelectee( new ScriptSelectee( this, agent, fd ) );
 	else
 		selector->DeleteSelectee( fd );
+	}
+
+char* which_include( const char* file_name )
+	{
+	const Value *val;
+	const Value *pathv;
+	const Value *inclv;
+	charptr *paths = 0;
+
+	if ( (val = Sequencer::LookupVal( "system" )) && 
+			val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "path" ) &&
+			(pathv = val->ExistingRecordElement( "path" )) &&
+			pathv != false_value &&
+			pathv->Type() == TYPE_RECORD &&
+			pathv->HasRecordElement( "include" ) &&
+			(inclv = pathv->ExistingRecordElement("include")) &&
+			inclv != false_value && inclv->Type() == TYPE_STRING &&
+			inclv->Length() )
+		paths = inclv->StringPtr();
+
+	if ( ! paths || exec_name[0] == '/' || exec_name[0] == '.' )
+		{
+		if ( access( exec_name, R_OK ) == 0 )
+			return strdup( exec_name );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < inclv->Length(); i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			{
+			sprintf( directory, "%s/%s", paths[i], exec_name );
+
+			if ( access( directory, R_OK ) == 0 )
+				return strdup( directory );
+			}
+
+	return 0;
 	}
