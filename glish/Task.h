@@ -48,6 +48,7 @@ class Task : public Agent {
 
 	const char* Name() const	{ return name; }
 	const char* TaskID() const	{ return id; }
+	int         TaskIDi() const	{ return idi; }
 	const char* Host() const	{ return attrs->hostname; }
 	int NoSuchProgram() const	{ return no_such_program; }
 	Executable* Exec() const	{ return executable; }
@@ -64,9 +65,10 @@ class Task : public Agent {
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log );
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, double proxy_id );
+			int is_request, int log, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
-			int is_request=0, int log=0, double id=0.0 );
+			   int is_request=0, int log=0,
+			   const ProxyId &id=glish_proxyid_dummy );
 
 	void SetActive()	{ SetActivity( 1 ); }
 	void SetDone()		{ SetActivity( 0 );
@@ -102,7 +104,7 @@ class Task : public Agent {
 		{ if ( ! ptlist.is_member(p) ) ptlist.append( p ); }
 	void UnregisterProxy( ProxyTask *p )
 		{ ptlist.remove(p); }
-	ProxyTask *FetchProxy( double id );
+	ProxyTask *FetchProxy( const ProxyId &id );
 
     protected:
 	// Creates and returns an argv vector with room for num_args arguments.
@@ -119,6 +121,7 @@ class Task : public Agent {
 
 	char* name;
 	char* id;
+	int idi;
 	TaskAttr* attrs;
 	Channel* channel;
 	Channel* local_channel;	// used for local tasks
@@ -217,19 +220,19 @@ class CreateTaskBuiltIn : public BuiltIn {
 
 class ProxyTask : public Agent {
     public:
-	ProxyTask( double id_, Task *t, Sequencer *s );
+	ProxyTask( const ProxyId &id_, Task *t, Sequencer *s );
 	~ProxyTask( );
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log );
 
-	double Id() const { return id; }
+	const ProxyId &Id() const { return id; }
 
 	void WrapperGone( const IValue *v );
 
     private:
 	Task *task;
-	double id;
+	ProxyId id;
 };
 
 

@@ -245,6 +245,7 @@ private:
 
 int glish_timedoutdummy = 0;
 EventContext glish_ec_dummy;
+ProxyId glish_proxyid_dummy;
 
 void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
 	{
@@ -600,7 +601,7 @@ GlishEvent* Client::NextEvent( fd_set* mask )
 	return 0;
 	}
 
-void Client::Unrecognized( double proxy_id )
+void Client::Unrecognized( const ProxyId &proxy_id )
 	{
 	if ( ! last_event )
 		return;
@@ -612,7 +613,7 @@ void Client::Unrecognized( double proxy_id )
 	PostEvent( "unrecognized", last_event->name, proxy_id );
 	}
 
-void Client::Error( const char* msg, double proxy_id )
+void Client::Error( const char* msg, const ProxyId &proxy_id )
 	{
 	if ( last_event )
 		PostEvent( "error", "bad \"%s\" event: %s",
@@ -621,7 +622,7 @@ void Client::Error( const char* msg, double proxy_id )
 		PostEvent( "error", msg, proxy_id );
 	}
 
-void Client::Error( const char* fmt, const char* arg, double proxy_id )
+void Client::Error( const char* fmt, const char* arg, const ProxyId &proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, fmt, arg );
@@ -634,12 +635,12 @@ void Client::PostEvent( const GlishEvent* event, const EventContext &context )
 	}
 
 void Client::PostEvent( const char* event_name, const Value* event_value,
-			const EventContext &context, double proxy_id )
+			const EventContext &context, const ProxyId &proxy_id )
 	{
-	if ( proxy_id != 0.0 )
+	if ( &proxy_id != &glish_proxyid_dummy )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert( strdup("id"), create_value(proxy_id) );
+		rec->Insert( strdup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 		rec->Insert( strdup("value"), copy_value(event_value) );
 		GlishEvent e( event_name, create_value(rec) );
 		e.SetIsProxy( );
@@ -653,14 +654,14 @@ void Client::PostEvent( const char* event_name, const Value* event_value,
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_value,
-    const EventContext &context, double proxy_id )
+    const EventContext &context, const ProxyId &proxy_id )
 	{
 	Value val( event_value );
 	PostEvent( event_name, &val, context, proxy_id );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
-    const char* event_arg, const EventContext &context, double proxy_id )
+    const char* event_arg, const EventContext &context, const ProxyId &proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, event_arg );
@@ -669,7 +670,7 @@ void Client::PostEvent( const char* event_name, const char* event_fmt,
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
 			const char* arg1, const char* arg2,
-			const EventContext &context, double proxy_id )
+			const EventContext &context, const ProxyId &proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, arg1, arg2 );
@@ -677,7 +678,7 @@ void Client::PostEvent( const char* event_name, const char* event_fmt,
 	}
 
 //*** TJS - Client::Reply() might need some work to avoid race.  Probably ok tho'
-void Client::Reply( const Value* event_value, double proxy_id )
+void Client::Reply( const Value* event_value, const ProxyId &proxy_id )
 	{
 	if ( ! ReplyPending() )
 		error->Report( prog_name,
@@ -685,10 +686,10 @@ void Client::Reply( const Value* event_value, double proxy_id )
 
 	else
 		{
-		if ( proxy_id != 0.0 )
+		if ( &proxy_id != &glish_proxyid_dummy )
 			{
 			recordptr rec = create_record_dict( );
-			rec->Insert( strdup("id"), create_value(proxy_id) );
+			rec->Insert( strdup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 			rec->Insert( strdup("value"), copy_value(event_value) );
 			GlishEvent e( (const char*) pending_reply, create_value(rec) );
 			e.SetIsReply();
@@ -1722,4 +1723,10 @@ void write_value( sos_out &sos, const Value *v )
 	{
 	write_value( sos, (Value*) v, 0, 0, 0 );
 	sos.flush();
+	}
+
+ostream &operator <<(ostream &o, const ProxyId &id)
+	{
+	o << id.interp() << ":" << id.task() << ":" << id.id();
+	return o;
 	}

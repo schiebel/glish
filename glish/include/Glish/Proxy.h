@@ -31,7 +31,7 @@ friend class Proxy;
 	virtual void addProxy( Proxy * );
 	virtual void removeProxy( Proxy * );
 	char *TakePending( ) { char *t=pending_reply; pending_reply=0; return t; }
-	double getId( );
+	const ProxyId getId( );
 
 	proxy_list       pxlist;
 	pxy_store_cbdict cbdict;
@@ -53,7 +53,7 @@ friend class ProxyStore;
 	virtual Proxy *Done( const Value * );
 	virtual void ProcessEvent( const char *name, const Value *val ) = 0;
 
-	double Id( ) const { return id; }
+	const ProxyId &Id( ) const { return id; }
 
 	void SendCtor( const char *name = "new" );
 
@@ -85,9 +85,9 @@ friend class ProxyStore;
 	int ReplyPending() const { return store->ReplyPending(); }
 
     protected:
-	void setId( double );
+	void setId( const ProxyId &i );
 	ProxyStore *store;
-	double id;
+	ProxyId id;
 };
 
 #endif

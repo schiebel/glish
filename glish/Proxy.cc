@@ -58,8 +58,9 @@ void ProxyStore::Register( const char *string, PxyStoreCB cb, void *data = 0 )
 
 void ProxyStore::addProxy( Proxy *p )
 	{
-	double id = getId( );
-	if ( id != 0.0 )
+	ProxyId id(getId( ));
+
+	if ( id != 0 )
 		{
 		p->setId( id );
 		pxlist.append( p );
@@ -71,7 +72,7 @@ void ProxyStore::removeProxy( Proxy *p )
 	pxlist.remove( p );
 	}
 
-double ProxyStore::getId( )
+const ProxyId ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
 
@@ -80,13 +81,13 @@ double ProxyStore::getId( )
 	PostEvent( &e );
 	GlishEvent *reply = NextEvent( );
 
-	if ( ! reply || reply->Val()->Type() != TYPE_DOUBLE )
+	if ( ! reply || reply->Val()->Type() != TYPE_INT ||
+	     reply->Val()->Length() != ProxyId::len() )
 		{
-		Error( "problem getting ID" );
-		return 0.0;
+		return ProxyId();
 		}
 
-	return reply->Val()->DoubleVal();
+	return ProxyId(reply->Val()->IntPtr(0));
 	}
 
 void ProxyStore::Loop( )
@@ -104,13 +105,14 @@ void ProxyStore::Loop( )
 
 			const Value *idv = rval->HasRecordElement( "id" );
 			const Value *val = rval->HasRecordElement( "value" );
-			if ( ! idv || ! val || idv->Type() != TYPE_DOUBLE )
+			if ( ! idv || ! val || idv->Type() != TYPE_INT ||
+			     idv->Length() != ProxyId::len() )
 				{
 				Error( "bad proxy value" );
 				continue;
 				}
 
-			double id = idv->DoubleVal();
+			ProxyId id(idv->IntPtr(0));
 			int found = 0;
 			loop_over_list( pxlist, i )
 				if ( pxlist[i]->Id() == id )
@@ -132,9 +134,9 @@ void ProxyStore::Loop( )
 		}
 	}
 
-void Proxy::setId( double i ) { id = i; }
+void Proxy::setId( const ProxyId &i ) { id = i; }
 
-Proxy::Proxy( ProxyStore *s ) : store(s), id(0.0)
+Proxy::Proxy( ProxyStore *s ) : store(s)
 	{
 	// store will set our id
 	store->addProxy( this );
@@ -153,7 +155,7 @@ Proxy *Proxy::Done( const Value * )
 void Proxy::SendCtor( const char *name )
 	{
 	recordptr rec = create_record_dict();
-	rec->Insert( strdup(PXCREATE), create_value(Id()) );
+	rec->Insert( strdup(PXCREATE), create_value((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
 	if ( ReplyPending( ) )
 		{
 		char *pending = store->TakePending();

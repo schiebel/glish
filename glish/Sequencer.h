@@ -367,7 +367,7 @@ public:
 
 	// Registers a new task with the sequencer and returns its
 	// task ID.
-	char* RegisterTask( Task* new_task );
+	char* RegisterTask( Task* new_task, int &idi );
 
 	// Unregister a task.
 	void DeleteTask( Task* task );
@@ -573,9 +573,8 @@ protected:
 	void PopAwait();
 	void CurrentAwaitDone();
 
-	double getid( ) const;
-	double NewObjId( ) { return ((double)++obj_cnt) + id; }
-	double id;
+	int *NewObjId( Task *t );
+	int pid;
 	int obj_cnt;
 
 	char *name;

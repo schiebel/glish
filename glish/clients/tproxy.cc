@@ -10,7 +10,7 @@ class ProxyA : public Proxy {
 	void ProcessEvent( const char *name, const Value *val );
 };
 
-ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { }
+ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { 	cerr << "hello world " << id << endl; }
 
 ProxyA::~ProxyA( )
 	{

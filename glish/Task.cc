@@ -83,7 +83,7 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	active = 0;	// not true till we get a .established event
 	protocol = 0;	// not set until Client establishes itself
 
-	id = sequencer->RegisterTask( this );
+	id = sequencer->RegisterTask( this, idi );
 
 	if ( attrs->task_var_ID )
 		agent_ID = attrs->task_var_ID;
@@ -119,7 +119,7 @@ Task::~Task()
 	}
 
 IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
-			int is_request, int log, double proxy_id )
+			int is_request, int log, const ProxyId &proxy_id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
@@ -142,10 +142,10 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			return error_ivalue();
 		}
 
-	if ( proxy_id != 0.0 )
+	if ( &proxy_id != &glish_proxyid_dummy )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert(strdup("id"), new IValue(proxy_id));
+		rec->Insert(strdup("id"), new IValue((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY));
 		rec->Insert(strdup("value"), event_val);
 		event_val = new IValue(rec);
 		}
@@ -157,7 +157,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 
 		GlishEvent *e = new GlishEvent( strdup(event_name), copy_value(event_val) );
 
-		if ( proxy_id != 0.0 )
+		if ( &proxy_id != &glish_proxyid_dummy )
 			e->SetIsProxy( );
 		if ( is_request )
 			e->SetIsRequest();
@@ -193,7 +193,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			e.SetIsRequest();
 
 			Agent *agent = this;
-			if ( proxy_id != 0.0 )
+			if ( &proxy_id != &glish_proxyid_dummy )
 				{
 				e.SetIsProxy( );
 				agent = FetchProxy( proxy_id );
@@ -211,7 +211,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		else
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
-			if ( proxy_id != 0.0 ) e.SetIsProxy( );
+			if ( &proxy_id != &glish_proxyid_dummy ) e.SetIsProxy( );
 			sendEvent( sink, &e );
 			}
 		}
@@ -220,7 +220,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 	}
 
 IValue* Task::SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, double id )
+			int is_request, int log, const ProxyId &id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
@@ -237,7 +237,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 IValue *Task::SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log )
 	{
-	return SendEvent( event_name, args, is_request, log, 0.0 );
+	return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
 	}
 
 void Task::SetChannel( Channel* c, Selector* s )
@@ -1052,7 +1052,7 @@ void Task::sendEvent( sos_sink &fd, const char* event_name,
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask *Task::FetchProxy( double id )
+ProxyTask *Task::FetchProxy( const ProxyId &id )
 	{
 	loop_over_list( ptlist, i )
 		if ( ptlist[i]->Id() == id )
@@ -1068,10 +1068,10 @@ void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask::ProxyTask( double id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_)
+ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_)
 	{
 	char buf[128];
-	sprintf(buf, "<proxy:%d>", (int) id);
+	sprintf(buf, "<proxy:%d>", id.id());
 	agent_ID = strdup(buf);
 	task->RegisterProxy(this);
 	}
