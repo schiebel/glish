@@ -91,7 +91,6 @@ func init_glishtk( disable_gui=system.nogui ) {
         ret.tk_load := func ( module_name, init_func, needtk=T ) {
 			    if ( is_function(init_func) && is_string(module_name) ) {
 			        if ( is_fail(tmp:=gtk->tk_load( module_name, needtk=needtk )) ) {
-				    print 'tk_load failed:', tmp
 				    fail
 			        }
 			        return init_func( gtk, ret )
@@ -125,7 +124,6 @@ func init_glishtk( disable_gui=system.nogui ) {
         ret.tk_load := func ( module_name, init_func, needtk=T ) {
 			    if ( is_function(init_func) && is_string(module_name) ) {
 			        if ( is_fail(tmp:=gtk->tk_load( module_name, needtk=needtk )) ) {
-				    print 'tk_load failed:', tmp
 				    fail
 			        }
 			        return init_func( gtk, ret )
