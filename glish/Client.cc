@@ -1600,6 +1600,9 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	unsigned int xlen;
 
 	charptr *fields = (charptr*) sos.get( xlen, type );
+
+	if ( ! fields ) return 0;
+
 	if ( type != SOS_STRING )
 		fatal->Report("field names expected first when reading record");
 
