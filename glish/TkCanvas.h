@@ -17,12 +17,17 @@ class TkCanvas : public TkAgent {
 	TkCanvas( Sequencer *, TkFrame *, charptr width, charptr height, const Value *region_,
 		  charptr relief, charptr borderwidth, charptr background, charptr fill );
 
+	void UnMap();
+
 	const char **PackInstruction();
 
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 
 	void ButtonEvent(const char *event, IValue *rec);
+
+	void Add(TkFrame *item) {  frame_list.append(item); }
+	void Remove(TkFrame *item) { frame_list.remove(item); }
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkCanvas();
@@ -34,6 +39,7 @@ class TkCanvas : public TkAgent {
 	char *fill;
 	static unsigned long count;
 	canvas_item_count item_count;
+	tkagent_list frame_list;
 	};
 
 #endif

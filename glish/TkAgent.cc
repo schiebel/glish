@@ -146,13 +146,13 @@ IValue *glishtk_splitsp_int( char *sel )
 	while ( *start && (end = strchr(start,' ')) )
 		{
 		*end = (char) 0;
-#define EXPAND_ACTION					\
+#define EXPAND_ACTION_A					\
 		if ( cnt >= len )			\
 			{				\
 			len *= 2;			\
 			ary = (int *) realloc(ary, len * sizeof(int));\
 			}
-		EXPAND_ACTION
+		EXPAND_ACTION_A
 		ary[cnt++] = atoi(start);
 		*end++ = ' ';
 		start = end;
@@ -160,7 +160,7 @@ IValue *glishtk_splitsp_int( char *sel )
 
 	if ( *start )
 		{
-		EXPAND_ACTION
+		EXPAND_ACTION_A
 		ary[cnt++] = atoi(start);
 		}
 
@@ -178,13 +178,13 @@ char **glishtk_splitsp_str( char *sel, int &cnt )
 	while ( *start && (end = strchr(start,' ')) )
 		{
 		*end = (char) 0;
-#define EXPAND_ACTION					\
+#define EXPAND_ACTION_B					\
 		if ( cnt >= len )			\
 			{				\
 			len *= 2;			\
 			ary = (char **) realloc(ary, len * sizeof(char*) );\
 			}
-		EXPAND_ACTION
+		EXPAND_ACTION_B
 		ary[cnt++] = strdup(start);
 		*end++ = ' ';
 		start = end;
@@ -192,7 +192,7 @@ char **glishtk_splitsp_str( char *sel, int &cnt )
 
 	if ( *start )
 		{
-		EXPAND_ACTION
+		EXPAND_ACTION_B
 		ary[cnt++] = strdup(start);
 		}
 
@@ -887,7 +887,7 @@ TkAgent::~TkAgent( ) { }
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ),
-		  tag(0), radio_id(0)
+		  tag(0), radio_id(0), canvas(0)
 	{
 	char *argv[13];
 
@@ -964,7 +964,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0)
+		  tag(0), radio_id(0), canvas(0)
 	{
 	frame = frame_;
 
@@ -1016,12 +1016,13 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	}
 
-TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas, charptr relief_, charptr side_,
+TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
 		  pseudo( 0 ), radio_id(0)
 	{
 	frame = 0;
+	canvas = canvas_;
 	tag = strdup(tag_);
 
 	char *argv[12];
@@ -1074,12 +1075,15 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas, charptr relief_, charptr side_
 
 void TkFrame::UnMap()
 	{
-
 	if ( ! elements.length() )
 		return;
 
-	// Remove ourselves from the list
-	elements.remove_nth( 0 );
+	if ( canvas )
+		canvas->Remove( this );
+	else
+		// Remove ourselves from the list
+		// -- not done with canvas
+		elements.remove_nth( 0 );
 
 	if ( frame )
 		frame->RemoveElement( this );
@@ -1294,24 +1298,41 @@ const char **TkFrame::PackInstruction()
 	return 0;
 	}
 
-TkButton::~TkButton( )
+
+void TkButton::UnMap()
 	{
-	if ( ! menu )
+	if ( self && frame )
 		{
-		if ( frame )
-			frame->RemoveElement( this );
+		if ( type == MENU )
+			while ( entry_list.length() )
+				{
+				TkAgent *a = entry_list.remove_nth( 0 );
+				a->UnMap( );
+				}
 
-		if ( value ) Unref(value);
-
-		UnMap();
+		rivet_destroy_window( self );
 		}
-	else
+	else if ( menu )
 		{
 		char index[100];
 		sprintf(index,"%d",menu->Index(this));	
 		rivet_va_cmd( menu->Menu(), "delete", index, 0 );
 		menu->Remove(this);
 		}
+
+	menu = 0;
+	frame = 0;
+	self = 0;
+	}
+
+TkButton::~TkButton( )
+	{
+	if ( frame )
+		frame->RemoveElement( this );
+
+	if ( value ) Unref(value);
+
+	UnMap();
 	}
 
 unsigned long TkButton::button_count = 0;

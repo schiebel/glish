@@ -553,11 +553,15 @@ Sequencer::~Sequencer()
 	loop_over_list( frames, k )
 		Unref( frames[k] );
 
-	delete selector;
 	delete script_client;
 	delete interpreter_tag;
 	delete connection_socket;
 	delete connection_port;
+
+	loop_over_list( agents, l )
+		Unref( agents[l] );
+
+	delete selector;
 
 	finalize_values();
 	finalize_reporters();

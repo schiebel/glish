@@ -1471,7 +1471,7 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		return error_ivalue();
 		}
 
-	char *type = arg->StringVal();
+	const char *type = arg->StringPtr(0)[0];
 	TkAgent *agent = 0;
 
 	if ( type[0] == 'f' && ! strcmp( type, "frame" ) )

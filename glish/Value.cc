@@ -327,7 +327,7 @@ int Value::IsNumeric() const
 type Value::name( int modify ) const					\
 	{								\
 	if ( IsVecRef() ) 						\
-		return ((const Value*) VecRefPtr()->Val())->name();	\
+		return ((const Value*) VecRefPtr()->Val())->name( modify ); \
 	else if ( Type() != tag )					\
 		fatal->Report( "bad use of const accessor" );		\
 	return (type) (modify ? kernel.MOD() : kernel.CONST()); 	\
@@ -1429,7 +1429,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 	if ( ! result && Length() == size && ! IsVecRef() )
 		{
 		is_copy = 0;
-		return StringPtr();
+		return StringPtr(0);
 		}
 
 	is_copy = 1;
@@ -4181,7 +4181,6 @@ static Value* read_element( int sds, int index, GlishObject* manager,
 	Value* result;
 	if ( odesc->elemcod & SDS_INDLIST )
 		{ // Subrecord.
-		result = create_record();
 		Value* a = 0;
 		result = traverse_record( 0, a, sds, index, manager,
 					thing_list, level + 1, level );

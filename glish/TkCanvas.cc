@@ -499,6 +499,7 @@ else								\
 		return 0;
 		}
 
+	EXPR_DONE(val)
 	GENERATE_TAG(tag,agent,param)
 
 	POINTFUNC_TAG_APPEND(tag)
@@ -710,6 +711,9 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *cmd, parameter_list *args
 	rivet_va_cmd(canvas->Self(),"create","window",x,y,"-anchor","nw","-tag",tag,"-window",rivet_path(frame->Self()),0);
 	EXPR_DONE( y )
 	EXPR_DONE( x )
+
+	if ( frame ) canvas->Add(frame);
+
 	return (char*) frame;
 	}
 
@@ -725,6 +729,17 @@ int canvas_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientD
 	double *firstlast = (double*)calldata;
 	((TkCanvas*)assoc)->xScrolled( firstlast );
 	return TCL_OK;
+	}
+
+void TkCanvas::UnMap()
+	{
+	while ( frame_list.length() )
+		{
+		TkAgent *a = frame_list.remove_nth( 0 );
+		a->UnMap( );
+		}
+
+	TkAgent::UnMap();
 	}
 
 void TkCanvas::ButtonEvent( const char *event, IValue *rec )

@@ -460,7 +460,10 @@ IValue* OrExpr::Eval( eval_type etype )
 		}
 
 	else
+		{
+		left->ReadOnlyDone( left_value );
 		return right->Eval( etype );
+		}
 	}
 
 
@@ -1677,6 +1680,9 @@ SendEventExpr::~SendEventExpr()
 			NodeUnref( (*args)[i] );
 		delete args;
 		}
+
+	if ( sender )
+		Unref( sender );
 	} 
 
 SendEventExpr::SendEventExpr( EventDesignator* arg_sender,

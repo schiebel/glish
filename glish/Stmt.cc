@@ -303,6 +303,22 @@ void UnLinkStmt::LinkAction( Task* src, IValue* v )
 
 AwaitStmt::~AwaitStmt()
 	{
+	if ( await_list )
+		{
+		loop_over_list( *await_list, i )
+			Unref( (*await_list)[i] );
+
+		delete await_list;
+		}
+
+	if ( except_list )
+		{
+		loop_over_list( *except_list, i )
+			Unref( (*except_list)[i] );
+
+		delete except_list;
+		}
+
 	NodeUnref( except_stmt );
 	}
 
@@ -618,8 +634,11 @@ void WhileStmt::Describe( ostream& s ) const
 PrintStmt::~PrintStmt()
 	{
 	if ( args )
+		{
 		loop_over_list( *args, i )
 			NodeUnref( (*args)[i] );
+		delete args;
+		}
 	}
 
 IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )

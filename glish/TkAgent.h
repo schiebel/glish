@@ -203,6 +203,7 @@ class TkFrame : public TkAgent {
 	char *pady;
 	char *expand;
 	char *tag;
+	TkCanvas *canvas;
   	tkagent_list elements;
 	static unsigned long tl_count;
 	static unsigned long frame_count;
@@ -225,6 +226,8 @@ class TkButton : public TkAgent {
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const IValue *val );
+
+	void UnMap();
 
 	unsigned long Count() const { return button_count; }
 	unsigned char State() const;
