@@ -271,6 +271,7 @@ class TkFrame : public TkRadioContainer {
 	// Called when the frame is killed via the window manager
 	void KillFrame( );
 	void ResizeEvent( );
+	void LeaderMoved( );
 
 	char *SetSide( parameter_list *, int, int );
 	char *SetPadx( parameter_list *, int, int );

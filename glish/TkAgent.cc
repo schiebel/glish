@@ -1606,6 +1606,16 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 		}
 	}
 
+void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
+	{
+	if ( eventPtr->xany.type == ConfigureNotify &&
+	     eventPtr->xany.send_event )
+		{
+		TkFrame *f = (TkFrame*) clientData;
+		f->LeaderMoved();
+		}
+	}
+
 void TkFrame::Disable( )
 	{
 	loop_over_list( elements, i )
@@ -1670,6 +1680,10 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
 			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "geometry",
 				      rivet_path(pseudo), geometry, 0 );
+
+			Rivetobj top = tlead->TopLevel();
+			Tk_CreateEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
+					      glishtk_moveframe_cb, this );
 			}
 		}
 	else
@@ -1687,6 +1701,10 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
 			rivet_va_func(root, (int (*)()) Tk_WmCmd, "geometry",
 				      rivet_path(root), geometry, 0 );
+
+			Rivetobj top = tlead->TopLevel();
+			Tk_CreateEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
+					      glishtk_moveframe_cb, this );
 			}
 		}
 
@@ -2293,6 +2311,18 @@ void TkFrame::ResizeEvent( )
 
 		PostTkEvent( "resize", new IValue( rec ) );
 		}
+	}
+
+void TkFrame::LeaderMoved( )
+	{
+	if ( ! tlead ) return;
+
+	const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
+	rivet_va_func(pseudo ? pseudo : root, (int (*)()) Tk_WmCmd, "geometry",
+		      rivet_path(pseudo ? pseudo : root), geometry, 0 );
+	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
+	rivet_va_func( pseudo ? pseudo : root, (int (*)()) Tk_RaiseCmd,
+		       rivet_path(pseudo ? pseudo : root)/*, rivet_path(tlead->TopLevel())*/, 0 );
 	}
 
 IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
