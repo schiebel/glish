@@ -400,10 +400,7 @@ int Selector::DoSelection( int CanBlock )
 				// Selector::DoSelection() can read all of the
 				// active file descriptors and leave us hanging.
 				if ( count != last )
-					{
-					status = 0;
-					break;
-					}
+					return 0;
 				}
 
 			--status;
