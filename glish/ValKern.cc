@@ -134,7 +134,7 @@ void ValueKernel::array_t::SetType( glish_type new_type, unsigned short type_len
 
 void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 	{
-	if ( len == length )
+	if ( len && len == length )
 		return;
 
 	if ( len < length )
