@@ -9,6 +9,7 @@
 %token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
 %token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
 %token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
+%token TOK_FLEX_ERROR
 %token NULL_TOK
 
 %left ','
@@ -89,6 +90,9 @@ extern "C" {
 	int yyparse();
 	void yyerror( char msg[] );
 }
+
+/* reset glish state after an error */
+static void error_reset( );
 
 #if ! defined(PURE_PARSER)
 extern int yylex();
@@ -407,6 +411,12 @@ expression:
 	|	var
 
 	|	TOK_CONSTANT
+
+	|	TOK_FLEX_ERROR
+			{
+			error_reset();
+			YYERROR;
+			}
 	;
 
 
@@ -930,20 +940,25 @@ no_cont:		{ statement_can_end = 1; }
 
 %%
 
-extern "C"
-void yyerror( char msg[] )
+void error_reset( )
 	{
 	current_sequencer->ClearWhenevers();
 
+	if ( interactive )
+		while ( current_sequencer->ScopeDepth() > scope_depth )
+			current_sequencer->PopScope();
+	}
+
+extern "C"
+void yyerror( char msg[] )
+	{
 	if ( ! status )
 		{
 		parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
 		error->Report( msg, " at or near '", yytext, "'" );
 		}
 
-	if ( interactive )
-		while ( current_sequencer->ScopeDepth() > scope_depth )
-			current_sequencer->PopScope();
+	error_reset( );
 	}
 
 
