@@ -731,6 +731,7 @@ extern int compatible_types( const Value* v1, const Value* v2,
 				glish_type& max_type );
 
 extern void init_values();
+extern void finalize_values();
 
 extern void delete_list( del_list* dlist );
 

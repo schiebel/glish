@@ -82,5 +82,6 @@ extern Reporter* fatal;
 extern Reporter* message;
 
 extern void init_reporters();
+extern void finalize_reporters();
 
 #endif	/* reporter_h */

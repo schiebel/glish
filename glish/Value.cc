@@ -4345,6 +4345,11 @@ void init_values()
 	false_value = create_value( glish_false );
 	}
 
+void finalize_values()
+	{
+	delete false_value;
+	}
+
 void delete_list( del_list* dlist )
 	{
 	if ( dlist )

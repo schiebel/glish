@@ -279,3 +279,11 @@ void init_reporters()
 	fatal = new FatalReporter;
 	message = new MessageReporter;
 	}
+
+void finalize_reporters()
+	{
+	delete warn;
+	delete error;
+	delete fatal;
+	delete message;
+	}

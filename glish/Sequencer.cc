@@ -269,8 +269,9 @@ void Sequencer::InitScriptClient()
 		script_client->SetInterface( selector, script_agent );
 		script_expr->Assign( script_agent->AgentRecord() );
 
-		sys_val->SetField( "is_script_client",
-					new IValue( glish_true ) );
+		IValue *val = new IValue( glish_true );
+		sys_val->SetField( "is_script_client", val );
+		Unref(val);
 
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
@@ -280,8 +281,9 @@ void Sequencer::InitScriptClient()
 	else
 		{
 		script_expr->Assign( new IValue( glish_false ) );
-		sys_val->SetField( "is_script_client",
-					new IValue( glish_false ) );
+		IValue *val = new IValue( glish_false );
+		sys_val->SetField( "is_script_client", val );
+		Unref(val);
 		}
 
 	ScriptCreated( 1 );
@@ -363,14 +365,17 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
 	system_expr->Assign( sys_val );
 
-	sys_val->SetField( "version", new IValue( GLISH_VERSION ) );
+	IValue *ver = new IValue( GLISH_VERSION );
+	sys_val->SetField( "version", ver );
+	Unref(ver);
 
 #if defined( GLISHTK )
 	IValue *tkversion = new IValue( TK_VERSION );
 	sys_val->SetField( "tk", tkversion );
+	Unref(tkversion);
 	attributeptr tkattr = tkversion->ModAttributePtr();
-	tkattr->Insert( "rivet", new IValue(RIVET_VERSION) );
-	tkattr->Insert( "tcl", new IValue(TCL_VERSION) );
+	tkattr->Insert( strdup( "rivet" ), new IValue(RIVET_VERSION) );
+	tkattr->Insert( strdup( "tcl" ), new IValue(TCL_VERSION) );
 #else
 	sys_val->SetField( "tk", new IValue( glish_false ) );
 #endif
@@ -497,7 +502,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 			}
 
 		// Prevent re-executing the .glishrc statements
+		NodeUnref( stmts );
 		stmts = null_stmt;
+
 		loop_over_list( *load_list, j )
 			Parse( (*load_list)[j] );
 
@@ -511,8 +518,11 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		// Handle the .glishrc (or "-l") startup scripts so that we can use any
 		// include path which might be specified in there.
 		Exec( 1 );
+
 		// Prevent re-executing the .glishrc statements
+		NodeUnref( stmts );
 		stmts = null_stmt;
+
 		Parse( argv[0] );
 		do_interactive = 0;
 		++argv, --argc;
@@ -530,11 +540,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 Sequencer::~Sequencer()
 	{
-	delete script_client;
-	delete selector;
-	delete connection_socket;
-	delete connection_port;
-	delete interpreter_tag;
+
+	Unref( last_notification );
+	NodeUnref( stmts );
 
 	loop_over_list( scopes, j )
 		delete scopes[j];
@@ -544,6 +552,16 @@ Sequencer::~Sequencer()
 
 	loop_over_list( frames, k )
 		Unref( frames[k] );
+
+	delete selector;
+	delete script_client;
+	delete interpreter_tag;
+	delete connection_socket;
+	delete connection_port;
+
+	finalize_values();
+	finalize_reporters();
+	delete null_stmt;
 	}
 
 
@@ -806,7 +824,14 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )
+				{
+				// We have a memory leak here
+				// sometimes MarkGlobalRef "owns"
+				// the pointer, and sometimes it
+				// doesn't
 				scopes[off]->MarkGlobalRef( id );
+				if ( result ) id = 0;
+				}
 
 			if ( ! result )
 				return InstallVar( id, GLOBAL_SCOPE, var );
@@ -842,7 +867,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 			fatal->Report("bad scope tag in Sequencer::LookupID()" );
 
 		}
-//	delete id;
+	if ( id ) delete id;
 	return result;
 	}
 

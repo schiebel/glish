@@ -438,6 +438,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							$2, LOCAL_SCOPE );
 
 					IValue* ref = func_val;
+					Ref(ref);
 
 					func->Assign( ref );
 					}
@@ -793,6 +794,7 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 
 #define CMPD(token, expr)						\
 	case token:							\
+		Ref(lhs);						\
 		return new AssignExpr( lhs, new expr( lhs, rhs ) );
 
 		CMPD('+', AddExpr);

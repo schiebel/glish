@@ -132,7 +132,7 @@ IValue *glishtk_splitnl( char *str )
 
 IValue *glishtk_str( char *str )
 	{
-	return new IValue(strdup(str));
+	return new IValue( str );
 	}
 
 IValue *glishtk_splitsp_int( char *sel )
