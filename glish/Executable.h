@@ -8,7 +8,9 @@
 // of the path to the executable, which the caller should delete when
 // done with.
 char* which_executable( const char* exec_name );
-
+// Given a fully qualified path, this checks to see if the file can
+// be executed.
+int can_execute( const char* name );
 
 class Executable {
     public:
@@ -21,6 +23,8 @@ class Executable {
 	virtual int Active() = 0;
 	void Deactivate( ) { deactivated = 1; }
 	virtual void Ping() = 0;
+
+	virtual void DoneReceived();
 
     protected:
 	char* executable;

@@ -387,7 +387,7 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 
 
 Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
-	last_context( name )
+	last_context( name ), useshm(0)
 	{
 	initial_client_name = prog_name = name;
 
@@ -417,7 +417,7 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
 
 Client::Client( int client_read_fd, int client_write_fd, const char* name,
 	const EventContext &arg_context, int arg_multithreaded ) : 
-	last_context( arg_context )
+	last_context( arg_context ), useshm(0)
 	{
 	// BUG HERE -- name (argument) could go away...
 	initial_client_name = prog_name = name;
@@ -1475,7 +1475,7 @@ GlishEvent* recv_event( int fd )
 	else
 		e = new GlishEvent( strdup( hdr.event_name ), result );
 
-	e->SetFlags( int( hdr.flags ) );
+	if (e) e->SetFlags( int( hdr.flags ) );
 	return e;
 	}
 
@@ -1640,6 +1640,7 @@ void send_shm_event( int write_fd, const char* event_name,
 	int shmid = -1;
 	char *shmptr = 0;
 	int off = 1;
+
 	Value *v = e->Val();
 	glish_type t = v->Type();
 
@@ -1700,6 +1701,7 @@ void send_shm_event( int write_fd, const char* event_name,
 GlishEvent* recv_shm_event( int shmid )
 	{
 	char *shmptr = 0;
+
 	if ( (shmptr = (char*) shmat(shmid,0,0)) == (char*) -1 )
 		{
 		error->Report("client couldn't attach to shared memory");

@@ -4,7 +4,10 @@
 #define localexec_h
 
 #include "Executable.h"
+#include "Glish/List.h"
 
+class LocalExec;
+declare(PList,LocalExec);
 
 class LocalExec : public Executable {
     public:
@@ -17,7 +20,11 @@ class LocalExec : public Executable {
 
 	int PID()	{ return pid; }
 
+	void DoneReceived();
+
+	static void sigchld( );
     protected:
+	static PList(LocalExec) *doneList;
 	void MakeExecutable( const char** argv );
 
 	int pid;

@@ -5,9 +5,9 @@
 
 #include "Agent.h"
 #include "BuiltIn.h"
+#include "Executable.h"
 #include "Glish/Client.h"
 
-class Executable;
 class Channel;
 class Selector;
 class GlishEvent;
@@ -59,7 +59,8 @@ class Task : public Agent {
 			int is_request, int log );
 
 	void SetActive()	{ SetActivity( 1 ); }
-	void SetDone()		{ SetActivity( 0 ); }
+	void SetDone()		{ SetActivity( 0 );
+				  if ( executable ) executable->DoneReceived(); }
 
 	void SetChannel( Channel* c, Selector* s );
 	void CloseChannel();

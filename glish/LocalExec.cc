@@ -30,6 +30,7 @@ RCSID("@(#) $Id$")
 
 #include "LocalExec.h"
 
+PList(LocalExec) *LocalExec::doneList = 0;
 
 LocalExec::LocalExec( const char* arg_executable, const char** argv )
     : Executable( arg_executable )
@@ -51,6 +52,8 @@ LocalExec::~LocalExec()
 	{
 	if ( Active() )
 		kill( pid, SIGTERM );
+	if ( doneList )
+		doneList->remove(this);
 	}
 
 
@@ -69,7 +72,7 @@ void LocalExec::MakeExecutable( const char** argv )
 	*/
 	signal_handler old_sigint = install_signal_handler( SIGINT, (signal_handler) SIG_IGN );
 
-	pid = vfork();
+	pid = (int) vfork();
 
 	if ( pid == 0 )
 		{ // child
@@ -133,4 +136,34 @@ void LocalExec::Ping()
 		cerr << "LocalExec::Ping: problem pinging executable ";
 		perror( executable );
 		}
+	}
+
+
+#if defined(SIGCHLD)
+#define GLISH_SIGCHLD SIGCHLD
+#elif defined(SIGCLD)
+#define GLISH_SIGCHLD SIGCLD
+#endif
+
+void LocalExec::DoneReceived()
+	{
+#if defined(GLISH_SIGCHLD)
+	if ( ! doneList ) doneList = new PList(LocalExec);
+	doneList->append(this);
+	install_signal_handler( GLISH_SIGCHLD, (signal_handler) sigchld );
+#endif
+	}
+
+void LocalExec::sigchld()
+	{
+#if defined(GLISH_SIGCHLD)
+	for (int i=doneList->length()-1; i >= 0; --i)
+		if ( ! (*doneList)[i]->Active() )
+			doneList->remove_nth(i);
+
+	if ( doneList->length() )
+		install_signal_handler( GLISH_SIGCHLD, (signal_handler) sigchld );
+	else
+		install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
+#endif
 	}

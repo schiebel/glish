@@ -76,7 +76,7 @@ int Sequencer::hold_queue = 0;
 int shutting_glish_down = 0;
 
 // Used to flag changes in the system agent.
-void system_change_function(IValue *o, IValue *n)
+void system_change_function(IValue *, IValue *n)
 	{
 	Sequencer::CurSeq()->System().SetVal(n);
 	}

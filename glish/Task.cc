@@ -890,6 +890,7 @@ void ClientTask::sendEvent( int fd, const char* event_name,
 		send_event( fd, event_name, e, sds );
 	else
 		send_shm_event( fd, event_name, e, sds );
+
 	return;
 	}
 

@@ -29,6 +29,7 @@ Executable::Executable( const char* arg_executable )
 	exec_error = has_exited = deactivated = 0;
 	}
 
+void Executable::DoneReceived() { }
 
 Executable::~Executable()
 	{
