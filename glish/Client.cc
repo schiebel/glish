@@ -636,7 +636,7 @@ void Client::Reply( const Value* event_value )
 		GlishEvent e( (const char*) pending_reply, event_value );
 		e.SetIsReply();
 		PostEvent( &e );
-		delete pending_reply;
+		free_memory( pending_reply );
 		pending_reply = 0;
 		}
 	}
