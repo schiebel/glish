@@ -747,7 +747,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	{
 	frame = frame_;
 
-	char *argv[10];
+	char *argv[12];
 
 	if ( ! root )
 		{
@@ -770,6 +770,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	argv[c++] = (char*) width;
 	argv[c++] = "-height";
 	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
 
 	self = rivet_create(FrameClass, frame->Self(), c, argv);
 
