@@ -398,18 +398,37 @@ void TkProxy::Load( ProxyStore *s, Value *arg )
 	{
 	char *toload = 0;
 	const char *module = 0;
-	if ( arg->Type() == TYPE_STRING && arg->Length() >= 1 )
+	int fail_if_no_tk = 1;
+
+	if ( arg->Type() == TYPE_STRING && arg->Length() >= 1 &&
+	     (toload = which_shared_object(arg->StringPtr(0)[0])) )
 		{
-		toload = which_shared_object(arg->StringPtr(0)[0]);
-		if ( toload && arg->Length() > 1 )
+		if ( arg->Length() > 1 )
 			module = arg->StringPtr(0)[1];
+		}
+
+	else if ( arg->Type() == TYPE_RECORD && arg->Length() >= 1 )
+		{
+		Value *str = arg->NthField( 1 );
+		if ( str->Type() == TYPE_STRING && str->Length() >= 1 &&
+		     (toload = which_shared_object(str->StringPtr(0)[0])) )
+			{
+			if ( str->Length() > 1 )
+				module = str->StringPtr(0)[1];
+			if ( arg->Length() > 1 && ! strcmp( arg->NthFieldName(2), "needtk" ) )
+				{
+				Value *needtk = arg->NthField( 2 );
+				if ( needtk && needtk->IsNumeric() )
+					fail_if_no_tk = needtk->IntVal();
+				}
+			}
 		}
 
 	if ( toload )
 		{
 		const char *err = init_tk(0);
 
-		if ( err )
+		if ( err && fail_if_no_tk )
 			s->Error( err );
 
 		else if ( module )

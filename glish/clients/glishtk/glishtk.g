@@ -80,9 +80,9 @@ func init_glishtk( ) {
     ret.tk_release := func ( ) { gtk->tk_release(T); return T }
     ret.tk_iconpath := func ( path ) { gtk->tk_iconpath(path); return T }
 
-    ret.tk_load := func ( module_name, init_func ) {
+    ret.tk_load := func ( module_name, init_func, needtk=T ) {
 			if ( is_function(init_func) && is_string(module_name) ) {
-			    if ( is_fail(tmp:=gtk->tk_load( module_name )) ) {
+			    if ( is_fail(tmp:=gtk->tk_load( module_name, needtk=needtk )) ) {
 				print 'tk_load failed:', tmp
 				fail
 			    }
