@@ -41,15 +41,39 @@ int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 	{
 	if ( argc < 1 ) return TCL_ERROR;
 
-	static char buf[1024];
+	static char *buf = 0;
+	static unsigned int blen = 0;
 
-	strcpy( buf, argv[0] );
-	for ( register int i = 1; i < argc; ++i )
+	if ( ! blen )
 		{
-		strcat( buf, " " );
-		strcat( buf, argv[i] );
+		blen = 1024;
+		buf = (char*) alloc_memory( blen );
 		}
 
+	int clen = 0;
+	int len = 0;
+
+#define ARGEVAL_ADD(what)					\
+	len = strlen(what);					\
+	if ( clen + len + 2 >=  blen )				\
+		{						\
+		while ( clen + len + 2 >=  blen ) blen *= 2;	\
+		buf = (char*) realloc_memory( buf, blen );	\
+		}						\
+	memcpy( &buf[clen], what, len );			\
+	clen += len;
+
+#define ARGEVAL_SP   buf[clen++] = ' ';
+#define ARGEVAL_ZERO buf[clen] = '\0';
+
+	ARGEVAL_ADD(argv[0])
+	for ( register int i = 1; i < argc; ++i )
+		{
+		ARGEVAL_SP
+		ARGEVAL_ADD(argv[i] )
+		}
+
+	ARGEVAL_ZERO
 	return Tcl_Eval( interp, buf );
 	}
 

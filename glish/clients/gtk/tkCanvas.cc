@@ -446,7 +446,8 @@ if ( strcmp(key,"tag") )						\
 			sizeof(char)*(strlen(key)+2) );			\
 	sprintf(Arg_name[name_cnt],"-%s",key);				\
 	EXPRSTR( str, event_name )					\
-	Arg_val[name_cnt++] = strdup(str);				\
+	Arg_val[name_cnt] = alloc_memory(strlen(str)+3);		\
+	sprintf(Arg_val[name_cnt++],"{%s}",str);			\
 	EXPR_DONE( str )						\
 	}								\
 else									\
