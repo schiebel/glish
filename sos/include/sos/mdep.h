@@ -204,7 +204,7 @@ typedef unsigned char sos_code;
 #define SOS_LONG_BITFIELD        (sos_code) 0x24
 #define SOS_DOUBLE_LONG_BITFIELD (sos_code) 0x25
 #define SOS_UNS_DOUBLE_LONG      (sos_code) 0x26
-// SOS_UNKNOWN is alway last
+// SOS_UNKNOWN is always last
 #define SOS_UNKNOWN              (sos_code) 0x27
 #define SOS_NTYPES               SOS_UNKNOWN
 
