@@ -609,10 +609,14 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							$2, LOCAL_SCOPE );
 
 						IValue* ref = new IValue( ufunc );
-						func->Assign( ref );
-
 						/* keep ufunc from being deleted with $$ */
 						Ref(ufunc);
+
+						if ( err = func->Assign( ref ) )
+							{
+							Unref( $$ );
+							$$ = new ConstExpr( err );
+							}
 						}
 					else
 						{
