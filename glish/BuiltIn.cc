@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 #include <stream.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/time.h>
 
 // For MAXINT, MAXFLOAT, HUGE.
 #include <values.h>
@@ -1436,6 +1437,13 @@ IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return r;
 	}
 
+IValue* TimeBuiltIn::DoCall( const_args_list* /* args_val */ )
+	{
+	IValue *ret = new IValue((double)0.0);
+	(ret->DoublePtr())[0] = get_current_time();
+	return ret;
+	}
+
 
 IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -2075,6 +2083,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new WheneverStmtsBuiltIn );
 
 	s->AddBuiltIn( new ActiveAgentsBuiltIn );
+	s->AddBuiltIn( new TimeBuiltIn );
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
 	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );

@@ -111,6 +111,9 @@ extern "C" {
 	void* realloc_memory( void* ptr, unsigned int new_size );
 	void free_memory( void* ptr );
 
+	/* time in seconds since 1970
+	 */
+	double get_current_time();
 	/*
 	 * Use the right fork(), without worring about the differences
 	 * between C & C++ includes.

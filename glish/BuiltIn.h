@@ -118,6 +118,7 @@ DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)
 DERIVE_BUILTIN(WheneverStmtsBuiltIn,1,"whenever_stmts",)
 
 DERIVE_BUILTIN(ActiveAgentsBuiltIn,0,"active_agents",)
+DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
 
 
 #define DERIVE_SEQUENCER_BUILTIN(name,num_args,description)		\

@@ -40,6 +40,26 @@ RCSID("@(#) $Id$")
 typedef RETSIGTYPE (*correct_sig_handler)();
 
 
+/*
+ * The stuff below is needed by the "time" command.  If this
+ * system has no gettimeofday call, then must use times and the
+ * CLK_TCK #define (from sys/param.h) to compute elapsed time.
+ * Unfortunately, some systems only have HZ and no CLK_TCK, and
+ * some might not even have HZ.
+ */
+
+#ifdef NO_GETTOD
+#   include <sys/timeb.h>
+#else
+#   ifdef HAVE_BSDGETTIMEOFDAY
+#       define gettimeofday BSDgettimeofday
+#   endif
+#endif
+
+#ifdef GETTOD_NOT_DECLARED
+extern int gettimeofday (struct timeval *, struct timezone *);
+#endif
+
 static int tcp_proto_number();
 static void set_tcp_nodelay( int socket );
 static void gripe( char msg[] );
@@ -488,4 +508,30 @@ void pgripe( char msg[] )
 int fork_process()
 	{
 	return (int) vfork();
+	}
+
+
+double get_current_time()
+	{
+
+#if NO_GETTOD
+	struct timeb ftm;
+
+	if ( ftime(&ftm) )
+		return 0.0
+
+	return (double) ftm.time +
+	       (double) ftm.millitm *
+	       (double) 0.001;
+#else
+	struct timeval tp;
+	struct timezone tz;
+
+	if ( gettimeofday(&tp, &tz) )
+		return 0.0;
+
+	return (double) tp.tv_sec + 
+	       (double) tp.tv_usec *
+	       (double) 0.000001;
+#endif
 	}
