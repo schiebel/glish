@@ -250,7 +250,8 @@ dnl## Checks for header files.
 dnl##
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h sys/limits.h)
+AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h)
+AC_CHECK_HEADERS(limits.h float.h)
 AC_CHECK_HEADERS(sys/signal.h fp.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(stdlib.h)
