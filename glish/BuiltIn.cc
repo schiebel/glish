@@ -1764,8 +1764,7 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 
 	char *osep = sep_val->Length() > 0 ? sep_val->StringVal() : 0;
 	char *sep = osep && *osep ? osep : 0;
-	char isep = isep_val->Length() > 0 ? isep_val->StringPtr(0)[0][0] : 0;
-	isep = isep ? isep : ' ';
+	char isep = isep_val->Length() > 0 ? isep_val->StringPtr(0)[0][0] : ' ';
 
 	if ( args_val->length() > 3 )
 
@@ -1830,11 +1829,101 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
 	{
-	if ( args_val->length() < 1 )
-		return (IValue*) Fail( "too few arguments for \"printf\"" );
 	const IValue *out = (*args_val)[0];
 	pager->report( ioOpt(ioOpt::NO_NEWLINE(),'\0'), out );
 	return new IValue( glish_true );
+	}
+
+IValue* StatBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue *file_val = (*args_val)[0];
+	const IValue *bytes_val = (*args_val)[1];
+
+	if ( file_val->Type() != TYPE_STRING )
+		return (IValue*) Fail( "non-string argument to \"stat\" for file" );
+
+	charptr *files = file_val->StringPtr( );
+	int bytes = bytes_val->IsNumeric() ? bytes_val->IntVal() : 20;
+	bytes = bytes < 0 ? 0 : bytes > 2048 ? 2048 : bytes;
+	char *buf = 0;
+
+	if ( bytes ) buf = (char*) alloc_memory( bytes + 1 );
+
+	struct stat sbuf;
+	int length = file_val->Length();
+	recordptr rec = length > 1 ? create_record_dict( ) : 0;
+	recordptr cur = 0;
+	for ( int i=0; i < length; ++i )
+		{
+		if ( lstat( files[i], &sbuf ) < 0 )
+			{
+			cur = create_record_dict( );
+			if ( rec ) rec->Insert( strdup(files[i]), new IValue(cur) );
+			continue;
+			}
+
+		cur = create_record_dict( );
+		if ( S_ISREG(sbuf.st_mode) )
+			{
+			if ( bytes )
+				{
+				int fd = open( files[i], O_RDONLY, 0644 );
+				if ( fd < 0 )
+					cur->Insert(strdup("type"), new IValue( "regular" ));
+				else
+					{
+					int ascii = 1;
+					int len = read( fd, buf, bytes );
+					for ( int j=0; j < len; ++j )
+						if ( ! isascii(buf[j]) )
+							{ ascii = 0; break; }
+
+					if ( ascii )
+						cur->Insert(strdup("type"), new IValue( "ascii" ));
+					else
+						cur->Insert(strdup("type"), new IValue( "regular" ));
+					close( fd );
+					}
+				}
+			else
+				cur->Insert(strdup("type"), new IValue( "regular" ));
+			}
+		else if ( S_ISDIR(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "directory" ));
+		else if ( S_ISCHR(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "character special" ));
+		else if ( S_ISBLK(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "block special" ));
+		else if ( S_ISFIFO(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "fifo" ));
+#ifdef S_ISLNK
+		else if ( S_ISLNK(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "symbolic link" ));
+#endif
+#ifdef S_ISSOCK
+		else if ( S_ISSOCK(sbuf.st_mode) )
+			cur->Insert(strdup("type"), new IValue( "socket" ));
+#endif
+		else
+			cur->Insert(strdup("type"), new IValue( "unknown" ));
+
+		cur->Insert(strdup("inode"), new IValue( (int) sbuf.st_ino ));
+
+		if ( S_ISREG(sbuf.st_mode ) )
+			cur->Insert(strdup("size"), new IValue( (int) sbuf.st_size ));
+		else
+			cur->Insert(strdup("size"), new IValue( 0 ));
+
+		recordptr timrec = create_record_dict( );
+		timrec->Insert(strdup("access"), new IValue((int) sbuf.st_atime));
+		timrec->Insert(strdup("modify"), new IValue((int) sbuf.st_mtime));
+		timrec->Insert(strdup("change"), new IValue((int) sbuf.st_atime));
+		cur->Insert(strdup("time"), new IValue( timrec ));
+
+		if ( rec ) rec->Insert( strdup(files[i]), new IValue(cur) );
+		}
+
+	return new IValue( rec ? rec : cur );
 	}
 
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
@@ -2699,6 +2788,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new WriteBuiltIn );
 	s->AddBuiltIn( new SprintfBuiltIn );
 	s->AddBuiltIn( new PrintfBuiltIn );
+	s->AddBuiltIn( new StatBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

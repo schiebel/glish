@@ -89,14 +89,25 @@ func ind(x) { if ( len(x) > 0 ) 1:len(x); else [] }
 func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
-func write(file, ..., sep='\n')
+func stat( file, bytes=100 )
+	internal_stat( file, bytes )
+
+func is_asciifile( f, bytes=100 )
+	{
+	if ( len(f) )
+		stat(f,bytes)["type"] == 'ascii'
+	else
+		F
+	}
+
+func write( file, ..., sep='\n' )
 	internal_write(file, sep, ' ', ...)
 
-func read(file, num=1)
+func read( file, num=1 )
 	internal_read(file, num)
 
-func fprintf(file,...)
-	internal_write(file, '', '', sprintf(...))
+func fprintf( file, ... )
+	internal_write( file, '', '', sprintf(...) )
 
 func printf(...)
 	internal_printf(sprintf(...))

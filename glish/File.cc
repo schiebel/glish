@@ -5,6 +5,8 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "Reporter.h"
 #include "File.h"
 #include <ctype.h>
@@ -22,15 +24,15 @@ File::File( const char *str_ ) : in(0), out(0), str(0), desc(0)
 	if ( str[0] == '<' )
 		{
 		type_ = IN;
-		in = fopen( clean_string( ), "r" );
+		in = Open( "r" );
 		}
 	else if ( str[0] == '>' )
 		{
 		type_ = OUT;
 		if ( str[1] == '>' )
-			out = fopen( clean_string( ), "a" );
+			out = Open( "a" );
 		else
-			out = fopen( clean_string( ), "w" );
+			out = Open( "w" );
 		}
 	else if ( str[0] == '|' )
 		{
@@ -164,6 +166,21 @@ char *File::clean_string( )
 	buffer[ret_len] = '\0';
 
 	return buffer;
+	}
+
+FILE *File::Open( const char *mode )
+	{
+	struct stat sbuf;
+	char *f = clean_string( );
+	int exists = lstat( f, &sbuf ) == 0;
+
+	if ( *mode == 'r' && ! exists || exists && S_ISDIR(sbuf.st_mode) )
+		{
+		type_ = ERR;
+		return 0;
+		}
+
+	return fopen( f, mode );
 	}
 
 int File::Describe( OStream& s, const ioOpt & ) const

@@ -20,6 +20,7 @@ class File : public GlishObject {
 	const char *Description( ) const;
 	Type type( ) { return type_; }
     private:
+	FILE *Open( const char *mode );
 	char *clean_string( );
 	Type type_;
 	char *str;

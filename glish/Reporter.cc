@@ -94,12 +94,15 @@ char RMessage::Write( OStream& s, int leading_space, int trailing_space, const i
 	{
 	if ( object )
 		{
-		if ( leading_space )
+		// If opt.sep() is 0, it means that there won't be any
+		// inter-element separation. If this is the case, don't add
+		// leading or trailing spaces either...
+		if ( leading_space && opt.sep() )
 			s << " ";
 
 		object->Describe( s, opt );
 
-		if ( trailing_space )
+		if ( trailing_space && opt.sep() )
 			s << " ";
 
 		return '\0';
