@@ -1710,7 +1710,6 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 	if ( val->IsVecRef() )
 		{
 		Value* copy = copy_value( val );
-//		dlist->append( new DelObj( copy ) );	/*!!! LEAK !!!*/
 		write_value( sos, copy, label, name, flags, proxy_id );
 		return;
 		}
