@@ -38,7 +38,7 @@ class NotifyTrigger : public GlishObject {
 
 class Notification : public GlishObject {
 public:
-	enum Type { WHENEVER, AWAIT };
+	enum Type { WHENEVER, AWAIT, STICKY };
 	Notification( Agent* notifier, const char* field, IValue* value,
 			Notifiee* notifiee, NotifyTrigger *t=0, Type ty=WHENEVER );
 	~Notification();

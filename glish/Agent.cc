@@ -249,6 +249,11 @@ int Agent::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
+int Agent::StickyNotes( ) const
+	{
+	return 0;
+	}
+
 IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	{
 	if ( args->length() == 0 )
@@ -344,7 +349,8 @@ int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
 		{
 		if ( t ) Ref(t);
 
-		Notification* note = new Notification( this, field, value, n, t );
+		Notification* note = new Notification( this, field, value, n, t,
+			StickyNotes() ? Notification::STICKY : Notification::WHENEVER );
 
 		sequencer->QueueNotification( note );
 
@@ -397,6 +403,11 @@ IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 	CreateEvent( event_name, event_val );
 
 	return 0;
+	}
+
+int UserAgent::StickyNotes( ) const
+	{
+	return 1;
 	}
 
 

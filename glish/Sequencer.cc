@@ -1589,9 +1589,10 @@ void Sequencer::PushNote( Notification *n )
 	// remove any AWAITS on top because otherwise they may build
 	// up; at the toplevel, that is...
 	//
-	if ( n && n->type() == Notification::AWAIT )
+	if ( n && (n->type() == Notification::AWAIT || n->type() == Notification::STICKY) )
 		while ( notes_inuse.length() &&	notes_inuse[notes_inuse.length()-1] &&
-			notes_inuse[notes_inuse.length()-1]->type() == Notification::AWAIT )
+			(notes_inuse[notes_inuse.length()-1]->type() == Notification::AWAIT ||
+			 notes_inuse[notes_inuse.length()-1]->type() == Notification::STICKY) )
 			Unref( notes_inuse.remove_nth( notes_inuse.length()-1 ) );
 	notes_inuse.append( n );
 	}
@@ -1601,8 +1602,16 @@ void Sequencer::PopNote( int doing_func )
 	if ( doing_func )
 		{
 		Notification *n = 0;
+		notification_list sticky;
 		while ( notes_inuse.length() && (n=notes_inuse.remove_nth( notes_inuse.length()-1 )) )
-			Unref( n );
+			{
+			if ( n->type() == Notification::STICKY )
+				sticky.append(n);
+			else
+				Unref( n );
+			}
+		for ( int j=sticky.length()-1; j > 0; --j )
+			notes_inuse.append(sticky[j]);
 		}
 	else
 		{
@@ -3571,6 +3580,7 @@ void Sequencer::RunQueue( int await_ended )
 			// Need to assign the event value.
 			notifier_val->AssignRecordElement( n->field, n->value );
 
+		int sticky = n->type() == Notification::STICKY;
 		if ( await_ended ) n->type(Notification::AWAIT);
 
 		// There are a bunch of Ref's and Unref's here because the
@@ -3603,7 +3613,7 @@ void Sequencer::RunQueue( int await_ended )
 		//
 		// PopNote() does does one Unref() of "n"
 		//
-		if ( ! await_ended )
+		if ( ! await_ended && ! sticky )
 			PopNote( );
 		}
 
