@@ -730,7 +730,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 						IValue *X = (IValue*) v->Deref();
 						X->SetUnref( current_roots );
 						X->MarkSoftDel();
-						if ( X->IsGlobalValue( ) ) Unref(X);
+						if ( X->IsGlobalValue( ) && X->RefCount() > 1 ) Unref(X);
 						}
 					}
 			}
