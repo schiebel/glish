@@ -5,7 +5,7 @@
 #define stream_h_
 #include "Glish/Object.h"
 
-class ostream;
+#include <iostream.h>
 
 class OStream : public GlishRef {
     public:

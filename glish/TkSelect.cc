@@ -36,13 +36,13 @@ TkSelector::TkSelector(Sequencer *s_) : Selector(), s(s_) { }
 
 TkSelector::~TkSelector() { }
 
-void TkSelector::AddSelectee( Selectee *s )
+void TkSelector::AddSelectee( Selectee *S )
 	{
-	Selector::AddSelectee( s );
-	if ( s->type() == Selectee::READ )
-		Tk_CreateFileHandler( s->FD(), TK_READABLE, TkFileProc, (ClientData) this );
+	Selector::AddSelectee( S );
+	if ( S->type() == Selectee::READ )
+		Tk_CreateFileHandler( S->FD(), TK_READABLE, TkFileProc, (ClientData) this );
 	else
-		Tk_CreateFileHandler( s->FD(), TK_WRITABLE, TkFileProc, (ClientData) this );
+		Tk_CreateFileHandler( S->FD(), TK_WRITABLE, TkFileProc, (ClientData) this );
 	}
 
 void TkSelector::DeleteSelectee( int selectee_fd )

@@ -4,7 +4,7 @@
 #ifndef queue_h
 #define queue_h
 
-#include <generic.h>
+#include "sos/generic.h"
 
 class BaseQueue;
 

@@ -81,7 +81,7 @@ IValue::IValue( ) : Value( )
 		}
 	}
 
-IValue::IValue( const char *message, const char *file, int line ) : Value( message, file, line )
+IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne )
 	{
 	const IValue *other = 0;
 	if ( !message && (other = FailStmt::GetFail()) )
@@ -92,10 +92,10 @@ IValue::IValue( const char *message, const char *file, int line ) : Value( messa
 		}
 	else
 		{
-		if ( ! file && file_name && file_name->chars() && ! interactive )
+		if ( ! fle && file_name && file_name->chars() && ! interactive )
 			{
 			AssignAttribute( "file", new IValue( file_name->Chars() ) );
-			if ( line <= 0 && line_num > 0 && ! interactive )
+			if ( lne <= 0 && line_num > 0 && ! interactive )
 				AssignAttribute( "line", new IValue( line_num ));
 			}
 

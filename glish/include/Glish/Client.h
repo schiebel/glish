@@ -4,11 +4,11 @@
 #ifndef client_h
 #define client_h
 
-#include <generic.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "Glish/Value.h"
+#include "sos/generic.h"
 #include "sos/io.h"
 
 extern "C" {

@@ -192,9 +192,9 @@ public:
 private:
 	enum error_mode { NO_SOURCE };
 	sos_status *Error( error_mode );
-	void *get_numeric( sos_code &, unsigned int &, sos_header & );
-	void *get_string( unsigned int &, sos_header & );
-	void *get_chars( unsigned int &, sos_header & );
+	void *get_numeric( sos_code &, unsigned int & );
+	void *get_string( unsigned int & );
+	void *get_chars( unsigned int & );
 	sos_header head;
 	int use_str;
 	int not_integral;

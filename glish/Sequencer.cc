@@ -502,10 +502,10 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		{								\
 		Agent *agent = ((IValue*)VAR##_val->Deref())->AgentVal();	\
 		FIX_BUF								\
-		IValue *val = new IValue( buf );				\
-		agent->SendSingleValueEvent( "append", val, 0 );		\
+		IValue *v = new IValue( buf );					\
+		agent->SendSingleValueEvent( "append", v, 0 );			\
 		done = 1;							\
-		Unref( val );							\
+		Unref( v );							\
 		}
 #define DOLOG_FIXBUF buf = prefix_buf("#",buf);
 
@@ -762,18 +762,18 @@ void Sequencer::InitScriptClient()
 	}
 
 
-void Sequencer::SetupSysValue( IValue *sys_val )
+void Sequencer::SetupSysValue( IValue *sys_value )
 	{
 	IValue *ver = new IValue( GLISH_VERSION );
-	sys_val->SetField( "version", ver );
+	sys_value->SetField( "version", ver );
 	Unref(ver);
 
 	IValue *pid = new IValue( (int) getpid() );
-	sys_val->SetField( "pid", pid );
+	sys_value->SetField( "pid", pid );
 	Unref(pid);
 
 	IValue *ppid = new IValue( (int) getppid() );
-	sys_val->SetField( "ppid", ppid );
+	sys_value->SetField( "ppid", ppid );
 	Unref(ppid);
 
 	recordptr max = create_record_dict();
@@ -794,7 +794,7 @@ void Sequencer::SetupSysValue( IValue *sys_val )
 	limits->Insert( strdup("max"), new IValue( max ) );
 	limits->Insert( strdup("min"), new IValue( min ) );
 
-	sys_val->SetField( "limits", new IValue( limits ) );
+	sys_value->SetField( "limits", new IValue( limits ) );
 	}
 
 
@@ -1731,9 +1731,9 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 	return ret;
 	}
 
-void Sequencer::PushFuncName( char *name )
+void Sequencer::PushFuncName( char *n )
 	{
-	cur_sequencer->func_names.append( name );
+	cur_sequencer->func_names.append( n );
 	}
 
 void Sequencer::PopFuncName( )
@@ -1977,15 +1977,15 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 			}
 		loop_over_list( *nl, Y )
 			{
-			char *name = (*nl)[Y];
-			agent_list *al = (*await_dict)[name];
+			char *nme = (*nl)[Y];
+			agent_list *al = (*await_dict)[nme];
 			if ( ! al )
 				{
 				al = new agent_list;
-				await_dict->Insert(name,al);
+				await_dict->Insert(nme,al);
 				}
 			else
-				free_memory(name);
+				free_memory(nme);
 
 			al->append(await_agent);
 			}

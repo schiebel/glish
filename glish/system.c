@@ -111,7 +111,7 @@ char* local_socket_name( int sock )
 	struct sockaddr_un addr;
 	int len = sizeof( addr );
 
-	if ( getsockname( sock, &addr, &len ) < 0 )
+	if ( getsockname( sock, (struct sockaddr*) &addr, &len ) < 0 )
 		pgripe( "getsockname() failed in local_socket_name()" );
 
 	return strdup( addr.sun_path );
@@ -127,7 +127,7 @@ int bind_socket( int socket, int port )
 	addr.sin_addr.s_addr = INADDR_ANY;
 	addr.sin_port = htons( port );
 
-	result = bind( socket, &addr, sizeof( addr ) );
+	result = bind( socket, (struct sockaddr*) &addr, sizeof( addr ) );
 
 	if ( result >= 0 )
 		{
@@ -159,7 +159,7 @@ int bind_local_socket( int socket )
 	addr.sun_family = AF_UNIX;
 	strcpy( addr.sun_path, template );
 
-	result = bind( socket, &addr, sizeof( addr ) );
+	result = bind( socket, (struct sockaddr*) &addr, sizeof( addr ) );
 
 	if ( result >= 0 )
 		{
@@ -186,7 +186,7 @@ int accept_connection( int connection_socket )
 	remote_addr_len = sizeof( remote_addr );
 
 	new_socket =
-		accept( connection_socket, &remote_addr, &remote_addr_len );
+		accept( connection_socket, (struct sockaddr*) &remote_addr, &remote_addr_len );
 
 	if ( new_socket >= 0 )
 		set_tcp_nodelay( new_socket );
@@ -204,7 +204,7 @@ int accept_local_connection( int connection_socket )
 	remote_addr_len = sizeof( remote_addr );
 
 	new_socket =
-		accept( connection_socket, &remote_addr, &remote_addr_len );
+		accept( connection_socket, (struct sockaddr*) &remote_addr, &remote_addr_len );
 
 	return new_socket;
 	}
@@ -230,7 +230,7 @@ int remote_connection( int sock, const char* hostname, int port )
 		(const void*) target_host->h_addr_list[0],
 		 target_host->h_length );
 
-	if ( connect( sock, &target_addr, sizeof( target_addr ) ) < 0 )
+	if ( connect( sock, (struct sockaddr*)  &target_addr, sizeof( target_addr ) ) < 0 )
 		return 0;
 
 	return 1;
@@ -244,7 +244,7 @@ int local_connection( int sock, const char* path )
 	target_addr.sun_family = AF_UNIX;
 	strcpy( target_addr.sun_path, path );
 
-	if ( connect( sock, &target_addr, sizeof( target_addr ) ) < 0 )
+	if ( connect( sock, (struct sockaddr*) &target_addr, sizeof( target_addr ) ) < 0 )
 		return 0;
 
 	return 1;

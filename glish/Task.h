@@ -80,9 +80,9 @@ class Task : public Agent {
 	void sendEvent( sos_sink &fd, const GlishEvent* e, int sds = -1 )
 		{ sendEvent( fd, e->name, e, sds ); }
 
-	void sendEvent( sos_sink &fd, const char* name, const Value* value )
+	void sendEvent( sos_sink &fd, const char* nme, const Value* value )
 		{
-		GlishEvent e( name, value );
+		GlishEvent e( nme, value );
 		sendEvent( fd, &e );
 		}
 

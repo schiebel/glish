@@ -22,12 +22,12 @@
 //
 //	Entries must be either a pointer to the data or nonzero data with
 //	sizeof(data) <= sizeof(void*).
-#include <generic.h>
 #include <stdarg.h>
 //
 // needed for class SosRef
 //
 #include "sos/ref.h"
+#include "sos/generic.h"
 
 typedef void* void_ptr;
 typedef void_ptr ent;

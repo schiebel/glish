@@ -1860,16 +1860,16 @@ int CallExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	}
 
 
-IncludeExpr::IncludeExpr( Expr* file, Sequencer* seq_arg )
-    : UnaryExpr(file, "include "), sequencer(seq_arg) { }
+IncludeExpr::IncludeExpr( Expr* fle, Sequencer* seq_arg )
+    : UnaryExpr(fle, "include "), sequencer(seq_arg) { }
 
 IValue* IncludeExpr::Eval( eval_type etype )
 	{
 	const IValue* file_val = op->ReadOnlyEval();
-	char *file = file_val->StringVal();
+	char *fle = file_val->StringVal();
 	op->ReadOnlyDone( file_val );
 
-	IValue *ret = sequencer->Include( file );
+	IValue *ret = sequencer->Include( fle );
 
 	if ( etype == EVAL_SIDE_EFFECTS )
 		{
@@ -1877,7 +1877,7 @@ IValue* IncludeExpr::Eval( eval_type etype )
 		ret = 0;
 		}
 
-	free_memory( file );
+	free_memory( fle );
 	return ret ? ret : new IValue( glish_true );
 	}
 

@@ -298,7 +298,7 @@ unsigned int sos_fd_source::read( char *buf, unsigned int len )
 	unsigned int needed = len;
 	unsigned int total = 0;
 
-	register unsigned int cur = 0;
+	register int cur = 0;
 	while ( needed && (cur = ::read( fd_, buf, needed )) > 0 )
 		{
 		total += cur;
@@ -553,11 +553,11 @@ void *sos_in::get( unsigned int &len, sos_code &type )
 	switch ( type )
 		{
 		case SOS_STRING:
-			return use_str ? get_string( len, head ) : get_chars( len, head );
+			return use_str ? get_string( len ) : get_chars( len );
 		case SOS_RECORD:
 			return (void*) -1;
 		default:
-			return get_numeric( type, len, head );
+			return get_numeric( type, len );
 		}
 	}
 
@@ -578,7 +578,7 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 		{
 		case SOS_STRING:
 			{
-			void *ret = use_str ? get_string( len, head ) : get_chars( len, head );
+			void *ret = use_str ? get_string( len ) : get_chars( len );
 			h.scratch();
 			h.set(len,SOS_STRING);
 			memcpy( h.iBuffer(), head.iBuffer(), SOS_HEADER_SIZE );
@@ -593,7 +593,7 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 			}
 		default:
 			{
-			char *ret = (char*) get_numeric( type, len, head );
+			char *ret = (char*) get_numeric( type, len );
 			if ( not_integral )
 				{
 				h.scratch();
@@ -607,7 +607,7 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 		}
 	}
 
-void *sos_in::get_numeric( sos_code &type, unsigned int &len, sos_header &head )
+void *sos_in::get_numeric( sos_code &type, unsigned int &len )
 	{
 	char *result_ = 0;
 	char *result = 0;
@@ -656,7 +656,7 @@ void *sos_in::get_numeric( sos_code &type, unsigned int &len, sos_header &head )
 	}
 
 #if defined(ENABLE_STR)
-void *sos_in::get_string( unsigned int &len, sos_header &head )
+void *sos_in::get_string( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) sos_alloc_memory(len);
@@ -688,10 +688,10 @@ void *sos_in::get_string( unsigned int &len, sos_header &head )
 	return ns;
 	}
 #else
-void *sos_in::get_string( unsigned int &, sos_header & ) { return 0; }
+void *sos_in::get_string( unsigned int & ) { return 0; }
 #endif
 
-void *sos_in::get_chars( unsigned int &len, sos_header &head )
+void *sos_in::get_chars( unsigned int &len )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) sos_alloc_memory(len);
