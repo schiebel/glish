@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 # $Header$
 
 SUBDIRS = sds editline glish npd
@@ -27,7 +28,9 @@ build.sds:
 build.editline:
 	@cd editline; make $(MFLAGS) install-all
 
-build.npd:
+build.npd: GLISH_NPD
+
+GLISH_NPD:
 	@cd npd; make $(MFLAGS) install-all
 
 build.glish:
