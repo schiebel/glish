@@ -15,7 +15,8 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 
 Rivetobj TkAgent::root = 0;
-unsigned int TkFrame::tl_cnt = 0;
+unsigned long TkFrame::tl_count = 0;
+unsigned long TkFrame::frame_count = 0;
 
 static IValue *ScrollToValue( Scrollbar_notify_data *data )
 	{
@@ -456,6 +457,28 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, parameter_list *args,
 	return ret;
 	}
 
+char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
+			      parameter_list *args, int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one-or-two index function";
+
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRSTR( start, event_name )
+	if ( args->length() > 1 )
+		{
+		EXPRSTR( end, event_name )
+		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ),
+					     a->IndexCheck( end ), 0);
+		EXPR_DONE( end )
+		}
+	else
+		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ), 0);
+	EXPR_DONE( start )
+	return ret;
+	}
+
 char *glishtk_strandidx(TkAgent *a, const char *cmd, parameter_list *args,
 				int is_request, int log )
 	{
@@ -652,6 +675,32 @@ char *glishtk_scrollbar_update(Rivetobj self, const char *cmd, parameter_list *a
 	return ret;
 	}
 
+char *glishtk_button_state(TkAgent *a, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "button state function";
+
+	int c = 0;
+	if ( args->length() >= 1 )
+		{
+		EXPRINT( i, event_name )
+		((TkButton*)a)->State( i ? 1 : 0 );
+		EXPR_DONE( i )
+		}
+
+	ret = ((TkButton*)a)->State( ) ? "T" : "F";
+	return ret;
+	}
+
+IValue *glishtk_strtobool( char *str )
+	{
+	if ( str && (*str == 'T' || *str == '1') )
+		return new IValue( glish_true );
+	else
+		return new IValue( glish_false );
+	}
+
 IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		{
 		char *val = 0;
@@ -754,7 +803,8 @@ TkAgent::~TkAgent( ) { }
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ), tag(0)
+		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ),
+		  tag(0), radio_id(0)
 	{
 	char *argv[13];
 
@@ -764,7 +814,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		return;
 		}
 
-	if ( tl_cnt++ )
+	++frame_count;
+
+	if ( tl_count++ )
 		{
 		int c = 2;
 		argv[0] = argv[1] = 0;
@@ -828,7 +880,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ), tag(0)
+		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
+		  tag(0), radio_id(0)
 	{
 	frame = frame_;
 
@@ -882,7 +935,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 )
+		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
+		  pseudo( 0 ), radio_id(0)
 	{
 	frame = 0;
 	tag = strdup(tag_);
@@ -964,7 +1018,7 @@ TkFrame::~TkFrame( )
 	UnMap();
 
 	if ( is_tl )
-		--tl_cnt;
+		--tl_count;
 
 	if ( pseudo )
 		rivet_destroy_window( pseudo );
@@ -1155,9 +1209,18 @@ const char **TkFrame::PackInstruction()
 	}
 
 
+TkButton::~TkButton( )
+	{
+	if ( frame )
+		frame->RemoveElement( this );
 
+	if ( value ) Unref(value);
 
-DEFINE_DTOR(TkButton)
+	UnMap();
+	}
+
+unsigned long TkButton::button_count = 0;
+static unsigned char dont_invoke_button = 0;
 
 int buttoncb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData unused2)
 	{
@@ -1165,22 +1228,42 @@ int buttoncb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData unus
 	return TCL_OK;
 	}
 
-TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr padx, charptr pady,
-		  int width, int height, charptr justify, charptr font, charptr relief,
-		  charptr borderwidth, charptr foreground, charptr background, int disabled )
-			: TkAgent( s )
+TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
+		    charptr padx, charptr pady, int width, int height, charptr justify,
+		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
+		    charptr background, int disabled, const IValue *val )
+			: value(0), TkAgent( s ), state(0)
 	{
+	type = 0;
 	frame = frame_;
-	char *argv[28];
+	char *argv[32];
+
+	id = ++button_count;
 
 	char width_[30];
 	char height_[30];
+	char var_name[256];
+	char val_name[256];
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
 
+	if ( ! strcmp(type_, "radio") ) type = 1;
+	else if ( ! strcmp(type_, "check") ) type = 2;
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
+
+	if ( type == 1 )
+		{
+		sprintf(var_name,"%s%x",type_,frame->Count());
+		argv[c++] = "-variable";
+		argv[c++] = var_name;
+		sprintf(val_name,"BVaLuE%x",Count());
+		argv[c++] = "-value";
+		argv[c++] = val_name;
+		}
+
 	argv[c++] = "-padx";
 	argv[c++] = (char*) padx;
 	argv[c++] = "-pady";
@@ -1193,6 +1276,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr padx, 
 	argv[c++] = (char*) justify;
 	argv[c++] = "-text";
 	argv[c++] = (char*) label;
+
 	if ( font[0] )
 		{
 		argv[c++] = "-font";
@@ -1211,11 +1295,25 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr padx, 
 	argv[c++] = "-command";
 	argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
 
-	self = rivet_create(ButtonClass, frame->Self(), c, argv);
+	switch ( type )
+		{
+		case 1:
+			self = rivet_create(RadioButtonClass, frame->Self(), c, argv);
+			break;
+		case 2:
+			self = rivet_create(CheckButtonClass, frame->Self(), c, argv);
+			break;
+		default:
+			self = rivet_create(ButtonClass, frame->Self(), c, argv);
+			break;
+		}
+
 	agent_ID = "<graphic:button>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkButton::TkButton");
+
+	value = val ? copy_value( val ) : 0;
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -1228,23 +1326,41 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr padx, 
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	procs.Insert("disabled", new TkProc("-state", "disabled", "normal", glishtk_onebinary));
+	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	}
 
 void TkButton::ButtonPressed( )
 	{
-	CreateEvent( "press", new IValue( glish_true ) );
+	if ( type == 1 )
+		frame->RadioID( Id() );
+	else if ( type == 2 )
+		state = state ? 0 : 1;
+
+	if ( dont_invoke_button == 0 )
+		{
+		IValue *v = value ? copy_value(value) : new IValue( glish_true );
+
+		attributeptr attr = v->ModAttributePtr();
+		attr->Insert( strdup("state"), type != 2 || state ? new IValue( glish_true ) :
+							    new IValue( glish_false ) ) ;
+
+		CreateEvent( "press", v );
+		}
+	else
+		dont_invoke_button = 0;
 	}
 
 TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
-	if ( args_val->length() != 14 )
-		return InvalidNumberOfArgs(14);
+	if ( args_val->length() != 16 )
+		return InvalidNumberOfArgs(16);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
 	SETSTR( label )
+	SETSTR( type )
 	SETDIM( padx )
 	SETDIM( pady )
 	SETINT( width )
@@ -1256,11 +1372,42 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( foreground )
 	SETSTR( background )
 	SETINT( disabled )
+	SETVAL( val, 1 )
 
-	ret =  new TkButton( s, (TkFrame*)parent->AgentVal(), label, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled );
+
+	ret =  new TkButton( s, (TkFrame*)parent->AgentVal(), label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
 
 	return ret;
-	}      
+	}
+
+unsigned char TkButton::State() const
+	{
+	unsigned char ret = 0;
+	if ( type == 1 )
+		ret = frame->RadioID() == Id();
+	else if ( type == 2 )
+		ret = state;
+	return ret;
+	}
+
+void TkButton::State(unsigned char s)
+	{
+	if ( type == 0 || State() && s || ! State() && ! s )
+		return;
+
+	if ( type == 1 && s == 0 )
+		{
+		char var_name[256];
+		sprintf(var_name,"radio%x",frame->Count());
+		Tcl_SetVar( self->interp, var_name, "", TCL_GLOBAL_ONLY );
+		frame->RadioID( 0 );
+		}
+	else
+		{
+		dont_invoke_button = 1;
+		rivet_va_cmd( self, "invoke", 0 );
+		}
+	}
 
 
 DEFINE_DTOR(TkScale)
@@ -1965,6 +2112,7 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_no2str));
 	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));
+	procs.Insert("select", new TkProc(this, "select", "set", glishtk_oneortwoidx2str));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));

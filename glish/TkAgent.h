@@ -175,10 +175,16 @@ class TkFrame : public TkAgent {
 	void AddElement( TkAgent *obj ) { elements.append(obj); }
 	void RemoveElement( TkAgent *obj );
 	void UnMap();
+
+	unsigned long Count() const { return frame_count; }
+
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkFrame();
 
 	const char **PackInstruction();
+
+	unsigned long RadioID() const { return radio_id; }
+	void RadioID( unsigned long id ) { radio_id = id; }
 
     protected:
 	char *side;
@@ -187,20 +193,36 @@ class TkFrame : public TkAgent {
 	char *expand;
 	char *tag;
   	tkagent_list elements;
-	static unsigned int tl_cnt;
+	static unsigned long tl_count;
+	static unsigned long frame_count;
 	char is_tl;
 	Rivetobj pseudo;
+
+	unsigned long radio_id;
 	};
 
 class TkButton : public TkAgent {
     public:
-	TkButton( Sequencer *, TkFrame *, charptr label, charptr padx, charptr pady,
-		  int width, int height, charptr justify, charptr font, charptr relief,
-		  charptr borderwidth, charptr foreground, charptr background, int disabled );
+	TkButton( Sequencer *, TkFrame *, charptr label, charptr type_, charptr padx,
+		  charptr pady, int width, int height, charptr justify, charptr font,
+		  charptr relief, charptr borderwidth, charptr foreground,
+		  charptr background, int disabled, const IValue *val );
+
+	unsigned long Count() const { return button_count; }
+	unsigned char State() const;
+	void State(unsigned char s);
+	unsigned long Id() const { return id; }
 
 	void ButtonPressed( );
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkButton();
+    protected:
+	static unsigned long button_count;
+	IValue *value;
+
+	unsigned char state;		// only used for check buttons
+	unsigned char type;
+	unsigned long id;
 	};
 
 class TkScale : public TkAgent {

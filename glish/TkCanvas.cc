@@ -247,11 +247,12 @@ IValue *glishtk_StrToInt( char *str )
 	return new IValue( i );
 	}
 
-char *glishtk_onedim_query(Rivetobj self, const char *cmd, parameter_list *args,
+char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, parameter_list *args,
 				int is_request, int log )
 	{
 	char *ret = 0;
 	char *event_name = "one dim function";
+	char buf[256];
 	if ( args->length() > 0 )
 		{
 		int c = 0;
@@ -259,8 +260,14 @@ char *glishtk_onedim_query(Rivetobj self, const char *cmd, parameter_list *args,
 		rivet_set( self, (char*) cmd, (char*) dim );
 		EXPR_DONE( dim )
 		}
-	ret = rivet_get(self, (char*) cmd);
-	return ret;
+
+	ret = rivet_va_func(self, (int (*)()) Tk_WinfoCmd, &cmd[1], rivet_path(self), 0);
+	int width = atoi(ret);
+	ret = rivet_va_cmd(self, "cget", "-borderwidth", 0);
+	int bdwidth = atoi(ret);
+	sprintf( buf, "%d", width - 2*bdwidth - 4 );
+	
+	return buf;
 	}
 
 char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
@@ -298,6 +305,7 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, para
 	ret = rivet_get( self, (char*) cmd );
 	return ret;
 	}
+
 
 char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
 				int is_request, int log )
@@ -779,8 +787,8 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("height", new TkProc("-height", glishtk_onedim_query, glishtk_StrToInt));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim_query, glishtk_StrToInt));
+	procs.Insert("height", new TkProc("-height", glishtk_heightwidth_query, glishtk_StrToInt));
+	procs.Insert("width", new TkProc("-width", glishtk_heightwidth_query, glishtk_StrToInt));
 	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));

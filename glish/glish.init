@@ -97,8 +97,8 @@ function frame ( parent=F, relief='flat',
 		 width=70, height=50, title='glish/tk' )
 	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, title )
 
-function button ( parent, text='button', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F )
-	create_graphic( 'button', parent, text, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled )
+function button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T )
+	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value )
 
 function scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
 		 relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
@@ -113,13 +113,13 @@ function scrollbar ( parent, orient='vertical', foreground='black', background='
 function label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
 	create_graphic( 'label', parent, text, justify, padx, pady, font, width, relief, borderwidth, foreground, background )
 
-function entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=T )
+function entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=F )
 	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection )
 
 function message ( parent, text='message', width=180, justify='left', font='', padx=4, pady=2, relief='flat', borderwidth=3, foreground='black', background='lightgrey' )
 	create_graphic( 'message', parent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background )
 
-function listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=T )
+function listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=F )
 	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection )
 
 function canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
