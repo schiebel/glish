@@ -518,6 +518,12 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 			missing_val->TakeValue( misx );
 			}
 
+		//
+		// Push on a NULL note so that when the function returns
+		// any await info that accumulates can be removed...
+		//
+		sequencer->PushNote( 0 );
+
 		if ( stack ) sequencer->PushFrames( stack );
 		sequencer->PushFrame( call_frame );
 
@@ -533,6 +539,12 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 
 		if ( stack )
 			sequencer->PopFrames( );
+
+		//
+		// Pop off down to the NULL we pushed on...
+		//
+		sequencer->PopNote( 1 );
+
 		}
 
 	else
