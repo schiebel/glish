@@ -1545,6 +1545,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			message->Report( "-vi          report each included file" );
 			message->Report( "-v[1-9]      set the verbosity level" );
 			message->Report( "-w           report each generated error string" );
+			message->Report( "-noaf        suppress auto-fail behavior (TEMPOARY FLAG)" );
 			message->Report( "<FILE>       execute <FILE> rather than running interactively" );
 			message->Report( "<ENV>=<VAL>  export <ENV> to the environment with value <VAL>" );
 			message->Report( "--           end arguments to Glish" );
