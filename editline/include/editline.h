@@ -5,7 +5,11 @@
 ** Copyright (c) 1992,1993 Simmule Turner and Rich Salz.  All rights reserved.
 ** Copyright (c) 1997 Associated Universities Inc.    All rights reserved.
 */
+#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
+#else
+#include "gcmem/alloc.h"
+#endif
 #include <stdio.h>
 #if	defined(HAVE_STDLIB_H)
 #include <stdlib.h>

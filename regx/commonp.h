@@ -17,7 +17,11 @@
 #include <ctype.h>
 #include <stdio.h>
 #include "regx/common.h"
+#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
+#else
+#include "gcmem/alloc.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
