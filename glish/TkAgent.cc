@@ -2166,8 +2166,8 @@ void TkFrame::RemoveElement( TkAgent *obj )
 
 void TkFrame::KillFrame( )
 	{
-	UnMap();
 	PostTkEvent( "killed", new IValue( glish_true ) );
+	UnMap();
 	}
 
 void TkFrame::ResizeEvent( )
