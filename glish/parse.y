@@ -270,7 +270,7 @@ statement:
 
 whenever: whenever_head TOK_DO statement
 			{
-			// handle values (from ConstExpr's) which must be
+			// handle values (from ConstExpr~s) which must be
 			// preserved along with this function
 			ivalue_list *gc_list = 0;
 			int len = gc_registry_offset->length() - 1;
@@ -279,7 +279,7 @@ whenever: whenever_head TOK_DO statement
 
 			if ( len == 0 && gc_registry->length() > 0 )
 				{
-				// we're the last function
+				// we~re the last function
 				gc_list = gc_registry;
 				gc_registry = new ivalue_list;
 				}
