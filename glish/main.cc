@@ -131,20 +131,28 @@ int main( int argc, char** argv )
 DEFINE_SIG_FWD(glish_sigsegv,"segmentation violation",SIGSEGV)
 DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS)
 DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL)
+#ifdef SIGEMT
 DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT)
+#endif
 DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE)
 DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP)
+#ifdef SIGSYS
 DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS)
+#endif
 
 static void install_terminate_handlers()
 	{
 	(void) install_signal_handler( SIGSEGV, glish_sigsegv );
 	(void) install_signal_handler( SIGBUS, glish_sigbus );
 	(void) install_signal_handler( SIGILL, glish_sigill );
+#ifdef SIGEMT
 	(void) install_signal_handler( SIGEMT, glish_sigemt );
+#endif
 	(void) install_signal_handler( SIGFPE, glish_sigfpe );
 	(void) install_signal_handler( SIGTRAP, glish_sigtrap );
+#ifdef SIGSYS
 	(void) install_signal_handler( SIGSYS, glish_sigsys );
+#endif
 	}
 
 
