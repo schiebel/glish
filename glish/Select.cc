@@ -195,6 +195,9 @@ void Selector::AddSelectee( Selectee* s )
 
 void Selector::DeleteSelectee( int selectee_fd )
 	{
+	if ( selectee_fd < 0 )
+		return;
+
 	if ( ! FD_ISSET( selectee_fd, r_fdset ) && ! FD_ISSET( selectee_fd, w_fdset ) )
 		gripe( "non-existent selectee in RemoveSelectee()" );
 

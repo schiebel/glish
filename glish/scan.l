@@ -225,12 +225,12 @@ return		statement_can_end = 1; return TOK_RETURN;
 request		{
 		if ( interactive && yyin == stdin )
 			{
-			warn->Report("'request' is deprecated (no longer needed)");
+			warn->Report("'request' is deprecated, leave out this keyword");
 			request_cnt = 1;
 			}
-		if ( ! request_cnt )
+		else if ( ! request_cnt )
 			{
-			warn->Report("'request' is deprecated (no longer needed)");
+			warn->Report("'request' is deprecated, leave out this keyword");
 			request_cnt = 1;
 			}
 		break;
@@ -238,12 +238,12 @@ request		{
 send		{
 		if ( interactive && yyin == stdin )
 			{
-			warn->Report("'send' is deprecated (no longer needed)");
+			warn->Report("'send' is deprecated, leave out this keyword");
 			send_cnt = 1;
 			}
-		if ( ! send_cnt )
+		else if ( ! send_cnt )
 			{
-			warn->Report("'send' is deprecated (no longer needed)");
+			warn->Report("'send' is deprecated, leave out this keyword");
 			send_cnt = 1;
 			}
 		break;
@@ -265,7 +265,7 @@ T		RETURN_CONSTANT( glish_true );
 InClUdE		BEGIN(INCL); break;
 include		return TOK_INCLUDE;
 
-"@pragma"	BEGIN(PRAGMA); break;
+"pragma"	BEGIN(PRAGMA); break;
 
 {ID}		{
 		statement_can_end = 1;
@@ -399,7 +399,7 @@ include		return TOK_INCLUDE;
 		}
 
 <PRAGMA_SHARED>\n {
-		error->Report( "\"@pragma multi\", type not found" );
+		error->Report( "\"pragma multi\", type not found" );
 		++line_num;
 		BEGIN(INITIAL);
 		break;
@@ -439,7 +439,7 @@ include		return TOK_INCLUDE;
 		}
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*		break; // comment
-<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,PRAGMA,ATTR>{WS}+	break; // eat whitespace
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,PRAGMA,PRAGMA_SHARED,ATTR>{WS}+	break; // eat whitespace
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
 		++line_num;
