@@ -12,13 +12,13 @@
 
 #define InvalidArg( num )						\
 	{								\
-	global_store->Error( "invalid type for argument " ## #num );	\
+	global_store->Error( "invalid type for argument " #num );	\
 	return;								\
 	}
 
 #define InvalidNumberOfArgs( num )					\
 	{								\
-	global_store->Error( "invalid number of arguments, expected " ## #num ); \
+	global_store->Error( "invalid number of arguments, expected " #num ); \
 	return;								\
 	}
 
