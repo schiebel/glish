@@ -660,7 +660,7 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	argv[c++] = "-maxcolors";
 	argv[c++] = (char *)maxcolors_str;
 	argv[c++] = "-share";
-	argv[c++] = cmap_share ? "true" : "false";
+	argv[c++] = (char*) (cmap_share ? "true" : "false");
 	argv[c++] = "-takefocus";
 	argv[c++] = "1";
 

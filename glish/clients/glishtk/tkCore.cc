@@ -610,7 +610,7 @@ char *glishtk_text_configfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, 
 			if ( val->Type() == TYPE_STRING )
 				argv[argc+1] = (char*)((val->StringPtr(0))[0]);
 			else if ( val->Type() == TYPE_BOOL )
-				argv[argc+1] = val->BoolVal() ? "true" : "false";
+				argv[argc+1] = (char*) (val->BoolVal() ? "true" : "false");
 			else
 				doit = 0;
 			
@@ -801,7 +801,7 @@ char *glishtk_button_state(TkProxy *a, const char *, Value *args )
 	if ( args->IsNumeric() && args->Length() > 0 )
 		((TkButton*)a)->State( args->IntVal() ? 1 : 0 );
 
-	ret = ((TkButton*)a)->State( ) ? "T" : "F";
+	ret = (char*) (((TkButton*)a)->State( ) ? "T" : "F");
 	return ret;
 	}
 
@@ -1747,7 +1747,7 @@ char *TkFrameP::SetIcon( Value *args )
 			}
 		}
 
-	return icon ? icon : "";
+	return (char*) (icon ? icon : "");
 	}
 
 char *TkFrameP::SetSide( Value *args )
@@ -2428,7 +2428,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
-	argv[c++] = disabled ? "disabled" : "normal";
+	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( hlcolor_ && *hlcolor_ )
@@ -2657,7 +2657,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	argv[c++] = "-background";
 	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
-	argv[c++] = disabled ? "disabled" : "normal";
+	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( hlcolor_ && *hlcolor_ )
@@ -3342,7 +3342,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
-	argv[c++] = disabled ? "disabled" : "normal";
+	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( font[0] )
@@ -3911,16 +3911,16 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
-	argv[c++] = disabled ? "disabled" : "normal";
+	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( ! show )
 		{
 		argv[c++] = "-show";
-		argv[c++] = show ? "true" : "false";
+		argv[c++] = (char*) (show ? "true" : "false");
 		}
 	argv[c++] = "-exportselection";
-	argv[c++] = exportselection ? "true" : "false";
+	argv[c++] = (char*) (exportselection ? "true" : "false");
 	if ( hlcolor_ && *hlcolor_ )
 		{
 		argv[c++] = "-highlightcolor";
@@ -4271,7 +4271,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background_;
 	argv[c++] = "-exportselection";
-	argv[c++] = exportselection ? "true" : "false";
+	argv[c++] = (char*) (exportselection ? "true" : "false");
 
 	if ( hlcolor_ && *hlcolor_ )
 		{

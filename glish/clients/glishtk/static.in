@@ -96,7 +96,7 @@ malloc.o: $(GLISH_SRC)/malloc.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 glishtk: $(OBJS) $(GLISH_LIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glishtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glishtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS) @EXTRA_LIBS@
 
 $(BINDIR_P)/glishtk: glishtk
 	$(INSTALL_PROGRAM) glishtk $(BINDIR_P)
