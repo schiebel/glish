@@ -596,7 +596,7 @@ recordptr copy_record_dict( recordptr rptr )
 	return new_record;
 	}
 
-void glish_copy_strings(void *tgt, void *src, unsigned int len)
+void glish_copy_strings(void *tgt, void *src, size_t len)
 	{
 	charptr *from = (charptr*)src;
 	charptr *to = (charptr*)tgt;
@@ -605,7 +605,7 @@ void glish_copy_strings(void *tgt, void *src, unsigned int len)
 	}
 
 #if ! defined(ENABLE_GC)
-void glish_delete_strings(void *src, unsigned int len)
+void glish_delete_strings(void *src, size_t len)
 	{
 	char **ary = (char**)src;
 	for ( unsigned int i=0; i < len; i++ )

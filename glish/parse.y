@@ -1057,7 +1057,6 @@ void clear_error()
 
 IValue *glish_parser( Stmt *&stmt )
 	{
-	int ret;
 	cur_stmt = stmt = null_stmt;
 
 #ifdef GGC
@@ -1074,7 +1073,7 @@ IValue *glish_parser( Stmt *&stmt )
 	if ( interactive( ) )
 		scope_depth = current_sequencer->ScopeDepth();
 
-	while ( ! (ret = yyparse()) )
+	while ( ! yyparse() )
 		{
 		if ( ! interactive( ) )
 			stmt = merge_stmts( stmt, cur_stmt );

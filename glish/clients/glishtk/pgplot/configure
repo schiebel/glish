@@ -2005,8 +2005,10 @@ fi
 
                 if test -z "$option_tcl_libraries"; then
 
-        # Extract the first word of "tclsh", so it can be a program name with args.
-set dummy tclsh; ac_word=$2
+        for ac_prog in tclsh tcl expect moat tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4
+do
+# Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
 if eval "test \"`echo '$''{'ac_cv_prog_TCLSH'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2018,7 +2020,7 @@ else
   for ac_dir in $PATH; do
     test -z "$ac_dir" && ac_dir=.
     if test -f $ac_dir/$ac_word; then
-      ac_cv_prog_TCLSH="tclsh"
+      ac_cv_prog_TCLSH="$ac_prog"
       break
     fi
   done
@@ -2032,14 +2034,17 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
+test -n "$TCLSH" && break
+done
+test -n "$TCLSH" || TCLSH="tclsh"
+
         if test -n "$TCLSH"; then
             echo $ac_n "checking for tcl version""... $ac_c" 1>&6
             tcl_ext=`echo 'puts stdout [info tclversion]' | $TCLSH`
             echo "$ac_t""$tcl_ext" 1>&6
             echo $ac_n "checking for tcl lib path""... $ac_c" 1>&6
-            tcl_path=`echo 'puts stdout [info library]' | tclsh | sed 's/\/[^\/]*$//'`
+            tcl_path=`echo 'puts stdout [info library]' | tclsh | sed 's/\/lib\/.*$/\/lib/'`
             echo "$ac_t""$tcl_path" 1>&6
-            tcl_base=`echo $tcl_path | sed 's/\/[^\/]*$//'`
         fi
 
     else
@@ -2047,83 +2052,8 @@ fi
         echo $ac_n "checking for tcl lib path""... $ac_c" 1>&6
         tcl_path="$option_tcl_libraries"
         echo "$ac_t""$tcl_path" 1>&6
-        tcl_base=`echo $tcl_path | sed 's/\/[^\/]*$//'`
 
     fi        
-
-    ##
-    ## Find includes
-    ##
-    echo $ac_n "checking for tcl include path""... $ac_c" 1>&6
-    if test -z "$option_tcl_includes"; then
-
-        if test -n "$tcl_base"; then
-            saved_CPPFLAGS="$CPPFLAGS"
-            CPPFLAGS="-I$tcl_base/include $CPPFLAGS"
-            cat > $conftest.$ac_ext <<EOF
-#line 2065 "configure"
-#include "$confdefs.h"
-#include <tcl.h>
-EOF
-ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2070: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
-ac_err=`grep -v '^ *+' $conftest.out`
-if test -z "$ac_err"; then
-  rm -rf $conftest*
-  
-                tcl_incl="-I$tcl_base/include"
-                tcl_inclp="$tcl_base/include"
-else
-  echo "$ac_err" >&5
-  rm -rf $conftest*
-  tcl_incl=""; tcl_inclp=""
-fi
-rm -f $conftest*
-            CPPFLAGS="$saved_CPPFLAGS"
-        else
-            cat > $conftest.$ac_ext <<EOF
-#line 2086 "configure"
-#include "$confdefs.h"
-#include <tcl.h>
-EOF
-ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2091: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
-ac_err=`grep -v '^ *+' $conftest.out`
-if test -z "$ac_err"; then
-  rm -rf $conftest*
-  tcl_inclp="no extra path needed"
-else
-  echo "$ac_err" >&5
-  rm -rf $conftest*
-  tcl_inclp=""
-fi
-rm -f $conftest*
-        fi
-
-        if test -z "$tcl_inclp"; then
-            dirs="/usr/include /usr/local/include /opt/local/include /usr/local/tcl/include /opt/local/tcl/include /usr/unsupported/include /usr/unsupported/tcl/include /usr/sww/include /usr/sww/tcl/include /loc/include /loc/tcl/include"
-            for i in $dirs ; do
-                if test -r $i/tcl.h; then
-                    tcl_incl="-I$i"
-                    tcl_inclp="$i"
-                    break
-                fi
-            done
-        fi
-
-        if test -z "$tcl_inclp"; then
-            echo "$ac_t""couldn't find it" 1>&6
-        else
-            echo "$ac_t""$tcl_inclp" 1>&6
-        fi
-
-    else
-
-        tcl_incl="-I$option_tcl_includes"
-	tcl_inclp="$option_tcl_includes"
-        echo "$ac_t""$tcl_inclp" 1>&6
-
-    fi
 
     ##
     ## Find libraries, first try the path we got from tclsh (or command line flag)
@@ -2142,7 +2072,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ltcl$tcle $dl_lib $LIBS"
 cat > $conftest.$ac_ext <<EOF
-#line 2146 "configure"
+#line 2076 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -2150,7 +2080,7 @@ int t() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:2154: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:2084: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf $conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -2175,7 +2105,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ltk$ext -ltcl$tcle $XLIBSW $dl_lib $LIBS"
 cat > $conftest.$ac_ext <<EOF
-#line 2179 "configure"
+#line 2109 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -2183,7 +2113,7 @@ int t() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:2187: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:2117: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf $conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -2206,7 +2136,7 @@ if eval "test \"`echo '$''{'ac_cv_func_Tcl_GetStringResult'+set}'`\" = set"; the
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2210 "configure"
+#line 2140 "configure"
 #include "$confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char Tcl_GetStringResult(); below.  */
@@ -2230,7 +2160,7 @@ Tcl_GetStringResult();
 
 ; return 0; }
 EOF
-if { (eval echo configure:2234: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:2164: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf $conftest*
   eval "ac_cv_func_Tcl_GetStringResult=yes"
 else
@@ -2294,7 +2224,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ltk$ext -ltcl$tcle $XLIBSW $dl_lib $LIBS"
 cat > $conftest.$ac_ext <<EOF
-#line 2298 "configure"
+#line 2228 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -2302,7 +2232,7 @@ int t() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:2306: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:2236: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf $conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -2324,7 +2254,7 @@ if eval "test \"`echo '$''{'ac_cv_func_Tcl_GetStringResult'+set}'`\" = set"; the
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2328 "configure"
+#line 2258 "configure"
 #include "$confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char Tcl_GetStringResult(); below.  */
@@ -2348,7 +2278,7 @@ Tcl_GetStringResult();
 
 ; return 0; }
 EOF
-if { (eval echo configure:2352: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:2282: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf $conftest*
   eval "ac_cv_func_Tcl_GetStringResult=yes"
 else
@@ -2388,7 +2318,84 @@ fi
             echo "$ac_t""couldn't find it" 1>&6
         else
             echo "$ac_t""$tcl_library" 1>&6
+	    tcl_path=$tcl_library
         fi
+    fi
+
+    ##
+    ## Find includes
+    ##
+    tcl_base=`echo $tcl_path | sed 's/\/lib$//'`
+
+    echo $ac_n "checking for tcl include path""... $ac_c" 1>&6
+    if test -z "$option_tcl_includes"; then
+
+        if test -n "$tcl_base"; then
+            saved_CPPFLAGS="$CPPFLAGS"
+            CPPFLAGS="-I$tcl_base/include $CPPFLAGS"
+            cat > $conftest.$ac_ext <<EOF
+#line 2338 "configure"
+#include "$confdefs.h"
+#include <tcl.h>
+EOF
+ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
+{ (eval echo configure:2343: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+ac_err=`grep -v '^ *+' $conftest.out`
+if test -z "$ac_err"; then
+  rm -rf $conftest*
+  
+                tcl_incl="-I$tcl_base/include"
+                tcl_inclp="$tcl_base/include"
+else
+  echo "$ac_err" >&5
+  rm -rf $conftest*
+  tcl_incl=""; tcl_inclp=""
+fi
+rm -f $conftest*
+            CPPFLAGS="$saved_CPPFLAGS"
+        else
+            cat > $conftest.$ac_ext <<EOF
+#line 2359 "configure"
+#include "$confdefs.h"
+#include <tcl.h>
+EOF
+ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
+{ (eval echo configure:2364: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+ac_err=`grep -v '^ *+' $conftest.out`
+if test -z "$ac_err"; then
+  rm -rf $conftest*
+  tcl_inclp="no extra path needed"
+else
+  echo "$ac_err" >&5
+  rm -rf $conftest*
+  tcl_inclp=""
+fi
+rm -f $conftest*
+        fi
+
+        if test -z "$tcl_inclp"; then
+            dirs="/usr/include /usr/local/include /opt/local/include /usr/local/tcl/include /opt/local/tcl/include /usr/unsupported/include /usr/unsupported/tcl/include /usr/sww/include /usr/sww/tcl/include /loc/include /loc/tcl/include"
+            for i in $dirs ; do
+                if test -r $i/tcl.h; then
+                    tcl_incl="-I$i"
+                    tcl_inclp="$i"
+                    break
+                fi
+            done
+        fi
+
+        if test -z "$tcl_inclp"; then
+            echo "$ac_t""couldn't find it" 1>&6
+        else
+            echo "$ac_t""$tcl_inclp" 1>&6
+        fi
+
+    else
+
+        tcl_incl="-I$option_tcl_includes"
+	tcl_inclp="$option_tcl_includes"
+        echo "$ac_t""$tcl_inclp" 1>&6
+
     fi
 
     if test -z "$tcl_lib"; then
@@ -2449,12 +2456,12 @@ ac_compile='${CXX-g++} -c $CXXFLAGS $CPPFLAGS $conftest.$ac_ext 1>&5'
 ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS 1>&5'
   CXXCPP="${CXX-g++} -E"
   cat > $conftest.$ac_ext <<EOF
-#line 2453 "configure"
+#line 2460 "configure"
 #include "$confdefs.h"
 #include <stdlib.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2458: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2465: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   :
@@ -2473,7 +2480,7 @@ echo "$ac_t""$CXXCPP" 1>&6
 
 echo $ac_n "checking C++ library path""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2477 "configure"
+#line 2484 "configure"
 #include "$confdefs.h"
 #include <iostream.h>
 EOF
@@ -2499,7 +2506,7 @@ fi
 
 echo $ac_n "checking Are we using the KAI compiler""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2503 "configure"
+#line 2510 "configure"
 #include "$confdefs.h"
 #ifdef __KCC
   yes
@@ -2520,7 +2527,7 @@ echo "$ac_t""$KAI" 1>&6
 
 echo $ac_n "checking 'for' scope""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
-#line 2524 "configure"
+#line 2531 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -2531,7 +2538,7 @@ for ( int i=0; i < 1; i++ ) { ; }
 
 ; return 0; }
 EOF
-if { (eval echo configure:2535: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:2542: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf $conftest*
   echo "$ac_t""local" 1>&6; cat >> $confdefs.h <<\EOF
 #define LOOPDECL int
@@ -2682,6 +2689,60 @@ EOF
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	MAKE_LIB="/bin/ar cru"
+
+	if test $ac_cv_prog_gcc != yes; then
+	    echo $ac_n "checking application binary interface""... $ac_c" 1>&6
+if eval "test \"`echo '$''{'_cv_sgiabi'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+SAVED_CFLAGS="$CFLAGS"
+CFLAGS="-show $CFLAGS"
+cat > $conftest.$ac_ext <<EOF
+#line 2704 "configure"
+int main() { return 0; }
+EOF
+if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
+  egrep "\-o32|\-n32|\-64" 2>&5 > $conftest.egp; then
+  :
+fi
+tmp_outv=`cat $conftest.egp`
+rm -f $conftest*
+
+CFLAGS="$SAVED_CFLAGS"
+_cv_sgiabi=`echo $tmp_outv | tail -1 | sed -e 's/^.*\(-[no]32\).*$/\1/' -e 's/^.*\(-64\).*$/\1/'`
+if test "$_cv_sgiabi" != "-o32" -a "$_cv_sgiabi" != "-n32" -a "$_cv_sgiabi" != "-64"; then
+    _cv_sgiabi=""
+fi
+fi
+
+echo "$ac_t""$_cv_sgiabi" 1>&6
+	
+	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	fi
+
+	if test -n "$cxx_library_path"; then
+	    echo $ac_n "checking C++ library path (again)""... $ac_c" 1>&6
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    echo "$ac_t""$cxx_library_path" 1>&6
+	fi
+
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
@@ -2714,37 +2775,6 @@ EOF
         fi
     fi
 
-
-	if test $ac_cv_prog_gcc != yes; then
-	    echo $ac_n "checking application binary interface""... $ac_c" 1>&6
-if eval "test \"`echo '$''{'_cv_sgiabi'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  
-SAVED_CFLAGS="$CFLAGS"
-CFLAGS="-show $CFLAGS"
-cat > $conftest.$ac_ext <<EOF
-#line 2728 "configure"
-int main() { return 0; }
-EOF
-if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
-  egrep "\-o32|\-n32|\-64" 2>&5 > $conftest.egp; then
-  :
-fi
-tmp_outv=`cat $conftest.egp`
-rm -f $conftest*
-
-CFLAGS="$SAVED_CFLAGS"
-_cv_sgiabi=`echo $tmp_outv | tail -1 | sed -e 's/^.*\(-[no]32\).*$/\1/' -e 's/^.*\(-64\).*$/\1/'`
-if test "$_cv_sgiabi" != "-o32" -a "$_cv_sgiabi" != "-n32" -a "$_cv_sgiabi" != "-64"; then
-    _cv_sgiabi=""
-fi
-fi
-
-echo "$ac_t""$_cv_sgiabi" 1>&6
-	
-	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
-	fi
 	;;
     irix6.*)
 	SLIB_CFLAGS=""
@@ -2753,38 +2783,7 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
-	fi
-
-	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
-        
-    if test -n "$tcl_library"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-rpath $tcl_library"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$tcl_library"
-        fi
-    fi
-
-        
-    if test -n "$x_libraries"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-rpath $x_libraries"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$x_libraries"
-        fi
-    fi
-
-        
-    if test -n "$PGPLOTLINKSEARCH"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-rpath $PGPLOTLINKSEARCH"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$PGPLOTLINKSEARCH"
-        fi
-    fi
-
+	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
 	    echo $ac_n "checking application binary interface""... $ac_c" 1>&6
@@ -2795,7 +2794,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 2799 "configure"
+#line 2798 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -2832,6 +2831,60 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 		    fi;
 	    esac
 	fi
+
+	if test -n "$cxx_library_path"; then
+	    echo $ac_n "checking C++ library path (again)""... $ac_c" 1>&6
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    echo "$ac_t""$cxx_library_path" 1>&6
+	fi
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+        
+    if test -n "$tcl_library"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-rpath $tcl_library"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$tcl_library"
+        fi
+    fi
+
+        
+    if test -n "$x_libraries"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-rpath $x_libraries"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$x_libraries"
+        fi
+    fi
+
+        
+    if test -n "$PGPLOTLINKSEARCH"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-rpath $PGPLOTLINKSEARCH"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$PGPLOTLINKSEARCH"
+        fi
+    fi
+
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
@@ -2848,12 +2901,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2852 "configure"
+#line 2905 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2857: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2910: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -2940,12 +2993,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 2944 "configure"
+#line 2997 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:2949: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3002: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3249,7 +3302,9 @@ echo $ac_n "checking for shared loader""... $ac_c" 1>&6
 echo "$ac_t""$SLIB_LD" 1>&6
 
 MAKE_SLIB="$SLIB_LD -o"
-MAKE_LIB="ar cru"
+if test -z "$MAKE_LIB"; then
+    MAKE_LIB="ar cru"
+fi
 
 if test -z "$TK_CXX_RPATH"; then
     TK_CXX_RPATH="$TK_LD_RPATH"
@@ -3290,7 +3345,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3294 "configure"
+#line 3349 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3298,7 +3353,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3302: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3357: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3321,7 +3376,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3325 "configure"
+#line 3380 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3329,7 +3384,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3333: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3388: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*

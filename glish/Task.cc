@@ -500,9 +500,9 @@ void Task::Exec( const char** argv )
 void Task::SetActivity( State is_active )
 	{
 	active = is_active;
-	CreateEvent( "active", new IValue( is_active != DONE ), 0, 1 );
+	CreateEvent( "active", new IValue( is_active != FINISHED ), 0, 1 );
 
-	if ( is_active == DONE )
+	if ( is_active == FINISHED )
 		CloseChannel();
 	}
 

@@ -28,7 +28,7 @@ RCSID("@(#) $Id$")
 
 const char *glish_charptrdummy = 0;
 
-void copy_agents( void *to_, void *from_, unsigned int len )
+void copy_agents( void *to_, void *from_, size_t len )
 	{
 	agentptr *to = (agentptr*) to_;
 	agentptr *from = (agentptr*) from_;
@@ -36,7 +36,7 @@ void copy_agents( void *to_, void *from_, unsigned int len )
 	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_agents( void *ary_, unsigned int len )
+void delete_agents( void *ary_, size_t len )
 	{
 	agentptr *ary = (agentptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
@@ -44,7 +44,7 @@ void delete_agents( void *ary_, unsigned int len )
 			Unref( ary[i] );
 	}
 
-void copy_funcs( void *to_, void *from_, unsigned int len )
+void copy_funcs( void *to_, void *from_, size_t len )
 	{
 	funcptr *to = (funcptr*) to_;
 	funcptr *from = (funcptr*) from_;
@@ -52,14 +52,14 @@ void copy_funcs( void *to_, void *from_, unsigned int len )
 	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_funcs( void *ary_, unsigned int len )
+void delete_funcs( void *ary_, size_t len )
 	{
 	funcptr *ary = (funcptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
 		Unref(ary[i]);
 	}
 
-void copy_regexs( void *to_, void *from_, unsigned int len )
+void copy_regexs( void *to_, void *from_, size_t len )
 	{
 	regexptr *to = (regexptr*) to_;
 	regexptr *from = (regexptr*) from_;
@@ -67,14 +67,14 @@ void copy_regexs( void *to_, void *from_, unsigned int len )
 	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_regexs( void *ary_, unsigned int len )
+void delete_regexs( void *ary_, size_t len )
 	{
 	regexptr *ary = (regexptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
 		Unref(ary[i]);
 	}
 
-void copy_files( void *to_, void *from_, unsigned int len )
+void copy_files( void *to_, void *from_, size_t len )
 	{
 	fileptr *to = (fileptr*) to_;
 	fileptr *from = (fileptr*) from_;
@@ -82,7 +82,7 @@ void copy_files( void *to_, void *from_, unsigned int len )
 	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
-void delete_files( void *ary_, unsigned int len )
+void delete_files( void *ary_, size_t len )
 	{
 	fileptr *ary = (fileptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)

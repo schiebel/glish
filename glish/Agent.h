@@ -204,8 +204,8 @@ class UserAgent : public Agent {
 	int IsSubsequence( ) const { return is_subsequence; }
 
 	int ReflectEvents( ) const { return reflect_events; }
-	int SetReflect( ) { reflect_events = 1; }
-	int ClearReflect( ) { reflect_events = 0; }
+	void SetReflect( ) { reflect_events = 1; }
+	void ClearReflect( ) { reflect_events = 0; }
 
 	IValue *AwaitReply( const char *event_name );
 

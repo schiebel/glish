@@ -627,15 +627,14 @@ if test -z "$NO_TK"; then
     dnl##
     if test -z "$option_tcl_libraries"; then
 
-        AC_CHECK_PROG(TCLSH,tclsh,tclsh)
+        AC_CHECK_PROGS(TCLSH,tclsh tcl expect moat tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4,tclsh)
         if test -n "$TCLSH"; then
             AC_MSG_CHECKING(for tcl version)
             tcl_ext=`echo 'puts stdout [[info tclversion]]' | $TCLSH`
             AC_MSG_RESULT($tcl_ext)
             AC_MSG_CHECKING(for tcl lib path)
-            tcl_path=`echo 'puts stdout [[info library]]' | tclsh | sed ['s/\/[^\/]*$//']`
+            tcl_path=`echo 'puts stdout [[info library]]' | tclsh | sed ['s/\/lib\/.*$/\/lib/']`
             AC_MSG_RESULT($tcl_path)
-            tcl_base=`echo $tcl_path | sed ['s/\/[^\/]*$//']`
         fi
 
     else
@@ -643,52 +642,7 @@ if test -z "$NO_TK"; then
         AC_MSG_CHECKING(for tcl lib path)
         tcl_path="$option_tcl_libraries"
         AC_MSG_RESULT($tcl_path)
-        tcl_base=`echo $tcl_path | sed ['s/\/[^\/]*$//']`
-
     fi        
-
-    ##
-    ## Find includes
-    ##
-    AC_MSG_CHECKING(for tcl include path)
-    if test -z "$option_tcl_includes"; then
-
-        if test -n "$tcl_base"; then
-            saved_CPPFLAGS="$CPPFLAGS"
-            CPPFLAGS="-I$tcl_base/include $CPPFLAGS"
-            AC_TRY_CPP([#include <tcl.h>],[
-                tcl_incl="-I$tcl_base/include"
-                tcl_inclp="$tcl_base/include"],
-            tcl_incl=""; tcl_inclp="")
-            CPPFLAGS="$saved_CPPFLAGS"
-        else
-            AC_TRY_CPP([#include <tcl.h>],tcl_inclp="no extra path needed",tcl_inclp="")
-        fi
-
-        if test -z "$tcl_inclp"; then
-            dirs="/usr/include /usr/local/include /opt/local/include /usr/local/tcl/include /opt/local/tcl/include /usr/unsupported/include /usr/unsupported/tcl/include /usr/sww/include /usr/sww/tcl/include /loc/include /loc/tcl/include"
-            for i in $dirs ; do
-                if test -r $i/tcl.h; then
-                    tcl_incl="-I$i"
-                    tcl_inclp="$i"
-                    break
-                fi
-            done
-        fi
-
-        if test -z "$tcl_inclp"; then
-            AC_MSG_RESULT(couldn't find it)
-        else
-            AC_MSG_RESULT($tcl_inclp)
-        fi
-
-    else
-
-        tcl_incl="-I$option_tcl_includes"
-	tcl_inclp="$option_tcl_includes"
-        AC_MSG_RESULT($tcl_inclp)
-
-    fi
 
     ##
     ## Find libraries, first try the path we got from tclsh (or command line flag)
@@ -759,7 +713,54 @@ if test -z "$NO_TK"; then
             AC_MSG_RESULT(couldn't find it)
         else
             AC_MSG_RESULT($tcl_library)
+	    tcl_path=$tcl_library
         fi
+
+    fi
+
+    ##
+    ## Find includes
+    ##
+    tcl_base=`echo $tcl_path | sed ['s/\/lib$//']`
+
+    AC_MSG_CHECKING(for tcl include path)
+    if test -z "$option_tcl_includes"; then
+
+        if test -n "$tcl_base"; then
+            saved_CPPFLAGS="$CPPFLAGS"
+            CPPFLAGS="-I$tcl_base/include $CPPFLAGS"
+            AC_TRY_CPP([#include <tcl.h>],[
+                tcl_incl="-I$tcl_base/include"
+                tcl_inclp="$tcl_base/include"],
+            tcl_incl=""; tcl_inclp="")
+            CPPFLAGS="$saved_CPPFLAGS"
+        else
+            AC_TRY_CPP([#include <tcl.h>],tcl_inclp="no extra path needed",tcl_inclp="")
+        fi
+
+        if test -z "$tcl_inclp"; then
+            dirs="/usr/include /usr/local/include /opt/local/include /usr/local/tcl/include /opt/local/tcl/include /usr/unsupported/include /usr/unsupported/tcl/include /usr/sww/include /usr/sww/tcl/include /loc/include /loc/tcl/include"
+            for i in $dirs ; do
+                if test -r $i/tcl.h; then
+                    tcl_incl="-I$i"
+                    tcl_inclp="$i"
+                    break
+                fi
+            done
+        fi
+
+        if test -z "$tcl_inclp"; then
+            AC_MSG_RESULT(couldn't find it)
+        else
+            AC_MSG_RESULT($tcl_inclp)
+        fi
+
+    else
+
+        tcl_incl="-I$option_tcl_includes"
+	tcl_inclp="$option_tcl_includes"
+        AC_MSG_RESULT($tcl_inclp)
+
     fi
 
     if test -z "$tcl_lib"; then
@@ -1089,6 +1090,34 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	MAKE_LIB="/bin/ar cru"
+
+	if test $ac_cv_prog_gcc != yes; then
+	    SGI_ABI	
+	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	fi
+
+	if test -n "$cxx_library_path"; then
+	    AC_MSG_CHECKING([C++ library path (again)])
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    AC_MSG_RESULT($cxx_library_path)
+	fi
+
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
@@ -1098,10 +1127,6 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
-	if test $ac_cv_prog_gcc != yes; then
-	    SGI_ABI	
-	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
-	fi
 	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix6.*)
@@ -1111,14 +1136,7 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
-	fi
-
-	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
-        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
-        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
-        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -1140,6 +1158,37 @@ case $host_os in
 		    fi;
 	    esac
 	fi
+
+	if test -n "$cxx_library_path"; then
+	    AC_MSG_CHECKING([C++ library path (again)])
+	    case $_cv_sgiabi in
+		-n32)
+		    if test -d "${cxx_library_path}32"; then
+			cxx_library_path="${cxx_library_path}32"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+		-64)
+		    if test -d "${cxx_library_path}64"; then
+			cxx_library_path="${cxx_library_path}64"
+			cxx_lpath="-L$cxx_library_path"
+			cxx_rpath=":$cxx_library_path"
+		    fi
+		    ;;
+	    esac
+	    AC_MSG_RESULT($cxx_library_path)
+	fi
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
 	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     linux*)
@@ -1437,7 +1486,9 @@ dnl##
 dnl## Setup the command to create the libraries
 dnl##
 MAKE_SLIB="$SLIB_LD -o"
-MAKE_LIB="ar cru"
+if test -z "$MAKE_LIB"; then
+    MAKE_LIB="ar cru"
+fi
 
 dnl##
 dnl## These will typically be the same

@@ -39,7 +39,7 @@ class TaskAttr GC_FINAL_CLASS {
 
 class Task : public Agent {
     public:
-	enum State { INITIAL, ACTIVE, DONE };
+	enum State { INITIAL, ACTIVE, FINISHED };
 	Task( TaskAttr* task_attrs, Sequencer* s );
 	~Task();
 
@@ -57,7 +57,7 @@ class Task : public Agent {
 	// Exec()->Active(), which is true if the executable has
 	// be fired up and hasn't terminated yet
 	int Active() const		{ return active == ACTIVE; }
-	int Done() const		{ return active == DONE; }
+	int Finished() const		{ return active == FINISHED; }
 
 	// Bundling of events is done with this first SendEvent() to
 	// avoid double bundling of events, i.e. in ProxyTask and Task.
@@ -75,7 +75,7 @@ class Task : public Agent {
 	int FlushEvents( );
 
 	void SetActive()	{ SetActivity( ACTIVE ); }
-	void SetDone()		{ SetActivity( DONE );
+	void SetFinished()	{ SetActivity( FINISHED );
 				  if ( executable ) executable->DoneReceived(); }
 
 	void SetChannel( Channel* c, Selector* s );

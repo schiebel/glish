@@ -20,17 +20,17 @@ extern recordptr copy_record_dict( recordptr );
 extern recordptr create_record_dict();
 void delete_record( recordptr r );
 
-typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
-typedef void (*KernelZeroFunc)( void *, unsigned int len );
-typedef void (*KernelDeleteFunc)( void *, unsigned int len );
-typedef void *(*KernelAllocateFunc)( unsigned int len );
-typedef void *(*KernelReallocateFunc)( void *, unsigned int len );
+typedef void (*KernelCopyFunc)( void *, void *, size_t len );
+typedef void (*KernelZeroFunc)( void *, size_t len );
+typedef void (*KernelDeleteFunc)( void *, size_t len );
+typedef void *(*KernelAllocateFunc)( size_t len );
+typedef void *(*KernelReallocateFunc)( void *, size_t len );
 
 typedef unsigned short vkmode_t;
 
-extern void glish_copy_strings( void *, void *, unsigned int len );
+extern void glish_copy_strings( void *, void *, size_t len );
 #if ! defined(ENABLE_GC)
-extern void glish_delete_strings( void *, unsigned int len );
+extern void glish_delete_strings( void *, size_t len );
 #else
 #define glish_delete_strings 0
 #endif
