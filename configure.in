@@ -1091,6 +1091,12 @@ case $host_os in
 		DL_LIBS="-ldld"
 		LD_FLAGS=""])
 	fi
+	dnl##
+	dnl## After problems with shared libraries/objects and undefined
+	dnl## symbols (stat and lstat), -lc was added and seems to fix
+	dnl## the problem.
+	dnl##
+	DL_LIBS="$DL_LIBS -lc"
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
 	fi
