@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/resource.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifdef HAVE_X11_FD_H
 #include <X11/fd.h>
@@ -15,7 +17,6 @@
 
 #ifdef SOLARIS
 #include <sys/time.h>
-#include <string.h>
 extern "C" int gettimeofday( struct timeval *, struct timezone * );
 #endif
 
@@ -90,7 +91,11 @@ SelectTimer::~SelectTimer()
 
 void SelectTimer::Init( struct timeval* delta, struct timeval* interval )
 	{
+#ifdef __CLCC__
+	if ( gettimeofday( &exp_t ) < 0 )
+#else
 	if ( gettimeofday( &exp_t, (struct timezone *) 0 ) < 0 )
+#endif
 		gripe( "gettimeofday failed" );
 
 	increment_time( exp_t, *delta );
@@ -221,7 +226,11 @@ int Selector::DoSelection()
 			gripe( "internal consistency problem" );
 
 		struct timeval t;
+#ifdef __CLCC__
+		if ( gettimeofday( &t ) < 0 )
+#else
 		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+#endif
 			gripe( "gettimeofday failed" );
 
 		timeout = &timeout_buf;

@@ -66,7 +66,7 @@ glishd: glishd.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glishd glishd.o $(LIBS)
 $(ISTKBIN)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(ISTKBIN)
-	strip $(ISTKBIN)/glishd
+#	strip $(ISTKBIN)/glishd
 
 echo_client.o: $(SRC)/echo_client.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/echo_client.cc 
@@ -75,7 +75,7 @@ echo_client: echo_client.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o echo_client echo_client.o $(LIBS)
 $(ISTKBIN)/echo_client: echo_client
 	$(INSTALL_PROGRAM) echo_client $(ISTKBIN)
-	strip $(ISTKBIN)/echo_client
+#	strip $(ISTKBIN)/echo_client
 
 shell_client.o: $(SRC)/shell_client.cc $(GLISH_SRC)/include/Glish/Client.h \
 		$(GLISH_SRC)/Channel.h
@@ -85,7 +85,7 @@ shell_client: shell_client.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o shell_client shell_client.o $(LIBS)
 $(ISTKBIN)/shell_client: shell_client
 	$(INSTALL_PROGRAM) shell_client $(ISTKBIN)
-	strip $(ISTKBIN)/shell_client
+#	strip $(ISTKBIN)/shell_client
 
 tell_glishd.o: $(SRC)/tell_glishd.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -I$(ISTKPLACE)/include -c $(SRC)/tell_glishd.cc 
@@ -94,7 +94,7 @@ tell_glishd: tell_glishd.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o tell_glishd tell_glishd.o $(LIBS)
 $(ISTKBIN)/tell_glishd: tell_glishd
 	$(INSTALL_PROGRAM) tell_glishd $(ISTKBIN)
-	strip $(ISTKBIN)/tell_glishd
+#	strip $(ISTKBIN)/tell_glishd
 
 test_client.o: $(SRC)/test_client.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/test_client.cc 
@@ -103,7 +103,7 @@ test_client: test_client.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o test_client test_client.o $(LIBS)
 $(ISTKBIN)/test_client: test_client
 	$(INSTALL_PROGRAM) test_client $(ISTKBIN)
-	strip $(ISTKBIN)/test_client
+#	strip $(ISTKBIN)/test_client
 
 timer.o: $(SRC)/timer.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/timer.cc 
@@ -112,7 +112,7 @@ timer: timer.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o timer timer.o $(LIBS)
 $(ISTKBIN)/timer: timer
 	$(INSTALL_PROGRAM) timer $(ISTKBIN)
-	strip $(ISTKBIN)/timer
+#	strip $(ISTKBIN)/timer
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

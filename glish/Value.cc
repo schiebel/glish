@@ -399,8 +399,9 @@ void Value::DeleteValue()
 		else if ( storage != PRESERVE_ARRAY )
 			delete values;
 
-		DeleteAttributes();
 		}
+
+	DeleteAttributes();
 	}
 
 void Value::DeleteAttributes()
@@ -2989,6 +2990,7 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 	if ( shape_len != args_len )
 		{
 		error->Report( "invalid number of indexes for:", this );
+		Unref(value);
 		return;
 		}
 
@@ -3012,6 +3014,7 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 						"is not numeric");
 
 				SUBOP_CLEANUP_1
+				Unref(value);
 				return;
 				}
 
@@ -3026,6 +3029,7 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 					error->Report( "index #", i+1, "into",
 						this, "is out of range");
 					SUBOP_CLEANUP_1
+					Unref(value);
 					return;
 					}
 
@@ -3051,6 +3055,7 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 		{
 		error->Report( "\"::shape\"/length mismatch" );
 		SUBOP_CLEANUP_1
+		Unref(value);
 		return;
 		}
 	
@@ -3093,6 +3098,7 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 		{							\
 		error->Report("index ",offset,				\
 			" out of range. Sub-vector reference may be invalid" );\
+		Unref(value);						\
 		return;							\
 		}
 
@@ -3126,7 +3132,7 @@ ASSIGNELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 				fatal->Report(
 					"bad type in Value::AssignElements" );
 			}
-
+		Unref(value);
 		return;
 		}
 
@@ -3179,6 +3185,7 @@ ASSIGNELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 					error->Report( "index #", i+1, "into",
 						this, "is out of range.");
 
+				Unref(value);
 				SUBOP_ABORT(i,)
 				}
 			}
@@ -3249,6 +3256,7 @@ ASSIGNELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,s
 		delete len;						\
 		SUBOP_CLEANUP_2(shape_len)				\
 		error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
+		Unref(value);						\
 		return;							\
 		}
 
@@ -3283,6 +3291,7 @@ ASSIGNELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
 		}
 
 	SUBOP_CLEANUP_2(shape_len)
+	Unref(value);
 	return;
 	}
 
