@@ -772,26 +772,26 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 		switch ( element->Type() )
 			{
 #define REPBUILTIN_ACTION_A(tag,type,accessor,copy_func)			\
-			case tag:					\
-				{					\
-				type* vec = new type[veclen];		\
-				type* elm = element->accessor;			\
-				for ( i=0; i < times_len; ++i )		\
-					for ( int j=0; j < times_vec[i]; ++j )\
+			case tag:						\
+				{						\
+				type* vec = new type[veclen];			\
+				type* elm = element->accessor(0);		\
+				for ( i=0; i < times_len; ++i )			\
+					for ( int j=0; j < times_vec[i]; ++j )	\
 					  vec[off++] = copy_func( elm[i] );	\
 				ret = new IValue( vec, veclen );		\
-				}					\
+				}						\
 				break;
 
-		REPBUILTIN_ACTION_A(TYPE_BOOL,glish_bool,BoolPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_BYTE,byte,BytePtr(),)
-		REPBUILTIN_ACTION_A(TYPE_SHORT,short,ShortPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_INT,int,IntPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_FLOAT,float,FloatPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_DOUBLE,double,DoublePtr(),)
-		REPBUILTIN_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),)
-		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr(),strdup)
+		REPBUILTIN_ACTION_A(TYPE_BOOL,glish_bool,BoolPtr,)
+		REPBUILTIN_ACTION_A(TYPE_BYTE,byte,BytePtr,)
+		REPBUILTIN_ACTION_A(TYPE_SHORT,short,ShortPtr,)
+		REPBUILTIN_ACTION_A(TYPE_INT,int,IntPtr,)
+		REPBUILTIN_ACTION_A(TYPE_FLOAT,float,FloatPtr,)
+		REPBUILTIN_ACTION_A(TYPE_DOUBLE,double,DoublePtr,)
+		REPBUILTIN_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,)
+		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
+		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,strdup)
 
 			default:
 				error->Report(
@@ -845,7 +845,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 #define REPBUILTIN_ACTION_C(tag,type,accessor,copy_func)		\
 			case tag:					\
 				{					\
-				type* val = element->accessor;		\
+				type* val = element->accessor();	\
 				type* vec = new type[veclen];		\
 				for ( int j = 0; j < repl; ++j )	\
 					for ( int i = 0; i < e_len; ++i )\
@@ -854,15 +854,15 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 				}					\
 				break;
 
-	REPBUILTIN_ACTION_C(TYPE_BOOL,glish_bool,BoolPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_BYTE,byte,BytePtr(),)
-	REPBUILTIN_ACTION_C(TYPE_SHORT,short,ShortPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_INT,int,IntPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_FLOAT,float,FloatPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_DOUBLE,double,DoublePtr(),)
-	REPBUILTIN_ACTION_C(TYPE_COMPLEX,complex,ComplexPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),)
-	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr(),strdup)
+	REPBUILTIN_ACTION_C(TYPE_BOOL,glish_bool,BoolPtr,)
+	REPBUILTIN_ACTION_C(TYPE_BYTE,byte,BytePtr,)
+	REPBUILTIN_ACTION_C(TYPE_SHORT,short,ShortPtr,)
+	REPBUILTIN_ACTION_C(TYPE_INT,int,IntPtr,)
+	REPBUILTIN_ACTION_C(TYPE_FLOAT,float,FloatPtr,)
+	REPBUILTIN_ACTION_C(TYPE_DOUBLE,double,DoublePtr,)
+	REPBUILTIN_ACTION_C(TYPE_COMPLEX,complex,ComplexPtr,)
+	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
+	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,strdup)
 
 				default:
 					error->Report(
@@ -1562,7 +1562,7 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 		return error_ivalue();
 		}
 
-	charptr *strs = str->StringPtr();
+	charptr *strs = str->StringPtr(0);
 	recordptr rptr = create_record_dict();
 	for ( int i = 0; i < str->Length(); i++ )
 		{
@@ -1599,7 +1599,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 			return error_ivalue();
 			}
 
-		recordptr rptr = arg1->RecordPtr();
+		recordptr rptr = arg1->RecordPtr(0);
 		IterCookie *c = rptr->InitForIteration();
 		IValue *member;
 		const char *key;
@@ -1617,7 +1617,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 			return error_ivalue();
 			}
 
-		charptr *strs = arg1->StringPtr();
+		charptr *strs = arg1->StringPtr(0);
 		Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
 		id->Assign( copy_value( arg2 ) );
 		}
@@ -1662,13 +1662,13 @@ IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
 
 
 #define DEFINE_AS_XXX_BUILT_IN(name,type,tag,stringcvt,coercer,text,zero) \
-IValue* name( const IValue* arg )						\
+IValue* name( const IValue* arg )					\
 	{								\
 	int len = arg->Length();					\
 									\
 	if ( arg->Type() == TYPE_STRING )				\
 		{							\
-		const charptr* strings = arg->StringPtr();		\
+		const charptr* strings = arg->StringPtr(0);		\
 		type* result = new type[len];				\
 									\
 		for ( int i = 0; i < len; ++i )				\
@@ -1680,7 +1680,7 @@ IValue* name( const IValue* arg )						\
 	if ( ! arg->IsNumeric() )					\
 		{							\
 		error->Report( "non-numeric argument to ", text );	\
-		return new IValue( type(zero) );				\
+		return new IValue( type(zero) );			\
 		}							\
 									\
 	if ( arg->Type() == tag )					\
@@ -1689,7 +1689,7 @@ IValue* name( const IValue* arg )						\
 	int is_copy;							\
 	type* result = arg->coercer( is_copy, len );			\
 									\
-	IValue* ret = new IValue( result, len );				\
+	IValue* ret = new IValue( result, len );			\
 	ret->CopyAttributes( arg );					\
 	return ret;							\
 	}
@@ -1773,7 +1773,7 @@ IValue* as_string_built_in( const IValue* arg )
 
 	if ( arg->Type() == TYPE_BYTE )
 		{
-		byte* vals = arg->BytePtr();
+		byte* vals = arg->BytePtr(0);
 		char* s = new char[len+1];
 
 		for ( int i = 0; i < len; ++i )
@@ -1846,7 +1846,7 @@ IValue* as_string_built_in( const IValue* arg )
 		{
 		case TYPE_BOOL:
 			{
-			glish_bool* vals = arg->BoolPtr();
+			glish_bool* vals = arg->BoolPtr(0);
 			for ( i = 0; i < len; ++i )
 				result[i] = strdup( vals[i] ? "T" : "F" );
 			}
@@ -1863,7 +1863,7 @@ IValue* as_string_built_in( const IValue* arg )
 				{
 				case TYPE_BOOL:
 					{
-					glish_bool* vals = arg->BoolPtr();
+					glish_bool* vals = arg->BoolPtr(0);
 					for ( i = 0; i < len; ++i )
 						{
 						COERCE_XXX_TO_STRING_SUBVECREF_XLATE
@@ -1928,7 +1928,7 @@ IValue* field_names_built_in( const IValue* arg )
 		return error_ivalue();
 		}
 
-	recordptr record_dict = arg->RecordPtr();
+	recordptr record_dict = arg->RecordPtr(0);
 	IterCookie* c = record_dict->InitForIteration();
 	int len = record_dict->Length();
 

@@ -1979,7 +1979,7 @@ char* which_include( const char* file_name )
 			(inclv = (const IValue*)(pathv->ExistingRecordElement("include"))) &&
 			inclv != false_value && inclv->Type() == TYPE_STRING &&
 			inclv->Length() )
-		paths = inclv->StringPtr();
+		paths = inclv->StringPtr(0);
 
 	if ( ! paths || file_name[0] == '/' || file_name[0] == '.' )
 		{

@@ -159,7 +159,7 @@ name_list* EventDesignator::EventNames()
 	if ( index_val->Type() == TYPE_STRING )
 		{
 		int n = index_val->Length();
-		const char** s = index_val->StringPtr();
+		const char** s = index_val->StringPtr(0);
 		for ( int i = 0; i < n; ++i )
 			result->append( strdup( s[i] ) );
 		}

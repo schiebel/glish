@@ -347,7 +347,7 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	if ( expr )
 		{
 		IValue* index_value = expr->CopyEval();
-		int* index = index_value->IntPtr();
+		int* index = index_value->IntPtr(0);
 		int n = index_value->Length();
 
 		for ( int i = 0; i < n; ++i )

@@ -8,6 +8,7 @@
 #include "Glish/GlishType.h"
 #include "Glish/Object.h"
 #include "Glish/Complex.h"
+#include "Glish/ValKern.h"
 
 // Different types of values: constant references, references, and
 // ordinary (non-indirect) values.
@@ -34,11 +35,6 @@ typedef const char* charptr;
 
 declare(PList,Value);
 typedef PList(Value) value_list;
-
-declare(PDict,Value);
-typedef PDict(Value)* recordptr;
-
-typedef recordptr attributeptr;
 
 typedef const Value* const_value;
 declare(List,const_value);
@@ -99,9 +95,6 @@ extern Value* empty_value();
 extern Value* error_value();
 
 extern Value* create_record();
-extern recordptr create_record_dict();
-void delete_record( recordptr r );
-
 
 // The number of Value objects created and deleted.  Useful for tracking
 // down inefficiencies and leaks.
@@ -111,6 +104,9 @@ extern int num_Values_deleted;
 class Value : public GlishObject {
 friend class IValue;
 public:
+	Value( const Value &v ) : kernel(v.kernel), attributes( v.CopyAttributePtr() ),
+				value_manager(0) { description = 0; ++num_Values_created; }
+
 	Value( glish_bool value );
 	Value( byte value );
 	Value( short value );
@@ -178,28 +174,21 @@ public:
 		{ value_manager = manager; }
 
 
-	glish_type Type() const			{ return type; }
-	unsigned int Length() const
-		{
-		if ( Type() == TYPE_RECORD )
-			return RecordPtr()->Length();
-		else if ( IsRef() )
-			return Deref()->Length();
-		else
-			return length;
-		}
+	glish_type Type() const			{ return kernel.Type(); }
+	unsigned long Length() const
+		{ return IsRef() ? Deref()->Length() : kernel.Length();	}
 
 	// True if the value is a reference.
-	int IsRef() const
-		{ return type == TYPE_REF || type == TYPE_CONST; }
+	int IsRef() const 
+		{ return kernel.Type() == TYPE_REF || kernel.Type() == TYPE_CONST; }
 
 	// True if the value is a constant reference.
 	int IsConst() const
-		{ return type == TYPE_CONST; }
+		{ return kernel.Type() == TYPE_CONST; }
 
 	// True if the value is a sub-vector reference.
 	int IsVecRef() const
-		{ return type == TYPE_SUBVEC_REF || type == TYPE_SUBVEC_CONST; }
+		{ return kernel.Type() == TYPE_SUBVEC_REF || kernel.Type() == TYPE_SUBVEC_CONST; }
 
 	// True if the value makes sense as a numeric type (i.e.,
 	// bool, integer, or floating-point).
@@ -244,29 +233,33 @@ public:
 	// Polymorph() the values to the given type.  If called for a
 	// subref, retrieves the complete underlying value, not the
 	// just selected subelements.  (See the XXXRef() functions below.)
-	glish_bool* BoolPtr() const;
-	byte* BytePtr() const;
-	short* ShortPtr() const;
-	int* IntPtr() const;
-	float* FloatPtr() const;
-	double* DoublePtr() const;
-	complex* ComplexPtr() const;
-	dcomplex* DcomplexPtr() const;
-	charptr* StringPtr() const;
-	recordptr RecordPtr() const;
+	//
+	// The 'modify' flag indicates that a modifiable copy of the values
+	// should be retrieved. If this flag is set to '0', then a
+	// non-modifiable version is retrieved.
+	glish_bool* BoolPtr( int modify=1 ) const;
+	byte* BytePtr( int modify=1 ) const;
+	short* ShortPtr( int modify=1 ) const;
+	int* IntPtr( int modify=1 ) const;
+	float* FloatPtr( int modify=1 ) const;
+	double* DoublePtr( int modify=1 ) const;
+	complex* ComplexPtr( int modify=1 ) const;
+	dcomplex* DcomplexPtr( int modify=1 ) const;
+	charptr* StringPtr( int modify=1 ) const;
+	recordptr RecordPtr( int modify=1 ) const;
 
-	glish_bool* BoolPtr();
-	byte* BytePtr();
-	short* ShortPtr();
-	int* IntPtr();
-	float* FloatPtr();
-	double* DoublePtr();
-	complex* ComplexPtr();
-	dcomplex* DcomplexPtr();
-	charptr* StringPtr();
-	recordptr RecordPtr();
+	glish_bool* BoolPtr( int modify=1 );
+	byte* BytePtr( int modify=1 );
+	short* ShortPtr( int modify=1 );
+	int* IntPtr( int modify=1 );
+	float* FloatPtr( int modify=1 );
+	double* DoublePtr( int modify=1 );
+	complex* ComplexPtr( int modify=1 );
+	dcomplex* DcomplexPtr( int modify=1 );
+	charptr* StringPtr( int modify=1 );
+	recordptr RecordPtr( int modify=1 );
 
-	Value* RefPtr() const		{ return (Value*) values; }
+	Value* RefPtr() const		{ return kernel.GetValue(); }
 
 	// The following accessors are for accessing sub-array references.
 	// They complain with a fatal error if the value is not a sub-array
@@ -294,7 +287,7 @@ public:
 	dcomplexref& DcomplexRef();
 	charptrref& StringRef();
 
-	VecRef* VecRefPtr() const	{ return (VecRef*) values; }
+	VecRef* VecRefPtr() const	{ return kernel.GetVecRef(); }
 
 	// Follow the reference chain of a non-constant or constant value
 	// until finding its non-reference base value.
@@ -313,6 +306,9 @@ public:
 	//
 	// If the value cannot be coerced to the given type then a nil
 	// pointer is returned.
+	//
+	// NOTE: if the value is returned with 'is_copy' clear, then
+	//       the value should not be modified.
 	glish_bool* CoerceToBoolArray( int& is_copy, int size,
 		glish_bool* result = 0 ) const;
 	byte* CoerceToByteArray( int& is_copy, int size,
@@ -368,7 +364,7 @@ public:
 	// Returns the given record element if it exists, 0 otherwise.
 	// (The value must already have been tested to determine that it's
 	// a record.)
-	Value* HasRecordElement( const char field[] ) const;
+	const Value* HasRecordElement( const char field[] ) const;
 
 	// Returns a modifiable existing Value, or if no field exists
 	// with the given name, returns 0.
@@ -399,15 +395,15 @@ public:
 	// polymorphed to the indicated type.  The length of the array is
 	// returned in "len".  A nil pointer is returned the Value is not
 	// a record or if it doesn't contain the given field.
-	glish_bool* FieldBoolPtr( const char field[], int& len );
-	byte* FieldBytePtr( const char field[], int& len );
-	short* FieldShortPtr( const char field[], int& len );
-	int* FieldIntPtr( const char field[], int& len );
-	float* FieldFloatPtr( const char field[], int& len );
-	double* FieldDoublePtr( const char field[], int& len );
-	complex* FieldComplexPtr( const char field[], int& len );
-	dcomplex* FieldDcomplexPtr( const char field[], int& len );
-	charptr* FieldStringPtr( const char field[], int& len );
+	glish_bool* FieldBoolPtr( const char field[], int& len, int modify=1 );
+	byte* FieldBytePtr( const char field[], int& len, int modify=1 );
+	short* FieldShortPtr( const char field[], int& len, int modify=1 );
+	int* FieldIntPtr( const char field[], int& len, int modify=1 );
+	float* FieldFloatPtr( const char field[], int& len, int modify=1 );
+	double* FieldDoublePtr( const char field[], int& len, int modify=1 );
+	complex* FieldComplexPtr( const char field[], int& len, int modify=1 );
+	dcomplex* FieldDcomplexPtr( const char field[], int& len, int modify=1 );
+	charptr* FieldStringPtr( const char field[], int& len, int modify=1 );
 
 	// Looks for a field with the given name.  If present, returns true,
 	// and in the second argument the scalar value corresponding to that
@@ -629,25 +625,6 @@ protected:
 
 	Value ( ) { }			// for IValue
 
-	void SetValue( glish_bool array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( byte array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( short array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( int array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( float array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( double array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( complex array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( dcomplex array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( const char* array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	virtual void SetValue( recordptr value );
 	void SetValue( SDS_Index& array );
 
 	void SetValue( glish_boolref& value_ref );
@@ -662,8 +639,6 @@ protected:
 
 	void SetValue( Value *ref_value, int index[], int num_elements, 
 			value_type val_type );
-
-	virtual void SetType( glish_type new_type );
 
 	virtual void DeleteValue();
 	void DeleteAttributes();
@@ -730,13 +705,9 @@ protected:
 	// our present type, an error message is generated and false is return.
 	int Grow( unsigned int new_size );
 
-	glish_type type;
-
-	unsigned int length;
-	unsigned int max_size;
-	void* values;
-	array_storage_type storage;
 	GlishObject* value_manager;
+
+	ValueKernel kernel;
 	Value* attributes;
 	};
 
@@ -773,6 +744,7 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 // Values to be created. In main.cc, these are defined and return an
 // IValue* they are also defined in glishlib.cc (which goes into libglish)
 // and return a Value*
+extern Value *create_value( const Value &value );
 extern Value *create_value( glish_bool value );
 extern Value *create_value( byte value );
 extern Value *create_value( short value );

@@ -78,7 +78,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 #define SETSTR(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0 )		\
-	charptr var = ( var##_v_ ->StringPtr() )[0];
+	charptr var = ( var##_v_ ->StringPtr(0) )[0];
 #define SETDIM(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0   ||		\
@@ -86,7 +86,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 	char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( var##_v_ ->Type() == TYPE_STRING )				\
-		var = ( var##_v_ ->StringPtr() )[0];			\
+		var = ( var##_v_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
 		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
@@ -123,7 +123,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 	charptr var = 0;						\
 	EXPRSTRVAL(var##_val_, EVENT)					\
 	Expr *var##_expr_ = var##_val__expr_;				\
-	var = ( var##_val_ ->StringPtr() )[0];
+	var = ( var##_val_ ->StringPtr(0) )[0];
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
@@ -139,7 +139,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		}							\
 	else								\
 		if ( var##_val_ ->Type() == TYPE_STRING	)		\
-			var = ( var##_val_ ->StringPtr() )[0];		\
+			var = ( var##_val_ ->StringPtr(0) )[0];		\
 		else							\
 			{						\
 			sprintf(var##_char_,"%d", var##_val_->IntVal());\
@@ -182,7 +182,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		sprintf(var##_char_,"%d",var##_int_);			\
 		}							\
 	else if ( var##_val_ -> Type() == TYPE_STRING )			\
-		var = ( var##_val_ ->StringPtr() )[0];			\
+		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
 		error->Report("bad type for ", EVENT);			\
@@ -202,7 +202,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		return 0;						\
 		}							\
 	else								\
-		var = var##_val_ ->DoublePtr();
+		var = var##_val_ ->DoublePtr(0);
 
 #define EXPR_DONE(var)							\
 	var##_expr_ ->ReadOnlyDone(var##_val_);
@@ -342,13 +342,13 @@ char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 	int argc = 0;
 	argv[argc++] = 0;
 	argv[argc++] = (char*) cmd;
-	argv[argc++] = (char*)(str_v->StringPtr()[0]);
+	argv[argc++] = (char*)(str_v->StringPtr(0)[0]);
 	if ( subcmd )
 		argv[argc++] = (char*) subcmd;
 	if ( str_v->Length() > 1 && str_v->Length() >= howmany )
 		for ( int i=1; i < str_v->Length(); i++ )
 			{
-			argv[argc] = (char*)(str_v->StringPtr()[i]);
+			argv[argc] = (char*)(str_v->StringPtr(0)[i]);
 			rivet_cmd(self, argc+1, argv);
 			}
 	else if ( args->length() > 1 && args->length() >= howmany )
@@ -445,7 +445,7 @@ else								\
 		CANVAS_FUNC_REALLOC( elements+argc+2+(*args).length()*2 )
 		Value *newval = copy_value(val);
 		newval->Polymorph(TYPE_INT);
-		int *ip = newval->IntPtr();
+		int *ip = newval->IntPtr(0);
 		int i;
 		for ( i=0; i < rows; i++)
 			{
@@ -469,7 +469,7 @@ else								\
 		elements = val->Length();
 		CANVAS_FUNC_REALLOC(elements+argc+2+(*args).length()*2)
 		newval->Polymorph(TYPE_INT);
-		int *ip = newval->IntPtr();
+		int *ip = newval->IntPtr(0);
 		int i;
 		for (i=0; i < val->Length(); i++)
 			{

@@ -52,6 +52,7 @@ INTERP_OBJS = \
 
 CLIENT_OBJS = \
 	Value.o \
+	ValKern.o \
 	Client.o \
 	Complex.o \
 	Daemon.o \
@@ -226,17 +227,19 @@ TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanvas.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkCanvas.cc
 TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc
-Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h
+ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/ValKern.cc
+Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Value.cc
 IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
 				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
-			 $(H)/Object.h $(H)/glish.h
+			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/IValue.cc
 VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(KEY_HEADERS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/VecRef.cc
-glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h
+glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/glishlib.cc
-main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h
+main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h $(SRC)/IValue.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/main.cc
 
 y.tab.h parse.o: $(SRC)/parse.y

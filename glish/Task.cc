@@ -372,7 +372,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 	const IValue* arg = (const IValue*)((*args)[0]->Deref());
 
 	if ( arg->Type() == TYPE_STRING )
-		name = strdup( arg->StringPtr()[0] );
+		name = strdup( arg->StringPtr(0)[0] );
 	else
 		name = arg->StringVal();
 
@@ -406,7 +406,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 		if ( arg->Type() == TYPE_STRING )
 			{
-			charptr* words = arg->StringPtr();
+			charptr* words = arg->StringPtr(0);
 			int n = arg->Length();
 
 			for ( int k = 0; k < n; ++k )

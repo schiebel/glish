@@ -64,14 +64,14 @@ DelObj::~DelObj()
 Value::Value( constructor_type value )					\
 	{								\
 	InitValue();							\
-	SetValue( &value, 1, COPY_ARRAY );				\
+	kernel.SetArray( &value, 1, 1 );				\
 	}
 
 #define DEFINE_ARRAY_CONSTRUCTOR(constructor_type)			\
-Value::Value( constructor_type value[], int len, array_storage_type storage )\
+Value::Value( constructor_type value[], int len, array_storage_type s ) \
 	{								\
 	InitValue();							\
-	SetValue( value, len, storage );				\
+	kernel.SetArray( value, len, s == COPY_ARRAY || s == PRESERVE_ARRAY ); \
 	}
 
 #define DEFINE_ARRAY_REF_CONSTRUCTOR(constructor_type)			\
@@ -99,7 +99,7 @@ DEFINE_CONSTRUCTORS(charptr,charptrref)
 Value::Value( recordptr value )
 	{
 	InitValue();
-	SetValue( value );
+	kernel.SetRecord( value );
 	}
 
 
@@ -113,15 +113,8 @@ Value::Value( SDS_Index& value )
 Value::Value( Value* ref_value, value_type val_type )
 	{
 	InitValue();
-	storage = TAKE_OVER_ARRAY;
 
-	if ( val_type == VAL_CONST )
-		type = TYPE_CONST;
-
-	else if ( val_type == VAL_REF )
-		type = TYPE_REF;
-
-	else
+	if ( val_type != VAL_CONST && val_type != VAL_REF )
 		fatal->Report( "bad value_type in Value::Value" );
 
 	if ( ref_value->IsConst() && val_type == VAL_REF )
@@ -129,10 +122,14 @@ Value::Value( Value* ref_value, value_type val_type )
 			"\"ref\" reference created from \"const\" reference" );
 
 	ref_value = ref_value->Deref();
-	attributes = ref_value->CopyAttributePtr();
 
 	Ref( ref_value );
-	values = (void*) ref_value;
+	kernel.SetValue(ref_value);
+
+	if ( val_type == VAL_CONST )
+		kernel.MakeConst();
+
+	attributes = ref_value->CopyAttributePtr();
 	}
 
 Value::Value( Value* ref_value, int index[], int num_elements,
@@ -155,14 +152,8 @@ void Value::TakeValue( Value* new_value )
 		}
 
 	DeleteValue();
+	kernel = new_value->kernel;
 
-	int my_ref_count = ref_count;
-
-	*this = *new_value;
-
-	ref_count = my_ref_count;
-
-	new_value->type = TYPE_ERROR;
 	Unref( new_value );
 	}
 
@@ -174,100 +165,40 @@ Value::~Value()
 	}
 
 
-#define DEFINE_ARRAY_SET_VALUE(type, glish_type)			\
-void Value::SetValue( type array[], int len, array_storage_type arg_storage )\
-	{								\
-	SetType( glish_type );						\
-	max_size = length = len;					\
-	storage = arg_storage;						\
-	values = storage == COPY_ARRAY ? copy_values( array, type ) : array;\
-	}
-
-#define DEFINE_REF_SET_VALUE(reftype, glish_type)			\
+#define DEFINE_REF_SET_VALUE(reftype)					\
 void Value::SetValue( reftype& value_ref )				\
 	{								\
-	SetType( glish_type );						\
-	max_size = length = value_ref.Length();				\
-	storage = COPY_ARRAY;						\
-	values = value_ref.DupVec();					\
+	kernel.SetArray( value_ref.DupVec(), value_ref.Length() );	\
 	}
 
-#define DEFINE_SET_VALUE(type, reftype, glish_type)			\
-DEFINE_ARRAY_SET_VALUE(type, glish_type)				\
-DEFINE_REF_SET_VALUE(reftype, glish_type)
-
-DEFINE_SET_VALUE(glish_bool,glish_boolref,TYPE_BOOL)
-DEFINE_SET_VALUE(byte,byteref,TYPE_BYTE)
-DEFINE_SET_VALUE(short,shortref,TYPE_SHORT)
-DEFINE_SET_VALUE(int,intref,TYPE_INT)
-DEFINE_SET_VALUE(float,floatref,TYPE_FLOAT)
-DEFINE_SET_VALUE(double,doubleref,TYPE_DOUBLE)
-DEFINE_SET_VALUE(complex,complexref,TYPE_COMPLEX)
-DEFINE_SET_VALUE(dcomplex,dcomplexref,TYPE_DCOMPLEX)
-
-DEFINE_REF_SET_VALUE(charptrref,TYPE_STRING)
-
-void Value::SetValue( const char* array[], int len,
-			array_storage_type arg_storage )
-	{
-	SetType( TYPE_STRING );
-
-	max_size = length = len;
-	storage = arg_storage;
-
-	if ( storage == COPY_ARRAY )
-		{
-		values = (void*) new charptr[len];
-		charptr* sptr = StringPtr();
-
-		for ( int i = 0; i < len; ++i )
-			sptr[i] = strdup( array[i] );
-		}
-
-	else
-		values = array;
-	}
-
-
-void Value::SetValue( recordptr value )
-	{
-	SetType( TYPE_RECORD );
-	values = (void*) value;
-	max_size = length = 1;
-	storage = TAKE_OVER_ARRAY;
-	}
+DEFINE_REF_SET_VALUE(glish_boolref)
+DEFINE_REF_SET_VALUE(byteref)
+DEFINE_REF_SET_VALUE(shortref)
+DEFINE_REF_SET_VALUE(intref)
+DEFINE_REF_SET_VALUE(floatref)
+DEFINE_REF_SET_VALUE(doubleref)
+DEFINE_REF_SET_VALUE(complexref)
+DEFINE_REF_SET_VALUE(dcomplexref)
+DEFINE_REF_SET_VALUE(charptrref)
 
 
 void Value::SetValue( SDS_Index& value )
 	{
-	SetType( TYPE_OPAQUE );
-	values = (void*) value.Index();
-	max_size = length = 1;
-	storage = PRESERVE_ARRAY;
+	kernel.SetOpaque( (void*) value.Index() );
 	}
 
 
 void Value::SetValue( Value* ref_value, int index[], int num_elements,
 			value_type val_type )
 	{
-	if ( val_type == VAL_CONST )
-		SetType( TYPE_SUBVEC_CONST );
-
-	else if ( val_type == VAL_REF )
-		SetType( TYPE_SUBVEC_REF );
-
-	else
+	if ( val_type != VAL_CONST && val_type != VAL_REF )
 		fatal->Report( "bad value_type in Value::Value" );
-
-	storage = TAKE_OVER_ARRAY;
 
 	if ( ref_value->IsConst() && val_type == VAL_REF )
 		warn->Report(
 			"\"ref\" reference created from \"const\" reference" );
 
 	ref_value = ref_value->Deref();
-
-	length = num_elements;
 
 	int max_index;
 	if ( ! IndexRange( index, num_elements, max_index ) )
@@ -290,19 +221,22 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 		case TYPE_STRING:
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
-			values = (void*) new VecRef( ref_value, index,
-						num_elements, max_index );
+			kernel.SetVecRef( new VecRef( ref_value, index,
+						num_elements, max_index ) );
 			break;
 
 		default:
 			fatal->Report( "bad Value in Value::Value" );
 		}
+
+	if ( val_type == VAL_CONST )
+		kernel.MakeConst( );
+
 	}
 
 
 void Value::InitValue()
 	{
-	type = TYPE_ERROR;
 	description = 0;
 	value_manager = 0;
 	attributes = 0;
@@ -310,72 +244,20 @@ void Value::InitValue()
 	}
 
 
-void Value::SetType( glish_type new_type )
-	{
-	DeleteValue();
-	type = new_type;
-	}
-
-
 void Value::DeleteValue()
 	{
-	switch ( type )
+	if ( value_manager )
 		{
-		case TYPE_CONST:
-		case TYPE_REF:
-			Unref( RefPtr() );
+		Unref( value_manager );
 
-			// So we don't also delete "values" ...
-			type = TYPE_ERROR;
-			break;
-
-		case TYPE_SUBVEC_CONST:
-		case TYPE_SUBVEC_REF:
-			Unref( VecRefPtr() );
-			type = TYPE_ERROR;
-			break;
-
-		case TYPE_STRING:
-			if ( ! value_manager && storage != PRESERVE_ARRAY )
-				{
-				charptr* sptr = StringPtr();
-				for ( int i = 0; i < length; ++i )
-					delete (char*) sptr[i];
-				}
-			break;
-
-		case TYPE_RECORD:
-			{
-			delete_record( RecordPtr() );
-
-			// So we don't delete "values" again ...
-			type = TYPE_ERROR;
-			break;
-			}
-
-		default:
-			break;
-		}
-
-	if ( type != TYPE_ERROR )
-		{
-		if ( value_manager )
-			{
-			Unref( value_manager );
-
-			// It's important to get rid of our value_manager
-			// pointer here; a call to DeleteValue does not
-			// necessarily mean we're throwing away the entire
-			// Value object.  (For example, we may be called
-			// by SetType, called in turn by Polymorph.)  Thus
-			// as we're done with this value_manager, mark it
-			// as so.
-			value_manager = 0;
-			}
-
-		else if ( storage != PRESERVE_ARRAY )
-			delete values;
-
+		// It's important to get rid of our value_manager
+		// pointer here; a call to DeleteValue does not
+		// necessarily mean we're throwing away the entire
+		// Value object.  (For example, we may be called
+		// by SetType, called in turn by Polymorph.)  Thus
+		// as we're done with this value_manager, mark it
+		// as so.
+		value_manager = 0;
 		}
 
 	DeleteAttributes();
@@ -404,7 +286,7 @@ void Value::DeleteAttribute( const char field[] )
 
 int Value::IsNumeric() const
 	{
-	switch ( type )
+	switch ( Type() )
 		{
 		case TYPE_BOOL:
 		case TYPE_BYTE:
@@ -438,48 +320,48 @@ int Value::IsNumeric() const
 	}
 
 
-#define DEFINE_CONST_ACCESSOR(name,tag,type)				\
-type Value::name() const						\
+#define DEFINE_CONST_ACCESSOR(name,tag,type,MOD,CONST)			\
+type Value::name( int modify ) const					\
 	{								\
 	if ( IsVecRef() ) 						\
 		return ((const Value*) VecRefPtr()->Val())->name();	\
 	else if ( Type() != tag )					\
 		fatal->Report( "bad use of const accessor" );		\
-	return (type) values;						\
+	return (type) (modify ? kernel.MOD() : kernel.CONST()); 	\
 	}
 
-DEFINE_CONST_ACCESSOR(BoolPtr,TYPE_BOOL,glish_bool*)
-DEFINE_CONST_ACCESSOR(BytePtr,TYPE_BYTE,byte*)
-DEFINE_CONST_ACCESSOR(ShortPtr,TYPE_SHORT,short*)
-DEFINE_CONST_ACCESSOR(IntPtr,TYPE_INT,int*)
-DEFINE_CONST_ACCESSOR(FloatPtr,TYPE_FLOAT,float*)
-DEFINE_CONST_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*)
-DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*)
-DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*)
-DEFINE_CONST_ACCESSOR(StringPtr,TYPE_STRING,charptr*)
-DEFINE_CONST_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr)
+DEFINE_CONST_ACCESSOR(BoolPtr,TYPE_BOOL,glish_bool*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(BytePtr,TYPE_BYTE,byte*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(ShortPtr,TYPE_SHORT,short*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(IntPtr,TYPE_INT,int*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(FloatPtr,TYPE_FLOAT,float*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
 
 
-#define DEFINE_ACCESSOR(name,tag,type)					\
-type Value::name()							\
+#define DEFINE_ACCESSOR(name,tag,type,MOD,CONST)			\
+type Value::name( int modify )						\
 	{								\
 	if ( IsVecRef() ) 						\
 		return VecRefPtr()->Val()->name();			\
 	if ( Type() != tag )						\
 		Polymorph( tag );					\
-	return (type) values;						\
+	return (type) (modify ? kernel.MOD() : kernel.CONST());		\
 	}
 
-DEFINE_ACCESSOR(BoolPtr,TYPE_BOOL,glish_bool*)
-DEFINE_ACCESSOR(BytePtr,TYPE_BYTE,byte*)
-DEFINE_ACCESSOR(ShortPtr,TYPE_SHORT,short*)
-DEFINE_ACCESSOR(IntPtr,TYPE_INT,int*)
-DEFINE_ACCESSOR(FloatPtr,TYPE_FLOAT,float*)
-DEFINE_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*)
-DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*)
-DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*)
-DEFINE_ACCESSOR(StringPtr,TYPE_STRING,charptr*)
-DEFINE_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr)
+DEFINE_ACCESSOR(BoolPtr,TYPE_BOOL,glish_bool*,modArray,constArray)
+DEFINE_ACCESSOR(BytePtr,TYPE_BYTE,byte*,modArray,constArray)
+DEFINE_ACCESSOR(ShortPtr,TYPE_SHORT,short*,modArray,constArray)
+DEFINE_ACCESSOR(IntPtr,TYPE_INT,int*,modArray,constArray)
+DEFINE_ACCESSOR(FloatPtr,TYPE_FLOAT,float*,modArray,constArray)
+DEFINE_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*,modArray,constArray)
+DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
+DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
+DEFINE_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
+DEFINE_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
 
 #define DEFINE_CONST_REF_ACCESSOR(name,tag,type)			\
 type& Value::name() const						\
@@ -528,50 +410,50 @@ val_type Value::name( int n ) const					\
 	if ( IsRef() )							\
 		return Deref()->name( n );				\
 									\
-	if ( length < 1 )						\
+	if ( kernel.Length() < 1 )					\
 		{							\
 		error->Report( "empty array converted to ", type_name );\
 		return zero;						\
 		}							\
 									\
-	if ( n < 1 || n > length )					\
+	if ( n < 1 || n > kernel.Length() )				\
 		{							\
 		error->Report( "in conversion to ", type_name, " index (=", n,\
-				") out of bounds, length =", length );	\
+				") out of bounds, length =", kernel.Length() );	\
 		return zero;						\
 		}							\
 									\
-	switch ( type )							\
+	switch ( Type() )					\
 		{							\
 		case TYPE_BOOL:						\
-			return val_type( BoolPtr()[n - 1] ? 1 : 0 );	\
+			return val_type( BoolPtr(0)[n - 1] ? 1 : 0 );	\
 									\
 		case TYPE_BYTE:						\
-			return val_type( BytePtr()[n - 1] );		\
+			return val_type( BytePtr(0)[n - 1] );		\
 									\
 		case TYPE_SHORT:					\
-			return val_type( ShortPtr()[n - 1] );		\
+			return val_type( ShortPtr(0)[n - 1] );		\
 									\
 		case TYPE_INT:						\
-			return val_type( IntPtr()[n - 1] );		\
+			return val_type( IntPtr(0)[n - 1] );		\
 									\
 		case TYPE_FLOAT:					\
-			return val_type( FloatPtr()[n - 1] );		\
+			return val_type( FloatPtr(0)[n - 1] );		\
 									\
 		case TYPE_DOUBLE:					\
-			return val_type( DoublePtr()[n - 1] );		\
+			return val_type( DoublePtr(0)[n - 1] );		\
 									\
 		case TYPE_COMPLEX:					\
-			return val_type( ComplexPtr()[n - 1] rhs_elm );	\
+			return val_type( ComplexPtr(0)[n - 1] rhs_elm );\
 									\
 		case TYPE_DCOMPLEX:					\
-			return val_type( DcomplexPtr()[n - 1] rhs_elm );\
+			return val_type( DcomplexPtr(0)[n - 1] rhs_elm );\
 									\
 		case TYPE_STRING:					\
 			{						\
-			int successful;				\
+			int successful;					\
 			val_type result = val_type(			\
-				text_func( StringPtr()[n - 1], successful ) );\
+				text_func( StringPtr(0)[n - 1], successful ) );\
 									\
 			if ( ! successful )				\
 				warn->Report( "string \"", this,	\
@@ -684,6 +566,9 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 char* Value::StringVal( char sep, unsigned int max_elements,
 			int useAttributes ) const
 	{
+	glish_type type = Type();
+	unsigned long length = kernel.Length();
+
 	if ( IsRef() )
 		return Deref()->StringVal( sep, max_elements, useAttributes );
 	if ( type == TYPE_RECORD )
@@ -702,7 +587,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	// Make a guess as to a probable good size for buf.
 	if ( type == TYPE_STRING )
 		{
-		buf_size = strlen( StringPtr()[0] ) * (length + 1);
+		buf_size = strlen( StringPtr(0)[0] ) * (length + 1);
 		if ( buf_size == 0 )
 			buf_size = 8;
 		}
@@ -739,23 +624,23 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	charptr* string_ptr;
 	const char *flt_prec;
 
-	switch ( VecRefDeref()->type )
+	switch ( VecRefDeref()->Type() )
 		{
-#define ASSIGN_PTR(tag,ptr_name,source,extra)				\
+#define ASSIGN_PTR(tag,ptr_name,accessor,extra)				\
 	case tag:							\
-		ptr_name = source;					\
+		ptr_name = accessor(0);					\
 		extra							\
 		break;
 
-		ASSIGN_PTR(TYPE_BOOL,bool_ptr,BoolPtr(),)
-		ASSIGN_PTR(TYPE_INT,int_ptr,IntPtr(),)
-		ASSIGN_PTR(TYPE_BYTE,byte_ptr,BytePtr(),)
-		ASSIGN_PTR(TYPE_SHORT,short_ptr,ShortPtr(),)
-		ASSIGN_PTR(TYPE_FLOAT,float_ptr,FloatPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
-		ASSIGN_PTR(TYPE_DOUBLE,double_ptr,DoublePtr(),flt_prec = print_decimal_prec( AttributePtr() );)
-		ASSIGN_PTR(TYPE_COMPLEX,complex_ptr,ComplexPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
-		ASSIGN_PTR(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
-		ASSIGN_PTR(TYPE_STRING,string_ptr,StringPtr(),)
+		ASSIGN_PTR(TYPE_BOOL,bool_ptr,BoolPtr,)
+		ASSIGN_PTR(TYPE_INT,int_ptr,IntPtr,)
+		ASSIGN_PTR(TYPE_BYTE,byte_ptr,BytePtr,)
+		ASSIGN_PTR(TYPE_SHORT,short_ptr,ShortPtr,)
+		ASSIGN_PTR(TYPE_FLOAT,float_ptr,FloatPtr,flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_DOUBLE,double_ptr,DoublePtr,flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_COMPLEX,complex_ptr,ComplexPtr,flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr,flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_STRING,string_ptr,StringPtr,)
 
 		default:
 			fatal->Report( "bad type in Value::StringVal()" );
@@ -1099,7 +984,7 @@ char* Value::RecordStringVal() const
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		fatal->Report( "non-record type in Value::RecordStringVal()" );
 
-	recordptr rptr = RecordPtr();
+	recordptr rptr = RecordPtr(0);
 	int len = rptr->Length();
 
 	if ( len == 0 )
@@ -1147,13 +1032,13 @@ char* Value::RecordStringVal() const
 
 int Value::SDS_IndexVal() const
 	{
-	if ( type != TYPE_OPAQUE )
+	if ( Type() != TYPE_OPAQUE )
 		{
 		error->Report( this, " is not an opaque value" );
 		return SDS_NO_SUCH_SDS;
 		}
 
-	return int(values);
+	return int(kernel.GetOpaque);
 	}
 
 Value* Value::Deref()
@@ -1194,6 +1079,8 @@ const Value* Value::VecRefDeref() const
 
 
 #define COERCE_HDR(name, ctype, gtype, type_name, accessor)		\
+	unsigned long length = kernel.Length();				\
+									\
 	if ( IsRef() )							\
 		return Deref()->name( is_copy, size, result );		\
 									\
@@ -1201,10 +1088,10 @@ const Value* Value::VecRefDeref() const
 		fatal->Report( "non-numeric type in coercion of", this,	\
 				"to ", type_name );			\
 									\
-	if ( ! result && length == size && type == gtype )		\
+	if ( ! result && length == size && Type() == gtype )		\
 		{							\
 		is_copy = 0;						\
-		return accessor();					\
+		return accessor(0);					\
 		}							\
 									\
 	is_copy = 1;							\
@@ -1219,12 +1106,12 @@ glish_bool* Value::CoerceToBoolArray( int& is_copy, int size,
 	{
 	COERCE_HDR(CoerceToBoolArray, glish_bool, TYPE_BOOL, "bool", BoolPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 #define BOOL_COERCE_BOOL_ACTION(OFFSET,XLATE)				\
 		case TYPE_BOOL:						\
 		        {						\
-			glish_bool* bool_ptr = BoolPtr();		\
+			glish_bool* bool_ptr = BoolPtr(0);		\
 			for ( i = 0, j = 0; i < size; ++i, j += incr )	\
 				{					\
 				XLATE					\
@@ -1236,7 +1123,7 @@ glish_bool* Value::CoerceToBoolArray( int& is_copy, int size,
 #define BOOL_COERCE_ACTION(tag,type,rhs_elm,accessor,OFFSET,XLATE)	\
 	case tag:							\
 		{							\
-		type* ptr = accessor;					\
+		type* ptr = accessor(0);				\
 		for ( i = 0, j = 0; i < size; ++i, j += incr )		\
 			{						\
 			XLATE						\
@@ -1246,13 +1133,13 @@ glish_bool* Value::CoerceToBoolArray( int& is_copy, int size,
 		}
 
 BOOL_COERCE_BOOL_ACTION(j,)
-BOOL_COERCE_ACTION(TYPE_BYTE,byte,,BytePtr(),j,)
-BOOL_COERCE_ACTION(TYPE_SHORT,short,,ShortPtr(),j,)
-BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr(),j,)
-BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr(),j,)
-BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr(),j,)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr(),j,)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr(),j,)
+BOOL_COERCE_ACTION(TYPE_BYTE,byte,,BytePtr,j,)
+BOOL_COERCE_ACTION(TYPE_SHORT,short,,ShortPtr,j,)
+BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,j,)
+BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,j,)
+BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,j,)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr,j,)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr,j,)
 
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
@@ -1272,11 +1159,11 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr(),j,)
 		}
 
 BOOL_COERCE_BOOL_ACTION(off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr(),off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr(),off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr(),off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr(),off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr(),off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr,off,COERCE_ACTION_XLATE)
 		default:
 			error->Report(
 				"bad type in Value::CoerceToBoolArray()" );
@@ -1299,7 +1186,7 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr(),off,COERCE_ACTION_XLA
 #define COERCE_ACTION(tag,rhs_type,rhs_elm,lhs_type,accessor,OFFSET,XLATE)\
 	case tag:							\
 		{							\
-		rhs_type* rhs_ptr = accessor;				\
+		rhs_type* rhs_ptr = accessor(0);			\
 		for ( i = 0, j = 0; i < size; ++i, j += incr )		\
 			{						\
 			XLATE						\
@@ -1310,14 +1197,14 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr(),off,COERCE_ACTION_XLA
 		}
 
 #define COERCE_ACTIONS(type,error_msg)				\
-COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr(),j,)		\
-COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr(),j,)		\
-COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr(),j,)		\
-COERCE_ACTION(TYPE_INT,int,,type,IntPtr(),j,)			\
-COERCE_ACTION(TYPE_FLOAT,float,,type,FloatPtr(),j,)		\
-COERCE_ACTION(TYPE_DOUBLE,double,,type,DoublePtr(),j,)		\
-COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr(),j,)	\
-COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr(),j,)	\
+COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr,j,)		\
+COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr,j,)			\
+COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr,j,)		\
+COERCE_ACTION(TYPE_INT,int,,type,IntPtr,j,)			\
+COERCE_ACTION(TYPE_FLOAT,float,,type,FloatPtr,j,)		\
+COERCE_ACTION(TYPE_DOUBLE,double,,type,DoublePtr,j,)		\
+COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr,j,)	\
+COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)	\
 								\
 		case TYPE_SUBVEC_REF:				\
 		case TYPE_SUBVEC_CONST:				\
@@ -1326,14 +1213,14 @@ COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr(),j,)	\
 			switch ( ref->Type() )			\
 				{				\
 								\
-COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr(),off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr(),off,COERCE_ACTION_XLATE)	\
-COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr(),off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_INT,int,,type,IntPtr(),off,COERCE_ACTION_XLATE)	\
-COERCE_ACTION(TYPE_FLOAT,float,,type,FloatPtr(),off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_DOUBLE,double,,type,DoublePtr(),off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr(),off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr(),off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr,off,COERCE_ACTION_XLATE)	\
+COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_INT,int,,type,IntPtr,off,COERCE_ACTION_XLATE)	\
+COERCE_ACTION(TYPE_FLOAT,float,,type,FloatPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_DOUBLE,double,,type,DoublePtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
 					error->Report(			\
@@ -1348,7 +1235,7 @@ byte* Value::CoerceToByteArray( int& is_copy, int size, byte* result ) const
 	{
 	COERCE_HDR(CoerceToByteArray, byte, TYPE_BYTE, "byte", BytePtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_ACTIONS(byte,"CoerceToByteArray()")
 		default:
@@ -1364,7 +1251,7 @@ short* Value::CoerceToShortArray( int& is_copy, int size, short* result ) const
 	{
 	COERCE_HDR(CoerceToShortArray, short, TYPE_SHORT, "short", ShortPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_ACTIONS(short,"CoerceToShortArray()")
 
@@ -1381,7 +1268,7 @@ int* Value::CoerceToIntArray( int& is_copy, int size, int* result ) const
 	{
 	COERCE_HDR(CoerceToIntArray, int, TYPE_INT, "integer", IntPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_ACTIONS(int,"CoerceToIntArray()")
 		default:
@@ -1398,7 +1285,7 @@ float* Value::CoerceToFloatArray( int& is_copy, int size, float* result ) const
 	{
 	COERCE_HDR(CoerceToFloatArray, float, TYPE_FLOAT, "float", FloatPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_ACTIONS(float,"CoerceToFloatArray()")
 		default:
@@ -1415,7 +1302,7 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 	{
 	COERCE_HDR(CoerceToDoubleArray, double, TYPE_DOUBLE, "double", DoublePtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_ACTIONS(double,"CoerceToDoubleArray()")
 		default:
@@ -1432,7 +1319,7 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 #define COMPLEX_BIN_COERCE_ACTION(tag,rhs_type,lhs_type,accessor,OFFSET,XLATE)\
 	case tag:							\
 		{							\
-		rhs_type* rhs_ptr = accessor;				\
+		rhs_type* rhs_ptr = accessor(0);			\
 		for ( i = 0, j = 0; i < size; ++i, j += incr )		\
 			{						\
 			XLATE						\
@@ -1447,7 +1334,7 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 #define COMPLEX_CPX_COERCE_ACTION(tag,rhs_type,lhs_type,accessor,OFFSET,XLATE)\
 	case tag:							\
 		{							\
-		rhs_type* rhs_ptr = accessor;				\
+		rhs_type* rhs_ptr = accessor(0);			\
 		for ( i = 0, j = 0; i < size; ++i, j += incr )		\
 			{						\
 			XLATE						\
@@ -1458,14 +1345,14 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 		}
 
 #define COERCE_COMPLEX_ACTIONS(type,error_msg)				\
-COMPLEX_BIN_COERCE_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr(),j,)	\
-COMPLEX_BIN_COERCE_ACTION(TYPE_BYTE,byte,type,BytePtr(),j,)		\
-COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr(),j,)		\
-COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr(),j,)		\
-COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr(),j,)		\
-COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr(),j,)	\
-COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr(),j,)	\
-COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr(),j,)	\
+COMPLEX_BIN_COERCE_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,j,)		\
+COMPLEX_BIN_COERCE_ACTION(TYPE_BYTE,byte,type,BytePtr,j,)		\
+COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr,j,)		\
+COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr,j,)			\
+COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr,j,)		\
+COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr,j,)		\
+COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,j,)	\
+COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,j,)	\
 									\
 		case TYPE_SUBVEC_REF:					\
 		case TYPE_SUBVEC_CONST:					\
@@ -1474,14 +1361,14 @@ COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr(),j,)	\
 			switch ( ref->Type() )				\
 				{					\
 									\
-COMPLEX_BIN_COERCE_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_BIN_COERCE_ACTION(TYPE_BYTE,byte,type,BytePtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr(),off,COERCE_ACTION_XLATE)\
-COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr(),off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_BYTE,byte,type,BytePtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
 					error->Report(			\
@@ -1497,7 +1384,7 @@ complex* Value::CoerceToComplexArray( int& is_copy, int size,
 	COERCE_HDR(CoerceToComplexArray, complex, TYPE_COMPLEX,
 			"complex", ComplexPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_COMPLEX_ACTIONS(float,"CoerceToComplexArray()")
 		default:
@@ -1516,7 +1403,7 @@ dcomplex* Value::CoerceToDcomplexArray( int& is_copy, int size,
 	COERCE_HDR(CoerceToDcomplexArray, dcomplex, TYPE_DCOMPLEX,
 			"dcomplex", DcomplexPtr)
 
-	switch ( type )
+	switch ( Type() )
 		{
 		COERCE_COMPLEX_ACTIONS(float,"CoerceToDcomplexArray()")
 		default:
@@ -1606,6 +1493,7 @@ Value* Value::operator []( const Value* index ) const
 
 Value* Value::operator []( const_value_list* args_val ) const
 	{
+
 // These are a bunch of macros for cleaning up the dynamic memory used
 // by this routine (and Value::SubRef) prior to exit.
 #define SUBOP_CLEANUP_1							\
@@ -1630,6 +1518,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 	delete len;						\
 	return retval;
 
+	unsigned long length = kernel.Length();
 
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
 		{
@@ -1682,8 +1571,8 @@ Value* Value::operator []( const_value_list* args_val ) const
 				return error_value();
 				}
 
-			if ( arg->length > max_len )
-				max_len = arg->length;
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
 
 			if ( max_len == 1 )
 				{
@@ -2338,8 +2227,8 @@ Value* Value::SubRef( const_value_list *args_val )
 				return error_value();
 				}
 
-			if ( arg->length > max_len )
-				max_len = arg->length;
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
 
 			if ( max_len == 1 )
 				{
@@ -2529,7 +2418,7 @@ const Value* Value::ExistingRecordElement( const char* field ) const
 		return false_value;
 		}
 
-	Value* member = (*RecordPtr())[field];
+	Value* member = (*RecordPtr(0))[field];
 
 	if ( ! member )
 		{
@@ -2569,12 +2458,12 @@ Value* Value::GetOrCreateRecordElement( const char* field )
 	return member;
 	}
 
-Value* Value::HasRecordElement( const char* field ) const
+const Value* Value::HasRecordElement( const char* field ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		fatal->Report( "non-record in Value::HasRecordElement" );
 
-	return (*RecordPtr())[field];
+	return (*RecordPtr(0))[field];
 	}
 
 
@@ -2625,7 +2514,15 @@ Value* Value::NthField( int n )
 
 const Value* Value::NthField( int n ) const
 	{
-	return ((Value*) this)->NthField( n );
+	if ( VecRefDeref()->Type() != TYPE_RECORD )
+		return 0;
+
+	Value* member = RecordPtr(0)->NthEntry( n - 1 );
+
+	if ( ! member )
+		return 0;
+
+	return member;
 	}
 
 const char* Value::NthFieldName( int n ) const
@@ -2634,7 +2531,7 @@ const char* Value::NthFieldName( int n ) const
 		return 0;
 
 	const char* key;
-	Value* member = RecordPtr()->NthEntry( n - 1, key );
+	Value* member = RecordPtr(0)->NthEntry( n - 1, key );
 
 	if ( ! member )
 		return 0;
@@ -2690,25 +2587,25 @@ int Value::FieldVal( const char* field, char*& val )
 
 
 #define DEFINE_FIELD_PTR(name,tag,type,accessor)			\
-type Value::name( const char* field, int& len )				\
+type Value::name( const char* field, int& len, int modify )		\
 	{								\
 	Value* result = Field( field, tag );				\
 	if ( ! result )							\
 		return 0;						\
 									\
 	len = result->Length();						\
-	return result->accessor;					\
+	return modify ? result->accessor() : result->accessor(0);	\
 	}
 
-DEFINE_FIELD_PTR(FieldBoolPtr,TYPE_BOOL,glish_bool*,BoolPtr())
-DEFINE_FIELD_PTR(FieldBytePtr,TYPE_BYTE,byte*,BytePtr())
-DEFINE_FIELD_PTR(FieldShortPtr,TYPE_SHORT,short*,ShortPtr())
-DEFINE_FIELD_PTR(FieldIntPtr,TYPE_INT,int*,IntPtr())
-DEFINE_FIELD_PTR(FieldFloatPtr,TYPE_FLOAT,float*,FloatPtr())
-DEFINE_FIELD_PTR(FieldDoublePtr,TYPE_DOUBLE,double*,DoublePtr())
-DEFINE_FIELD_PTR(FieldComplexPtr,TYPE_COMPLEX,complex*,ComplexPtr())
-DEFINE_FIELD_PTR(FieldDcomplexPtr,TYPE_DCOMPLEX,dcomplex*,DcomplexPtr())
-DEFINE_FIELD_PTR(FieldStringPtr,TYPE_STRING,charptr*,StringPtr())
+DEFINE_FIELD_PTR(FieldBoolPtr,TYPE_BOOL,glish_bool*,BoolPtr)
+DEFINE_FIELD_PTR(FieldBytePtr,TYPE_BYTE,byte*,BytePtr)
+DEFINE_FIELD_PTR(FieldShortPtr,TYPE_SHORT,short*,ShortPtr)
+DEFINE_FIELD_PTR(FieldIntPtr,TYPE_INT,int*,IntPtr)
+DEFINE_FIELD_PTR(FieldFloatPtr,TYPE_FLOAT,float*,FloatPtr)
+DEFINE_FIELD_PTR(FieldDoublePtr,TYPE_DOUBLE,double*,DoublePtr)
+DEFINE_FIELD_PTR(FieldComplexPtr,TYPE_COMPLEX,complex*,ComplexPtr)
+DEFINE_FIELD_PTR(FieldDcomplexPtr,TYPE_DCOMPLEX,dcomplex*,DcomplexPtr)
+DEFINE_FIELD_PTR(FieldStringPtr,TYPE_STRING,charptr*,StringPtr)
 
 
 #define DEFINE_SET_FIELD_SCALAR(type)					\
@@ -2759,15 +2656,15 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 	if ( index->Type() == TYPE_BOOL )
 		{
 		int index_len = num_indices;
-		if ( check_size && index_len != length )
+		if ( check_size && index_len != kernel.Length() )
 			{
 			error->Report( "boolean array index has", index_len,
-					"elements, array has", length );
+					"elements, array has", kernel.Length() );
 			return 0;
 			}
 
 		// First figure out how many elements we're going to be copying.
-		glish_bool* vals = index->BoolPtr();
+		glish_bool* vals = index->BoolPtr(0);
 		num_indices = 0;
 
 		for ( int i = 0; i < index_len; ++i )
@@ -2801,20 +2698,20 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 		return RecordSlice( indices, num_indices );
 
 	for ( int i = 0; i < num_indices; ++i )
-		if ( indices[i] < 1 || indices[i] > length )
+		if ( indices[i] < 1 || indices[i] > kernel.Length() )
 			{
 			error->Report( "index (=", indices[i],
-				") out of range, array length =", length );
+				") out of range, array length =", kernel.Length() );
 			return error_value();
 			}
 
-	switch ( type )
+	switch ( Type() )
 		{
 
 #define ARRAY_REF_ACTION(tag,type,accessor,copy_func,OFFSET,XLATE)	\
 	case tag:							\
 		{							\
-		type* source_ptr = accessor;				\
+		type* source_ptr = accessor(0);				\
 		type* new_values = new type[num_indices];		\
 		for ( i = 0; i < num_indices; ++i )			\
 			{						\
@@ -2824,15 +2721,15 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 		return create_value( new_values, num_indices );		\
 		}
 
-ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_INT,int,IntPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),,indices[i]-1,)
-ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr(),strdup,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,indices[i]-1,)
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,)
 
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
@@ -2851,15 +2748,15 @@ ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr(),strdup,indices[i]-1,)
 		return error_value();			\
 		}
 
-ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_INT,int,IntPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),,off,ARRAY_REF_ACTION_XLATE(;))
-ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr(),strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) delete (char *) new_values[X];))
+ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;))
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) delete (char *) new_values[X];))
 
 		default:
 			fatal->Report( "bad type in Value::ArrayRef()" );
@@ -2885,10 +2782,10 @@ Value* Value::TrueArrayRef( int* indices, int num_indices ) const
 		return RecordSlice( indices, num_indices );
 
 	for ( int i = 0; i < num_indices; ++i )
-		if ( indices[i] < 1 || indices[i] > length )
+		if ( indices[i] < 1 || indices[i] > kernel.Length() )
 			{
 			error->Report( "index (=", indices[i],
-				") out of range, array length =", length );
+				") out of range, array length =", kernel.Length() );
 			return error_value();
 			}
 
@@ -2904,7 +2801,7 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 	if ( ! IndexRange( indices, num_indices, max_index ) )
 		return error_value();
 
-	recordptr rptr = RecordPtr();
+	recordptr rptr = RecordPtr(0);
 
 	if ( max_index > rptr->Length() )
 		{
@@ -3017,8 +2914,8 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 				return;
 				}
 
-			if ( arg->length > max_len )
-				max_len = arg->length;
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
 
 			if ( max_len == 1 )
 				{
@@ -3314,7 +3211,7 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 
 	if ( index->Length() == 1 )
 		{
-		AssignRecordElement( index->StringPtr()[0], value );
+		AssignRecordElement( index->StringPtr(0)[0], value );
 		return;
 		}
 
@@ -3325,8 +3222,8 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 		}
 
 	recordptr lhs_rptr = RecordPtr();
-	recordptr rhs_rptr = value->RecordPtr();
-	charptr* indices = index->StringPtr();
+	recordptr rhs_rptr = value->RecordPtr(0);
+	charptr* indices = index->StringPtr(0);
 
 	if ( index->Length() != rhs_rptr->Length() )
 		{
@@ -3356,7 +3253,7 @@ void Value::AssignRecordElements( Value* value )
 		return;
 		}
 
-	recordptr rhs_rptr = value->Deref()->RecordPtr();
+	recordptr rhs_rptr = value->Deref()->RecordPtr(0);
 	const char* key;
 	Value* val;
 
@@ -3428,7 +3325,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 		return;
 		}
 
-	recordptr rhs_rptr = value->RecordPtr();
+	recordptr rhs_rptr = value->RecordPtr(0);
 
 	if ( rhs_rptr->Length() != num_indices )
 		{
@@ -3512,8 +3409,8 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		int rhs_copy;						\
 		rhs_type rhs_array = value->coerce_func( rhs_copy,	\
 							rhs_len );	\
-		lhs_type lhs = accessor;				\
-		for ( int i = 0; i < num_indices; ++i )		\
+		lhs_type lhs = accessor();				\
+		for ( int i = 0; i < num_indices; ++i )			\
 			{						\
 			delete_old_value				\
 			lhs[indices[i]-1] = copy_func(rhs_array[i]);	\
@@ -3525,46 +3422,46 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		break;							\
 		}
 
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
 
 		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,BoolRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,BoolRef,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
 
 				default:
@@ -3608,7 +3505,7 @@ void Value::AssignArrayElements( Value* value )
 		int rhs_copy;						\
 		type_rhs rhs_array = value->Deref()->coerce_func(	\
 						rhs_copy, max_index );	\
-		type_lhs lhs = accessor;				\
+		type_lhs lhs = accessor();				\
 		for ( int i = 0; i < max_index; ++i )			\
 			{						\
 			delete_old_value				\
@@ -3621,45 +3518,45 @@ void Value::AssignArrayElements( Value* value )
 		break;							\
 		}
 
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
-	ComplexPtr(),CoerceToComplexArray,,)
+	ComplexPtr,CoerceToComplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
-	DcomplexPtr(),CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
+	DcomplexPtr,CoerceToDcomplexArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray,strdup, delete (char*) (lhs[i]);)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,
-	BoolRef(), CoerceToBoolArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef(),
+	BoolRef, CoerceToBoolArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
-	ComplexRef(),CoerceToComplexArray,,)
+	ComplexRef,CoerceToComplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
-	DcomplexRef(), CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef(),
+	DcomplexRef, CoerceToDcomplexArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, strdup, delete (char*) (lhs[i]);)
 
 				default:
@@ -3702,12 +3599,14 @@ void Value::Negate()
 		return;
 		}
 
-	switch ( type )
+	unsigned long length = kernel.Length();
+
+	switch ( Type() )
 		{
 #define NEGATE_ACTION(tag,type,accessor,func)				\
 	case tag:							\
 		{							\
-		type* ptr = accessor;					\
+		type* ptr = accessor();					\
 		for ( int i = 0; i < length; ++i )			\
 			ptr[i] = func(ptr[i]);				\
 		break;							\
@@ -3716,7 +3615,7 @@ void Value::Negate()
 #define COMPLEX_NEGATE_ACTION(tag,type,accessor,func)			\
 	case tag:							\
 		{							\
-		type* ptr = accessor;					\
+		type* ptr = accessor();					\
 		for ( int i = 0; i < length; ++i )			\
 			{						\
 			ptr[i].r = func(ptr[i].r);			\
@@ -3725,14 +3624,14 @@ void Value::Negate()
 		break;							\
 		}
 
-NEGATE_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),(glish_bool) ! (int))
-NEGATE_ACTION(TYPE_BYTE,byte,BytePtr(),-)
-NEGATE_ACTION(TYPE_SHORT,short,ShortPtr(),-)
-NEGATE_ACTION(TYPE_INT,int,IntPtr(),-)
-NEGATE_ACTION(TYPE_FLOAT,float,FloatPtr(),-)
-NEGATE_ACTION(TYPE_DOUBLE,double,DoublePtr(),-)
-COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),-)
-COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),-)
+NEGATE_ACTION(TYPE_BOOL,glish_bool,BoolPtr,(glish_bool) ! (int))
+NEGATE_ACTION(TYPE_BYTE,byte,BytePtr,-)
+NEGATE_ACTION(TYPE_SHORT,short,ShortPtr,-)
+NEGATE_ACTION(TYPE_INT,int,IntPtr,-)
+NEGATE_ACTION(TYPE_FLOAT,float,FloatPtr,-)
+NEGATE_ACTION(TYPE_DOUBLE,double,DoublePtr,-)
+COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,complex,ComplexPtr,-)
+COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,-)
 
 		default:
 			fatal->Report( "bad type in Value::Negate()" );
@@ -3747,7 +3646,9 @@ void Value::Not()
 		return;
 		}
 
-	if ( type == TYPE_BOOL )
+	unsigned long length = kernel.Length();
+
+	if ( Type() == TYPE_BOOL )
 		{
 		glish_bool* ptr = BoolPtr();
 		for ( int i = 0; i < length; ++i )
@@ -3765,15 +3666,15 @@ void Value::Not()
 	if ( is_copy )
 		delete source;
 
-	Value* attr = TakeAttributes();
-	SetValue( result, length );
-	AssignAttributes( attr );
+	kernel.SetArray( result, length );
 	}
 
 
 void Value::AddToSds( int sds, del_list* dlist, const char* name,
 			struct record_header* rh, int level ) const
 	{
+	glish_type type = Type();
+
 	if ( IsVecRef() )
 		{
 		Value* copy = copy_value( this );
@@ -3846,7 +3747,7 @@ void Value::AddToSds( int sds, del_list* dlist, const char* name,
 #define ADD_TO_SDS_ACTION(tag,type,accessor,SDS_type)			\
 	case tag:							\
 		{							\
-		type* array = accessor;					\
+		type* array = accessor(0);				\
 									\
 		if ( rh )						\
 			sds_record_entry( rh, SDS_type, Length(),	\
@@ -3858,19 +3759,20 @@ void Value::AddToSds( int sds, del_list* dlist, const char* name,
 		break;							\
 		}
 
-ADD_TO_SDS_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),SDS_INT)
-ADD_TO_SDS_ACTION(TYPE_BYTE,byte,BytePtr(),SDS_BYTE)
-ADD_TO_SDS_ACTION(TYPE_SHORT,short,ShortPtr(),SDS_SHORT)
-ADD_TO_SDS_ACTION(TYPE_INT,int,IntPtr(),SDS_INT)
-ADD_TO_SDS_ACTION(TYPE_FLOAT,float,FloatPtr(),SDS_FLOAT)
-ADD_TO_SDS_ACTION(TYPE_DOUBLE,double,DoublePtr(),SDS_DOUBLE)
-ADD_TO_SDS_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),SDS_COMPLEX)
-ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),SDS_DOUBLE_COMPLEX)
+ADD_TO_SDS_ACTION(TYPE_BOOL,glish_bool,BoolPtr,SDS_INT)
+ADD_TO_SDS_ACTION(TYPE_BYTE,byte,BytePtr,SDS_BYTE)
+ADD_TO_SDS_ACTION(TYPE_SHORT,short,ShortPtr,SDS_SHORT)
+ADD_TO_SDS_ACTION(TYPE_INT,int,IntPtr,SDS_INT)
+ADD_TO_SDS_ACTION(TYPE_FLOAT,float,FloatPtr,SDS_FLOAT)
+ADD_TO_SDS_ACTION(TYPE_DOUBLE,double,DoublePtr,SDS_DOUBLE)
+ADD_TO_SDS_ACTION(TYPE_COMPLEX,complex,ComplexPtr,SDS_COMPLEX)
+ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 
 		case TYPE_STRING:
 			{
 			int total_size = 0;
-			charptr* strs = StringPtr();
+			charptr* strs = StringPtr(0);
+			unsigned long length = kernel.Length();
 
 			// First figure out how much total storage is needed
 			// for all of the strings.
@@ -3913,7 +3815,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),SDS_DOUBLE_COMPLEX)
 
 		case TYPE_RECORD:
 			{
-			recordptr rptr = RecordPtr();
+			recordptr rptr = RecordPtr(0);
 
 			for ( int i = 0; i < rptr->Length(); ++i )
 				{
@@ -3963,6 +3865,9 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),SDS_DOUBLE_COMPLEX)
 
 void Value::Polymorph( glish_type new_type )
 	{
+	glish_type type = Type();
+	unsigned long length = kernel.Length();
+
 	if ( type == new_type )
 		return;
 
@@ -3995,11 +3900,7 @@ void Value::Polymorph( glish_type new_type )
 		int is_copy;						\
 		type* new_val = coerce_func( is_copy, length );		\
 		if ( is_copy )						\
-			{						\
-			Value* attr = TakeAttributes();			\
-			SetValue( new_val, length );			\
-			AssignAttributes( attr );			\
-			}						\
+			kernel.SetArray( new_val, length );		\
 		break;							\
 		}
 
@@ -4018,7 +3919,7 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 				warn->Report(
 			"array values lost due to conversion to record type" );
 
-			SetValue( create_record_dict() );
+			kernel.SetRecord( create_record_dict() );
 
 			break;
 
@@ -4029,6 +3930,9 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 
 void Value::VecRefPolymorph( glish_type new_type )
 	{
+	glish_type type = Type();
+	unsigned long length = kernel.Length();
+
 	if ( type != TYPE_SUBVEC_REF && type != TYPE_SUBVEC_CONST )
 		{
 		Polymorph( new_type );
@@ -4045,7 +3949,7 @@ void Value::VecRefPolymorph( glish_type new_type )
 		type* new_val = new type[length];			\
 		for ( int i = 0; i < length; ++i )			\
 			new_val[i] = copy_func( old[i] );		\
-		SetValue( new_val, length );				\
+		kernel.SetArray( new_val, length );			\
 		break;							\
 		}
 
@@ -4064,7 +3968,7 @@ VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,strdup)
 				warn->Report(
 			"array values lost due to conversion to record type" );
 
-			SetValue( create_record_dict() );
+			kernel.SetRecord( create_record_dict() );
 			break;
 
 		default:
@@ -4083,57 +3987,19 @@ int Value::Grow( unsigned int new_size )
 	{
 	int i;
 
-	if ( storage == PRESERVE_ARRAY )
-		TakeValue( copy_value( this ) );
-
-	if ( new_size <= length )
+	switch ( Type() )
 		{
-		if ( type == TYPE_STRING )
-			{
-			charptr* string_ptr = StringPtr();
-			for ( i = new_size; i < length; ++i )
-				delete (char*) string_ptr[i];
-			}
-
-		length = new_size;
-
-		return 1;
-		}
-
-	switch ( type )
-		{
-#define GROW_ACTION(tag,type,accessor,null_value)			\
-	case tag:							\
-		{							\
-		type* ptr = accessor;					\
-		if ( new_size > max_size )				\
-			{						\
-			values = (void*) realloc_memory( (void*) ptr,	\
-						sizeof( type ) * new_size );\
-			if ( ! values )					\
-				fatal->Report(				\
-					"out of memory in Value::Grow" );\
-									\
-			max_size = new_size;				\
-			ptr = accessor;					\
-			}						\
-									\
-		for ( i = length; i < new_size; ++i )			\
-			ptr[i] = null_value;				\
-									\
-		break;							\
-		}
-
-GROW_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),glish_false)
-GROW_ACTION(TYPE_BYTE,byte,BytePtr(),0)
-GROW_ACTION(TYPE_SHORT,short,ShortPtr(),0)
-GROW_ACTION(TYPE_INT,int,IntPtr(),0)
-GROW_ACTION(TYPE_FLOAT,float,FloatPtr(),0.0)
-GROW_ACTION(TYPE_DOUBLE,double,DoublePtr(),0.0)
-GROW_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),complex(0.0, 0.0))
-GROW_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),dcomplex(0.0, 0.0))
-GROW_ACTION(TYPE_STRING,charptr,StringPtr(),strdup( "" ))
-
+		case TYPE_BOOL:
+		case TYPE_BYTE:
+		case TYPE_SHORT:
+		case TYPE_INT:
+		case TYPE_FLOAT:
+		case TYPE_DOUBLE:
+		case TYPE_COMPLEX:
+		case TYPE_DCOMPLEX:
+		case TYPE_STRING:
+			kernel.Grow( new_size );
+			break;
 		case TYPE_SUBVEC_REF:
 		case TYPE_SUBVEC_CONST:
 		case TYPE_AGENT:
@@ -4147,8 +4013,6 @@ GROW_ACTION(TYPE_STRING,charptr,StringPtr(),strdup( "" ))
 		default:
 			fatal->Report( "bad type in Value::Grow()" );
 		}
-
-	length = new_size;
 
 	return 1;
 	}
@@ -4191,30 +4055,12 @@ Value* create_record()
 	return create_value( create_record_dict() );
 	}
 
-recordptr create_record_dict()
+#if 1
+Value *copy_value( const Value *value )
 	{
-	return new PDict(Value)( ORDERED );
+	return create_value( *value );
 	}
-
-void delete_record( recordptr r )
-	{
-	if ( r )
-		{
-		IterCookie* c = r->InitForIteration();
-
-		Value* member;
-		const char* key;
-		while ( (member = r->NextEntry( key, c )) )
-			{
-			delete (char*) key;
-			Unref( member );
-			}
-
-		delete r;
-		}
-	}
-
-
+#else
 Value* copy_value( const Value* value )
 	{
 	if ( value->IsRef() )
@@ -4297,7 +4143,7 @@ COPY_VALUE(TYPE_STRING,StringPtr())
 	copy->CopyAttributes( value );
 	return copy;
 	}
-
+#endif
 
 static charptr* make_string_array( char* heap, int len, int& result_len )
 	{

@@ -37,7 +37,7 @@ int Parameter::NumEllipsisVals() const
 
 	const IValue* values = Arg()->ReadOnlyEval();
 
-	int n = values->RecordPtr()->Length();
+	int n = values->RecordPtr(0)->Length();
 
 	Arg()->ReadOnlyDone( values );
 
@@ -52,7 +52,7 @@ const IValue* Parameter::NthEllipsisVal( int n ) const
 
 	const IValue* values = Arg()->ReadOnlyEval();
 
-	if ( n < 0 || n >= values->RecordPtr()->Length() )
+	if ( n < 0 || n >= values->RecordPtr(0)->Length() )
 		fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
 
 	char field_name[256];
@@ -482,7 +482,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 
 			char field_name[256];
 			sprintf( field_name, "%d",
-				formal_ellipsis_value->RecordPtr()->Length() );
+				formal_ellipsis_value->RecordPtr(0)->Length() );
 
 			val = actual_ellipsis->NthEllipsisVal( i );
 
@@ -526,7 +526,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 void UserFunc::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	{
 	char field_name[256];
-	sprintf( field_name, "%d", ellipsis_value->RecordPtr()->Length() );
+	sprintf( field_name, "%d", ellipsis_value->RecordPtr(0)->Length() );
 
 	IValue* val = arg->RefEval( VAL_CONST );
 

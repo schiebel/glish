@@ -20,82 +20,59 @@ RCSID("@(#) $Id$")
 
 #define AGENT_MEMBER_NAME "*agent*"
 
-#define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
-IValue::IValue( constructor_type value )					\
-	{								\
-	InitValue();							\
-	SetValue( &value, 1, COPY_ARRAY );				\
+void copy_agents( void *to_, void *from_, unsigned long len )
+	{
+	agentptr *to = (agentptr*) to_;
+	agentptr *from = (agentptr*) to_;
+	copy_array(from,to,len,agentptr);
+	for (int i = 0; i < len; i++)
+		Ref(to[i]);
+	}
+void delete_agents( void *ary_, unsigned long len )
+	{
+	agentptr *ary = (agentptr*) ary_;
+	for (int i = 0; i < len; i++)
+		Unref(ary[i]);
 	}
 
-#define DEFINE_ARRAY_CONSTRUCTOR(constructor_type)			\
-IValue::IValue( constructor_type value[], int len, array_storage_type storage )\
-	{								\
-	InitValue();							\
-	SetValue( value, len, storage );				\
+IValue::IValue( funcptr value )
+	{
+	InitValue();
+	kernel.SetArray( (voidptr*) &value, 1, TYPE_FUNC, 1 );
 	}
 
-DEFINE_SINGLETON_CONSTRUCTOR(funcptr)
-DEFINE_ARRAY_CONSTRUCTOR(funcptr)
+IValue::IValue( funcptr value[], int len, array_storage_type s )
+	{
+	InitValue();
+	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
+	}
 
 IValue::IValue( agentptr value, array_storage_type storage )
 	{
 	InitValue();
-	if ( storage != COPY_ARRAY )
+	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
 		agentptr *ary = new agentptr[1];
 		copy_array(&value,ary,1,agentptr);
-		SetValue( ary, 1, storage );
+		kernel.SetArray( (voidptr*) ary, 1, TYPE_AGENT, 0, copy_agents, 0, delete_agents );
 		}
 	else
-		SetValue( &value, 1, storage );
+		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1, copy_agents, 0, delete_agents );
 	}
 
 IValue::IValue( recordptr value, Agent* agent )
 	{
 	InitValue();
-	SetValue( value, agent );
+	value->Insert( strdup( AGENT_MEMBER_NAME ),
+		       new IValue( agent, TAKE_OVER_ARRAY ) );
+
+	kernel.SetRecord( value );
 	}
 
-void IValue::SetValue( agentptr array[], int len, array_storage_type arg_storage )
-	{
-	SetType( TYPE_AGENT );
-	max_size = length = len;
-	storage = arg_storage;
-	if ( storage == COPY_ARRAY ) {
-		values = copy_values(array, agentptr);
-		for (int i = 0; i < len; i++)
-			Ref(array[i]);
-	} else
-		values = array;
-	}
-
-#define DEFINE_ARRAY_SET_VALUE(type, glish_type)			\
-void IValue::SetValue( type array[], int len, array_storage_type arg_storage )\
-	{								\
-	SetType( glish_type );						\
-	max_size = length = len;					\
-	storage = arg_storage;						\
-	values = storage == COPY_ARRAY ? copy_values( array, type ) : array;\
-	}
-
-DEFINE_ARRAY_SET_VALUE(funcptr,TYPE_FUNC)
-
-void IValue::SetValue( recordptr value )
-	{
-	Value::SetValue( value );
-	}
-
-void IValue::SetValue( recordptr value, Agent* agent )
-	{
-	Value::SetValue( value );
-
-	RecordPtr()->Insert( strdup( AGENT_MEMBER_NAME ),
-					new IValue( agent, TAKE_OVER_ARRAY ) );
-	}
 
 void IValue::DeleteValue()
 	{
-	if ( type == TYPE_AGENT )
+	if ( Type() == TYPE_AGENT )
 		{
 		// Here we rely on the fact that Agent is derived
 		// GlishObject, which has a virtual destructor.
@@ -103,7 +80,6 @@ void IValue::DeleteValue()
 		}
 
 	Value::DeleteValue();
-	type = TYPE_ERROR;
 	}
 
 IValue::~IValue()
@@ -114,7 +90,7 @@ IValue::~IValue()
 int IValue::IsAgentRecord() const
 	{
 	if ( VecRefDeref()->Type() == TYPE_RECORD &&
-	     (*RecordPtr())[AGENT_MEMBER_NAME] )
+	     (*RecordPtr(0))[AGENT_MEMBER_NAME] )
 		return 1;
 	else
 		return 0;
@@ -122,13 +98,14 @@ int IValue::IsAgentRecord() const
 
 
 #define DEFINE_CONST_ACCESSOR(name,tag,type)				\
-type IValue::name() const						\
+type IValue::name( int modify ) const					\
 	{								\
 	if ( IsVecRef() ) 						\
 		return ((const IValue*) VecRefPtr()->Val())->name();	\
 	else if ( Type() != tag )					\
 		fatal->Report( "bad use of const accessor" );		\
-	return (type) values;						\
+									\
+	return (type) ( modify ? kernel.modArray() : kernel.constArray() );\
 	}
 
 DEFINE_CONST_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
@@ -136,13 +113,14 @@ DEFINE_CONST_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 
 #define DEFINE_ACCESSOR(name,tag,type)					\
-type IValue::name()							\
+type IValue::name( int modify )						\
 	{								\
 	if ( IsVecRef() ) 						\
 		return ((IValue*)VecRefPtr()->Val())->name();		\
 	if ( Type() != tag )						\
 		Polymorph( tag );					\
-	return (type) values;						\
+									\
+	return (type) ( modify ? kernel.modArray() : kernel.constArray() );\
 	}
 
 DEFINE_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
@@ -150,12 +128,12 @@ DEFINE_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 Agent* IValue::AgentVal() const
 	{
-	if ( type == TYPE_AGENT )
-		return AgentPtr()[0];
+	if ( Type() == TYPE_AGENT )
+		return AgentPtr(0)[0];
 
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		{
-		Value* member = (*RecordPtr())[AGENT_MEMBER_NAME];
+		Value* member = (*RecordPtr(0))[AGENT_MEMBER_NAME];
 
 		if ( member )
 			return ((IValue*)member)->AgentVal();
@@ -167,39 +145,39 @@ Agent* IValue::AgentVal() const
 
 Func* IValue::FuncVal() const
 	{
-	if ( type != TYPE_FUNC )
+	if ( Type() != TYPE_FUNC )
 		{
 		error->Report( this, " is not a function value" );
 		return 0;
 		}
 
-	if ( length == 0 )
+	if ( Length() == 0 )
 		{
 		error->Report( "empty function array" );
 		return 0;
 		}
 
-	if ( length > 1 )
+	if ( Length() > 1 )
 		warn->Report( "more than one function element in", this,
 				", excess ignored" );
 
-	return FuncPtr()[0];
+	return FuncPtr(0)[0];
 	}
 
 
 funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) const
 	{
-	if ( type != TYPE_FUNC )
+	if ( Type() != TYPE_FUNC )
 		fatal->Report( "non-func type in CoerceToFuncArray()" );
 
-	if ( size != length )
+	if ( size != Length() )
 		fatal->Report( "size != length in CoerceToFuncArray()" );
 
 	if ( result )
 		fatal->Report( "prespecified result in CoerceToFuncArray()" );
 
 	is_copy = 0;
-	return FuncPtr();
+	return FuncPtr(0);
 	}
 
 
@@ -229,8 +207,8 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 		int rhs_copy;						\
 		rhs_type rhs_array = ((IValue*)value)->coerce_func( rhs_copy,	\
 							rhs_len );	\
-		lhs_type lhs = accessor;				\
-		for ( int i = 0; i < num_indices; ++i )		\
+		lhs_type lhs = accessor();				\
+		for ( int i = 0; i < num_indices; ++i )			\
 			{						\
 			delete_old_value				\
 			lhs[indices[i]-1] = copy_func(rhs_array[i]);	\
@@ -242,48 +220,48 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 		break;							\
 		}
 
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 
 		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,BoolRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,BoolRef,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef(),
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
 
 				default:
@@ -327,7 +305,7 @@ void IValue::AssignArrayElements( Value* value )
 		int rhs_copy;						\
 		type_rhs rhs_array = ((IValue*)value->Deref())->coerce_func(	\
 						rhs_copy, max_index );	\
-		type_lhs lhs = accessor;				\
+		type_lhs lhs = accessor();				\
 		for ( int i = 0; i < max_index; ++i )			\
 			{						\
 			delete_old_value				\
@@ -340,47 +318,47 @@ void IValue::AssignArrayElements( Value* value )
 		break;							\
 		}
 
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_bool*,glish_bool*,BoolPtr,
 	CoerceToBoolArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byte*,byte*,BytePtr,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,short*,short*,ShortPtr,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,int*,int*,IntPtr,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
-	ComplexPtr(),CoerceToComplexArray,,)
+	ComplexPtr,CoerceToComplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
-	DcomplexPtr(),CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr(),
+	DcomplexPtr,CoerceToDcomplexArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray,strdup, delete (char*) (lhs[i]);)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BOOL,glish_boolref&,glish_bool*,
-	BoolRef(), CoerceToBoolArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef(),
+	BoolRef, CoerceToBoolArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_BYTE,byteref&,byte*,ByteRef,
 	CoerceToByteArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_SHORT,shortref&,short*,ShortRef,
 	CoerceToShortArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_INT,intref&,int*,IntRef,
 	CoerceToIntArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef(),
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
-	ComplexRef(),CoerceToComplexArray,,)
+	ComplexRef,CoerceToComplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
-	DcomplexRef(), CoerceToDcomplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef(),
+	DcomplexRef, CoerceToDcomplexArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, strdup, delete (char*) (lhs[i]);)
 
 				default:
@@ -397,7 +375,7 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef(),
 #define DEFINE_XXX_ARITH_OP_COMPUTE(name,type,coerce_func)		\
 void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 	{								\
-	int lhs_copy, rhs_copy;					\
+	int lhs_copy, rhs_copy;						\
 	type* lhs_array = coerce_func( lhs_copy, lhs_len );		\
 	type* rhs_array = ((IValue*)value)->coerce_func( rhs_copy, value->Length() );\
 									\
@@ -407,12 +385,9 @@ void IValue::name( const IValue* value, int lhs_len, ArithExpr* expr )	\
 									\
 	if ( lhs_copy )							\
 		{							\
-		Value* attr = TakeAttributes();				\
 		/* Change our value to the new result. */		\
-		SetValue( lhs_array, lhs_len );				\
-		if ( attr )						\
-			AssignAttributes( attr );			\
-		else							\
+		kernel.SetArray( lhs_array, lhs_len );			\
+		if ( ! AttributePtr() )					\
 			CopyAttributes( value );			\
 		}							\
 									\
@@ -432,6 +407,9 @@ DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray)
 
 void IValue::Polymorph( glish_type new_type )
 	{
+	glish_type type = Type();
+	unsigned long length = kernel.Length();
+
 	if ( type == new_type )
 		return;
 
@@ -464,11 +442,7 @@ void IValue::Polymorph( glish_type new_type )
 		int is_copy;						\
 		type* new_val = coerce_func( is_copy, length );		\
 		if ( is_copy )						\
-			{						\
-			Value* attr = TakeAttributes();			\
-			SetValue( new_val, length );			\
-			AssignAttributes( attr );			\
-			}						\
+			kernel.SetArray( new_val, length );		\
 		break;							\
 		}
 
@@ -481,14 +455,21 @@ POLYMORPH_ACTION(TYPE_DOUBLE,double,CoerceToDoubleArray)
 POLYMORPH_ACTION(TYPE_COMPLEX,complex,CoerceToComplexArray)
 POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,CoerceToDcomplexArray)
 POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
-POLYMORPH_ACTION(TYPE_FUNC,funcptr,CoerceToFuncArray)
 
+		case TYPE_FUNC:
+			{
+			int is_copy;
+			funcptr* new_val = CoerceToFuncArray( is_copy, length );
+			if ( is_copy )
+				kernel.SetArray( (voidptr*) new_val, length, TYPE_FUNC );
+			break;
+			}
 		case TYPE_RECORD:
 			if ( length > 1 )
 				warn->Report(
 			"array values lost due to conversion to record type" );
 
-			SetValue( create_record_dict() );
+			kernel.SetRecord( create_record_dict() );
 
 			break;
 
@@ -499,7 +480,7 @@ POLYMORPH_ACTION(TYPE_FUNC,funcptr,CoerceToFuncArray)
 
 void IValue::DescribeSelf( ostream& s ) const
 	{
-	if ( type == TYPE_FUNC )
+	if ( Type() == TYPE_FUNC )
 		{
 		// ### what if we're an array of functions?
 		FuncVal()->Describe( s );
@@ -508,6 +489,12 @@ void IValue::DescribeSelf( ostream& s ) const
 		Value::DescribeSelf( s );
 	}
 
+#if 1
+IValue *copy_value( const IValue *value )
+	{
+	return new IValue( *value );
+	}
+#else
 IValue* copy_value( const IValue* value )
 	{
 	if ( value->IsRef() )
@@ -602,6 +589,7 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 	copy->CopyAttributes( value );
 	return copy;
 	}
+#endif
 
 #define DEFINE_XXX_REL_OP_COMPUTE(name,type,coerce_func)		\
 IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )\

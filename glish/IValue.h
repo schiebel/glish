@@ -13,8 +13,14 @@ class RelExpr;
 typedef Func* funcptr;
 typedef Agent* agentptr;
 
+extern void copy_agents( void *to_, void *from_, unsigned long len );
+extern void delete_agents( void *ary_, unsigned long len );
+
 class IValue : public Value {
 public:
+	IValue( const Value &v ) : Value(v) { }
+	IValue( const IValue &v ) : Value(v) { }
+
 	IValue( glish_bool v ) : Value( v ) { }
 	IValue( byte v ) : Value( v ) { }
 	IValue( short v ) : Value( v ) { }
@@ -91,8 +97,8 @@ public:
 	int IsAgentRecord() const;
 
 	// Returns the agent or function corresponding to the Value.
-	Agent* AgentVal() const;
-	funcptr FuncVal() const;
+	Agent* AgentVal( ) const;
+	funcptr FuncVal( ) const;
 
 	// The following accessors return pointers to the underlying value
 	// array.  The "const" versions complain with a fatal error if the
@@ -100,11 +106,11 @@ public:
 	// Polymorph() the values to the given type.  If called for a
 	// subref, retrieves the complete underlying value, not the
 	// just selected subelements.  (See the XXXRef() functions below.)
-	funcptr* FuncPtr() const;
-	agentptr* AgentPtr() const;
+	funcptr* FuncPtr( int modify=1 ) const;
+	agentptr* AgentPtr( int modify=1 ) const;
 
-	funcptr* FuncPtr();
-	agentptr* AgentPtr();
+	funcptr* FuncPtr( int modify=1 );
+	agentptr* AgentPtr( int modify=1 );
 
 	// These coercions are very limited: they essentially either
 	// return the corresponding xxxPtr() (if the sizes match,
@@ -129,14 +135,6 @@ public:
 	void DescribeSelf( ostream& s ) const;
 
 protected:
-	void SetValue( agentptr array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetValue( funcptr array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY );
-
-	void SetValue( recordptr value );
-	void SetValue( recordptr value, Agent* agent );
-
 	void DeleteValue();
 
 	void InitRecord( recordptr r );
@@ -149,61 +147,6 @@ protected:
 				Value* value, int rhs_len );
 	void AssignArrayElements( Value* value );
 
-
-	// Forward all of these calls to the base class to make
-	// it more convenient to use IValue
-	void SetValue( glish_bool array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( byte array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( short array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( int array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( float array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( double array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( complex array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( dcomplex array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( const char* array[], int len,
-			array_storage_type storage = TAKE_OVER_ARRAY )
-			{ Value::SetValue( array, len, storage ); }
-	void SetValue( SDS_Index& array )
-			{ Value::SetValue( array ); }
-
-	void SetValue( glish_boolref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( byteref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( shortref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( intref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( floatref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( doubleref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( complexref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( dcomplexref& value_ref )
-			{ Value::SetValue( value_ref ); }
-	void SetValue( charptrref& value_ref )
-			{ Value::SetValue( value_ref ); }
-
-	void SetValue( Value *ref_value, int index[], int num_elements, 
-			value_type val_type )
-			{ Value::SetValue( ref_value, index, num_elements, val_type ); }
 
     protected:
 	// Note: if member variables are added, Value::TakeValue()

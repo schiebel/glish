@@ -185,7 +185,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 #define SETSTR(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0 )		\
-	charptr var = ( var##_v_ ->StringPtr() )[0];
+	charptr var = ( var##_v_ ->StringPtr(0) )[0];
 #define SETDIM(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
 				var##_v_ ->Length() > 0   ||		\
@@ -193,7 +193,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 	char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( var##_v_ ->Type() == TYPE_STRING )				\
-		var = ( var##_v_ ->StringPtr() )[0];			\
+		var = ( var##_v_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
 		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
@@ -227,7 +227,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		return 0;						\
 		}							\
 	else								\
-		var = ( var##_val_ ->StringPtr() )[0];
+		var = ( var##_val_ ->StringPtr(0) )[0];
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
@@ -243,7 +243,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		}							\
 	else								\
 		if ( var##_val_ ->Type() == TYPE_STRING	)		\
-			var = ( var##_val_ ->StringPtr() )[0];		\
+			var = ( var##_val_ ->StringPtr(0) )[0];		\
 		else							\
 			{						\
 			sprintf(var##_char_,"%d", var##_val_->IntVal());\
@@ -283,7 +283,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		sprintf(var##_char_,"%d",var##_int_);			\
 		}							\
 	else if ( var##_val_ -> Type() == TYPE_STRING )			\
-		var = ( var##_val_ ->StringPtr() )[0];			\
+		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
 		error->Report("bad type for ", EVENT);			\
@@ -303,7 +303,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		return 0;						\
 		}							\
 	else								\
-		var = var##_val_ ->DoublePtr();
+		var = var##_val_ ->DoublePtr(0);
 
 #define EXPR_DONE(var)							\
 	var##_expr_ ->ReadOnlyDone(var##_val_);
@@ -508,7 +508,7 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, IValue *str_v, 
 	if ( ! len ) return 0;
 
 	char **argv = new char*[len+3];
-	charptr *strs = str_v->StringPtr();
+	charptr *strs = str_v->StringPtr(0);
 
 	argv[0] = 0;
 	argv[1] = (char*) cmd;
@@ -556,7 +556,7 @@ char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, IValue *val )
 
 	static int rlen = 200;
 	static char *ret = new char[rlen];
-	int *index = val->IntPtr();
+	int *index = val->IntPtr(0);
 	char buf[40];
 	int cnt=0;
 
@@ -599,13 +599,13 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, parameter_list *args,
 			{
 			EXPRSTR( end, event_name )
 			ret = rivet_va_cmd( a->Self(), cmd,
-					    a->IndexCheck( val->StringPtr()[0] ),
+					    a->IndexCheck( val->StringPtr(0)[0] ),
 					    a->IndexCheck( end ), 0 );
 			EXPR_DONE( end )
 			}
 		else
 			ret = rivet_va_cmd( a->Self(), cmd,
-					    a->IndexCheck( val->StringPtr()[0] ), 0 );
+					    a->IndexCheck( val->StringPtr(0)[0] ), 0 );
 		}
 
 	else if ( val->Type() == TYPE_INT && val->Length() )
