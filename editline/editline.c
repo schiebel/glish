@@ -1165,6 +1165,37 @@ nb_readline_cleanup()
 	}
 }
 
+/*
+ * Somtimes it is necessary to reset the terminal state because
+ * there will be an interruption in calls to nb_readline. This
+ * serves that purpose.
+ */
+void
+nb_reset_term( int enter )
+	{
+	static unsigned int count = 0;
+	if ( enter )
+		{
+		if ( ! count && still_collecting_data )
+			rl_ttyset(1);
+		count += 1;
+		}
+	else if ( count )
+		{
+		count -= 1;
+		if ( ! count && still_collecting_data )
+			{
+			rl_ttyset(0);
+			clear_line();
+			/* do these two instead of redisplay()
+			 * to avoid generating a new line
+			 */
+			TTYputs((STRING)Prompt);
+			TTYstring(Line);
+			}
+		}
+	}
+
 char *
 nb_readline(prompt)
     const char	*prompt;
