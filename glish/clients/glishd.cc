@@ -47,6 +47,7 @@ inline char* extract_prog_name( char *exec_line )
 	{ return (!strtok( exec_line, " " ) || !strtok( NULL, " " ) ||
 		  !strtok( NULL, " " )) ? 0 : strtok( NULL, " " ); }
 
+int glishd_verbose = 0;
 int suspend_user = 0;
 
 void glishd_sighup();
@@ -213,6 +214,8 @@ class dUser : public GlishDaemon {
 						// interpreters or shared clients
 	void ProcessInternalReq( GlishEvent * );// requests to the daemon
 	void loop();				// handle requests
+
+	const char *Id( ) const { return id; };
 
     protected:
 	int pid();
@@ -392,7 +395,13 @@ void GlishDaemon::Invalidate()
 	interrupt_pipe[0] = interrupt_pipe[1] = 0;
 	}
 
-void GlishDaemon::FatalError() { }
+void GlishDaemon::FatalError()
+	{
+	valid = 0;
+	if ( *interrupt_pipe )
+		close(interrupt_pipe[1]);
+	interrupt_pipe[0] = interrupt_pipe[1] = 0;
+	}
 
 GlishDaemon::~GlishDaemon() { }
 
@@ -783,6 +792,9 @@ dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
 	id = (char*) alloc_memory( strlen(hostname) + strlen(name) + 30 );
 	sprintf( id, "%s @ %s [%d]", name, hostname, int( getpid() ) );
 
+	if ( glishd_verbose )
+		syslog( LOG_INFO, "STARTING: %s", id );
+
 	// setup syslog facility
 	openlog(id,LOG_CONS,LOG_DAEMON);
 
@@ -806,7 +818,11 @@ dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
 			syslog( LOG_ERR, "couldn't stat key directory \"%s\"", argv[1] );
 #if USENPD
 		else if ( S_ISDIR(stat_buf.st_mode) )
+			{
 			set_key_directory(argv[1]);
+			if ( glishd_verbose )
+				syslog( LOG_INFO, "using key directory \"%s\"", argv[1] );
+			}
 #endif
 		else
 			syslog( LOG_ERR, "key directory, \"%s\", invalid", argv[1] );
@@ -843,8 +859,9 @@ void dServer::loop()
 		// Now look for any new interpreters contacting us.
 		if ( FD_ISSET( accept_sock.FD(), mask ) )
 			ProcessConnect();
-
 		}
+	if ( glishd_verbose )
+		syslog( LOG_INFO, "EXITING event loop" );
 	}
 
 void dServer::ProcessConnect()
@@ -897,6 +914,8 @@ void dServer::clear_clients_registered_to( const char *user )
 		{
 		if ( ! strcmp(user, val) )
 			{
+			if ( glishd_verbose )
+				syslog( LOG_INFO, "removing world client (%s): %s", user, key );
 			free_memory( world_clients.Remove(key) );
 			free_memory( val );
 			}
@@ -910,12 +929,16 @@ void dServer::clear_clients_registered_to( const char *user )
 			{
 			if ( ! strcmp(user, val) )
 				{
+				if ( glishd_verbose )
+					syslog( LOG_INFO, "removing group client (%s/%s): %s", user, key, key2 );
 				free_memory( (*map).Remove(key2) );
 				free_memory( val );
 				}
 			}
 		if ( ! (*map).Length() )
 			{
+			if ( glishd_verbose )
+				syslog( LOG_INFO, "removing group client list: %s/%s", user, key );
 			free_memory( group_clients.Remove( key ) );
 			delete map;
 			}
@@ -935,12 +958,16 @@ void dServer::CreateClient( Value *value, const char *user_name )
 	str_dict *map = group_clients[group];
 	if ( map && (registered_user = (*map)[nme]) )
 		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "create group client (%s): <%s> %s", user_name, registered_user, nme );
 		users[registered_user]->PostEvent( "client", value );
 		return;
 		}
 
 	if ( (registered_user = world_clients[nme]) )
 		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "create world client (%s): <%s> %s", user_name, registered_user, nme );
 		users[registered_user]->PostEvent( "client", value );
 		return;
 		}
@@ -952,10 +979,16 @@ void dServer::Register( Value *value, const char *user_name )
 	const char *type = value->StringPtr(0)[1];
 
 	if ( ! strcmp( type, "WORLD" ) )
+		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "register world (%s): %s", user_name, nme );
 		world_clients.Insert( strdup(nme), strdup(user_name) );
+		}
 	else if ( ! strcmp( type, "GROUP" ) )
 		{
 		const char *group = get_group_name( get_user_group( user_name ) );
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "register group (%s/%s): %s", user_name, group, nme );
 		str_dict *map = group_clients[group];
 		if ( ! map )
 			{
@@ -997,6 +1030,8 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 	str_dict *map = group_clients[group];
 	if ( map && ( (registering_user = (*map)[name_str]) ))
 		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "ping group client (%s): <%s> %s", user_name, registering_user, name_str );
 		Value true_value( glish_true );
 		user->PostEvent( "client-up-reply", &true_value );
 		return;
@@ -1004,11 +1039,16 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 
 	if ( (registering_user = world_clients[name_str]) )
 		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "ping world client (%s): <%s> %s", user_name, registering_user, name_str );
 		Value true_value( glish_true );
 		user->PostEvent( "client-up-reply", &true_value );
 		return;
 		}
 
+	if ( glishd_verbose )
+		syslog( LOG_INFO, "ping non-existent client (%s): %s", user_name, name_str );
+	
 	user->PostEvent( "client-up-reply", false_value );
 	}
 
@@ -1032,10 +1072,21 @@ void dServer::ClientGone( Value* client, const char *user_name, dUser *user )
 
 	str_dict *map = group_clients[group];
 	if ( map && ( (registering_user = (*map)[name_str]) ))
+		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "group client exited (%s): <%s/%s> %s", user_name, registering_user, group, name_str );
 		(*map).Remove( name_str );
+		}
 
 	else if ( (registering_user = world_clients[name_str]) )
+		{
+		if ( glishd_verbose )
+			syslog( LOG_INFO, "world client exited (%s): <%s> %s", user_name, registering_user, name_str );
 		world_clients.Remove( name_str );
+		}
+	else if ( glishd_verbose )
+		syslog( LOG_INFO, "unknown client exited (%s): %s", user_name, name_str );
+
 	}
 
 void dServer::ProcessUsers( fd_set *mask)
@@ -1051,6 +1102,8 @@ void dServer::ProcessUsers( fd_set *mask)
 
 			if ( ! e )	// dUser has exited
 				{
+				if ( glishd_verbose )
+					syslog( LOG_INFO, "user daemon exited: %s", user->Id() );
 				// At some point, we'll need to do "shared"
 				// client cleanup here too.
 				clear_clients_registered_to( key );
@@ -1112,6 +1165,7 @@ void dServer::FatalError()
 	// close port so it is freed up otherwise it seems to
 	// take some time for the OS to realize the port is free.
 	close(accept_sock.FD());
+	GlishDaemon::FatalError();
 	}
 
 Interp::~Interp( )
@@ -1229,6 +1283,14 @@ void Interp::CreateClient( Value* value, dUser *hub )
 			charptr *name = name_val->StringPtr( );
 			free_memory( (char*) name[0] );
 			name[0] = lookup;
+
+			if ( glishd_verbose )
+				{
+				char *str = value->StringVal();
+				syslog( LOG_INFO, "joining shared client: %s", str );
+				free_memory( str );
+				}
+
 			persistent->PostEvent( "client", value );
 			return;
 			}
@@ -1238,6 +1300,14 @@ void Interp::CreateClient( Value* value, dUser *hub )
 		Client *persistent = hub->LookupClient( name_str );
 		if ( persistent )
 			{
+
+			if ( glishd_verbose )
+				{
+				char *str = value->StringVal();
+				syslog( LOG_INFO, "joining shared script client: %s", str );
+				free_memory( str );
+				}
+
 			persistent->PostEvent( "client", value );
 			return;
 			}
@@ -1440,26 +1510,27 @@ void glishd_sighup()
 	}
 
 
-#define DEFINE_SIG_FWD(NAME,SIGNAL)					\
+#define DEFINE_SIG_FWD(NAME,STRING,SIGNAL)				\
 void NAME( )								\
 	{								\
 	if ( current_daemon )						\
 		current_daemon->FatalError();				\
 									\
+	syslog( LOG_ERR, STRING );					\
 	install_signal_handler( SIGNAL, (signal_handler) SIG_DFL );	\
-	kill( getpid(), SIGNAL );					\
+	unblock_signal(SIGNAL);						\
 	}
 
-DEFINE_SIG_FWD(glishd_sigsegv,SIGSEGV)
-DEFINE_SIG_FWD(glishd_sigbus, SIGBUS);
-DEFINE_SIG_FWD(glishd_sigill, SIGILL);
+DEFINE_SIG_FWD(glishd_sigsegv,"EXITING with segmentation violation (SIGSEGV)",SIGSEGV)
+DEFINE_SIG_FWD(glishd_sigbus,"EXITING with bus error (SIGBUS)",SIGBUS);
+DEFINE_SIG_FWD(glishd_sigill,"EXITING with illegal instruction (SIGILL)",SIGILL);
 #ifdef SIGEMT
-DEFINE_SIG_FWD(glishd_sigemt, SIGEMT);
+DEFINE_SIG_FWD(glishd_sigemt,"EXITING with SIGEMT",SIGEMT);
 #endif
-DEFINE_SIG_FWD(glishd_sigfpe, SIGFPE);
-DEFINE_SIG_FWD(glishd_sigtrap, SIGTRAP);
+DEFINE_SIG_FWD(glishd_sigfpe,"EXITING with floating point exception (SIGFPE)",SIGFPE);
+DEFINE_SIG_FWD(glishd_sigtrap,"EXITING with trace trap (SIGTRAP)",SIGTRAP);
 #ifdef SIGSYS
-DEFINE_SIG_FWD(glishd_sigsys, SIGSYS);
+DEFINE_SIG_FWD(glishd_sigsys,"EXITING with bad system call (SIGSYS)",SIGSYS);
 #endif
 
 void install_terminate_handlers()
@@ -1480,10 +1551,42 @@ void install_terminate_handlers()
 main( int argc, char **argv )
 	{
 	GlishDaemon *dmon;
+
+	int collect = 1;
+	char **argv_mod = (char**) alloc_memory( sizeof(char*) * argc );
+	int argc_mod = 1;
+	argv_mod[0] = argv[0];
+	for ( int i=1; i < argc; ++i )
+		{
+		if ( collect && argv[i][0] == '-' && argv[i][1] == '-' )
+			{
+			if ( argv[i][2] == '\0' ) collect = 0;
+			else if ( ! strcmp( argv[i], "--verbose" ) )
+				{
+				glishd_verbose = 1;
+				continue;
+				}
+			else
+				{
+				// Got a bad options, die if root, eat if non-root
+				if ( getuid() == 0 )
+					{
+					fprintf( stderr, "Unknown option: %s\n", argv[i] );
+					exit(1);
+					}
+				continue;
+				}
+			}
+		else
+			collect = 0;
+
+		argv_mod[argc_mod++] = argv[i];
+		}
+
 	if ( getuid() == 0 )
-		dmon = new dServer( argc, argv );
+		dmon = new dServer( argc_mod, argv_mod );
 	else
-		dmon = new dUser( argc, argv );
+		dmon = new dUser( argc_mod, argv_mod );
 
 	dmon->loop( );
 
