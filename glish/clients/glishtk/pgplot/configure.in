@@ -1135,12 +1135,18 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd"
+	if test -n "$PGPLOTLINKSEARCH"; then
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS -Wl,-rpath,$PGPLOTLINKSEARCH"
+	    LDOBJ_LIBS="$LDOBJ_LIBS -Wl,-rpath,$PGPLOTLINKSEARCH"
+	fi
 	if test -n "$PGPLOTLINKFLAGS"; then
-	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
-	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
 	else		
-	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
-	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
 	;;
     MP-RAS-02*)
@@ -1327,8 +1333,12 @@ case $host_os in
 	    SLIB_CXXFLAGS="-KPIC"
 	else
 	    LDI=""
-	    SLIB_LD="/usr/ccs/bin/ld -G"
 	    SLIB_CXXFLAGS="-PIC"
+	    if test "$ac_cv_prog_gcc" = yes; then
+	        SLIB_LD="$CC -Wno-deprecated -dy -G -i"
+            else
+	        SLIB_LD="/usr/ccs/bin/ld -G"
+	    fi
 	fi
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".so"
@@ -1345,12 +1355,18 @@ case $host_os in
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd"
+	if test -n "$PGPLOTLINKSEARCH"; then
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS ${LDI}-R ${LDI}$PGPLOTLINKSEARCH"
+	    LDOBJ_LIBS="$LDOBJ_LIBS ${LDI}-R ${LDI}$PGPLOTLINKSEARCH"
+	fi
 	if test -n "$PGPLOTLINKFLAGS"; then
-	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
-	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
 	else		
-	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
-	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
 	;;
     ultrix4.*)

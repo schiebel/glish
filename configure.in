@@ -946,7 +946,7 @@ dnl## Non-standard setup
 dnl##
 dnl##--------------------------------------------------------------------
 
-a   ## Derived from the Tk configure.in...
+dnl## Derived from the Tk configure.in...
 dnl##
 dnl## Look for status of gettimeofday. Find out what is available, and
 dnl## if it is declared
@@ -1708,8 +1708,12 @@ case $host_os in
 	    SLIB_CXXFLAGS="-KPIC"
 	else
 	    LDI=""
-	    SLIB_LD="/usr/ccs/bin/ld -G -z text"
 	    SLIB_CXXFLAGS="-PIC"
+	    if test "$ac_cv_prog_gcc" = yes; then
+	        SLIB_LD="$CC -Wno-deprecated -dy -G -i"
+            else
+	        SLIB_LD="/usr/ccs/bin/ld -G -z text"
+	    fi
 	fi
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".so"
