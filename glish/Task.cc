@@ -1076,8 +1076,28 @@ ProxyTask::ProxyTask( double id_, Task *t, Sequencer *s ) : Agent(s), task(t), i
 	task->RegisterProxy(this);
 	}
 
+void ProxyTask::WrapperGone( const IValue *v )
+	{
+	if ( agent_value == v )
+		{
+		// must be careful with agent_value, otherwise we end up in an
+		// infinite loop because this function is called as 'v' is being
+		// deleted, NewEvent() Ref()'s and Unref()'s the agent_value which
+		// results in WrapperGone being called repeatedly. So the solution
+		// is to Ref() it; it is already being deleated so it won't result
+		// in a memory leak.
+		Ref((GlishObject*)v); Ref((GlishObject*)v); Ref((GlishObject*)v);
+		IValue *val = new IValue(glish_true);
+		sequencer->NewEvent( this, "done", val, 0, 0 );
+		agent_value = 0;
+		}
+	}
+
 ProxyTask::~ProxyTask( )
 	{
+	IValue *val = new IValue(glish_true);
+	task->SendEvent( "terminate", val, 0, 1, id );
+	Unref( val );
 	task->UnregisterProxy(this);
 	if ( agent_ID ) free_memory((char*)agent_ID);
 	}

@@ -201,7 +201,7 @@ void GlishEvent::SetValue( const Value *v )
 	{
 	if ( delete_value )
 		Unref( (Value*) value );
-	value = v;
+	value = (Value*) v;
 	delete_value = 0;
 	}
 
@@ -1008,7 +1008,8 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		{
 		const char* name = last_event->name;
 
-		if ( streq( name, "terminate" ) )
+		// if it's a proxy event, then it shouldn't kill us...
+		if ( ! last_event->IsProxy() && streq( name, "terminate" ) )
 			{
 			Unref(last_event);
 			last_event = 0;

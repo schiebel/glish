@@ -68,7 +68,7 @@ void ProxyStore::addProxy( Proxy *p )
 
 void ProxyStore::removeProxy( Proxy *p )
 	{
-	Unref( pxlist.remove( p ) );
+	pxlist.remove( p );
 	}
 
 double ProxyStore::getId( )
@@ -116,7 +116,10 @@ void ProxyStore::Loop( )
 				if ( pxlist[i]->Id() == id )
 					{
 					found = 1;
-					pxlist[i]->ProcessEvent( e->Name(), val );
+					if ( ! strcmp( "terminate", e->Name() ) )
+						Unref(pxlist[i]->Done( val ));
+					else
+						pxlist[i]->ProcessEvent( e->Name(), val );
 					break;
 					}
 
@@ -133,10 +136,18 @@ void Proxy::setId( double i ) { id = i; }
 
 Proxy::Proxy( ProxyStore *s ) : store(s), id(0.0)
 	{
-	//
 	// store will set our id
-	//
 	store->addProxy( this );
+	}
+
+Proxy::~Proxy( )
+	{
+	store->removeProxy( this );
+	}
+
+Proxy *Proxy::Done( const Value * )
+	{
+	return this;
 	}
 
 void Proxy::SendCtor( const char *name )

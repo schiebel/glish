@@ -224,6 +224,9 @@ class ProxyTask : public Agent {
 				int is_request, int log );
 
 	double Id() const { return id; }
+
+	void WrapperGone( const IValue *v );
+
     private:
 	Task *task;
 	double id;

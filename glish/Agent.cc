@@ -249,6 +249,11 @@ int Agent::Describe( OStream& s, const ioOpt &opt ) const
 	return 1;
 	}
 
+void Agent::WrapperGone( const IValue *v )
+	{
+	if ( agent_value == v ) agent_value = 0;
+	}
+
 int Agent::StickyNotes( ) const
 	{
 	return 0;

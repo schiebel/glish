@@ -5,11 +5,17 @@ RCSID("@(#) $Id$")
 class ProxyA : public Proxy {
     public:
 	ProxyA( ProxyStore *s );
+	~ProxyA( );
 	static void Create( ProxyStore *s, GlishEvent *e, void *data );
 	void ProcessEvent( const char *name, const Value *val );
 };
 
 ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { }
+
+ProxyA::~ProxyA( )
+	{
+	cerr << "bye bye " << id << endl;
+	}
 
 void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
 	{

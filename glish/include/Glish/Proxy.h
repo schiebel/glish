@@ -43,6 +43,14 @@ friend class ProxyStore;
 
 	Proxy( ProxyStore * );
 
+	virtual ~Proxy( );
+
+	//
+	// the pointer returned is Unref()ed, if you want the Proxy object
+	// object to survive the "terminate" event, you should overload this
+	// function and return 0.
+	//
+	virtual Proxy *Done( const Value * );
 	virtual void ProcessEvent( const char *name, const Value *val ) = 0;
 
 	double Id( ) const { return id; }
