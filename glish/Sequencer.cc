@@ -94,67 +94,67 @@ int shutting_glish_down = 0;
 
 await_type::await_type( await_type &o )
 	{
-	stmt_AWTYPE = o.stmt_AWTYPE;
-	except_AWTYPE = o.except_AWTYPE;
-	only_AWTYPE = o.only_AWTYPE;
-	dict_AWTYPE = o.dict_AWTYPE;
-	o.dict_AWTYPE = 0;
-	agent_AWTYPE = o.agent_AWTYPE;
-	name_AWTYPE = o.name_AWTYPE;
-	filled_valueAWTYPE = o.filled_valueAWTYPE;
-	if ( filled_valueAWTYPE ) Ref(filled_valueAWTYPE);
-	filled_agentAWTYPE = o.filled_agentAWTYPE;
-	if ( filled_agentAWTYPE ) Ref(filled_agentAWTYPE);
-	filled_nameAWTYPE = o.filled_nameAWTYPE ? string_dup(o.filled_nameAWTYPE) : 0;
+	stmt_ = o.stmt_;
+	except_ = o.except_;
+	only_ = o.only_;
+	dict_ = o.dict_;
+	o.dict_ = 0;
+	agent_ = o.agent_;
+	name_ = o.name_;
+	filled_value = o.filled_value;
+	if ( filled_value ) Ref(filled_value);
+	filled_agent = o.filled_agent;
+	if ( filled_agent ) Ref(filled_agent);
+	filled_name = o.filled_name ? string_dup(o.filled_name) : 0;
 	}
 
 void await_type::operator=( await_type &o )
 	{
-	stmt_AWTYPE = o.stmt_AWTYPE;
-	except_AWTYPE = o.except_AWTYPE;
-	only_AWTYPE = o.only_AWTYPE;
-	if ( dict_AWTYPE ) delete_agent_dict( dict_AWTYPE );
-	dict_AWTYPE = o.dict_AWTYPE;
-	o.dict_AWTYPE = 0;
-	agent_AWTYPE = o.agent_AWTYPE;
-	name_AWTYPE = o.name_AWTYPE;
-	filled_valueAWTYPE = o.filled_valueAWTYPE;
-	if ( filled_valueAWTYPE ) Ref(filled_valueAWTYPE);
-	filled_agentAWTYPE = o.filled_agentAWTYPE;
-	if ( filled_agentAWTYPE ) Ref(filled_agentAWTYPE);
-	filled_nameAWTYPE = o.filled_nameAWTYPE ? string_dup(o.filled_nameAWTYPE) : 0;
+	stmt_ = o.stmt_;
+	except_ = o.except_;
+	only_ = o.only_;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = o.dict_;
+	o.dict_ = 0;
+	agent_ = o.agent_;
+	name_ = o.name_;
+	filled_value = o.filled_value;
+	if ( filled_value ) Ref(filled_value);
+	filled_agent = o.filled_agent;
+	if ( filled_agent ) Ref(filled_agent);
+	filled_name = o.filled_name ? string_dup(o.filled_name) : 0;
 	}
 
-void await_type::setAWTYPE( )
+void await_type::set( )
 	{
 	// await statement members
-	stmt_AWTYPE = except_AWTYPE = 0;
-	only_AWTYPE = 0;
-	if ( dict_AWTYPE ) delete_agent_dict( dict_AWTYPE );
-	dict_AWTYPE = 0;
+	stmt_ = except_ = 0;
+	only_ = 0;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = 0;
 	// request/reply members
-	agent_AWTYPE = 0;
-	name_AWTYPE = 0;
-	Unref( filled_valueAWTYPE );
-        Unref( filled_agentAWTYPE );
-        if ( filled_nameAWTYPE )  free_memory( filled_nameAWTYPE );
+	agent_ = 0;
+	name_ = 0;
+	Unref( filled_value );
+        Unref( filled_agent );
+        if ( filled_name )  free_memory( filled_name );
 	}
 
-void await_type::setAWTYPE( Stmt *s, Stmt *e, int o )
+void await_type::set( Stmt *s, Stmt *e, int o )
 	{
-	stmt_AWTYPE = s;
-	except_AWTYPE = e;
-	only_AWTYPE = o;
-	agent_AWTYPE = 0;
-	name_AWTYPE = 0;
-	filled_valueAWTYPE = 0;
-	filled_agentAWTYPE = 0;
-	filled_nameAWTYPE = 0;
+	stmt_ = s;
+	except_ = e;
+	only_ = o;
+	agent_ = 0;
+	name_ = 0;
+	filled_value = 0;
+	filled_agent = 0;
+	filled_name = 0;
 
-	if ( dict_AWTYPE ) delete_agent_dict( dict_AWTYPE );
+	if ( dict_ ) delete_agent_dict( dict_ );
 
-	dict_AWTYPE = new agent_dict( ORDERED );
-	event_dsg_list *el = ((AwaitStmt*)stmt_AWTYPE)->AwaitList();
+	dict_ = new agent_dict( ORDERED );
+	event_dsg_list *el = ((AwaitStmt*)stmt_)->AwaitList();
 	loop_over_list ( *el, X )
 		{
 		name_list &nl = (*el)[X]->EventNames();
@@ -171,11 +171,11 @@ void await_type::setAWTYPE( Stmt *s, Stmt *e, int o )
 		loop_over_list( nl, Y )
 			{
 			char *nme = nl[Y];
-			agent_list *al = (*dict_AWTYPE)[nme];
+			agent_list *al = (*dict_)[nme];
 			if ( ! al )
 				{
 				al = new agent_list;
-				dict_AWTYPE->Insert(string_dup(nme),al);
+				dict_->Insert(string_dup(nme),al);
 				}
 
 			al->append(await_agent);
@@ -185,32 +185,32 @@ void await_type::setAWTYPE( Stmt *s, Stmt *e, int o )
 		}
 	}
 
-void await_type::setAWTYPE( Agent *a, const char *n )
+void await_type::set( Agent *a, const char *n )
 	{
-	agent_AWTYPE = a;
-	name_AWTYPE = n;
-	stmt_AWTYPE = 0;
-	except_AWTYPE = 0;
-	only_AWTYPE = 0;
-	if ( dict_AWTYPE ) delete_agent_dict( dict_AWTYPE );
-	dict_AWTYPE = 0;
-	filled_valueAWTYPE = 0;
-	filled_agentAWTYPE = 0;
-	filled_nameAWTYPE = 0;
+	agent_ = a;
+	name_ = n;
+	stmt_ = 0;
+	except_ = 0;
+	only_ = 0;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = 0;
+	filled_value = 0;
+	filled_agent = 0;
+	filled_name = 0;
 	}
 
-int await_type::SetValueAWTYPE( Agent *agent_, const char *name_, IValue *val )
+int await_type::SetValue( Agent *agent_, const char *name_, IValue *val )
 	{
 	agent_list *al = 0;
-	if ( filled_valueAWTYPE || filled_nameAWTYPE || filled_agentAWTYPE ) return 0;
-	if ( dictAWTYPE() && ( !(al = (*dictAWTYPE())[name_]) || !al->is_member(agent_) ) )
+	if ( filled_value || filled_name || filled_agent ) return 0;
+	if ( dict() && ( !(al = (*dict())[name_]) || !al->is_member(agent_) ) )
 		return 0;
 
-	filled_valueAWTYPE = val;
-	if ( filled_valueAWTYPE ) Ref(filled_valueAWTYPE);
-	filled_agentAWTYPE = agent_;
-	if ( filled_agentAWTYPE ) Ref(filled_agentAWTYPE);
-	filled_nameAWTYPE = name_ ? string_dup(name_) : 0;
+	filled_value = val;
+	if ( filled_value ) Ref(filled_value);
+	filled_agent = agent_;
+	if ( filled_agent ) Ref(filled_agent);
+	filled_name = name_ ? string_dup(name_) : 0;
 	return 1;
 	}
 
@@ -1154,7 +1154,7 @@ void Sequencer::toplevelreset()
 		if ( last ) delete last;
 		}
 
-	await.setAWTYPE( );
+	await.set( );
 	if ( last_await_info ) delete last_await_info;
 	last_await_info = 0;
 	current_await_done = 0;
@@ -2209,7 +2209,7 @@ Sequencer *Sequencer::CurSeq ( )
 
 const AwaitStmt *Sequencer::ActiveAwait ( )
 	{
-	return (const AwaitStmt*) cur_sequencer->await.stmtAWTYPE();
+	return (const AwaitStmt*) cur_sequencer->await.stmt();
 	}
 
 #define DECLARE_PATHFUNC( NAME )					\
@@ -2813,11 +2813,11 @@ void Sequencer::CurrentAwaitDone()
 
 void Sequencer::PushAwait( )
 	{
-	if ( await.activeAWTYPE() )
+	if ( await.active() )
 		{
 		if ( current_await_done && last_await_info )
-			if ( await.stmtAWTYPE() && last_await_info->stmtAWTYPE() == await.stmtAWTYPE() ||
-			     await.agentAWTYPE() && last_await_info->agentAWTYPE() == await.agentAWTYPE() )
+			if ( await.stmt() && last_await_info->stmt() == await.stmt() ||
+			     await.agent() && last_await_info->agent() == await.agent() )
 				{
 				await_list.append( last_await_info );
 				last_await_info = 0;
@@ -2851,7 +2851,7 @@ void Sequencer::PopAwait( )
 			}
 		}
 	else
-		await.setAWTYPE( );
+		await.set( );
 	}
 
 void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
@@ -2861,7 +2861,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 	PushAwait( );
 
-	await.setAWTYPE( arg_await_stmt, arg_except_stmt, only_flag );
+	await.set( arg_await_stmt, arg_except_stmt, only_flag );
 
 	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
@@ -3015,7 +3015,7 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 
 	PushAwait( );
 
-	await.setAWTYPE( agent, reply_name );
+	await.set( agent, reply_name );
 
 	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
@@ -3338,9 +3338,9 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 
 void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	{
-	if ( await.stmtAWTYPE() && agent->HasRegisteredInterest( await.stmtAWTYPE(), event_name ) )
+	if ( await.stmt() && agent->HasRegisteredInterest( await.stmt(), event_name ) )
 		selector->AwaitDone();
-	else if ( await.agentAWTYPE() && await.agentAWTYPE() == agent->AgentTask() && ! strcmp( await.nameAWTYPE(), event_name ) )
+	else if ( await.agent() && await.agent() == agent->AgentTask() && ! strcmp( await.name(), event_name ) )
 		selector->AwaitDone();
 	}
 
@@ -3428,7 +3428,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 	int reply_event = 0;
 	int await_finished = 0;
 
-	if ( await.activeAWTYPE() )
+	if ( await.active() )
 		{
 		int found_match = 0;
 
@@ -3436,38 +3436,38 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 		loop_over_list( await_list, X )
 			{
 			Agent *la = 0;
-			if ( (la=await_list[X]->agentAWTYPE()) && la == agent &&
-			     ! strcmp( await_list[X]->nameAWTYPE(), event_name ) )
+			if ( (la=await_list[X]->agent()) && la == agent &&
+			     ! strcmp( await_list[X]->name(), event_name ) )
 				{
-				if ( (found_match = await_list[X]->SetValueAWTYPE( agent, event_name, value )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
 					{
 					reply_event = 1;
 					break;
 					}
 				}
-			else if ( agent->HasRegisteredInterest( await_list[X]->stmtAWTYPE(), event_name ) )
+			else if ( agent->HasRegisteredInterest( await_list[X]->stmt(), event_name ) )
 				{
-				if ( (found_match = await_list[X]->SetValueAWTYPE( agent, event_name, value )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
 					break;
 				}
 			}
 
 		if ( ! found_match )
 			{
-			if ( await.agentAWTYPE() && await.agentAWTYPE() == agent &&
-			     ! strcmp( await.nameAWTYPE(), event_name ) )
+			if ( await.agent() && await.agent() == agent &&
+			     ! strcmp( await.name(), event_name ) )
 				{
 				reply_event = 1;
 				await_finished = 1;
 				last_reply = value;
 				Ref(last_reply);
 				}
-			else if ( await.stmtAWTYPE() )
+			else if ( await.stmt() )
 				{
-				await_finished = agent->HasRegisteredInterest( await.stmtAWTYPE(), event_name );
+				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
 
-				if ( ! await_finished && await.onlyAWTYPE( ) &&
-				     ! agent->HasRegisteredInterest( await.exceptAWTYPE(), event_name ) )
+				if ( ! await_finished && await.only( ) &&
+				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
 					ignore_event = 1;
 				}
 			}
@@ -3478,7 +3478,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 		if ( ignore_event )
 			warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
-		else if ( ! await.agentAWTYPE() || ! await_finished )
+		else if ( ! await.agent() || ! await_finished )
 			{
 			/* We're going to want to keep the event value as a */
 			/* field in the agent's AgentRecord.                */
@@ -3511,7 +3511,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 	int reply_event = 0;
 	int await_finished = 0;
 
-	if ( await.activeAWTYPE() )
+	if ( await.active() )
 		{
 		int found_match = 0;
 
@@ -3519,38 +3519,38 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 		loop_over_list( await_list, X )
 			{
 			Agent *la = 0;
-			if ( (la=await_list[X]->agentAWTYPE()) && la == agent &&
-			     ! strcmp( await_list[X]->nameAWTYPE(), event_name ) )
+			if ( (la=await_list[X]->agent()) && la == agent &&
+			     ! strcmp( await_list[X]->name(), event_name ) )
 				{
-				if ( (found_match = await_list[X]->SetValueAWTYPE( agent, event_name, value )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
 					{
 					reply_event = 1;
 					break;
 					}
 				}
-			else if ( agent->HasRegisteredInterest( await_list[X]->stmtAWTYPE(), event_name ) )
+			else if ( agent->HasRegisteredInterest( await_list[X]->stmt(), event_name ) )
 				{
-				if ( (found_match = await_list[X]->SetValueAWTYPE( agent, event_name, value )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
 					break;
 				}
 			}
 
 		if ( ! found_match )
 			{
-			if ( await.agentAWTYPE() && await.agentAWTYPE() == agent &&
-			     ! strcmp( await.nameAWTYPE(), event_name ) )
+			if ( await.agent() && await.agent() == agent &&
+			     ! strcmp( await.name(), event_name ) )
 				{
 				reply_event = 1;
 				await_finished = 1;
 				last_reply = value;
 				Ref(last_reply);
 				}
-			else if ( await.stmtAWTYPE() )
+			else if ( await.stmt() )
 				{
-				await_finished = agent->HasRegisteredInterest( await.stmtAWTYPE(), event_name );
+				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
 
-				if ( ! await_finished && await.onlyAWTYPE( ) &&
-				     ! agent->HasRegisteredInterest( await.exceptAWTYPE(), event_name ) )
+				if ( ! await_finished && await.only( ) &&
+				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
 					ignore_event = 1;
 				}
 			}
@@ -3561,7 +3561,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 		if ( ignore_event )
 			warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
-		else if ( ! await.agentAWTYPE() || ! await_finished )
+		else if ( ! await.agent() || ! await_finished )
 			{
 			/* We're going to want to keep the event value as a */
 			/* field in the agent's AgentRecord.                */

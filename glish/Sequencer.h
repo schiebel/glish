@@ -198,48 +198,48 @@ class EnvHolder GC_FINAL_CLASS {
 
 class await_type GC_FINAL_CLASS {
     public:
-	await_type() : stmt_AWTYPE(0), except_AWTYPE(0), only_AWTYPE(0), dict_AWTYPE(0),
-		       agent_AWTYPE(0), name_AWTYPE(0),	filled_valueAWTYPE(0),
-		       filled_agentAWTYPE(0), filled_nameAWTYPE(0) { }
+	await_type() : stmt_(0), except_(0), only_(0), dict_(0),
+		       agent_(0), name_(0),	filled_value(0),
+		       filled_agent(0), filled_name(0) { }
 	await_type( await_type &o );
-	~await_type( ) { setAWTYPE( ); }
+	~await_type( ) { set( ); }
 	void operator=( await_type &o );
-	int activeAWTYPE( ) { return stmt_AWTYPE || agent_AWTYPE ? 1 : 0; }
-	void setAWTYPE( );
-	void setAWTYPE( Stmt *s, Stmt *e, int o );
-	void setAWTYPE( Agent *a, const char *n );
+	int active( ) { return stmt_ || agent_ ? 1 : 0; }
+	void set( );
+	void set( Stmt *s, Stmt *e, int o );
+	void set( Agent *a, const char *n );
 
 	// await statement members
-	Stmt *stmtAWTYPE() { return stmt_AWTYPE; }
-	Stmt *exceptAWTYPE() { return except_AWTYPE; }
-	int onlyAWTYPE() { return only_AWTYPE; }
-	agent_dict *dictAWTYPE() { return dict_AWTYPE; }
+	Stmt *stmt() { return stmt_; }
+	Stmt *except() { return except_; }
+	int only() { return only_; }
+	agent_dict *dict() { return dict_; }
 
 	// request/reply members
-	Agent *agentAWTYPE( ) { return agent_AWTYPE; }
-	const char *nameAWTYPE( ) { return name_AWTYPE; }
+	Agent *agent( ) { return agent_; }
+	const char *name( ) { return name_; }
 
 	//
 	// values for satisfied await
 	//
-	int SetValueAWTYPE( Agent *agent_, const char *name_, IValue *val );
-	IValue *ResultValue( ) { return filled_valueAWTYPE; }
-	Agent *ResultAgent( ) { return filled_agentAWTYPE; }
-	const char *ResultName( ) const { return filled_nameAWTYPE; }
+	int SetValue( Agent *agent_, const char *name_, IValue *val );
+	IValue *ResultValue( ) { return filled_value; }
+	Agent *ResultAgent( ) { return filled_agent; }
+	const char *ResultName( ) const { return filled_name; }
 
     private:
-	Stmt *stmt_AWTYPE;
-	Stmt *except_AWTYPE;
-	int only_AWTYPE;
-	agent_dict *dict_AWTYPE;
-	Agent *agent_AWTYPE;
-	const char *name_AWTYPE;
+	Stmt *stmt_;
+	Stmt *except_;
+	int only_;
+	agent_dict *dict_;
+	Agent *agent_;
+	const char *name_;
 	//
 	// values which are filled when await is satisfied
 	//
-	IValue *filled_valueAWTYPE;
-	Agent *filled_agentAWTYPE;
-	char *filled_nameAWTYPE;
+	IValue *filled_value;
+	Agent *filled_agent;
+	char *filled_name;
 };
 
 class Sequencer GC_FINAL_CLASS {
