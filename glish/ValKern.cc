@@ -325,7 +325,7 @@ void ValueKernel::Grow( unsigned int len )
 		unsigned int minlen = len > array->length ? array->length : len;
 		array_t *k = array;
 		unrefArray();
-		int m = mode;
+		vkmode_t m = mode;
 		array->SetType( k->type );
 		mode = m;
 		array->Grow( len, 0 );
@@ -357,7 +357,7 @@ void *ValueKernel::modArray( )
 		DIAG5((void*) this, "\t\tarray copy c:",array->ref_count,"a:",(void*)array)
 		array_t *k = array;
 		unrefArray();
-		int m = mode;
+		vkmode_t m = mode;
 		array->SetType( k->type );
 		mode = m;
 		array->Grow( k->length, 0 );
@@ -381,7 +381,7 @@ recordptr ValueKernel::modRecord( )
 		DIAG5((void*) this, "\t\trecord copy c:",record->ref_count,"r:",(void*)record)
 		record_t *a = record;
 		unrefRecord();
-		int m = mode;
+		vkmode_t m = mode;
 		SetRecord(copy_record_dict(a->record));
 		mode = m;
 		}

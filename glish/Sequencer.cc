@@ -1438,7 +1438,7 @@ Sequencer::~Sequencer()
 	while ( (x = include_once.NextEntry( key, c )) )
 		free_memory((char*)key);
 
-	char *xs = 0;
+	void *xs = 0;
 	c = env.InitForIteration();
 	while ( (xs = env.NextEntry( key, c )) )
 		free_memory((char*)key);

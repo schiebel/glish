@@ -13,6 +13,9 @@ RCSID("@(#) $Id$")
 // increase the size of the hash table.
 #define TOO_CROWDED 3
 
+// This determines how many slots buckets have initially
+#define INITIAL_BUCKET_CHUNK  2
+
 class DictEntry {
 public:
 	DictEntry( const char* k, void* val )
@@ -41,7 +44,7 @@ Dictionary::Dictionary( dict_order ordering, int initial_size )
 	Init( initial_size );
 
 	if ( ordering == ORDERED )
-		order = new PList(DictEntry);
+		order = new PList(DictEntry)(INITIAL_BUCKET_CHUNK);
 	else
 		order = 0;
 
@@ -252,7 +255,7 @@ void* Dictionary::Insert( DictEntry* new_entry )
 
 	else
 		{ // Create new chain.
-		chain = tbl[h] = new PList(DictEntry);
+		chain = tbl[h] = new PList(DictEntry)(INITIAL_BUCKET_CHUNK);
 		}
 
 	// We happen to know (:-() that appending is more efficient
@@ -302,7 +305,7 @@ void Dictionary::ChangeSize( int new_size )
 	if ( order )
 		current = order;
 	else
-		current = new PList(DictEntry);
+		current = new PList(DictEntry)(INITIAL_BUCKET_CHUNK);
 
 	for ( int i = 0; i < num_buckets; ++i )
 		{

@@ -2107,8 +2107,8 @@ char* Value::NewFieldName( int alloc )
 		return 0;
 
 	static int counter = 0;
+	static char buf[128];
 
-	char buf[128];
 	do
 		sprintf( buf, "*%d", ++counter );
 	while ( Field( buf ) );

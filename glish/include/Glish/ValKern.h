@@ -24,6 +24,8 @@ typedef void (*KernelCopyFunc)( void *, void *, unsigned int len );
 typedef void (*KernelZeroFunc)( void *, unsigned int len );
 typedef void (*KernelDeleteFunc)( void *, unsigned int len );
 
+typedef unsigned short vkmode_t;
+
 extern void copy_strings( void *, void *, unsigned int len );
 extern void delete_strings( void *, unsigned int len );
 
@@ -96,13 +98,15 @@ class ValueKernel {
 
     protected:
 
-	inline unsigned int ARRAY( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
-	inline unsigned int RECORD( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
-	inline unsigned int VALUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
-	inline unsigned int REF( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
-	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
-	inline unsigned int MOD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
-	inline unsigned int FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<7; }
+	inline vkmode_t ARRAY( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<0; }
+	inline vkmode_t RECORD( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<1; }
+	inline vkmode_t VALUE( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<2; }
+	inline vkmode_t REF( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<3; }
+	inline vkmode_t CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<4; }
+	inline vkmode_t MOD_CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<5; }
+	inline vkmode_t FAIL( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<6; }
+
+	vkmode_t mode;
 
 	union {
 		array_t *array;
@@ -110,7 +114,6 @@ class ValueKernel {
 		Value *value;
 		VecRef *vecref;
 	};
-	unsigned int mode;
 
 	glish_type otherType() const;
 	unsigned int otherLength() const;
