@@ -265,25 +265,28 @@ void Dictionary::ChangeSize( int new_size )
 	if ( order )
 		current = order;
 	else
-		{
 		current = new PList(DictEntry);
 
-		for ( int i = 0; i < num_buckets; ++i )
-			{
-			if ( tbl[i] )
-				{
-				PList(DictEntry)* chain = tbl[i];
+	for ( int i = 0; i < num_buckets; ++i )
+		{
+		PList(DictEntry)* chain = tbl[i];
 
+		if ( chain )
+			{
+			if ( ! order )
+				{
 				for ( int j = 0; j < chain->length(); ++j )
 					current->append( (*chain)[j] );
 				}
+
+			delete chain;
 			}
 		}
 
 	delete tbl;
 	Init( new_size );
 
-	for ( int i = 0; i < current->length(); ++i )
+	for ( i = 0; i < current->length(); ++i )
 		Insert( (*current)[i] );
 
 	if ( ! order )

@@ -28,6 +28,8 @@ int system( const char* string );
 }
 
 
+#include "Npd/npd.h"
+#include "Daemon.h"
 #include "Reporter.h"
 #include "Sequencer.h"
 #include "Frame.h"
@@ -180,40 +182,6 @@ protected:
 	};
 
 
-// A RemoteDaemon keeps track of a glishd running on a remote host.
-// This includes the Channel used to communicate with the daemon and
-// modifiable state indicating whether we're currently waiting for
-// a probe response from the daemon.
-
-// Possible states a daemon can be in.
-typedef enum
-	{
-	DAEMON_OK,	// all is okay
-	DAEMON_REPLY_PENDING,	// we're waiting for reply to last probe
-	DAEMON_LOST	// we've lost connectivity
-	} daemon_states;
-
-class RemoteDaemon {
-public:
-	RemoteDaemon( const char* daemon_host, Channel* channel )
-		{
-		host = daemon_host;
-		chan = channel;
-		SetState( DAEMON_OK );
-		}
-
-	const char* Host()		{ return host; }
-	Channel* DaemonChannel()	{ return chan; }
-	daemon_states State()		{ return state; }
-	void SetState( daemon_states s )	{ state = s; }
-
-protected:
-	const char* host;
-	Channel* chan;
-	daemon_states state;
-	};
-
-
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    Value* arg_value, Notifiee* arg_notifiee )
 	{
@@ -252,7 +220,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	// Create the global scope.
 	scopes.append( new expr_dict );
 
-	create_built_ins( this );
+	create_built_ins( this, argv[0] );
 
 	null_stmt = new NullStmt;
 
@@ -626,19 +594,38 @@ Stmt* Sequencer::LookupStmt( int index )
 	return registered_stmts[index - 1];
 	}
 
-Channel* Sequencer::GetHostDaemon( const char* host )
+int Sequencer::LocalHost( const char *host )
 	{
 	if ( ! host ||
 	     ! strcmp( host, ConnectionHost() ) ||
 	     ! strcmp( host, "localhost" ) )
-		// request is for local host
+		return 1;
+	else
 		return 0;
+	}
 
-	RemoteDaemon* d = daemons[host];
-	if ( ! d )
-		d = CreateDaemon( host );
+Channel* Sequencer::GetHostDaemon( const char* host, int &err )
+	{
+	err = 0;
+	RemoteDaemon* d;
 
-	return d->DaemonChannel();
+	if ( LocalHost( host ) )
+		{
+		// Check to see if a daemon is running
+		d = daemons["localhost"];
+		if ( ! d )
+			d = OpenDaemonConnection( "localhost", err );
+		}
+	else 
+		{
+		d = daemons[host];
+		if ( ! d )
+			d = CreateDaemon( host );
+		if ( ! d )
+			err = 1;
+		}
+		
+	return d ? d->DaemonChannel() : 0;
 	}
 
 
@@ -1097,7 +1084,9 @@ void Sequencer::Parse( const char* strings[] )
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	{
-	RemoteDaemon* rd = OpenDaemonConnection( host );
+	int err = 0;
+	RemoteDaemon* rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 
 	if ( rd )
 		// We're all done, the daemon was already running.
@@ -1106,60 +1095,37 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	// Have to start up the daemon.
 	message->Report( "activating Glish daemon on ", host );
 
-	char daemon_cmd[1024];
-	sprintf( daemon_cmd, "%s %s -n glishd &", RSH, host );
-	system( daemon_cmd );
+	start_remote_daemon( host );
 
-	rd = OpenDaemonConnection( host );
+	rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 	while ( ! rd )
 		{
 		message->Report( "waiting for daemon ..." );
 		sleep( 1 );
-		rd = OpenDaemonConnection( host );
+		rd = OpenDaemonConnection( host, err );
+		if ( err ) return 0;
 		}
 
 	return rd;
 	}
 
-RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host )
+RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 	{
-	int daemon_socket = get_tcp_socket();
+	RemoteDaemon *r = 0;
+	err = 0;
+	const char *h = host;
 
-	if ( remote_connection( daemon_socket, host, DAEMON_PORT ) )
-		{ // Connected.
-		mark_close_on_exec( daemon_socket );
+	if ( ! strcmp(h,"localhost") )
+		h = ConnectionHost();
 
-		Channel* daemon_channel =
-			new Channel( daemon_socket, daemon_socket );
-
-		RemoteDaemon* r = new RemoteDaemon( host, daemon_channel );
-		daemons.Insert( strdup( host ), r );
-
-		// Read and discard daemon's "establish" event.
-		GlishEvent* e = recv_event( daemon_channel->ReadFD() );
-		Unref( e );
-
-		// Tell the daemon which directory we want to work out of.
-		char work_dir[MAXPATHLEN];
-
-		if ( ! getcwd( work_dir, sizeof( work_dir ) ) )
-			fatal->Report( "problems getting cwd:", work_dir );
-
-		Value work_dir_value( work_dir );
-		send_event( daemon_channel->WriteFD(), "setwd",
-				&work_dir_value );
-
-		selector->AddSelectee(
-			new DaemonSelectee( r, selector, this ) );
-
-		return r;
-		}
-
-	else
+	if (r = connect_to_daemon( h, err ) )
 		{
-		close( daemon_socket );
-		return 0;
+		daemons.Insert( strdup( host ), r );
+		selector->AddSelectee(new DaemonSelectee( r, selector, this ) );
 		}
+
+	return r;
 	}
 
 
@@ -1532,6 +1498,12 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
 	agent = a;
+	int read_fd = fileno( stdin );
+	loop_over_list( event_sources, i )
+		{
+		if ( ! strcmp( event_sources[i]->Context().id(), interpreter_tag ) )
+			read_fd = event_sources[i]->Read_FD();
+		}
 	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
 	}
 

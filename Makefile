@@ -1,6 +1,6 @@
 # $Header$
 
-SUBDIRS = sds editline glish
+SUBDIRS = sds editline glish npd
 
 TAR = glish.tar
 
@@ -9,14 +9,16 @@ all:
 	@echo $${ARCH?"You must setenv \$$ARCH"}
 	@echo "Creating directories (\"File exists\" errors are okay) ..."
 	-@mkdir lib bin include
-	-@mkdir lib/$(ARCH) bin/$(ARCH) include/Glish include/Sds
-	-@mkdir sds/$(ARCH) editline/$(ARCH) glish/$(ARCH) glish/clients/$(ARCH)
+	-@mkdir lib/$(ARCH) bin/$(ARCH) include/Glish include/Sds include/Npd
+	-@mkdir sds/$(ARCH) editline/$(ARCH) npd/$(ARCH) glish/$(ARCH) glish/clients/$(ARCH)
 	-@cp install-sh sds
+	-@cp install-sh npd
 	-@cp install-sh editline
 	-@cp install-sh glish
 	-@cp install-sh glish/clients
 	@$(MAKE) $(MFLAGS) build.sds
 	@$(MAKE) $(MFLAGS) build.editline
+	@$(MAKE) $(MFLAGS) build.npd
 	@$(MAKE) $(MFLAGS) build.glish
 
 build.sds:
@@ -24,6 +26,9 @@ build.sds:
 
 build.editline:
 	@cd editline; make $(MFLAGS) install-all
+
+build.npd:
+	@cd npd; make $(MFLAGS) install-all
 
 build.glish:
 	@cd glish; make $(MFLAGS) install-all

@@ -111,8 +111,13 @@ public:
 	// Returns 0 if the index is invalid.
 	Stmt* LookupStmt( int index );
 
+	// Returns a non-zero value if the hostname is the local
+	// host, and zero otherwise
+	int LocalHost( const char* hostname );
+
 	// Return a channel to a daemon for managing clients on the given host.
-	Channel* GetHostDaemon( const char* host );
+	// sets "err" to a non-zero value if an error occurs
+	Channel* GetHostDaemon( const char* host, int &err );
 
 	void Exec();
 
@@ -198,7 +203,8 @@ protected:
 	void Parse( const char file[] );
 	void Parse( const char* strings[] );
 	RemoteDaemon* CreateDaemon( const char* host );
-	RemoteDaemon* OpenDaemonConnection( const char* host );
+	// Sets err to a non-zero value if an error occurred
+	RemoteDaemon* OpenDaemonConnection( const char* host, int &err );
 	void ActivateMonitor( char* monitor_client );
 	void Rendezvous( const char* event_name, Value* value );
 	void ForwardEvent( const char* event_name, Value* value );

@@ -1,0 +1,23 @@
+/* custom config.h template - do not recreate using autoheader */
+
+/* Define if you have <sys/file.h>.  */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have <sys/time.h>.  */
+#undef HAVE_SYS_TIME_H
+
+/* Define if you have <unistd.h>.  */
+#undef HAVE_UNISTD_H
+
+/* Define if you have the random() BSD function.  */
+#undef HAVE_RANDOM
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you have vprintf() function.  */
+#undef HAVE_VPRINTF
+
+/* Define if you have the gethostname function.  */
+#undef HAVE_GETHOSTNAME
+
