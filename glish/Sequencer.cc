@@ -378,7 +378,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		{
 		// Handle the .glishrc startup so that we can use any include
 		// path which might be specified in there.
-		Exec();
+		Exec( 1 );
 		loop_over_list( *load_list, i )
 			{
 			char *expanded_name = which_include((*load_list)[i]);
@@ -666,7 +666,7 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 	}
 
 
-void Sequencer::Exec()
+void Sequencer::Exec( int startup_script )
 	{
 	if ( interactive )
 		return;
@@ -680,7 +680,8 @@ void Sequencer::Exec()
 	stmt_flow_type flow;
 	Unref( stmts->Exec( 0, flow ) );
 
-	EventLoop();
+	if ( ! startup_script )
+		EventLoop();
 	}
 
 
@@ -1082,7 +1083,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// We're about to enter the "interactive" loop, so
 		// first execute any statements we've seen so far due
 		// to .glishrc files.
-		Exec();
+		Exec( 1 );
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
