@@ -30,7 +30,7 @@ typedef enum {
 	FLOW_RETURN		// return from function
 	} stmt_flow_type;
 
-class Stmt : public GlishObject {
+class Stmt : public ParseNode {
     public:
 	Stmt()
 		{ index = 0; }
@@ -73,6 +73,8 @@ class Stmt : public GlishObject {
 	// only "whenever" statements are meant to be indexed).
 	int Index() const	{ return index; }
 
+	virtual ~Stmt();
+
     protected:
 	// DoExec() does the real work of executing the statement.
 	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
@@ -87,6 +89,8 @@ class SeqStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+
+	~SeqStmt();
 
     protected:
 	Stmt* lhs;
@@ -109,6 +113,8 @@ class WheneverStmt : public Stmt {
 
 	void Describe( ostream& s ) const;
 
+	int canDelete() const;
+
     protected:
 	event_list* trigger;
 	Stmt* stmt;
@@ -123,6 +129,8 @@ class LinkStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+
+	~LinkStmt();
 
     protected:
 	void MakeLink( Task* src, const char* source_event,
@@ -141,6 +149,8 @@ class UnLinkStmt : public LinkStmt {
 	UnLinkStmt( event_list* source, event_list* sink,
 			Sequencer* sequencer );
 
+	~UnLinkStmt();
+
     protected:
 	void LinkAction( Task* src, IValue* v );
 	};
@@ -154,6 +164,8 @@ class AwaitStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+
+	~AwaitStmt();
 
     protected:
 	event_list* await_list;
@@ -171,6 +183,8 @@ class ActivateStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
+	~ActivateStmt();
+
     protected:
 	int activate;
 	Expr* expr;
@@ -187,6 +201,8 @@ class IfStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
+	~IfStmt();
+
     protected:
 	Expr* expr;
 	Stmt* true_branch;
@@ -202,6 +218,8 @@ class ForStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
+	~ForStmt();
+
     protected:
 	Expr* index;
 	Expr* range;
@@ -215,6 +233,8 @@ class WhileStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+
+	~WhileStmt();
 
     protected:
 	Expr* test;
@@ -233,6 +253,8 @@ class PrintStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
+	~PrintStmt();
+
     protected:
 	parameter_list* args;
 	};
@@ -246,6 +268,8 @@ class ExprStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 	void DescribeSelf( ostream& s ) const;
+
+	~ExprStmt();
 
     protected:
 	Expr* expr;
@@ -264,6 +288,8 @@ class ExitStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
+	~ExitStmt();
+
     protected:
 	Expr* status;
 	Sequencer* sequencer;
@@ -275,6 +301,8 @@ class LoopStmt : public Stmt {
 	LoopStmt()	{ description = "next"; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+
+	~LoopStmt();
 	};
 
 
@@ -283,6 +311,8 @@ class BreakStmt : public Stmt {
 	BreakStmt()	{ description = "break"; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+
+	~BreakStmt();
 	};
 
 
@@ -293,6 +323,8 @@ class ReturnStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+
+	~ReturnStmt();
 
     protected:
 	Expr* retval;
@@ -306,6 +338,9 @@ class StmtBlock : public Stmt {
 	IValue *DoExec( int value_needed, stmt_flow_type &flow );
 
 	void Describe( ostream& s ) const;
+
+	~StmtBlock();
+
     protected:
 	Sequencer *sequencer;
 	Stmt *stmt;
@@ -317,6 +352,10 @@ class NullStmt : public Stmt {
 	NullStmt()	{ description = ";"; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+
+	~NullStmt();
+
+	int canDelete() const;
 	};
 
 

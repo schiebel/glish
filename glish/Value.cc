@@ -253,6 +253,9 @@ void Value::InitValue()
 
 void Value::DeleteValue()
 	{
+	if ( Type() == TYPE_CONST || Type() == TYPE_REF )
+		Unref( RefPtr() );
+
 	if ( value_manager )
 		{
 		Unref( value_manager );

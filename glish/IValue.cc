@@ -78,8 +78,6 @@ void IValue::DeleteValue()
 		// GlishObject, which has a virtual destructor.
 		Unref( (GlishObject*) AgentVal() );
 		}
-
-	Value::DeleteValue();
 	}
 
 IValue::~IValue()

@@ -111,6 +111,7 @@ glish:
 
 				stmt_flow_type flow;
 				IValue* val = $2->Exec( 1, flow );
+				NodeUnref( $2 );
 
 				if ( flow != FLOW_NEXT )
 					warn->Report(

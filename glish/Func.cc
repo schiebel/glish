@@ -16,6 +16,11 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Reporter.h"
 
+Parameter::~Parameter()
+	{
+	NodeUnref( arg );
+	NodeUnref( default_value );
+	}
 
 Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
 			Expr* arg_arg, int arg_is_ellipsis,

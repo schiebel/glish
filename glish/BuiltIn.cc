@@ -1534,7 +1534,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 		if ( func )
 			{
 			parameter_list p;
-			Parameter arg( 0, VAL_CONST, (Expr*) member );
+			Parameter arg( 0, VAL_CONST, (Expr*) member ); Ref(member);
 			p.append( &arg );
 			IValue *r = func->Call( &p, EVAL_COPY );
 			if ( r && r->IsNumeric() )
@@ -1956,9 +1956,9 @@ char* paste( parameter_list* args )
 	// beginning.
 	parameter_list args2;
 	IValue sep( " " );
-	ConstExpr sep_expr( &sep );
-	Parameter sep_parm( 0, VAL_CONST, &sep_expr );
 
+	ConstExpr sep_expr( &sep ); Ref(&sep);
+	Parameter sep_parm( 0, VAL_CONST, &sep_expr ); Ref(&sep_expr);
 	args2.append( &sep_parm );
 
 	loop_over_list( *args, i )

@@ -18,6 +18,8 @@ RCSID("@(#) $Id$")
 Stmt* null_stmt;
 
 
+Stmt::~Stmt() { }
+
 IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	{
 	int prev_line_num = line_num;
@@ -46,6 +48,11 @@ void Stmt::SetActivity( int /* activate */ )
 	{
 	}
 
+SeqStmt::~SeqStmt()
+	{
+	NodeUnref( lhs );
+	NodeUnref( rhs );
+	}
 
 SeqStmt::SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs )
 	{
@@ -92,6 +99,14 @@ WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt* arg_stmt,
 
 WheneverStmt::~WheneverStmt()
 	{
+	NodeUnref( stmt );
+	loop_over_list( *trigger, i )
+		Unref( (*trigger)[i] );
+	}
+
+int WheneverStmt::canDelete() const
+	{
+	return 0;
 	}
 
 IValue* WheneverStmt::DoExec( int /* value_needed */,
@@ -139,6 +154,8 @@ void WheneverStmt::Describe( ostream& s ) const
 	stmt->Describe( s );
 	}
 
+
+LinkStmt::~LinkStmt() { }
 
 LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
 			Sequencer* arg_sequencer )
@@ -260,6 +277,8 @@ void LinkStmt::LinkAction( Task* src, IValue* v )
 	}
 
 
+UnLinkStmt::~UnLinkStmt() { }
+
 UnLinkStmt::UnLinkStmt( event_list* arg_source, event_list* arg_sink,
 			Sequencer* arg_sequencer )
 : LinkStmt( arg_source, arg_sink, arg_sequencer )
@@ -272,6 +291,11 @@ void UnLinkStmt::LinkAction( Task* src, IValue* v )
 	src->SendSingleValueEvent( "*unlink-sink*", v, 1 );
 	}
 
+
+AwaitStmt::~AwaitStmt()
+	{
+	NodeUnref( except_stmt );
+	}
 
 AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 			event_list* arg_except_list, Sequencer* arg_sequencer )
@@ -330,6 +354,11 @@ void AwaitStmt::Describe( ostream& s ) const
 		}
 	}
 
+
+ActivateStmt::~ActivateStmt()
+	{
+	NodeUnref( expr );
+	}
 
 ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 				Sequencer* arg_sequencer )
@@ -399,6 +428,13 @@ void ActivateStmt::Describe( ostream& s ) const
 	}
 
 
+IfStmt::~IfStmt()
+	{
+	NodeUnref( expr );
+	NodeUnref( true_branch );
+	NodeUnref( false_branch );
+	}
+
 IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 		Stmt* arg_false_branch )
 	{
@@ -446,6 +482,13 @@ void IfStmt::Describe( ostream& s ) const
 		}
 	}
 
+
+ForStmt::~ForStmt()
+	{
+	NodeUnref( index );
+	NodeUnref( range );
+	NodeUnref( body );
+	}
 
 ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
 		  Stmt* body_stmt )
@@ -505,6 +548,11 @@ void ForStmt::Describe( ostream& s ) const
 	body->Describe( s );
 	}
 
+WhileStmt::~WhileStmt()
+	{
+	NodeUnref( test );
+	NodeUnref( body );
+	}
 
 WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
 	{
@@ -549,6 +597,12 @@ void WhileStmt::Describe( ostream& s ) const
 	body->Describe( s );
 	}
 
+PrintStmt::~PrintStmt()
+	{
+	if ( args )
+		loop_over_list( *args, i )
+			NodeUnref( (*args)[i] );
+	}
 
 IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
@@ -575,6 +629,11 @@ void PrintStmt::Describe( ostream& s ) const
 	}
 
 
+ExprStmt::~ExprStmt()
+	{
+	NodeUnref( expr );
+	}
+
 IValue* ExprStmt::DoExec( int value_needed, stmt_flow_type& /* flow */ )
 	{
 	if ( value_needed && ! expr->Invisible() )
@@ -596,6 +655,8 @@ void ExprStmt::DescribeSelf( ostream& s ) const
 	{
 	expr->DescribeSelf( s );
 	}
+
+ExitStmt::~ExitStmt() { /**** should never be called ****/ }
 
 IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
@@ -621,16 +682,27 @@ void ExitStmt::Describe( ostream& s ) const
 		}
 	}
 
+LoopStmt::~LoopStmt() { }
+
 IValue* LoopStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_LOOP;
 	return 0;
 	}
 
+
+BreakStmt::~BreakStmt() { }
+
 IValue* BreakStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_BREAK;
 	return 0;
+	}
+
+
+ReturnStmt::~ReturnStmt()
+	{
+	NodeUnref( retval );
 	}
 
 IValue* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
@@ -653,6 +725,11 @@ void ReturnStmt::Describe( ostream& s ) const
 		s << " ";
 		retval->Describe( s );
 		}
+	}
+
+StmtBlock::~StmtBlock()
+	{
+	NodeUnref( stmt );
 	}
 
 StmtBlock::StmtBlock( int fsize, Stmt *arg_stmt,
@@ -685,6 +762,14 @@ void StmtBlock::Describe( ostream& s ) const
 	s << "{{ ";
 	stmt->Describe( s );
 	s << " }}";
+	}
+
+
+NullStmt::~NullStmt() { }
+
+int NullStmt::canDelete() const
+	{
+	return 0;
 	}
 
 IValue* NullStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )

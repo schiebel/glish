@@ -12,6 +12,12 @@ RCSID("@(#) $Id$")
 #include "Agent.h"
 #include "Func.h"
 
+int ParseNode::canDelete() const
+	{
+	return 1;
+	}
+
+Expr::~Expr() { }
 
 void Expr::SideEffectsEval()
 	{
@@ -99,6 +105,15 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 		}
 	}
 
+VarExpr::~VarExpr()
+	{
+	delete id;
+	}
+
+int VarExpr::canDelete() const
+	{
+	return 0;
+	}
 
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 			int var_frame_offset,
@@ -124,11 +139,6 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 	scope = var_scope;
 	frame_offset = var_frame_offset;
 	scope_offset = var_scope_offset;
-	}
-
-VarExpr::~VarExpr()
-	{
-	delete id;
 	}
 
 IValue* VarExpr::Eval( eval_type etype )
@@ -211,6 +221,9 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return ret;
 	}
 
+
+ScriptVarExpr::~ScriptVarExpr() { }
+
 Expr *ScriptVarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	{
 	Expr *ret = 0;
@@ -254,6 +267,12 @@ VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff,
 	return new VarExpr( id, sc, soff, foff, seq );
 	}
 
+
+ValExpr::~ValExpr()
+	{
+	Unref(val);
+	}
+
 IValue* ValExpr::Eval( eval_type etype )
 	{
 	return CopyOrRefValue( val, etype );
@@ -267,6 +286,11 @@ IValue* ValExpr::RefEval( value_type val_type )
 	return new IValue( val, val_type );
 	}
 
+
+ConstExpr::~ConstExpr()
+	{
+	Unref((GlishObject*)const_value);
+	}
 
 ConstExpr::ConstExpr( const IValue* value ) : Expr("constant")
 	{
@@ -283,6 +307,10 @@ void ConstExpr::DescribeSelf( ostream& s ) const
 	const_value->DescribeSelf( s );
 	}
 
+UnaryExpr::~UnaryExpr()
+	{
+	NodeUnref( op );
+	}
 
 UnaryExpr::UnaryExpr( Expr* operand, const char* desc ) : Expr(desc)
 	{
@@ -299,6 +327,12 @@ Expr *UnaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	{
 	op = op->DoBuildFrameInfo( m, dl );
 	return this;
+	}
+
+BinaryExpr::~BinaryExpr()
+	{
+	NodeUnref( left );
+	NodeUnref( right );
 	}
 
 BinaryExpr::BinaryExpr( Expr* op1, Expr* op2, const char* desc )
@@ -454,6 +488,12 @@ IValue* AndExpr::Eval( eval_type etype )
 		}
 	}
 
+ConstructExpr::~ConstructExpr()
+	{
+	if ( args )
+		loop_over_list( *args, i )
+			NodeUnref( (*args)[i] );
+	}
 
 ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
 	{
@@ -762,6 +802,8 @@ IValue* ConstructExpr::BuildRecord()
 	return new IValue( rec );
 	}
 
+
+ArrayRefExpr::~ArrayRefExpr() { }
 
 ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1, "[]")
 	{
@@ -1165,6 +1207,8 @@ void ArrayRefExpr::Describe( ostream& s ) const
 	s << "]";
 	}
 
+RecordRefExpr::~RecordRefExpr() { } 
+
 RecordRefExpr::RecordRefExpr( Expr* op, char* record_field )
     : UnaryExpr(op, ".")
 	{
@@ -1228,6 +1272,8 @@ void RecordRefExpr::Describe( ostream& s ) const
 	op->Describe( s );
 	s << "." << field;
 	}
+
+AttributeRefExpr::~AttributeRefExpr() { } 
 
 AttributeRefExpr::AttributeRefExpr( Expr *op1 ) : BinaryExpr(op1, 0, "::")
 	{
@@ -1505,6 +1551,13 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 	}
 
 
+CallExpr::~CallExpr()
+	{
+	if ( args )
+		loop_over_list( *args, i )
+			NodeUnref( (*args)[i] );
+	}
+
 CallExpr::CallExpr( Expr* func, parameter_list* args_args )
     : UnaryExpr(func, "func()")
 	{
@@ -1554,6 +1607,13 @@ void CallExpr::Describe( ostream& s ) const
 	s << ")";
 	}
 
+
+SendEventExpr::~SendEventExpr()
+	{
+	if ( args )
+		loop_over_list( *args, i )
+			NodeUnref( (*args)[i] );
+	} 
 
 SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
 				parameter_list* arg_args,

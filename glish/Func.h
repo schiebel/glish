@@ -53,6 +53,8 @@ class Parameter : public GlishObject {
 
 	void Describe( ostream& s ) const;
 
+	~Parameter();
+
     protected:
 	const char* name;
 	value_type parm_type;

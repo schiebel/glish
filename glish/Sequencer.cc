@@ -1582,15 +1582,15 @@ void Sequencer::LogEvent( const char* gid, const char* id,
 
 	parameter_list args;
 
-	ConstExpr gid_expr( &gid_value );
-	ConstExpr id_expr( &id_value );
-	ConstExpr name_expr( &name_value );
-	ConstExpr value_expr( event_value );
+	ConstExpr gid_expr( &gid_value ); Ref( &gid_value );
+	ConstExpr id_expr( &id_value ); Ref( &id_value );
+	ConstExpr name_expr( &name_value ); Ref( &name_value );
+	ConstExpr value_expr( event_value ); Ref( event_value );
 
-	Parameter gid_param( "glish_id", VAL_VAL, &gid_expr, 0 );
-	Parameter id_param( "id", VAL_VAL, &id_expr, 0 );
-	Parameter name_param( "name", VAL_VAL, &name_expr, 0 );
-	Parameter value_param( "value", VAL_VAL, &value_expr, 0 );
+	Parameter gid_param( "glish_id", VAL_VAL, &gid_expr, 0 ); Ref( &gid_expr );
+	Parameter id_param( "id", VAL_VAL, &id_expr, 0 ); Ref( &id_expr );
+	Parameter name_param( "name", VAL_VAL, &name_expr, 0 ); Ref( &name_expr );
+	Parameter value_param( "value", VAL_VAL, &value_expr, 0 ); Ref( &value_expr );
 
 	args.insert( &name_param );
 	args.insert( &id_param );

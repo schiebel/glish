@@ -19,6 +19,25 @@ declare(PDict,Expr);
 typedef PList(Expr) expr_list;
 
 
+class ParseNode : public GlishObject {
+    public:
+	virtual int canDelete() const;
+	};
+
+inline void NodeRef( GlishObject *obj )
+	{
+	Ref( obj );
+	}
+inline void NodeUnref( GlishObject *obj )
+	{
+	Unref( obj );
+	}
+inline void NodeUnref( ParseNode *obj )
+	{
+	if ( obj && obj->canDelete() )
+		Unref( obj );
+	}
+
 // Different scopes to use when resolving identifiers; used by the VarExpr
 // and Sequencer classes.
 //	LOCAL_SCOPE  --  local to the narrowest block
@@ -43,7 +62,7 @@ typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS } eval_type;
 
 
-class Expr : public GlishObject {
+class Expr : public ParseNode {
     public:
 	Expr( const char* desc )
 		{ description = desc; }
@@ -118,6 +137,8 @@ class Expr : public GlishObject {
 	// This should not be called outside of the Expr hierarchy. Use
 	// BuildFrameInfo() instead.
 	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
+	virtual ~Expr();
     protected:
 	// Return either a copy of the given value, or a reference to
 	// it, depending on etype.  If etype is EVAL_SIDE_EFFECTS, a
@@ -147,6 +168,8 @@ class VarExpr : public Expr {
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
+	int canDelete() const;
+
     protected:
 	char* id;
 	scope_type scope;
@@ -166,6 +189,8 @@ class ScriptVarExpr : public VarExpr {
 		: VarExpr ( vid, sq ) { }
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
+	~ScriptVarExpr();
 	};
 
 
@@ -181,7 +206,7 @@ class ValExpr : public Expr {
     public:
 	ValExpr( IValue *v ) : Expr("value"), val(v) { Ref(val); }
 
-	~ValExpr() { Unref(val); }
+	~ValExpr();
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
@@ -197,6 +222,8 @@ class ConstExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	void DescribeSelf( ostream& s ) const;
 
+	~ConstExpr();
+
     protected:
 	const IValue* const_value;
 	};
@@ -211,6 +238,8 @@ class UnaryExpr : public Expr {
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
+	~UnaryExpr();
+
     protected:
 	Expr* op;
 	};
@@ -224,6 +253,8 @@ class BinaryExpr : public Expr {
 	void Describe( ostream& s ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
+	~BinaryExpr();
 
     protected:
 	Expr* left;
@@ -287,6 +318,8 @@ class ConstructExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	void Describe( ostream& s ) const;
 
+	~ConstructExpr();
+
     protected:
 	IValue* BuildArray();
 	IValue* BuildRecord();
@@ -317,6 +350,8 @@ class ArrayRefExpr : public UnaryExpr {
 
 	void Describe( ostream& s ) const;
 
+	~ArrayRefExpr();
+
     protected:
 	IValue *CallFunc(Func *fv, eval_type etype, ParameterPList *);
 	expr_list* args;
@@ -333,6 +368,8 @@ class RecordRefExpr : public UnaryExpr {
 	void Assign( IValue* new_value );
 
 	void Describe( ostream& s ) const;
+
+	~RecordRefExpr();
 
     protected:
 	char* field;
@@ -353,6 +390,8 @@ class AttributeRefExpr : public BinaryExpr {
 	void Describe( ostream& s ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
+	~AttributeRefExpr();
 
     protected:
 	char* field;
@@ -390,6 +429,8 @@ class CallExpr : public UnaryExpr {
 
 	void Describe( ostream& s ) const;
 
+	~CallExpr();
+
     protected:
 	ParameterPList* args;
 	};
@@ -404,6 +445,8 @@ class SendEventExpr : public Expr {
 	void SideEffectsEval();
 
 	void Describe( ostream& s ) const;
+
+	~SendEventExpr();
 
     protected:
 	EventDesignator* sender;
