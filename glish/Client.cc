@@ -987,8 +987,8 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		// the client can then do whatever they like such as exiting
 		// or restarting the glishd with a call to ReRegister().
 
-		RemoveInterpreter( source );
 		FD_Change( fd_src.fd(), 0 );
+		RemoveInterpreter( source );
 
 		last_event = new GlishEvent( (const char *) "*end-context*",
 			create_value( last_context.id() ) );		
