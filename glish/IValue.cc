@@ -32,7 +32,8 @@ void delete_agents( void *ary_, unsigned long len )
 	{
 	agentptr *ary = (agentptr*) ary_;
 	for (int i = 0; i < len; i++)
-		Unref(ary[i]);
+		if ( agents.is_member( ary[i] ) )
+			Unref( ary[i] );
 	}
 
 void copy_funcs( void *to_, void *from_, unsigned long len )

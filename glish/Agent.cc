@@ -50,6 +50,8 @@ Agent::Agent( Sequencer* s )
 
 Agent::~Agent()
 	{
+	(void) agents.remove( this );
+
 	IterCookie* c = interested_parties.InitForIteration();
 
 	notification_list* list;
@@ -72,7 +74,6 @@ Agent::~Agent()
 		delete string_copies;
 		}
 
-	(void) agents.remove( this );
 	}
 
 void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
@@ -248,8 +249,7 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 
 		event_val->AssignRecordElement( index, arg_val );
 
-		if ( use_refs )
-			Unref( arg_val );
+		Unref( arg_val );
 		}
 
 	return event_val;

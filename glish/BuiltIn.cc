@@ -1431,7 +1431,9 @@ IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	loop_over_list( agents, i )
 		{
 		IValue* a = agents[i]->AgentRecord();
-		r->SetField( r->NewFieldName(), new IValue( a, VAL_REF ) );
+		IValue* a_ref = new IValue( a, VAL_REF );
+		r->SetField( r->NewFieldName(), a_ref );
+		Unref( a_ref );
 		}
 
 	return r;

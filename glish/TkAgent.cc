@@ -817,6 +817,7 @@ int TkAgent::CreateEvent( const char* event_name, IValue* event_value, NotifyTri
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
+
 	self = 0;
 	frame = 0;
 
@@ -891,6 +892,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	{
 	char *argv[13];
 
+	agent_ID = "<graphic:frame>";
+
 	if ( ! root )
 		{
 		error->Report("Frame creation failed, check DISPLAY environment variable.");
@@ -921,7 +924,6 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 			rivet_va_func(root, (int (*)()) Tk_WmCmd, "title",
 				      rivet_path(root), title, 0 );
 
-	agent_ID = "<graphic:frame>";
 	side = strdup(side_);
 	padx = strdup(padx_);
 	pady = strdup(pady_);
@@ -966,9 +968,10 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
 		  tag(0), radio_id(0), canvas(0)
 	{
+	char *argv[12];
 	frame = frame_;
 
-	char *argv[12];
+	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
 		{
@@ -976,7 +979,6 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		return;
 		}
 
-	agent_ID = "<graphic:frame>";
 	side = strdup(side_);
 	padx = strdup(padx_);
 	pady = strdup(pady_);
@@ -1021,11 +1023,12 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
 		  pseudo( 0 ), radio_id(0)
 	{
+	char *argv[12];
 	frame = 0;
 	canvas = canvas_;
 	tag = strdup(tag_);
 
-	char *argv[12];
+	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
 		{
@@ -1033,7 +1036,6 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 		return;
 		}
 
-	agent_ID = "<graphic:frame>";
 	side = strdup(side_);
 	padx = strdup(padx_);
 	pady = strdup(pady_);
@@ -1368,6 +1370,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	frame = frame_;
 	char *argv[32];
 
+	agent_ID = "<graphic:button>";
+
 	id = ++button_count;
 
 	char width_[30];
@@ -1452,8 +1456,6 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 			break;
 		}
 
-	agent_ID = "<graphic:button>";
-
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkButton::TkButton");
 
@@ -1483,6 +1485,8 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	menu = frame_;
 	frame = 0;
+
+	agent_ID = "<graphic:button>";
 
 	if ( ! frame_->IsMenu() )
 		fatal->Report("internal error with creation of menu entry");
@@ -1571,7 +1575,6 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		}
 
 	self = menu->Menu();
-	agent_ID = "<graphic:button>";
 
 	value = val ? copy_value( val ) : 0;
 
@@ -1705,6 +1708,8 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	char from_[40];
 	char to_[40];
 
+	agent_ID = "<graphic:scale>";
+
 	sprintf(from_,"%d",from);
 	sprintf(to_,"%d",to);
 
@@ -1732,7 +1737,6 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	argv[c++] = rivet_new_callback((int (*)()) scalecb, (ClientData) this, 0);
 
 	self = rivet_create(ScaleClass, frame->Self(), c, argv);
-	agent_ID = "<graphic:scale>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkScale::TkScale");
@@ -1802,9 +1806,10 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	frame = frame_;
 	char *argv[24];
 
+	agent_ID = "<graphic:text>";
+
 	self = rivet_create(TextClass, frame->Self(), 0, 0);
 
-	agent_ID = "<graphic:text>";
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkText::TkText");
 
@@ -1949,6 +1954,8 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 	frame = frame_;
 	char *argv[10];
 
+	agent_ID = "<graphic:scrollbar>";
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-orient";
@@ -1957,8 +1964,6 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 	argv[c++] = rivet_new_callback((int (*)()) scrollbarcb, (ClientData) this, 0);
 
 	self = rivet_create(ScrollbarClass, frame->Self(), c, argv);
-
-	agent_ID = "<graphic:scrollbar>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkScrollbar::TkScrollbar");
@@ -2025,6 +2030,8 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	char *argv[22];
 	char width[30];
 
+	agent_ID = "<graphic:label>";
+
 	sprintf(width,"%d",width_);
 
 	int c = 2;
@@ -2054,7 +2061,6 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = width;
 
 	self = rivet_create(LabelClass, frame->Self(), c, argv);
-	agent_ID = "<graphic:label>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkLabel::TkLabel");
@@ -2123,6 +2129,8 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	char *argv[24];
 	char width_[30];
 
+	agent_ID = "<graphic:entry>";
+
 	sprintf(width_,"%d",width);
 
 	int c = 2;
@@ -2157,7 +2165,6 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	argv[c++] = rivet_new_callback((int (*)()) entry_xscrollcb, (ClientData) this, 0);
 
 	self = rivet_create(EntryClass, frame->Self(), c, argv);
-	agent_ID = "<graphic:entry>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkEntry::TkEntry");
@@ -2236,6 +2243,8 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	frame = frame_;
 	char *argv[22];
 
+	agent_ID = "<graphic:message>";
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-text";
@@ -2263,7 +2272,6 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	argv[c++] = (char*) background;
 
 	self = rivet_create(MessageClass, frame->Self(), c, argv);
-	agent_ID = "<graphic:message>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkMessage::TkMessage");
@@ -2336,6 +2344,8 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	char width_[40];
 	char height_[40];
 
+	agent_ID = "<graphic:listbox>";
+
 	sprintf(width_,"%d",width);
 	sprintf(height_,"%d",height);
 
@@ -2368,7 +2378,6 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	argv[c++] = rivet_new_callback((int (*)()) listbox_xscrollcb, (ClientData) this, 0);
 
 	self = rivet_create(ListboxClass, frame->Self(), c, argv);
-	agent_ID = "<graphic:listbox>";
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkListbox::TkListbox");

@@ -377,7 +377,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	tkattr->Insert( strdup( "rivet" ), new IValue(RIVET_VERSION) );
 	tkattr->Insert( strdup( "tcl" ), new IValue(TCL_VERSION) );
 #else
-	sys_val->SetField( "tk", new IValue( glish_false ) );
+	IValue *tkversion = new IValue( glish_false );
+	sys_val->SetField( "tk", tkversion );
+	Unref(tkversion);
 #endif
 
 	// Create place for the script variable to be filled in later
@@ -540,7 +542,6 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 Sequencer::~Sequencer()
 	{
-
 	Unref( last_notification );
 	NodeUnref( stmts );
 
@@ -558,8 +559,8 @@ Sequencer::~Sequencer()
 	delete connection_socket;
 	delete connection_port;
 
-	loop_over_list( agents, l )
-		Unref( agents[l] );
+	while ( agents.length() )
+		Unref( agents.remove_nth( agents.length() - 1 ) );
 
 	delete selector;
 
