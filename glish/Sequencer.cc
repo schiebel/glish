@@ -2645,9 +2645,15 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 	if ( LocalHost( host ) )
 		{
 		// Check to see if a daemon is running
+		static double checked_local_daemon = 0;
+		double cur_time = 0;
 		d = daemons["localhost"];
-		if ( ! d )
+		if ( ! d && ( checked_local_daemon == 0 ||
+			      (cur_time = get_current_time()) - checked_local_daemon > 30) )
+			{
+			checked_local_daemon = (cur_time != 0 ? cur_time : get_current_time());
 			d = OpenDaemonConnection( "localhost", err );
+			}
 		}
 	else
 		{
@@ -4251,7 +4257,7 @@ char* which_include( const char* filename )
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
 		if ( access( filename, R_OK ) == 0 )
-			return string_dup( filename );
+			return canonic_path( filename );
 		else
 			return 0;
 		}
