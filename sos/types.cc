@@ -24,7 +24,7 @@ RCSID("@(#) $Id$")
 #if defined(__SUN5)
 #else
 #if defined(__linux__)
-#include <i386/fpu_control.h> /* See note in sos_global_init() below */
+#include <fpu_control.h>
 #include <linux/limits.h>
 #else
 #if defined(VXWORKS)
