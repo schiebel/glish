@@ -17,10 +17,14 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
         KEYDIR="$GLISHROOT/keys"
     fi
     AC_SUBST(KEYDIR)
-    config/mkhier "$KEYDIR/hosts"
-    chmod -f 750 "$KEYDIR/hosts"
-    config/mkhier "$KEYDIR/users"
-    chmod -f 770 "$KEYDIR/users"
+    if test ! -d $KEYDIR/hosts; then
+        config/mkhier "$KEYDIR/hosts"
+        chmod -f 750 "$KEYDIR/hosts"
+    fi
+    if test ! -d $KEYDIR/users; then
+        config/mkhier "$KEYDIR/users"
+        chmod -f 770 "$KEYDIR/users"
+    fi
 else
     GLISH_NPD=""
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in)
