@@ -1192,6 +1192,9 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	{
 	char *val = 0;
 
+	Sequencer::HoldQueue();
+	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
+
 	if ( proc )
 		val = (*proc)(s,cmdstr,arg,x,y);
 	else if ( proc1 )
@@ -1217,7 +1220,7 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	else
 		return error_ivalue();
 
-	Sequencer::HoldQueue();
+
 	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
 	Sequencer::ReleaseQueue();
 
