@@ -79,8 +79,6 @@ void TkStore::Loop( )
 ProxyStore *global_store = 0;
 int main( int argc, char** argv )
 	{
-	INIT_ENVIRON
-
 	TkStore stor( argc, argv );
 
 	global_store = &stor;
