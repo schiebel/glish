@@ -1558,8 +1558,8 @@ Value* Value::operator []( const_value_list* args_val ) const
 	free_memory( cur );						\
 	}
 
-#define SUBOP_CLEANUP(length)					\
-	SUBOP_CLEANUP_2(length)					\
+#define SUBOP_CLEANUP(length)						\
+	SUBOP_CLEANUP_2(length)						\
 	free_memory( len );
 
 	int length = kernel.Length();
@@ -1776,7 +1776,7 @@ SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
 		{					\
 		EXTRA_ERROR				\
 		free_memory( ret );			\
-		SUBOP_CLEANUP_2(shape_len)		\
+		SUBOP_CLEANUP(shape_len)		\
 		return error_value();			\
 		}
 

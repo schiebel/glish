@@ -2063,7 +2063,6 @@ IValue* field_names_built_in( const IValue* arg )
 		return (IValue*) Fail( "argument to field_names is not a record" );
 
 	recordptr record_dict = arg->RecordPtr(0);
-	IterCookie* c = record_dict->InitForIteration();
 	int len = record_dict->Length();
 
 	charptr* names = (charptr*) alloc_memory( sizeof(charptr)*len );
