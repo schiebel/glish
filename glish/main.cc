@@ -29,6 +29,8 @@
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE.
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "system.h"
 #include <signal.h>
 #include <osfcn.h>

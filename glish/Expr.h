@@ -20,7 +20,19 @@ typedef PList(Expr) expr_list;
 
 // Different scopes to use when resolving identifiers; used by the VarExpr
 // and Sequencer classes.
-typedef enum { LOCAL_SCOPE, GLOBAL_SCOPE } scope_type;
+//	LOCAL_SCOPE  --  local to the narrowest block
+//      FUNC_SCOPE   --  local to a function
+//      GLOBAL_SCOPE --  global to the current name space
+//      ANY_SCOPE    --  any scope from the narrowest block to global
+//
+typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
+
+// Various ways the scope of a value can be modified
+//      SCOPE_UNKNOWN --  no particular modification
+//      SCOPE_LHS     --  left hand side of an assignment
+//      SCOPE_RHS     --  right hand side of an assignment
+//
+typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 
 // Different types of expression evaluation: evaluate and return a
 // modifiable copy of the result; evaluate and return a read-only
@@ -92,6 +104,19 @@ class Expr : public GlishObject {
 	// value" (false).
 	virtual int Invisible() const;
 
+	// Because the scoping of a value can be determined by its location
+	// within an expression, e.g. LHS or RHS, this function is a wrapper
+	// around the function which actually does the work, i.e.
+	// DoBuildFrameInfo(). DoBuildFrameInfo() traverses the tree and
+	// fixes up any unresolved variables. This wrapper is required
+	// so that any "Expr*"s which removed from the tree and placed on
+	// the deletion list can be cleaned up. "VarExpr"s can be pruned
+	// from the tree as their scope is resolved.
+	Expr *BuildFrameInfo( scope_modifier );
+
+	// This should not be called outside of the Expr hierarchy. Use
+	// BuildFrameInfo() instead.
+	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
     protected:
 	// Return either a copy of the given value, or a reference to
 	// it, depending on etype.  If etype is EVAL_SIDE_EFFECTS, a
@@ -102,8 +127,10 @@ class Expr : public GlishObject {
 
 class VarExpr : public Expr {
     public:
-	VarExpr( char* var_id, scope_type scope, int frame_offset,
-			Sequencer* sequencer );
+	VarExpr( char* var_id, scope_type scope, int scope_offset,
+			int frame_offset, Sequencer* sequencer );
+
+	VarExpr( char *var_id, Sequencer *sequencer );
 
 	~VarExpr();
 
@@ -113,14 +140,41 @@ class VarExpr : public Expr {
 	void Assign( Value* new_value );
 
 	const char* VarID()	{ return id; }
+	int offset()		{ return frame_offset; }
+	scope_type Scope()	{ return scope; }
+	void set( scope_type scope, int scope_offset, int frame_offset );
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
     protected:
 	char* id;
 	scope_type scope;
 	int frame_offset;
+	int scope_offset;
 	Sequencer* sequencer;
 	};
 
+
+class ScriptVarExpr : public VarExpr {
+    public:
+	ScriptVarExpr( char* vid, scope_type sc, int soff, 
+			int foff, Sequencer* sq ) 
+		: VarExpr( vid, sc, soff, foff, sq ) { }
+
+	ScriptVarExpr( char *vid, Sequencer *sq )
+		: VarExpr ( vid, sq ) { }
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+	};
+
+
+// These functions are used to create the VarExpr. There may be times
+// when a  variable must be initialized just before it is first used,
+// e.g. "script" which cannot be initialized earlier because it isn't
+// known if it is multithreaded or not.
+VarExpr *CreateVarExpr( char *id, Sequencer *seq );
+VarExpr *CreateVarExpr( char *id, scope_type scope, int scope_offset,
+			int frame_offset, Sequencer *seq );
 
 class ValExpr : public Expr {
     public:
@@ -154,6 +208,8 @@ class UnaryExpr : public Expr {
 	Value* Eval( eval_type etype ) = 0;
 	void Describe( ostream& s ) const;
 
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
     protected:
 	Expr* op;
 	};
@@ -165,6 +221,8 @@ class BinaryExpr : public Expr {
 
 	Value* Eval( eval_type etype ) = 0;
 	void Describe( ostream& s ) const;
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
     protected:
 	Expr* left;
@@ -178,6 +236,8 @@ class NegExpr : public UnaryExpr {
 	NegExpr( Expr* operand );
 
 	Value* Eval( eval_type etype );
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 	};
 
 
@@ -186,6 +246,8 @@ class NotExpr : public UnaryExpr {
 	NotExpr( Expr* operand );
 
 	Value* Eval( eval_type etype );
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 	};
 
 
@@ -196,6 +258,8 @@ class AssignExpr : public BinaryExpr {
 	Value* Eval( eval_type etype );
 	void SideEffectsEval();
 	int Invisible() const;
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 	};
 
 
@@ -286,6 +350,8 @@ class AttributeRefExpr : public BinaryExpr {
 	void Assign( Value* new_value );
 
 	void Describe( ostream& s ) const;
+
+	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
     protected:
 	char* field;

@@ -4,6 +4,7 @@
 #define complex_h
 
 #include <iostream.h>
+#include <math.h>
 
 //
 // Complex types
@@ -50,6 +51,15 @@ inline double norm( const dcomplex x )
 	{
 	return x.r * x.r + x.i * x.i;
 	}
+
+#define COMPLEX_INTEGRAL_FUNCS(type,func)	\
+inline type func( const type x )		\
+	{					\
+	return type( func( x.r ), func( x.i ) );\
+	}
+
+COMPLEX_INTEGRAL_FUNCS(dcomplex,floor)
+COMPLEX_INTEGRAL_FUNCS(dcomplex,ceil)
 
 #define COMPLEX_CPX_BINOP(type,lhs_type,rhs_type,cast,op) 		\
 inline type operator op( const lhs_type x, const rhs_type y ) 		\
@@ -184,6 +194,7 @@ extern dcomplex mul(const dcomplex x, const dcomplex y );
 extern complex div(const complex divd, const complex dsor );
 extern dcomplex exp(const dcomplex v);
 extern dcomplex log(const dcomplex v);
+extern dcomplex log10(const dcomplex v);
 extern dcomplex sin(const dcomplex v);
 extern dcomplex cos(const dcomplex v);
 extern dcomplex sqrt(const dcomplex v);

@@ -1,5 +1,7 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include <stream.h>
 #include <string.h>
 #include <stdlib.h>
@@ -58,6 +60,23 @@ int Expr::Invisible() const
 	return 0;
 	}
 
+Expr *Expr::BuildFrameInfo( scope_modifier m )
+	{
+	expr_list dl;
+	Expr *ret = DoBuildFrameInfo( m, dl );
+
+	loop_over_list( dl, i )
+		Unref( dl[i] );
+
+	return ret;
+	}
+
+
+Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
+	{
+	return this;
+	}
+
 Value* Expr::CopyOrRefValue( const Value* value, eval_type etype )
 	{
 	if ( etype == EVAL_COPY )
@@ -81,13 +100,30 @@ Value* Expr::CopyOrRefValue( const Value* value, eval_type etype )
 	}
 
 
-VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_offset,
+VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
+			int var_frame_offset,
 			Sequencer* var_sequencer ) : Expr(var_id)
 	{
 	id = var_id;
 	scope = var_scope;
-	frame_offset = var_offset;
+	frame_offset = var_frame_offset;
+	scope_offset = var_scope_offset;
 	sequencer = var_sequencer;
+	}
+
+VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : Expr(var_id)
+	{
+	id = strdup(var_id);
+	sequencer = var_sequencer;
+	scope = ANY_SCOPE;
+	}
+
+void VarExpr::set( scope_type var_scope, int var_scope_offset,
+			int var_frame_offset )
+	{
+	scope = var_scope;
+	frame_offset = var_frame_offset;
+	scope_offset = var_scope_offset;
 	}
 
 VarExpr::~VarExpr()
@@ -97,13 +133,16 @@ VarExpr::~VarExpr()
 
 Value* VarExpr::Eval( eval_type etype )
 	{
-	Value* value = sequencer->FrameElement( scope, frame_offset );
-
+	Value* value = sequencer->FrameElement( scope, scope_offset,
+						frame_offset );
 	if ( ! value )
 		{
-		warn->Report( "uninitialized variable", this, "used" );
+		warn->Report( "uninitialized ",
+				scope == GLOBAL_SCOPE ? "global" : "local",
+				" variable", this, "used" );
 		value = error_value();
-		sequencer->SetFrameElement( scope, frame_offset, value );
+		sequencer->SetFrameElement( scope, scope_offset, 
+						frame_offset, value );
 		}
 
 	value = value->Deref();
@@ -113,13 +152,14 @@ Value* VarExpr::Eval( eval_type etype )
 
 Value* VarExpr::RefEval( value_type val_type )
 	{
-	Value* var = sequencer->FrameElement( scope, frame_offset );
-
+	Value* var = sequencer->FrameElement( scope, scope_offset,
+						frame_offset );
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
 		var = new Value( glish_false );
-		sequencer->SetFrameElement( scope, frame_offset, var );
+		sequencer->SetFrameElement( scope, scope_offset,
+						frame_offset, var );
 		}
 
 	if ( val_type == VAL_VAL )
@@ -133,7 +173,85 @@ Value* VarExpr::RefEval( value_type val_type )
 
 void VarExpr::Assign( Value* new_value )
 	{
-	sequencer->SetFrameElement( scope, frame_offset, new_value );
+	sequencer->SetFrameElement( scope, scope_offset, frame_offset,
+					new_value );
+	}
+
+Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+
+	if ( scope != ANY_SCOPE )
+		return this;
+
+	Expr *ret = 0;
+
+	switch ( m )
+		{
+		case SCOPE_LHS:
+			ret = sequencer->LookupVar( strdup(id), LOCAL_SCOPE,
+							this );
+			break;
+		case SCOPE_UNKNOWN:
+		case SCOPE_RHS:
+			ret = sequencer->LookupVar( strdup(id), ANY_SCOPE,
+							this );
+			break;
+		default:
+			fatal->Report("bad scope modifier tag in VarExpr::DoBuildFrameInfo()");
+		}
+
+	if ( ret && ret != this )
+		{
+		if ( ! dl.is_member(this) )
+			dl.append( this );
+		}
+	else
+		dl.remove( this );
+
+	return ret;
+	}
+
+Expr *ScriptVarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	Expr *ret = 0;
+	if ( sequencer->ScriptCreated() )
+		return VarExpr::DoBuildFrameInfo( m, dl );
+	else
+		{
+		sequencer->ScriptCreated( 1 );
+		ret = VarExpr::DoBuildFrameInfo( m, dl );
+		sequencer->ScriptCreated( 0 );
+		}
+
+	if ( ! ret )
+		return ret;
+
+	if ( ((VarExpr*)ret)->Scope() == GLOBAL_SCOPE )
+		{
+		const Value *v = ret->ReadOnlyEval();
+		if ( v->Type() == TYPE_BOOL )
+			sequencer->InitScriptClient();
+		ret->ReadOnlyDone( v );
+		}
+
+	return ret;
+	}
+
+VarExpr *CreateVarExpr( char *id, Sequencer *seq )
+	{
+	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
+			! strcmp( id, "script" ) )
+		return new ScriptVarExpr( id, seq );
+	return new VarExpr( id, seq );
+	}
+
+VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff, 
+			Sequencer *seq )
+	{
+	if ( seq->DoingInit() && ! seq->ScriptCreated() &&
+			! strcmp( id, "script" ) )
+		return new ScriptVarExpr( id, sc, soff, foff, seq );
+	return new VarExpr( id, sc, soff, foff, seq );
 	}
 
 Value* ValExpr::Eval( eval_type etype )
@@ -177,6 +295,11 @@ void UnaryExpr::Describe( ostream& s ) const
 	op->Describe( s );
 	}
 
+Expr *UnaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	op = op->DoBuildFrameInfo( m, dl );
+	return this;
+	}
 
 BinaryExpr::BinaryExpr( Expr* op1, Expr* op2, const char* desc )
     : Expr(desc)
@@ -197,6 +320,13 @@ void BinaryExpr::Describe( ostream& s ) const
 	s << ")";
 	}
 
+Expr *BinaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	left = left->DoBuildFrameInfo( m, dl );
+	right = right->DoBuildFrameInfo( m, dl );
+	return this;
+	}
+
 
 NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand, "-" )
 	{
@@ -209,6 +339,11 @@ Value* NegExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
+Expr *NegExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	op = op->DoBuildFrameInfo( m, dl );
+	return this;
+	}
 
 NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand, "!" )
 	{
@@ -219,6 +354,12 @@ Value* NotExpr::Eval( eval_type /* etype */ )
 	Value* result = op->CopyEval();
 	result->Not();
 	return result;
+	}
+
+Expr *NotExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	op = op->DoBuildFrameInfo( m, dl );
+	return this;
 	}
 
 
@@ -250,6 +391,13 @@ void AssignExpr::SideEffectsEval()
 int AssignExpr::Invisible() const
 	{
 	return 1;
+	}
+
+Expr *AssignExpr::DoBuildFrameInfo( scope_modifier, expr_list &dl )
+	{
+	right = right->DoBuildFrameInfo( SCOPE_RHS, dl );
+	left = left->DoBuildFrameInfo( SCOPE_LHS, dl );
+	return this;
 	}
 
 
@@ -1017,7 +1165,6 @@ void ArrayRefExpr::Describe( ostream& s ) const
 	s << "]";
 	}
 
-
 RecordRefExpr::RecordRefExpr( Expr* op, char* record_field )
     : UnaryExpr(op, ".")
 	{
@@ -1254,6 +1401,15 @@ void AttributeRefExpr::Describe( ostream& s ) const
 		}
 	}
 
+Expr *AttributeRefExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
+	{
+	left = left->DoBuildFrameInfo( m, dl );
+
+	if ( right )
+		right = right->DoBuildFrameInfo( m, dl );
+
+	return this;
+	}
 
 RefExpr::RefExpr( Expr* op, value_type arg_type ) : UnaryExpr(op, "ref")
 	{

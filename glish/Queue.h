@@ -24,8 +24,10 @@ class BaseQueue {
 	BaseQueue();
 	void EnQueue( void* element );
 	void* DeQueue();
+	int length() const { return num_entries; }
 
     protected:
+	int num_entries;
 	QueueElement* head;
 	QueueElement* tail;
 	};

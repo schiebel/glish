@@ -1,5 +1,7 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "system.h"
 
 #include <stdlib.h>
@@ -28,6 +30,8 @@ int system( const char* string );
 }
 
 
+#include "Npd/npd.h"
+#include "Daemon.h"
 #include "Reporter.h"
 #include "Sequencer.h"
 #include "Frame.h"
@@ -41,6 +45,7 @@ int system( const char* string );
 #include "version.h"
 
 #define GLISH_RC_FILE ".glishrc"
+#define GLISH_HOME_VAR "GLISH_HOME"
 
 // Time to wait until probing a remote daemon, in seconds.
 #define PROBE_DELAY 5
@@ -50,6 +55,29 @@ int system( const char* string );
 
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
+
+// A special type of Client used for script clients.  It overrides
+// FD_Change() to create or delete ScriptSelectee's as needed.
+class ScriptClient : public Client {
+public:
+	ScriptClient( int& argc, char** argv, int multi = 0 );
+
+	// Inform the ScriptClient as to which selector and agent
+	// it should use for getting and propagating events.
+	void SetInterface( Selector* selector, Agent* agent );
+
+	// Creates Selectees for each of the event sources if this
+	// hasn't already been done. This can only be called after
+	// SetInterface() has been called.
+	void AddEventSources( );
+
+protected:
+	void FD_Change( int fd, int add_flag );
+
+	Selector* selector;
+	Agent* agent;
+	name_list event_src_list;
+	};
 
 // A Selectee corresponding to input for a Glish client.
 class ClientSelectee : public Selectee {
@@ -94,11 +122,11 @@ class AcceptSelectee : public Selectee {
 // A Selectee corresponding to a Glish script's own client.
 class ScriptSelectee : public Selectee {
 public:
-	ScriptSelectee( Client* client, Agent* agent, int conn_socket );
+	ScriptSelectee( ScriptClient* client, Agent* agent, int conn_socket );
 	int NotifyOfSelection();
 
 protected:
-	Client* script_client;
+	ScriptClient* script_client;
 	Agent* script_agent;
 	int connection_socket;
 	};
@@ -142,24 +170,6 @@ protected:
 	};
 
 
-// A special type of Client used for script clients.  It overrides
-// FD_Change() to create or delete ScriptSelectee's as needed.
-class ScriptClient : public Client {
-public:
-	ScriptClient( int& argc, char** argv );
-
-	// Inform the ScriptClient as to which selector and agent
-	// it should use for getting and propagating events.
-	void SetInterface( Selector* selector, Agent* agent );
-
-protected:
-	void FD_Change( int fd, int add_flag );
-
-	Selector* selector;
-	Agent* agent;
-	};
-
-
 // A special type of Agent used for script clients; when it receives
 // an event, it propagates it via the ScriptClient object.
 class ScriptAgent : public Agent {
@@ -170,7 +180,7 @@ public:
 			int /* is_request */, int /* log */ )
 		{
 		Value* event_val = BuildEventValue( args, 1 );
-		client->PostEvent( event_name, event_val );
+		client->PostEvent( event_name, event_val, client->LastContext() );
 		Unref( event_val );
 		return 0;
 		}
@@ -180,39 +190,18 @@ protected:
 	};
 
 
-// A RemoteDaemon keeps track of a glishd running on a remote host.
-// This includes the Channel used to communicate with the daemon and
-// modifiable state indicating whether we're currently waiting for
-// a probe response from the daemon.
-
-// Possible states a daemon can be in.
-typedef enum
+void Scope::MarkGlobalRef(const char *c)
 	{
-	DAEMON_OK,	// all is okay
-	DAEMON_REPLY_PENDING,	// we're waiting for reply to last probe
-	DAEMON_LOST	// we've lost connectivity
-	} daemon_states;
+	if ( ! WasGlobalRef( c ) )
+		global_refs.Insert( strdup(c), 1 );
+	}
 
-class RemoteDaemon {
-public:
-	RemoteDaemon( const char* daemon_host, Channel* channel )
-		{
-		host = daemon_host;
-		chan = channel;
-		SetState( DAEMON_OK );
-		}
-
-	const char* Host()		{ return host; }
-	Channel* DaemonChannel()	{ return chan; }
-	daemon_states State()		{ return state; }
-	void SetState( daemon_states s )	{ state = s; }
-
-protected:
-	const char* host;
-	Channel* chan;
-	daemon_states state;
-	};
-
+void Scope::ClearGlobalRef(const char *c)
+	{
+	char *v = global_refs.Remove(c);
+	if ( v )
+		delete v;
+	}
 
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    Value* arg_value, Notifiee* arg_notifiee )
@@ -241,18 +230,55 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+void Sequencer::InitScriptClient()
+	{
+	// Create "script" global.
+	script_client = new ScriptClient( argc_, argv_, MultiClientScript() );
+
+	if ( script_client->HasSequencerConnection() )
+		{
+		// Set up script agent to deal with incoming and outgoing
+		// events.
+		ScriptAgent* script_agent =
+			new ScriptAgent( this, script_client );
+		script_client->SetInterface( selector, script_agent );
+		script_expr->Assign( script_agent->AgentRecord() );
+
+		sys_val->SetField( "is_script_client",
+					new Value( glish_true ) );
+
+		// Include ourselves as an active process; otherwise
+		// we'll exit once our child processes are gone.
+		++num_active_processes;
+		}
+
+	else
+		{
+		script_expr->Assign( new Value( glish_false ) );
+		sys_val->SetField( "is_script_client",
+					new Value( glish_false ) );
+		}
+
+	ScriptCreated( 1 );
+	}
 
 Sequencer::Sequencer( int& argc, char**& argv )
 	{
 	cur_sequencer = this;
 
+	multi_script = 0;
+	script_created = 0;
+	doing_init = 1;
+	argc_ = argc;
+	argv_ = argv;
+
 	init_reporters();
 	init_values();
 
 	// Create the global scope.
-	scopes.append( new expr_dict );
+	PushScope( GLOBAL_SCOPE );
 
-	create_built_ins( this );
+	create_built_ins( this, argv[0] );
 
 	null_stmt = new NullStmt;
 
@@ -303,49 +329,54 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	// Create the "system" global variable.
 	system_agent = new UserAgent( this );
-	Value* system_val = system_agent->AgentRecord();
+	sys_val = system_agent->AgentRecord();
 
 	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
-	system_expr->Assign( system_val );
+	system_expr->Assign( sys_val );
 
-	system_val->SetField( "version", new Value( GLISH_VERSION ) );
+	sys_val->SetField( "version", new Value( GLISH_VERSION ) );
 
 
-	// Create "script" global.
-	script_client = new ScriptClient( argc, argv );
-
-	Expr* script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
-
-	if ( script_client->HasSequencerConnection() )
-		{
-		// Set up script agent to deal with incoming and outgoing
-		// events.
-		ScriptAgent* script_agent =
-			new ScriptAgent( this, script_client );
-		script_client->SetInterface( selector, script_agent );
-		script_expr->Assign( script_agent->AgentRecord() );
-
-		system_val->SetField( "is_script_client",
-					new Value( glish_true ) );
-
-		// Include ourselves as an active process; otherwise
-		// we'll exit once our child processes are gone.
-		++num_active_processes;
-		}
-
-	else
-		{
-		script_expr->Assign( new Value( glish_false ) );
-		system_val->SetField( "is_script_client",
-					new Value( glish_false ) );
-		}
+	// Create place for the script variable to be filled in later
+	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );
+	script_expr->Assign( new Value( glish_false ) );
 
 	name = argv[0];
+	name_list *load_list = new name_list;
 
-	for ( ++argv, --argc; argc > 0; ++argv, --argc )
+	// Skip past client parameters
+	int argcnt = 0;
+	int found_sep = 0;
+	for ( ++argv, --argc; argc > 0; ++argv, --argc, ++argcnt )
+		if ( ! strcmp( argv[0], "-+-" ) )
+			{
+			--argc, ++argv, ++found_sep;
+			break;
+			}
+
+	if ( ! found_sep )
+		{
+		argc += argcnt;
+		argv -= argcnt;
+		}
+
+	// Process startup parameters
+	for ( ; argc > 0; ++argv, --argc )
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
+
+		else if ( ! strcmp( argv[0], "-l" ) )
+			if ( argc > 1 )
+				{
+				++argv; --argc;
+				if ( argv[0] && strlen(argv[0]) )
+					load_list->append( argv[0] );
+				else
+					fatal->Report("bad file name with \"-l\".");
+				}
+			else
+				fatal->Report("\"-l\" given with no file to load.");
 
 		else if ( strchr( argv[0], '=' ) )
 			putenv( argv[0] );
@@ -362,6 +393,25 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		ActivateMonitor( monitor_client_name );
 
 	Parse( glish_init );
+
+	const char *glish_home = getenv( GLISH_HOME_VAR );
+	if ( ! glish_home )
+		glish_home = GLISH_HOME;
+
+	if ( glish_home )
+		{
+		char glish_rc_filename[256];
+		sprintf( glish_rc_filename, "%s/%s",
+				glish_home, GLISH_RC_FILE );
+
+		FILE *glish_rc_file = fopen( glish_rc_filename, "r");
+
+		if ( glish_rc_file )
+			{
+			fclose( glish_rc_file );
+			Parse( glish_rc_filename );
+			}
+		}
 
 	const char* glish_rc;
 	if ( (glish_rc = getenv( "GLISHRC" )) )
@@ -392,14 +442,46 @@ Sequencer::Sequencer( int& argc, char**& argv )
 			}
 		}
 
+
+	if ( load_list->length() )
+		{
+		// Handle the .glishrc startup so that we can use any include
+		// path which might be specified in there.
+		Exec( 1 );
+		loop_over_list( *load_list, i )
+			{
+			char *expanded_name = which_include((*load_list)[i]);
+			if ( expanded_name )
+				load_list->replace(i,expanded_name);
+			else
+				fatal->Report("Can't include file \"",
+						      (*load_list)[i],"\".");
+			}
+
+		// Prevent re-executing the .glishrc statements
+		stmts = null_stmt;
+		loop_over_list( *load_list, j )
+			Parse( (*load_list)[j] );
+
+		delete_name_list( load_list );
+		}
+
 	int do_interactive = 1;
 
 	if ( argc > 0 && strcmp( argv[0], "--" ) )
 		{ // We have a file to parse.
+		// Handle the .glishrc (or "-l") startup scripts so that we can use any
+		// include path which might be specified in there.
+		Exec( 1 );
+		// Prevent re-executing the .glishrc statements
+		stmts = null_stmt;
 		Parse( argv[0] );
 		do_interactive = 0;
 		++argv, --argc;
 		}
+
+	if ( ! ScriptCreated() )
+		InitScriptClient();
 
 	MakeArgvGlobal( argv, argc );
 
@@ -434,9 +516,12 @@ void Sequencer::QueueNotification( Notification* n )
 	}
 
 
-void Sequencer::PushScope()
+void Sequencer::PushScope( scope_type s )
 	{
-	scopes.append( new expr_dict );
+	Scope *newscope = new Scope( s );
+	scopes.append( newscope );
+	if ( s != LOCAL_SCOPE )
+		global_scopes.append( scopes.length() - 1 );
 	}
 
 int Sequencer::PopScope()
@@ -446,56 +531,259 @@ int Sequencer::PopScope()
 	if ( top_scope_pos < 0 )
 		fatal->Report( "scope underflow in Sequencer::PopScope" );
 
-	expr_dict* top_scope = scopes[top_scope_pos];
+	Scope* top_scope = scopes[top_scope_pos];
 	int frame_size = top_scope->Length();
 
 	scopes.remove( top_scope );
+
+	if ( top_scope->GetScopeType() != LOCAL_SCOPE )
+		global_scopes.remove( top_scope_pos );
+
 	delete top_scope;
 
 	return frame_size;
 	}
 
+scope_type Sequencer::GetScopeType() const
+	{
+	int s_index = scopes.length() - 1;
 
-Expr* Sequencer::InstallID( char* id, scope_type scope )
+        if ( ! s_index )
+		return GLOBAL_SCOPE;
+
+	int gs_index = global_scopes.length();
+	if (  gs_index && global_scopes[--gs_index] == s_index )
+		return FUNC_SCOPE;
+
+	return LOCAL_SCOPE;
+	}
+
+Scope *Sequencer::GetScope( )
+	{
+	if ( scopes.length() )
+		return scopes[0];
+	else
+		return 0;
+	}
+
+Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
+				int GlobalRef, int FrameOffset )
 	{
 	int scope_index;
+	int scope_offset = 0;
+	int gs_index = global_scopes.length() - 1;
 
-	if ( scope == LOCAL_SCOPE )
-		scope_index = scopes.length() - 1;
-	else
-		scope_index = 0;
+	if ( GlobalRef )
+		scope = LOCAL_SCOPE;
 
-	int frame_offset = scopes[scope_index]->Length();
-	Expr* result = new VarExpr( id, scope, frame_offset, this );
+	switch ( scope )
+		{
+		case LOCAL_SCOPE:
+			scope_index = scopes.length() - 1;
 
-	scopes[scope_index]->Insert( id, result );
+			if ( GlobalRef )
+				scope_offset = -scope_index;
+			else
+				{
+				int goff = global_scopes[gs_index];
+				if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
+					scope_offset = scope_index - goff;
+				}
+			break;
+		case FUNC_SCOPE:
+			scope_index = global_scopes[gs_index];
+			break;
+		case GLOBAL_SCOPE:
+			scope_index = 0;
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::InstallID()" );
+
+		}
+
+	Scope *cur_scope = scopes[scope_index];
+	
+	scope = cur_scope->GetScopeType();
+
+	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
+
+	Expr* result = CreateVarExpr( id, scope, scope_offset, frame_offset, this );
+
+	if ( cur_scope->WasGlobalRef( id ) )
+		{
+		cur_scope->ClearGlobalRef( id );
+		if ( do_warn )
+			warn->Report( "scope of \"", id,"\" goes from global to local");
+		}
+
+	cur_scope->Insert( id, result );
 
 	if ( scope == GLOBAL_SCOPE )
+		{
 		global_frame.append( 0 );
+		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
+			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
+		}
 
 	return result;
 	}
 
-Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
+Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_warn )
 	{
-	int scope_index;
+	Expr *result = 0;
 
-	if ( scope == LOCAL_SCOPE )
-		scope_index = scopes.length() - 1;
-	else
-		scope_index = 0;
-
-	Expr* result = (*scopes[scope_index])[id];
-
-	if ( ! result && do_install )
+	switch ( scope )
 		{
-		if ( scope == LOCAL_SCOPE )
-			return LookupID( id, GLOBAL_SCOPE );
-		else
-			return InstallID( id, GLOBAL_SCOPE );
+		case ANY_SCOPE:
+			{
+			int off = scopes.length()-1;
+			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+				result = (*scopes[cnt])[id];
+
+			if ( off != cnt+1 )
+				scopes[off]->MarkGlobalRef( id );
+
+			if ( ! result && do_install )
+				return InstallID( id, GLOBAL_SCOPE, do_warn );
+			}
+			break;
+		case LOCAL_SCOPE:
+			{
+			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+				{
+				result = (*scopes[cnt])[id];
+				if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
+					break;
+				}
+			if ( ! result && do_install )
+				return InstallID( id, FUNC_SCOPE, do_warn );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int cnt = global_scopes.length() - 1;
+			int offset = global_scopes[cnt];
+			result = (*scopes[offset])[id];
+			if ( ! result && do_install )
+				return InstallID( id, FUNC_SCOPE, do_warn );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			result = (*scopes[0])[id];
+			if ( ! result && do_install )
+				return InstallID( id, GLOBAL_SCOPE, do_warn );
+			if ( result && GetScopeType() != GLOBAL_SCOPE )
+				return InstallID( id, LOCAL_SCOPE, do_warn, 1, ((VarExpr*)result)->offset() );
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+
 		}
 
 	delete id;
+	return result;
+	}
+
+Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
+	{
+	int scope_index;
+	int scope_offset = 0;
+	int gs_index = global_scopes.length() - 1;
+
+	switch ( scope )
+		{
+		case LOCAL_SCOPE:
+			{
+			scope_index = scopes.length() - 1;
+
+			int goff = global_scopes[gs_index];
+			if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
+				scope_offset = scope_index - goff;
+			}
+			break;
+		case FUNC_SCOPE:
+			scope_index = global_scopes[gs_index];
+			break;
+		case GLOBAL_SCOPE:
+			scope_index = 0;
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::InstallID()" );
+
+		}
+
+	Scope *cur_scope = scopes[scope_index];
+	
+	scope = cur_scope->GetScopeType();
+
+	int frame_offset = cur_scope->Length();
+
+	var->set( scope, scope_offset, frame_offset );
+
+	if ( cur_scope->WasGlobalRef( id ) )
+		{
+		cur_scope->ClearGlobalRef( id );
+		warn->Report( "scope of \"", id,"\" goes from global to local");
+		}
+
+	cur_scope->Insert( id, var );
+
+	if ( scope == GLOBAL_SCOPE )
+		global_frame.append( 0 );
+
+	return var;
+	}
+
+Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
+	{
+	Expr *result = 0;
+
+	switch ( scope )
+		{
+		case ANY_SCOPE:
+			{
+			int off = scopes.length()-1;
+			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+				result = (*scopes[cnt])[id];
+
+			if ( off != cnt+1 )
+				scopes[off]->MarkGlobalRef( id );
+
+			if ( ! result )
+				return InstallVar( id, GLOBAL_SCOPE, var );
+			}
+			break;
+		case LOCAL_SCOPE:
+			{
+			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+				{
+				result = (*scopes[cnt])[id];
+				if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
+					break;
+				}
+			if ( ! result )
+				return InstallVar( id, FUNC_SCOPE, var );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int cnt = global_scopes.length() - 1;
+			int offset = global_scopes[cnt];
+			result = (*scopes[offset])[id];
+			if ( ! result )
+				return InstallVar( id, FUNC_SCOPE, var );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			result = (*scopes[0])[id];
+			if ( ! result )
+				return InstallVar( id, GLOBAL_SCOPE, var );
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+
+		}
+//	delete id;
 	return result;
 	}
 
@@ -514,76 +802,145 @@ const Value *Sequencer::LookupVal( const char *id )
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{
-	local_frames.append( new_frame );
+	frames.append( new_frame );
+	if ( new_frame->GetScopeType() != LOCAL_SCOPE )
+		global_frames.append( frames.length() - 1 );
 	}
 
 Frame* Sequencer::PopFrame()
 	{
-	int top_frame = local_frames.length() - 1;
-	if ( top_frame < 0 )
+	int top_frame_pos = frames.length() - 1;
+	if ( top_frame_pos < 0 )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
 
-	return local_frames.remove_nth( top_frame );
+	Frame *top_frame = frames.remove_nth( top_frame_pos );
+	if ( top_frame->GetScopeType() != LOCAL_SCOPE )
+		global_frames.remove( top_frame_pos );
+
+	return top_frame;
 	}
 
 Frame* Sequencer::CurrentFrame()
 	{
-	int top_frame = local_frames.length() - 1;
+	int top_frame = frames.length() - 1;
 	if ( top_frame < 0 )
 		return 0;
 
-	return local_frames[top_frame];
+	return frames[top_frame];
 	}
 
 
-Value* Sequencer::FrameElement( scope_type scope, int frame_offset )
+Value* Sequencer::FrameElement( scope_type scope, int scope_offset,
+					int frame_offset )
 	{
-	if ( scope == LOCAL_SCOPE )
-		{
-		int top_frame = local_frames.length() - 1;
-		if ( top_frame < 0 )
-			fatal->Report(
-	    "local frame requested but none exist in Sequencer::FrameElement" );
+	if ( scope_offset < 0 )
+		scope = GLOBAL_SCOPE;
 
-		return local_frames[top_frame]->FrameElement( frame_offset );
-		}
-
-	else
+	switch ( scope )
 		{
-		if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-			fatal->Report(
-			"bad global frame offset in Sequencer::FrameElement" );
-		return global_frame[frame_offset];
+		case LOCAL_SCOPE:
+			{
+			int offset = scope_offset;
+			int gs_off = global_frames.length() - 1;
+
+			if ( gs_off >= 0 )
+				offset += global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::FrameElement (",
+		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
+		    "," , frames.length(), ")" );
+
+			return frames[offset]->FrameElement( frame_offset );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int gs_off = global_frames.length() - 1;
+			int offset = global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::FrameElement (",
+		    offset, " (", gs_off, "), ", frames.length(), ")" );
+
+			return frames[offset]->FrameElement( frame_offset );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			{
+			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
+				fatal->Report(
+				"bad global frame offset in Sequencer::FrameElement" );
+			return global_frame[frame_offset];
+			}
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::FrameElement()" );
 		}
 	}
 
-void Sequencer::SetFrameElement( scope_type scope, int frame_offset,
-					Value* value )
+void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
+					int frame_offset, Value* value )
 	{
 	Value* prev_value;
 
-	if ( scope == LOCAL_SCOPE )
+	if ( scope_offset < 0 )
+		scope = GLOBAL_SCOPE;
+
+	switch ( scope )
 		{
-		int top_frame = local_frames.length() - 1;
-		if ( top_frame < 0 )
-			fatal->Report(
-	"local frame requested but none exist in Sequencer::SetFrameElement" );
+		case LOCAL_SCOPE:
+			{
+			int offset = scope_offset;
+			int gs_off = global_frames.length() - 1;
 
-		Value*& frame_value =
-			local_frames[top_frame]->FrameElement( frame_offset );
-		prev_value = frame_value;
-		frame_value = value;
+			if ( gs_off >= 0 )
+				offset += global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::SetFrameElement (",
+		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
+		    "," , frames.length(), ")" );
+
+			Value*& frame_value =
+				frames[offset]->FrameElement( frame_offset );
+			prev_value = frame_value;
+			frame_value = value;
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int gs_off = global_frames.length() - 1;
+			int offset = global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::SetFrameElement (",
+		    offset, " (", gs_off, "), ", frames.length(), ")" );
+
+			Value*& frame_value =
+				frames[offset]->FrameElement( frame_offset );
+			prev_value = frame_value;
+			frame_value = value;
+			}
+			break;
+		case GLOBAL_SCOPE:
+			{
+			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
+				fatal->Report(
+				"bad global frame offset in Sequencer::FrameElement" );
+			prev_value = global_frame.replace( frame_offset, value );
+			}
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::SetFrameElement()" );
+
+
 		}
-
-	else
-		{
-		if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-			fatal->Report(
-		"bad global frame offset in Sequencer::SetFrameElement" );
-		prev_value = global_frame.replace( frame_offset, value );
-		}
-
 	Unref( prev_value );
 	}
 
@@ -626,23 +983,42 @@ Stmt* Sequencer::LookupStmt( int index )
 	return registered_stmts[index - 1];
 	}
 
-Channel* Sequencer::GetHostDaemon( const char* host )
+int Sequencer::LocalHost( const char *host )
 	{
 	if ( ! host ||
 	     ! strcmp( host, ConnectionHost() ) ||
 	     ! strcmp( host, "localhost" ) )
-		// request is for local host
+		return 1;
+	else
 		return 0;
+	}
 
-	RemoteDaemon* d = daemons[host];
-	if ( ! d )
-		d = CreateDaemon( host );
+Channel* Sequencer::GetHostDaemon( const char* host, int &err )
+	{
+	err = 0;
+	RemoteDaemon* d;
 
-	return d->DaemonChannel();
+	if ( LocalHost( host ) )
+		{
+		// Check to see if a daemon is running
+		d = daemons["localhost"];
+		if ( ! d )
+			d = OpenDaemonConnection( "localhost", err );
+		}
+	else 
+		{
+		d = daemons[host];
+		if ( ! d )
+			d = CreateDaemon( host );
+		if ( ! d )
+			err = 1;
+		}
+		
+	return d ? d->DaemonChannel() : 0;
 	}
 
 
-void Sequencer::Exec()
+void Sequencer::Exec( int startup_script )
 	{
 	if ( interactive )
 		return;
@@ -656,13 +1032,16 @@ void Sequencer::Exec()
 	stmt_flow_type flow;
 	Unref( stmts->Exec( 0, flow ) );
 
-	EventLoop();
+	if ( ! startup_script )
+		EventLoop();
 	}
 
 
 void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
+	int removed_yyin = 0;
+
 	Stmt* hold_await_stmt = await_stmt;
 	int hold_only_flag = await_only_flag;
 	Stmt* hold_except_stmt = except_stmt;
@@ -671,7 +1050,17 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
 
+	if ( yyin && isatty( fileno( yyin ) ) && 
+			selector->FindSelectee( fileno( yyin ) ) )
+		{
+		selector->DeleteSelectee( fileno( yyin ) );
+		removed_yyin = 1;
+		}
+
 	EventLoop();
+
+	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
 	await_stmt = hold_await_stmt;
 	await_only_flag = only_flag;
@@ -1058,7 +1447,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// We're about to enter the "interactive" loop, so
 		// first execute any statements we've seen so far due
 		// to .glishrc files.
-		Exec();
+		Exec( 1 );
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -1097,7 +1486,9 @@ void Sequencer::Parse( const char* strings[] )
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	{
-	RemoteDaemon* rd = OpenDaemonConnection( host );
+	int err = 0;
+	RemoteDaemon* rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 
 	if ( rd )
 		// We're all done, the daemon was already running.
@@ -1106,60 +1497,37 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	// Have to start up the daemon.
 	message->Report( "activating Glish daemon on ", host );
 
-	char daemon_cmd[1024];
-	sprintf( daemon_cmd, "%s %s -n glishd &", RSH, host );
-	system( daemon_cmd );
+	start_remote_daemon( host );
 
-	rd = OpenDaemonConnection( host );
+	rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 	while ( ! rd )
 		{
 		message->Report( "waiting for daemon ..." );
 		sleep( 1 );
-		rd = OpenDaemonConnection( host );
+		rd = OpenDaemonConnection( host, err );
+		if ( err ) return 0;
 		}
 
 	return rd;
 	}
 
-RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host )
+RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 	{
-	int daemon_socket = get_tcp_socket();
+	RemoteDaemon *r = 0;
+	err = 0;
+	const char *h = host;
 
-	if ( remote_connection( daemon_socket, host, DAEMON_PORT ) )
-		{ // Connected.
-		mark_close_on_exec( daemon_socket );
+	if ( ! strcmp(h,"localhost") )
+		h = ConnectionHost();
 
-		Channel* daemon_channel =
-			new Channel( daemon_socket, daemon_socket );
-
-		RemoteDaemon* r = new RemoteDaemon( host, daemon_channel );
-		daemons.Insert( strdup( host ), r );
-
-		// Read and discard daemon's "establish" event.
-		GlishEvent* e = recv_event( daemon_channel->ReadFD() );
-		Unref( e );
-
-		// Tell the daemon which directory we want to work out of.
-		char work_dir[MAXPATHLEN];
-
-		if ( ! getcwd( work_dir, sizeof( work_dir ) ) )
-			fatal->Report( "problems getting cwd:", work_dir );
-
-		Value work_dir_value( work_dir );
-		send_event( daemon_channel->WriteFD(), "setwd",
-				&work_dir_value );
-
-		selector->AddSelectee(
-			new DaemonSelectee( r, selector, this ) );
-
-		return r;
-		}
-
-	else
+	if (r = connect_to_daemon( h, err ) )
 		{
-		close( daemon_socket );
-		return 0;
+		daemons.Insert( strdup( host ), r );
+		selector->AddSelectee(new DaemonSelectee( r, selector, this ) );
 		}
+
+	return r;
 	}
 
 
@@ -1340,7 +1708,6 @@ void Sequencer::RunQueue()
 		}
 	}
 
-
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
     : Selectee( t->GetChannel()->ReadFD() )
 	{
@@ -1392,7 +1759,7 @@ int AcceptSelectee::NotifyOfSelection()
 	}
 
 
-ScriptSelectee::ScriptSelectee( Client* client, Agent* agent, int conn_socket )
+ScriptSelectee::ScriptSelectee( ScriptClient* client, Agent* agent, int conn_socket )
     : Selectee( conn_socket )
 	{
 	script_client = client;
@@ -1408,6 +1775,7 @@ int ScriptSelectee::NotifyOfSelection()
 	FD_SET( connection_socket, &fd_mask );
 
 	GlishEvent* e = script_client->NextEvent( &fd_mask );
+	script_client->AddEventSources();
 
 	if ( ! e )
 		{
@@ -1522,7 +1890,7 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv ) : Client( argc, argv )
+ScriptClient::ScriptClient( int& argc, char** argv, int multi ) : Client( argc, argv, multi )
 	{
 	selector = 0;
 	agent = 0;
@@ -1532,7 +1900,31 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
 	agent = a;
-	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
+	AddEventSources();
+	}
+
+void ScriptClient::AddEventSources()
+	{
+	int read_fd = fileno( stdin );
+	int got_src = 0;
+
+	if ( event_src_list.length() == event_sources.length() )
+		return;
+
+	loop_over_list( event_sources, i )
+		{
+		if ( ! strcmp( event_sources[i]->Context().id(), interpreter_tag ) )
+			got_src++;
+		if ( ! event_src_list.is_member((char*)event_sources[i]->Context().id()) )
+			{
+			selector->AddSelectee( new ScriptSelectee( this, agent, event_sources[i]->Read_FD() ) );
+			event_src_list.append(strdup(event_sources[i]->Context().id()));
+			}
+		}
+
+	if ( ! got_src )
+		selector->AddSelectee( new ScriptSelectee( this, agent, fileno( stdin ) ) );
+
 	}
 
 void ScriptClient::FD_Change( int fd, int add_flag )
@@ -1544,4 +1936,45 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 		selector->AddSelectee( new ScriptSelectee( this, agent, fd ) );
 	else
 		selector->DeleteSelectee( fd );
+	}
+
+char* which_include( const char* file_name )
+	{
+	const Value *val;
+	const Value *pathv;
+	const Value *inclv;
+	charptr *paths = 0;
+
+	if ( (val = Sequencer::LookupVal( "system" )) && 
+			val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "path" ) &&
+			(pathv = val->ExistingRecordElement( "path" )) &&
+			pathv != false_value &&
+			pathv->Type() == TYPE_RECORD &&
+			pathv->HasRecordElement( "include" ) &&
+			(inclv = pathv->ExistingRecordElement("include")) &&
+			inclv != false_value && inclv->Type() == TYPE_STRING &&
+			inclv->Length() )
+		paths = inclv->StringPtr();
+
+	if ( ! paths || file_name[0] == '/' || file_name[0] == '.' )
+		{
+		if ( access( file_name, R_OK ) == 0 )
+			return strdup( file_name );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < inclv->Length(); i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			{
+			sprintf( directory, "%s/%s", paths[i], file_name );
+
+			if ( access( directory, R_OK ) == 0 )
+				return strdup( directory );
+			}
+
+	return 0;
 	}

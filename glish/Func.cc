@@ -1,5 +1,7 @@
 // $Header$
 
+#include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "system.h"
 
 #include <string.h>
@@ -394,7 +396,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 
 Value* UserFunc::DoCall( args_list* args_vals, eval_type etype, Value* missing )
 	{
-	Frame* call_frame = new Frame( frame_size, missing );
+	Frame* call_frame = new Frame( frame_size, missing, FUNC_SCOPE );
 	sequencer->PushFrame( call_frame );
 
 	if ( subsequence_expr )

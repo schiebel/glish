@@ -1,4 +1,6 @@
-# $Header$
+# @(#) $Id$
+
+function is_defined( const x )	length( symbol_value( x ) ) > 0
 
 function is_boolean( const x )	type_name(x) == "boolean"
 function is_byte( const x )	type_name(x) == "byte"
@@ -64,6 +66,7 @@ function all(x) sum(!x) == 0
 function any(x) sum(as_boolean(x)) > 0
 
 len := length
+ceil := ceiling
 
 function ind(x) 1:len(x)
 
