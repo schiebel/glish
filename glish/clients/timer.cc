@@ -24,6 +24,7 @@ RCSID("@(#) $Id$")
 #endif
 
 #include "Glish/Client.h"
+#include "Glish/List.h"
 
 #include "Channel.h"
 
@@ -34,22 +35,387 @@ inline int streq( const char* a, const char* b )
 	}
 
 
-// given a value like 4.32, returns a timeval struct with, for example,
-// the seconds field set to 4 and the microseconds field set to 320000
-struct timeval* build_timeout( double timeout_val )
+//
+//  TimeDesc details one time interval this client is handling.
+//
+//        Note: It is assumed that all strings entered in
+//              "list" are dynamically allocated and are to
+//              be freed by this class.
+//
+class TimeDesc
+    {
+    public:
+	TimeDesc( double delay_v, const char *id__ ) :
+			delay_(delay_v), multiple(1), id_(strdup(id__)) { }
+	~TimeDesc();
+
+	// which event names are associated with this interval
+	name_list &names( ) { return list; }
+
+	// what is the interval
+	double delay( ) const { return delay_; }
+
+	// these are used to build the interval list...
+	// they allow the builder to step through the time list,
+	// and construct an interval list (counting each time
+	// this interval is crossed).
+	double next( ) const { return delay_ * multiple; }
+	void step( ) { multiple += 1; }
+	void reset( ) { multiple = 1; }
+
+	// debugging info
+	const char *id() const { return id_; }
+    private:
+	name_list list;
+	double delay_;	
+	int multiple;
+	char *id_;
+    };
+
+TimeDesc::~TimeDesc( )
 	{
-	static struct timeval result;
-
-	if ( timeout_val < 0 )
-		return 0;	// invalid time -> block till next, valid time
-
-	result.tv_sec = (int) timeout_val;
-	result.tv_usec = (int) ((timeout_val - (int) timeout_val) * 1000000.0);
-
-	return &result;
+	free_memory( id_ );
+	for ( int i=list.length()-1; i >= 0; --i )
+		free_memory((char*)list[i]);
 	}
 
+glish_declare(PList,TimeDesc);
+typedef PList(TimeDesc) time_list;
 
+//
+//  TimeList just holds all of the time intervals this client
+//  is handling
+//
+class TimeList
+    {
+    public:
+	TimeList() { }
+	~TimeList();
+
+	// add one time interval
+	void add_time( double val, const char *id );
+
+	// remove one time interval
+	void remove_time( const char *id );
+	void remove_time( TimeDesc *t ) { delete times.remove(t); }
+
+	// access time descriptions
+	TimeDesc *operator[](int i) { return times[i]; }
+
+	// how many intervals are we dealing with
+	int length() { return times.length(); }
+
+	// debugging
+	void dump( FILE * );
+
+    private:
+	time_list times;
+	int cur;
+    };
+
+const char *desc_id()
+	{
+	static char buf[100];
+	static int count = 0;
+	sprintf(buf,"desc%d", ++count);
+	return buf;
+	}
+
+void TimeList::add_time( double val, const char *id )
+	{
+	int count = 0;
+	for ( ; count < times.length() && val > times[count]->delay(); ++count );
+
+	if ( count >= times.length() )
+		{
+		times.append( new TimeDesc( val, desc_id() ) );
+		times[times.length()-1]->names().append(strdup(id));
+		}
+	else
+		{
+		if ( times[count]->delay() > val )
+			times.insert_nth( count, new TimeDesc( val, desc_id() ) );
+		times[count]->names().append(strdup(id));
+		}
+	}
+
+void TimeList::remove_time( const char *id )
+	{
+	for ( int i=0; i < times.length(); ++i )
+		{
+		name_list &nl = times[i]->names();
+		for ( int j=0; j < nl.length(); ++j )
+			if ( ! strcmp( id, nl[j] ) )
+				{
+				free_memory( nl.remove_nth(j) );
+				if ( ! nl.length() )
+					delete times.remove_nth(i);
+				return;
+				}
+		}
+	}
+
+void TimeList::dump( FILE *f )
+	{
+	for ( int i=0; i < times.length(); ++i )
+		{
+		fprintf(f, "%s: %f\n\t", times[i]->id(), times[i]->delay());
+		for ( int j=0; j < times[i]->names().length(); j++ )
+			fprintf(f, "%s ",times[i]->names()[j]);
+		fprintf(f, "\n");
+		}
+	}
+
+TimeList::~TimeList( )
+	{
+	for ( int i=times.length()-1; i >= 0; --i )
+		delete times[i];
+	}
+	
+//
+// This is essentially one element of the "display list" for the
+// timer events.
+//
+class Interval
+    {
+    public:
+
+	// we need to know how long this interval is, and which
+	// description is associated with it...
+	Interval( double d, TimeDesc *td );
+	~Interval( ) { }
+
+	// how long is the interval
+	double delay( ) const { return delay_; }
+
+	// get the select() struct for this interval
+	struct timeval val() const { return val_; }
+
+	// get the time descriptor associated with this interval
+	TimeDesc *desc() { return desc_; }
+
+	// how many times should this interval be repeated
+	// each pass through the "display list"
+	unsigned int number() const { return repeat; }
+
+	// bump the repeat count
+	void incr( ) { ++repeat; }
+    private:
+	struct timeval val_;
+	double delay_;
+	TimeDesc *desc_;
+	unsigned int repeat;
+    };
+
+glish_declare(PList,Interval);
+typedef PList(Interval) interval_list;
+
+Interval::Interval( double d, TimeDesc *td ) : delay_(d), desc_(td), repeat(1)
+	{
+	if ( delay_ > 0 )
+		{
+		// given a value like 4.32, convert to a timeval struct with, for example,
+		// the seconds field set to 4 and the microseconds field set to 320000
+		val_.tv_sec = (int) delay_;
+		val_.tv_usec = (int) ((delay_ - (int) delay_) * 1000000.0);
+		}
+	}
+
+//
+// This is the "display list" for the timer client
+//
+class IntervalList
+    {
+    public:
+	IntervalList( TimeList &tl_ ) : cur(0), start_interval(0),
+					repeat_cnt(0), startup(1), tl(tl_) { }
+	~IntervalList();
+
+	// build the "display list"
+	void build( );
+
+	// clear the "display list"
+	void clear( );
+
+	// loop through the display list
+	Interval *next( );
+
+	// how far are we from the
+	// beginning of the cycle
+	double elapsed( );
+
+	// debugging
+	void dump( FILE *f );
+    private:
+	interval_list list;
+	int cur;
+	int repeat_cnt;
+	int startup;
+	Interval *start_interval;
+	TimeList &tl;
+    };
+
+void IntervalList::clear( )
+	{
+	cur = 0;
+	startup = 1;
+
+	if ( start_interval )
+		{
+		delete start_interval;
+		start_interval = 0;
+		}
+
+	for ( int i=list.length()-1; i >= 0; --i )
+		delete list.remove_nth(i);
+	}
+
+double IntervalList::elapsed( )
+	{
+	double ret = ( start_interval ? start_interval->delay() : 0.0 );
+
+	for ( int i=0; i < cur; ++i )
+		ret += list[i]->delay();
+
+	return ret;
+	}
+
+void IntervalList::build( )
+	{
+	double off = elapsed( );
+
+	clear( );
+
+	if ( ! tl.length() ) return;
+
+	tl[0]->reset();
+	double cur_time = tl[0]->delay();
+
+	start_interval = new Interval( (off < cur_time ? cur_time - off : cur_time), tl[0] );
+	tl[0]->step( );
+
+	for ( int i=1; i < tl.length(); ++i )
+		{
+		tl[i]->reset();
+		while ( cur_time < tl[i]->delay() )
+			{
+			double min_delay = tl[0]->next( ) - cur_time;
+			TimeDesc *desc = tl[0];
+			for ( int j=1; j <= i; ++j )
+				if ( tl[j]->next() - cur_time < min_delay )
+					{
+					min_delay = tl[j]->next() - cur_time;
+					desc = tl[j];
+					}
+
+			if ( list.length() && list[list.length()-1]->desc() == desc &&
+			     list[list.length()-1]->delay() == min_delay )
+				list[list.length()-1]->incr( );
+			else
+				list.append( new Interval( min_delay, desc ) );
+
+			desc->step( );
+			cur_time += min_delay;
+			}
+		}
+
+	// need to complete the loop back to tl[0]
+	if ( tl.length() > 1 )
+		{
+		TimeDesc *desc = 0;
+		while ( desc != tl[0] )
+			{
+			desc = tl[0];
+			double min_delay = tl[0]->next( ) - cur_time;
+			for ( int j=1; j < tl.length(); ++j )
+				if ( tl[j]->next() - cur_time < min_delay )
+					{
+					min_delay = tl[j]->next() - cur_time;
+					desc = tl[j];
+					}
+
+			if ( list.length() && list[list.length()-1]->desc() == desc &&
+			     list[list.length()-1]->delay() == min_delay )
+				list[list.length()-1]->incr( );
+			else
+				list.append( new Interval( min_delay, desc ) );
+
+			desc->step( );
+			cur_time += min_delay;
+			}
+		}
+	}
+
+Interval *IntervalList::next( )
+	{
+	if ( startup )
+		if ( start_interval )
+			{
+			startup = 0;
+			return start_interval;
+			}
+		else
+			return 0;
+
+	Interval *ret = list[cur];
+	if ( ++repeat_cnt >= list[cur]->number() )
+		{
+		repeat_cnt = 0;
+		if ( ++cur >= list.length() ) cur = 0;
+		}
+
+	return ret;
+	}
+
+void IntervalList::dump( FILE *f )
+	{
+	if ( start_interval )
+		fprintf(f,"S:%s:%f#%u\t",start_interval->desc()->id(), start_interval->delay(),start_interval->number());
+	for ( int i=0; i < list.length(); ++i )
+		fprintf(f,"%s:%f#%u ",list[i]->desc()->id(), list[i]->delay(),list[i]->number());
+	fprintf(f,"\n");
+	}
+
+IntervalList::~IntervalList( )
+	{
+	for ( int i=list.length()-1; i >= 0; --i )
+		delete list[i];
+	}
+
+#if 0
+int main () 
+	{
+	char buf[200];
+	char name[50];
+	int count=0;
+	TimeList t;
+
+	while ( !feof(stdin) )
+		{
+		gets(buf);
+		sprintf(name,"id%d",++count);
+		t.add_time( atof(buf), name );
+		sprintf(name,"id%d",++count);
+		t.add_time( atof(buf), name );
+		sprintf(name,"id%d",++count);
+		t.add_time( atof(buf), name );
+		}
+
+	t.dump( stdout );
+	IntervalList il(t);
+	il.build( );
+	il.dump( stdout );
+	}
+#endif
+
+//
+//  SOME NOTES:
+//    o  IntervalList::next must handle repeating intervals
+//    o  IntervalList::IntervalList needs to take and keep a reference
+//           to TimeList
+//    o  IntervalList::build must take into account where we currently
+//           are in the timer period and use the TimeList reference
+//
 int main( int argc, char** argv )
 	{
 	Client c( argc, argv );
@@ -57,10 +423,9 @@ int main( int argc, char** argv )
 	char* prog_name = argv[0];
 	++argv, --argc;
 
-	double timeout_val;	// how long we're waiting for
-
-	// by default, first time around we want to block till we get an event
-	struct timeval* timeout = 0;
+	TimeList tlist;
+	IntervalList ilist( tlist );
+	struct timeval timeout;
 
 	int one_shot = 0;	// whether we should only fire once per "delay"
 	if ( argc > 0 && streq( argv[0], "-oneshot" ) )
@@ -70,20 +435,22 @@ int main( int argc, char** argv )
 		}
 
 	if ( argc > 0 )
-		{
-		timeout_val = atof( argv[0] );
-		timeout = build_timeout( timeout_val );
-		}
+		tlist.add_time( atof(argv[0]), "" );
 
 	fd_set selection_mask;
 	FD_ZERO( &selection_mask );
 
+	ilist.build( );
+
 	for ( ; ; )
 		{
+		Interval *cur = ilist.next();
 		c.AddInputMask( &selection_mask );
 
+		if ( cur ) timeout = cur->val();
+
 		int status = select( FD_SETSIZE, (SELECT_MASK_TYPE *) &selection_mask,
-				     0, 0, timeout );
+				     0, 0, cur ? &timeout : 0 );
 
 		if ( status < 0 )
 			{
@@ -91,20 +458,26 @@ int main( int argc, char** argv )
 			perror( "select() returned for unknown reason" );
 			exit( 1 );
 			}
-		
+
+		// !!! FOR THESE ADVANCE Interval !!!
 		else if ( status == 0 )
 			{ // timeout elapsed
-			Value val( timeout_val );
-			c.PostEvent( "ready", &val );
+			  // cur should be non-zero
+			Value val( cur->desc()->delay() );
+			name_list &events = cur->desc()->names();
+			for ( int i=0; i < events.length(); ++i )
+				c.PostEvent( *events[i] ? events[i] : "ready", &val );
 
 			if ( one_shot )
-				// don't rearm
-				timeout = 0;
-
-			else
-				timeout = build_timeout( timeout_val );
+				{ // don't rearm
+				tlist.remove_time(cur->desc());
+				// !!! do we need to factor in  !!!
+				// !!! time already elapsed??   !!!
+				ilist.build( );
+				}
 			}
 
+		// !!! FOR THESE REDO THE CURRENT Interval !!!
 		else if ( c.HasClientInput( &selection_mask ) )
 			{
 			GlishEvent* e = c.NextEvent();
@@ -114,19 +487,57 @@ int main( int argc, char** argv )
 
 			if ( streq( e->name, "interval" ) )
 				{
-				timeout_val = e->value->DoubleVal();
-				timeout = build_timeout( timeout_val );
+				tlist.remove_time("");
+				tlist.add_time( e->value->DoubleVal(), "" );
+				// !!! do we need to factor in  !!!
+				// !!! time already elapsed??   !!!
+				ilist.build( );
 				}
 
 			else if ( streq( e->name, "sleep" ) )
-				{
-				// "sleep" is a request/reply event,
-				// mainly for testing purposes.
+				{ // "sleep" is a request/reply event,
+				  // mainly for testing purposes.
 				int duration = e->value->IntVal();
-
 				sleep( duration );
-
 				c.Reply( e->value );
+				}
+
+			else if ( streq( e->name, "register" ) )
+				{ // register a "tagged" delay
+				static char tag[40];
+				static unsigned int tag_cnt = 0;
+				Value *val = e->value;
+
+				double *times = val->DoublePtr();
+				charptr *tags = (charptr*) alloc_memory(val->Length()*sizeof(charptr));
+
+				for (int i=0; i < val->Length(); ++i )
+					{
+					sprintf( tag, "tmr%x", ++tag_cnt );
+					tlist.add_time( times[i], tag );
+					tags[i] = strdup(tag);
+					}
+
+				Value ret( tags, val->Length() );
+				if ( e->IsRequest() )
+					c.Reply( &ret );
+
+				// !!! do we need to factor in  !!!
+				// !!! time already elapsed??   !!!
+				ilist.build( );
+				}
+
+			else if ( streq( e->name, "unregister" ) )
+				{ // unregister a "tagged" delay
+				Value *val = e->value;
+				charptr *strs = val->StringPtr(0);
+
+				for ( int i=0; i < val->Length(); ++i )
+					tlist.remove_time(strs[i]);
+
+				// !!! do we need to factor in  !!!
+				// !!! time already elapsed??   !!!
+				ilist.build( );
 				}
 
 			else
