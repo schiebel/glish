@@ -3003,7 +3003,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	if ( await.active() )						\
 		{							\
 		/* request/reply takes precedence */			\
-		if ( await.agent() && await.agent() == agent->AgentTask() && \
+		if ( await.agent() && await.agent() == agent &&		\
 		     ! strcmp( await.name(), event_name ) )		\
 			{						\
 			await_finished = 1;				\

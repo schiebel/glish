@@ -162,6 +162,8 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		if ( is_request )
 			e->SetIsRequest();
 
+		// will need to keep track of proxy_id's if pending_events
+		// is ever made to work with request/reply events.
 		pending_events->append( e );
 		}
 
@@ -189,10 +191,19 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 
 			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
-			if ( proxy_id != 0.0 ) e.SetIsProxy( );
+
+			Agent *agent = this;
+			if ( proxy_id != 0.0 )
+				{
+				e.SetIsProxy( );
+				agent = FetchProxy( proxy_id );
+				if ( ! agent )
+					return (IValue*) Fail( "bad proxy identifier" );
+				}
+
 			sendEvent( sink, &e, 0 );
 
-			result = sequencer->AwaitReply( this, event_name,
+			result = sequencer->AwaitReply( agent, event_name,
 							reply_name );
 			free_memory( reply_name );
 			}
