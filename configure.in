@@ -468,7 +468,7 @@ AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_YACC
-AC_CHECK_PROG(RSH,remsh,remsh,rsh)
+AC_CHECK_PROGS(RSH,ssh remsh rsh)
 
 dnl##
 dnl## defeat use of Lea's malloc
@@ -615,25 +615,11 @@ dnl## Configure authentication
 dnl##
 dnl##--------------------------------------------------------------------
 
-if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
-    GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
-    NPD_LIB='${LIBDIR_P}/libnpd${NPD_SUFFIX}'
-    do_npd='yes'
-    BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
-    if test -z "$option_key_dir"; then
-        KEYDIR="${sharedstatedir}/glish/keys"
-	EXPAND_VAR(KEYDIR)
-    else
-	KEYDIR="$option_key_dir"
-    fi
-    AC_SUBST(KEYDIR)
-else
-    BUILD_NPD=""
-    NPD_LIB=""
-    do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
-fi
+BUILD_NPD=""
+USENPD='0'
+NPD_LIB=""
+do_npd='no'
+AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 
 dnl##--------------------------------------------------------------------
 dnl##
@@ -1702,6 +1688,14 @@ else
 fi
 
 dnl##
+dnl## Client library depencencies
+dnl##
+CLIENT_LIBS_DEPEND="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+if test "$do_npd" = "yes"; then
+    CLIENT_LIBS_DEPEND="$CLIENT_LIBS_DEPEND \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+fi
+
+dnl##
 dnl## Are dynamic libraries disabled?
 dnl##
 SHARED_LIB=lib_tgt
@@ -1768,6 +1762,7 @@ AC_SUBST(TK_FLAGS)
 AC_SUBST(DL_LIBS)
 AC_SUBST(NPD_LIB)
 AC_SUBST(BUILD_NPD)
+AC_SUBST(USENPD)
 AC_SUBST(BUILD_PGPLOT)
 AC_SUBST(top_off)
 
@@ -1798,6 +1793,7 @@ AC_SUBST(TK_CXX_RPATH)
 
 AC_SUBST(GLISH_LIBS)
 AC_SUBST(CLIENT_LIBS)
+AC_SUBST(CLIENT_LIBS_DEPEND)
 AC_SUBST(TKCLIENT_LIBS)
 AC_SUBST(TKCLIENT_LIBS_expanded)
 AC_SUBST(SHARED_LIB)
