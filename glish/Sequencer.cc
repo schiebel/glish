@@ -43,6 +43,7 @@ extern "C" {
 char* getenv( const char* );
 int isatty( int fd );
 int system( const char* string );
+void nb_reset_term( int );
 }
 
 
@@ -2172,11 +2173,17 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		(*el)[X]->EventAgentDone();
 		}
 
-	if ( yyin && isatty( fileno( yyin ) ) && WheneverStmt::NotifyCount() == 0 &&
+	if ( yyin && isatty( fileno( yyin ) ) &&
 			selector->FindSelectee( fileno( yyin ) ) )
 		{
 		selector->DeleteSelectee( fileno( yyin ) );
 		removed_yyin = 1;
+#if USE_EDITLINE
+		//
+		// reset term so user can see what is typed
+		//
+		nb_reset_term(1);
+#endif
 		}
 
 	EventLoop( 1 );
@@ -2192,7 +2199,12 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	current_await_done = 0;
 
 	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+		{
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+#if USE_EDITLINE
+		nb_reset_term(0);
+#endif
+		}
 
 	PopAwait();
 	}
