@@ -86,13 +86,14 @@ void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 	SendEvent( event_name, &plist, 0, log );
 	}
 
-int Agent::CreateEvent( const char* event_name, IValue* event_value )
+int Agent::CreateEvent( const char* event_name, IValue* event_value,
+			NotifyTrigger *t )
 	{
 	if ( ! agent_value )
 		fatal->Report(
 			"no event agent value in Agent::CreateEvent" );
 
-	return NotifyInterestedParties( event_name, event_value );
+	return NotifyInterestedParties( event_name, event_value, t );
 	}
 
 void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
@@ -254,7 +255,8 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	return event_val;
 	}
 
-int Agent::NotifyInterestedParties( const char* field, IValue* value )
+int Agent::NotifyInterestedParties( const char* field, IValue* value,
+				    NotifyTrigger *t )
 	{
 	notification_list* interested = interested_parties[field];
 	int there_is_interest = 0;
@@ -267,7 +269,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value )
 			// we consider that the Notifiee exists, even if not
 			// active, sufficient to consider that there was
 			// interest in this event.
-			(void) DoNotification( (*interested)[i], field, value );
+			(void) DoNotification( (*interested)[i], field, value, t );
 			}
 
 		there_is_interest = 1;
@@ -278,7 +280,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value )
 	if ( interested )
 		{
 		loop_over_list( *interested, i )
-			(void) DoNotification( (*interested)[i], field, value );
+			(void) DoNotification( (*interested)[i], field, value, t );
 
 		there_is_interest = 1;
 		}
@@ -292,17 +294,21 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value )
 		}
 
 	Unref( value );
+	Unref( t );
 
 	return there_is_interest;
 	}
 
-int Agent::DoNotification( Notifiee* n, const char* field, IValue* value )
+int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
+			   NotifyTrigger *t )
 	{
 	Stmt* s = n->stmt;
 
 	if ( s->IsActiveFor( this, field, value ) )
 		{
-		Notification* note = new Notification( this, field, value, n );
+		if ( t ) Ref(t);
+
+		Notification* note = new Notification( this, field, value, n, t );
 
 		sequencer->QueueNotification( note );
 

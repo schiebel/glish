@@ -210,13 +210,18 @@ void Scope::ClearGlobalRef(const char *c)
 		delete v;
 	}
 
+void NotifyTrigger::NotifyDone() { }
+NotifyTrigger::~NotifyTrigger() { }
+
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
-			    IValue* arg_value, Notifiee* arg_notifiee )
+			    IValue* arg_value, Notifiee* arg_notifiee,
+			    NotifyTrigger *t )
 	{
 	notifier = arg_notifier;
 	field = strdup( arg_field );
 	value = arg_value;
 	notifiee = arg_notifiee;
+	trigger = t;
 
 	Ref( value );
 	}
@@ -225,6 +230,7 @@ Notification::~Notification()
 	{
 	delete field;
 	Unref( value );
+	Unref( trigger );
 	}
 
 void Notification::Describe( ostream& s ) const
@@ -1462,7 +1468,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 
 	if ( yyin && isatty( fileno( yyin ) ) )
 		{
-		message->Report( "Glish version ", GLISH_VERSION, "." );
+		message->Report( "Glish version ", GLISH_VERSION, ". " );
 
 		// We're about to enter the "interactive" loop, so
 		// first execute any statements we've seen so far due
@@ -1728,6 +1734,10 @@ void Sequencer::RunQueue()
 
 		if ( n->notifiee->frame )
 			(void) PopFrame();
+
+		if ( n->trigger )
+			n->trigger->NotifyDone( );
+
 		Unref( n );
 		}
 	}

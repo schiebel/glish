@@ -28,10 +28,19 @@ extern char* which_include( const char* file_name );
 // value is not found.
 extern const Value *lookup_sequencer_value( const char *id );
 
+// This is used for notification of when an event has been handled, i.e.
+// completion of a notification.
+class NotifyTrigger : public GlishObject {
+    public:
+	virtual void NotifyDone( );
+	NotifyTrigger() { }
+	virtual ~NotifyTrigger();
+};
+
 class Notification : public GlishObject {
 public:
 	Notification( Agent* notifier, const char* field, IValue* value,
-			Notifiee* notifiee );
+			Notifiee* notifiee, NotifyTrigger *t=0 );
 	~Notification();
 
 	void Describe( ostream& s ) const;
@@ -40,6 +49,7 @@ public:
 	char* field;
 	IValue* value;
 	Notifiee* notifiee;
+	NotifyTrigger *trigger;
 	};
 
 

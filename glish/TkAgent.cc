@@ -10,6 +10,7 @@ RCSID("@(#) $Id$")
 #include "Rivet/rivet.h"
 #include "Reporter.h"
 #include "IValue.h"
+#include "Sequencer.h"
 #include "Expr.h"
 
 #include <iostream.h>
@@ -17,6 +18,41 @@ RCSID("@(#) $Id$")
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
+
+class ScrollbarTrigger : public NotifyTrigger {
+    public:
+	void NotifyDone( );
+	ScrollbarTrigger( TkScrollbar *s );
+	~ScrollbarTrigger();
+    protected:
+	TkScrollbar *sb;
+};
+
+void ScrollbarTrigger::NotifyDone( )
+	{
+	Tk_TimerToken t = rivet_last_timer();
+	if ( t && rivet_timer_expired( t ) )
+		{
+		rivet_cancel_repeat();
+		Rivetobj self = sb->Self();
+		char buf[256];
+
+		char *ret = rivet_va_cmd(self, "cget", "-repeatinterval", 0);
+		int cur = atoi(ret);
+		sprintf(buf, "%d", cur + (int)(cur / 0.5));
+		rivet_set( self, "-repeatinterval", buf );
+
+		ret = rivet_va_cmd(self, "cget", "-repeatdelay", 0);
+		cur = atoi(ret);
+		sprintf(buf, "%d", cur + (int)(cur / 0.5));
+		rivet_set( self, "-repeatdelay", buf );
+		}
+	}
+
+ScrollbarTrigger::ScrollbarTrigger(  TkScrollbar *s ) : sb(s) { }
+
+ScrollbarTrigger::~ScrollbarTrigger( ) { }
+
 
 static IValue *ScrollToValue( Scrollbar_notify_data *data )
 	{
@@ -1735,7 +1771,7 @@ TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 
 void TkScrollbar::Scrolled( IValue *data )
 	{
-	CreateEvent( "scroll", data );
+	CreateEvent( "scroll", data, new ScrollbarTrigger( this ) );
 	}
 
 
