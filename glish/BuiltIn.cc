@@ -1915,6 +1915,8 @@ IValue* SprintfBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	char **ary = 0;
 	len = gsprintf( ary, pat, args_val, err );
 
+	free_memory(pat);
+
 	if ( len )
 		return new IValue( (charptr*) ary, len );
 	else
