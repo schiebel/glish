@@ -28,9 +28,12 @@ RCSID("@(#) $Id$")
 #include <termio.h>
 #include <sys/uio.h>
 #include <stddef.h>
-#include <stropts.h>
 
-#if HAVE_SYS_WAIT_H
+#ifdef HAVE_STROPTS_H
+#include <stropts.h>
+#endif
+
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
 
@@ -461,6 +464,9 @@ int pclose_with_input( FILE* pipe )
 			pgripe(
 		"could not delete temporary file in pclose_with_input()" );
 		}
+
+	if ( status == -1 && errno == ECHILD )
+		return 0;			/* our SIGCHLD handler got it */
 
 	return status;
 	}

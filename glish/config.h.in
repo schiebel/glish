@@ -123,6 +123,9 @@
 /* Define if you have the <ucontext.h> header file.  */
 #undef HAVE_UCONTEXT_H
 
+/* Define if you have <stropts.h> header file */
+#undef HAVE_STROPTS_H
+
 /* Define if you have the <floatingpoint.h> header file.  */
 #undef HAVE_FLOATINGPOINT_H
 

@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include <stdio.h>
 #include <ucontext.h>
-#include <machine/context.h>
+#include <machine/signal.h>
 #include <machine/fpu.h>
 #include <limits.h>
 #include "system.h"

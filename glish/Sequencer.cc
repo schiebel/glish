@@ -137,7 +137,7 @@ stack_type::~stack_type( )
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
 public:
-	ScriptClient( int& argc, char** argv, Client::ShareType multi = 0 );
+	ScriptClient( int& argc, char** argv, Client::ShareType multi = Client::NONSHARED );
 
 	// Inform the ScriptClient as to which selector and agent
 	// it should use for getting and propagating events.

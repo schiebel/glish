@@ -42,7 +42,7 @@ int create_userkeyfile( const char *dir )
 	if ( owner = get_file_owner( key_file ) )
 		return owner == get_our_userid() ? 1 : 0;
 
-	(void) umask( 027 );
+	(void) umask( 077 );
 
 	if ( ! (key_f = fopen( key_file, "w")) )
 		{
@@ -136,7 +136,6 @@ static unsigned char *get_key( const char *dir, const char *host,
 
 	if ( host_len != user_len )
 		{
-		fprintf( stderr, "user key file: \"%s\"\n", key_file );
 		sprintf( errmsg, "host key length (%d) != user key length (%d)",host_len,user_len);
 		my_free( host_key );
 		my_free( user_key );
