@@ -567,6 +567,7 @@ char *glishtk_canvas_delete(Rivetobj self, const char *cmd, parameter_list *args
 		rivet_va_cmd( self, "addtag", "*NUKEM-ALL", "all", 0 );
 		return rivet_va_cmd( self, "delete", "*NUKEM-ALL", 0 );
 		}
+	return 0;
 	}
 
 char *glishtk_canvas_move(Rivetobj self, const char *cmd, parameter_list *args,

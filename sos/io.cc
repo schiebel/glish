@@ -259,7 +259,8 @@ sos_status *sos_fd_sink::flush( )
 			if ( cnt > cur )
 				{
 				if ( ! buf_holder ) buf_holder = iov[start].iov_base;
-				iov[start].iov_base = iov[start].iov_base + iov[start].iov_len - (cnt - cur);
+				iov[start].iov_base = (char *)(iov[start].iov_base +
+							       iov[start].iov_len - (cnt - cur));
 				iov[start].iov_len = cnt - cur;
 				}
 

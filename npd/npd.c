@@ -191,29 +191,50 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 			break;
 
 	if ( ! h->h_addr_list[i] )
-		return to_log( "peer appears to be spoofing" );
+		{
+		to_log( "peer appears to be spoofing" );
+		return 0;
+		}
 
 	s = get_word_from_peer( npd_in );
 	if ( ! s || strcmp( s, "hello" ) )
-		return to_log( "peer protocol error, hello expected, got \"%s\"",
-				s ? s : "<EOF>" );
+		{
+		to_log( "peer protocol error, hello expected, got \"%s\"",
+			s ? s : "<EOF>" );
+		return 0;
+		}
 	if ( ! (s = get_word_from_peer( npd_in )) )
-		return to_log( "peer protocol error, hostname expected, got \"%s\"",
-				s ? s : "<EOF>" );
+		{
+		to_log( "peer protocol error, hostname expected, got \"%s\"",
+			s ? s : "<EOF>" );
+		return 0;
+		}
 	if ( strlen( s ) >= sizeof peer_hostname )
-		return to_log( "ridiculously long hostname: \"%s\"", s );
+		{
+		to_log( "ridiculously long hostname: \"%s\"", s );
+		return 0;
+		}
 	strcpy( peer_hostname, s );
 
 	if ( ! (s = get_word_from_peer( npd_in )) )
-		return to_log( "peer protocol error, username expected, got \"%s\"",
-				s ? s : "<EOF>" );
+		{
+		to_log( "peer protocol error, username expected, got \"%s\"",
+			s ? s : "<EOF>" );
+		return 0;
+		}
 	if ( strlen( s ) >= sizeof peer_username )
-		return to_log( "ridiculously long username: \"%s\"", s );
+		{
+		to_log( "ridiculously long username: \"%s\"", s );
+		return 0;
+		}
 	strcpy( peer_username, s );
 
 	/* Verify the peer's alleged host name. */
 	if ( ! (h = gethostbyname( peer_hostname )) )
-		return to_log( "can't lookup peer's alleged name: %s", peer_hostname );
+		{
+		to_log( "can't lookup peer's alleged name: %s", peer_hostname );
+		return 0;
+		}
 
 	/* Again, search address list to see if we're being spoofed. */
 	for ( i = 0; h->h_addr_list[i]; ++i )
@@ -222,41 +243,67 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 			break;
 
 	if ( ! h->h_addr_list[i] )
-		return to_log( "peer appears to be spoofing" );
+		{
+		to_log( "peer appears to be spoofing" );
+		return 0;
+		}
 
 	/* Verify the peer's alleged user name. */
 	if ( ! (uid = get_userid( peer_username )) )
-		return to_log( "peer sent bogus user name" );
+		{
+		to_log( "peer sent bogus user name" );
+		return 0;
+		}
 
 	/* Prevent access for users who don't have a shell */
 	if ( ! get_user_shell( peer_username ) )
-		return to_log( "peer sent bogus user name" );
+		{
+		to_log( "peer sent bogus user name" );
+		return 0;
+		}
 
 	if ( ! (s = get_word_from_peer( npd_in )) || (version = atoi( s )) < 1 )
-		return to_log( "peer protocol error, version expected, got \"%s\"",
-				s ? s : "<EOF>" );
+		{
+		to_log( "peer protocol error, version expected, got \"%s\"",
+			s ? s : "<EOF>" );
+		return 0;
+		}
 
 	fprintf( npd_out, "hello %d challenge\n", NPP_VERSION );
 	answer = compose_challenge( (keys_dir ? keys_dir : KEYS_DIR), peer_hostname,
 				    peer_username, npd_out, &answer_len );
 	if ( ! answer )
-		return to_log( "couldn't compose challenge - %s", errmsg );
+		{
+		to_log( "couldn't compose challenge - %s", errmsg );
+		return 0;
+		}
 	fflush( npd_out );
 
 	if ( ! (s = get_word_from_peer( npd_in )) || strcmp( s, "answer" ) )
-		return to_log( "peer protocol error, answer expected, got \"%s\"",
-				s ? s : "<EOF>" );
+		{
+		to_log( "peer protocol error, answer expected, got \"%s\"",
+			s ? s : "<EOF>" );
+		return 0;
+		}
 
 	if ( ! (peer_answer = read_encoded_binary( npd_in, &peer_answer_len )) )
-		return to_log( "peer protocol error, couldn't get answer - %s",
-				errmsg );
+		{
+		to_log( "peer protocol error, couldn't get answer - %s", errmsg );
+		return 0;
+		}
 
 	if ( peer_answer_len != answer_len )
-		return to_log( "peer challenge answer wrong length, %d != %d",
-				peer_answer_len, answer_len );
+		{
+		to_log( "peer challenge answer wrong length, %d != %d",
+			peer_answer_len, answer_len );
+		return 0;
+		}
 
 	if ( ! byte_arrays_equal( peer_answer, answer, answer_len ) )
-		return to_log( "peer answer incorrect" );
+		{
+		to_log( "peer answer incorrect" );
+		return 0;
+		}
 
 	fprintf( npd_out, "accepted\n" );
 	fflush( npd_out );
@@ -275,20 +322,23 @@ char **authenticate_client(int sock)
 
 	if (! (in = fdopen(dup(sock),"r")))
 		{
-		return to_log( "could not create FILE* (in)" );
+		to_log( "could not create FILE* (in)" );
+		return 0;
 		}
 			    
 	if (! (out = fdopen(dup(sock),"w")))
 		{
 		fclose(in);
-		return to_log( "could not create FILE* (out)" );
+		to_log( "could not create FILE* (out)" );
+		return 0;
 		}
 
 	if ( getpeername( sock, (struct sockaddr*) &sin, &len ) < 0 )
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "could not get peer information (fd: 0x%X)", sock );
+		to_log( "could not get peer information (fd: 0x%X)", sock );
+		return 0;
 		}
 
 	result = authenticate_peer(in, out, &sin);
