@@ -61,8 +61,6 @@ MKHIER = $(top)/config/mkhier
 
 KEYDIR = @KEYDIR@
 
-##LOGDIR = /net/kochab/kochab_3/dschieb/glish/glish/log
-
 OBJS = \
 	auth.o \
 	md5c.o \
