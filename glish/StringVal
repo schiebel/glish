@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 
 //**
 //** This is included by Value.cc and IValue.cc to implement
@@ -141,7 +141,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		}		
 
 	if ( msg[0] ) free_memory( msg[0] );
-	for ( int i=1; i < 20 && msg[i]; i++ )
+	for ( LOOPDECL i=1; i < 20 && msg[i]; i++ )
 		free_memory( msg[i] );
 
 	return result;

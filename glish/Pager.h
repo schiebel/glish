@@ -1,5 +1,5 @@
 // $Id$
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 #ifndef pager_h_
 #define pager_h_
 

@@ -1,5 +1,5 @@
 // $Id$
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 //
 #ifndef valkern_h
 #define valkern_h

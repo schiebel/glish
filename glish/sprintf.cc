@@ -103,7 +103,7 @@ int gsprintf( char **&out, char *format, const_args_list *args, char *&error, in
 
 	ctrl(format);	// backslash interpretation of fmt string
 
-	for ( int i=0; i < elemlen; outbuf.next(), ++i ) {
+	for ( LOOPDECL i=0; i < elemlen; outbuf.next(), ++i ) {
 
 		cp = format;
 		index = arg_off;

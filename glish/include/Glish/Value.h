@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 #ifndef value_h
 #define value_h
 
