@@ -38,7 +38,7 @@ MKHIER = $(top)/config/mkhier
 INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
 LIBS = malloc.o $(CLIENT_LIBS) @LIBS@
 
 CLIENTS = \
