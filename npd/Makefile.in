@@ -48,7 +48,7 @@ libnpd.a: $(OBJS)
 	$(RANLIB) libnpd.a
 
 genkey: libnpd.a genkey.o
-	$(CC) $(CFLAGS) $(INC) -o genkey genkey.o libnpd.a @LIBS@ -lm
+	$(CC) $(CFLAGS) $(INC) -o genkey genkey.o libnpd.a -lm @LIBS@
 
 $(ISTKLIBS)/libnpd.a:libnpd.a
 	$(INSTALL_DATA) libnpd.a $(ISTKLIBS)
