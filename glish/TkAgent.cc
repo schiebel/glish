@@ -2286,6 +2286,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	argv[c++] = (char*) background;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
+	if ( disabled ) disable_count++;
+
 	if ( type != MENU )
 		{
 		argv[c++] = "-command";
@@ -2422,6 +2424,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 #endif
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
+	if ( disabled ) disable_count++;
 
 	argv[c++] = "-command";
 	argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
@@ -2882,6 +2885,8 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	argv[c++] = (char*) background;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
+	if ( disabled ) disable_count++;
+
 	if ( font[0] )
 		{
 		argv[c++] = "-font";
@@ -3241,6 +3246,8 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	argv[c++] = (char*) background;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
+	if ( disabled ) disable_count++;
+
 	if ( ! show )
 		{
 		argv[c++] = "-show";

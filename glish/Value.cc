@@ -736,7 +736,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		case TYPE_SUBVEC_REF:					\
 			{						\
 			VecRef* ref = VecRefPtr();			\
-			int erri;					\
+			int erri = 0;					\
 			int index = ref->TranslateIndex( indx, &erri );	\
 			if ( erri )					\
 				{					\

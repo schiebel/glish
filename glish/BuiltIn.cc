@@ -1932,11 +1932,8 @@ IValue* as_string_built_in( const IValue* arg )
 	char fmt_plus[40];					\
 	char fmt_minus[40];					\
 	const char *fmt = print_decimal_prec( arg->AttributePtr(), DFLT); \
-	strcpy(fmt_plus,fmt);					\
-	strcat(fmt_plus,"+");					\
-	strcat(fmt_plus,fmt);					\
-	strcpy(fmt_minus,fmt);					\
-	strcat(fmt_minus,fmt);
+	sprintf(fmt_plus,"%s+%si",fmt,fmt);			\
+	sprintf(fmt_minus,"%s%si",fmt,fmt);
 #define COERCE_XXX_TO_STRING_SUBVECREF_XLATE			\
 	int err;						\
 	int index = ref->TranslateIndex( i, &err );		\
