@@ -16,7 +16,7 @@ extern "C" {
 #define Null(type)      ((type)NULL)
 #define Nullch          ((char*)NULL)
 #define Nullsv          ((SV*)NULL)
-#define New(x,v,n,t)    (v = alloc_##t(n))
+#define New(x,v,n,t)    (v = (t*)alloc_memory((n)*sizeof(t)))
 #define Newc(x,v,n,t,c) (v = (c*)alloc_memory((n)*sizeof(t)))
 #define memzero(d,l)    memset(d,0,l)
 #define Newz(x,v,n,t)   (v = (t*)alloc_zero_memory((n)*sizeof(t)))
