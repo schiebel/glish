@@ -3,8 +3,6 @@
 //
 #ifndef tkpgplot_h_
 #define tkpgplot_h_
-
-#ifdef TKPGPLOT
 #include "tkAgent.h"
 
 class TkPgplot : public TkAgent
@@ -16,7 +14,7 @@ public:
 	    charptr padx, charptr pady, charptr foreground, charptr background,
 	    charptr fill_, int mincolor, int maxcolor, int cmap_share, int cmap_fail );
 
-  static void Create (ProxyStore *, Value *, void *);
+  static void Create (ProxyStore *, Value * );
 
   ~TkPgplot ();
 
@@ -133,5 +131,22 @@ protected:
   char *fill;
 };
 
-#endif
+class PgProc : public TkProc {
+    public:
+
+	PgProc(TkPgplot *f, char *(TkPgplot::*p)(Value*), TkStrToValProc cvt = 0)
+			: TkProc(f,cvt), pgproc(p) { }
+
+	PgProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
+			: TkProc(c,p,cvt), pgproc(0) { }
+
+	PgProc(TkPgplot *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
+			: TkProc(a,c,p,cvt), pgproc(0) { }
+
+	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
+
+    protected:
+	char *(TkPgplot::*pgproc)(Value*);
+};
+
 #endif

@@ -1121,7 +1121,7 @@ int CLASS::CanExpand() const				\
 STD_EXPAND_PACKINSTRUCTION(TkCanvas)
 STD_EXPAND_CANEXPAND(TkCanvas)
 	  
-void TkCanvas::Create( ProxyStore *s, Value *args, void * )
+void TkCanvas::Create( ProxyStore *s, Value *args )
 	{
 	TkCanvas *ret;
 

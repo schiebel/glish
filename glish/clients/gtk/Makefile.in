@@ -43,7 +43,7 @@ MKHIER = $(top)/config/mkhier
 GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkAgent.o tkCanvas.o tkPgplot.o malloc.o
+OBJS = main.o tkAgent.o tkCanvas.o malloc.o
 
 RCDIR = @RCDIR@
 TK_LIB = @TK_LIB@ 

@@ -2,10 +2,7 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#ifdef TKPGPLOT
-
 #include "tkPgplot.h"
-
 #include <string.h>
 #include <stdlib.h>
 #include "Reporter.h"
@@ -13,6 +10,8 @@ RCSID("@(#) $Id$")
 
 #include "tkpgplot.h"
 #include "cpgplot.h"
+
+extern "C" int Tkpgplot_Init(Tcl_Interp *);
 
 extern ProxyStore *global_store;
 #define SP " "
@@ -260,8 +259,28 @@ static int colorcells_available(Tk_Window w, int needed)
   return ret;
 }
 
-void
-TkPgplot::UnMap ()
+Value *PgProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
+	{
+	char *val = 0;
+
+	if ( pgproc && agent )
+		val = (((TkPgplot*)agent)->*pgproc)( arg);
+	else
+		return TkProc::operator()( tcl, s, arg );
+
+	if ( val != (void*) TCL_ERROR )
+		{
+		if ( convert && val )
+			return (*convert)(val);
+		else
+			return new Value( glish_true );
+		}
+	else
+		return new Value( glish_false );
+
+	}
+
+void TkPgplot::UnMap ()
 {
   if (self) {
     cpgslct (id);
@@ -539,113 +558,113 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   frame->Pack ();
 
   // Non-standard routines.
-  procs.Insert ("bind", new TkProc (this, "", glishtk_pgplot_bind));
-  procs.Insert ("cursor", new TkProc (this, &TkPgplot::Cursor, glishtk_str));
-  procs.Insert ("height", new TkProc ("-height", glishtk_oneornodim,
+  procs.Insert ("bind", new PgProc (this, "", glishtk_pgplot_bind));
+  procs.Insert ("cursor", new PgProc (this, &TkPgplot::Cursor, glishtk_str));
+  procs.Insert ("height", new PgProc ("-height", glishtk_oneornodim,
 				      glishtk_int));
-  procs.Insert ("view", new TkProc ("", glishtk_scrolled_update));
-  procs.Insert ("width", new TkProc ("-width", glishtk_oneornodim,
+  procs.Insert ("view", new PgProc ("", glishtk_scrolled_update));
+  procs.Insert ("width", new PgProc ("-width", glishtk_oneornodim,
 				     glishtk_int));
 
-  procs.Insert ("padx", new TkProc ("-padx", glishtk_oneornodim, glishtk_int));
-  procs.Insert ("pady", new TkProc ("-pady", glishtk_oneornodim, glishtk_int));
+  procs.Insert ("padx", new PgProc ("-padx", glishtk_oneornodim, glishtk_int));
+  procs.Insert ("pady", new PgProc ("-pady", glishtk_oneornodim, glishtk_int));
 
   // Standard PGPLOT routines.
-  procs.Insert ("arro", new TkProc (this, &TkPgplot::Pgarro));
-  procs.Insert ("ask", new TkProc (this, &TkPgplot::Pgask));
-  procs.Insert ("bbuf", new TkProc (this, &TkPgplot::Pgbbuf));
-  procs.Insert ("beg", new TkProc (this, &TkPgplot::Pgbeg));
-  procs.Insert ("bin", new TkProc (this, &TkPgplot::Pgbin));
-  procs.Insert ("box", new TkProc (this, &TkPgplot::Pgbox));
-  procs.Insert ("circ", new TkProc (this, &TkPgplot::Pgcirc));
-  procs.Insert ("clos", new TkProc (this, &TkPgplot::Pgclos));
-  procs.Insert ("conb", new TkProc (this, &TkPgplot::Pgconb));
-  procs.Insert ("conl", new TkProc (this, &TkPgplot::Pgconl));
-  procs.Insert ("cons", new TkProc (this, &TkPgplot::Pgcons));
-  procs.Insert ("cont", new TkProc (this, &TkPgplot::Pgcont));
-  procs.Insert ("ctab", new TkProc (this, &TkPgplot::Pgctab));
-  procs.Insert ("draw", new TkProc (this, &TkPgplot::Pgdraw));
-  procs.Insert ("ebuf", new TkProc (this, &TkPgplot::Pgebuf));
-  procs.Insert ("end", new TkProc (this, &TkPgplot::Pgend));
-  procs.Insert ("env", new TkProc (this, &TkPgplot::Pgenv));
-  procs.Insert ("eras", new TkProc (this, &TkPgplot::Pgeras));
-  procs.Insert ("errb", new TkProc (this, &TkPgplot::Pgerrb));
-  procs.Insert ("errx", new TkProc (this, &TkPgplot::Pgerrx));
-  procs.Insert ("erry", new TkProc (this, &TkPgplot::Pgerry));
-  procs.Insert ("etxt", new TkProc (this, &TkPgplot::Pgetxt));
-  procs.Insert ("gray", new TkProc (this, &TkPgplot::Pggray));
-  procs.Insert ("hi2d", new TkProc (this, &TkPgplot::Pghi2d));
-  procs.Insert ("hist", new TkProc (this, &TkPgplot::Pghist));
-  procs.Insert ("iden", new TkProc (this, &TkPgplot::Pgiden));
-  procs.Insert ("imag", new TkProc (this, &TkPgplot::Pgimag));
-  procs.Insert ("lab", new TkProc (this, &TkPgplot::Pglab));
-  procs.Insert ("ldev", new TkProc (this, &TkPgplot::Pgldev));
-  procs.Insert ("len", new TkProc (this, &TkPgplot::Pglen, tk_castfToStr));
-  procs.Insert ("line", new TkProc (this, &TkPgplot::Pgline));
-  procs.Insert ("move", new TkProc (this, &TkPgplot::Pgmove));
-  procs.Insert ("mtxt", new TkProc (this, &TkPgplot::Pgmtxt));
-  procs.Insert ("numb", new TkProc (this, &TkPgplot::Pgnumb, glishtk_str));
-  procs.Insert ("open", new TkProc (this, &TkPgplot::Pgopen, tk_castiToStr));
-  procs.Insert ("page", new TkProc (this, &TkPgplot::Pgpage));
-  procs.Insert ("panl", new TkProc (this, &TkPgplot::Pgpanl));
-  procs.Insert ("pap", new TkProc (this, &TkPgplot::Pgpap));
-  procs.Insert ("pixl", new TkProc (this, &TkPgplot::Pgpixl));
-  procs.Insert ("pnts", new TkProc (this, &TkPgplot::Pgpnts));
-  procs.Insert ("poly", new TkProc (this, &TkPgplot::Pgpoly));
-  procs.Insert ("pt", new TkProc (this, &TkPgplot::Pgpt));
-  procs.Insert ("ptxt", new TkProc (this, &TkPgplot::Pgptxt));
-  procs.Insert ("qah", new TkProc (this, &TkPgplot::Pgqah, tk_castfToStr));
-  procs.Insert ("qcf", new TkProc (this, &TkPgplot::Pgqcf, tk_castiToStr));
-  procs.Insert ("qch", new TkProc (this, &TkPgplot::Pgqch, tk_castfToStr));
-  procs.Insert ("qci", new TkProc (this, &TkPgplot::Pgqci, tk_castiToStr));
-  procs.Insert ("qcir", new TkProc (this, &TkPgplot::Pgqcir, tk_castiToStr));
-  procs.Insert ("qcol", new TkProc (this, &TkPgplot::Pgqcol, tk_castiToStr));
-  procs.Insert ("qcr", new TkProc (this, &TkPgplot::Pgqcr, tk_castfToStr));
-  procs.Insert ("qcs", new TkProc (this, &TkPgplot::Pgqcs, tk_castfToStr));
-  procs.Insert ("qfs", new TkProc (this, &TkPgplot::Pgqfs, tk_castiToStr));
-  procs.Insert ("qhs", new TkProc (this, &TkPgplot::Pgqhs, tk_castfToStr));
-  procs.Insert ("qid", new TkProc (this, &TkPgplot::Pgqid, tk_castiToStr));
-  procs.Insert ("qinf", new TkProc (this, &TkPgplot::Pgqinf, glishtk_str));
-  procs.Insert ("qitf", new TkProc (this, &TkPgplot::Pgqitf, tk_castiToStr));
-  procs.Insert ("qls", new TkProc (this, &TkPgplot::Pgqls, tk_castiToStr));
-  procs.Insert ("qlw", new TkProc (this, &TkPgplot::Pgqlw, tk_castiToStr));
-  procs.Insert ("qpos", new TkProc (this, &TkPgplot::Pgqpos, tk_castfToStr));
-  procs.Insert ("qtbg", new TkProc (this, &TkPgplot::Pgqtbg, tk_castiToStr));
-  procs.Insert ("qtxt", new TkProc (this, &TkPgplot::Pgqtxt, tk_castfToStr));
-  procs.Insert ("qvp", new TkProc (this, &TkPgplot::Pgqvp, tk_castfToStr));
-  procs.Insert ("qvsz", new TkProc (this, &TkPgplot::Pgqvsz, tk_castfToStr));
-  procs.Insert ("qwin", new TkProc (this, &TkPgplot::Pgqwin, tk_castfToStr));
-  procs.Insert ("rect", new TkProc (this, &TkPgplot::Pgrect));
-  procs.Insert ("rnd", new TkProc (this, &TkPgplot::Pgrnd, tk_castfToStr));
-  procs.Insert ("rnge", new TkProc (this, &TkPgplot::Pgrnge, tk_castfToStr));
-  procs.Insert ("sah", new TkProc (this, &TkPgplot::Pgsah));
-  procs.Insert ("save", new TkProc (this, &TkPgplot::Pgsave));
-  procs.Insert ("scf", new TkProc (this, &TkPgplot::Pgscf));
-  procs.Insert ("sch", new TkProc (this, &TkPgplot::Pgsch));
-  procs.Insert ("sci", new TkProc (this, &TkPgplot::Pgsci));
-  procs.Insert ("scir", new TkProc (this, &TkPgplot::Pgscir));
-  procs.Insert ("scr", new TkProc (this, &TkPgplot::Pgscr));
-  procs.Insert ("scrn", new TkProc (this, &TkPgplot::Pgscrn, tk_castiToStr));
-  procs.Insert ("sfs", new TkProc (this, &TkPgplot::Pgsfs));
-  procs.Insert ("shls", new TkProc (this, &TkPgplot::Pgshls));
-  procs.Insert ("shs", new TkProc (this, &TkPgplot::Pgshs));
-  procs.Insert ("sitf", new TkProc (this, &TkPgplot::Pgsitf));
-  procs.Insert ("slct", new TkProc (this, &TkPgplot::Pgslct));
-  procs.Insert ("sls", new TkProc (this, &TkPgplot::Pgsls));
-  procs.Insert ("slw", new TkProc (this, &TkPgplot::Pgslw));
-  procs.Insert ("stbg", new TkProc (this, &TkPgplot::Pgstbg));
-  procs.Insert ("subp", new TkProc (this, &TkPgplot::Pgsubp));
-  procs.Insert ("svp", new TkProc (this, &TkPgplot::Pgsvp));
-  procs.Insert ("swin", new TkProc (this, &TkPgplot::Pgswin));
-  procs.Insert ("tbox", new TkProc (this, &TkPgplot::Pgtbox));
-  procs.Insert ("text", new TkProc (this, &TkPgplot::Pgtext));
-  procs.Insert ("unsa", new TkProc (this, &TkPgplot::Pgunsa));
-  procs.Insert ("updt", new TkProc (this, &TkPgplot::Pgupdt));
-  procs.Insert ("vect", new TkProc (this, &TkPgplot::Pgvect));
-  procs.Insert ("vsiz", new TkProc (this, &TkPgplot::Pgvsiz));
-  procs.Insert ("vstd", new TkProc (this, &TkPgplot::Pgvstd));
-  procs.Insert ("wedg", new TkProc (this, &TkPgplot::Pgwedg));
-  procs.Insert ("wnad", new TkProc (this, &TkPgplot::Pgwnad));
+  procs.Insert ("arro", new PgProc (this, &TkPgplot::Pgarro));
+  procs.Insert ("ask", new PgProc (this, &TkPgplot::Pgask));
+  procs.Insert ("bbuf", new PgProc (this, &TkPgplot::Pgbbuf));
+  procs.Insert ("beg", new PgProc (this, &TkPgplot::Pgbeg));
+  procs.Insert ("bin", new PgProc (this, &TkPgplot::Pgbin));
+  procs.Insert ("box", new PgProc (this, &TkPgplot::Pgbox));
+  procs.Insert ("circ", new PgProc (this, &TkPgplot::Pgcirc));
+  procs.Insert ("clos", new PgProc (this, &TkPgplot::Pgclos));
+  procs.Insert ("conb", new PgProc (this, &TkPgplot::Pgconb));
+  procs.Insert ("conl", new PgProc (this, &TkPgplot::Pgconl));
+  procs.Insert ("cons", new PgProc (this, &TkPgplot::Pgcons));
+  procs.Insert ("cont", new PgProc (this, &TkPgplot::Pgcont));
+  procs.Insert ("ctab", new PgProc (this, &TkPgplot::Pgctab));
+  procs.Insert ("draw", new PgProc (this, &TkPgplot::Pgdraw));
+  procs.Insert ("ebuf", new PgProc (this, &TkPgplot::Pgebuf));
+  procs.Insert ("end", new PgProc (this, &TkPgplot::Pgend));
+  procs.Insert ("env", new PgProc (this, &TkPgplot::Pgenv));
+  procs.Insert ("eras", new PgProc (this, &TkPgplot::Pgeras));
+  procs.Insert ("errb", new PgProc (this, &TkPgplot::Pgerrb));
+  procs.Insert ("errx", new PgProc (this, &TkPgplot::Pgerrx));
+  procs.Insert ("erry", new PgProc (this, &TkPgplot::Pgerry));
+  procs.Insert ("etxt", new PgProc (this, &TkPgplot::Pgetxt));
+  procs.Insert ("gray", new PgProc (this, &TkPgplot::Pggray));
+  procs.Insert ("hi2d", new PgProc (this, &TkPgplot::Pghi2d));
+  procs.Insert ("hist", new PgProc (this, &TkPgplot::Pghist));
+  procs.Insert ("iden", new PgProc (this, &TkPgplot::Pgiden));
+  procs.Insert ("imag", new PgProc (this, &TkPgplot::Pgimag));
+  procs.Insert ("lab", new PgProc (this, &TkPgplot::Pglab));
+  procs.Insert ("ldev", new PgProc (this, &TkPgplot::Pgldev));
+  procs.Insert ("len", new PgProc (this, &TkPgplot::Pglen, tk_castfToStr));
+  procs.Insert ("line", new PgProc (this, &TkPgplot::Pgline));
+  procs.Insert ("move", new PgProc (this, &TkPgplot::Pgmove));
+  procs.Insert ("mtxt", new PgProc (this, &TkPgplot::Pgmtxt));
+  procs.Insert ("numb", new PgProc (this, &TkPgplot::Pgnumb, glishtk_str));
+  procs.Insert ("open", new PgProc (this, &TkPgplot::Pgopen, tk_castiToStr));
+  procs.Insert ("page", new PgProc (this, &TkPgplot::Pgpage));
+  procs.Insert ("panl", new PgProc (this, &TkPgplot::Pgpanl));
+  procs.Insert ("pap", new PgProc (this, &TkPgplot::Pgpap));
+  procs.Insert ("pixl", new PgProc (this, &TkPgplot::Pgpixl));
+  procs.Insert ("pnts", new PgProc (this, &TkPgplot::Pgpnts));
+  procs.Insert ("poly", new PgProc (this, &TkPgplot::Pgpoly));
+  procs.Insert ("pt", new PgProc (this, &TkPgplot::Pgpt));
+  procs.Insert ("ptxt", new PgProc (this, &TkPgplot::Pgptxt));
+  procs.Insert ("qah", new PgProc (this, &TkPgplot::Pgqah, tk_castfToStr));
+  procs.Insert ("qcf", new PgProc (this, &TkPgplot::Pgqcf, tk_castiToStr));
+  procs.Insert ("qch", new PgProc (this, &TkPgplot::Pgqch, tk_castfToStr));
+  procs.Insert ("qci", new PgProc (this, &TkPgplot::Pgqci, tk_castiToStr));
+  procs.Insert ("qcir", new PgProc (this, &TkPgplot::Pgqcir, tk_castiToStr));
+  procs.Insert ("qcol", new PgProc (this, &TkPgplot::Pgqcol, tk_castiToStr));
+  procs.Insert ("qcr", new PgProc (this, &TkPgplot::Pgqcr, tk_castfToStr));
+  procs.Insert ("qcs", new PgProc (this, &TkPgplot::Pgqcs, tk_castfToStr));
+  procs.Insert ("qfs", new PgProc (this, &TkPgplot::Pgqfs, tk_castiToStr));
+  procs.Insert ("qhs", new PgProc (this, &TkPgplot::Pgqhs, tk_castfToStr));
+  procs.Insert ("qid", new PgProc (this, &TkPgplot::Pgqid, tk_castiToStr));
+  procs.Insert ("qinf", new PgProc (this, &TkPgplot::Pgqinf, glishtk_str));
+  procs.Insert ("qitf", new PgProc (this, &TkPgplot::Pgqitf, tk_castiToStr));
+  procs.Insert ("qls", new PgProc (this, &TkPgplot::Pgqls, tk_castiToStr));
+  procs.Insert ("qlw", new PgProc (this, &TkPgplot::Pgqlw, tk_castiToStr));
+  procs.Insert ("qpos", new PgProc (this, &TkPgplot::Pgqpos, tk_castfToStr));
+  procs.Insert ("qtbg", new PgProc (this, &TkPgplot::Pgqtbg, tk_castiToStr));
+  procs.Insert ("qtxt", new PgProc (this, &TkPgplot::Pgqtxt, tk_castfToStr));
+  procs.Insert ("qvp", new PgProc (this, &TkPgplot::Pgqvp, tk_castfToStr));
+  procs.Insert ("qvsz", new PgProc (this, &TkPgplot::Pgqvsz, tk_castfToStr));
+  procs.Insert ("qwin", new PgProc (this, &TkPgplot::Pgqwin, tk_castfToStr));
+  procs.Insert ("rect", new PgProc (this, &TkPgplot::Pgrect));
+  procs.Insert ("rnd", new PgProc (this, &TkPgplot::Pgrnd, tk_castfToStr));
+  procs.Insert ("rnge", new PgProc (this, &TkPgplot::Pgrnge, tk_castfToStr));
+  procs.Insert ("sah", new PgProc (this, &TkPgplot::Pgsah));
+  procs.Insert ("save", new PgProc (this, &TkPgplot::Pgsave));
+  procs.Insert ("scf", new PgProc (this, &TkPgplot::Pgscf));
+  procs.Insert ("sch", new PgProc (this, &TkPgplot::Pgsch));
+  procs.Insert ("sci", new PgProc (this, &TkPgplot::Pgsci));
+  procs.Insert ("scir", new PgProc (this, &TkPgplot::Pgscir));
+  procs.Insert ("scr", new PgProc (this, &TkPgplot::Pgscr));
+  procs.Insert ("scrn", new PgProc (this, &TkPgplot::Pgscrn, tk_castiToStr));
+  procs.Insert ("sfs", new PgProc (this, &TkPgplot::Pgsfs));
+  procs.Insert ("shls", new PgProc (this, &TkPgplot::Pgshls));
+  procs.Insert ("shs", new PgProc (this, &TkPgplot::Pgshs));
+  procs.Insert ("sitf", new PgProc (this, &TkPgplot::Pgsitf));
+  procs.Insert ("slct", new PgProc (this, &TkPgplot::Pgslct));
+  procs.Insert ("sls", new PgProc (this, &TkPgplot::Pgsls));
+  procs.Insert ("slw", new PgProc (this, &TkPgplot::Pgslw));
+  procs.Insert ("stbg", new PgProc (this, &TkPgplot::Pgstbg));
+  procs.Insert ("subp", new PgProc (this, &TkPgplot::Pgsubp));
+  procs.Insert ("svp", new PgProc (this, &TkPgplot::Pgsvp));
+  procs.Insert ("swin", new PgProc (this, &TkPgplot::Pgswin));
+  procs.Insert ("tbox", new PgProc (this, &TkPgplot::Pgtbox));
+  procs.Insert ("text", new PgProc (this, &TkPgplot::Pgtext));
+  procs.Insert ("unsa", new PgProc (this, &TkPgplot::Pgunsa));
+  procs.Insert ("updt", new PgProc (this, &TkPgplot::Pgupdt));
+  procs.Insert ("vect", new PgProc (this, &TkPgplot::Pgvect));
+  procs.Insert ("vsiz", new PgProc (this, &TkPgplot::Pgvsiz));
+  procs.Insert ("vstd", new PgProc (this, &TkPgplot::Pgvstd));
+  procs.Insert ("wedg", new PgProc (this, &TkPgplot::Pgwedg));
+  procs.Insert ("wnad", new PgProc (this, &TkPgplot::Pgwnad));
 }
 
 void
@@ -2342,7 +2361,7 @@ TkPgplot::Pgwnad (Value *args)
 }
 
 void
-TkPgplot::Create (ProxyStore *s, Value *args, void *)
+TkPgplot::Create (ProxyStore *s, Value *args )
 {
   TkPgplot *ret;
 
@@ -2419,4 +2438,12 @@ int TkPgplot::CanExpand () const {
   return 0;
 }
 
-#endif
+extern "C" int Gpgplot_Init(Tcl_Interp *tcl)
+	{
+	GlishTk_Register( "pgplot", TkPgplot::Create );
+	Tkpgplot_Init(tcl);
+	return TCL_OK;
+	}
+
+extern "C" int grexec_();
+void *grexec__ = grexec_;

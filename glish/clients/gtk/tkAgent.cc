@@ -7,11 +7,6 @@ RCSID("@(#) $Id$")
 #include "tkAgent.h"
 #include "tkCanvas.h"
 
-#if defined(TKPGPLOT)
-#include "tkPgplot.h"
-extern "C" int Tkpgplot_Init(Tcl_Interp *interp);
-#endif
-
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
@@ -22,6 +17,7 @@ extern "C" int Tkpgplot_Init(Tcl_Interp *interp);
 extern ProxyStore *global_store;
 unsigned long TkRadioContainer::count = 0;
 
+int TkAgent::root_unmapped = 0;
 Tk_Window TkAgent::root = 0;
 Tcl_Interp *TkAgent::tcl = 0;
 unsigned long TkFrame::top_created = 0;
@@ -32,6 +28,7 @@ int TkAgent::hold_tk_events = 0;
 int TkAgent::hold_glish_events = 0;
 Value *TkAgent::last_error = 0;
 Value *TkAgent::bitmap_path = 0;
+Value *TkAgent::dload_path = 0;
 
 extern Value *glishtk_valcast( char * );
 #define SP " "
@@ -1292,8 +1289,8 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 		val = (*proc1)(tcl, s,cmdstr,param,arg);
 	else if ( proc2 )
 		val = (*proc2)(tcl, s,cmdstr,param,param2,arg);
-	else if ( fproc != 0 && frame != 0 )
-		val = (frame->*fproc)( arg );
+	else if ( fproc != 0 && agent != 0 )
+		val = (((TkFrame*)agent)->*fproc)( arg );
 	else if ( aproc != 0 && agent != 0 )
 		val = (*aproc)(agent, cmdstr, arg );
 	else if ( aproc2 != 0 && agent != 0 )
@@ -1304,10 +1301,6 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 		val = (*iproc)(tcl, s, cmdstr, i, arg);
 	else if ( iproc1 )
 		val = (*iproc1)(tcl, s, cmdstr, param, i, arg);
-#if defined(TKPGPLOT)
-	else if ( pgproc && pgplot )
-		val = (pgplot->*pgproc)( arg);
-#endif
 	else
 		return error_value();
 
@@ -1322,12 +1315,49 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 		return new Value( glish_false );
 	}
 
-void TkAgent::HoldEvents( ProxyStore *, Value *, void *)
+static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
+int glishtk_xioerror_handler(Display *d)
+	{
+	glish_cleanup();
+	if ( glishtk_dflt_xioerror_handler )
+		(*glishtk_dflt_xioerror_handler)(d);
+	exit(1);
+	return 1;
+	}
+
+void TkAgent::init_tk( int visible_root )
+	{
+	if ( ! root )
+		{
+		tcl = Tcl_CreateInterp();
+		Tcl_Init( tcl );
+		Tk_Init(tcl);
+		root = Tk_MainWindow(tcl);
+		
+		glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
+		static char tk_follow[] = "tk_focusFollowsMouse";
+		Tcl_Eval(tcl, tk_follow);
+
+		if ( ! visible_root )
+			{
+			root_unmapped = 1;
+			Tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), 0 );
+			}
+		}
+
+	else if ( root_unmapped && visible_root )
+		{
+		root_unmapped = 0;
+		Tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(root), 0 );
+		}
+	}
+
+void TkAgent::HoldEvents( ProxyStore *, Value * )
 	{
 	hold_tk_events++;
 	}
 
-void TkAgent::ReleaseEvents( ProxyStore *, Value *, void *)
+void TkAgent::ReleaseEvents( ProxyStore *, Value * )
 	{
 	hold_tk_events--;
 	}
@@ -1384,7 +1414,7 @@ void TkAgent::FlushGlishEvents()
 		}
 	}
 
-void TkAgent::Version( ProxyStore *s, Value *, void *)
+void TkAgent::Version( ProxyStore *s, Value * )
 	{
 	Value *tkv = new Value( TK_VERSION );
 	attributeptr tka = tkv->ModAttributePtr();
@@ -1406,7 +1436,7 @@ void TkAgent::Version( ProxyStore *s, Value *, void *)
 	Unref(tkv);
 	}
 
-void TkAgent::HaveGui( ProxyStore *s, Value *, void *)
+void TkAgent::HaveGui( ProxyStore *s, Value * )
 	{
 	if ( s->ReplyPending() )
 		{
@@ -1415,6 +1445,90 @@ void TkAgent::HaveGui( ProxyStore *s, Value *, void *)
 		}
 	}
 
+
+void TkAgent::dLoad( ProxyStore *s, Value *arg )
+	{
+	char *toload = 0;
+	const char *module = 0;
+	if ( arg->Type() == TYPE_STRING && arg->Length() >= 1 )
+		{
+		toload = which_shared_object(arg->StringPtr(0)[0]);
+		if ( toload && arg->Length() > 1 )
+			module = arg->StringPtr(0)[1];
+		}
+
+	if ( toload )
+		{
+		init_tk(0);
+		if ( module )
+			{
+			if ( Tcl_VarEval( tcl, "load ", toload, " ", module, 0 ) == TCL_ERROR )
+				s->Error( Tcl_GetStringResult(tcl) );
+			}
+		else
+			{
+			if ( Tcl_VarEval( tcl, "load ", toload, 0 ) == TCL_ERROR )
+				s->Error( Tcl_GetStringResult(tcl) );
+			}
+		}
+	else
+		s->Error( "Couldn't find object to load" );
+	}
+
+void TkAgent::SetDloadPath( ProxyStore *, Value *v )
+	{
+	if ( v && v->Type() == TYPE_STRING )
+		{
+		if ( dload_path ) Unref( dload_path );
+		dload_path = v;
+		Ref( dload_path );
+		}
+	}
+
+char *TkAgent::which_shared_object( const char* filename )
+	{
+	charptr *paths = dload_path ? dload_path->StringPtr() : 0;
+	int len = dload_path ? dload_path->Length() : 0;
+
+	int sl = strlen(filename);
+	int do_pre_post = 1;
+
+	if ( sl > 3 && filename[sl] == 'o' && filename[sl-1] == 's' && filename[sl-2] == '.' )
+		do_pre_post = 0;
+
+	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
+		{
+		if ( access( filename, R_OK ) == 0 )
+			return strdup( filename );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < len; i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			if ( do_pre_post )
+				{
+				sprintf( directory, "%s/%s.so", paths[i], filename );
+				if ( access( directory, R_OK ) == 0 )
+					return strdup( directory );
+				else
+					{
+					sprintf( directory, "%s/lib%s.so", paths[i], filename );
+					if ( access( directory, R_OK ) == 0 )
+						return strdup( directory );
+					}
+				}
+			else
+				{
+				sprintf( directory, "%s/%s", paths[i], filename );
+				if ( access( directory, R_OK ) == 0 )
+					return strdup( directory );
+				}
+
+	return 0;
+	}
 
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
@@ -1444,7 +1558,7 @@ int TkAgent::DoOneTkEvent( )
 	return ret;
 	}
 
-void TkAgent::SetBitmapPath( ProxyStore *, Value *v, void *)
+void TkAgent::SetBitmapPath( ProxyStore *, Value *v )
 	{
 	if ( v && v->Type() == TYPE_STRING )
 		{
@@ -1481,16 +1595,6 @@ char *TkAgent::which_bitmap( const char* filename )
 	return 0;
 	}
 
-
-static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
-int glishtk_xioerror_handler(Display *d)
-	{
-	glish_cleanup();
-	if ( glishtk_dflt_xioerror_handler )
-		(*glishtk_dflt_xioerror_handler)(d);
-	exit(1);
-	return 1;
-	}
 
 char *glishtk_agent_map(TkAgent *a, const char *cmd, Value *)
 	{
@@ -1554,19 +1658,7 @@ TkAgent::TkAgent( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 	self = 0;
 	frame = 0;
 
-	if ( ! root )
-		{
-		tcl = Tcl_CreateInterp();
-		Tcl_Init( tcl );
-		Tk_Init(tcl);
-#if defined(TKPGPLOT)
-		Tkpgplot_Init(tcl);
-#endif
-		root = Tk_MainWindow(tcl);
-		
-		glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
-		Tcl_Eval(tcl, "tk_focusFollowsMouse");
-		}
+	init_tk( );
 
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
 	procs.Insert("foreground", new TkProc("-fg", glishtk_onestr, glishtk_str));
@@ -2496,7 +2588,7 @@ void TkFrame::LeaderMoved( )
 	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
 	}
 
-void TkFrame::Create( ProxyStore *s, Value *args, void * )
+void TkFrame::Create( ProxyStore *s, Value *args )
 	{
 	TkFrame *ret = 0;
 
@@ -3110,7 +3202,7 @@ void TkButton::ButtonPressed( )
 		dont_invoke_button = 0;
 	}
 
-void TkButton::Create( ProxyStore *s, Value *args, void * )
+void TkButton::Create( ProxyStore *s, Value *args )
 	{
 	TkButton *ret;
 
@@ -3384,7 +3476,7 @@ void TkScale::SetValue( double d )
 		}
 	}
 
-void TkScale::Create( ProxyStore *s, Value *args, void * )
+void TkScale::Create( ProxyStore *s, Value *args )
 	{
 	TkScale *ret;
 
@@ -3592,7 +3684,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	procs.Insert("wrap", new TkProc("-wrap", glishtk_onestr, glishtk_str));
 	}
 
-void TkText::Create( ProxyStore *s, Value *args, void * )
+void TkText::Create( ProxyStore *s, Value *args )
 	{
 	TkText *ret;
 
@@ -3762,7 +3854,7 @@ int TkScrollbar::CanExpand() const
 	return 1;
 	}
 
-void TkScrollbar::Create( ProxyStore *s, Value *args, void * )
+void TkScrollbar::Create( ProxyStore *s, Value *args )
 	{
 	TkScrollbar *ret;
 
@@ -3866,7 +3958,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 //	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
 	}
 
-void TkLabel::Create( ProxyStore *s, Value *args, void * )
+void TkLabel::Create( ProxyStore *s, Value *args )
 	{
 	TkLabel *ret;
 
@@ -4027,7 +4119,7 @@ void TkEntry::xScrolled( const double *d )
 	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
 	}
 
-void TkEntry::Create( ProxyStore *s, Value *args, void * )
+void TkEntry::Create( ProxyStore *s, Value *args )
 	{
 	TkEntry *ret;
 
@@ -4139,7 +4231,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	}
 
-void TkMessage::Create( ProxyStore *s, Value *args, void * )
+void TkMessage::Create( ProxyStore *s, Value *args )
 	{
 	TkMessage *ret;
 
@@ -4293,7 +4385,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	}
 
-void TkListbox::Create( ProxyStore *s, Value *args, void * )
+void TkListbox::Create( ProxyStore *s, Value *args )
 	{
 	TkListbox *ret;
 
@@ -4382,4 +4474,10 @@ int TkHaveGui()
 		}
 
 	return ret;
+	}
+
+void GlishTk_Register( const char *str, WidgetCtor ctor )
+	{
+	if ( global_store )
+		global_store->Register( str, ctor );
 	}

@@ -18,9 +18,6 @@ extern int TkHaveGui();
 class TkAgent;
 class TkCanvas;
 class TkFrame;
-#if defined(TKPGPLOT)
-class TkPgplot;
-#endif
 glish_declare(PList,TkAgent);
 typedef PList(TkAgent) tkagent_list;
 
@@ -85,87 +82,6 @@ typedef char *(*TkEventAgentProc2)(TkAgent*, const char *, const char *, Value*)
 typedef char *(*TkEventAgentProc3)(TkAgent*, const char *, const char *, const char *, Value*);
 typedef Value *(*TkStrToValProc)( char * );
 
-#if defined(TKPGPLOT)
-#define TKPGI(x) pgproc(x),
-#else
-#define TKPGI(x)
-#endif
-
-class TkProc {
-    public:
-	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(p), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(p), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(y), convert(cvt), i(0) { }
-	TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x),
-				param2(0), convert(cvt), i(y) { }
-	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(p), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0),
-				param2(0), convert(cvt), i(x) { }
-	TkProc(TkFrame *f, char *(TkFrame::*p)(Value*), TkStrToValProc cvt = 0)
-			: cmdstr(0), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(p), frame(f),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-#if defined(TKPGPLOT)
-	TkProc(TkPgplot *f, char *(TkPgplot::*p)(Value*), TkStrToValProc cvt = 0)
-			: cmdstr(0), proc(0), proc1(0), proc2(0), TKPGI(p) fproc(0), pgplot(f),
-				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-#endif
-	TkProc(TkAgent *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(p), agent(a), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(TkAgent *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(a), aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(TkAgent *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
-				aproc(0), agent(a), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
-				param2(y), convert(cvt), i(0) { }
-	Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
-    protected:
-	const char *cmdstr;
-
-	TkEventProc proc;
-	TkOneParamProc proc1;
-	TkTwoParamProc proc2;
-
-#if defined(TKPGPLOT)
-	TkPgplot *pgplot;
-	char *(TkPgplot::*pgproc)(Value*);
-#endif
-	char *(TkFrame::*fproc)(Value*);
-	TkFrame *frame;
-
-	TkEventAgentProc aproc;
-	TkAgent *agent;
-	TkEventAgentProc2 aproc2;
-	TkEventAgentProc3 aproc3;
-
-	TkOneIntProc iproc;
-	TkTwoIntProc iproc1;
-
-	const char *param;
-	const char *param2;
-
-	TkStrToValProc convert;
-
-	int i;
-	};
-
 class glishtk_event;
 glish_declare(PQueue,glishtk_event);
 
@@ -194,13 +110,15 @@ class TkAgent : public Proxy {
 	static int GlishEventsHeld() { return hold_glish_events; }
 	static void FlushGlishEvents();
 
-	static void Version( ProxyStore *p, Value *v, void *c);
-	static void HaveGui( ProxyStore *p, Value *v, void *c);
-	static void HoldEvents( ProxyStore *p=0, Value *v=0, void *c=0);
-	static void ReleaseEvents( ProxyStore *p=0, Value *v=0, void *c=0);
+	static void Version( ProxyStore *p, Value *v );
+	static void HaveGui( ProxyStore *p, Value *v );
+	static void HoldEvents( ProxyStore *p=0, Value *v=0 );
+	static void ReleaseEvents( ProxyStore *p=0, Value *v=0 );
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );
 	static int DoOneTkEvent( );
-	static void SetBitmapPath( ProxyStore *p, Value *v, void *c);
+	static void SetBitmapPath( ProxyStore *p, Value *v );
+	static void dLoad( ProxyStore *p, Value *v );
+	static void SetDloadPath( ProxyStore *p, Value *v );
 
 	// For some widgets, they must be enabled before an action is performed
 	// otherwise widgets which are disabled will not even accept changes
@@ -231,7 +149,9 @@ class TkAgent : public Proxy {
 	void do_pack( int argc, char **argv)
 		{ Tk_PackCmd( root, tcl, argc, argv ); }
 
+	static void init_tk( int visible_root=1 );
 	tkprochash procs;
+	static int root_unmapped;
 	static Tk_Window root;
 	static Tcl_Interp *tcl;
 	Tk_Window self;
@@ -244,9 +164,12 @@ class TkAgent : public Proxy {
 	// For keeping track of last error
 	static Value *last_error;
 	static Value *bitmap_path;
+	static Value *dload_path;
 
 	// locate the bitmap file
 	char *which_bitmap( const char * );
+	// locate the shared object file
+	static char *which_shared_object( const char* filename );
 
 	unsigned int enable_state;
 
@@ -313,7 +236,7 @@ class TkFrame : public TkRadioContainer {
 	void RemoveElement( TkAgent *obj );
 	void UnMap();
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 	~TkFrame();
 
 	const char *Expand() const { return expand; }
@@ -386,7 +309,7 @@ class TkButton : public TkRadioContainer {
 	const char *Index( ) const { return menu_index ? menu_index : ""; }
 
 	void ButtonPressed( );
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 
 	const char **PackInstruction();
 	int CanExpand() const;
@@ -431,7 +354,7 @@ class TkScale : public TkAgent {
 	void ValueSet( double );
 	// set value
 	void SetValue( double );
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 	~TkScale();
 
 	const char **PackInstruction();
@@ -458,7 +381,7 @@ class TkText : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
@@ -485,7 +408,7 @@ class TkScrollbar : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 	void Scrolled( Value *data );
 	~TkScrollbar();
 
@@ -499,7 +422,7 @@ class TkLabel : public TkAgent {
 		 charptr font, charptr relief, charptr borderwidth,
 		 charptr foreground, charptr background, charptr anchor, charptr fill );
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 	~TkLabel();
 
 	const char **PackInstruction();
@@ -516,7 +439,7 @@ class TkEntry : public TkAgent {
 		 charptr borderwidth, charptr foreground, charptr background,
 		 int disabled, int show, int exportselection, charptr fill );
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 
 	charptr IndexCheck( charptr );
 
@@ -548,7 +471,7 @@ class TkMessage : public TkAgent {
 		   charptr relief, charptr borderwidth,
 		   charptr foreground, charptr background, charptr anchor, charptr fill );
 
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 
 	~TkMessage();
 
@@ -572,7 +495,7 @@ class TkListbox : public TkAgent {
 	void xScrolled( const double *firstlast );
 	void elementSelected( );
   
-	static void Create( ProxyStore *, Value *, void *);
+	static void Create( ProxyStore *, Value * );
 
 	const char **PackInstruction();
 	int CanExpand() const;
@@ -584,5 +507,80 @@ class TkListbox : public TkAgent {
 	char *fill;
 	};
 
+
+class TkProc {
+    public:
+
+	TkProc( TkAgent *a, TkStrToValProc cvt = 0 )
+			: cmdstr(0), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(a), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
+				param2(0), convert(cvt), i(0) { }
+
+	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(p), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
+				param2(0), convert(cvt), i(0) { }
+	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(p), fproc(0),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
+				param2(y), convert(cvt), i(0) { }
+	TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x),
+				param2(0), convert(cvt), i(y) { }
+	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(p), proc2(0), fproc(0),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
+				param2(0), convert(cvt), i(0) { }
+	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0),
+				param2(0), convert(cvt), i(x) { }
+	TkProc(TkFrame *f, char *(TkFrame::*p)(Value*), TkStrToValProc cvt = 0)
+			: cmdstr(0), proc(0), proc1(0), proc2(0), fproc(p),
+				aproc(0), agent(f), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
+				param2(0), convert(cvt), i(0) { }
+	TkProc(TkAgent *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(p), agent(a), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
+				param2(0), convert(cvt), i(0) { }
+	TkProc(TkAgent *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(a), aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x),
+				param2(0), convert(cvt), i(0) { }
+	TkProc(TkAgent *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0),
+				aproc(0), agent(a), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
+				param2(y), convert(cvt), i(0) { }
+
+	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
+
+    protected:
+	const char *cmdstr;
+
+	TkEventProc proc;
+	TkOneParamProc proc1;
+	TkTwoParamProc proc2;
+
+	TkAgent *agent;
+	TkEventAgentProc aproc;
+	TkEventAgentProc2 aproc2;
+	TkEventAgentProc3 aproc3;
+
+	char *(TkFrame::*fproc)(Value*);
+
+	TkOneIntProc iproc;
+	TkTwoIntProc iproc1;
+
+	const char *param;
+	const char *param2;
+
+	TkStrToValProc convert;
+
+	int i;
+	};
+
+typedef void (*WidgetCtor)( ProxyStore *, Value * );
+extern void GlishTk_Register( const char *, WidgetCtor );
 
 #endif
