@@ -14,6 +14,10 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include <unistd.h>
 
+#if defined(HAVE_SYS_UIO_H)
+#include <sys/uio.h>
+#endif
+
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif
@@ -298,19 +302,20 @@ void SendChildInput( Client& c, int send_to_child_fd )
 
 	else if ( streq( e->name, "stdin" ) )
 		{
+		struct iovec iv[2] = { { 0, 0 }, { "\n", 1 } };
 		char* input_str = e->value->StringVal();
 
-		char buf[8192];
-		sprintf( buf, "%s\n", input_str );
+		iv[0].iov_base = input_str;
+		iv[0].iov_len = strlen(input_str);
 
-		delete input_str;
-
-		if ( write( send_to_child_fd, buf, strlen( buf ) ) < 0 )
+		if ( writev( send_to_child_fd, iv, 2 ) < 0 )
 			{
 			fprintf( stderr, "%s (%s): ", prog_name, child_name );
 			perror( "write to child failed" );
 			return;
 			}
+
+		free_memory(input_str);
 
 		if ( ping_through )
 			kill( pid, SIGIO );
@@ -321,33 +326,39 @@ void SendChildInput( Client& c, int send_to_child_fd )
 	}
 
 
+
 int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const char *event_name )
 	{
 	// Exhaust child's output, until we come across a read that ends
 	// on a line ('\n') boundary.
-	char buf[8192];
-	char* buf_ptr = buf;
+	static char* buf = 0;
+	static int buf_size = 1024;
 	int size = 0;
 	char* line_end = 0;
+
+	if ( buf == 0 )
+		buf = (char*) alloc_memory( sizeof(char)*1024 );
+
+	char *buf_ptr = buf;
 
 	do
 		{
 		while ( ! line_end )
 			{ // Need to fill buffer.
 
-			int buf_size = read( read_from_child_fd, buf_ptr,
-						sizeof( buf ) - size - 1 );
+			int read_size = read( read_from_child_fd, buf_ptr,
+						buf_size - size - 1 );
 
 			// When reading from the pty after the child has
 			// executed we can get EIO or EINVAL.
-			if ( buf_size < 0 && errno != EIO && errno != EINVAL )
+			if ( read_size < 0 && errno != EIO && errno != EINVAL )
 				{
 				fprintf( stderr, "%s (%s): ", prog_name,
 						child_name );
 				perror( "read from child failed" );
 				}
 
-			if ( buf_size <= 0 )
+			if ( read_size <= 0 )
 				{
 				if ( size > 0 ) c.PostEvent( event_name, buf );
 				status = await_child_exit();
@@ -355,11 +366,20 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const ch
 				}
 
 			// Mark the end of the buffer.
-			buf_ptr[buf_size] = '\0';
-			size += buf_size;
+			buf_ptr[read_size] = '\0';
+			size += read_size;
 
 			line_end = strchr( buf_ptr, '\n' );
-			buf_ptr += buf_size;
+
+			if ( ! line_end && buf_size - size < 256 )
+				{
+				int cursize = buf_ptr - buf;
+				buf_size *= 2;
+				buf = (char*) realloc_memory( buf, buf_size );
+				buf_ptr = buf + cursize;
+				}
+
+			buf_ptr += read_size;
 			}
 
 		// Nuke trailing newline.
