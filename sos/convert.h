@@ -3,6 +3,8 @@
 //
 // $Id$
 //
+// Copyright (c) 1997 Associated Universities Inc.
+//
 //======================================================================
 #ifndef sos_convert_h
 #define sos_convert_h

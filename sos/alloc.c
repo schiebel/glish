@@ -3,6 +3,8 @@
 **
 ** $Id$
 **
+** Copyright (c) 1997 Associated Universities Inc.
+**
 **======================================================================
 */
 #include "sos/sos.h"

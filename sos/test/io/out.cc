@@ -1,3 +1,4 @@
+// Copyright (c) 1997 Associated Universities Inc.
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>

@@ -1,3 +1,4 @@
+// Copyright (c) 1997 Associated Universities Inc.
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>

@@ -3,6 +3,8 @@
 //
 // $Id$
 //
+// Copyright (c) 1997 Associated Universities Inc.
+//
 //======================================================================
 #if ! defined(sos_str_h_)
 #define sos_str_h_

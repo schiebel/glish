@@ -4,6 +4,8 @@ static char rcsid[]  = "$Id$";
 //
 // $Id$
 //
+// Copyright (c) 1997 Associated Universities Inc.
+//
 //======================================================================
 //
 //  compile line goes something like:
