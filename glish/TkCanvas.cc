@@ -328,7 +328,6 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, para
 		}
 
 	ret = rivet_get( self, (char*) cmd );
-	cout << "---> " << (ret ? ret : "0x0") << endl;
 	return ret;
 	}
 
