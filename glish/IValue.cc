@@ -108,21 +108,41 @@ extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{
 	const IValue *other = 0;
+	attributeptr attr = ModAttributePtr();
 	if ( (other = FailStmt::GetFail()) )
+		{
 		kernel = other->kernel;
+		Value *v = 0;
+		recordptr rptr = kernel.modRecord();
+		if ( (v=(*rptr)["file"]) )
+			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
+		if ( (v=(*rptr)["line"]) )
+			Unref((IValue*)attr->Insert( strdup("line"), copy_value(v) ));
+		if ( (v=(*rptr)["message"]) )
+			Unref((IValue*)attr->Insert( strdup("message"), copy_value(v) ));
+		if ( (v=(*rptr)["stack"]) )
+			Unref((IValue*)attr->Insert( strdup("stack"), copy_value(v) ));
+		}
 	else
 		{
-		recordptr rptr = kernel.constRecord();
+		recordptr rptr = kernel.modRecord();
 		if ( file_name && ! interactive && glish_files )
 			{
 			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
+			Unref((IValue*)attr->Insert( strdup("file" ),new IValue( (*glish_files)[file_name] )));
 			if ( line_num > 0 )
+				{
 				rptr->Insert( strdup("line"), new IValue( (int) line_num ));
+				Unref((IValue*)attr->Insert( strdup("line" ),new IValue( (int) line_num )));
+				}
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack )
+			{
 			rptr->Insert( strdup("stack"), stack );
+			Unref((IValue*)attr->Insert( strdup("stack" ), copy_value(stack) ));
+			}
 
 		FailStmt::SetFail( this );
 		}
@@ -131,21 +151,41 @@ IValue::IValue( ) : Value( ) GGCTOR
 IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ) GGCTOR
 	{
 	const IValue *other = 0;
+	attributeptr attr = ModAttributePtr();
 	if ( !message && (other = FailStmt::GetFail()) )
+		{
 		kernel = other->kernel;
+		Value *v = 0;
+		recordptr rptr = kernel.modRecord();
+		if ( (v=(*rptr)["file"]) )
+			Unref((IValue*)attr->Insert( strdup("file"), copy_value(v) ));
+		if ( (v=(*rptr)["line"]) )
+			Unref((IValue*)attr->Insert( strdup("line"), copy_value(v) ));
+		if ( (v=(*rptr)["message"]) )
+			Unref((IValue*)attr->Insert( strdup("message"), copy_value(v) ));
+		if ( (v=(*rptr)["stack"]) )
+			Unref((IValue*)attr->Insert( strdup("stack"), copy_value(v) ));
+		}
 	else
 		{
-		recordptr rptr = kernel.constRecord();
+		recordptr rptr = kernel.modRecord();
 		if ( ! fle && file_name && ! interactive && glish_files )
 			{
 			rptr->Insert( strdup("file"), new IValue( (*glish_files)[file_name] ) );
+			Unref((IValue*)attr->Insert( strdup("file" ),new IValue( (*glish_files)[file_name] )));
 			if ( lne <= 0 && line_num > 0 )
+				{
 				rptr->Insert( strdup("line"), new IValue( (int) line_num ) );
+				Unref((IValue*)attr->Insert( strdup("line" ),new IValue( (int) line_num )));
+				}
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
 		if ( stack  )
+			{
 			rptr->Insert( strdup("stack"), stack );
+			Unref((IValue*)attr->Insert( strdup("stack" ), copy_value(stack) ));
+			}
 
 		FailStmt::SetFail( this );
 		}

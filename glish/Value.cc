@@ -80,15 +80,23 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 	kernel.SetFail( create_record_dict() );
 
 	recordptr rptr = kernel.constRecord();
+	attributeptr attr = ModAttributePtr();
 	if ( xfile && xfile[0] )
 		{
 		rptr->Insert( strdup("file"), create_value( xfile ) );
+		Unref( (Value*) attr->Insert( strdup("file"), create_value( xfile ) ) );
 		if ( lineNum > 0 )
+			{
 			rptr->Insert( strdup("line"), create_value( lineNum ) );
+			Unref( (Value*) attr->Insert( strdup("line"), create_value( lineNum ) ) );
+			}
 		}
 
 	if ( message )
+		{
 		rptr->Insert( strdup("message"), create_value( message ) );
+		Unref( (Value*) attr->Insert( strdup("message"), create_value( message ) ) );
+		}
 	}
 
 Value::Value( const Value *val, const char *, int )
@@ -129,14 +137,9 @@ void Value::SetFailMessage( Value *nv )
 		fatal->Report( "Value::SetFailValue called for non fail value" );
 
 	recordptr rptr = kernel.modRecord();
-	Value *v = (*rptr)["message"];
-	if ( v )
-		{
-		Unref(v);
-		rptr->Insert( "message", nv );
-		}
-	else
-		rptr->Insert( strdup("message"), nv );
+	Unref( (Value*) rptr->Insert( "message", nv ) );
+	attributeptr attr = ModAttributePtr();
+	Unref( (Value*) attr->Insert( "message", copy_value(nv) ) );
 	}
 
 void Value::SetFail( recordptr rec )
