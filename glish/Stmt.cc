@@ -625,6 +625,14 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	if ( expr )
 		{
 		IValue* index_value = expr->CopyEval();
+
+		if ( ! index_value->IsNumeric() )
+			{
+			IValue *err = (IValue*) Fail( "non-numeric index, ", index_value );
+			Unref( index_value );
+			return err;
+			}
+
 		int* index_ = index_value->IntPtr(0);
 		int n = index_value->Length();
 

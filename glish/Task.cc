@@ -610,30 +610,40 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 		const char *ptr_base = args[task_args_start]->StringPtr(0)[0];
 		const char *ptr = ptr_base + strlen(ptr_base) - 1;
 		while ( ptr != ptr_base && *ptr != '/' ) --ptr;
+		if ( *ptr == '/' ) ++ptr;
 		char *exe = which_executable( ptr );
+		int running = 0;
+		IValue *val = 0;
 
-		if ( exe )
+		if ( exe && ! strcmp( exe, sequencer->Path() ) )
 			{
-			script_name = ! strcmp( exe, sequencer->Path() ) ?
-				      ExpandScript( task_args_start, args ) : 0;
-			IValue val( script_name ? script_name : client );
-			send_event( channel->Sink(),  "client-up", &val );
-			GlishEvent* e = recv_event( channel->Source() );
-			if ( e && e->value->IsNumeric() && e->value->BoolVal() )
-				{
-				if ( hostname )
-					free_memory( hostname );
-				hostname = strdup( "localhost" );
-				}
-			else
-				{
-				if ( hostname )
-					free_memory( hostname );
-				hostname = 0;
-				channel = 0;
-				}
-			Unref( e );
+			script_name =  ExpandScript( task_args_start, args );
+			val = new IValue( script_name );
 			}
+		else
+			val = new IValue( client );
+
+		send_event( channel->Sink(),  "client-up", val );
+		GlishEvent* e = recv_event( channel->Source() );
+		running = e && e->value->IsNumeric() && e->value->BoolVal() ? 1 : 0;
+		Unref( e );
+		Unref( val );
+		free_memory( exe );
+
+		if ( running )
+			{
+			if ( hostname )
+				free_memory( hostname );
+			hostname = strdup( "localhost" );
+			}
+		else
+			{
+			if ( hostname )
+				free_memory( hostname );
+			hostname = 0;
+			channel = 0;
+			}
+
 		}
 
 	IValue* input = 0;

@@ -1173,14 +1173,8 @@ void Interp::CreateClient( Value* value, dUser *hub )
 
 	if ( ! name_str ) return;
 
-	char *lookup = 0;
-	if ( *name_str == '/' )
-		lookup = strdup(name_str);
-	else
-		{
-		if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
-		lookup = which_executable(name_str);
-		}
+	if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
+	char *lookup = which_executable(name_str);
 
 	if ( lookup )
 		{
@@ -1255,7 +1249,7 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 
 	if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
 	const char *name_str = client->StringPtr(0)[0];
-	char *name = *name_str == '/' ? (char*) name_str : which_executable( name_str );
+	char *name = which_executable( name_str );
 
 	if ( name && hub->LookupClient(name) )
 		{

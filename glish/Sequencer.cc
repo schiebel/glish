@@ -1395,7 +1395,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 		ClearStmt();
 
 		loop_over_list( *load_list, j )
-			Parse( (*load_list)[j] );
+			if ( ! include_once.Lookup((*load_list)[j]) )
+				{
+				expanded_name = (*load_list)[j];
+				Parse( (*load_list)[j] );
+				}
 
 		delete_name_list( load_list );
 		}
@@ -1403,9 +1407,12 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	int do_interactive = 1;
 	if ( argc > 0 && strcmp( argv[0], "--" ) && (run_file = which_include(argv[0])) )
 		{
-		MakeArgvGlobal( argv, argc );
-		Parse( run_file );
 		do_interactive = 0;
+		if ( ! include_once.Lookup( run_file ) )
+			{
+			MakeArgvGlobal( argv, argc );
+			Parse( run_file );
+			}
 		}
 	else
 		MakeArgvGlobal( argv, argc, 1 );

@@ -606,7 +606,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	if ( length == 0 )
 		return strdup( "" );
 
-	unsigned int buf_size;
+	unsigned int buf_size = 0;
 
 	// Make a guess as to a probable good size for buf.
 	if ( type == TYPE_STRING )
@@ -637,16 +637,16 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		*buf_ptr++ = '[';
 		}
 
-	glish_bool* bool_ptr;
-	byte* byte_ptr;
-	short* short_ptr;
-	int* int_ptr;
-	float* float_ptr;
-	double* double_ptr;
-	complex* complex_ptr;
-	dcomplex* dcomplex_ptr;
-	charptr* string_ptr;
-	const char *flt_prec;
+	glish_bool* bool_ptr = 0;
+	byte* byte_ptr = 0;
+	short* short_ptr = 0;
+	int* int_ptr = 0;
+	float* float_ptr = 0;
+	double* double_ptr = 0;
+	complex* complex_ptr = 0;
+	dcomplex* dcomplex_ptr = 0;
+	charptr* string_ptr = 0;
+	const char *flt_prec = 0;
 
 	switch ( VecRefDeref()->Type() )
 		{
@@ -765,8 +765,8 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	char numeric_buf[256];
 
 	const attributeptr attr = AttributePtr();
-	const Value* shape_val;
-	int shape_len;
+	const Value* shape_val = 0;
+	int shape_len = 0;
 
 	if ( ! useAttributes || ! attr || ! (shape_val = (*attr)["shape"]) || 
 	     ! shape_val->IsNumeric() ||
