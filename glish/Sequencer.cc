@@ -696,7 +696,13 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
 
+	if ( yyin && isatty( fileno( yyin ) ) )
+		selector->DeleteSelectee( fileno( yyin ) );
+
 	EventLoop();
+
+	if ( yyin && isatty( fileno( yyin ) ) )
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
 	await_stmt = hold_await_stmt;
 	await_only_flag = only_flag;
