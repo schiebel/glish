@@ -4,15 +4,16 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <stream.h>
+#include "system.h"
+#include <iostream.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <osfcn.h>
 #include <string.h>
 #include <errno.h>
-
-#include "system.h"
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #include "Channel.h"
 #include "Select.h"
@@ -21,7 +22,6 @@ RCSID("@(#) $Id$")
 #include "Task.h"
 #include "Sequencer.h"
 #include "Reporter.h"
-
 
 Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	{

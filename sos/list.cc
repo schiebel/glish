@@ -7,7 +7,7 @@ RCSID("@(#) $Id$")
 #include "sos/alloc.h"
 
 #include <stdlib.h>
-#include <stream.h>
+#include <iostream.h>
 
 #include "sos/list.h"
 

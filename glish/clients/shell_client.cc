@@ -7,13 +7,16 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include <stdio.h>
 #include <string.h>
-#include <osfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>

@@ -41,6 +41,10 @@ RCSID("@(#) $Id$")
 
 typedef RETSIGTYPE (*correct_sig_handler)( );
 
+#ifdef SETRLIMIT_NOT_DECLARED
+extern int setrlimit(int, const struct rlimit *);
+extern int getrlimit(int, struct rlimit *);
+#endif
 
 /*
  * The stuff below is needed by the "time" command.  If this
@@ -50,16 +54,16 @@ typedef RETSIGTYPE (*correct_sig_handler)( );
  * some might not even have HZ.
  */
 
+#ifdef GETTOD_NOT_DECLARED
+extern int gettimeofday (struct timeval *, struct timezone *);
+#endif
+
 #ifdef NO_GETTOD
 #   include <sys/timeb.h>
 #else
 #   ifdef HAVE_BSDGETTIMEOFDAY
 #       define gettimeofday BSDgettimeofday
 #   endif
-#endif
-
-#ifdef GETTOD_NOT_DECLARED
-extern int gettimeofday (struct timeval *, struct timezone *);
 #endif
 
 static int tcp_proto_number();

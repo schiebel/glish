@@ -4,8 +4,11 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <stream.h>
+#include "system.h"
+#include <iostream.h>
+#if HAVE_OSFCN_H
 #include <osfcn.h>
+#endif
 
 #include "input.h"
 #include "Sequencer.h"

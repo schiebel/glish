@@ -5,16 +5,18 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
 #include <stdlib.h>
 #include <string.h>
-#include <stream.h>
-#include <osfcn.h>
+#include <iostream.h>
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #ifdef HAVE_LIMITS_H
 #include <limits.h>

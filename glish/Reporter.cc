@@ -5,12 +5,11 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <stdlib.h>
-#include <stream.h>
+#include <iostream.h>
 #include <string.h>
 
 #include "Reporter.h"
 #include "Glish/Stream.h"
-#include <iostream.h>
 #include "input.h"
 #include "system.h"
 

@@ -4,10 +4,13 @@
 ** Copyright (c) 1997 Associated Universities Inc.
 */
 
+#include "system.h"
 #include <string.h>
 #include <iostream.h>
-#include <osfcn.h>
 #include <ctype.h>
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #include "Expr.h"
 #include "BuiltIn.h"

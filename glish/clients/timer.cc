@@ -8,9 +8,12 @@ RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <osfcn.h>
 #include <errno.h>
 #include <sys/types.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>

@@ -4,15 +4,14 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <stream.h>
+#include "system.h"
+#include <iostream.h>
 #include <string.h>
 
 #include "IValue.h"
-
 #include "Expr.h"
 #include "Agent.h"
 #include "Reporter.h"
-#include "system.h"
 
 
 EventDesignator::EventDesignator( Expr* arg_agent, Expr* arg_event_name )

@@ -90,8 +90,23 @@
 /* Define to be the mask type for select() calls.  */
 #undef SELECT_MASK_TYPE
 
+/* Define if gettimeofday is not declared (for C++) */
+#undef GETTOD_NOT_DECLARED_CXX
+#ifdef GETTOD_NOT_DECLARED_CXX
+#undef GETTOD_NOT_DECLARED
+#endif
+
+/* Define if gettimeofday is not declared */
+#undef SELECT_NOT_DECLARED
+
+/* Define if setrlimit is not declared */
+#undef SETRLIMIT_NOT_DECLARED
+
 /* Define if gettimeofday is not declared */
 #undef SHMGET_NOT_DECLARED
+
+/* Define if you have the BSDgettimeofday() function */
+#undef HAVE_BSDGETTIMEOFDAY
 
 /* Define if you have the <limits.h> header file.  */
 #undef HAVE_LIMITS_H
@@ -114,6 +129,6 @@
 /* Define if you have the sigfpe() function */
 #undef HAVE_SIGFPE
 
-/* Define if you have the FPE_INTDIV macro definition */
-#undef HAVE_FPE_INTDIV
+/* Define if you have the <osfcn.h> header file.  */
+#undef HAVE_OSFCN_H
 

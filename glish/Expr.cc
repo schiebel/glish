@@ -4,7 +4,8 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <stream.h>
+#include "system.h"
+#include <iostream.h>
 #include <strstream.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,8 +16,6 @@ RCSID("@(#) $Id$")
 #include "Agent.h"
 #include "Func.h"
 #include "Frame.h"
-#include "system.h"
-#include "config.h"
 
 int ParseNode::canDelete() const
 	{

@@ -4,7 +4,7 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <stream.h>
+#include <iostream.h>
 #include "IValue.h"
 #include "Frame.h"
 #include "Reporter.h"

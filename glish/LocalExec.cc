@@ -5,14 +5,16 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
-#include <stream.h>
-#include <osfcn.h>
+#include <iostream.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #ifdef HAVE_SIGLIB_H
 #include <sigLib.h>

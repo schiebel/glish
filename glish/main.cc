@@ -40,7 +40,6 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 #include <signal.h>
-#include <osfcn.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -50,6 +49,10 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #ifdef HAVE_SIGINFO_H
 #include <siginfo.h>
@@ -506,7 +509,7 @@ int glish_alpha_sigfpe_init = 0;
 //
 // ONLY SOLARIS 2.*, I believe...
 //
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+#if defined(HAVE_SIGFPE) && defined(FPE_INTDIV)
 //
 //  Catch integer division exception to prevent "1 % 0" from
 //  crashing glish...
@@ -532,10 +535,8 @@ void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 
 //
 //  Currently for solaris "as_short(1/0)" et al. doesn't give the right
-//  result. To fix this, one must link with libsunmath.a, and use
-//  "ieee_handler()" to catch division by zero and plug in the
-//  right type based on the operation which caused the exception,
-//  as with the alpha...
+//  result. There doesn't seem to be a good fix for this because casting
+//  doesn't generate an exception; division is not the problem.
 //
 static void install_sigfpe() { sigfpe(FPE_INTDIV, glish_sigfpe ); }
 #elif defined(__alpha) || defined(__alpha__)

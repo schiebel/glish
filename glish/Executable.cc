@@ -5,19 +5,21 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
 #include <stdio.h>
 #include <string.h>
-#include <osfcn.h>
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "Executable.h"
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
+#include "Executable.h"
 
 extern "C" {
 char* getenv( const char* );

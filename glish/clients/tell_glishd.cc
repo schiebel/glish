@@ -4,16 +4,18 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <osfcn.h>
 #include <string.h>
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #include "Glish/Client.h"
 
 #include "Reporter.h"
 #include "ports.h"
-#include "system.h"
 
 const char* prog_name;
 

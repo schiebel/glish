@@ -4,12 +4,15 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#if HAVE_OSFCN_H
 #include <osfcn.h>
+#endif
 
 #include "Socket.h"
-#include "system.h"
 
 
 Socket::Socket( int arg_is_local, int socket_fd )

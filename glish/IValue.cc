@@ -5,14 +5,12 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
 #include <string.h>
-#include <stream.h>
+#include <iostream.h>
 #include <strstream.h>
 #include <stdlib.h>
 
 #include "IValue.h"
-
 #include "glish_event.h"
 #include "BinOpExpr.h"
 #include "Func.h"

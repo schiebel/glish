@@ -5,23 +5,39 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
 #include <stdio.h>
-#include <osfcn.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
 #include <string.h>
 #include <stdlib.h>
+
+#if HAVE_OSFCN_H
+#include <osfcn.h>
+#endif
 
 #ifdef HAVE_X11_FD_H
 #include <X11/fd.h>
 #endif
 
-#ifdef SOLARIS
-#include <sys/time.h>
-extern "C" int gettimeofday( struct timeval *, struct timezone * );
+#ifdef SETRLIMIT_NOT_DECLARED
+extern "C" int setrlimit(int, const struct rlimit *);
+extern "C" int getrlimit(int, struct rlimit *);
+#endif
+
+#ifdef SELECT_NOT_DECLARED
+extern "C" int select( int, SELECT_MASK_TYPE*, SELECT_MASK_TYPE*,
+		      SELECT_MASK_TYPE*, void* );
+#endif
+
+#ifdef GETTOD_NOT_DECLARED
+extern "C" int gettimeofday (struct timeval *, struct timezone *);
+#endif
+
+#ifdef HAVE_BSDGETTIMEOFDAY
+#define gettimeofday BSDgettimeofday
 #endif
 
 #include "Select.h"

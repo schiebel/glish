@@ -4,9 +4,10 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include "system.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <stream.h>
+#include <iostream.h>
 #include <string.h>
 
 #include "Reporter.h"
@@ -15,7 +16,6 @@ RCSID("@(#) $Id$")
 #include "BuiltIn.h"
 #include "Task.h"
 #include "Frame.h"
-#include "system.h"
 
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;

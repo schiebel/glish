@@ -5,9 +5,8 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-
 #include <string.h>
-#include <stream.h>
+#include <iostream.h>
 #include <stdlib.h>
 #include <ctype.h>
 
@@ -15,7 +14,6 @@ RCSID("@(#) $Id$")
 
 #include "glish_event.h"
 #include "Reporter.h"
-#include "config.h"
 
 int num_Values_created = 0;
 int num_Values_deleted = 0;

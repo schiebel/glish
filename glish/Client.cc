@@ -6,33 +6,21 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 #include <stdlib.h>
-#include <osfcn.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <iostream.h>
 
-#if defined(HAVE_SHMGET)
-#include <sys/types.h>
-#include <sys/ipc.h>
-#if HAVE_SYS_SHM_H
-#include <sys/shm.h>
+#if HAVE_OSFCN_H
+#include <osfcn.h>
 #endif
+
 #ifdef HAVE_MACHINE_FPU_H
 #include <machine/fpu.h>
 #endif
-#if defined(SHMGET_NOT_DECLARED)
-extern "C" {
-int shmget(key_t, size_t, int);
-int shmctl(int, int, struct shmid_ds *);
-void *shmat(int, const void *, int);
-int shmdt(const void *); }
-#endif
-#endif
 
-#include "Channel.h"
-#include <iostream.h>
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -48,6 +36,7 @@ char* strdup( const char* );
 #endif
 }
 
+#include "Channel.h"
 #include "sos/io.h"
 #include "Npd/npd.h"
 #include "Glish/Client.h"
