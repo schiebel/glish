@@ -5,7 +5,7 @@
 
 #ifndef system_h
 #define system_h
-
+#include "Glish/glish.h"
 #include "config.h"
 
 #include <stdio.h>
