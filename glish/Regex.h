@@ -14,21 +14,21 @@ class regxsubst {
 	regxsubst() : subst(0), reg(0),	startp(0), endp(0),
 			pcnt(0), psze(0), refs(0), rcnt(0),
 			rsze(0), splits(0), scnt(0), ssze(0),
-			err(0), split_count(0) { }
+			err_(0), split_count(0) { }
 	regxsubst( char *s ) : subst(s), reg(0), startp(0), endp(0),
 			pcnt(0), psze(0), refs(0), rcnt(0),
 			rsze(0), splits(0), scnt(0), ssze(0),
-			err(0), split_count(0) { }
+			err_(0), split_count(0) { }
 	regxsubst( const regxsubst &o ) : subst( o.subst ? strdup(o.subst) : 0 ),
 			reg(0), startp(0), endp(0), pcnt(0), psze(0),
 			refs(0), rcnt(0), rsze(0), splits(0), scnt(0),
-			ssze(0), err(0), split_count(0) { } 
+			ssze(0), err_(0), split_count(0) { } 
 	~regxsubst();
 	void compile( regexp *reg_ );
 	void compile( regexp *reg_, char *subst_ );
 	char *apply( char *dest );
 	void split( char **dest, const char *src );
-	const char *error( ) const { return err; }
+	const char *err( ) const { return err_; }
 	const char *str( ) const { return subst; };
 	void setStr( char *s );
 	void setStr( const char *s ) { setStr( (char*)( s ? strdup(s) : 0 ) ); }
@@ -49,7 +49,7 @@ class regxsubst {
 	char **splits;
 	int scnt;
 	int ssze;
-	char *err;
+	char *err_;
 	int split_count;
 };
 
@@ -84,7 +84,7 @@ class Regex : public GlishObject {
 	// returns non-null string if an error occurred
 	// while creating the regular expression
 	//
-	const char *Error( ) const { return error_string; }
+	const char *Error( ) const { return error_string ? error_string : subst.err(); }
 
 	void Describe( OStream& s ) const;
 

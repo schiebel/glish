@@ -99,7 +99,7 @@ void regxsubst::compile( regexp *reg_ )
 
 	if ( ! reg || ! subst )
 		{
-		err = strdup("bad regular expression");
+		err_ = strdup("bad regular expression");
 		return;
 		}
 
@@ -110,9 +110,9 @@ void regxsubst::compile( regexp *reg_ )
 	char *last = subst;
 	char *ptr = subst;
 
-	if ( err ) free_memory( err );
-	err = 0;
-	while (  *ptr && !err )
+	if ( err_ ) free_memory( err_ );
+	err_ = 0;
+	while (  *ptr && !err_ )
 		switch ( *ptr++ )
 			{
 		    case '$':
@@ -135,7 +135,7 @@ void regxsubst::compile( regexp *reg_ )
 				if ( newdigit < 0 || newdigit > 65534 )
 					{
 					sprintf( regx_buffer, "paren reference overflow: %d", newdigit);
-					err = strdup( regx_buffer );
+					err_ = strdup( regx_buffer );
 					}
 				else
 					{
@@ -143,7 +143,7 @@ void regxsubst::compile( regexp *reg_ )
 					if ( refs[rcnt] == 0 || refs[rcnt] > reg->nparens )
 						{
 						sprintf( regx_buffer, "paren reference out of range: %u", refs[rcnt] );
-						err = strdup( regx_buffer );
+						err_ = strdup( regx_buffer );
 						}
 					else rcnt++;
 					}
@@ -173,7 +173,7 @@ void regxsubst::compile( regexp *reg_ )
 		    case '\\': ++ptr;
 			}
 
-	if ( ! err && last < ptr )
+	if ( ! err_ && last < ptr )
 		{
 		SIZE_P
 		startp[pcnt] = last;
@@ -185,7 +185,7 @@ void regxsubst::compile( regexp *reg_ )
 
 char *regxsubst::apply( char *dest )
 	{
-	if ( err ) return 0;
+	if ( err_ ) return 0;
 
 	int off = 0;
 
@@ -251,7 +251,7 @@ regxsubst::~regxsubst( )
 	if ( startp ) free_memory( startp );
 	if ( endp ) free_memory( endp );
 	if ( refs ) free_memory( refs );
-	if ( err ) free_memory( err );
+	if ( err_ ) free_memory( err_ );
 	if ( subst ) free_memory(subst);
 	}
 
@@ -481,6 +481,12 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 			subst.splitReset();
 			char *dest = regx_buffer;
 			EVAL_ACTION( strs[ in_place && ! swap_io ? i : mc ], SUBST_PLACE_ACTION )
+
+			if ( subst.err() )
+				{
+				if ( free_str ) free_memory( free_str );
+				return (IValue*) Fail( subst.err() );
+				}
 
 			if ( return_matches ) mret[mc] = count;
 

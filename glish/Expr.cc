@@ -1862,11 +1862,13 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) 
 	}
 
 
-#define APPLYREG_BAIL( string )			\
-	{					\
-	left->ReadOnlyDone( regval );		\
-	right->ReadOnlyDone( strval );		\
-	return (IValue*) Fail( string );	\
+#define APPLYREG_BAIL( string )							\
+	{									\
+	IValue *fail = regval->Type() == TYPE_FAIL ? copy_value(regval) :	\
+		       strval->Type() == TYPE_FAIL ? copy_value(strval) : 0;	\
+	left->ReadOnlyDone( regval );						\
+	right->ReadOnlyDone( strval );						\
+	return fail ? fail : (IValue*) Fail( string );				\
 	}
 
 IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
@@ -1952,7 +1954,9 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		//
 		// This will allocate space for "rstrs", and fill it from "strs"
 		//
-		regs[0]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1, (char**) strs );
+		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1, (char**) strs );
+
+		if ( err ) return err;
 
 		if ( in_place )
 			{
