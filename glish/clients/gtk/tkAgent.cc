@@ -3032,7 +3032,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
-			argv[0] = Tk_PathName(Menu());
+			argv[0] = Tk_PathName(menu->Menu());
 			argv[2] = "cascade";
 			argv[c++] = "-menu";
 			argv[c++] = Tk_PathName(self);
