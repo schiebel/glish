@@ -453,12 +453,10 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 			{
 			int frame_size = current_sequencer->PopScope();
 
-			UserFunc* func = new UserFunc( $4, $7, frame_size,
+			UserFunc* ufunc = new UserFunc( $4, $7, frame_size,
 							current_sequencer, $1 );
 
-			IValue* func_val = new IValue( func );
-
-			$$ = new FuncExpr( func );
+			$$ = new FuncExpr( ufunc );
 
 			if ( $2 )
 				{
@@ -469,7 +467,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 						current_sequencer->LookupID(
 							$2, LOCAL_SCOPE );
 
-					IValue* ref = func_val;
+					IValue* ref = new IValue( ufunc );
 					Ref(ref);
 
 					func->Assign( ref );
@@ -478,7 +476,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 					{
 					Expr *lhs = 
 						current_sequencer->LookupID( $2, LOCAL_SCOPE);
-					Ref(lhs);
+
 					$$ = compound_assignment( lhs, 0, $$ );
 					}
 				}
