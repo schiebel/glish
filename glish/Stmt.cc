@@ -716,15 +716,22 @@ void ExprStmt::DescribeSelf( ostream& s ) const
 	expr->DescribeSelf( s );
 	}
 
-ExitStmt::~ExitStmt() { /**** should never be called ****/ }
+ExitStmt::~ExitStmt() { }
+
+int ExitStmt::canDelete() const
+	{
+	return can_delete;
+	}
 
 IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
+	can_delete = 0;
+
+	glish_cleanup();
+
 	int exit_val = status ? status->CopyEval()->IntVal() : 0;
 
 	delete sequencer;
-
-	glish_cleanup();
 
 	exit( exit_val );
 

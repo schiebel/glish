@@ -291,6 +291,7 @@ class ExitStmt : public Stmt {
 		description = "exit";
 		status = arg_status;
 		sequencer = arg_sequencer;
+		can_delete = 1;
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
@@ -298,9 +299,12 @@ class ExitStmt : public Stmt {
 
 	~ExitStmt();
 
+	int canDelete() const;
+
     protected:
 	Expr* status;
 	Sequencer* sequencer;
+	int can_delete;
 	};
 
 
