@@ -38,7 +38,7 @@
 #endif
 #endif
 
-#include "Npd/util.h"
+#include "util.h"
 RCSID("@(#) $Id$")
 
 /* Maximum word that a peer can send us. */

@@ -35,9 +35,9 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
-#include "Npd/util.h"
+#include "util.h"
 RCSID("@(#) $Id$")
-#include "Npd/auth.h"
+#include "auth.h"
 #include "version.h"
 
 /* Version of Network Probe Protocol. */

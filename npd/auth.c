@@ -7,10 +7,10 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "Npd/md5.h"
-#include "Npd/util.h"
+#include "md5.h"
+#include "util.h"
 RCSID("@(#) $Id$")
-#include "Npd/auth.h"
+#include "auth.h"
 
 #define MD5_DIGEST_SIZE 16
 #define DEFAULT_KEY_SIZE 64

@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include "config.h"
-#include "Npd/util.h"
+#include "util.h"
 RCSID("@(#) $Id$")
 
 void usage()

@@ -71,21 +71,13 @@ OBJS_PROXY = \
 	$(D)npd.o \
 	$(D)util.o
 
-SINC = $(HEADERDIR)/auth.h \
-	$(HEADERDIR)/md5.h \
-	$(HEADERDIR)/util.h \
-	$(HEADERDIR)/npd.h
-
 TAR_FILE = npd.tar
 
 all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
-	$(MKHIER) $(INCDIR_P)/Npd
-	@rm -f $(INCDIR_P)/Npd/*.h
-	cp $(SINC) $(INCDIR_P)/Npd
+lib_tgt: $(LIBDIR_P)/libnpd$(LIB_SUFFIX) $(INCDIR_P)/Npd/npd.h
 
 bin_tgt: $(BINDIR_P)/glishkey
 
@@ -100,7 +92,7 @@ INSTALL_lib_tgt: $(LIBDIR)/libnpd$(LIB_SUFFIX)
 	fi
 	$(MKHIER) $(INCDIR)/Npd
 	@rm -f $(INCDIR)/Npd/*.h
-	cp $(SINC) $(INCDIR)/Npd
+	cp $(HEADERDIR)/npd.h $(INCDIR)/Npd
 
 INSTALL_bin_tgt: $(BINDIR)/glishkey
 
@@ -115,6 +107,7 @@ glishkey: libnpd$(LIB_SUFFIX) genkey.o
 
 $(LIBDIR_P)/libnpd$(LIB_SUFFIX):libnpd$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
+	$(MKHIER) $(INCDIR_P)/Npd
 	$(INSTALL_DATA) libnpd$(LIB_SUFFIX) $(LIBDIR_P)
 	$(RANLIB) $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
 
@@ -154,20 +147,24 @@ clean:
 distclean: clean
 	rm -f config.status config.cache config.h Makefile
 
-$(D)auth.o: $(SRC)/auth.c $(HEADERDIR)/md5.h $(HEADERDIR)/util.h $(HEADERDIR)/auth.h
+$(D)auth.o: $(SRC)/auth.c $(SRC)/md5.h $(SRC)/util.h $(SRC)/auth.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/auth.c	$(T)
 
-$(D)npd.o: $(SRC)/npd.c $(SRC)/version.h $(HEADERDIR)/auth.h $(HEADERDIR)/util.h
+$(D)npd.o: $(SRC)/npd.c $(SRC)/version.h $(SRC)/auth.h $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -DKEYS_DIR=\"$(KEYDIR)\" -c $(SRC)/npd.c	$(T)
 
-$(D)md5c.o: $(SRC)/md5c.c $(HEADERDIR)/md5.h
+$(D)md5c.o: $(SRC)/md5c.c $(SRC)/md5.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/md5c.c $(T)
 
-$(D)util.o: $(SRC)/util.c $(HEADERDIR)/util.h
+$(D)util.o: $(SRC)/util.c $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/util.c $(T)
 #	$(CC) $(INC) $(CFLAGS) -DLOG_FMT=\"$(LOGDIR)/%s.%s@%s.log\" -c $(SRC)/util.c
 
-genkey.o: $(SRC)/genkey.c $(HEADERDIR)/util.h
+$(INCDIR_P)/Npd/npd.h: $(HEADERDIR)/npd.h
+	rm -f $@ 
+	cp $(HEADERDIR)/npd.h $@
+
+genkey.o: $(SRC)/genkey.c $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/genkey.c
 
 INSTALL_:

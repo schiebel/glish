@@ -26,8 +26,8 @@
 
 #include <memory.h>
 #include "config.h"
-#include "Npd/md5.h"
-#include "Npd/util.h"
+#include "md5.h"
+#include "util.h"
 RCSID("@(#) $Id$")
 
 /* Constants for MD5Transform routine. */
