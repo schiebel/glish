@@ -1450,6 +1450,12 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
+	//
+	// Clearing the height/width of toplevel frames fixes problems
+	// with configuring the widget. When setting the cursor, for
+	// example, the frame & children go crazy resizing themselves.
+	//
+	rivet_clear_frame_dims( self );
 //	AddElement( this );
 
 	if ( frame )
