@@ -122,7 +122,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 			Unref( event_val );
 			event_val = new_val;
 
-			GlishEvent e( event_name, (Value*)event_val );
+			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
 			send_event( fd, &e );
 
@@ -133,7 +133,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 
 		else
 			{
-			GlishEvent e( event_name, (Value*) event_val );
+			GlishEvent e( event_name, (const Value*) event_val );
 			send_event( fd, &e );
 			}
 		}
