@@ -55,26 +55,7 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
 	INIT_VALUE_ACTION
-	kernel.SetFail( create_record_dict() );
-
-	recordptr rptr = kernel.constRecord();
-	attributeptr attr = ModAttributePtr();
-	if ( xfile && xfile[0] )
-		{
-		rptr->Insert( string_dup("file"), create_value( xfile ) );
-		Unref( (Value*) attr->Insert( string_dup("file"), create_value( xfile ) ) );
-		if ( lineNum > 0 )
-			{
-			rptr->Insert( string_dup("line"), create_value( lineNum ) );
-			Unref( (Value*) attr->Insert( string_dup("line"), create_value( lineNum ) ) );
-			}
-		}
-
-	if ( message )
-		{
-		rptr->Insert( string_dup("message"), create_value( message ) );
-		Unref( (Value*) attr->Insert( string_dup("message"), create_value( message ) ) );
-		}
+	SetFail( message, xfile, lineNum );
 	}
 
 Value::Value( const Value *val, const char *, int )
@@ -112,8 +93,7 @@ Value::Value( const Value *val, const char *, int )
 void Value::SetFailMessage( Value *nv )
 	{
 	if ( Type() != TYPE_FAIL )
-		fatal->Report( "Value::SetFailValue called for non fail value" );
-
+		kernel.SetFail( create_record_dict() );
 	recordptr rptr = kernel.constRecord();
 	Unref( (Value*) rptr->Insert( string_dup("message"), nv ) );
 	attributeptr attr = ModAttributePtr();
@@ -122,11 +102,41 @@ void Value::SetFailMessage( Value *nv )
 
 void Value::SetFail( recordptr rec )
 	{
-	if ( Type() != TYPE_FAIL )
-		fatal->Report( "Value::SetFail called for non fail value" );
 	kernel.SetFail( rec );
 	}
+
+void Value::SetFail( const char *message, const char *xfile, int lineNum )
+	{
+	if ( Type() != TYPE_FAIL )
+		kernel.SetFail( create_record_dict() );
+	recordptr rptr = kernel.constRecord();
+	attributeptr attr = ModAttributePtr();
+	if ( xfile && xfile[0] )
+		{
+		rptr->Insert( string_dup("file"), create_value( xfile ) );
+		Unref( (Value*) attr->Insert( string_dup("file"), create_value( xfile ) ) );
+		if ( lineNum > 0 )
+			{
+			rptr->Insert( string_dup("line"), create_value( lineNum ) );
+			Unref( (Value*) attr->Insert( string_dup("line"), create_value( lineNum ) ) );
+			}
+		}
+
+	if ( message )
+		{
+		rptr->Insert( string_dup("message"), create_value( message ) );
+		Unref( (Value*) attr->Insert( string_dup("message"), create_value( message ) ) );
+		}
+	}
 	  
+void Value::SetFail( const char *message )
+	{
+	if ( file && glish_files )
+		SetFail( message, (*glish_files)[file], line );
+	else
+		SetFail( message, (const char*) 0, 0 );
+	}
+
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\
@@ -288,6 +298,13 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 			kernel.SetVecRef( vr );
 			Unref(vr);
 			}
+			break;
+
+		case TYPE_FUNC:
+			SetFail( "arrays of functions are not currently supported" );
+			break;
+		case TYPE_AGENT:
+			SetFail( "arrays of agents are not currently supported" );
 			break;
 
 		default:

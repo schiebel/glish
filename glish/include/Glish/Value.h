@@ -96,6 +96,8 @@ public:
 	Value( const Value *val, const char *file, int lineNum );
 	void SetFailMessage( Value * );
 	void SetFail( recordptr );
+	void SetFail( const char *message, const char *xfile, int lineNum );
+	void SetFail( const char *message );
 
 	Value( const Value &v ) : kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )

@@ -886,7 +886,10 @@ IValue* IValue::ArrayRef( int* indices, int num_indices )
 		return (IValue*) Fail( );
 
 	if ( Type() == TYPE_FUNC )
-		return (IValue*) Fail( "bad type in array access" );
+		return (IValue*) Fail( "arrays of functions are not currently supported" );
+
+	if ( Type() == TYPE_AGENT )
+		return (IValue*) Fail( "arrays of agents are not currently supported" );
 
 	if ( Type() == TYPE_RECORD )
 		return (IValue*) RecordSlice( indices, num_indices );
