@@ -67,7 +67,7 @@ BINDIR = @bindir@
 
 SRC = ../..
 H = $(SRC)/include/Npd
-INC = -I.. -I$(SRC)/include -I$(INCDIR_P) -I/usr/ucbinclude 
+INC = -I.. -I$(SRC)/include -I$(INCDIR_P)
 
 MKHIER = $(top)/config/mkhier
 
