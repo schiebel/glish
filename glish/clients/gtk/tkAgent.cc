@@ -16,17 +16,17 @@ RCSID("@(#) $Id$")
 
 extern ProxyStore *global_store;
 
-int TkAgent::root_unmapped = 0;
-Tk_Window TkAgent::root = 0;
-Tcl_Interp *TkAgent::tcl = 0;
+int TkProxy::root_unmapped = 0;
+Tk_Window TkProxy::root = 0;
+Tcl_Interp *TkProxy::tcl = 0;
 
-PQueue(glishtk_event) *TkAgent::tk_queue = 0;
-int TkAgent::hold_tk_events = 0;
-int TkAgent::hold_glish_events = 0;
-Value *TkAgent::last_error = 0;
-Value *TkAgent::bitmap_path = 0;
-Value *TkAgent::dload_path = 0;
-int TkAgent::widget_index = 0;
+PQueue(glishtk_event) *TkProxy::tk_queue = 0;
+int TkProxy::hold_tk_events = 0;
+int TkProxy::hold_glish_events = 0;
+Value *TkProxy::last_error = 0;
+Value *TkProxy::bitmap_path = 0;
+Value *TkProxy::dload_path = 0;
+int TkProxy::widget_index = 0;
 
 unsigned long TkFrame::count = 0;
 
@@ -88,14 +88,14 @@ char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 
 class glishtk_event {
     public:
-	glishtk_event( TkAgent *a_, const char *n_, Value *v_ ) :
+	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
 			agent(a_), nme(n_ ? strdup(n_) : strdup(" ")), val(v_)
 			{ Ref(agent); Ref(val); }
 	void Post();
 	~glishtk_event();
 	Value *value() { return val; }
     protected:
-	TkAgent *agent;
+	TkProxy *agent;
 	char *nme;
 	Value *val;
 };
@@ -156,7 +156,7 @@ int glishtk_xioerror_handler(Display *d)
 	return 1;
 	}
 
-void TkAgent::init_tk( int visible_root )
+void TkProxy::init_tk( int visible_root )
 	{
 	if ( ! root )
 		{
@@ -183,17 +183,17 @@ void TkAgent::init_tk( int visible_root )
 		}
 	}
 
-void TkAgent::HoldEvents( ProxyStore *, Value * )
+void TkProxy::HoldEvents( ProxyStore *, Value * )
 	{
 	hold_tk_events++;
 	}
 
-void TkAgent::ReleaseEvents( ProxyStore *, Value * )
+void TkProxy::ReleaseEvents( ProxyStore *, Value * )
 	{
 	hold_tk_events--;
 	}
 
-void TkAgent::ProcessEvent( const char *name, Value *val )
+void TkProxy::ProcessEvent( const char *name, Value *val )
 	{
 	if ( ! IsValid() ) return;
 
@@ -208,16 +208,16 @@ void TkAgent::ProcessEvent( const char *name, Value *val )
 		Error("unknown event");
 	}
 
-void TkAgent::EnterEnable() { }
-void TkAgent::ExitEnable() { }
+void TkProxy::EnterEnable() { }
+void TkProxy::ExitEnable() { }
 
-void TkAgent::SetError( Value *v )
+void TkProxy::SetError( Value *v )
 	{
 	if ( last_error ) Unref(last_error);
 	last_error = v;
 	}
 
-void TkAgent::PostTkEvent( const char *s, Value *v )
+void TkProxy::PostTkEvent( const char *s, Value *v )
 	{
 	Ref(this);
 	if ( hold_glish_events )
@@ -227,7 +227,7 @@ void TkAgent::PostTkEvent( const char *s, Value *v )
 	Unref(this);
 	}
 
-void TkAgent::FlushGlishEvents()
+void TkProxy::FlushGlishEvents()
 	{
 	if ( hold_glish_events )
 		{
@@ -245,7 +245,7 @@ void TkAgent::FlushGlishEvents()
 		}
 	}
 
-void TkAgent::Version( ProxyStore *s, Value * )
+void TkProxy::Version( ProxyStore *s, Value * )
 	{
 	Value *tkv = new Value( TK_VERSION );
 	attributeptr tka = tkv->ModAttributePtr();
@@ -267,7 +267,7 @@ void TkAgent::Version( ProxyStore *s, Value * )
 	Unref(tkv);
 	}
 
-void TkAgent::HaveGui( ProxyStore *s, Value * )
+void TkProxy::HaveGui( ProxyStore *s, Value * )
 	{
 	if ( s->ReplyPending() )
 		{
@@ -277,7 +277,7 @@ void TkAgent::HaveGui( ProxyStore *s, Value * )
 	}
 
 
-void TkAgent::dLoad( ProxyStore *s, Value *arg )
+void TkProxy::dLoad( ProxyStore *s, Value *arg )
 	{
 	char *toload = 0;
 	const char *module = 0;
@@ -306,7 +306,7 @@ void TkAgent::dLoad( ProxyStore *s, Value *arg )
 		s->Error( "Couldn't find object to load" );
 	}
 
-void TkAgent::SetDloadPath( ProxyStore *, Value *v )
+void TkProxy::SetDloadPath( ProxyStore *, Value *v )
 	{
 	if ( v && v->Type() == TYPE_STRING )
 		{
@@ -316,7 +316,7 @@ void TkAgent::SetDloadPath( ProxyStore *, Value *v )
 		}
 	}
 
-char *TkAgent::which_shared_object( const char* filename )
+char *TkProxy::which_shared_object( const char* filename )
 	{
 	charptr *paths = dload_path ? dload_path->StringPtr() : 0;
 	int len = dload_path ? dload_path->Length() : 0;
@@ -361,7 +361,7 @@ char *TkAgent::which_shared_object( const char* filename )
 	return 0;
 	}
 
-int TkAgent::DoOneTkEvent( int flags, int hold_wait )
+int TkProxy::DoOneTkEvent( int flags, int hold_wait )
 	{
 //** 	if ( shutting_glish_down ) return 0;
 
@@ -377,7 +377,7 @@ int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	return ret;
 	}
 
-int TkAgent::DoOneTkEvent( )
+int TkProxy::DoOneTkEvent( )
 	{
 	int ret = 0;
 
@@ -389,7 +389,7 @@ int TkAgent::DoOneTkEvent( )
 	return ret;
 	}
 
-void TkAgent::SetBitmapPath( ProxyStore *, Value *v )
+void TkProxy::SetBitmapPath( ProxyStore *, Value *v )
 	{
 	if ( v && v->Type() == TYPE_STRING )
 		{
@@ -399,7 +399,7 @@ void TkAgent::SetBitmapPath( ProxyStore *, Value *v )
 		}
 	}
 
-char *TkAgent::which_bitmap( const char* filename )
+char *TkProxy::which_bitmap( const char* filename )
 	{
 	charptr *paths = bitmap_path ? bitmap_path->StringPtr() : 0;
 	int len = bitmap_path ? bitmap_path->Length() : 0;
@@ -428,7 +428,7 @@ char *TkAgent::which_bitmap( const char* filename )
 
 
 
-charptr TkAgent::NewName( Tk_Window parent ) const
+charptr TkProxy::NewName( Tk_Window parent ) const
 	{
 	static char buf[50];
 
@@ -446,7 +446,7 @@ charptr TkAgent::NewName( Tk_Window parent ) const
 	return buf;
 	}
 
-void TkAgent::SetMap( int do_map, int toplevel )
+void TkProxy::SetMap( int do_map, int toplevel )
 	{
 	int dont_map_ = do_map ? 0 : 1;
 	if ( dont_map != dont_map_ )
@@ -472,7 +472,7 @@ void TkAgent::SetMap( int do_map, int toplevel )
 		}
 	}
 
-TkAgent::TkAgent( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
+TkProxy::TkProxy( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 	{
 	agent_ID = "<graphic>";
 	enable_state = 0;
@@ -494,18 +494,18 @@ TkAgent::TkAgent( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 	}
 
 
-void TkAgent::Disable( )
+void TkProxy::Disable( )
 	{
 	disable_count++;
 	}
 
-void TkAgent::Enable( int force )
+void TkProxy::Enable( int force )
 	{
 	if ( force ) disable_count = 0;
 	else disable_count--;
 	}
 
-void TkAgent::UnMap()
+void TkProxy::UnMap()
 	{
 	if ( self ) Tk_DestroyWindow( self );
 
@@ -513,22 +513,22 @@ void TkAgent::UnMap()
 	self = 0;
 	}
 
-const char **TkAgent::PackInstruction()
+const char **TkProxy::PackInstruction()
 	{
 	return 0;
 	}
 
-charptr TkAgent::IndexCheck( charptr c )
+charptr TkProxy::IndexCheck( charptr c )
 	{
 	return c;
 	}
 
-int TkAgent::CanExpand() const
+int TkProxy::CanExpand() const
 	{
 	return 0;
 	}
 
-TkAgent::~TkAgent( )
+TkProxy::~TkProxy( )
 	{
 	IterCookie* c = procs.InitForIteration();
 
@@ -538,17 +538,17 @@ TkAgent::~TkAgent( )
 		delete member;
 	}
 
-void TkAgent::BindEvent(const char *event, Value *rec)
+void TkProxy::BindEvent(const char *event, Value *rec)
 	{
 	PostTkEvent( event, rec );
 	}
 
-Tk_Window TkAgent::TopLevel()
+Tk_Window TkProxy::TopLevel()
 	{
 	return frame ? frame->TopLevel() : 0;
 	}
 
-int TkAgent::IsPseudo( )
+int TkProxy::IsPseudo( )
 	{
 	return 1;
 	}
@@ -600,10 +600,10 @@ int TkHaveGui()
 	return ret;
 	}
 
-void TkFrame::AddElement( TkAgent *obj ) { exit(1); }
-void TkFrame::RemoveElement( TkAgent *obj ) { exit(1); }
+void TkFrame::AddElement( TkProxy *obj ) { exit(1); }
+void TkFrame::RemoveElement( TkProxy *obj ) { exit(1); }
 void TkFrame::Pack() { exit(1); }
 const char *TkFrame::Expand() const { exit(1); }
 int TkFrame::NumChildren() const { exit(1); }
 const char *TkFrame::Side() const { exit(1); }
-int TkFrame::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const { exit(1); }
+int TkFrame::ExpandNum(const TkProxy *except, unsigned int grtOReqt) const { exit(1); }

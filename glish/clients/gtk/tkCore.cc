@@ -270,7 +270,7 @@ char *glishtk_onebool(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *a
 	return glishtk_onebinary(tcl, self, cmd, "true", "false", args);
 	}
 
-char *glishtk_oneidx( TkAgent *a, const char *cmd, Value *args )
+char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -282,7 +282,7 @@ char *glishtk_oneidx( TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_disable_cb( TkAgent *a, const char *cmd, Value *args )
+char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
 	{
 	if ( ! *cmd )
 		{
@@ -305,7 +305,7 @@ char *glishtk_disable_cb( TkAgent *a, const char *cmd, Value *args )
 	return 0;
 	}
 
-char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -343,7 +343,7 @@ Value *glishtk_strary_to_value( char *s )
 	delete r;
 	return ret;
 	}
-char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *event_name = "one-or-two index function";
 
@@ -408,7 +408,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 	return (char*) ret;
 	}
 
-char *glishtk_listbox_select(TkAgent *a, const char *cmd, const char *param,
+char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 			      Value *args )
 	{
 	char *ret = 0;
@@ -439,7 +439,7 @@ char *glishtk_listbox_select(TkAgent *a, const char *cmd, const char *param,
 	return ret;
 	}
 
-char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one-or-two index function";
@@ -470,7 +470,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
+char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 				Value *args )
 	{
 	char *event_name = "text append function";
@@ -641,13 +641,13 @@ char *glishtk_text_rangesfunc( Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 	return ret;
 	}
 
-char *glishtk_no2str(TkAgent *a, const char *cmd, const char *param, Value * )
+char *glishtk_no2str(TkProxy *a, const char *cmd, const char *param, Value * )
 	{
 	Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, 0 );
 	return Tcl_GetStringResult(a->Interp());
 	}
 
-char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, Value *str_v, charptr where="end" )
+char *glishtk_listbox_insert_action(TkProxy *a, const char *cmd, Value *str_v, charptr where="end" )
 	{
 	int len = str_v->Length();
 
@@ -661,14 +661,15 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, Value *str_v, c
 	argv[2] = (char*) a->IndexCheck( where );
 	int c=0;
 	for ( ; c < len; ++c )
-		argv[c+3] = (char *) strs[c];
-		
+		argv[c+3] = glishtk_quote_string(strs[c]);
+
 	tcl_ArgEval( a->Interp(), c+3, argv );
+	for ( c=0; c < len; ++c ) free_memory(argv[c+3]);
 	free_memory( argv );
 	return "";
 	}
 
-char *glishtk_listbox_insert(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *event_name = "listbox insert function";
 
@@ -692,7 +693,7 @@ char *glishtk_listbox_insert(TkAgent *a, const char *cmd, Value *args )
 	return "";
 	}
 
-char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, Value *val )
+char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
 	{
 	int len = val->Length();
 
@@ -732,7 +733,7 @@ char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, Value *val )
 	return ret;
 	}
 
-char *glishtk_listbox_get(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "listbox get function";
@@ -766,7 +767,7 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_listbox_nearest(TkAgent *a, const char *, Value *args )
+char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
@@ -799,7 +800,7 @@ char *glishtk_scrollbar_update(Tcl_Interp *tcl, Tk_Window self, const char *, Va
 	return 0;
 	}
 
-char *glishtk_button_state(TkAgent *a, const char *, Value *args )
+char *glishtk_button_state(TkProxy *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
@@ -810,7 +811,7 @@ char *glishtk_button_state(TkAgent *a, const char *, Value *args )
 	return ret;
 	}
 
-char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 	{
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
@@ -825,7 +826,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, const char *pfalse,
+char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, const char *pfalse,
 				Value *args )
 	{
 	TkButton *Self = (TkButton*)a;
@@ -861,10 +862,10 @@ Value *glishtk_strtofloat( char *str )
 
 struct glishtk_bindinfo
 	{
-	TkAgent *agent;
+	TkProxy *agent;
 	char *event_name;
 	char *tk_event_name;
-	glishtk_bindinfo( TkAgent *c, const char *event, const char *tk_event ) :
+	glishtk_bindinfo( TkProxy *c, const char *event, const char *tk_event ) :
 			agent(c), event_name(strdup(event)),
 			tk_event_name(strdup(tk_event)) { }
 	~glishtk_bindinfo()
@@ -895,7 +896,7 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	return TCL_OK;
 	}
 
-char *glishtk_bind(TkAgent *agent, const char *, Value *args )
+char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "agent bind function";
 	EXPRINIT( event_name)
@@ -1004,8 +1005,8 @@ void glishtk_popup_adjust_dim_cb( ClientData clientData, XEvent *ptr)
 	// with the aips++ combobox...
 	if ( ptr->xany.type == ConfigureNotify )
 		{
-		Tk_Window self = ((TkAgent*)clientData)->Self();
-		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		Tk_Window self = ((TkProxy*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
 		
 		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
 		int req_width = atoi(Tcl_GetStringResult(tcl));
@@ -1031,8 +1032,8 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 	if ( eventPtr->xany.type == ConfigureNotify )
 		{
 
-		Tk_Window self = ((TkAgent*)clientData)->Self();
-		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		Tk_Window self = ((TkProxy*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
 		
 		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
 		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
@@ -1051,7 +1052,7 @@ void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
 		}
 	}
 
-char *glishtk_agent_map(TkAgent *a, const char *cmd, Value *)
+char *glishtk_agent_map(TkProxy *a, const char *cmd, Value *)
 	{
 	a->SetMap( cmd[0] == 'M' ? 1 : 0, cmd[1] == 'T' ? 1 : 0 );
 	return 0;
@@ -1074,7 +1075,7 @@ void TkFrameP::Enable( int force )
 
 TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth, charptr padx_,
 		  charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
-		  charptr cursor, charptr title, charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ ) :
+		  charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_ ) :
 		  TkFrame( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
 		  is_tl( 1 ), pseudo( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
 		  icon(0)
@@ -1425,7 +1426,7 @@ void TkFrameP::UnMap()
 
 	while ( elements.length() )
 		{
-		TkAgent *a = elements.remove_nth( 0 );
+		TkProxy *a = elements.remove_nth( 0 );
 		a->UnMap( );
 		}
 
@@ -1622,8 +1623,8 @@ char *TkFrameP::GrabCB( Value *args )
 
 char *TkFrameP::Raise( Value *args )
 	{
-	TkAgent *agent = 0;
-	if ( args->IsAgentRecord( ) && (agent = (TkAgent*) store->GetProxy(args)) )
+	TkProxy *agent = 0;
+	if ( args->IsAgentRecord( ) && (agent = (TkProxy*) store->GetProxy(args)) )
 		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), 0 );
 	else
 		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), 0 );
@@ -1683,7 +1684,7 @@ char *TkFrameP::ReleaseCB( Value * )
 	return Release( );
 	}
 
-void TkFrameP::PackSpecial( TkAgent *agent )
+void TkFrameP::PackSpecial( TkProxy *agent )
 	{
 	const char **instr = agent->PackInstruction();
 
@@ -1710,13 +1711,13 @@ void TkFrameP::PackSpecial( TkAgent *agent )
 	free_memory( argv );
 	}
 
-int TkFrameP::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
+int TkFrameP::ExpandNum(const TkProxy *except, unsigned int grtOReqt) const
 	{
 	unsigned int cnt = 0;
 	loop_over_list( elements, i )
 		{
 		if ( (! except || elements[i] != except) &&
-		     elements[i] != (TkAgent*) this && elements[i]->CanExpand() )
+		     elements[i] != (TkProxy*) this && elements[i]->CanExpand() )
 			cnt++;
 		if ( grtOReqt && cnt >= grtOReqt )
 			break;
@@ -1760,7 +1761,7 @@ void TkFrameP::Pack( )
 		}
 	}
 
-void TkFrameP::RemoveElement( TkAgent *obj )
+void TkFrameP::RemoveElement( TkProxy *obj )
 	{
 	if ( elements.is_member(obj) )
 		elements.remove(obj);
@@ -1825,7 +1826,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 
 	if ( parent->Type() == TYPE_BOOL )
 		{
-		TkAgent *tl = (TkAgent*)(tlead->IsAgentRecord() ? global_store->GetProxy(tlead) : 0);
+		TkProxy *tl = (TkProxy*)(tlead->IsAgentRecord() ? global_store->GetProxy(tlead) : 0);
 
 		if ( tl && strncmp( tl->AgentID(), "<graphic:", 9 ) )
 			{
@@ -1835,11 +1836,11 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 			}
 
 		ret =  new TkFrameP( s, relief, side, borderwidth, padx, pady, expand, background,
-				    width, height, cursor, title, icon, new_cmap, (TkAgent*) tl, tpos );
+				    width, height, cursor, title, icon, new_cmap, (TkProxy*) tl, tpos );
 		}
 	else
 		{
-		TkAgent *agent = (TkAgent*)global_store->GetProxy(parent);
+		TkProxy *agent = (TkProxy*)global_store->GetProxy(parent);
 		if ( agent && ! strcmp("<graphic:frame>", agent->AgentID()) )
 			ret =  new TkFrameP( s, (TkFrame*)agent, relief,
 					    side, borderwidth, padx, pady, expand, background,
@@ -1945,7 +1946,7 @@ void TkButton::UnMap()
 		{
 		while ( entry_list.length() )
 			{
-			TkAgent *a = entry_list.remove_nth( 0 );
+			TkProxy *a = entry_list.remove_nth( 0 );
 			a->UnMap( );
 			}
 
@@ -2467,8 +2468,8 @@ void TkButton::Create( ProxyStore *s, Value *args )
 	SETVAL( group, group->IsAgentRecord() )
 
 
-	TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
-	TkAgent *grp = (TkAgent*) (global_store->GetProxy(group));
+	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
+	TkProxy *grp = (TkProxy*) (global_store->GetProxy(group));
 	if ( agent && grp && 
 	     ( ! strcmp( grp->AgentID(),"<graphic:button>" ) && ((TkButton*)grp)->IsMenu() ||
 	       ! strcmp( grp->AgentID(), "<graphic:frame>") ) )
@@ -2580,7 +2581,7 @@ DEFINE_DTOR(TkScale)
 void TkScale::UnMap()
 	{
 	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 unsigned int TkScale::scale_count = 0;
@@ -2590,7 +2591,7 @@ int scalecb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	return TCL_OK;
 	}
 
-char *glishtk_scale_value(TkAgent *a, const char *, Value *args )
+char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	{
 
 	if ( args->IsNumeric() && args->Length() > 0 )
@@ -2603,7 +2604,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		   charptr text, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
 		   charptr fill_ )
-			: TkAgent( s ), fill(0), from_(from), to_(to), discard_event(1)
+			: TkProxy( s ), fill(0), from_(from), to_(to), discard_event(1)
 	{
 	char var_name[256];
 	frame = frame_;
@@ -2736,7 +2737,7 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
 	else
@@ -2762,7 +2763,7 @@ void TkText::UnMap()
 		Tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
 		}
 
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 int text_yscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
@@ -2834,7 +2835,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		charptr font, int disabled, charptr text, charptr relief,
 		charptr borderwidth, charptr foreground, charptr background,
 		charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
@@ -2941,7 +2942,7 @@ void TkText::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		{
 		char *text_str = text->StringVal( ' ', 0, 1 );
@@ -2983,7 +2984,7 @@ DEFINE_DTOR(TkScrollbar)
 void TkScrollbar::UnMap()
 	{
 	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
@@ -3016,7 +3017,7 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 
 TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 			  int width, charptr foreground, charptr background )
-				: TkAgent( s )
+				: TkProxy( s )
 	{
 	frame = frame_;
 	char *argv[10];
@@ -3104,7 +3105,7 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	SETSTR( foreground )
 	SETSTR( background )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background );
 	else
@@ -3129,7 +3130,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
 		  charptr borderwidth, charptr foreground, charptr background,
 		  charptr anchor, charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
@@ -3216,7 +3217,7 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 	SETSTR( anchor )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkLabel( s, (TkFrame*)agent, text, justify, padx, pady, width,
 				    font, relief, borderwidth, foreground, background, anchor, fill );
@@ -3239,7 +3240,7 @@ DEFINE_DTOR(TkEntry)
 void TkEntry::UnMap()
 	{
 	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 int entry_returncb( ClientData data, Tcl_Interp *, int, char *[] )
@@ -3263,7 +3264,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 		 charptr justify, charptr font, charptr relief, 
 		 charptr borderwidth, charptr foreground, charptr background,
 		 int disabled, int show, int exportselection, charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
@@ -3376,7 +3377,7 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 	SETINT( exp )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkEntry( s, (TkFrame*)agent, width, justify,
 				    font, relief, borderwidth, foreground, background,
@@ -3407,7 +3408,7 @@ DEFINE_DTOR(TkMessage)
 TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
 		      charptr foreground, charptr background, charptr anchor, charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
@@ -3489,7 +3490,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 	SETSTR( anchor )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, anchor, fill );
 	else
@@ -3515,7 +3516,7 @@ void TkListbox::UnMap()
 		Tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
 		}
 
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
@@ -3545,7 +3546,7 @@ int listbox_button1cb( ClientData data, Tcl_Interp*, int, char *[] )
 TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, charptr mode,
 		      charptr font, charptr relief, charptr borderwidth,
 		      charptr foreground, charptr background, int exportselection, charptr fill_ )
-			: TkAgent( s ), fill(0)
+			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
@@ -3641,7 +3642,7 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 	SETINT( exp )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*)(global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkListbox( s, (TkFrame*)agent, width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
 	else

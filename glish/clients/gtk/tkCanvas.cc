@@ -242,7 +242,7 @@ else									\
 	free_memory( str );						\
 	}
 
-char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
+char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
 	{
 	char buf[50];
 	int rows;
@@ -390,7 +390,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	return tag;
 	}
 
-char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
+char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
 	{
 	if ( args->Type() != TYPE_RECORD )
 		return 0;
@@ -690,7 +690,7 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	return TCL_OK;
 	}
 
-char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
+char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "canvas bind function";
 	EXPRINIT( event_name)
@@ -728,7 +728,7 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 
 Value *glishtk_tkcast( char *tk )
 	{
-	TkAgent *agent = (TkAgent*) tk;
+	TkProxy *agent = (TkProxy*) tk;
 	agent->SendCtor("newtk");
 	return 0;
 	}
@@ -739,7 +739,7 @@ Value *glishtk_valcast( char *val )
 	return v ? v : error_value();
 	}
 
-char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
+char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "canvas bind function";
 	TkCanvas *canvas = (TkCanvas*)agent;
@@ -788,14 +788,14 @@ void TkCanvas::UnMap()
 	{
 	while ( frame_list.length() )
 		{
-		TkAgent *a = frame_list.remove_nth( 0 );
+		TkProxy *a = frame_list.remove_nth( 0 );
 		a->UnMap( );
 		}
 
 	if ( self )
 		Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
 
-	TkAgent::UnMap();
+	TkProxy::UnMap();
 	}
 
 void TkCanvas::BindEvent( const char *event, Value *rec )
@@ -804,7 +804,7 @@ void TkCanvas::BindEvent( const char *event, Value *rec )
 	}
 
 TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr height, const Value *region_,
-		    charptr relief, charptr borderwidth, charptr background, charptr fill_ ) : TkAgent( s ), fill(0)
+		    charptr relief, charptr borderwidth, charptr background, charptr fill_ ) : TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[18];
@@ -975,7 +975,7 @@ void TkCanvas::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( fill )
 
-	TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
+	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret = new TkCanvas( s, (TkFrame*)agent, width, height, region, relief, borderwidth, background, fill );
 	else

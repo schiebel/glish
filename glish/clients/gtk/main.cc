@@ -59,7 +59,7 @@ TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
 void TkStore::Loop( )
 	{
 	while ( ! done )
-		TkAgent::DoOneTkEvent( );
+		TkProxy::DoOneTkEvent( );
 	}
 
 ProxyStore *global_store = 0;
@@ -79,14 +79,14 @@ int main( int argc, char** argv )
 	stor.Register( "message", TkMessage::Create );
 	stor.Register( "listbox", TkListbox::Create );
 	stor.Register( "canvas", TkCanvas::Create );
-	stor.Register( "version", TkAgent::Version );
-	stor.Register( "have_gui", TkAgent::HaveGui );
-	stor.Register( "tk_hold", TkAgent::HoldEvents );
-	stor.Register( "tk_release", TkAgent::ReleaseEvents );
-	stor.Register( "tk_iconpath", TkAgent::SetBitmapPath );
+	stor.Register( "version", TkProxy::Version );
+	stor.Register( "have_gui", TkProxy::HaveGui );
+	stor.Register( "tk_hold", TkProxy::HoldEvents );
+	stor.Register( "tk_release", TkProxy::ReleaseEvents );
+	stor.Register( "tk_iconpath", TkProxy::SetBitmapPath );
 
-	stor.Register( "tk_dload", TkAgent::dLoad );
-	stor.Register( "tk_dloadpath", TkAgent::SetDloadPath );
+	stor.Register( "tk_dload", TkProxy::dLoad );
+	stor.Register( "tk_dloadpath", TkProxy::SetDloadPath );
 
 	stor.Loop();
 	}

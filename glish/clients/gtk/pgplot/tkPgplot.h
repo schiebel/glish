@@ -5,7 +5,7 @@
 #define tkpgplot_h_
 #include "tkAgent.h"
 
-class TkPgplot : public TkAgent
+class TkPgplot : public TkProxy
 {
 public:
   TkPgplot (ProxyStore *, TkFrame *, charptr width, charptr height, 

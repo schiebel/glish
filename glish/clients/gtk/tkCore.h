@@ -31,12 +31,12 @@ extern char *glishtk_onebinary(Tcl_Interp*, Tk_Window, const char *cmd, const ch
 						Value *args);
 extern char *glishtk_onebool(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
 extern char *glishtk_oneintlist(Tcl_Interp*, Tk_Window, const char *cmd, int howmany, Value *args);
-extern char *glishtk_oneidx(TkAgent *, const char *cmd, Value *args);
-extern char *glishtk_oneortwoidx(TkAgent *, const char *cmd, Value *args);
-extern char *glishtk_strandidx(TkAgent *, const char *cmd, Value *args);
-extern char *glishtk_strwithidx(TkAgent *, const char *cmd, const char *param,
+extern char *glishtk_oneidx(TkProxy *, const char *cmd, Value *args);
+extern char *glishtk_oneortwoidx(TkProxy *, const char *cmd, Value *args);
+extern char *glishtk_strandidx(TkProxy *, const char *cmd, Value *args);
+extern char *glishtk_strwithidx(TkProxy *, const char *cmd, const char *param,
 						Value *args);
-extern char *glishtk_no2str(TkAgent *, const char *cmd, const char *param,
+extern char *glishtk_no2str(TkProxy *, const char *cmd, const char *param,
 						Value *args);
 
 extern Value *glishtk_strtoint( char *str );
@@ -44,15 +44,15 @@ extern Value *glishtk_strtoint( char *str );
 extern char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
 
 //### Event handlers common to Frame and tkCore widgets
-extern char *glishtk_bind(TkAgent *agent, const char *, Value *args );
-extern char *glishtk_disable_cb( TkAgent *a, const char *cmd, Value *args );
+extern char *glishtk_bind(TkProxy *agent, const char *, Value *args );
+extern char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args );
 
 class TkFrameP : public TkFrame {
     public:
 	TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, charptr title,
-		  charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ );
+		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_ );
 	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,
@@ -86,9 +86,9 @@ class TkFrameP : public TkFrame {
 	char *Title( Value * );
 
 	void Pack();
-	void PackSpecial( TkAgent * );
-	void AddElement( TkAgent *obj ) { elements.append(obj); }
-	void RemoveElement( TkAgent *obj );
+	void PackSpecial( TkProxy * );
+	void AddElement( TkProxy *obj ) { elements.append(obj); }
+	void RemoveElement( TkProxy *obj );
 	void UnMap();
 
 	static void Create( ProxyStore *, Value * );
@@ -100,7 +100,7 @@ class TkFrameP : public TkFrame {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
+	int ExpandNum(const TkProxy *except=0, unsigned int grtOReqt = 0) const;
 
 	int NumChildren() const { return elements.length() - 1; }
 
@@ -128,7 +128,7 @@ class TkFrameP : public TkFrame {
 
 	int size[2];
 
-	TkAgent *tlead;
+	TkProxy *tlead;
 	char *tpos;
 	int unmapped;
 
@@ -217,7 +217,7 @@ class TkButton : public TkFrame {
 	int unmapped;
 	};
 
-class TkScale : public TkAgent {
+class TkScale : public TkProxy {
     public:
 	TkScale ( ProxyStore *, TkFrame *, double from, double to, double value, charptr len,
 		  charptr text, double resolution, charptr orient, int width, charptr font,
@@ -244,7 +244,7 @@ class TkScale : public TkAgent {
 	int discard_event;
 	};
 
-class TkText : public TkAgent {
+class TkText : public TkProxy {
     public:
 	TkText( ProxyStore *, TkFrame *, int width, int height, charptr wrap,
 		charptr font, int disabled, charptr text, charptr relief,
@@ -274,7 +274,7 @@ class TkText : public TkAgent {
 	char *fill;
 	};
 
-class TkScrollbar : public TkAgent {
+class TkScrollbar : public TkProxy {
     public:
 	TkScrollbar( ProxyStore *, TkFrame *, charptr orient, int width,
 		     charptr foreground, charptr background );
@@ -289,7 +289,7 @@ class TkScrollbar : public TkAgent {
 	void UnMap();
 	};
 
-class TkLabel : public TkAgent {
+class TkLabel : public TkProxy {
     public:
 	TkLabel( ProxyStore *, TkFrame *, charptr text,
 		 charptr justify, charptr padx, charptr pady, int width,
@@ -306,7 +306,7 @@ class TkLabel : public TkAgent {
 	char *fill;
 	};
 
-class TkEntry : public TkAgent {
+class TkEntry : public TkProxy {
     public:
 	TkEntry( ProxyStore *, TkFrame *, int width,
 		 charptr justify, charptr font, charptr relief, 
@@ -338,7 +338,7 @@ class TkEntry : public TkAgent {
 
 	};
 
-class TkMessage : public TkAgent {
+class TkMessage : public TkProxy {
     public:
 	TkMessage( ProxyStore *, TkFrame *, charptr text, charptr width,
 		   charptr justify, charptr font, charptr padx, charptr pady,
@@ -357,7 +357,7 @@ class TkMessage : public TkAgent {
 
 	};
 
-class TkListbox : public TkAgent {
+class TkListbox : public TkProxy {
     public:
 	TkListbox( ProxyStore *, TkFrame *, int width, int height, charptr mode,
 		   charptr font, charptr relief, charptr borderwidth,

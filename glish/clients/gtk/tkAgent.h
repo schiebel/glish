@@ -14,12 +14,12 @@
 
 extern int TkHaveGui();
 
-class TkAgent;
+class TkProxy;
 class TkCanvas;
 class TkFrame;
 
-glish_declare(PList,TkAgent);
-typedef PList(TkAgent) tkagent_list;
+glish_declare(PList,TkProxy);
+typedef PList(TkProxy) tkagent_list;
 
 class TkProc;
 glish_declare(PDict,TkProc);
@@ -40,18 +40,18 @@ typedef char *(*TkOneParamProc)(Tcl_Interp*, Tk_Window, const char *, const char
 typedef char *(*TkTwoParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, const char *, Value *);
 typedef char *(*TkOneIntProc)(Tcl_Interp*, Tk_Window, const char *, int, Value *);
 typedef char *(*TkTwoIntProc)(Tcl_Interp*, Tk_Window, const char *, const char *, int, Value *);
-typedef char *(*TkEventAgentProc)(TkAgent*, const char *, Value*);
-typedef char *(*TkEventAgentProc2)(TkAgent*, const char *, const char *, Value*);
-typedef char *(*TkEventAgentProc3)(TkAgent*, const char *, const char *, const char *, Value*);
+typedef char *(*TkEventAgentProc)(TkProxy*, const char *, Value*);
+typedef char *(*TkEventAgentProc2)(TkProxy*, const char *, const char *, Value*);
+typedef char *(*TkEventAgentProc3)(TkProxy*, const char *, const char *, const char *, Value*);
 typedef Value *(*TkStrToValProc)( char * );
 
 class glishtk_event;
 glish_declare(PQueue,glishtk_event);
 
-class TkAgent : public Proxy {
+class TkProxy : public Proxy {
     public:
-	TkAgent( ProxyStore *s );
-	~TkAgent();
+	TkProxy( ProxyStore *s );
+	~TkProxy();
 
 	virtual charptr NewName( Tk_Window parent=0 ) const;
 	virtual charptr IndexCheck( charptr );
@@ -147,7 +147,7 @@ class TkAgent : public Proxy {
 class TkProc {
     public:
 
-	TkProc( TkAgent *a, TkStrToValProc cvt = 0 )
+	TkProc( TkProxy *a, TkStrToValProc cvt = 0 )
 			: cmdstr(0), proc(0), proc1(0), proc2(0),
 				agent(a), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
@@ -172,15 +172,15 @@ class TkProc {
 			: cmdstr(c), proc(0), proc1(0), proc2(0),
 				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0),
 				param2(0), convert(cvt), i(x) { }
-	TkProc(TkAgent *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
+	TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(0),
 				agent(a), aproc(p), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
-	TkProc(TkAgent *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
+	TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(0),
 				agent(a), aproc(0), aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x),
 				param2(0), convert(cvt), i(0) { }
-	TkProc(TkAgent *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
+	TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(0),
 				agent(a), aproc(0), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
 				param2(y), convert(cvt), i(0) { }
@@ -194,7 +194,7 @@ class TkProc {
 	TkOneParamProc proc1;
 	TkTwoParamProc proc2;
 
-	TkAgent *agent;
+	TkProxy *agent;
 	TkEventAgentProc aproc;
 	TkEventAgentProc2 aproc2;
 	TkEventAgentProc3 aproc3;
@@ -210,22 +210,22 @@ class TkProc {
 	int i;
 	};
 
-class TkFrame : public TkAgent {
+class TkFrame : public TkProxy {
     public:
 
-	TkFrame( ProxyStore *s ) : TkAgent(s), radio_id(0), id(++count) { }
+	TkFrame( ProxyStore *s ) : TkProxy(s), radio_id(0), id(++count) { }
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id_ ) { radio_id = id_; }
 	unsigned long Id() const { return id; }
 
-	virtual void AddElement( TkAgent *obj );
-	virtual void RemoveElement( TkAgent *obj );
+	virtual void AddElement( TkProxy *obj );
+	virtual void RemoveElement( TkProxy *obj );
 	virtual void Pack();
 	virtual const char *Expand() const;
 	virtual int NumChildren() const;
 
 	virtual const char *Side() const;
-	virtual int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
+	virtual int ExpandNum(const TkProxy *except=0, unsigned int grtOReqt = 0) const;
 
     private:
 

@@ -13,7 +13,7 @@
 
 typedef Dict(int) canvas_item_count;
 
-class TkCanvas : public TkAgent {
+class TkCanvas : public TkProxy {
     public:
 	TkCanvas( ProxyStore *, TkFrame *, charptr width, charptr height, const Value *region_,
 		  charptr relief, charptr borderwidth, charptr background, charptr fill );

@@ -283,7 +283,7 @@ void TkPgplot::UnMap ()
   if (self) {
     cpgslct (id);
     cpgclos ();
-    TkAgent::UnMap ();
+    TkProxy::UnMap ();
   }
 }
 
@@ -393,7 +393,7 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	}
 
 char *
-glishtk_pgplot_bind (TkAgent *agent, const char*, Value *args)
+glishtk_pgplot_bind (TkProxy *agent, const char*, Value *args)
 {
   char *event_name = "pgplot bind function";
   EXPRINIT(event_name)
@@ -442,7 +442,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
 		    const Value *nxsub_, const Value *nysub_, charptr relief_,
 		    charptr borderwidth, charptr padx, charptr pady, charptr foreground,
 		    charptr background, charptr fill_, int mincolors, int maxcolors, int cmap_share, int cmap_fail ) :
-		TkAgent (s), fill (0)
+		TkProxy (s), fill (0)
 {
   frame = frame_;
   Tk_Window frameSelf = 0;
@@ -2385,7 +2385,7 @@ TkPgplot::Create (ProxyStore *s, Value *args )
   SETINT (cmap_share);
   SETINT (cmap_fail);
 
-  TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
+  TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
   if (agent && !strcmp (agent->AgentID (), "<graphic:frame>")) {
     // pgplot likes to blurt out a bunch
     // of scroll events right off the bat...
