@@ -2774,6 +2774,13 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = val_name;
 		}
 
+	if ( type == CHECK )
+		{
+		sprintf(var_name,"%s%lx",type_,Id());
+		argv[c++] = "-variable";
+		argv[c++] = var_name;
+		}
+
 	argv[c++] = "-padx";
 	argv[c++] = (char*) padx;
 	argv[c++] = "-pady";
@@ -2953,6 +2960,12 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		argv[c++] = val_name;
 		}
 
+	if ( type == CHECK )
+		{
+		sprintf(var_name,"%s%lx",type_,Id());
+		argv[c++] = "-variable";
+		argv[c++] = var_name;
+		}
 
 #if 0
 	argv[c++] = "-padx";
