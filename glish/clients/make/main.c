@@ -927,75 +927,97 @@ PrintAddr(a, b)
 }
 
 void
-bMake_Define( var, val )
-    const char *var;
-    const char *val;
+bMake_Define( var, var_len, val, val_len )
+    const char **var;
+    int var_len;
+    const char **val;
+    int val_len;
 {
-    Var_Set( (char*)var, (char*)val, VAR_GLOBAL );
+    int len = var_len < val_len ? var_len : var_len;
+    int i = 0, j=0;
+    int j_incr = 1;
+    if ( ! var || var_len <= 0 ) return;
+    if ( ! val || val_len <= 0 ) return;
+    if ( var_len > 1 && val_len == 1 ) {
+        len = var_len;
+	j_incr = 0;
+    }
+    for ( ; i < len; ++i,j+=j_incr )
+        Var_Set( (char*)var[i], (char*)val[j], VAR_GLOBAL );
 }
 
 void
-bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
-    const char *tag;
+bMake_TargetDef( tag, tag_len, cmd, cmd_len, depend, depend_len )
+    const char **tag;
+    int tag_len;
     const char **cmd;
     int cmd_len;
     const char **depend;
     int depend_len;
 {
-    int i = 0;
+    int i = 0, x = 0;
     GNode *gn,*dep;
     /*** do we have a tag? ***/
-    if ( ! tag || ! *tag ) return;
+    if ( ! tag || tag_len <= 0 ) return;
     /*** do we have a command? ***/
     if ( ! cmd || cmd_len <= 0 ) return;
-    gn = Targ_FindNode( (char*)tag, TARG_CREATE );
-    if ( cmd && cmd_len > 0 )
-        for ( i=0; i < cmd_len; ++i )
-            Cmd_AtEnd( gn, strdup(cmd[i]) );
-    if ( depend && depend_len > 0 ) {
-        gn->type |= OP_DEPENDS;
-	for ( i=0; i < depend_len; ++i ) {
-            dep = Targ_FindNode ((char*)depend[i], TARG_CREATE);
-            if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
-                (void)Lst_AtEnd (gn->children, (ClientData)dep);
-                gn->unmade += 1;
+    for ( x=0; x < tag_len; ++x ) {
+        gn = Targ_FindNode( (char*)tag[x], TARG_CREATE );
+        if ( cmd && cmd_len > 0 )
+            for ( i=0; i < cmd_len; ++i )
+                Cmd_AtEnd( gn, strdup(cmd[i]) );
+        if ( depend && depend_len > 0 ) {
+            gn->type |= OP_DEPENDS;
+            for ( i=0; i < depend_len; ++i ) {
+                dep = Targ_FindNode ((char*)depend[i], TARG_CREATE);
+                if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
+                    (void)Lst_AtEnd (gn->children, (ClientData)dep);
+                   gn->unmade += 1;
+                }
             }
-	}
+        }
     }
 }
 
 void
-bMake_SuffixDef( tag, cmd, cmd_len )
-    const char *tag;
+bMake_SuffixDef( tag, tag_len, cmd, cmd_len )
+    const char **tag;
+    int tag_len;
     const char **cmd;
     int cmd_len;
 {
-    int i = 0;
+    int i = 0, x = 0;
     int dot_count = 0;
     GNode *gn;
     const char *end;
     char buf[256];
-    char *bp = buf;
+    char *bp = 0;
 
-    /*** does it look like a suffix rule? ***/
-    if ( ! tag || *tag != '.' ) return;
-    /*** how many dots does it have? ***/
-    for ( end=tag; *end; ++end )
-        if ( *end == '.' ) ++dot_count;
-    if ( dot_count != 2 ) return;
     /*** do we have a command? ***/
     if ( ! cmd || cmd_len <= 0 ) return;
-    
-    *bp++ = '.';
-    for ( end = tag+1; *end && *end != '.'; *bp++ = *end++ );
-    *bp = '\0';
-    Suff_AddSuffix((char*)buf);
-    Suff_AddSuffix((char*)end);
-    gn = Suff_AddTransform((char*)tag);
+    /*** does it look like a suffix rule? ***/
+    if ( ! tag || tag_len <= 0 ) return;    
+    /*** how many dots does it have? ***/
+    for ( x=0; x < tag_len; ++x ) {
+        if ( *tag[x] != '.' ) return;
+	dot_count = 0;
+	for ( end=tag[x]; *end; ++end )
+	    if ( *end == '.' ) ++dot_count;
+	if ( dot_count != 2 ) return;
+    }
 
-    if ( cmd && cmd_len > 0 )
+    for ( x=0; x < tag_len; ++x ) {
+        bp = buf;
+        *bp++ = '.';
+        for ( end = tag[x]+1; *end && *end != '.'; *bp++ = *end++ );
+        *bp = '\0';
+        Suff_AddSuffix((char*)buf);
+        Suff_AddSuffix((char*)end);
+        gn = Suff_AddTransform((char*)tag[x]);
+
         for ( i=0; i < cmd_len; ++i )
             Cmd_AtEnd( gn, strdup(cmd[i]) );
+    }
 }
 
 void
@@ -1004,7 +1026,7 @@ bMake_SetMain( tgt, len )
     int len;
 {
     int i=0;
-    if (Lst_IsEmpty(create)) {
+    if ( ! Lst_IsEmpty(create)) {
         Lst_Destroy( create, NOFREE);
 	create = Lst_Init( FALSE );
     }

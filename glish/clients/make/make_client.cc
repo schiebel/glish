@@ -16,30 +16,6 @@ inline int streq( const char* a, const char* b )
         return ! strcmp( a, b );
         }
 
-#if 0
-int main( int argc, char **argv ) {
-    int ret = 0;
-    char *foocmd[] = { "this is FOO #1", "this is FOO #2" };
-    char *foodep[] = { "BAR", "BAZ" };
-    char *barcmd[] = { "this is BAR", "${FOOBAR}" };
-    char *bazcmd[] = { "this is BAZ" };
-    char *suffcmd[] = { "making crap from bull: $@ $? $> $< $*" };
-    char *cocmd[] = { "making o from c: $@ $? $> $< $*" };
-    char *maintgts[] = { "FOO" };
-    bMake_Init( argc, argv );
-    bMake_Define( "FOOBAR", "foo and bar" );
-    bMake_TargetDef( "FOO", foocmd, 2, foodep, 2 );
-    bMake_TargetDef( "BAR", barcmd, 2, 0, 0 );
-    bMake_TargetDef( "BAZ", bazcmd, 1, 0, 0 );
-    bMake_SuffixDef( ".bull.crap", suffcmd, 1 );
-    bMake_SuffixDef( ".c.o", cocmd, 1 );
-    bMake_SetMain( maintgts, 1 );
-    bMake( );
-    bMake( );
-    return bMake_Finish( );
-}
-#endif
-
 int main( int argc, char** argv ) {
     Client c( argc, argv );
     bMake_Init( argc, argv );
@@ -48,18 +24,17 @@ int main( int argc, char** argv ) {
         Value *val = e->value;
         if ( streq( e->name, "variable" ) ) {
 	    if ( val->Type() == TYPE_STRING && val->Length() > 0 ) {
+	        const char *def[] = { "1" };
 	        char *name = val->StringVal();
-	        bMake_Define( name, "1" );
-	        free_memory(name);
+	        bMake_Define( val->StringPtr(0), val->Length(), def, 1 );
 	    } else if ( val->Type() == TYPE_RECORD && val->Length() >= 2 ) {
 	        Value *name = val->NthField(1);
 		Value *value = val->NthField(2);
-		if ( name->Type() == TYPE_STRING && name->Length() > 0 ) {
-		    char *n = name->StringVal();
-		    char *v = name->StringVal();
-		    bMake_Define( n, v );
-		    free_memory(n);
-		    free_memory(v);
+		if ( name->Type() == TYPE_STRING && name->Length() > 0 &&
+		     value->Type() == TYPE_STRING && value->Length() > 0 &&
+		     name->Length() == value->Length() ) {
+		    bMake_Define( name->StringPtr(0), name->Length(),
+				  value->StringPtr(0), value->Length() );
 		} else {
 		    c.Error( "bad value for 'variable'" );
 		    continue;
@@ -71,19 +46,17 @@ int main( int argc, char** argv ) {
 	} else if ( streq( e->name, "target" ) ) {
 	    Value *tgt = 0;
 	    Value *action = 0;
-	    char *t = 0;
-	    charptr *a = 0;
 	    if ( val->Type() == TYPE_RECORD && val->Length() >= 2 &&
 		 (tgt=val->NthField(1)) && tgt->Type() == TYPE_STRING && tgt->Length() > 0 &&
-		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 &&
-		 (t = tgt->StringVal()) && (a = action->StringPtr(0)) ) {
+		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 ) {
 	        Value *dep;
-		charptr *d;
 	        if ( val->Length() == 2 ) {
-		    bMake_TargetDef( t, a, action->Length(), 0, 0 );
-		} else if ( (dep=val->NthField(3)) && dep->Type() == TYPE_STRING && dep->Length() > 0 &&
-			    (d = dep->StringPtr(0)) ) {
-		    bMake_TargetDef( t, a, action->Length(), d, dep->Length() );
+		    bMake_TargetDef( tgt->StringPtr(0), tgt->Length(),
+				     action->StringPtr(0), action->Length(), 0, 0 );
+		} else if ( (dep=val->NthField(3)) && dep->Type() == TYPE_STRING && dep->Length() > 0 ) {
+		    bMake_TargetDef( tgt->StringPtr(0), tgt->Length(),
+				     action->StringPtr(0), action->Length(),
+				     dep->StringPtr(0), dep->Length() );
 		} else {
 		    c.Error( "bad value for 'target'" );
 		    continue;
@@ -95,19 +68,25 @@ int main( int argc, char** argv ) {
 	} else if ( streq(e->name, "suffix" ) ) {
 	    Value *suf = 0;
 	    Value *action = 0;
-	    char *s = 0;
-	    charptr *a = 0;
 	    if ( val->Type() == TYPE_RECORD && val->Length() >= 2 &&
 		 (suf=val->NthField(1)) && suf->Type() == TYPE_STRING && suf->Length() > 0 &&
-		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 &&
-		 (s = suf->StringVal()) && (a = action->StringPtr(0)) ) {
-	        bMake_SuffixDef( s, a, action->Length() );
+		 (action=val->NthField(2)) && action->Type() == TYPE_STRING && action->Length() > 0 ) {
+	        bMake_SuffixDef( suf->StringPtr(0), suf->Length(),
+				 action->StringPtr(0), action->Length() );
 	    } else {
 		c.Error( "bad value for 'suffix'" );
 	        continue;
 	    }
+	} else if ( streq(e->name, "make" ) ) {
+            Value *tgt = 0;
+	    if ( val->Type() == TYPE_STRING && val->Length() > 0 )
+ 	        bMake_SetMain( val->StringPtr(0), val->Length() );
+	    if ( ! bMake_HasMain( ) )
+	        c.Error( "no root target specified" );
+	    else
+	        bMake( );
 	} else {
-	    c.Error( "unknown event '%s'", e->name );
+	    c.Error( "unknown event ('%s') or bad value", e->name );
 	    continue;
 	}
     }

@@ -16,7 +16,8 @@ MKDEP=$(srcdir)/mkdeps.sh -n -i/usr/include
 MKDEP_OPTS=-A
 MK=${prefix}/share/mk
 
-CFLAGS=-g -I. -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CFLAGS=-g -I../../../include -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CXXFLAGS=-g -I../../../include -I$(srcdir) @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
 MDEFS="-DFORCE_MACHINE=\"${MACHINE}\"" "-DMACHINE_ARCH=\"${MACHINE_ARCH}\""
 
 OBJ=arch.o buf.o compat.o cond.o dir.o for.o hash.o job.o main.o make.o \
