@@ -48,7 +48,7 @@ static char *keys_dir = 0;
 void set_key_directory( const char *kd )
 	{
 	if ( keys_dir ) my_free( keys_dir );
-	keys_dir = kd ? strdup(kd) : 0;
+	keys_dir = (kd ? strdup(kd) : 0);
 	}
 
 const char *get_key_directory( )

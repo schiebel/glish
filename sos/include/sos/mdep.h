@@ -115,6 +115,12 @@
 #endif
 
 //======================================================================
+#if defined(_AIX)
+#define SOS_SHMEM 1
+#define SOS_ARC SOS_SPARC
+#endif
+
+//======================================================================
 #if defined(masscomp) || defined(__masscomp__)
 #define SOS_SHMEM 1
 #define SOS_ARC SOS_SUN3ARC 
@@ -224,7 +230,7 @@ typedef unsigned char sos_code;
  || defined(mv147) || defined(__mv147__) || defined(VXWORKS) \
  || defined(__i486__) || defined(__i386__) \
  || defined(mips) || defined(__mips__) \
- || defined(masscomp) || defined(__masscomp__)
+ || defined(masscomp) || defined(__masscomp__) || defined(_AIX)
 #define SOS_IEEEFP
 #define SOS_FLOAT SOS_IFLOAT
 #define SOS_DOUBLE SOS_IDOUBLE

@@ -16,8 +16,11 @@ RCSID("@(#) $Id$")
 #include <syslog.h>
 #include <fcntl.h>
 #include <errno.h>
-
 #include <string.h>
+
+#if HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 #include "Glish/Client.h"
 #include "Glish/List.h"
