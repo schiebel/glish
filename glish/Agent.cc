@@ -140,11 +140,16 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 		interest_list = new notifiee_list;
 		interested_parties.Insert( field, interest_list );
 		}
+	else if ( is_copy )
+		{
+		free_memory( field );
+		field = 0;
+		}
 
 	Ref( notifiee );
 	interest_list->append( notifiee );
 
-	if ( is_copy )
+	if ( is_copy && field )
 		{
 		// We need to remember the field since we're responsible
 		// for garbage-collecting it when we're destructed.
