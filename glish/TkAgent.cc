@@ -1423,7 +1423,7 @@ void TkButton::UnMap()
 	else if ( menu )
 		{
 		char index[100];
-		sprintf(index,"%d",menu->Index(this));	
+		sprintf(index,"%d",menu->Index(this));
 		rivet_va_cmd( menu->Menu(), "delete", index, 0 );
 		menu->Remove(this);
 		}
@@ -1795,7 +1795,14 @@ void TkButton::State(unsigned char s)
 	else
 		{
 		dont_invoke_button = 1;
-		rivet_va_cmd( self, "invoke", 0 );
+		if ( frame )
+			rivet_va_cmd( self, "invoke", 0 );
+		else if ( menu )
+			{
+			char index[100];
+			sprintf(index,"%d",menu->Index(this)-1);
+			rivet_va_cmd( menu->Menu(), "invoke", index, 0 );
+			}
 		}
 	}
 

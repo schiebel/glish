@@ -89,8 +89,8 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 	if ( etype == EVAL_COPY )
 		{
 		IValue *result = copy_value( value );
-		if ( value->IsConst() )
-			result->MakeConst();
+// 		if ( value->IsConst() )
+// 			result->MakeConst();
 		if ( value->IsModConst() )
 			result->MakeModConst();
 		return result;
