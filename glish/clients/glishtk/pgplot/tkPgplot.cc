@@ -826,6 +826,13 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	procs.Insert("wedg", new PgProc(this, &TkPgplot::Pgwedg));
 	procs.Insert("wnad", new PgProc(this, &TkPgplot::Pgwnad));
 	is_valid = 1;
+
+	//
+	// If this isn't done, immediate operations which are dependent
+	// upon the X11 window size, e.g. env(), get degenerate window
+	// sizes, i.e. an immediate env() would yield a tiny graph.
+	//
+	while ( TkProxy::DoOneTkEvent( TK_DONT_WAIT | TK_IDLE_EVENTS ) );
 }
 
 TkPgplot::TkPgplot(ProxyStore *s, const Value *idv, const Value *region_, const Value *axis_,
