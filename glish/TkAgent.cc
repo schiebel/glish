@@ -1583,7 +1583,7 @@ IValue *TkAgent::SendEvent( const char* event_name, parameter_list* args,
 	if ( proc != 0 )
 		return Invoke( proc, args, is_request, log );
 	else
-		return 0;
+		return is_request ? error_ivalue() : 0;
 	}
 
 IValue *TkAgent::Invoke(TkProc *proc, parameter_list*arg, int x, int y)
