@@ -139,6 +139,6 @@ extern char* paste( parameter_list* args );
 extern char* paste( const_args_list* args );
 extern Value* split( char* source, char* split_chars = " \t\n" );
 
-extern void create_built_ins( Sequencer* s );
+extern void create_built_ins( Sequencer* s, const char *program_name );
 
 #endif /* built_in_h */

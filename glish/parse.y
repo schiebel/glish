@@ -95,13 +95,17 @@ glish:
 			if ( interactive )
 				{
 				const Value *sys = Sequencer::LookupVal( "system" );
-				if ( sys && sys->Type() == TYPE_RECORD && sys->HasRecordElement( "trace" ) )
-					{
-					const Value *tVal = sys->ExistingRecordElement( "trace" );
-					if ( tVal != false_value && tVal->Type() == TYPE_BOOL &&
-							tVal->BoolVal() == glish_true )
-						message->Report( "\tt> ", $2 );
-					}
+				const Value *dbgv;
+				const Value *echov;
+				if ( sys && sys->Type() == TYPE_RECORD &&
+					sys->HasRecordElement( "debug" ) &&
+					(dbgv = sys->ExistingRecordElement( "debug" )) &&
+					dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
+					dbgv->HasRecordElement( "echo" ) &&
+					(echov = dbgv->ExistingRecordElement("echo")) &&
+					echov != false_value && echov->Type() == TYPE_BOOL &&
+					echov->BoolVal() == glish_true )
+					message->Report( "\te> ", $2 );
 
 				stmt_flow_type flow;
 				Value* val = $2->Exec( 1, flow );

@@ -19,6 +19,10 @@ class Notifiee;
 class ScriptClient;
 class Channel;
 
+// Searches "system.include.path" for the given file; returns a malloc()'d copy
+// of the path to the executable, which the caller should delete when
+// done with.
+char* which_include( const char* file_name );
 
 class Notification : public GlishObject {
 public:
@@ -111,10 +115,15 @@ public:
 	// Returns 0 if the index is invalid.
 	Stmt* LookupStmt( int index );
 
-	// Return a channel to a daemon for managing clients on the given host.
-	Channel* GetHostDaemon( const char* host );
+	// Returns a non-zero value if the hostname is the local
+	// host, and zero otherwise
+	int LocalHost( const char* hostname );
 
-	void Exec();
+	// Return a channel to a daemon for managing clients on the given host.
+	// sets "err" to a non-zero value if an error occurs
+	Channel* GetHostDaemon( const char* host, int &err );
+
+	void Exec( int startup_script = 0 );
 
 	// Wait for an event in which await_stmt has expressed interest,
 	// though while waiting process any of the events in which
@@ -198,7 +207,8 @@ protected:
 	void Parse( const char file[] );
 	void Parse( const char* strings[] );
 	RemoteDaemon* CreateDaemon( const char* host );
-	RemoteDaemon* OpenDaemonConnection( const char* host );
+	// Sets err to a non-zero value if an error occurred
+	RemoteDaemon* OpenDaemonConnection( const char* host, int &err );
 	void ActivateMonitor( char* monitor_client );
 	void Rendezvous( const char* event_name, Value* value );
 	void ForwardEvent( const char* event_name, Value* value );
