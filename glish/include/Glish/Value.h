@@ -156,7 +156,7 @@ public:
 
 
 	// Discard present value and instead take new_value.
-	void TakeValue( Value* new_value, Str &err = glish_errno );
+	virtual void TakeValue( Value* new_value, Str &err = glish_errno );
 
 	virtual ~Value();
 

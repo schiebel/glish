@@ -5,6 +5,7 @@
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
 #include "sos/alloc.h"
+#include <stdio.h>
 
 #include <stdlib.h>
 #include <iostream.h>
@@ -140,6 +141,21 @@ ent BaseList::remove(ent a)
 	return remove_nth(i);
 	}
 
+ent BaseList::swap(ent Old, ent New)
+	{
+	int i = 0;
+	for ( ; i < num_entries && Old != entry[i]; i++ )
+		;
+
+	if ( i >= 0 && i < num_entries )
+		{
+		entry[i] = New;
+		return Old;
+		}
+
+	return 0;
+	}
+
 ent BaseList::remove_nth(int n)
 	{
 	if ( n < 0 || n >= num_entries )
@@ -195,9 +211,10 @@ ent BaseList::replace(int ent_index,ent new_ent)
 		}
 	}
 
-int BaseList::resize( )
+int BaseList::resize( int needed )
 	{
-	max_entries += chunk_size;
+	while ( num_entries + needed > max_entries )
+		max_entries += chunk_size;
 	chunk_size *= 2;
 	entry = (ent*) realloc_memory( (void*) entry, sizeof( ent ) * max_entries );
 	return max_entries;
@@ -214,11 +231,5 @@ ent BaseList::is_member(ent e) const
 
 int BaseList::SoftDelete( )
 	{
-	if ( finalize_handler )
-		{
-		for ( int i = 0; i < num_entries; i++ )
-			finalize_handler(entry[i]);
-		clear();
-		}
 	return 1;
 	}

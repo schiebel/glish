@@ -8,6 +8,7 @@
 #include "Glish/List.h"
 
 class IValue;
+class observed_list;
 
 // Different scopes to use when resolving identifiers; used by the VarExpr
 // and Sequencer classes.
@@ -37,8 +38,8 @@ friend class stack_type;
 
 	const char *Description() const;
 
-	void SetCycleRoots( ref_list *cr ) { roots = cr; }
-	ref_list *GetCycleRoots( ) { return roots; }
+	void SetCycleRoots( observed_list *cr ) { roots = cr; }
+	observed_list *GetCycleRoots( ) { return roots; }
 
     protected:
 	void clear();
@@ -46,7 +47,7 @@ friend class stack_type;
 	IValue** values;
 	IValue* missing;
 	scope_type scope;
-	ref_list *roots;
+	observed_list *roots;
 	};
 
 glish_declare(PList,Frame);

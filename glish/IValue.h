@@ -9,6 +9,7 @@ extern const char *glish_charptrdummy;
 
 class Agent;
 class Func;
+class observed_list;
 class Regex;
 class RegexMatch;
 class File;
@@ -49,20 +50,22 @@ public:
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
 	IValue( const Value *val, const char *file, int lineNum ) :
-				Value( val, file, lineNum ) { }
+				unref(0), Value( val, file, lineNum ) { }
 
-	IValue( const Value &v ) : Value(v) { }
-	IValue( const IValue &v ) : Value(v) { }
+	IValue( const Value &v ) : unref(0), Value(v)
+		{ if ( v.doPropagate( ) ) SetUnref( ((const IValue &)v).unref ); }
+	IValue( const IValue &v ) : unref(0), Value(v)
+		{ if ( v.doPropagate( ) ) SetUnref( v.unref ); }
 
-	IValue( glish_bool v ) : Value( v ) { }
-	IValue( byte v ) : Value( v ) { }
-	IValue( short v ) : Value( v ) { }
-	IValue( int v ) : Value( v ) { }
-	IValue( float v ) : Value( v ) { }
-	IValue( double v ) : Value( v ) { }
-	IValue( complex v ) : Value( v ) { }
-	IValue( dcomplex v ) : Value( v ) { }
-	IValue( const char* v ) : Value( v ) { }
+	IValue( glish_bool v ) : unref(0), Value( v ) { }
+	IValue( byte v ) : unref(0), Value( v ) { }
+	IValue( short v ) : unref(0), Value( v ) { }
+	IValue( int v ) : unref(0), Value( v ) { }
+	IValue( float v ) : unref(0), Value( v ) { }
+	IValue( double v ) : unref(0), Value( v ) { }
+	IValue( complex v ) : unref(0), Value( v ) { }
+	IValue( dcomplex v ) : unref(0), Value( v ) { }
+	IValue( const char* v ) : unref(0), Value( v ) { }
 	IValue( funcptr v );
 	IValue( regexptr v );
 	IValue( fileptr v );
@@ -72,45 +75,45 @@ public:
 	// "TAKE_OVER_ARRAY" it will simply be used.
 	IValue( agentptr value, array_storage_type storage = COPY_ARRAY );
 
-	IValue( recordptr v ) : Value( v ) { }
+	IValue( recordptr v ) : unref(0), Value( v ) { }
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
-			Value( ref_value, val_type ) { }
+			unref(0), Value( ref_value, val_type ) { }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
-		value_type val_type, int take_index = 0 ) :
+		value_type val_type, int take_index = 0 ) : unref(0),
 			Value( ref_value, index, num_elements,
 			       val_type, take_index ) { }
 
 	IValue( glish_bool value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( byte value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( short value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( int value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( float value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( double value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( complex value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( dcomplex value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( charptr value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) :
+		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
 			Value( value, num_elements, storage ) { }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
@@ -119,15 +122,15 @@ public:
 	IValue( fileptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
-	IValue( glish_boolref& value_ref ) : Value( value_ref ) { }
-	IValue( byteref& value_ref ) : Value( value_ref ) { }
-	IValue( shortref& value_ref ) : Value( value_ref ) { }
-	IValue( intref& value_ref ) : Value( value_ref ) { }
-	IValue( floatref& value_ref ) : Value( value_ref ) { }
-	IValue( doubleref& value_ref ) : Value( value_ref ) { }
-	IValue( complexref& value_ref ) : Value( value_ref ) { }
-	IValue( dcomplexref& value_ref ) : Value( value_ref ) { }
-	IValue( charptrref& value_ref ) : Value( value_ref ) { }
+	IValue( glish_boolref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( byteref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( shortref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( intref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( floatref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( doubleref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( complexref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( dcomplexref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( charptrref& value_ref ) : unref(0), Value( value_ref ) { }
 
 	~IValue();
 
@@ -239,11 +242,22 @@ public:
 	char *GetNSDesc( int evalable = 0 ) const;
 
 	// returns the number of time a cycle root (element of c) is referenced
-	int PropagateCycles( ref_list *c, int prune=0 );
+	int PropagateCycles( observed_list *c, int prune=0 );
 
-	// value can be part of a frame so it can't be deleted, but needs to have
-	// everything possible freed...
+	// value can be part of a frame so it can't be deleted, but needs
+	// to have everything possible freed...
 	int SoftDelete( );
+
+	// Called when we need to cleanup any values to be Unref()ed
+	// *before* this value is actually deleted.
+	void PreDelete( );
+
+	void UnrefGone( observed_list *u ) { if ( u == unref ) unref = 0; }
+
+	void SetUnref( observed_list *r, int propagate_only=0 );
+	void ClearUnref( );
+
+	void TakeValue( Value* new_value, Str &err = glish_errno );
 
 protected:
 
@@ -255,6 +269,8 @@ protected:
 	void AssignArrayElements( int* indices, int num_indices,
 				Value* value, int rhs_len );
 	void AssignArrayElements( Value* value );
+
+	observed_list *unref;
 
 	// Note: if member variables are added, Value::TakeValue()
 	//       will need to be examined

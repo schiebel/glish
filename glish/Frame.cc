@@ -40,7 +40,7 @@ void Frame::clear()
 		IValue *val = values[i];
 		if ( val )
 			{
-			val->ClearFrame( );
+			val->ClearSoftDel( );
 			Unref( val );
 			}
 		}

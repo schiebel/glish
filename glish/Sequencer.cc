@@ -2494,8 +2494,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
-				value->MarkFrame( );
-				if ( prev_value ) prev_value->ClearFrame( );
+				value->MarkSoftDel( );
+				if ( prev_value ) prev_value->ClearSoftDel( );
 				}
 			}
 			break;
@@ -2518,8 +2518,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				{
 				prev_value = frame_value;
 				frame_value = value;
-				value->MarkFrame( );
-				if ( prev_value ) prev_value->ClearFrame( );
+				value->MarkSoftDel( );
+				if ( prev_value ) prev_value->ClearSoftDel( );
 				}
 			}
 			break;

@@ -1,6 +1,9 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
 // Copyright (c) 1997 Associated Universities Inc.
+
+#include "sos/ref.h"
+
 #ifndef list_h_
 #define list_h_
 
@@ -27,7 +30,6 @@
 // needed for class GcRef
 //
 #include "sos/generic.h"
-#include "sos/ref.h"
 
 typedef void* void_ptr;
 typedef void_ptr ent;
@@ -51,7 +53,7 @@ class BaseList : public GcRef {
 
 	virtual void *allocate( unsigned int s ) { return alloc_memory( s ); }
 
-	int resize( );
+	int resize( int needed=1 );
 
 	BaseList(int=0, FINAL=0);
 	BaseList(BaseList&);
@@ -61,6 +63,7 @@ class BaseList : public GcRef {
 
 	void insert(ent);	  // add at head of list
 	ent remove(ent);	  // delete entry from list
+	ent swap(ent O,ent N);	  // delete entry from list
 	void insert_nth(int,ent); // add at nth slot in list
 	ent remove_nth(int);	  // delete nth entry from list
 	ent get();		  // return and remove ent at end of list
@@ -139,6 +142,8 @@ struct List(type) : BaseList						\
 	void append(type a)	{ BaseList::append(PASTE(type,_to_void)(a)); } \
 	type remove(type a)						\
 			{ return PASTE(void_to_,type)(BaseList::remove(PASTE(type,_to_void)(a))); } \
+	type swap(type Old, type New)					\
+			{ return PASTE(void_to_,type)(BaseList::swap(PASTE(type,_to_void)(Old),PASTE(type,_to_void)(New))); } \
 	void insert_nth(int n, type a)					\
 				{ BaseList::insert_nth(n,PASTE(type,_to_void)(a)); } \
 	type remove_nth(int n)	{ return PASTE(void_to_,type)(BaseList::remove_nth(n)); } \
@@ -179,9 +184,11 @@ struct PList(type) : BaseList						\
 	void append(type* a)	{ BaseList::append(ent(a)); }		\
 	type* remove(type* a)						\
 		{ return (type*)BaseList::remove(ent(a)); }		\
+	type* swap(type *Old, type *New)				\
+		{ return (type*)BaseList::swap(ent(Old),ent(New)); }	\
 	void insert_nth(int n, type* a)					\
 				{ BaseList::insert_nth(n,ent(a)); }	\
-	type* remove_nth(int n)	{ return (type*)(BaseList::remove_nth(n)); }\
+	type* remove_nth(int n)	{ return (type*)(BaseList::remove_nth(n)); } \
 	type* get()		{ return (type*)BaseList::get(); }	\
 	type* operator[](int i) const					\
 		{ return (type*)(BaseList::operator[](i)); }		\
@@ -201,7 +208,5 @@ struct PListIterator(type) : BaseListIterator				\
 	type* operator()()						\
 		{ return (type*)(BaseListIterator::operator()()); }	\
 	}
-
-sos_declare(PList,GcRef);
 
 #endif /* list_h_ */

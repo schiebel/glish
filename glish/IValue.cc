@@ -105,7 +105,7 @@ int IValue::FailMarked( )
 	return rptr->Lookup("HANDLED") ? 1 : 0;
 	}
 
-IValue::IValue( ) : Value( )
+IValue::IValue( ) : unref(0), Value( )
 	{
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
@@ -148,7 +148,7 @@ IValue::IValue( ) : Value( )
 		}
 	}
 
-IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne )
+IValue::IValue( const char *message, const char *fle, int lne ) : unref(0), Value( message, fle, lne )
 	{
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
@@ -191,46 +191,46 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		}
 	}
 
-IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
+IValue::IValue( funcptr value ) : unref(0), Value(TYPE_FUNC)
 	{
 	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
-IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC)
+IValue::IValue( funcptr value[], int len, array_storage_type s ) : unref(0), Value(TYPE_FUNC)
 	{
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( regexptr value ) : Value(TYPE_REGEX)
+IValue::IValue( regexptr value ) : unref(0), Value(TYPE_REGEX)
 	{
 	regexptr *ary = alloc_regexptr( 1 );
 	copy_array(&value,ary,1,regexptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
 	}
 
-IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX)
+IValue::IValue( regexptr value[], int len, array_storage_type s ) : unref(0), Value(TYPE_REGEX)
 	{
 	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( fileptr value ) : Value(TYPE_FILE)
+IValue::IValue( fileptr value ) : unref(0), Value(TYPE_FILE)
 	{
 	fileptr *ary = alloc_fileptr( 1 );
 	copy_array(&value,ary,1,fileptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
 	}
 
-IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE)
+IValue::IValue( fileptr value[], int len, array_storage_type s ) : unref(0), Value(TYPE_FILE)
 	{
 	kernel.SetArray( (voidptr*) value, len, TYPE_FILE, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
-IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
+IValue::IValue( agentptr value, array_storage_type storage ) : unref(0), Value(TYPE_AGENT)
 	{
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
@@ -242,7 +242,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 		kernel.SetArray( (voidptr*) &value, 1, TYPE_AGENT, 1 );
 	}
 
-IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT)
+IValue::IValue( recordptr value, Agent* agent ) : unref(0), Value(TYPE_AGENT)
 	{
 	value->Insert( string_dup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
@@ -1937,7 +1937,7 @@ char *IValue::GetNSDesc( int evalable ) const
 	return 0;
 	}
 
-int IValue::PropagateCycles( ref_list *cyc, int prune )
+int IValue::PropagateCycles( observed_list *cyc, int prune )
 	{
 	static value_list been_there;
 	int ret = 0;
@@ -1953,7 +1953,7 @@ int IValue::PropagateCycles( ref_list *cyc, int prune )
 		SetUnref( cyc, 1 );
 		if ( prune )
 			{
-			cyc->remove( FuncVal() );
+			cyc->prune( FuncVal() );
 			}
 		}
 	else if ( type == TYPE_RECORD )
@@ -2001,6 +2001,76 @@ int IValue::SoftDelete( )
 	return 0;
 	}
 
+void IValue::PreDelete( )
+	{
+	Unref( unref );
+	unref = 0;
+	}
+
+
+void IValue::SetUnref( observed_list *r, int propagate_only )
+	{
+	if ( r )
+		{
+		if ( unref && r != unref)
+			{
+			if ( mUNREF(mask) && propagate_only || ! mUNREF(mask) && ! propagate_only )
+				{
+				// we've got a mix of propagate and Unref()
+				fprintf( stderr, "Uh Oh!!! %s(0x%x)=>%s(0x%x)\n", mUNREF(mask)?"unref":"propagate",unref,propagate_only?"propagate":"unref",r );
+				ClearUnref( );
+				}
+			else
+				{
+				if ( ! propagate_only && ! mUNREF(mask) )
+					mask |=  mUNREF();
+				unref->AppendList( r );
+				return;
+				}
+			}
+
+		unref = r;
+		unref->RegisterOwner( this );
+
+		mask |=  mPROPAGATE();
+
+		if ( ! propagate_only && ! mUNREF(mask) )
+			{
+			mask |=  mUNREF();
+			Ref( unref );
+			}
+		}
+	}
+
+void IValue::ClearUnref( )
+	{
+	if ( unref )
+		{
+		if ( mUNREF(mask) ) Unref( unref );
+		mask &= ~ (mUNREF() | mPROPAGATE());
+		unref = 0;
+		}
+	}
+
+void IValue::TakeValue( Value* new_value, Str &err )
+	{
+	IValue *nv = (IValue*) new_value->Deref();
+
+	if ( nv == this )
+		{
+		err = strFail( "reference loop created" );
+		return;
+		}
+
+	if ( unref ) ClearUnref( );
+
+	mask = nv->mask;
+	nv->mask = 0;
+	unref = nv->unref;
+	nv->unref = 0;
+
+	Value::TakeValue( new_value, err );
+	}
 
 void init_ivalues( )
 	{

@@ -17,6 +17,110 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
+int observed_list::IsThisAnObservedList( )
+	{
+	return 1;
+	}
+
+void observed_list::prune( GcRef *r )
+	{
+	GcRef *x = remove(r);
+	if ( x ) pruned.append(x);
+	}
+
+void observed_list::AppendList( observed_list *root_list )
+	{
+	Ref( root_list );
+	append( root_list );
+	root_list->RegisterOwner(this);
+	}
+
+static observed_list *cycle_roots;
+static void AddCycleRoot( UserFunc *root )
+	{
+	if ( ! root ) return;
+	if ( ! cycle_roots ) cycle_roots = new observed_list;
+	cycle_roots->append( root );
+	root->watched_by( cycle_roots );
+	}
+
+void observed_list::ObservedGone( GcRef *o )
+	{
+	remove(o);
+	pruned.remove(o);
+	}
+
+void observed_list::RegisterOwner( IValue *v )
+	{
+	if ( ! owners.is_member(v) ) owners.append(v);
+	}
+
+void observed_list::UnregisterOwner( IValue *v )
+	{
+	owners.remove(v);
+	}
+
+void observed_list::RegisterOwner( observed_list *v )
+	{
+	if ( ! lowners.is_member(v) ) lowners.append(v);
+	}
+
+void observed_list::UnregisterOwner( observed_list *v )
+	{
+	lowners.remove(v);
+	}
+
+void observed_list::UnrefGone( observed_list *u )
+	{
+	remove(u);
+	pruned.remove(u);
+	}
+
+// If this is called, it means we were added to another
+// root_list (which means we were Ref()ed...
+void observed_list::ObserverGone( GcRef *o )
+	{
+	Unref(this);
+	}
+
+observed_list::~observed_list( )
+	{
+	for ( int i = 0; i < num_entries; i++ )
+		((GcRef*)entry[i])->ObserverGone(this);
+
+	for ( int j = 0; j < pruned.length(); ++j )
+		pruned[j]->ObserverGone(this);
+
+	for ( int k = 0; k < owners.length(); ++k )
+		owners[k]->UnrefGone( this );
+
+	for ( int l = 0; l < lowners.length(); ++l )
+		((observed_list*)lowners[l])->UnrefGone( this );
+	}
+
+Observed::~Observed( )
+	{
+	loop_over_list( observers, x )
+		observers[x]->ObservedGone( this );
+	}
+
+void Observed::watched_by( GcRef *o )
+	{
+	if ( ! observers.is_member(o) )
+		observers.append(o);
+	}
+
+void Observed::ObserverGone( GcRef *o )
+	{
+
+	observers.remove(o);
+	}
+
+void Observed::ObserverChanged( GcRef *Old, GcRef *New )
+	{
+	observers.swap( Old, New );
+	}
+
 Parameter::~Parameter()
 	{
 	NodeUnref( arg );
@@ -596,14 +700,13 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	unsigned short old_file_name = file_name;
 	file_name = file;
 
-	ref_list *old_cycle_roots = cycle_roots;
+	observed_list *old_cycle_roots = cycle_roots;
 	cycle_roots = 0;
 
 	IValue* result = body->Exec( flow );
 
-	if ( cycle_roots )
+	if ( cycle_roots && cycle_roots->length() > 0 )
 		{
-
 		cycle_roots->set_finalize_handler( list_element_unref );
 		if ( result && result->PropagateCycles( cycle_roots ) > 0 )
 			{
@@ -634,7 +737,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 							// come back to bite us when we're not paying attention, though...
 							IValue *X = (IValue*) v->Deref();
 							X->SetUnref( cycle_roots );
-							X->MarkFrame();
+							X->MarkSoftDel();
 							Unref(X);
 							}
 						}
@@ -661,13 +764,9 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 					if ( v && v->PropagateCycles( cycle_roots ) > 0 )
 						{
 						Frame *frame = sequencer->GetFuncFrame( off );
-						ref_list *cyc = frame->GetCycleRoots( );
+						observed_list *cyc = frame->GetCycleRoots( );
 						if ( cyc ) 
-							{
-							cyc->append( cycle_roots );
-							Ref( cycle_roots );
-							cycle_roots->MarkFrame();
-							}
+							cyc->AppendList( cycle_roots );
 						else
 							v->SetUnref( cycle_roots );
 						}
@@ -677,16 +776,15 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 
 		if ( opt.getfc() > 1 )
 			{
-			if ( ! old_cycle_roots ) old_cycle_roots = new ref_list;
+			if ( ! old_cycle_roots ) old_cycle_roots = new observed_list;
 			old_cycle_roots->append( cycle_roots );
-			cycle_roots->MarkFrame();
+			cycle_roots->MarkSoftDel();
 			Ref( cycle_roots );
 			}
 
-		Unref( cycle_roots );
-		cycle_roots = 0;
 		}
 
+	Unref( cycle_roots );
 	cycle_roots = old_cycle_roots;
 	file_name = old_file_name;
 

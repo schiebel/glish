@@ -1,60 +1,15 @@
 #include <sos/ref.h>
 #include <stdio.h>
 
-sos_declare(PList,void);
-typedef PList(void) void_list;
-
-GcRef *current_cycle = 0;
-ref_list *GcRef::cycle_roots = 0;
-
-GcRef::GcRef( const GcRef &r ) : unref(0), mask(0), ref_count(1)
+int GcRef::IsThisAnObservedList( )
 	{
-	if ( r.doPropagate( ) )
-		SetUnref( r.unref );
-	}
-
-void GcRef::AddCycleRoot( GcRef *root )
-	{
-	if ( ! cycle_roots ) cycle_roots = new ref_list;
-	cycle_roots->append( root );
-	}
-
-void GcRef::SetUnref( GcRef *r, int propagate_only )
-	{
-	if ( r )
-		{
-		if ( unref && (mUNREF(mask) || mPROPAGATE(mask) && unref != r) )
-			{
-			fprintf( stderr, "Uh Oh!!!\n" );
-			ClearUnref( );
-			}
-
-		unref = r;
-		mask |=  mPROPAGATE();
-
-		if ( ! propagate_only && ! mUNREF(mask) )
-			{
-			mask |=  mUNREF();
-			Ref( unref );
-			}
-		}
-	}
-
-void GcRef::ClearUnref( )
-	{
-	if ( unref )
-		{
-		if ( mUNREF(mask) ) Unref( unref );
-		mask &= ~ (mUNREF() | mPROPAGATE());
-		unref = 0;
-		}
+	return 0;
 	}
 
 void GcRef::unref_revert( )
 	{
-	if ( unref && doPropagate() && ! doUnref() )
+	if ( doPropagate() && ! doUnref() )
 		{
-// 		Ref(unref);
 		if ( ref_count-1 > 0xFFFF >> 4 )
 			{
 			// Here we just can't revert to the no-unref status
@@ -81,6 +36,26 @@ int GcRef::SoftDelete( )
 	return 0;
 	}
 
+void GcRef::PreDelete( )
+	{
+	fprintf( stderr, "\nPRE-DELETE REQUIRED\n" );
+	}
+
+void GcRef::ObservedGone( GcRef * )
+	{
+	fprintf( stderr, "\nOBSERVED GONE REQUIRED\n" );
+	}
+
+void GcRef::ObserverGone( GcRef * )
+	{
+	fprintf( stderr, "\nOBSERVER GONE REQUIRED\n" );
+	}
+
+void GcRef::ObserverChanged( GcRef *, GcRef * )
+	{
+	fprintf( stderr, "\nOBSERVER CHANGED REQUIRED\n" );
+	}
+
 GcRef::~GcRef() { }
 
 void sos_do_unref( GcRef *object )
@@ -92,9 +67,9 @@ void sos_do_unref( GcRef *object )
 		}
 	else
 		{
-		if ( object->doUnref() ) Unref( object->unref );
+		if ( object->doUnref() ) object->PreDelete( );
 
-		if ( object->FrameMember( ) )
+		if ( object->doSoftDelete( ) )
 			{
 			if ( object->SoftDelete( ) ) delete object;
 			}
