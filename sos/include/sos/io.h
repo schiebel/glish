@@ -20,6 +20,8 @@ typedef const char* charptr;
 #endif
 #endif
 
+typedef void (*final_func)(void*);
+
 class sos_status {
     public:
 	enum Type { WRITE, READ, UNKNOWN };
@@ -30,6 +32,7 @@ class sos_status {
 	virtual unsigned int total() { return 0; }
 	virtual unsigned int remaining() { return 0; }
 
+	virtual void finalize( final_func, void * ) { }
 	virtual sos_status *resume( ) { return 0; }
 };
 
@@ -87,6 +90,8 @@ class sos_fd_sink : public sos_sink {
 	sos_fd_sink( int fd_ = -1 );
 	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
 	sos_status *flush( );
+
+	void finalize( final_func, void * );
 	sos_status *resume( ) { return flush(); }
 
 	//

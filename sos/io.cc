@@ -50,6 +50,14 @@ extern "C" int writev(int, const struct iovec *, int);
 
 sos_status *sos_err_status = (sos_status*) -1;
 
+struct final_info {
+	final_info( final_func f, void * d ) : func(f), data(d) { }
+	final_func func;
+	void *data;
+};
+
+sos_declare(PList,final_info);
+typedef PList(final_info) finalize_list;
 
 struct sos_fd_buf_kernel {
 
@@ -75,6 +83,14 @@ struct sos_fd_buf_kernel {
 	static unsigned int tmp_cnt;
 	static unsigned int tmp_size;
 	static unsigned int size;
+
+	// Finalize functions, set by user.
+	// In glish, these are used to clean up values which
+	// were Ref()ed to prevent them from being modified
+	// before they could be written out.
+	void finalize( final_func f, void *d )
+			{ final_list.append( new final_info( f, d ) ); }
+	finalize_list final_list;
 
     private:
 	char *new_tmp( );
@@ -119,6 +135,14 @@ void sos_fd_buf_kernel::reset( )
 	for ( int x = 0; (unsigned int) x < cnt; x++ )
 		if ( status[x] == sos_sink::FREE )
 			sos_free_memory( iov[x].iov_base );
+
+	while ( final_list.length() > 0 )
+		{
+		final_info *info = final_list.remove_nth(final_list.length()-1);
+		(*info->func)(info->data);
+		delete info;
+		}
+
 	cnt = 0;
 	tmp_cur = 0;
 	total = 0;
@@ -305,6 +329,11 @@ void sos_fd_sink::NAME( )						\
 
 DEFINE_FDBLOCK(block,& ~)
 DEFINE_FDBLOCK(nonblock, |)
+
+void sos_fd_sink::finalize( final_func f, void *data )
+	{
+	buf.last()->finalize( f, data );
+	}
 
 sos_fd_sink::~sos_fd_sink()
 	{

@@ -263,14 +263,13 @@ class LocalClientSelectee : public Selectee {
 // for some reason (likely the result of the pipe filling up).
 class SendSelectee : public Selectee {
     public:
-	SendSelectee( Selector *s, sos_status *ss_, Value *v, Selectee *old_ = 0 );
+	SendSelectee( Selector *s, sos_status *ss_, Selectee *old_ = 0 );
 	int NotifyOfSelection();
 
     protected:
 	Selector *selector;
 	Selectee *old;
 	sos_status *ss;
-	Value *val;
 	};
 
 
@@ -2588,11 +2587,19 @@ IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 	}
 
 
+void unref_suspended_value( void *val_ )
+	{
+	Unref( (Value*) val_ );
+	}
+
 void Sequencer::SendSuspended( sos_status *ss, Value *v )
 	{
 	if ( ! ss ) return;
-	Selectee *old_selectee = selector->FindSelectee( ss->fd() );
-	selector->AddSelectee( new SendSelectee( selector, ss, v, old_selectee ) );
+	ss->finalize( unref_suspended_value, v );
+
+	Selectee *old = selector->FindSelectee( ss->fd() );
+	if ( old->type() != Selectee::WRITE )
+		selector->AddSelectee( new SendSelectee( selector, ss, old ) );
 	}
 
 Channel* Sequencer::AddLocalClient( int read_fd, int write_fd )
@@ -3528,12 +3535,11 @@ int LocalClientSelectee::NotifyOfSelection()
 	}
 
 
-SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Value *v, Selectee *old_ ) : 
+SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Selectee *old_ ) : 
 				Selectee( ss_->fd(), Selectee::WRITE )
 	{
 	selector = s;
 	ss = ss_;
-	val = v;
 	old = old_;
 	}
 
@@ -3541,9 +3547,9 @@ int SendSelectee::NotifyOfSelection()
 	{
 	if ( ! ss->resume( ) )
 		{
-		selector->DeleteSelectee( ss->fd() );
+		Selectee *cur = selector->FindSelectee( ss->fd() );
 		if ( old ) selector->AddSelectee( old );
-		delete val;
+		delete cur;
 		}
 
 	return 0;
