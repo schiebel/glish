@@ -28,11 +28,7 @@ RCSID("@(#) $Id$")
 
 const char *glish_charptrdummy = 0;
 
-extern int collect_cycles;
-void ivalue_copy_happening( void *p )
-	{
-	if ( collect_cycles ) fprintf( stderr, "copy=> 0x%x\n", p );
-	}
+void ivalue_copy_happening( void *p ) { }
 
 void copy_agents( void *to_, void *from_, size_t len )
 	{
@@ -50,7 +46,6 @@ void delete_agents( void *ary_, size_t len )
 			Unref( ary[i] );
 	}
 
-extern int collect_cycles;
 void copy_funcs( void *to_, void *from_, size_t len )
 	{
 	funcptr *to = (funcptr*) to_;
@@ -58,7 +53,6 @@ void copy_funcs( void *to_, void *from_, size_t len )
 	copy_array(from,to,(int)len,funcptr);
 	for (unsigned int i = 0; i < len; i++)
 		{
-		if ( collect_cycles ) fprintf(stderr,"copy=> 0x%x/0x%x\n", to[i], &to[i]);
 		if ( to[i] ) to[i]->AddZero(&to[i]);
 		if ( to[i] ) Ref(to[i]);
 		}
@@ -68,8 +62,6 @@ void delete_funcs( void *ary_, size_t len )
 	funcptr *ary = (funcptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
 		{
-		if ( collect_cycles ) fprintf(stderr,"delete=> 0x%x/0x%x\n", ary[i], &ary[i]);
-// 		if ( ary[i] ) ary[i]->RemoveZero(&ary[i]);
 		if ( ary[i] ) Unref(ary[i]);
 		}
 	}
@@ -211,13 +203,11 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC)
 	funcptr *ary = alloc_funcptr( 1 );
 	copy_array(&value,ary,1,funcptr);
 	value->AddZero( ary );
-	if ( collect_cycles ) fprintf(stderr,"ctor#1=> 0x%x/0x%x\n", value, ary);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
 	}
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC)
 	{
-	if ( collect_cycles ) fprintf(stderr,"ctor#2=> 0x%x\n", value);
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 

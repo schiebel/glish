@@ -11,8 +11,6 @@ RCSID("@(#) $Id$")
 #include <strstream.h>
 #include "system.h"
 
-int collect_cycles = 0;
-
 class sos_out;
 class sos_header;
 class ProxyId;

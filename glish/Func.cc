@@ -17,7 +17,6 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
-int collect_cycles = 0;
 Parameter::~Parameter()
 	{
 	NodeUnref( arg );
@@ -200,8 +199,7 @@ void UserFunc::EstablishScope()
 		{
 		scope_established = 1;
 		stack = sequencer->LocalFrames();
-		if ( stack && collect_cycles )
-			AddCycleRoot( this );
+		if ( stack ) AddCycleRoot( this );
 		}
 	}
 

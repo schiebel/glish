@@ -125,14 +125,12 @@ void GcRef::RemoveZero( void *p )
 		}
 	}
 
-extern int collect_cycles;
 void GcRef::do_zero( )
 	{
 	if ( zero )
 		{
 		if ( mZERO(mask) )
 			{
-			if ( collect_cycles ) fprintf(stderr, "zero=> 0x%x/0x%x\n", *((void**)zero), zero );
 			*((void**)zero) = 0;
 			}
 		else if ( mZEROLIST(mask) )
