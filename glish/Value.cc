@@ -711,6 +711,30 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 	buf_ptr += size_of_addition;
 	}
 
+static const char *print_decimal_prec( const attributeptr attr )
+	{
+	unsigned int limit = 0, tmp = 0;
+	const Value *val;
+	static char prec[64];
+	if ( attr && (val = (*attr)["print_decimal_prec"]) && val->IsNumeric() &&
+			(tmp = val->IntVal()) >= 0 )
+		limit = tmp;
+	else
+		if ( (val = Sequencer::LookupVal( "system" )) && 
+			val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "print_decimal_prec" ) )
+			{
+			const Value *limitVal = val->ExistingRecordElement( "print_decimal_prec" );
+			if ( limitVal != false_value && limitVal->IsNumeric() &&
+					(tmp = limitVal->IntVal()) >= 0 )
+				limit = tmp;
+			}
+	if ( limit )
+		sprintf(prec,"%%.%df",limit);
+
+	return limit ? prec : "%g";
+	}
+
 char* Value::StringVal( char sep, unsigned int max_elements,
 			int useAttributes ) const
 	{
@@ -767,23 +791,25 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 	complex* complex_ptr;
 	dcomplex* dcomplex_ptr;
 	charptr* string_ptr;
+	const char *flt_prec;
 
 	switch ( VecRefDeref()->type )
 		{
-#define ASSIGN_PTR(tag,ptr_name,source)					\
+#define ASSIGN_PTR(tag,ptr_name,source,extra)				\
 	case tag:							\
 		ptr_name = source;					\
+		extra							\
 		break;
 
-		ASSIGN_PTR(TYPE_BOOL,bool_ptr,BoolPtr())
-		ASSIGN_PTR(TYPE_INT,int_ptr,IntPtr())
-		ASSIGN_PTR(TYPE_BYTE,byte_ptr,BytePtr())
-		ASSIGN_PTR(TYPE_SHORT,short_ptr,ShortPtr())
-		ASSIGN_PTR(TYPE_FLOAT,float_ptr,FloatPtr())
-		ASSIGN_PTR(TYPE_DOUBLE,double_ptr,DoublePtr())
-		ASSIGN_PTR(TYPE_COMPLEX,complex_ptr,ComplexPtr())
-		ASSIGN_PTR(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr())
-		ASSIGN_PTR(TYPE_STRING,string_ptr,StringPtr())
+		ASSIGN_PTR(TYPE_BOOL,bool_ptr,BoolPtr(),)
+		ASSIGN_PTR(TYPE_INT,int_ptr,IntPtr(),)
+		ASSIGN_PTR(TYPE_BYTE,byte_ptr,BytePtr(),)
+		ASSIGN_PTR(TYPE_SHORT,short_ptr,ShortPtr(),)
+		ASSIGN_PTR(TYPE_FLOAT,float_ptr,FloatPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_DOUBLE,double_ptr,DoublePtr(),flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_COMPLEX,complex_ptr,ComplexPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr(),flt_prec = print_decimal_prec( AttributePtr() );)
+		ASSIGN_PTR(TYPE_STRING,string_ptr,StringPtr(),)
 
 		default:
 			fatal->Report( "bad type in Value::StringVal()" );
@@ -791,7 +817,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 
 
 // Macro to generate the text corresponding to a single element of a given type.
-#define PLACE_ELEMENT_ACTION(buffer,str_buffer,indx)			\
+#define PLACE_ELEMENT_ACTION(buffer,str_buffer,indx,FLOAT_PRECISION)	\
 	case TYPE_BOOL:							\
 		strcpy( buffer, bool_ptr[indx] ? "T" : "F" );		\
 		break;							\
@@ -809,23 +835,35 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		break;							\
 									\
 	case TYPE_FLOAT:						\
-		sprintf( buffer, "%g", float_ptr[indx] );		\
+		sprintf( buffer, FLOAT_PRECISION, float_ptr[indx] );	\
 		break;							\
 									\
 	case TYPE_DOUBLE:						\
-		sprintf( buffer, "%g", double_ptr[indx] );		\
+		sprintf( buffer, FLOAT_PRECISION, double_ptr[indx] );	\
 		break;							\
 									\
 	case TYPE_COMPLEX:						\
-		sprintf( buffer, complex_ptr[indx].i >= 0.0 ? 		\
-				"%g+%gi" : "%g%gi", complex_ptr[indx].r,\
-				complex_ptr[indx].i );			\
+		{							\
+		char t[64];						\
+		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].r );	\
+		strcat( buffer, t);					\
+		if ( complex_ptr[indx].i >= 0.0 ) 			\
+			strcat( buffer, "+" );				\
+		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].i );	\
+		strcat( buffer, t);					\
+		}							\
 		break;							\
 									\
 	case TYPE_DCOMPLEX:						\
-		sprintf( buffer, dcomplex_ptr[indx].i >= 0.0 ?		\
-				"%g+%gi":"%g%gi",dcomplex_ptr[indx].r,	\
-				dcomplex_ptr[indx].i);			\
+		{							\
+		char t[64];						\
+		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].r );	\
+		strcat( buffer, t);					\
+		if ( dcomplex_ptr[indx].i >= 0.0 ) 			\
+			strcat( buffer, "+" );				\
+		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].i );	\
+		strcat( buffer, t);					\
+		}							\
 		break;							\
 									\
 	case TYPE_STRING:						\
@@ -837,7 +875,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 #define PLACE_ELEMENT(buffer,str_buffer,indx,alloced)			\
 	switch ( type )							\
 		{							\
-		PLACE_ELEMENT_ACTION(buffer,str_buffer,indx)		\
+		PLACE_ELEMENT_ACTION(buffer,str_buffer,indx,flt_prec)	\
 									\
 		case TYPE_SUBVEC_REF:					\
 		case TYPE_SUBVEC_CONST:					\
@@ -853,7 +891,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 				}					\
 			switch ( ref->Type() )				\
 				{					\
-				PLACE_ELEMENT_ACTION(buffer,str_buffer,index)\
+				PLACE_ELEMENT_ACTION(buffer,str_buffer,index,flt_prec)\
 									\
 				default:				\
 					fatal->Report(			\
