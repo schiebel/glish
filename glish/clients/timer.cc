@@ -489,6 +489,8 @@ int main( int argc, char** argv )
 				Value ret( tags, val->Length() );
 				if ( e->IsRequest() )
 					c.Reply( &ret );
+				else
+					c.PostEvent( "tag", &ret );
 
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
