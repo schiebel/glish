@@ -1045,4 +1045,4 @@ AC_SUBST(MAKE_SLIB)
 
 AC_SUBST(TKCLIENT_LIBS)
 
-AC_OUTPUT($ARCH/Makefile:Makefile.in tkpgplot/$ARCH/Makefile:tkpgplot/Makefile.in)
+AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/Makefile.in)

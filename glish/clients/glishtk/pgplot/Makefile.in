@@ -90,8 +90,8 @@ gPgplot$(SUFFIX): $(OBJS)
 	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	fi
 
-$(SCRIPTDIR_P)/pgplot.g: $(SRC)/pgplot.g
-	$(INSTALL_DATA) $(SRC)/pgplot.g $(SCRIPTDIR_P)
+$(SCRIPTDIR_P)/pgplot.g: pgplot.g
+	$(INSTALL_DATA) pgplot.g $(SCRIPTDIR_P)
 
 $(SCRIPTDIR)/pgplot.g: $(SRC)/pgplot.g
 	$(INSTALL_DATA) $(SRC)/pgplot.g $(SCRIPTDIR)
