@@ -1596,8 +1596,8 @@ IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	{
 	struct mallinfo info = mallinfo();
 	recordptr rec = create_record_dict();
-	rec->Insert(strdup("used"),new IValue(info.uordblks));
-	rec->Insert(strdup("unused"),new IValue(info.fordblks));
+	rec->Insert(strdup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
+	rec->Insert(strdup("unused"),new IValue(info.fordblks + info.fsmblks));
 	return new IValue( rec );
 	}
 
@@ -1817,8 +1817,8 @@ IValue* TkBuiltIns::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 
-	if ( args_val->length() != 1 )
-		return (IValue*) Fail( this, " requires one argument");
+	if ( args_val->length() != 1 && args_val->length() != 2 )
+		return (IValue*) Fail( this, " requires one or two arguments");
 
 	const IValue* arg = (*args_val)[0];
 	if ( arg->Type() != TYPE_INT )
@@ -1836,6 +1836,15 @@ IValue* TkBuiltIns::DoCall( const_args_list* args_val )
 		case 3:
 			TkAgent::ReleaseEvents();
 			break;
+		case 4:
+			{
+			const IValue* path = (*args_val)[1];
+			if ( path->Type() != TYPE_STRING )
+				return (IValue*) Fail( this, " requires one string argument");
+
+			TkAgent::SetBitmapPath( path );
+			break;
+			}
 		default:
 			ret = new IValue( glish_false );
 		}

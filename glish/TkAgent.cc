@@ -32,6 +32,7 @@ PQueue(glishtk_event) *TkAgent::tk_queue = 0;
 int TkAgent::hold_tk_events = 0;
 int TkAgent::hold_glish_events = 0;
 IValue *TkAgent::last_error = 0;
+IValue *TkAgent::bitmap_path = 0;
 
 extern IValue *glishtk_valcast( char * );
 
@@ -577,12 +578,23 @@ char *glishtk_onedim(Rivetobj self, const char *cmd, parameter_list *args,
 	{
 	char *ret = 0;
 	char *event_name = "one dim function";
-	HASARG( args, > 0 )
-	int c = 0;
-	EXPRDIM( dim, event_name )
-	ret = (char*) rivet_set( self, (char*) cmd, (char*) dim );
-	EXPR_DONE( dim )
+	if ( args->length() > 0 )
+		{
+		int c = 0;
+		EXPRDIM( dim, event_name )
+		ret = (char*) rivet_set( self, (char*) cmd, (char*) dim );
+		EXPR_DONE( dim )
+		}
+	else
+		ret = rivet_va_cmd(self, "cget", cmd, 0);
+
 	return ret;
+	}
+
+char *glishtk_winfo(Rivetobj self, const char *cmd, parameter_list *args,
+				int, int )
+	{
+	return (char*) rivet_va_func( self, (int (*)()) Tk_WinfoCmd, (char*) cmd, rivet_path(self), 0 );
 	}
 
 char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
@@ -622,11 +634,18 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, parameter_list *args,
 	{
 	char *ret = 0;
 	char *event_name = "one int function";
-	HASARG( args, > 0 )
-	int c = 0;
-	EXPRINT2( i, event_name )
-	ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
-	EXPR_DONE( i )
+
+	if ( args->length() > 0 )
+		{
+		HASARG( args, > 0 )
+		int c = 0;
+		EXPRINT2( i, event_name )
+		ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
+		EXPR_DONE( i )
+		}
+	else
+		ret = rivet_va_cmd(self, "cget", cmd, 0);
+
 	return ret;
 	}
 
@@ -647,11 +666,17 @@ char *glishtk_onedouble(Rivetobj self, const char *cmd, parameter_list *args,
 	{
 	char *ret = 0;
 	char *event_name = "one double function";
-	HASARG( args, > 0 )
-	int c = 0;
-	EXPRDOUBLE2( i, event_name )
-	ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
-	EXPR_DONE( i )
+	if ( args->length() > 0 )
+		{
+		HASARG( args, > 0 )
+		int c = 0;
+		EXPRDOUBLE2( i, event_name )
+		ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
+		EXPR_DONE( i )
+		}
+	else
+		ret = rivet_va_cmd(self, "cget", cmd, 0);
+
 	return ret;
 	}
 
@@ -1263,6 +1288,11 @@ IValue *glishtk_strtobool( char *str )
 		return new IValue( glish_false );
 	}
 
+IValue *glishtk_strtoint( char *str )
+	{
+	return new IValue( atoi(str) );
+	}
+
 IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	{
 	char *val = 0;
@@ -1377,6 +1407,43 @@ int TkAgent::DoOneTkEvent( )
 	return ret;
 	}
 
+void TkAgent::SetBitmapPath( const IValue *p )
+	{
+	if ( p->Type() == TYPE_STRING )
+		{
+		if ( bitmap_path ) Unref( bitmap_path );
+		bitmap_path = new IValue( *p );
+		}
+	}
+
+char *TkAgent::which_bitmap( const char* filename )
+	{
+	charptr *paths = bitmap_path ? bitmap_path->StringPtr() : 0;
+	int len = bitmap_path ? bitmap_path->Length() : 0;
+
+	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
+		{
+		if ( access( filename, R_OK ) == 0 )
+			return strdup( filename );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < len; i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			{
+			sprintf( directory, "%s/%s", paths[i], filename );
+
+			if ( access( directory, R_OK ) == 0 )
+				return strdup( directory );
+			}
+
+	return 0;
+	}
+
+
 static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
 int glishtk_xioerror_handler(Display *d)
 	{
@@ -1449,7 +1516,9 @@ TkAgent::TkAgent( Sequencer *s ) : Agent( s ), dont_map( 0 ), disable_count(0)
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr));
 	procs.Insert("foreground", new TkProc("-fg", glishtk_onestr));
 	procs.Insert("relief", new TkProc("-relief", glishtk_onestr));
-	procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim));
+	procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("pixelwidth", new TkProc("width",glishtk_winfo, glishtk_strtoint));
+	procs.Insert("pixelheight", new TkProc("height",glishtk_winfo, glishtk_strtoint));
 	}
 
 
@@ -1747,13 +1816,18 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		      "WM_DELETE_WINDOW",rivet_new_callback( (int (*)()) glishtk_delframe_cb,
 							     (ClientData) this, 0), 0 );
 
-	if ( strlen( icon ) )
+	if ( icon && strlen( icon ) )
 		{
-		char *icon_ = (char*) alloc_memory(strlen(icon)+2);
-		sprintf(icon_,"@%s",icon);
-		rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
-			      rivet_path((pseudo ? pseudo : root)),icon_, 0);
-		free_memory( icon_ );
+		char *expanded = which_bitmap(icon);
+		if ( expanded )
+			{
+			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
+			sprintf(icon_,"@%s",expanded);
+			rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
+				      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+			free_memory( expanded );
+			free_memory( icon_ );
+			}
 		}
 
 	//
@@ -2540,7 +2614,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const IValue *val, charptr anchor,
-		    charptr fill_, TkRadioContainer *group )
+		    charptr fill_, charptr bitmap_, TkRadioContainer *group )
 			: TkRadioContainer( s ), value(0), state(0), menu(0), radio(group),
 			  menu_base(0),  next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
@@ -2556,6 +2630,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	char height_[30];
 	char var_name[256];
 	char val_name[256];
+	char *bitmap = 0;
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
@@ -2586,14 +2661,32 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	argv[c++] = (char*) padx;
 	argv[c++] = "-pady";
 	argv[c++] = (char*) pady;
-	argv[c++] = "-width";
-	argv[c++] = width_;
-	argv[c++] = "-height";
-	argv[c++] = height_;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
-	argv[c++] = "-text";
-	argv[c++] = (char*) label;
+
+	if ( bitmap_ && strlen( bitmap_ ) )
+		{
+		char *expanded = which_bitmap(bitmap_);
+		if ( expanded )
+			{
+			bitmap = (char*) alloc_memory(strlen(expanded)+2);
+			sprintf(bitmap,"@%s",expanded);
+			argv[c++] = "-bitmap";
+			argv[c++] = bitmap;
+			free_memory( expanded );
+			}
+		}
+
+	if ( ! bitmap )
+		{
+		argv[c++] = "-width";
+		argv[c++] = width_;
+		argv[c++] = "-height";
+		argv[c++] = height_;
+		argv[c++] = "-text";
+		argv[c++] = (char*) label;
+		}
+
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
@@ -2645,6 +2738,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 			break;
 		}
 
+	if ( bitmap ) free_memory(bitmap);
+
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 
@@ -2662,10 +2757,10 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	procs.Insert("text", new TkProc("-text", glishtk_onestr));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
-	procs.Insert("height", new TkProc("-height", glishtk_onedim));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
-	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
-	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
+	procs.Insert("height", new TkProc("-height", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
@@ -2678,7 +2773,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_,
 		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
 		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr /*foreground*/,
-		    charptr /*background*/, int disabled, const IValue *val, TkRadioContainer *group )
+		    charptr /*background*/, int disabled, const IValue *val, charptr bitmap_,
+		    TkRadioContainer *group )
 			: TkRadioContainer( s ), value(0), state(0), radio(group),
 			  menu_base(0), next_menu_entry(0), menu_index(0), unmapped(0)
 	{
@@ -2700,6 +2796,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	char height_[30];
 	char var_name[256];
 	char val_name[256];
+	char *bitmap = 0;
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
@@ -2733,15 +2830,34 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	argv[c++] = (char*) padx;
 	argv[c++] = "-pady";
 	argv[c++] = (char*) pady;
-	argv[c++] = "-width";
-	argv[c++] = width_;
-	argv[c++] = "-height";
-	argv[c++] = height_;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 #endif
-	argv[c++] = "-label";
-	argv[c++] = (char*) label;
+
+	if ( bitmap_ && strlen( bitmap_ ) )
+		{
+		char *expanded = which_bitmap(bitmap_);
+		if ( expanded )
+			{
+			bitmap = (char*) alloc_memory(strlen(expanded)+2);
+			sprintf(bitmap,"@%s",expanded);
+			argv[c++] = "-bitmap";
+			argv[c++] = bitmap;
+			free_memory( expanded );
+			}
+		}
+
+	if ( ! bitmap )
+		{
+#if 0
+		argv[c++] = "-width";
+		argv[c++] = width_;
+		argv[c++] = "-height";
+		argv[c++] = height_;
+#endif
+		argv[c++] = "-label";
+		argv[c++] = (char*) label;
+		}
 
 	if ( font[0] )
 		{
@@ -2798,6 +2914,8 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 			break;
 		}
 
+	if ( bitmap ) free_memory(bitmap);
+
 	value = val ? copy_value( val ) : 0;
 #ifdef GGC
 	if ( value ) sequencer->RegisterValue( value );
@@ -2844,8 +2962,8 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
-	if ( args_val->length() != 19 )
-		return InvalidNumberOfArgs(19);
+	if ( args_val->length() != 20 )
+		return InvalidNumberOfArgs(20);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2865,6 +2983,7 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETVAL( val, 1 )
 	SETSTR( anchor )
 	SETSTR( fill )
+	SETSTR( bitmap )
 	SETVAL( group, group->IsAgentRecord() )
 
 
@@ -2878,11 +2997,12 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 		     ((TkButton*)agent)->IsMenu() )
 				ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady,
 						     width, height, justify, font, relief, borderwidth,
-						     foreground, background, disabled, val, (TkRadioContainer*) grp );
+						     foreground, background, disabled, val, bitmap,
+						     (TkRadioContainer*) grp );
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
-					     disabled, val, anchor, fill, (TkRadioContainer*) grp );
+					     disabled, val, anchor, fill, bitmap, (TkRadioContainer*) grp );
 		}
 	else
 		return (IValue*) generate_error("bad parent (or group) type");
@@ -3070,14 +3190,14 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charpt
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("length", new TkProc("-length", glishtk_onedim));
+	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr));
 	procs.Insert("text", new TkProc("-label", glishtk_onestr));
-	procs.Insert("end", new TkProc("-to", glishtk_oneint));
-	procs.Insert("start", new TkProc("-from", glishtk_oneint));
+	procs.Insert("end", new TkProc("-to", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("start", new TkProc("-from", glishtk_oneint, glishtk_strtoint));
 	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
@@ -3264,8 +3384,8 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	frame->Pack();
 
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
-	procs.Insert("height", new TkProc("-height", glishtk_onedim));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("height", new TkProc("-height", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("wrap", new TkProc("-wrap", glishtk_onestr));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
 
@@ -3395,7 +3515,7 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 	procs.Insert("view", new TkProc("", glishtk_scrollbar_update));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
@@ -3515,13 +3635,13 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	frame->Pack();
 
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
-	procs.Insert("height", new TkProc("-height", glishtk_oneint));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint));
+	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	procs.Insert("text", new TkProc("-text", glishtk_onestr));
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
-	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
-	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
+	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
@@ -3650,7 +3770,7 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
 	procs.Insert("show", new TkProc("-show", glishtk_onebool));
 	procs.Insert("get", new TkProc("get", glishtk_nostr, glishtk_splitnl));
@@ -3774,11 +3894,11 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	frame->Pack();
 
 	procs.Insert("text", new TkProc("-text", glishtk_onestr));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
-	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
-	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
+	procs.Insert("padx", new TkProc("-padx", glishtk_onedim, glishtk_strtoint));
+	procs.Insert("pady", new TkProc("-pady", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr));
 	}
@@ -3912,8 +4032,8 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
 	procs.Insert("mode", new TkProc("-selectmode", glishtk_onestr));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
-	procs.Insert("height", new TkProc("-height", glishtk_oneint));
-	procs.Insert("width", new TkProc("-width", glishtk_oneint));
+	procs.Insert("height", new TkProc("-height", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("width", new TkProc("-width", glishtk_oneint, glishtk_strtoint));
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));

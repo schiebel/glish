@@ -180,7 +180,7 @@ DERIVE_SEQUENCER_BUILTIN(EvalBuiltIn,NUM_ARGS_VARIES,"eval")
 // These will move to a client at some point.
 // 
 DERIVE_SEQUENCER_BUILTIN(CreateGraphicBuiltIn,NUM_ARGS_VARIES,"create_graphic")
-DERIVE_BUILTIN(TkBuiltIns,1,"tk_builtin_funcs",)
+DERIVE_BUILTIN(TkBuiltIns,NUM_ARGS_VARIES,"tk_builtin_funcs",)
 
 
 extern char* paste( parameter_list* args );

@@ -200,6 +200,7 @@ class TkAgent : public Agent {
 	static void ReleaseEvents() { hold_tk_events--; }
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );
 	static int DoOneTkEvent( );
+	static void SetBitmapPath( const IValue *p );
 
 	// For some widgets, they must be enabled before an action is performed
 	// otherwise widgets which are disabled will not even accept changes
@@ -232,6 +233,10 @@ class TkAgent : public Agent {
 
 	// For keeping track of last error
 	static IValue *last_error;
+	static IValue *bitmap_path;
+
+	// locate the bitmap file
+	char *which_bitmap( const char * );
 
 	unsigned int enable_state;
 
@@ -342,11 +347,11 @@ class TkButton : public TkRadioContainer {
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const IValue *val, charptr anchor,
-		  charptr fill, TkRadioContainer *group );
+		  charptr fill, charptr bitmap, TkRadioContainer *group );
 	TkButton( Sequencer *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
-		  charptr background, int disabled, const IValue *val,
+		  charptr background, int disabled, const IValue *val, charptr bitmap,
 		  TkRadioContainer *group );
 
 	void UnMap();

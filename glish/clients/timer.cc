@@ -45,8 +45,8 @@ inline int streq( const char* a, const char* b )
 class TimeDesc
     {
     public:
-	TimeDesc( double delay_v, const char *id__ ) :
-			delay_(delay_v), multiple(1), id_(strdup(id__)) { }
+	TimeDesc( double delay_v ) :
+			delay_(delay_v), multiple(1) { }
 	~TimeDesc();
 
 	// which event names are associated with this interval
@@ -63,18 +63,14 @@ class TimeDesc
 	void step( ) { multiple += 1; }
 	void reset( ) { multiple = 1; }
 
-	// debugging info
-	const char *id() const { return id_; }
     private:
 	name_list list;
 	double delay_;	
 	int multiple;
-	char *id_;
     };
 
 TimeDesc::~TimeDesc( )
 	{
-	free_memory( id_ );
 	for ( int i=list.length()-1; i >= 0; --i )
 		free_memory((char*)list[i]);
 	}
@@ -113,14 +109,6 @@ class TimeList
 	int cur;
     };
 
-const char *desc_id()
-	{
-	static char buf[100];
-	static int count = 0;
-	sprintf(buf,"desc%d", ++count);
-	return buf;
-	}
-
 void TimeList::add_time( double val, const char *id )
 	{
 	int count = 0;
@@ -128,13 +116,13 @@ void TimeList::add_time( double val, const char *id )
 
 	if ( count >= times.length() )
 		{
-		times.append( new TimeDesc( val, desc_id() ) );
+		times.append( new TimeDesc( val ) );
 		times[times.length()-1]->names().append(strdup(id));
 		}
 	else
 		{
 		if ( times[count]->delay() > val )
-			times.insert_nth( count, new TimeDesc( val, desc_id() ) );
+			times.insert_nth( count, new TimeDesc( val ) );
 		times[count]->names().append(strdup(id));
 		}
 	}
@@ -159,7 +147,7 @@ void TimeList::dump( FILE *f )
 	{
 	for ( int i=0; i < times.length(); ++i )
 		{
-		fprintf(f, "%s: %f\n\t", times[i]->id(), times[i]->delay());
+		fprintf(f, "%f\n\t", times[i]->delay());
 		for ( int j=0; j < times[i]->names().length(); j++ )
 			fprintf(f, "%s ",times[i]->names()[j]);
 		fprintf(f, "\n");
@@ -221,6 +209,8 @@ Interval::Interval( double d, TimeDesc *td ) : delay_(d), desc_(td), repeat(1)
 		}
 	}
 
+
+enum elapse_options { INIT, USE };
 //
 // This is the "display list" for the timer client
 //
@@ -232,7 +222,7 @@ class IntervalList
 	~IntervalList();
 
 	// build the "display list"
-	void build( );
+	void build( elapse_options op );
 
 	// clear the "display list"
 	void clear( );
@@ -242,7 +232,7 @@ class IntervalList
 
 	// how far are we from the
 	// beginning of the cycle
-	double elapsed( );
+	double elapsed( elapse_options );
 
 	// debugging
 	void dump( FILE *f );
@@ -270,19 +260,20 @@ void IntervalList::clear( )
 		delete list.remove_nth(i);
 	}
 
-double IntervalList::elapsed( )
+double IntervalList::elapsed( elapse_options opt )
 	{
-	double ret = ( start_interval ? start_interval->delay() : 0.0 );
+	static double last;
 
-	for ( int i=0; i < cur; ++i )
-		ret += list[i]->delay();
+	if ( opt == INIT ) last = get_current_time();
+	double cur = get_current_time();
 
+	double ret = cur - last;
 	return ret;
 	}
 
-void IntervalList::build( )
+void IntervalList::build( elapse_options opt )
 	{
-	double off = elapsed( );
+	double off = elapsed( opt );
 
 	clear( );
 
@@ -291,7 +282,7 @@ void IntervalList::build( )
 	tl[0]->reset();
 	double cur_time = tl[0]->delay();
 
-	start_interval = new Interval( (off < cur_time ? cur_time - off : cur_time), tl[0] );
+	start_interval = new Interval( (off > 0.0 && off < cur_time ? cur_time - off : cur_time), tl[0] );
 	tl[0]->step( );
 
 	for ( int i=1; i < tl.length(); ++i )
@@ -370,9 +361,9 @@ Interval *IntervalList::next( )
 void IntervalList::dump( FILE *f )
 	{
 	if ( start_interval )
-		fprintf(f,"S:%s:%f#%u\t",start_interval->desc()->id(), start_interval->delay(),start_interval->number());
+		fprintf(f,"S:%f#%u\t", start_interval->delay(),start_interval->number());
 	for ( int i=0; i < list.length(); ++i )
-		fprintf(f,"%s:%f#%u ",list[i]->desc()->id(), list[i]->delay(),list[i]->number());
+		fprintf(f,"%f#%u ", list[i]->delay(),list[i]->number());
 	fprintf(f,"\n");
 	}
 
@@ -381,32 +372,6 @@ IntervalList::~IntervalList( )
 	for ( int i=list.length()-1; i >= 0; --i )
 		delete list[i];
 	}
-
-#if 0
-int main () 
-	{
-	char buf[200];
-	char name[50];
-	int count=0;
-	TimeList t;
-
-	while ( !feof(stdin) )
-		{
-		gets(buf);
-		sprintf(name,"id%d",++count);
-		t.add_time( atof(buf), name );
-		sprintf(name,"id%d",++count);
-		t.add_time( atof(buf), name );
-		sprintf(name,"id%d",++count);
-		t.add_time( atof(buf), name );
-		}
-
-	t.dump( stdout );
-	IntervalList il(t);
-	il.build( );
-	il.dump( stdout );
-	}
-#endif
 
 //
 //  SOME NOTES:
@@ -440,7 +405,7 @@ int main( int argc, char** argv )
 	fd_set selection_mask;
 	FD_ZERO( &selection_mask );
 
-	ilist.build( );
+	ilist.build( INIT );
 
 	for ( ; ; )
 		{
@@ -473,7 +438,7 @@ int main( int argc, char** argv )
 				tlist.remove_time(cur->desc());
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
-				ilist.build( );
+				ilist.build( USE );
 				}
 			}
 
@@ -491,7 +456,7 @@ int main( int argc, char** argv )
 				tlist.add_time( e->value->DoubleVal(), "" );
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
-				ilist.build( );
+				ilist.build( INIT );
 				}
 
 			else if ( streq( e->name, "sleep" ) )
@@ -524,7 +489,7 @@ int main( int argc, char** argv )
 
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
-				ilist.build( );
+				ilist.build( INIT );
 				}
 
 			else if ( streq( e->name, "unregister" ) )
@@ -537,7 +502,7 @@ int main( int argc, char** argv )
 
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
-				ilist.build( );
+				ilist.build( INIT );
 				}
 
 			else
