@@ -144,8 +144,8 @@ SETTYPE_ACTION(TYPE_DCOMPLEX,dcomplex)
 SETTYPE_ACTION(TYPE_STRING,charptr)
 
 		default:
-			type_bytes = 0;
-			type = TYPE_ERROR;
+			type = new_type;
+			type_bytes = sizeof(voidptr); 
 		}
 	}
 
