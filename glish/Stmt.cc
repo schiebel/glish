@@ -746,8 +746,7 @@ IValue* ActivateStmt::DoExec( evalOpt &opt )
 			if ( ! s )
 				{
 				Unref( index_value );
-				return (IValue*) Fail(i, 
-				"does not designate a valid \"whenever\" statement" );
+				return 0;
 				}
 
 			s->SetActivity( activate );
