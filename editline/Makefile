@@ -1,4 +1,4 @@
-# $Header$
+# $Id$
 
 #
 # Makefile for editline C libraries.
