@@ -98,7 +98,7 @@ dnl## Set up $prefix (fully expanded), and patch the argument
 dnl## list where necessary
 dnl##
 AC_DEFUN(SET_PREFIX,
-[test "x$prefix" = xNONE && prefix=$ac_default_prefix
+[test "x$prefix" = xNONE && prefix="."
 tmp_prefix="$prefix"
 EXPAND_VAR(tmp_prefix)
 if test "$prefix" != "$tmp_prefix"; then
