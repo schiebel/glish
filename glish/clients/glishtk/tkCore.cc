@@ -488,11 +488,7 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 			EXPRVAL( val, event_name )
 			char *s = val->StringVal( ' ', 0, 1 );
 			if ( i != 1 || param )
-				{
-				argv[argc] = (char*) alloc_memory(strlen(s)+3);
-				sprintf(argv[argc],"{%s}", s);
-				++argc;
-				}
+				argv[argc++] = glishtk_quote_string( s );
 			else
 				argv[argc++] = strdup(a->IndexCheck(s));
 			free_memory(s);
