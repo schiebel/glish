@@ -114,9 +114,6 @@ void Sysinfo::update_info( )
     int fd, len;
     char *p;
 
-    int memory_shared;
-    int memory_buffers;
-
     /* get system wide memory usage */
     {
 	char *p;
@@ -134,8 +131,6 @@ void Sysinfo::update_info( )
 	p = skip_token(p);			/* total memory */
 	memory_used = bytetok(strtoul(p, &p, 10));
         memory_free = bytetok(strtoul(p, &p, 10));
-	memory_shared = bytetok(strtoul(p, &p, 10));
-	memory_buffers = bytetok(strtoul(p, &p, 10));
 
 	p = strchr(p, '\n');
 	p = skip_token(p);			/* "Swap:" */

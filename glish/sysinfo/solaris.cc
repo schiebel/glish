@@ -21,7 +21,7 @@
 
 /*
 **
-** LIBS: -lkvm -lkstat
+** LIBS: -lkstat
 **
 **          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
 **
@@ -66,8 +66,6 @@
 #define NO_NPROC
 static kstat_ctl_t *kc = NULL;
 
-static kvm_t *kd;
-
 /* pagetok function is really a pointer to an appropriate function */
 static int pageshift;
 static int (*p_pagetok) (int);
@@ -99,7 +97,7 @@ int pagetok_right(int size)
     return(size >> pageshift);
 }
 
-void Sysinfo::machine_finalize( ) { if ( kd ) kvm_close( kd ); }
+void Sysinfo::machine_finalize( ) { if ( kc ) kstat_close(kc); }
 
 void Sysinfo::machine_initialize( )
 {
