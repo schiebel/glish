@@ -201,7 +201,10 @@ statement:
 			{ $$ = new IfStmt( $3, $6, $8 ); }
 
 	|	TOK_FOR '(' var TOK_IN scoped_expr ')' cont statement
-			{ $$ = new ForStmt( $3, $5, $8 ); }
+			{
+			$$ = new ForStmt( $3->BuildFrameInfo( SCOPE_LHS ),
+							$5, $8 );
+			}
 
 	|	TOK_WHILE '(' scoped_expr ')' cont statement
 			{ $$ = new WhileStmt( $3, $6 ); }
