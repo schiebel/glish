@@ -207,6 +207,8 @@ Interval::Interval( double d, TimeDesc *td ) : delay_(d), desc_(td), repeat(1)
 		val_.tv_sec = (int) delay_;
 		val_.tv_usec = (int) ((delay_ - (int) delay_) * 1000000.0);
 		}
+	else
+		val_.tv_sec = val_.tv_usec = 0;
 	}
 
 
