@@ -218,23 +218,28 @@ strcat(tagstr, STR);							\
 tagstr_cnt += strlen(STR);
 
 #define POINTFUNC_NAMED_ACTION				 		\
+									\
+if ( ! val || val ->Type() != TYPE_STRING ||				\
+	val->Length() <= 0 )						\
+	{								\
+	global_store->Error("bad value: one string + n int function");	\
+	return 0;							\
+	}								\
+									\
 if ( strcmp(key,"tag") )						\
 	{								\
 	Arg_name[name_cnt] = (char*) alloc_memory( 			\
 			sizeof(char)*(strlen(key)+2) );			\
 	sprintf(Arg_name[name_cnt],"-%s",key);				\
-	EXPRSTR( str, event_name )					\
-	Arg_val[name_cnt] = (char*) alloc_memory(strlen(str)+3);		\
+	const char *str = ( val->StringPtr(0) )[0];			\
+	Arg_val[name_cnt] = (char*) alloc_memory(strlen(str)+3);	\
 	sprintf(Arg_val[name_cnt++],"{%s}",str);			\
-	EXPR_DONE( str )						\
 	}								\
 else									\
 	{								\
-	EXPRSTRVAL(str_v,event_name)					\
-	char *str = str_v->StringVal();					\
+	char *str = val->StringVal();					\
 	POINTFUNC_TAG_APPEND(str)					\
 	free_memory( str );						\
-	EXPR_DONE( str_v )						\
 	}
 
 char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
@@ -266,15 +271,35 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 
 		for (int i = 0; i < (*args).Length(); i++)
 			{
+			EXPRVAL(val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
 			else
 				{
-				EXPRINT2( str, event_name )
+			        char buf[30];
+				charptr str = 0;
+				if ( ! val || val->Length() <= 0 )
+					{
+					global_store->Error("bad value: one string + n int function");
+					return 0;
+					}
+
+				if ( val->IsNumeric() )
+					{
+					int iv = val->IntVal();
+					str = buf;
+					sprintf(buf,"%d",iv);
+					}
+				else if ( val->Type() == TYPE_STRING )
+					str = ( val->StringPtr(0) )[0];
+				else
+					{
+					global_store->Error("bad value: one string + n int function");
+					return 0;
+					}
 				Argv[argc++] = strdup(str);
-				EXPR_DONE( str )
 				}
 			}
 		}
@@ -299,6 +324,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
+			EXPRVAL(val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
@@ -323,6 +349,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
+			EXPRVAL(val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
