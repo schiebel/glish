@@ -283,8 +283,14 @@ int Dictionary::Hash( const char* str_, int hash_size ) const
 		2782, 57668, 59323, 3422, 52944, 28390, 29302, 10883, 47521,
 		44699, 54822, 52838 };
 
-	for ( register int i=0; *str && i < 16; i++ )
-		hashval = (hashval << 2) + char_hash[*str++];
+#define HASH( action )						\
+	if ( *str )						\
+		{						\
+		hashval = (hashval << 2) + char_hash[*str++];	\
+		action						\
+		}
+
+	HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(HASH(;))))))))))))))))
 
 	return (int)(hashval % (unsigned int) hash_size);
 	}
