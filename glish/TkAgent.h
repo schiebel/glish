@@ -152,6 +152,7 @@ class TkAgent : public Agent {
 	virtual void UnMap();
 	Rivetobj Self() { return self; }
 	const Rivetobj Self() const { return self; }
+
 	virtual const char **PackInstruction();
 	virtual int CanExpand() const;
     protected:
@@ -201,8 +202,9 @@ class TkFrame : public TkAgent {
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkFrame();
 
-	const char **PackInstruction();
 	const char *Expand() const { return expand; }
+
+	const char **PackInstruction();
 	int CanExpand() const;
 
 	unsigned long RadioID() const { return radio_id; }
@@ -237,7 +239,7 @@ class TkButton : public TkAgent {
 	TkButton( Sequencer *, TkFrame *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
-		  charptr background, int disabled, const IValue *val );
+		  charptr background, int disabled, const IValue *val, charptr fill );
 	TkButton( Sequencer *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
@@ -262,6 +264,10 @@ class TkButton : public TkAgent {
 
 	void ButtonPressed( );
 	static TkAgent *Create( Sequencer *, const_args_list *);
+
+	const char **PackInstruction();
+	int CanExpand() const;
+
 	~TkButton();
     protected:
 	static unsigned long button_count;
@@ -276,6 +282,8 @@ class TkButton : public TkAgent {
 	unsigned long next_menu_entry;	// only used for menu buttons
 	unsigned long radio_id;		// only used for menu buttons
 	tkagent_list entry_list;	// only used for menu buttons
+
+	char *fill;
 	};
 
 class TkScale : public TkAgent {
@@ -289,6 +297,7 @@ class TkScale : public TkAgent {
 	~TkScale();
 
 	const char **PackInstruction();
+	int CanExpand() const;
 
     protected:
 	char *fill;
@@ -303,12 +312,12 @@ class TkText : public TkAgent {
 
 	charptr IndexCheck( charptr );
 	const char **PackInstruction();
+	int CanExpand() const;
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
-	int CanExpand() const;
     protected:
 	char *fill;
 	};
@@ -319,10 +328,10 @@ class TkScrollbar : public TkAgent {
 		     charptr foreground, charptr background );
 
 	const char **PackInstruction();
+	int CanExpand() const;
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	void Scrolled( IValue *data );
-	int CanExpand() const;
 	~TkScrollbar();
 	};
 
@@ -331,10 +340,16 @@ class TkLabel : public TkAgent {
 	TkLabel( Sequencer *, TkFrame *, charptr text,
 		 charptr justify, charptr padx, charptr pady, int width,
 		 charptr font, charptr relief, charptr borderwidth,
-		 charptr foreground, charptr background );
+		 charptr foreground, charptr background, charptr fill );
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	~TkLabel();
+
+	const char **PackInstruction();
+	int CanExpand() const;
+
+    protected:
+	char *fill;
 	};
 
 class TkEntry : public TkAgent {
@@ -352,6 +367,7 @@ class TkEntry : public TkAgent {
 	void xScrolled( const double *firstlast );
 
 	const char **PackInstruction();
+	int CanExpand() const;
 
 	~TkEntry();
     protected:
@@ -364,11 +380,18 @@ class TkMessage : public TkAgent {
 	TkMessage( Sequencer *, TkFrame *, charptr text, charptr width,
 		   charptr justify, charptr font, charptr padx, charptr pady,
 		   charptr relief, charptr borderwidth,
-		   charptr foreground, charptr background );
+		   charptr foreground, charptr background, charptr fill );
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 
 	~TkMessage();
+
+	const char **PackInstruction();
+	int CanExpand() const;
+
+    protected:
+	char *fill;
+
 	};
 
 class TkListbox : public TkAgent {
@@ -386,6 +409,7 @@ class TkListbox : public TkAgent {
 	static TkAgent *Create( Sequencer *, const_args_list *);
 
 	const char **PackInstruction();
+	int CanExpand() const;
 
 	~TkListbox();
 

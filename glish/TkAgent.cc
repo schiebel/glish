@@ -203,9 +203,9 @@ char **glishtk_splitsp_str( char *sel, int &cnt )
 
 inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 	{
-	for (int i=0; i < argc; i++)
-		cout << (argv[i] ? argv[i] : "\\0") << " ";
-	cout << endl;
+// 	for (int i=0; i < argc; i++)
+// 		cout << (argv[i] ? argv[i] : "pack") << " ";
+// 	cout << endl;
 	rivet_func(root,(int (*)())Tk_PackCmd,argc,argv);
 	}
 
@@ -362,7 +362,10 @@ static TkAgent *InvalidNumberOfArgs( int num )
 CLASS::~CLASS( )					\
 	{						\
 	if ( frame )					\
+		{					\
 		frame->RemoveElement( this );		\
+		frame->Pack();				\
+		}					\
 	UnMap();					\
 	}
 
@@ -1425,13 +1428,9 @@ const char **TkFrame::PackInstruction()
 		ret[c++] = "-fill";
 		ret[c++] = expand;
 
-// 		cout << (expand ? expand : "0") << "/" << (! frame ? "N" : frame->expand ? frame->expand : "0")  << "," << ExpandNum() << "/" << (!frame ? 0 : frame->ExpandNum()) << "," << CanExpand() << "/" << (!frame ? 0 : frame->CanExpand()) << endl;
-
 		if ( ! frame || ! strcmp(expand,"both") || 
 		     strcmp(frame->expand,"both") && ExpandNum() ||
 		     frame->CanExpand() && frame->ExpandNum(this) == 0 )
-// 		if ( ! frame || ! strcmp(expand,"both") || 
-// 		     strcmp(frame->expand,"both") && ExpandNum() )
 			{
 			ret[c++] = "-expand";
 			ret[c++] = "true";
@@ -1453,8 +1452,6 @@ int TkFrame::CanExpand() const
 	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") || 
 				strcmp(frame->expand,"both") && ExpandNum() ) ||
 				frame->CanExpand() && frame->ExpandNum(this) == 0 )
-// 	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") || 
-// 				strcmp(frame->expand,"both") && ExpandNum() ) )
 		return 1;
 
 	return 0;
@@ -1490,7 +1487,10 @@ void TkButton::UnMap()
 TkButton::~TkButton( )
 	{
 	if ( frame )
+		{
 		frame->RemoveElement( this );
+		frame->Pack();
+		}
 
 	if ( value ) Unref(value);
 
@@ -1523,8 +1523,8 @@ int TkButton::Index( TkButton *item ) const
 TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
-		    charptr background, int disabled, const IValue *val )
-			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0), menu_base(0)
+		    charptr background, int disabled, const IValue *val, charptr fill_ )
+			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0), menu_base(0), fill(0)
 	{
 	type = PLAIN;
 	frame = frame_;
@@ -1622,6 +1622,9 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		fatal->Report("Rivet creation failed in TkButton::TkButton");
 
 	value = val ? copy_value( val ) : 0;
+
+	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
+		fill = strdup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -1780,8 +1783,8 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
-	if ( args_val->length() != 16 )
-		return InvalidNumberOfArgs(16);
+	if ( args_val->length() != 17 )
+		return InvalidNumberOfArgs(17);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -1799,6 +1802,7 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETINT( disabled )
 	SETVAL( val, 1 )
+	SETSTR( fill )
 
 	Agent *agent = parent->AgentVal();
 
@@ -1806,7 +1810,7 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	     ((TkButton*)agent)->IsMenu() )
 		ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
 	else
-		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
+		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val, fill );
 
 	return ret;
 	}
@@ -1860,6 +1864,46 @@ void TkButton::State(unsigned char s)
 		}
 	}
 
+#define STD_EXPAND_PACKINSTRUCTION(CLASS)		\
+const char **CLASS::PackInstruction()			\
+	{						\
+	static char *ret[5];				\
+	int c = 0;					\
+	if ( fill )					\
+		{					\
+		ret[c++] = "-fill";			\
+		ret[c++] = fill;			\
+		if ( ! strcmp(fill,"both") ||		\
+		     ! strcmp(fill, frame->Expand()) ||	\
+		     frame->NumChildren() == 1 &&	\
+		     ! strcmp(fill,"y") )		\
+			{				\
+			ret[c++] = "-expand";		\
+			ret[c++] = "true";		\
+			}				\
+		else					\
+			{				\
+			ret[c++] = "-expand";		\
+			ret[c++] = "false";		\
+			}				\
+		ret[c++] = 0;				\
+		return ret;				\
+		}					\
+	else						\
+		return 0;				\
+	}
+
+#define STD_EXPAND_CANEXPAND(CLASS)			\
+int CLASS::CanExpand() const				\
+	{						\
+	if ( fill && ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) || \
+		     frame->NumChildren() == 1 && ! strcmp(fill,"y")) ) \
+		return 1;				\
+	return 0;					\
+	}
+
+STD_EXPAND_PACKINSTRUCTION(TkButton)
+STD_EXPAND_CANEXPAND(TkButton)
 
 DEFINE_DTOR(TkScale)
 
@@ -1960,36 +2004,8 @@ TkAgent *TkScale::Create( Sequencer *s, const_args_list *args_val )
 	return ret;
 	}      
 
-#define STD_EXPAND_PACKINSTRUCTION(CLASS)		\
-const char **CLASS::PackInstruction()			\
-	{						\
-	static char *ret[5];				\
-	int c = 0;					\
-	if ( fill )					\
-		{					\
-		ret[c++] = "-fill";			\
-		ret[c++] = fill;			\
-		if ( ! strcmp(fill,"both") ||		\
-		     ! strcmp(fill, frame->Expand()) ||	\
-		     frame->NumChildren() == 1 &&	\
-		     ! strcmp(fill,"y") )		\
-			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "true";		\
-			}				\
-		else					\
-			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "false";		\
-			}				\
-		ret[c++] = 0;				\
-		return ret;				\
-		}					\
-	else						\
-		return 0;				\
-	}
-
 STD_EXPAND_PACKINSTRUCTION(TkScale)
+STD_EXPAND_CANEXPAND(TkScale)
 
 DEFINE_DTOR(TkText)
 
@@ -2130,14 +2146,7 @@ charptr TkText::IndexCheck( charptr s )
 	}
 
 STD_EXPAND_PACKINSTRUCTION(TkText)
-
-int TkText::CanExpand() const
-	{
-	if ( fill && ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) ) )
-		return 1;
-
-	return 0;
-	}
+STD_EXPAND_CANEXPAND(TkText)
 
 DEFINE_DTOR(TkScrollbar)
 
@@ -2242,8 +2251,8 @@ DEFINE_DTOR(TkLabel)
 
 TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
-		  charptr borderwidth, charptr foreground, charptr background )
-			: TkAgent( s )
+		  charptr borderwidth, charptr foreground, charptr background, charptr fill_ )
+			: TkAgent( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[22];
@@ -2286,6 +2295,9 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkLabel::TkLabel");
 
+	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
+		fill = strdup(fill_);
+
 	frame->AddElement( this );
 	frame->Pack();
 
@@ -2302,8 +2314,8 @@ TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkLabel *ret;
 
-	if ( args_val->length() != 12 )
-		return InvalidNumberOfArgs(12);
+	if ( args_val->length() != 13 )
+		return InvalidNumberOfArgs(13);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2317,12 +2329,16 @@ TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
+	SETSTR( fill )
 
 	ret =  new TkLabel( s, (TkFrame*)parent->AgentVal(), text, justify, padx, pady, width,
-			    font, relief, borderwidth, foreground, background );
+			    font, relief, borderwidth, foreground, background, fill );
 
 	return ret;
 	}      
+
+STD_EXPAND_PACKINSTRUCTION(TkLabel)
+STD_EXPAND_CANEXPAND(TkLabel)
 
 
 DEFINE_DTOR(TkEntry)
@@ -2461,13 +2477,14 @@ charptr TkEntry::IndexCheck( charptr s )
 
 
 STD_EXPAND_PACKINSTRUCTION(TkEntry)
+STD_EXPAND_CANEXPAND(TkEntry)
 
 DEFINE_DTOR(TkMessage)
 
 TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
-		      charptr foreground, charptr background )
-			: TkAgent( s )
+		      charptr foreground, charptr background, charptr fill_ )
+			: TkAgent( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[22];
@@ -2507,6 +2524,9 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkMessage::TkMessage");
 
+	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
+		fill = strdup(fill_);
+
 	frame->AddElement( this );
 	frame->Pack();
 
@@ -2522,8 +2542,8 @@ TkAgent *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkMessage *ret;
 
-	if ( args_val->length() != 12 )
-		return InvalidNumberOfArgs(12);
+	if ( args_val->length() != 13 )
+		return InvalidNumberOfArgs(13);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2537,11 +2557,15 @@ TkAgent *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
+	SETSTR( fill )
 
-	ret =  new TkMessage( s, (TkFrame*)parent->AgentVal(), text, width, justify, font, padx, pady, relief, borderwidth, foreground, background );
+	ret =  new TkMessage( s, (TkFrame*)parent->AgentVal(), text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, fill );
 
 	return ret;
 	}      
+
+STD_EXPAND_PACKINSTRUCTION(TkMessage)
+STD_EXPAND_CANEXPAND(TkMessage)
 
 DEFINE_DTOR(TkListbox)
 
@@ -2687,5 +2711,6 @@ void TkListbox::elementSelected(  )
 	}
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)
+STD_EXPAND_CANEXPAND(TkListbox)
 
 #endif

@@ -218,7 +218,10 @@ static TkAgent *InvalidNumberOfArgs( int num )
 CLASS::~CLASS( )					\
 	{						\
 	if ( frame )					\
+		{					\
 		frame->RemoveElement( this );		\
+		frame->Pack();				\
+		}					\
 	UnMap();					\
 	}
 
@@ -878,15 +881,17 @@ const char **CLASS::PackInstruction()			\
 		return 0;				\
 	}
 
-STD_EXPAND_PACKINSTRUCTION(TkCanvas)
-
-int TkCanvas::CanExpand() const
-	{
-	if ( fill && (! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) ) )
-		return 1;
-
-	return 0;
+#define STD_EXPAND_CANEXPAND(CLASS)			\
+int CLASS::CanExpand() const				\
+	{						\
+	if ( fill && ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) || \
+		     frame->NumChildren() == 1 && ! strcmp(fill,"y")) ) \
+		return 1;				\
+	return 0;					\
 	}
+
+STD_EXPAND_PACKINSTRUCTION(TkCanvas)
+STD_EXPAND_CANEXPAND(TkCanvas)
 	  
 TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 	{
