@@ -340,29 +340,34 @@ char *canonic_path( const char *path_in )
 		if ( S_ISLNK(stat_buf.st_mode) )
 			{
 			len = readlink( newpath, scratch, 2048 );
-			if ( len <= 0 ) return 0;
-			if ( *pptr )
+			scratch[len] = '\0';
+			if ( lstat( scratch, &stat_buf ) < 0 ) return 0;
+			if ( ! S_ISREG(stat_buf.st_mode) )
 				{
-				slen = strlen(pptr);
-				memcpy( &scratch[len], pptr, slen );
-				scratch[len+slen] = '\0';
-				}
-			else
-				scratch[len] = '\0';
+				if ( len <= 0 ) return 0;
+				if ( *pptr )
+					{
+					slen = strlen(pptr);
+					memcpy( &scratch[len], pptr, slen );
+					scratch[len+slen] = '\0';
+					}
+				else
+					scratch[len] = '\0';
 
-			pptr = scratch;
-			scratch = path;
-			path = pptr;
+				pptr = scratch;
+				scratch = path;
+				path = pptr;
 
-			if ( *pptr == '/' )
-				{
-				nptr = newpath;
-				*nptr++ = *pptr++;
-				}
-			else
-				{
-				while ( nptr != newpath && *--nptr != '/' );
-				++nptr;
+				if ( *pptr == '/' )
+					{
+					nptr = newpath;
+					*nptr++ = *pptr++;
+					}
+				else
+					{
+					while ( nptr != newpath && *--nptr != '/' );
+					++nptr;
+					}
 				}
 			}
 
