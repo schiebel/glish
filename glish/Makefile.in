@@ -20,6 +20,7 @@ SRC = ..
 H = $(SRC)/include/Glish
 
 INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include $(PLUSINC)
+CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include
 CFLAGS = @CFLAGS@
 
 GLISH_OBJS = \
@@ -187,7 +188,7 @@ glish_init.o: glish_init.cc
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c glish_init.cc
 
 system.o: $(SRC)/system.c $(SRC)/system.h
-	$(CC) $(CFLAGS) $(INCLUDE) -c $(SRC)/system.c
+	$(CC) $(CFLAGS) $(CINCLUDE) -c $(SRC)/system.c
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

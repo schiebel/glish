@@ -11,15 +11,32 @@
 struct fd_set;
 
 class GlishEvent : public GlishObject {
-    public:
-	GlishEvent( char* arg_name, Value* arg_value )
-		{ name = arg_name; value = arg_value; }
+public:
+	GlishEvent( const char* arg_name, const Value* arg_value );
+	GlishEvent( const char* arg_name, Value* arg_value );
+	GlishEvent( char* arg_name, Value* arg_value );
 
-	~GlishEvent()
-		{ delete name; Unref( value ); }
+	~GlishEvent();
 
-	char* name;
+	const char* Name() const	{ return name; }
+	Value* Val() const		{ return value; }
+
+	int IsRequest() const;
+	int IsReply() const;
+	int Flags() const		{ return flags; }
+
+	void SetIsRequest();
+	void SetIsReply();
+	void SetFlags( int new_flags )	{ flags = new_flags; }
+
+	// These are public for historical reasons.
+	const char* name;
 	Value* value;
+
+protected:
+	int flags;
+	int delete_name;
+	int delete_value;
 	};
 
 
@@ -78,7 +95,7 @@ class Client {
 
 
 	// Sends an event with the given name and value.
-	void PostEvent( GlishEvent* event );
+	void PostEvent( const GlishEvent* event );
 	void PostEvent( const char* event_name, const Value* event_value );
 
 	// Sends an event with the given name and character string value.
@@ -97,6 +114,9 @@ class Client {
 	// Reply to the last received event.
 	void Reply( const Value* event_value );
 
+	// True if the Client is expecting a reply, false otherwise.
+	int ReplyPending() const	{ return pending_reply != 0; }
+
 	// Post an event with an "opaque" SDS value - one that we won't
 	// try to convert to a Glish record.
 	void PostOpaqueSDS_Event( const char* event_name, int sds );
@@ -104,8 +124,9 @@ class Client {
 
 	// For any file descriptors this Client might read events from,
 	// sets the corresponding bits in the passed fd_set.  The caller
-	// may then use the fd_set in a call to select().
-	void AddInputMask( fd_set* mask );
+	// may then use the fd_set in a call to select().  Returns the
+	// number of fd's added to the mask.
+	int AddInputMask( fd_set* mask );
 
 	// Returns true if the following mask indicates that input
 	// is available for the client.
@@ -180,10 +201,9 @@ class Client {
 	void RendezvousAsOriginator( Value* v );
 	void RendezvousAsResponder( Value* v );
 
-	// Sends an event with the given name and value.  If the value
-	// is nil then the value is instead taken from the SDS "sds".
-	void SendEvent( const char* event_name, const Value* event_value,
-			int sds );
+	// Sends the given event.  If sds is non-negative, the event's value
+	// is taken from the SDS "sds".
+	void SendEvent( const GlishEvent* e, int sds = -1 );
 
 
 	const char* client_name;
@@ -218,6 +238,17 @@ class Client {
 extern GlishEvent* recv_event( int fd );
 
 extern void send_event( int fd, const char* event_name,
-			const Value* event_value, int sds = -1 );
+			const GlishEvent* e, int sds = -1 );
+
+inline void send_event( int fd, const GlishEvent* e, int sds = -1 )
+	{
+	send_event( fd, e->name, e, sds );
+	}
+
+inline void send_event( int fd, const char* name, const Value* value )
+	{
+	GlishEvent e( name, value );
+	send_event( fd, &e );
+	}
 
 #endif	/* client_h */

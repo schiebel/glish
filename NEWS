@@ -1,20 +1,21 @@
 $Header$
 
-To Do: tkclient, EPICS client, op[], record array-index
-
-
 Glish changes
 =============
 
-01Dec94:
-	- 2.5.0.1 release.  You need to recompile and relink your present
-	  Glish clients.  (Some simple ones that don't look at their
-	  invocation arguments might work without recompile.) To build
-	  Glish 2.5, you need flex 2.4.6 or higher (current is 2.4.7),
-	  which you can get from ftp.ee.lbl.gov.  The Glish installation
-	  has changed considerably - see README.
+10Mar95:
+	- 2.5.0 release.  You must recompile and relink your present
+	  Glish clients.  To build Glish 2.5, you need flex 2.4.6 or higher
+	  (current is 2.4.7), which you can get from ftp.ee.lbl.gov.  The
+	  Glish installation has changed considerably - see README.
 
-	- Glish now runs under SunOS, IRIX, Solaris, and AIX.
+	- Glish now runs under SunOS, IRIX, HP-UX, Solaris, and AIX.
+
+	- Included in the Glish distribution is a "contrib/" directory
+	  containing contributed (but not supported) Glish clients.
+	  Presently, contrib/ includes a Glish <-> Tcl/TK interface,
+	  a Glish <-> Perl 5.0 interface, and a (fledgling) Glish <-> EPICS
+	  interface.
 
 	- Four new types have been added: byte (unsigned integer in the
 	  range 0 .. 255), short, complex, and dcomplex (double-precision
@@ -156,12 +157,14 @@ Glish changes
 	  contributed by Darrell Schiebel.
 
 	- Glish is now configured using an autoconf-generated "configure"
-	  script.  This means to build Glish, you cd to the Glish directory
-	  and type "./configure".  The script then generates a Makefile
-	  (from Makefile.in) and the file config.h, which contain all of
-	  the system dependencies for your environment.  The SDS library
-	  has not yet been converted to autoconf, nor has the new editline
-	  library (see below).
+	  script.  This means to build Glish, you go to the top level
+	  directory and type "./configure".  The script then generates
+	  Makefile (from Makefile.in) and config.h (from config.h.in)
+	  files, which contain all of the system dependencies for your
+	  environment.  The SDS library has not yet been converted to
+	  autoconf, nor has the new editline library (see below), though
+	  they use it for minor configuration issues such as which C compiler
+	  to use.
 
 	- When run interactively, Glish now uses the "editline" library
 	  written by Simmule Turner and Rich Salz, and integrated into
@@ -220,12 +223,19 @@ Glish changes
 	  Related to this, the $glish_init environment variable is no longer
 	  used to locate an alternative glish.init file at run-time.
 
+	- The SDS library has been heavily modified, courtesy of Chris
+	  Saltmarsh and Todd Satogata.  The main changes are improved
+	  buffering and bug fixes.
+
 	- A new member function, Client::Error(const char* msg), is available
 	  for Glish clients to post an "error" event.  There is also a version
 	  that formats its message using a single string argument,
 	  Client::Error(const char* fmt, const char* arg).  Eventually these
 	  routines will correctly indicate errors for request/reply events,
 	  but at present they don't.
+
+	- Client::AddInputMask now returns the number of new input fd's
+	  it added to the mask.
 
 	- Client::HasSequencerConnection() is deprecated; use
 	  Client::HasInterpreterConnection() instead.
@@ -235,8 +245,15 @@ Glish changes
 	  an event with the given name and a printf-format taking two
 	  string arguments.
 
+	- A new member function Client::ReplyPending() returns true if the
+	  client has a request/reply pending and false otherwise.
+
 	- You can now call Client::PostEvent with a nil Value pointer for the
 	  event's value, if you know the value will be ignored.
+
+	- The GlishEvent class has been spruced up a bit, and now supports
+	  a member function IsRequest() which returns true if the event was
+	  a request and false otherwise.
 
 	- If a Glish client is fired up standalone (from a shell instead
 	  of via Glish), by default it now considers itself to not have
@@ -292,11 +309,11 @@ Glish changes
 	  that name.
 
 	  "a" must be a Glish client (not a user agent such as a subsequence).
-	  The client responds to a request using the Client::Request member
+	  The client responds to a request using the Client::Reply member
 	  function (it is up to the client to know which of the different
 	  events it receives correspond to request/reply).  Glish generates
 	  a warning if the client first generates any other event (i.e., by
-	  using Client::PostEvent) or if Client::Request is used when a request
+	  using Client::PostEvent) or if Client::Reply is used when a request
 	  is not pending.  Presently, when a request/reply is active no other
 	  events are read by the Glish interpreter until the reply is received;
 	  perhaps this will change in the future, as we understand request/

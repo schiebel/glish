@@ -218,9 +218,26 @@ int local_connection( int sock, const char* path )
 	}
 
 
+#ifndef HAVE_WAITPID
+pid_t waitpid( pid_t pid, int *loc, int opts )
+	{
+	int status = wait4( pid, (union wait*) loc, opts, (struct rusage*) 0 );
+
+	if ( status == 0 )
+		return 0;
+
+	return pid;
+	}
+#endif
+
+int wait_for_pid( int pid, int *loc, int opts )
+	{
+	return (int) waitpid( (pid_t) pid, loc, opts );
+	}
+
 int reap_terminated_process()
 	{
-	int status = waitpid( -1, (int *) 0, WNOHANG );
+	int status = wait_for_pid( -1, (int *) 0, WNOHANG );
 
 	return status == -1 ? 0 : status;
 	}

@@ -54,6 +54,9 @@ extern "C" {
 	 */
 	int local_connection( int sock, const char* path );
 
+	/* An interface to waitpid/wait4. */
+	int wait_for_pid( int pid, int *loc, int opts );
+
 	/* Returns the PID of the next terminated process, if any, or 0
 	 * if no more terminated processes are lying around waiting to be
 	 * reaped.

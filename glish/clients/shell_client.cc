@@ -330,7 +330,7 @@ int await_child_exit()
 
 	do
 		{
-		child_id = waitpid( pid_t(0), &child_status, WNOHANG );
+		child_id = wait_for_pid( 0, &child_status, WNOHANG );
 		}
 	while ( child_id < 0 && errno == EINTR );
 

@@ -782,6 +782,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 
 	else
 		{
+		task->SetProtocol( protocol );
 		AssociateTaskWithChannel( task, connection_channel );
 		NewEvent( task, establish_event );
 		}
@@ -821,11 +822,11 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 			return 0;
 
 		// Abnormal termination - no "done" message first.
-		event = new GlishEvent( strdup( "fail" ),
+		event = new GlishEvent( (const char*) "fail",
 					new Value( task->AgentID() ) );
 		}
 
-	char* event_name = event->name;
+	const char* event_name = event->name;
 	Value* value = event->value;
 
 	if ( verbose > 0 )
@@ -1164,7 +1165,7 @@ void Sequencer::ActivateMonitor( char* monitor_client_name )
 	}
 
 
-void Sequencer::LogEvent( const char *gid, const char* id,
+void Sequencer::LogEvent( const char* gid, const char* id,
 			const char* event_name, const Value* event_value,
 			int is_inbound )
 	{
@@ -1194,6 +1195,12 @@ void Sequencer::LogEvent( const char *gid, const char* id,
 
 	const char* monitor_event_name = is_inbound ? "event_in" : "event_out";
 	monitor_task->SendEvent( monitor_event_name, &args, 0, 0 );
+	}
+
+void Sequencer::LogEvent( const char* gid, const char* id, const GlishEvent* e,
+			int is_inbound )
+	{
+	LogEvent( gid, id, e->name, e->value, is_inbound );
 	}
 
 
@@ -1391,6 +1398,11 @@ int ScriptSelectee::NotifyOfSelection()
 		delete script_client;
 		exit( 0 );
 		}
+
+	// Ref() the value, since CreateEvent is going to Unref() it, and the
+	// script_client is also going to Unref() it via Unref()'ing the
+	// whole GlishEvent.
+	Ref( e->value );
 
 	script_agent->CreateEvent( e->name, e->value );
 

@@ -82,9 +82,10 @@ protected:
 	};
 
 
-// Used to create lists of dynamic memory that should be freed.
-declare(PList,void);
-typedef PList(void) del_list;
+// Used to create lists of objects or dynamic memory that should be freed.
+class DelObj;
+declare(PList,DelObj);
+typedef PList(DelObj) del_list;
 
 
 #define copy_array(src,dest,len,type) \
@@ -511,9 +512,9 @@ public:
 
 
 	// Add the Value to the sds designated by "sds" using the given
-	// name.  "dlist" is a del_list (PList of void) that is used to
-	// record any dynamic memory required by AddToSds in order to
-	// construct the SDS.  Once done with the SDS (and the SDS has
+	// name.  "dlist" is a del_list (PList of DelObj) that is used to
+	// record any objects or dynamic memory required by AddToSds in order
+	// to construct the SDS.  Once done with the SDS (and the SDS has
 	// been destroyed), "delete_list( dlist )" should be called to
 	// reclaim the memory that AddToSds needed.
 	//
@@ -569,6 +570,13 @@ public:
 		return attributes ?
 			attributes->ExistingRecordElement( attribute ) :
 			false_value;
+		}
+
+	// Returns the given attribute if it exists, 0 otherwise.
+	const Value* HasAttribute( const char attribute[] ) const
+		{
+                return attributes ?
+			attributes->HasRecordElement( attribute ) : 0;
 		}
 
 	// Returns a new Value with the selected attributes.
@@ -785,7 +793,7 @@ extern Value* dcomplex_rel_op_compute( const Value* lhs, const Value* rhs,
 extern Value* string_rel_op_compute( const Value* lhs, const Value* rhs,
 				int lhs_len, RelExpr* expr );
 
-extern Value* read_value_from_SDS( int sds, int event_type );
+extern Value* read_value_from_SDS( int sds, int is_opaque_sds = 0 );
 
 extern int compatible_types( const Value* v1, const Value* v2,
 				glish_type& max_type );

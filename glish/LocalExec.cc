@@ -29,18 +29,6 @@
 
 #include "LocalExec.h"
 
-#ifndef HAVE_WAITPID
-pid_t waitpid( pid_t pid, int *loc, int opts )
-	{
-	int status = wait4( pid, (union wait*) loc, opts, (struct rusage*) 0 );
-
-	if ( status == 0 )
-		return 0;
-
-	return pid;
-	}
-#endif
-
 
 LocalExec::LocalExec( const char* arg_executable, const char** argv )
     : Executable( arg_executable )
@@ -102,7 +90,7 @@ int LocalExec::Active()
 		return 0;
 
 	int status;
-	int child_id = (int) waitpid ( (pid_t) pid, &status, WNOHANG );
+	int child_id = wait_for_pid( pid, &status, WNOHANG );
 
 	if ( child_id == 0 )
 		return 1;
