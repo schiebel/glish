@@ -132,7 +132,7 @@
 #f := F
 
 #####
-##### Not OK
+##### OK
 #####
 #func eight( ) {
 #    public := [=]
@@ -150,7 +150,7 @@
 #f := F
 
 #####
-#####  Not OK *** leave eight() uncommented when using this ***
+##### OK *** leave eight() uncommented when using this ***
 #####
 #func nine( EF, ref Z ) {
 #    EF.frame(Z)

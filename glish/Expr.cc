@@ -1610,13 +1610,16 @@ IValue* RecordRefExpr::RefEval( evalOpt &opt, value_type val_type )
 	IValue* value_ref = op->RefEval( opt, val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
 
-	value = (IValue*)(value->GetOrCreateRecordElement( field ));
+	IValue *fieldv = (IValue*)(value->GetOrCreateRecordElement( field ));
 
-	value = new IValue( value, val_type );
+	fieldv = new IValue( fieldv, val_type );
+
+	if ( value->IsGlobalValue( ) )
+		fieldv->MarkGlobalValue( );
 
 	Unref( value_ref );
 
-	return value;
+	return fieldv;
 	}
 
 IValue *RecordRefExpr::Assign( evalOpt &opt, IValue* new_value )

@@ -2555,7 +2555,11 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				ret = "'const' values cannot be modified.";
 				}
 			else
+				{
+				value->MarkGlobalValue( );
+				if ( prev_value ) prev_value->ClearGlobalValue( );
 				if ( f ) (*f)(prev_value,value);
+				}
 			}
 			break;
 		default:

@@ -690,8 +690,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 						IValue *X = (IValue*) v->Deref();
 						X->SetUnref( glish_func_cycle_roots );
 						X->MarkSoftDel();
-						fprintf( stderr, "====>>\twould have Unref(0x%x)ed\n", X );
-// 						Unref(X);
+						if ( X->IsGlobalValue( ) ) Unref(X);
 						}
 					}
 			}
