@@ -42,6 +42,7 @@ GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_
 LIBS = malloc.o $(CLIENT_LIBS) @LIBS@
 
 CLIENTS = \
+	$(BINDIR_P)/tproxy \
 	$(BINDIR_P)/echo_client \
 	$(BINDIR_P)/echo_mclient \
 	$(BINDIR_P)/glishd \
@@ -52,6 +53,7 @@ CLIENTS = \
 	$(BINDIR_P)/multiplexer
 
 INSTALLED_CLIENTS = \
+	$(BINDIR)/tproxy \
 	$(BINDIR)/echo_client \
 	$(BINDIR)/echo_mclient \
 	$(BINDIR)/glishd \
@@ -89,6 +91,24 @@ $(BINDIR_P)/glishd: glishd
 $(BINDIR)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(BINDIR)
 #	strip $(BINDIR)/glishd
+
+#============================================================
+
+tproxy.o: $(SRC)/tproxy.cc $(GLISH_SRC)/include/Glish/Client.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tproxy.cc 
+
+tproxy: tproxy.o $(GLISH_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o tproxy tproxy.o $(LIBS)
+
+$(BINDIR_P)/tproxy: tproxy
+	$(INSTALL_PROGRAM) tproxy $(BINDIR_P)
+#	strip $(BINDIR_P)/tproxy
+
+$(BINDIR)/tproxy: tproxy
+	$(INSTALL_PROGRAM) tproxy $(BINDIR)
+#	strip $(BINDIR)/tproxy
+
+#============================================================
 
 echo_client.o: $(SRC)/echo_client.cc $(GLISH_SRC)/include/Glish/Client.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/echo_client.cc 

@@ -58,7 +58,9 @@ class Task : public Agent {
 	// Send an event with the given name and associated values
 	// to the associated task.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log );
+			int is_request=0, int log=0 );
+	IValue* SendEvent( const char* event_name, IValue *event_val,
+			int is_request=0, int log=0 );
 
 	void SetActive()	{ SetActivity( 1 ); }
 	void SetDone()		{ SetActivity( 0 );

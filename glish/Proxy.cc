@@ -11,11 +11,16 @@ RCSID("@(#) $Id$")
 //  Generates Events:
 //
 //		o  *get-proxy-id* to get an ID for each proxy
+//		o  *proxy-create* to create a proxy in the interpreter
 //
 //  Receives Event
 //
 //		o  *proxy* with record [ name=, value=, id= ]
 //
+
+#define PXGETID		"*get-proxy-id*"
+#define PXCREATE		"*proxy-create*"
+#define PXEVENT		"*proxy*"
 
 class pxy_store_cbinfo {
     public:
@@ -76,7 +81,7 @@ double ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
 
-	PostEvent( "*get-proxy-id*", v );
+	PostEvent( PXGETID, v );
 	GlishEvent *reply = NextEvent( );
 
 	if ( ! reply || ! reply->Val()->Type() == TYPE_DOUBLE )
@@ -92,7 +97,7 @@ void ProxyStore::Loop( )
 	{
 	for ( GlishEvent* e; (e = NextEvent()); )
 		{
-		if ( ! strcmp( e->Name(), "*proxy*" ) )
+		if ( ! strcmp( e->Name(), PXEVENT ) )
 			{
 			Value *rval = e->Val();
 			if ( rval->Type() != TYPE_RECORD )
@@ -118,7 +123,7 @@ void ProxyStore::Loop( )
 				if ( pxlist[i]->Id() == id )
 					{
 					found = 1;
-					pxlist[i]->ProcessEvent( name, val, e );
+					pxlist[i]->ProcessEvent( name, val );
 					break;
 					}
 
@@ -133,10 +138,32 @@ void ProxyStore::Loop( )
 		}
 	}
 
+void Proxy::setId( double i ) { id = i; }
+
 Proxy::Proxy( ProxyStore *s ) : store(s), id(0.0)
 	{
 	//
 	// store will set our id
 	//
 	store->addProxy( this );
+	}
+
+void Proxy::SendCtor( const char *name )
+	{
+	recordptr rec = create_record_dict();
+	rec->Insert( strdup(PXCREATE), create_value(Id()) );
+	if ( ReplyPending( ) )
+		{
+		char *pending = store->TakePending();
+		GlishEvent e( pending, create_value(rec) );
+		e.SetIsReply( );
+		e.SetIsProxy( );
+		PostEvent( &e );
+		}
+	else
+		{
+		GlishEvent e( name, create_value(rec) );
+		e.SetIsProxy( );
+		PostEvent( &e );
+		}
 	}

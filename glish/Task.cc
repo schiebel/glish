@@ -118,13 +118,12 @@ Task::~Task()
 	Unref( selector );
 	}
 
-IValue* Task::SendEvent( const char* event_name, parameter_list* args,
+IValue* Task::SendEvent( const char* event_name, IValue *event_val,
 			int is_request, int log )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
 
-	IValue* event_val = BuildEventValue( args, 1 );
 	IValue* result = 0;
 
 	if ( is_request && ! channel )
@@ -193,6 +192,19 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 			sendEvent( sink, &e );
 			}
 		}
+
+	return result;
+	}
+
+IValue* Task::SendEvent( const char* event_name, parameter_list* args,
+			int is_request, int log )
+	{
+	if ( task_error )
+		return is_request ? error_ivalue() : 0;
+
+	IValue* event_val = BuildEventValue( args, 1 );
+
+	IValue* result = SendEvent( event_name, event_val, is_request, log );
 
 	Unref( event_val );
 

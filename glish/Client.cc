@@ -169,6 +169,11 @@ int GlishEvent::IsReply() const
 	return flags & GLISH_REPLY_EVENT;
 	}
 
+int GlishEvent::IsProxy() const
+	{
+	return flags & GLISH_PROXY_EVENT;
+	}
+
 void GlishEvent::SetIsRequest()
 	{
 	flags |= GLISH_REQUEST_EVENT;
@@ -177,6 +182,11 @@ void GlishEvent::SetIsRequest()
 void GlishEvent::SetIsReply()
 	{
 	flags |= GLISH_REPLY_EVENT;
+	}
+
+void GlishEvent::SetIsProxy()
+	{
+	flags |= GLISH_PROXY_EVENT;
 	}
 
 
@@ -574,7 +584,7 @@ GlishEvent* Client::NextEvent( fd_set* mask )
 	return 0;
 	}
 
-void Client::Unrecognized()
+void Client::Unrecognized( double proxy_id )
 	{
 	if ( ! last_event )
 		return;
@@ -583,23 +593,23 @@ void Client::Unrecognized()
 		// Internal event - ignore.
 		return;
 
-	PostEvent( "unrecognized", last_event->name );
+	PostEvent( "unrecognized", last_event->name, proxy_id );
 	}
 
-void Client::Error( const char* msg )
+void Client::Error( const char* msg, double proxy_id )
 	{
 	if ( last_event )
 		PostEvent( "error", "bad \"%s\" event: %s",
-				last_event->name, msg );
+				last_event->name, msg, proxy_id );
 	else
-		PostEvent( "error", msg );
+		PostEvent( "error", msg, proxy_id );
 	}
 
-void Client::Error( const char* fmt, const char* arg )
+void Client::Error( const char* fmt, const char* arg, double proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, fmt, arg );
-	Error( buf );
+	Error( buf, proxy_id );
 	}
 
 void Client::PostEvent( const GlishEvent* event, const EventContext &context )
@@ -608,37 +618,50 @@ void Client::PostEvent( const GlishEvent* event, const EventContext &context )
 	}
 
 void Client::PostEvent( const char* event_name, const Value* event_value,
-    const EventContext &context )
+			const EventContext &context, double proxy_id )
 	{
-	GlishEvent e( event_name, event_value );
-	SendEvent( &e, -1, context );
+	if ( proxy_id != 0.0 )
+		{
+		recordptr rec = create_record_dict( );
+		rec->Insert( strdup("id"), create_value(proxy_id) );
+		rec->Insert( strdup("value"), copy_value(event_value) );
+		GlishEvent e( event_name, create_value(rec) );
+		e.SetIsProxy( );
+		SendEvent( &e, -1, context );
+		}
+	else
+		{
+		GlishEvent e( event_name, event_value );
+		SendEvent( &e, -1, context );
+		}
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_value,
-    const EventContext &context )
+    const EventContext &context, double proxy_id )
 	{
 	Value val( event_value );
-	PostEvent( event_name, &val, context );
+	PostEvent( event_name, &val, context, proxy_id );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
-    const char* event_arg, const EventContext &context )
+    const char* event_arg, const EventContext &context, double proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, event_arg );
-	PostEvent( event_name, buf, context );
+	PostEvent( event_name, buf, context, proxy_id );
 	}
 
 void Client::PostEvent( const char* event_name, const char* event_fmt,
-    const char* arg1, const char* arg2, const EventContext &context )
+			const char* arg1, const char* arg2,
+			const EventContext &context, double proxy_id )
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, arg1, arg2 );
-	PostEvent( event_name, buf, context );
+	PostEvent( event_name, buf, context, proxy_id );
 	}
 
 //*** TJS - Client::Reply() might need some work to avoid race.  Probably ok tho'
-void Client::Reply( const Value* event_value )
+void Client::Reply( const Value* event_value, double proxy_id )
 	{
 	if ( ! ReplyPending() )
 		error->Report( prog_name,
@@ -646,9 +669,23 @@ void Client::Reply( const Value* event_value )
 
 	else
 		{
-		GlishEvent e( (const char*) pending_reply, event_value );
-		e.SetIsReply();
-		PostEvent( &e );
+		if ( proxy_id != 0.0 )
+			{
+			recordptr rec = create_record_dict( );
+			rec->Insert( strdup("id"), create_value(proxy_id) );
+			rec->Insert( strdup("value"), copy_value(event_value) );
+			GlishEvent e( (const char*) pending_reply, create_value(rec) );
+			e.SetIsReply();
+			e.SetIsProxy();
+			PostEvent( &e );
+			}
+		else
+			{
+			GlishEvent e( (const char*) pending_reply, event_value );
+			e.SetIsReply();
+			PostEvent( &e );
+			}
+
 		free_memory( pending_reply );
 		pending_reply = 0;
 		}

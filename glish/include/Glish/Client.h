@@ -51,10 +51,12 @@ public:
 
 	int IsRequest() const;
 	int IsReply() const;
+	int IsProxy() const;
 	unsigned char Flags() const	{ return flags; }
 
 	void SetIsRequest();
 	void SetIsReply();
+	void SetIsProxy();
 	void SetFlags( unsigned char new_flags ) { flags = new_flags; }
 
 	// These are public for historical reasons.
@@ -183,20 +185,24 @@ class Client {
 
 	// Called by the main program (or whoever called NextEvent()) when
 	// the current event is unrecognized.
-	void Unrecognized();
+	void Unrecognized( double proxy_id = 0.0 );
 
 	// Called to report that the current event has an error.
-	void Error( const char* msg );
-	void Error( const char* fmt, const char* arg );
+	void Error( const char* msg, double proxy_id = 0.0 );
+	void Error( const char* fmt, const char* arg, double proxy_id = 0.0 );
 
 	// Sends an event with the given name and value.
 	void PostEvent( const GlishEvent* event, const EventContext &context = glish_ec_dummy );
 	void PostEvent( const char* event_name, const Value* event_value,
-			const EventContext &context = glish_ec_dummy );
+			const EventContext &context = glish_ec_dummy, double proxy_id=0.0 );
+	void PostEvent( const char* event_name, const Value* event_value, double proxy_id )
+			{ PostEvent( event_name, event_value, glish_ec_dummy, proxy_id ); }
 
 	// Sends an event with the given name and character string value.
 	void PostEvent( const char* event_name, const char* event_value,
-			const EventContext &context = glish_ec_dummy );
+			const EventContext &context = glish_ec_dummy, double proxy_id=0.0 );
+	void PostEvent( const char* event_name, const char* event_value, double proxy_id )
+			{ PostEvent( event_name, event_value, glish_ec_dummy, proxy_id ); }
 
 	// Sends an event with the given name, using a printf-style format
 	// and an associated string argument.  For example,
@@ -204,12 +210,17 @@ class Client {
 	//	client->PostEvent( "error", "couldn't open %s", file_name );
 	//
 	void PostEvent( const char* event_name, const char* event_fmt, const char* event_arg,
-			const EventContext &context = glish_ec_dummy );
+			const EventContext &context = glish_ec_dummy, double proxy_id=0.0 );
+	void PostEvent( const char* event_name, const char* event_fmt, const char* event_arg, double proxy_id )
+			{ PostEvent( event_name, event_fmt, event_arg, glish_ec_dummy, proxy_id ); }
 	void PostEvent( const char* event_name, const char* event_fmt, const char* arg1,
-			const char* arg2, const EventContext &context = glish_ec_dummy );
+			const char* arg2, const EventContext &context = glish_ec_dummy, double proxy_id=0.0 );
+	void PostEvent( const char* event_name, const char* event_fmt, const char* arg1,
+			const char* arg2, double proxy_id )
+			{ PostEvent( event_name, event_fmt, arg1, arg2, glish_ec_dummy, proxy_id ); }
 
 	// Reply to the last received event.
-	void Reply( const Value* event_value );
+	void Reply( const Value* event_value, double proxy_id=0.0 );
 
 	// True if the Client is expecting a reply, false otherwise.
 	int ReplyPending() const	{ return pending_reply != 0; }

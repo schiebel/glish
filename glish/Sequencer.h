@@ -573,6 +573,11 @@ protected:
 	void PopAwait();
 	void CurrentAwaitDone();
 
+	double getid( ) const;
+	double NewObjId( ) { return ((double)++obj_cnt) + id; }
+	double id;
+	int obj_cnt;
+
 	char *name;
 	char *interpreter_path;
 	int verbose;

@@ -1247,6 +1247,24 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	sys_value->SetField( "output", new IValue( output ) );
 	}
 
+//
+// Calculate the pid portion of object ids
+// for this Glish interpreter.
+//
+double Sequencer::getid( ) const
+	{
+	int p = (int) getpid();
+
+	double ret = 0.0;
+	double cur = 0.1;
+	while ( p )
+		{
+		ret += (p % 10) * cur;
+		p /= 10;
+		cur /= 10.0;
+		}
+	return ret;
+	}
 
 Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change_count(1),
 				system(this), script_client(0), script_client_active(0),
@@ -1259,6 +1277,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	doing_init = 1;
 	argc_ = argc;
 	argv_ = argv;
+
+	id = getid();
+	obj_cnt = 0;
 
 	error_result = 0;
 
@@ -2903,6 +2924,12 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	else if ( ! strcmp( event_name, "*forward*" ) )
 		ForwardEvent( event_name, value );
 
+	else if ( ! strcmp( event_name, "*get-proxy-id*" ) )
+		{
+		IValue *result = new IValue(NewObjId( ));
+		task->SendEvent( event_name, result );
+		Unref(result);
+		}
 	else
 		complain_if_no_interest = 1;
 
