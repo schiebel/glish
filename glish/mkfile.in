@@ -185,7 +185,7 @@ TAR_FILE = glish.tar
 
 all: $(AIXSYM_P) $(LIBTGT) $(BINTGT)
 
-install: $(AIXSYM) $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
+install: $(AIXSYM) $(INSTALL_LIBTGT) $(INSTALL_BINTGT) $(LIBDIR)/glish/lib/glishtk.mak
 
 lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX)
 
@@ -622,6 +622,10 @@ $(LIBDIR)/libglishgc$(SUFFIX): $(LIBDIR)/libglishgc$(GSUFFIX)
 	rm -f libglishgc$(SUFFIX);	\
 	ln -s libglishgc$(GSUFFIX) libglishgc$(SUFFIX)
 #FI
+
+$(LIBDIR)/glish/lib/glishtk.mak: $(top)/$(ARCH)/glishtk.mak
+	$(MKHIER) $(LIBDIR)/glish/lib
+	$(INSTALL_DATA) $(top)/$(ARCH)/glishtk.mak $(LIBDIR)/glish/lib
 
 #IF AIX
 $(LIBDIR_P)/libglish.exp: libglish$(GSUFFIX)
