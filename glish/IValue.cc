@@ -1952,9 +1952,8 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 			break;
 			}
 		case TYPE_RECORD:
-			if ( length > 1 )
-				warn->Report(
-			"array values lost due to conversion to record type" );
+			if ( length > 1 && ! IsUninitialized( ) )
+				warn->Report( "array values lost due to conversion to record type" );
 
 			kernel.SetRecord( create_record_dict() );
 
