@@ -63,6 +63,7 @@ KEY_HEADERS = \
 ISTKPLACE = $(SRC)/..
 ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
 ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
+GLISH_HOME = @GLISH_HOME@
 
 LIBS = $(ISTKLIBS)/libsds.a $(ISTKLIBS)/libedit.a $(ISTKLIBS)/libnpd.a
 
@@ -144,7 +145,8 @@ Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Sequencer.cc
+	$(CPLUS) $(CFLAGS) -DGLISH_HOME=\"$(GLISH_HOME)\" $(INCLUDE) \
+				-c $(SRC)/Sequencer.cc
 Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc
 Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)

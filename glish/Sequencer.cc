@@ -43,6 +43,7 @@ int system( const char* string );
 #include "version.h"
 
 #define GLISH_RC_FILE ".glishrc"
+#define GLISH_HOME_VAR "GLISH_HOME"
 
 // Time to wait until probing a remote daemon, in seconds.
 #define PROBE_DELAY 5
@@ -344,6 +345,25 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	Parse( glish_init );
 
+	const char *glish_home = getenv( GLISH_HOME_VAR );
+	if ( ! glish_home )
+		glish_home = GLISH_HOME;
+
+	if ( glish_home )
+		{
+		char glish_rc_filename[256];
+		sprintf( glish_rc_filename, "%s/%s",
+				glish_home, GLISH_RC_FILE );
+
+		FILE *glish_rc_file = fopen( glish_rc_filename, "r");
+
+		if ( glish_rc_file )
+			{
+			fclose( glish_rc_file );
+			Parse( glish_rc_filename );
+			}
+		}
+
 	const char* glish_rc;
 	if ( (glish_rc = getenv( "GLISHRC" )) )
 		Parse( glish_rc );
@@ -401,6 +421,11 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	if ( argc > 0 && strcmp( argv[0], "--" ) )
 		{ // We have a file to parse.
+		// Handle the .glishrc (or "-l") startup scripts so that we can use any
+		// include path which might be specified in there.
+		Exec( 1 );
+		// Prevent re-executing the .glishrc statements
+		stmts = null_stmt;
 		Parse( argv[0] );
 		do_interactive = 0;
 		++argv, --argc;
