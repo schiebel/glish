@@ -16,7 +16,6 @@ char* strdup( const char* );
 #endif
 }
 
-struct fd_set;
 class EventContext {
 public:
 	EventContext(const char *client_name_ = 0, const char *context_ = 0 );

@@ -23,8 +23,6 @@ declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
 
-struct fd_set;
-
 class Selectee {
 public:
 	Selectee( int selectee_fd )	{ fd = selectee_fd; }
@@ -115,7 +113,7 @@ protected:
 	// If true, delete selectee when notification done.
 	int nuke_current_selectee;
 
-	struct fd_set* fdset;
+	fd_set *fdset;
 	timer_list timers;
 
 	int await_done;
