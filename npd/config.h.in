@@ -6,6 +6,9 @@
 /* Define if you have <sys/time.h>.  */
 #undef HAVE_SYS_TIME_H
 
+/* Define if you have <sys/utsname.h>.  */
+#undef HAVE_SYS_UTSNAME_H
+
 /* Define if you have <unistd.h>.  */
 #undef HAVE_UNISTD_H
 

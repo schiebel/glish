@@ -32,6 +32,12 @@
 #include <stdlib.h>
 #endif
 
+#ifndef HAVE_GETHOSTNAME
+#ifdef HAVE_SYS_UTSNAME_H
+#include <sys/utsname.h>
+#endif
+#endif
+
 #include "Npd/util.h"
 RCSID("@(#) $Id$")
 
