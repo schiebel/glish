@@ -12,9 +12,6 @@ RCSID("@(#) $Id$")
 #include "sos/mdep.h"
 #include "sos/types.h"
 
-#define SOS_HEADER_SIZE		24
-#define SOS_VERSION		0
-
 unsigned char sos_header::current_version = SOS_VERSION;
 unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
 

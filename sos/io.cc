@@ -12,12 +12,15 @@ RCSID("@(#) $Id$")
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/uio.h>
 
 
 #define PUTACTION_A(TYPE,SOSTYPE)					\
-void sos_sink::put( TYPE *a, unsigned int l )				\
+void sos_sink::put( TYPE *a, unsigned int l, short U1, short U2 )	\
 	{								\
 	head.set(a,l);							\
+	head.usets(U1,0);						\
+	head.usets(U2,1);						\
 	head.stamp();							\
 									\
 	write(FD,head.iBuffer(), head.iLength() * sos_size(SOSTYPE) +	\
@@ -31,9 +34,11 @@ PUTACTION_A(float,SOS_FLOAT)
 PUTACTION_A(double,SOS_DOUBLE)
 
 #define PUTACTION_B(TYPE)						\
-void sos_sink::put( TYPE *a, sos_code t, unsigned int l )		\
+void sos_sink::put( TYPE *a, sos_code t, unsigned int l, short U1, short U2 ) \
 	{								\
 	head.set(a,t,l);						\
+	head.usets(U1,0);						\
+	head.usets(U2,1);						\
 	head.stamp();							\
 									\
 	write(FD, head.iBuffer(), head.iLength() * sos_size(t) +	\
@@ -42,6 +47,44 @@ void sos_sink::put( TYPE *a, sos_code t, unsigned int l )		\
 
 PUTACTION_B(char)
 PUTACTION_B(unsigned char)
+
+void sos_sink::put( const str &s, short U1, short U2 )
+	{
+	unsigned int len = s.length();
+	unsigned int total = 4;
+
+	for ( unsigned int i = 0; i < len; i++ )
+		total += s.strlen(i) + 4;
+
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );
+
+	head.set(buf,SOS_STRING,total);
+	head.usets(U1,0);
+	head.usets(U2,1);
+	head.stamp();
+
+	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);
+	*lptr++ = len;
+	char *cptr = (char*)(&lptr[len]);
+
+	for ( unsigned int j = 0; j < len; j++ )
+		{
+		register char *out = (char*) s.get(j);
+		if ( out )
+			{
+			register unsigned int slen = s.strlen(j);
+			memcpy( cptr, out, slen );
+			*lptr++ = slen;
+			cptr += slen;
+			}
+		else
+			*lptr++ = 0;
+		}
+
+	write( FD, buf, total + SOS_HEADER_SIZE );
+	free_memory( buf );
+	}
+
 
 #if defined(VAXFP)
 #define FOREIGN_FLOAT   SOS_IFLOAT
@@ -66,11 +109,21 @@ sos_sink::~sos_sink() { if ( FD >= 0 ) close(FD); }
 
 void *sos_source::get( sos_code &type, unsigned int &len )
 	{
+	type = SOS_UNKNOWN;
 	if ( read(FD,head.iBuffer(),sos_header::iSize()) <= 0 )
 		return 0;
 
 	type = head.type();
 	len = head.length();
+
+	if ( type == SOS_STRING )
+		return get_string( len, head );
+	else
+		return get_numeric( type, len, head );
+	}
+
+void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &head )
+	{
 	char *result_ = (char*) alloc_memory(len * head.typeLen() + sos_header::iSize());
 	memcpy(result_, head.iBuffer(), sos_header::iSize());
 	char *result  = result_ + sos_header::iSize();
@@ -105,5 +158,35 @@ void *sos_source::get( sos_code &type, unsigned int &len )
 	return result_;
 	}
 
+void *sos_source::get_string( unsigned int &len, sos_header &head )
+	{
+	int swap = ! (head.magic() & SOS_MAGIC);
+	char *buf = (char*) alloc_memory(len);
+	read( FD, buf, len );
+
+	unsigned int *lptr = (unsigned int*) buf;
+	len = *lptr++;
+	if ( swap )
+		{
+		swap_abcd_dcba((char*) &len, 1);
+		swap_abcd_dcba((char*) lptr, len );
+		}
+
+	char *cptr = (char*)(&lptr[len]);
+	str *ns = new str( len );
+	char **ary = (char **) ns->raw_getary();
+	for ( unsigned int i = 0; i < len; i++ )
+		{
+		register unsigned int slen = *lptr++;
+		ary[i] = (char*) alloc_memory( slen + 5 );
+		*((unsigned int*)ary[i]) = slen;
+		memcpy(&ary[i][4],cptr,slen);
+		ary[i][slen+4] = '\0';
+		cptr += slen;
+		}
+
+	free_memory( buf );
+	return ns;
+	}
 
 sos_source::~sos_source() { if ( FD >= 0 ) close(FD); }

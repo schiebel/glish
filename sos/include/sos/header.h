@@ -8,6 +8,9 @@
 #define sos_header_h
 #include "sos/mdep.h"
 
+#define SOS_HEADER_SIZE		24
+#define SOS_VERSION		0
+
 //	sos header structure
 //							      offset
 //		1 byte version number				0

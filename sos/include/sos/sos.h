@@ -14,6 +14,7 @@
 #define alloc_memory malloc
 #define realloc_memory realloc
 #define free_memory free
+#define alloc_zero_memory(SIZE) calloc(SIZE,1)
 typedef unsigned char byte;
 
 //
