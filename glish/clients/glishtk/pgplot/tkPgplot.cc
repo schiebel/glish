@@ -113,6 +113,22 @@ extern ProxyStore *global_store;
 		var = v;						\
 	}
 
+#define GETFLOATARRAYLENCHECK(var,COND,MESSAGE)				\
+	len = 0;							\
+	GETVAL(var);							\
+	if ( ! (var##_val->Length() COND) ) {				\
+		global_store->Error(MESSAGE);				\
+		return 0;						\
+	}								\
+	int var##_is_copy = 0;						\
+	float *var = var##_val->CoerceToFloatArray(var##_is_copy, len); \
+	if (!var##_is_copy) {						\
+                float *v = (float *)alloc_memory(sizeof(float) * len); \
+		memcpy(v, var, len * sizeof(float));			\
+		var = v;						\
+	}
+
+
 #define GETINTARRAY(var)						\
 	len = 0;							\
 	GETVAL(var);							\
@@ -1424,7 +1440,7 @@ char *TkPgplot::Pggray( Value *args ) {
 	GETSHAPE(a);
 	GETFLOAT(fg);
 	GETFLOAT(bg);
-	GETFLOATARRAY(tr);
+	GETFLOATARRAYLENCHECK(tr, == 6, "tr must have six elements" );
 	cpgslct(id);
 	cpggray(a, idim, jdim, 1, idim, 1, jdim, fg, bg, tr);
 	GETDONEARRAY(a);

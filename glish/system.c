@@ -653,7 +653,7 @@ FILE* status_popen( const char *cmd, const char *mode )
 
 int status_pclose( FILE *fp )
 	{
-	int fd, stat, sigchld;
+	int fd, stat;
 	pid_t pid;
 
 	if ( ! status_pids ) return -1;
@@ -661,14 +661,10 @@ int status_pclose( FILE *fp )
 	fd = fileno(fp);
 	if ( ! (pid = status_pids[fd]) ) return -1;
 
-	sigchld = pid_status[fd];
-	status_pids[fd] = 0;
-	pid_status[fd] = 0;
-
 	if ( fclose(fp) == EOF ) return -1;
 
 	while ( waitpid( pid, &stat, 0 ) < 0 )
-		if ( errno == ECHILD ) return sigchld;
+		if ( errno == ECHILD ) return pid_status[fd];
 		else if ( errno != EINTR ) return -1;
 
 	return stat;
@@ -679,7 +675,11 @@ void status_pupdate( int pid, int status )
 	int i;
 	if ( ! status_pids || ! pid_status ) return;
 	for ( i=0; i < status_size; ++i )
-		if ( pid == status_pids[i] ) pid_status[i] = status;
+		if ( pid == status_pids[i] )
+			{
+			pid_status[i] = status;
+			break;
+			}
 	}
 
 static char* input_file_name = 0;

@@ -340,7 +340,7 @@ const char *TkProxy::init_tk( int visible_root )
 				glishtk_dflt_xerror_handler = XSetErrorHandler(glishtk_xerror_handler);
 
 */
-                                ClientData cd;
+                                ClientData cd = 0;
                                 Tk_CreateErrorHandler(Tk_Display(root), -1, -1, -1,  glishtk_tkerrorhandler, cd);
 				static char tk_follow[] = "tk_focusFollowsMouse";
 				Tcl_Eval(tcl, tk_follow);

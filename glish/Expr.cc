@@ -724,6 +724,8 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 		{
 		if ( ! lopt.side_effects() )
 			return l_err;
+		else if ( l_err->Type() == TYPE_FAIL )
+			return l_err;
 		else
 			{
 			Unref( l_err );
