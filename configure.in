@@ -815,8 +815,11 @@ case $host_os in
 		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
 	    fi
 	fi
-	SGI_ABI	
-	SLIB_LD="$SLIB_LD $_cv_sgiabi"
+
+	if test $ac_cv_prog_gcc != yes; then
+	    SGI_ABI	
+	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
+	fi
 	;;
     linux*)
 	SLIB_CFLAGS="-fPIC"
