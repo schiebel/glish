@@ -3,7 +3,7 @@
 //
 #ifndef tkpgplot_h_
 #define tkpgplot_h_
-#include "tkAgent.h"
+#include "Glish/gtk.h"
 
 class TkPgplot : public TkProxy
 {

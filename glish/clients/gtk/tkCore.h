@@ -8,7 +8,7 @@
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
 #include "config.h"
-#include "tkAgent.h"
+#include "Glish/gtk.h"
 
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character

@@ -20,8 +20,6 @@ SHELL = /bin/sh
 SH = $(SHELL)
 
 SRC = ..
-GTK_SRC = $(SRC)/..
-GLISH_SRC = $(GTK_SRC)/../..
 
 top = @top_srcdir@@top_off@
 INCDIR_P = $(top)/include
@@ -38,13 +36,13 @@ SCRIPTDIR = @SCRIPTDIR@
 
 MKHIER = $(top)/config/mkhier
 
-LIBS = ../../$(ARCH)/tkAgent.o $(CLIENT_LIBS) $(TK_LIB) @LIBS@
+LIBS = ../../$(ARCH)/tkProxy.o $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(GTK_SRC) -I$(GLISH_SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+INCLUDE = -I. -I$(SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 
 OBJS = tkPgplot.o
 
@@ -64,7 +62,7 @@ make-scriptdir:
 
 install:
 
-tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(GTK_SRC)/tkAgent.h $(GTK_SRC)/comdefs.h
+tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 	@if test -d $(SRC)/tkpgplot; then						\
 	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc; \
 	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc;	\

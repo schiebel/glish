@@ -24,6 +24,7 @@ SHELL = /bin/sh
 SH = $(SHELL)
 
 SRC = ..
+H = $(SRC)/include/Glish
 GLISH_SRC = $(SRC)/../..
 
 top = @top_srcdir@@top_off@
@@ -45,7 +46,7 @@ MKHIER = $(top)/config/mkhier
 GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkAgent.o tkCore.o tkCanvas.o malloc.o
+OBJS = main.o tkProxy.o tkCore.o tkCanvas.o malloc.o
 
 RCDIR = @RCDIR@
 TK_LIB = @TK_LIB@ 
@@ -53,8 +54,8 @@ DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+INCLUDE = -I. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
 CLIENTS = $(BINDIR_P)/gtk
 
@@ -62,11 +63,13 @@ INSTALLED_CLIENTS = $(BINDIR)/gtk
 
 SCRIPTS = $(SCRIPTDIR_P)/gtk.g
 
+HEADERS = $(INCDIR_P)/Glish/gtk.h
+
 INSTALLED_SCRIPTS = $(SCRIPTDIR)/gtk.g
 
 TAR_FILE = gtk.tar
 
-all: make-bindir_p make-scriptdir_p $(CLIENTS) $(SCRIPTS)
+all: make-bindir_p make-scriptdir_p make-incdir_p $(CLIENTS) $(SCRIPTS) $(HEADERS)
 
 make-bindir_p:
 	$(MKHIER) $(BINDIR_P)
@@ -80,21 +83,27 @@ make-scriptdir_p:
 make-scriptdir:
 	$(MKHIER) $(SCRIPTDIR)
 
-install:  make-bindir make-scriptdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
+make-incdir_p:
+	$(MKHIER) $(INCDIR_P)
 
-tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(SLIB_CFLAGS) -c $(SRC)/tkAgent.cc
+make-incdir:
+	$(MKHIER) $(INCDIR)
 
-tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
+install:  make-bindir make-scriptdir make-incdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
+
+tkProxy.o: $(SRC)/tkProxy.cc $(H)/gtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(SLIB_CFLAGS) -c $(SRC)/tkProxy.cc
+
+tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/gtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
 
-tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
+tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(H)/gtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
 
 malloc.o: $(GLISH_SRC)/malloc.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
-main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
+main.o: $(SRC)/main.cc $(H)/gtk.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
 gtk: $(OBJS) $(GLISH_LIBS)
@@ -113,6 +122,9 @@ $(SCRIPTDIR_P)/gtk.g: $(SRC)/gtk.g
 
 $(SCRIPTDIR)/gtk.g: $(SRC)/gtk.g
 	$(INSTALL_DATA) $(SRC)/gtk.g $(SCRIPTDIR)
+
+$(INCDIR_P)/Glish/gtk.h: $(H)/gtk.h
+	$(INSTALL_DATA) $(H)/gtk.h $(INCDIR_P)/Glish
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
