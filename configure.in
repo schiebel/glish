@@ -1162,6 +1162,7 @@ case $host_os in
 	;;
     hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
+	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"
 	SLIB_LD_LIBS='${LIBS}'
 	SLIB_SUFFIX=".sl"
