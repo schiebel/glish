@@ -21,13 +21,13 @@ func init_glishtk( load=F ) {
 			pady=0, expand='both', background='lightgrey', width=70,
 			height=50, cursor='', title='glish/tk', icon='', newcmap=F,
 			tlead=F, tpos='sw', hlcolor='', hlbackground='', hlthickness='',
-			visual='', visualdepth=0, logfile='' )
+			visual='', visualdepth=0, logfile='', autopack=T )
 				{
 				if ( system.nogui ) fail "GUI disabled"
-				return gtk->frame( parent, relief, side, borderwidth, padx,
-						pady, expand, background, width, height,
-						cursor, title, icon, newcmap, tlead, tpos,
-						hlcolor, hlbackground, hlthickness, visual, visualdepth, logfile )
+				return gtk->frame( parent, relief, side, borderwidth, padx, pady, expand,
+						background, width, height, cursor, title, icon, newcmap,
+						tlead, tpos, hlcolor, hlbackground, hlthickness, visual,
+						visualdepth, logfile, autopack )
 				}
 
     ret.button := func ( parent, text='button', type='plain', padx=7, pady=3, width=0,
@@ -95,12 +95,12 @@ func init_glishtk( load=F ) {
     ret.message := func ( parent, text='message', width=180, justify='left', font='', padx=4,
 			  pady=2, relief='flat', borderwidth=3, foreground='black',
 			  background='lightgrey', anchor='c', fill='none',
-			  hlcolor='', hlbackground='', hlthickness='' )
+			  hlcolor='', hlbackground='', hlthickness='', aspect=-1 )
 				{
 				if ( system.nogui ) fail "GUI disabled"
 				return gtk->message( parent, text, width, justify, font, padx, pady,
 						relief, borderwidth, foreground, background,
-						anchor, fill, hlcolor, hlbackground, hlthickness )
+						anchor, fill, hlcolor, hlbackground, hlthickness, aspect )
 				}
 
     ret.listbox := func ( parent, width=20, height=6, mode='browse', font='', relief='sunken',

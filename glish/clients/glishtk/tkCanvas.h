@@ -38,6 +38,9 @@ class TkCanvas : public TkProxy {
 	int NewItemCount(const char *);
 	ProxyStore *seq() { return store; }
 	int CanExpand() const;
+
+	int AutoPack( ) const { return frame ? frame->AutoPack( ) : 1; }
+
     protected:
 	char *fill;
 	static int count;

@@ -21,6 +21,7 @@ RCSID("@(#) $Id$")
 extern Value *glishtk_valcast( const char * );
 
 unsigned long TkFrameP::grab = 0;
+static tkagent_list been_there;
 
 Value *glishtk_splitnl( const char *str )
 	{
@@ -1259,10 +1260,10 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		    charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
 		    charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
 		    charptr hlcolor, charptr hlbackground, charptr hlthickness, charptr visual_, int visualdepth,
-		    charptr logf ) : TkFrame( s ),
+		    charptr logf, int autopack ) : TkFrame( s ),
 			side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), tab(0),
 		  topwin( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
-		  logfile(0), icon(0)
+		  logfile(0), icon(0), auto_pack(autopack)
 
 	{
 	char *argv[20];
@@ -1483,6 +1484,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	procs.Insert("title", new FmeProc( this, &TkFrameP::Title ));
 	procs.Insert("unmap", new FmeProc(this, "UT", glishtk_agent_map));
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("pack", new FmeProc( this, &TkFrameP::PackCB ));
 
 	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
 	if ( ! tlead )
@@ -1497,7 +1499,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 		    charptr width, charptr height, charptr cursor, int new_cmap,
 		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) : TkFrame( s ),
 		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), tab(0), topwin( 0 ),
-		  reject_first_resize(0), tlead(0), tpos(0), unmapped(0), logfile(0), icon(0)
+		  reject_first_resize(0), tlead(0), tpos(0), unmapped(0), logfile(0), icon(0),
+		  auto_pack(0)
 
 	{
 	char *argv[22];
@@ -1607,7 +1610,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		    charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
 		  padx(0), pady(0), expand(0), tab(0), topwin( 0 ), reject_first_resize(0),
-		  tlead(0), tpos(0), unmapped(0), logfile(0), icon(0)
+		  tlead(0), tpos(0), unmapped(0), logfile(0), icon(0), auto_pack(0)
 
 	{
 	char *argv[12];
@@ -1992,6 +1995,13 @@ const char *TkFrameP::GrabCB( Value *args )
 	return Grab( global_scope );
 	}
 
+const char *TkFrameP::PackCB( Value * )
+	{
+	been_there.clear( );
+	if ( ! auto_pack ) { Pack(1); }
+	return 0;
+	}
+
 const char *TkFrameP::IconifyCB( Value * )
 	{
 	tcl_VarEval( this, "wm iconify ", Tk_PathName(topwin), (char *)NULL );
@@ -2115,10 +2125,19 @@ int TkFrameP::ExpandNum(const TkProxy *except, unsigned int grtOReqt) const
 	return cnt;
 	}
 
-void TkFrameP::Pack( )
+void TkFrameP::Pack( int override )
 	{
-	if ( elements.length() )
+	if ( elements.length() && (auto_pack || override) )
 		{
+		if ( override )
+			{
+			if ( been_there.is_member( this ) ) return;
+			been_there.append(this);
+
+			loop_over_list( elements, i )
+				elements[i]->Pack( 1 );
+			}
+
 		char **argv = (char**) alloc_memory( sizeof(char*)*(elements.length()+7) );
 
 		int c = 1;
@@ -2213,8 +2232,8 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	{
 	TkFrameP *ret = 0;
 
-	if ( args->Length() != 22 )
-		InvalidNumberOfArgs(22);
+	if ( args->Length() != 23 )
+		InvalidNumberOfArgs(23);
 
 	init_reporters();
 
@@ -2241,6 +2260,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	SETSTR( visual )
 	SETINT( visualdepth )
 	SETSTR( log )
+	SETINT( auto_pack )
 
 	if ( parent->Type() == TYPE_BOOL )
 		{
@@ -2255,7 +2275,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 
 		ret =  new TkFrameP( s, relief, side, borderwidth, padx, pady, expand, background,
 				     width, height, cursor, title, icon, new_cmap, (TkProxy*) tl, tpos,
-				     hlcolor, hlbackground, hlthickness, visual, visualdepth, log );
+				     hlcolor, hlbackground, hlthickness, visual, visualdepth, log, auto_pack );
 		}
 	else
 		{
@@ -2273,7 +2293,21 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 			}
 		}
 
-	CREATE_RETURN
+	if ( ! ret || ! ret->IsValid() )
+		{
+		Value *err = ret->GetError();
+		if ( err )
+			{
+			global_store->Error( err );
+			Unref( err );
+			}
+		else
+			global_store->Error( "tk widget creation failed" );
+		}
+	else
+		ret->SendCtor("newtk");
+
+	SETDONE
 	}
 
 const char *TkFrameP::Side() const
@@ -2329,6 +2363,11 @@ Tk_Window TkFrameP::TopLevel( )
 FILE *TkFrameP::Logfile( )
 	{
 	return frame ? frame->Logfile() : canvas ? canvas->Logfile() : logfile;
+	}
+
+int TkFrameP::AutoPack( ) const
+	{
+	return frame ? frame->AutoPack( ) : canvas ? canvas->AutoPack( ) : auto_pack;
 	}
 
 Value *FmeProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
@@ -2459,6 +2498,12 @@ void TkButton::ExitEnable()
 		else
 			tcl_VarEval( this, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", (char *)NULL );
 	}
+
+int TkButton::AutoPack( ) const
+	{
+	return menu ? menu->AutoPack( ) : frame ? frame->AutoPack( ) : 1;
+	}
+
 
 void TkButton::Disable( )
 	{

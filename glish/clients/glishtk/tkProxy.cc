@@ -911,7 +911,7 @@ int TkHaveGui()
 
 void TkFrame::AddElement( TkProxy *obj ) { exit(1); }
 void TkFrame::RemoveElement( TkProxy *obj ) { exit(1); }
-void TkFrame::Pack() { exit(1); }
+void TkFrame::Pack( int ) { exit(1); }
 const char *TkFrame::Expand() const { exit(1); return 0; }
 int TkFrame::NumChildren() const { exit(1); return 0; }
 const char *TkFrame::Side() const { exit(1); return 0; }

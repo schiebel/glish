@@ -49,7 +49,7 @@ class TkFrameP : public TkFrame {
 		  charptr width, charptr height, charptr cursor, charptr title,
 		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
 		  charptr hlcolor, charptr hlbackground, charptr hlthickness,
-		  charptr visual, int visualdepth, charptr logf );
+		  charptr visual, int visualdepth, charptr logf, int autopack );
 	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,
@@ -85,10 +85,12 @@ class TkFrameP : public TkFrame {
 	const char *IconifyCB( Value * );
 	const char *DeiconifyCB( Value * );
 
+	const char *PackCB( Value * );
+
 	const char *Raise( Value *args=0 );
 	const char *Title( Value * );
 
-	void Pack();
+	void Pack( int override=0 );
 	void PackSpecial( TkProxy * );
 	void AddElement( TkProxy *obj ) { elements.append(obj); }
 	void RemoveElement( TkProxy *obj );
@@ -112,6 +114,8 @@ class TkFrameP : public TkFrame {
 
 	Tk_Window TopLevel();
 	FILE *Logfile();
+
+	int AutoPack( ) const;
 
     protected:
 	char *side;
@@ -137,6 +141,8 @@ class TkFrameP : public TkFrame {
 	FILE *logfile;
 
 	char *icon;
+
+	unsigned char auto_pack;
 	};
 
 class FmeProc : public TkProc {
@@ -205,6 +211,8 @@ class TkButton : public TkFrame {
 	// a widget even if it has been disabled for the user.
 	void EnterEnable();
 	void ExitEnable();
+
+	int AutoPack( ) const;
 
     protected:
 	Value *value;

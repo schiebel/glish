@@ -140,6 +140,8 @@ class TkProxy : public Proxy {
 
 	static void Register( const char *, WidgetCtor );
 
+	virtual void Pack( int override=0 ) { }
+
     protected:
 	static void set_global_store( ProxyStore *);
 	static ProxyStore *global_store;
@@ -227,12 +229,14 @@ class TkFrame : public TkProxy {
 
 	virtual void AddElement( TkProxy *obj );
 	virtual void RemoveElement( TkProxy *obj );
-	virtual void Pack();
+	virtual void Pack( int override=0 );
 	virtual const char *Expand() const;
 	virtual int NumChildren() const;
 
 	virtual const char *Side() const;
 	virtual int ExpandNum(const TkProxy *except=0, unsigned int grtOReqt = 0) const;
+
+	virtual int AutoPack( ) const = 0;
 
     private:
 
