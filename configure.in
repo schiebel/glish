@@ -424,7 +424,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in glish/clients/gtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/gtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -436,7 +436,7 @@ else
     BUILD_NPD=""
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in glish/clients/gtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/gtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 fi
 
 dnl##--------------------------------------------------------------------
@@ -444,7 +444,7 @@ dnl##
 dnl## PGPLOT parameters
 dnl##
 dnl##--------------------------------------------------------------------
-if test -n "$option_pgplot_link_flags" && test -d rivet/tkpgplot; then
+if test -n "$option_pgplot_link_flags"; then
     PGPLOTINCLFLAGS="$option_pgplot_incl_flags"
     PGPLOTLINKFLAGS="\${LIBDIR_P}/libtkpgdrv.a $option_pgplot_link_flags"
     if test -n "$option_pgplot_link_search"; then
@@ -452,7 +452,7 @@ if test -n "$option_pgplot_link_flags" && test -d rivet/tkpgplot; then
     else
         PGPLOTLINKSEARCH=""
     fi
-    GLISH_FLAGS="$GLISH_FLAGS -DTKPGPLOT"
+    TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
 else
     PGPLOTINCLFLAGS=""
     PGPLOTLINKFLAGS=""
@@ -462,11 +462,16 @@ fi
 
 dnl##--------------------------------------------------------------------
 dnl##
-dnl## Configure Tk, i.e. rivet
+dnl## Configure Tk
 dnl##
 dnl##--------------------------------------------------------------------
 
-if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
+if test -z "$NO_TK"; then
+
+    dnl##
+    dnl## Find X
+    dnl##
+
     #--------------------------------------------------------------------
     #	Derived from the Tk configure.in...
     #
@@ -481,7 +486,7 @@ if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
     not_really_there=""
     if test "$no_x" = ""; then
         if test "$x_includes" = ""; then
-    	AC_TRY_CPP([#include <X11/XIntrinsic.h>], , not_really_there="yes")
+    	    AC_TRY_CPP([#include <X11/XIntrinsic.h>], , not_really_there="yes")
         else
     	if test ! -r $x_includes/X11/Intrinsic.h; then
     	    not_really_there="yes"
@@ -544,16 +549,114 @@ if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
         AC_MSG_WARN(couldn't find X11 libraries.  Using -lX11.)
         XLIBSW=-lX11
     fi
-    #--------------------------------------------------------------------
-    GLISH_FLAGS="$GLISH_FLAGS -DGLISHTK"
-    TK_INCL="-I\$(top)/include/Rivet $PGPLOTINCLFLAGS"
-    TK_LIB="\$(LIBDIR_P)/librivet\$(LIB_SUFFIX)"
-    do_tk='yes'
-    BUILD_TK="BUILD_TK"
 
-    #------propagate the hostname on down--------------------------------
-#   ac_configure_args="$ac_configure_args --host=$ARCH"
-    AC_CONFIG_SUBDIRS( rivet )
+
+    dnl##
+    dnl## Find TCL and Tk
+    dnl##
+    AC_CHECK_PROG(TCLSH,tclsh,tclsh)
+    if test -n "$TCLSH"; then
+        AC_MSG_CHECKING(for tcl version)
+        tcl_ext=`echo 'puts stdout [[info tclversion]]' | $TCLSH`
+	AC_MSG_RESULT($tcl_ext)
+        AC_MSG_CHECKING(for tcl lib path)
+	tcl_path=`echo 'puts stdout [[info library]]' | tclsh | sed ['s/\/[^\/]*$//']`
+	AC_MSG_RESULT($tcl_path)
+	tcl_base=`echo $tcl_path | sed ['s/\/[^\/]*$//']`
+    fi
+
+    ##
+    ## Find includes
+    ##
+    AC_MSG_CHECKING(for tcl include path)
+
+    if test -n "$tcl_base"; then
+        saved_CFLAGS="$CFLAGS"
+        CFLAGS="-I$tcl_base/include $CFLAGS"
+        AC_TRY_CPP([#include <tcl.h>],tcl_incl="-I$tcl_base/include"; tcl_inclp="$tcl_base/include",tcl_incl=""; tcl_inclp="")
+        CFLAGS="$saved_CFLAGS"
+    else
+        AC_TRY_CPP([#include <tcl.h>],tcl_inclp="no extra path needed",tcl_inclp="")
+    fi
+
+    if test -z "$tcl_inclp"; then
+        dirs="/usr/include /usr/local/include /opt/local/include /usr/local/tcl/include /opt/local/tcl/include /usr/unsupported/include /usr/unsupported/tcl/include /usr/sww/include /usr/sww/tcl/include /loc/include /loc/tcl/include"
+        for i in $dirs ; do
+            if test -r $i/tcl.h; then
+                tcl_incl="-I$i"
+                tcl_inclp="$i"
+                break
+            fi
+        done
+    fi
+
+    if test -z "$tcl_inclp"; then
+        AC_MSG_RESULT(couldn't find it)
+    else
+        AC_MSG_RESULT($tcl_inclp)
+    fi
+
+    ##
+    ## Find libraries
+    ##
+    if test -n "$tcl_path"; then
+        saved_LDFLAGS="$LDFLAGS"
+        LDFLAGS="-L$tcl_path $LDFLAGS"
+	for ext in $tcl_ext 8.0 ''; do
+            AC_CHECK_LIB(tcl$ext,main,
+                AC_CHECK_LIB(tk$ext,main,tcl_lib="-L$tcl_path -ltk$ext -ltcl$ext"; break, tcl_lib="", -ltcl$ext),
+                tcl_lib="")
+        done
+	LDFLAGS="$saved_LDFLAGS"
+    else
+	for ext in $tcl_ext 8.0 ''; do
+            AC_CHECK_LIB(tcl$ext,main,
+                AC_CHECK_LIB(tk$ext,main,tcl_lib="-L$tcl_path -ltk$ext -ltcl$ext"; break, tcl_lib="", -ltcl$ext),
+                tcl_lib="")
+        done
+    fi
+
+    ##
+    ## if we couldn't find the tcl library, look a little harder
+    ##
+    if test -z "$tcl_lib"; then
+        AC_MSG_CHECKING(for tcl library)
+        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib"
+        for i in $dirs ; do
+            tmp=`ls -1 $i/libtcl* 2> /dev/null`
+            if test -n "$tmp"; then
+                tcl_ext=`echo $tmp | sed ['s/.*libtcl(.*)\.[a-z][a-z]*$/$1/']`
+		tmp=`ls -1 $i/libtk* 2> /dev/null`
+                if test -n "$tmp"; then
+                    tk_ext=`echo $tmp | sed ['s/.*libtk(.*)\.[a-z][a-z]*$/$1/']`
+                    tcl_lib="-L$i -ltk$tk_ext -ltcl$tcl_ext"
+                    tcl_libp="$i"
+                    break
+                fi
+            fi
+        done
+        if test -z "$tcl_lib"; then
+            AC_MSG_RESULT(couldn't find it)
+        else
+            AC_MSG_RESULT($tcl_libp)
+        fi
+    fi
+
+    if test -z "$tcl_lib"; then
+        XLIBSW=""
+        XINCLUDES=""
+        BUILD_TK=""
+        TK_LIB=""
+        do_tk='no'
+        TK_INCL=""
+        x_includes=""
+        x_libraries=""
+    else
+        TK_INCL="$tcl_incl"
+        TK_LIB="$tcl_lib"
+        do_tk='yes'
+        BUILD_TK="BUILD_TK"
+    fi
 else
     XLIBSW=""
     XINCLUDES=""
@@ -1249,6 +1352,7 @@ AC_SUBST(XLIBSW)
 AC_SUBST(BUILD_TK)
 AC_SUBST(TK_LIB)
 AC_SUBST(TK_INCL)
+AC_SUBST(TK_FLAGS)
 AC_SUBST(NPD_LIB)
 AC_SUBST(BUILD_NPD)
 AC_SUBST(top_off)
@@ -1308,5 +1412,5 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/rtk/$ARCH/Makefile:glish/clients/rtk/Makefile.in glish/clients/gtk/$ARCH/Makefile:glish/clients/gtk/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/gtk/$ARCH/Makefile:glish/clients/gtk/Makefile.in)
 
