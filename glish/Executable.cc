@@ -2,6 +2,7 @@
 // Copyright (c) 1993 The Regents of the University of California.
 // Copyright (c) 1997 Associated Universities Inc.
 
+#include "config.h"
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"

@@ -2,6 +2,7 @@
 // Copyright (c) 1997,1998 Associated Universities Inc.
 //
 
+#include "config.h"
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <memory.h>

@@ -2,12 +2,12 @@
 // Copyright (c) 1993 The Regents of the University of California.
 // Copyright (c) 1997 Associated Universities Inc.
 
+#include "config.h"
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <string.h>
 #include <stdio.h>
 #include "Glish/Dict.h"
-#include "config.h"
 
 
 // If the mean bucket length exceeds the following then Insert() will

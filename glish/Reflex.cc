@@ -1,6 +1,7 @@
 // $Id$
 // Copyright (c) 2000 Associated Universities Inc.
 
+#include "config.h"
 #include <stdio.h>
 #include "Reflex.h"
 
