@@ -464,7 +464,7 @@ IValue* LinkStmt::DoExec( evalOpt & )
 			continue;
 			}
 
-		PList(char) &name_list = src->EventNames();
+		PList(char) &name_list = src->EventNames( 1 );
 
 		if ( name_list.length() == 0 )
 			{
@@ -496,7 +496,7 @@ IValue* LinkStmt::DoExec( evalOpt & )
 				continue;
 				}
 
-			PList(char) &sink_list = snk->EventNames();
+			PList(char) &sink_list = snk->EventNames( 1 );
 
 			if ( sink_list.length() > 1 )
 				err = (IValue*) Fail(
