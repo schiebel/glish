@@ -197,7 +197,10 @@ Channel* CreateChild( char** argv, int& pid )
 	int input_fd = from_pipe[0];
 	int output_fd = to_pipe[1];
 
-	pid = fork_process();
+	//
+	// vfork() causes a SEGV with the GNU g++ compiler...
+	//
+	pid = fork();
 
 	if ( pid == 0 )
 		{ // child
@@ -347,7 +350,7 @@ int await_child_exit()
 
 	do
 		{
-		child_id = wait_for_pid( 0, &child_status, WNOHANG );
+		child_id = wait_for_pid( pid, &child_status, WNOHANG );
 		}
 	while ( child_id < 0 && errno == EINTR );
 
