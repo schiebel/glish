@@ -664,7 +664,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
 		cur_scope->ClearGlobalRef( id );
-		warn->Report( "scope of ", id," goes from global to local");
+		warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
 	cur_scope->Insert( id, var );
