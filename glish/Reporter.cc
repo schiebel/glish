@@ -237,6 +237,7 @@ void Reporter::Prolog()
 void Reporter::Epilog()
 	{
 	stream << "\n";
+	stream.flush();
 	}
 
 

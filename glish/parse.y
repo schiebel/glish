@@ -404,10 +404,7 @@ block:		block_head statement_list '}'
 			{ 
 			int frame_size = current_sequencer->PopScope();
 
-			if ( frame_size )
-				$$ = new StmtBlock( frame_size, $2, current_sequencer );
-			else
-				$$ = $2;
+			$$ = new StmtBlock( frame_size, $2, current_sequencer );
 			}
 
 block_head:	'{'

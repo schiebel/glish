@@ -593,50 +593,98 @@ IValue* RangeBuiltIn::DoCall( const_args_list* args_val )
 	if ( ! AllNumeric( args_val, max_type ) )
 		return error_ivalue();
 
-#define RANGEBUILTIN_ACTION(tag,type,accessor,max)			\
+#define RANGEBUILTIN_ARG_ACTION(tag,src_type,tgt_type,accessor,INDEX,src_elem,XLATE) \
 	case tag:							\
 		{							\
-		type min_val = (type) max;				\
-		type max_val = (type) -max;				\
+		src_type* val_array = val->accessor( 0 );		\
 									\
-		loop_over_list( *args_val, i )				\
+		for ( int j = 0; j < len; ++j )				\
 			{						\
-			const IValue* val = (*args_val)[i];		\
-			int len = val->Length();			\
-			int is_copy;					\
+			XLATE						\
+			if ( (tgt_type) val_array[INDEX] src_elem < min_val )	\
+				min_val = (tgt_type) val_array[INDEX] src_elem;	\
 									\
-			type* val_array = val->accessor( is_copy, len );\
-									\
-			for ( int j = 0; j < len; ++j )			\
-				{					\
-				if ( val_array[j] < min_val )		\
-					min_val = val_array[j];		\
-									\
-				if ( val_array[j] > max_val )		\
-					max_val = val_array[j];		\
-				}					\
-									\
-			if ( is_copy )					\
-				delete val_array;			\
+			if ( (tgt_type) val_array[INDEX] src_elem > max_val )	\
+				max_val = (tgt_type) val_array[INDEX] src_elem;	\
 			}						\
-		type* range = new type[2];				\
-		range[0] = min_val;					\
-		range[1] = max_val;					\
-									\
-		result = new IValue( range, 2 );				\
 		}							\
-			break;
+		break;
+	
+#define RANGEBUILTIN_XLATE						\
+	int err;							\
+	int off = ref->TranslateIndex( j , &err );			\
+	if ( err )							\
+		{							\
+		error->Report("invalid index (=",j+1,			\
+			      "), sub-vector reference may be bad");	\
+		return error_ivalue();					\
+		}
+
+#define RANGEBUILTIN_ACTION(tag,type,max,src_elem)			\
+case tag:								\
+	{								\
+	type min_val = (type) max;					\
+	type max_val = (type) -max;					\
+									\
+	loop_over_list( *args_val, i )					\
+		{							\
+		const IValue* val = (*args_val)[i];			\
+		int len = val->Length();				\
+									\
+		switch ( val->Type() )					\
+			{						\
+RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,j,src_elem,) \
+RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,j,src_elem,)    \
+RANGEBUILTIN_ARG_ACTION(TYPE_DOUBLE,double,type,DoublePtr,j,,)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_FLOAT,float,type,FloatPtr,j,,)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,j,,)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_BYTE,byte,type,BytePtr,j,,)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_SHORT,short,type,ShortPtr,j,,)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,j,,)			\
+			case TYPE_SUBVEC_REF:				\
+				{					\
+				VecRef* ref = val->VecRefPtr();		\
+				IValue* val = (IValue*) ref->Val();	\
+				int len = val->Length();		\
+									\
+				switch ( val->Type() )			\
+					{				\
+RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,off,src_elem,RANGEBUILTIN_XLATE)\
+RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,off,src_elem,RANGEBUILTIN_XLATE)	\
+RANGEBUILTIN_ARG_ACTION(TYPE_DOUBLE,double,type,DoublePtr,off,,RANGEBUILTIN_XLATE)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_FLOAT,float,type,FloatPtr,off,,RANGEBUILTIN_XLATE)			\
+RANGEBUILTIN_ARG_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,off,,RANGEBUILTIN_XLATE)		\
+RANGEBUILTIN_ARG_ACTION(TYPE_BYTE,byte,type,BytePtr,off,,RANGEBUILTIN_XLATE)			\
+RANGEBUILTIN_ARG_ACTION(TYPE_SHORT,short,type,ShortPtr,off,,RANGEBUILTIN_XLATE)			\
+RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,off,,RANGEBUILTIN_XLATE)			\
+					default:			\
+						return error_ivalue();	\
+					}				\
+				}					\
+				break;					\
+			default:					\
+				return error_ivalue();			\
+			}						\
+									\
+		}							\
+	type* range = new type[2];					\
+	range[0] = min_val;						\
+	range[1] = max_val;						\
+									\
+	result = new IValue( range, 2 );				\
+	}								\
+	break;
 
 	switch ( max_type )
 		{
-RANGEBUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,CoerceToDcomplexArray,HUGE)
-RANGEBUILTIN_ACTION(TYPE_COMPLEX,complex,CoerceToComplexArray,MAXFLOAT)
-RANGEBUILTIN_ACTION(TYPE_DOUBLE,double,CoerceToDoubleArray,HUGE)
-RANGEBUILTIN_ACTION(TYPE_FLOAT,float,CoerceToFloatArray,MAXFLOAT)
+		RANGEBUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,HUGE,)
+		RANGEBUILTIN_ACTION(TYPE_COMPLEX,complex,MAXFLOAT,)
+		RANGEBUILTIN_ACTION(TYPE_DOUBLE,double,HUGE,.r)
+		RANGEBUILTIN_ACTION(TYPE_FLOAT,float,MAXFLOAT,.r)
 		case TYPE_BOOL:
 		case TYPE_BYTE:
 		case TYPE_SHORT:
-RANGEBUILTIN_ACTION(TYPE_INT,int,CoerceToIntArray,MAXINT)
+		RANGEBUILTIN_ACTION(TYPE_INT,int,MAXINT,.r)
 		default:
 			result = error_ivalue();
 		}

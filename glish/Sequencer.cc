@@ -903,7 +903,7 @@ const IValue *Sequencer::LookupVal( const char *id )
 void Sequencer::PushFrame( Frame* new_frame )
 	{
 	frames.append( new_frame );
-	if ( new_frame->GetScopeType() != LOCAL_SCOPE )
+	if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames.append( frames.length() - 1 );
 	}
 
@@ -915,7 +915,7 @@ Frame* Sequencer::PopFrame()
 			"local frame stack underflow in Sequencer::PopFrame" );
 
 	Frame *top_frame = frames.remove_nth( top_frame_pos );
-	if ( top_frame->GetScopeType() != LOCAL_SCOPE )
+	if ( top_frame && top_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames.remove( top_frame_pos );
 
 	return top_frame;

@@ -188,15 +188,9 @@ function sort(x)
 	{
 	if ( len(x) <= 1 )
 		return x
-	else
-		{
-		local pivot := x[1]
-		local below := x[x < pivot]
-		local equal := x[x == pivot]
-		local above := x[x > pivot]
 
-		return [sort(below), equal, sort(above)]
-		}
+	pivot := x[random(1,len(x))]
+	return [sort(x[x < pivot]), x[x == pivot], sort(x[x > pivot])]
 	}
 
 function sort_pair(x, y)
@@ -204,15 +198,14 @@ function sort_pair(x, y)
 	if ( len(x) <= 1 )
 		return y
 	else
-		{
-		local pivot := x[1]
-		local below := x < pivot
-		local equal := x == pivot
-		local above := x > pivot
 
-		return [sort_pair(x[below], y[below]), y[equal],
+	pivot := x[random(1,len(x))]
+	below := x < pivot
+	equal := x == pivot
+	above := x > pivot
+
+	return [sort_pair(x[below], y[below]), y[equal],
 			sort_pair(x[above], y[above])]
-		}
 	}
 
 function order(x)	sort_pair(x, 1:len(x))

@@ -802,17 +802,27 @@ StmtBlock::StmtBlock( int fsize, Stmt *arg_stmt,
 
 IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
 	{
-	Frame* call_frame = new Frame( frame_size, 0, LOCAL_SCOPE );
-	sequencer->PushFrame( call_frame );
-
 	IValue* result = 0;
 
-	result = stmt->Exec( value_needed, flow );
+	if ( frame_size )
+		{
+		Frame* call_frame = new Frame( frame_size, 0, LOCAL_SCOPE );
 
-	if ( sequencer->PopFrame() != call_frame )
-		fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
+		sequencer->PushFrame( call_frame );
 
-	Unref( call_frame );
+		result = stmt->Exec( value_needed, flow );
+
+		if ( sequencer->PopFrame() != call_frame )
+			fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
+
+		Unref( call_frame );
+		}
+	else
+		{
+		sequencer->PushFrame( 0 );
+		result = stmt->Exec( value_needed, flow );
+		sequencer->PopFrame();
+		}
 
 	return result;
 	}
