@@ -22,6 +22,7 @@ class BuiltIn : public Func {
 		side_effects_call_okay = 0;
 		handle_fail = 0;
 		do_ref_eval = do_ref_eval_;
+		preserve = 0;
 		}
 
 	const char* Name()				{ return description; }
@@ -59,6 +60,7 @@ class BuiltIn : public Func {
 	int side_effects_call_okay;
 	int handle_fail;
 	int do_ref_eval;
+	int preserve;
 	};
 
 
@@ -149,7 +151,7 @@ DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
 
 class IsConstBuiltIn : public BuiltIn {
     public:
-	IsConstBuiltIn() : BuiltIn("is_const", 1, 1)	{  }
+	IsConstBuiltIn() : BuiltIn("is_const", 1 )	{ preserve = 1; }
 	IValue* DoCall( const_args_list* args_vals );
 	};
 

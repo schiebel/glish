@@ -107,9 +107,14 @@ Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 
 IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 	{
-	if ( etype == EVAL_COPY )
+	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		{
-		IValue *result = copy_value( value );
+		IValue *result = 0;
+		if ( value->IsRef() )
+			result = new IValue( (IValue*) value->Deref(), VAL_REF );
+		else
+			result = copy_value( value );
+
 // 		if ( value->IsConst() )
 // 			result->MakeConst();
 		if ( value->IsModConst() )
@@ -117,7 +122,7 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 		return result;
 		}
 
-	else if ( etype == EVAL_READ_ONLY )
+	else if ( etype == EVAL_READ_ONLY || etype == EVAL_READ_ONLY_PRESERVE )
 		{
 		IValue* result = (IValue*) value;
 		Ref( result );
@@ -226,7 +231,8 @@ IValue* VarExpr::Eval( eval_type etype )
 						frame_offset, value );
 		}
 
-	value = (IValue*) value->Deref();
+	if ( etype != EVAL_READ_ONLY_PRESERVE && etype != EVAL_COPY_PRESERVE )
+		value = (IValue*) value->Deref();
 
 	return CopyOrRefValue( value, etype );
 	}
@@ -636,7 +642,7 @@ AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 IValue* AssignExpr::Eval( eval_type etype )
 	{
 	IValue *r_err = 0;
-	IValue *r = right->CopyEval();
+	IValue *r = right->CopyEval( 1 );
 	if ( ! r ) return 0;
 	if ( r->Type() == TYPE_FAIL )
 		r_err = copy_value(r);
@@ -647,11 +653,11 @@ IValue* AssignExpr::Eval( eval_type etype )
 	if ( l_err && l_err->Type() == TYPE_FAIL )
 		return (IValue*) Fail( l_err );
 
-	if ( etype == EVAL_COPY )
+	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		return left->CopyEval();
 
-	else if ( etype == EVAL_READ_ONLY )
-		return (IValue*) left->ReadOnlyEval();
+	else if ( etype == EVAL_READ_ONLY || etype == EVAL_READ_ONLY_PRESERVE )
+		return (IValue*) left->ReadOnlyEval( etype == EVAL_READ_ONLY_PRESERVE );
 
 	else
 		return 0;
@@ -722,7 +728,7 @@ IValue* OrExpr::Eval( eval_type etype )
 
 	if ( cond )
 		{
-		if ( etype == EVAL_COPY )
+		if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 			{
 			IValue* result = copy_value( left_value );
 			left->ReadOnlyDone( left_value );
@@ -759,7 +765,7 @@ IValue* AndExpr::Eval( eval_type etype )
 	if ( err.chars() )
 		return (IValue*) Fail(err.chars());
 
-	if ( etype == EVAL_COPY )
+	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		{
 		if ( left_is_true )
 			return right->CopyEval();
@@ -2342,7 +2348,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 			if ( ! result )
 				return (IValue*) Fail( this, ": no events have been received" );
 
-			if ( etype == EVAL_COPY )
+			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 				result = copy_value( result );
 			else
 				Ref( result );
@@ -2355,7 +2361,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 		case EVENT_VALUE:
 			result = n->value;
 
-			if ( etype == EVAL_COPY )
+			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 				result = copy_value( result );
 			else
 				Ref( result );
@@ -2433,7 +2439,7 @@ IValue* LastRegexExpr::Eval( eval_type etype )
 		result = match.get( );
 		if ( result )
 			{
-			if ( etype == EVAL_COPY )
+			if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 				result = copy_value( result );
 			else
 				Ref( result );

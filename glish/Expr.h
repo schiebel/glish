@@ -64,7 +64,8 @@ typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 // version of the result (which will subsequently be released using
 // Expr::ReadOnlyDone); or evaluate for side effects only, and return
 // nothing.
-typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS } eval_type;
+typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS,
+	       EVAL_READ_ONLY_PRESERVE, EVAL_COPY_PRESERVE } eval_type;
 
 
 typedef void (*change_var_notice)(IValue*,IValue*);
@@ -75,14 +76,20 @@ class Expr : public ParseNode {
 	// Returns a copy of the present value of the event expression.
 	// The caller is responsible for deleting the copy when done
 	// using it.
-	IValue* CopyEval()
-		{ return Eval( EVAL_COPY ); }
+	//
+	// If 'perserve' is true, it implies that no Deref()s etc. (which
+	// would otherwise be harmless) should be done.
+	IValue* CopyEval( int preserve = 0 )
+		{ return Eval( preserve ? EVAL_COPY_PRESERVE : EVAL_COPY ); }
 
 	// Returns a read-only copy (i.e., the original) of the present
 	// value of the event expression.  The caller is responsible for
 	// later calling ReadOnlyDone() when the copy is no longer needed.
-	const IValue* ReadOnlyEval()
-		{ return Eval( EVAL_READ_ONLY ); }
+	//
+	// If 'perserve' is true, it implies that no Deref()s etc. (which
+	// would otherwise be harmless) should be done.
+	const IValue* ReadOnlyEval( int preserve = 0 )
+		{ return Eval( preserve ? EVAL_READ_ONLY_PRESERVE : EVAL_READ_ONLY ); }
 
 	// Declares that the previously returned ReadOnlyEval() value
 	// is no longer needed.

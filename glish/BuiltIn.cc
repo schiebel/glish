@@ -117,7 +117,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 					fail = copy_value( arg_val );
 					break;
 					}
-				if ( do_deref )
+				if ( do_deref && ! preserve )
 					arg_val = (const IValue*) (arg_val->Deref());
 
 				args_vals->append( arg_val );
@@ -129,7 +129,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			if ( do_ref_eval )
 				arg_val = arg->Arg()->RefEval( VAL_REF );
 			else
-				arg_val = arg->Arg()->ReadOnlyEval();
+				arg_val = arg->Arg()->ReadOnlyEval( preserve );
 
 			if ( arg_val->Type() == TYPE_FAIL &&
 			     ! handle_fail )
@@ -137,7 +137,7 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 				fail = copy_value( arg_val );
 				break;
 				}
-			if ( do_deref )
+			if ( do_deref && ! preserve )
 				arg_val = (const IValue*) (arg_val->Deref());
 
 			args_vals->append( arg_val );
