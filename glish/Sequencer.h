@@ -117,6 +117,9 @@ public:
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
 	static const IValue *LookupVal( const char *id );
+	// Deletes a given global value. This is used by 'symbol_delete()' which
+	// is the only way to get rid of a 'const' value.
+	void DeleteVal( const char* id );
 
 	void PushFrame( Frame* new_frame );
 	void PushFrame( frame_list &new_frame );

@@ -922,7 +922,36 @@ const IValue *Sequencer::LookupVal( const char *id )
 		}
 	return val;
 	}
-	
+
+// Messy, messy
+void Sequencer::DeleteVal( const char* id )
+	{
+	VarExpr *expr = (VarExpr*) (*scopes[0])[id];
+	static unsigned long filler = 0;
+	static char buf[256];
+
+	if ( expr )
+		{
+		// Get the value that we are blowing away and change it to 'F',
+		// but leave it in the frame because functions may be point to it.
+		IValue *iv = global_frame[expr->offset()];
+		IValue *newval = new IValue(glish_false);
+		iv->TakeValue(newval);
+		Unref(newval);
+		// Create an impossible, non-clashing name
+		sprintf(buf,"*%lx*",filler++);
+		char *newid = strdup(buf);
+		// Remove the old name from the scope dict
+		(*scopes[0]).Remove( id );
+		// Stick the new name into the old VarExpr
+		// so that the name will be deleted
+		expr->change_id(newid);
+		// Put the changed VarExpr back into the scope hash with
+		// the new name so that size correspondence of the frame
+		// and scope is maintained
+		(*scopes[0]).Insert(newid,expr);
+		}
+	}
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{

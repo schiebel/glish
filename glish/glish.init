@@ -1,59 +1,61 @@
-# @(#) $Id$
+ # @(#) $Id$
 
-function is_defined( const x )	length( symbol_value( x ) ) > 0
+const pi := 3.141592653589793238462643
+const e  := 2.718281828459045235360287
 
-function is_boolean( const x )	type_name(x) == "boolean"
-function is_byte( const x )	type_name(x) == "byte"
-function is_short( const x )	type_name(x) == "short"
-function is_integer( const x )	type_name(x) == "integer"
-function is_float( const x )	type_name(x) == "float"
-function is_double( const x )	type_name(x) == "double"
-function is_complex( const x )	type_name(x) == "complex"
-function is_dcomplex( const x )	type_name(x) == "dcomplex"
-function is_string( const x )	type_name(x) == "string"
-function is_record( const x )	type_name(x) == "record"
-function is_function( const x )	type_name(x) == "function"
+func is_defined( const x )	length( symbol_value( x ) ) > 0
 
-function is_agent( const x )
+func is_boolean( const x )	type_name(x) == "boolean"
+func is_byte( const x )		type_name(x) == "byte"
+func is_short( const x )	type_name(x) == "short"
+func is_integer( const x )	type_name(x) == "integer"
+func is_float( const x )	type_name(x) == "float"
+func is_double( const x )	type_name(x) == "double"
+func is_complex( const x )	type_name(x) == "complex"
+func is_dcomplex( const x )	type_name(x) == "dcomplex"
+func is_string( const x )	type_name(x) == "string"
+func is_record( const x )	type_name(x) == "record"
+func is_function( const x )	type_name(x) == "function"
+
+func is_agent( const x )
 	type_name(x) == "agent" || (is_record(x) && has_field(x, "*agent*"))
 
-function is_numeric( const x )
+func is_numeric( const x )
 	sum(type_name(x) ==
 		"boolean byte short integer float double complex dcomplex") > 0
 
-function min(...)		range(...)[1]
-function max(...)		range(...)[2]
+func min(...)		range(...)[1]
+func max(...)		range(...)[2]
 
-function abs(val x)
+func abs(val x)
 	{
 	if ( is_complex(x) || is_dcomplex(x) )
 		return sqrt(real(x)^2 + imag(x)^2)
 
 	else
 		{
-		local mask := x < 0
+		mask := x < 0
 		x[mask] := -x[mask]
 		return x
 		}
 	}
 
-function conj(x)
+func conj(x)
 	{
 	if ( is_complex(x) || is_dcomplex(x) )
 		return complex(real(x), -imag(x))
 	else
 		return x
 	}
-		
-function arg(x)
+
+func arg(x)
 {
 	if ( is_complex(x) || is_dcomplex(x) )
 		{
-		local pi  := 3.141592653589793238462643
-		local ret := atan(as_double(imag(x)) / as_double(real(x)))
-		local real_lt := real(x) < 0.0
-		local one := imag(x) >= 0.0 & real_lt
-		local two := imag(x) < 0.0 & real_lt
+		ret := atan(as_double(imag(x)) / as_double(real(x)))
+		real_lt := real(x) < 0.0
+		one := imag(x) >= 0.0 & real_lt
+		two := imag(x) < 0.0 & real_lt
 		ret[ one ] := pi - abs(ret[ one ])
 		ret[ two ] := -pi + abs(ret[ two ])
 		return ret
@@ -62,21 +64,21 @@ function arg(x)
 		return as_double(0)
 	}
 
-function all(x) sum(!x) == 0
-function any(x) sum(as_boolean(x)) > 0
+func all(x) sum(!x) == 0
+func any(x) sum(as_boolean(x)) > 0
 
 len := length
 ceil := ceiling
 
-function ind(x) 1:len(x)
+func ind(x) 1:len(x)
 
-function paste(...,sep=' ')
+func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
-function spaste(...)
+func spaste(...)
 	paste(...,sep='')
 
-function has_field( const x, const field )
+func has_field( const x, const field )
 	{
 	if ( is_record(x) )
 		sum(field_names(x) == field) > 0
@@ -84,56 +86,53 @@ function has_field( const x, const field )
 		F
 	}
 
-function shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
+func shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
  	create_task( id, host, F, async, ping, suspend, input, ... )
 
-function client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
+func client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
  	create_task( id, host, T, async, ping, suspend, input, ... )
 
-function frame ( parent=F, relief='flat',
+func frame ( parent=F, relief='flat',
 		 borderwidth=2, side='top',
 		 padx=0, pady=0, expand='both',
 		 background='lightgrey',
 		 width=70, height=50, cursor='', title='glish/tk' )
 	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title )
 
-function button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T )
+func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T )
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value )
 
-function scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
+func scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
 		 relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
 	create_graphic( 'scale', parent, start, end, length, text, orient, relief, borderwidth, foreground, background )
 
-function text ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
+func text ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
 	create_graphic( 'text', parent, width, height, wrap, font, disabled, text, relief, borderwidth, foreground, background, fill )
 
-function scrollbar ( parent, orient='vertical', foreground='black', background='lightgrey' )
+func scrollbar ( parent, orient='vertical', foreground='black', background='lightgrey' )
 	create_graphic( 'scrollbar', parent, orient, foreground, background )
 
-function label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
+func label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
 	create_graphic( 'label', parent, text, justify, padx, pady, font, width, relief, borderwidth, foreground, background )
 
-function entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=F )
+func entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=F )
 	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection )
 
-function message ( parent, text='message', width=180, justify='left', font='', padx=4, pady=2, relief='flat', borderwidth=3, foreground='black', background='lightgrey' )
+func message ( parent, text='message', width=180, justify='left', font='', padx=4, pady=2, relief='flat', borderwidth=3, foreground='black', background='lightgrey' )
 	create_graphic( 'message', parent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background )
 
-function listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=F )
+func listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=F )
 	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection )
 
-function canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
+func canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
 	create_graphic( 'canvas', parent, width, height, region, relief, borderwidth, background, fill )
 
-
-function full_type_name( const x )
+func full_type_name( const x )
 	{
 	if ( type_name(x) == "record" )
 		{
-		local f
-
-		local full_name := 'record ['
-		local first_field := field_names(x)[1]
+		full_name := 'record ['
+		first_field := field_names(x)[1]
 		for ( f in field_names(x) )
 			{
 			if ( f != first_field )
@@ -153,7 +152,7 @@ function full_type_name( const x )
 		}
 	}
 
-function relay( src, src_name, ref dest, dest_name="*" )
+func relay( src, src_name, ref dest, dest_name="*" )
 	{
 	if ( dest_name == "*" )
 		link src->[src_name] to dest->*
@@ -161,30 +160,30 @@ function relay( src, src_name, ref dest, dest_name="*" )
 		link src->[src_name] to dest->[dest_name]
 	}
 
-function relay_event( src, ref dest, name )
+func relay_event( src, ref dest, name )
 	{
 	relay( src, name, dest, "*" )
 	}
 
-function relay_all( src, ref dest )
+func relay_all( src, ref dest )
 	{
 	whenever src->* do
 		dest->[$name]( $value )
 	}
 
-function birelay_event( ref agent1, ref agent2, name )
+func birelay_event( ref agent1, ref agent2, name )
 	{
 	relay( agent1, name, agent2 )
 	relay( agent2, name, agent1 )
 	}
 
-function birelay_all( ref agent1, ref agent2 )
+func birelay_all( ref agent1, ref agent2 )
 	{
 	relay_all( agent1, agent2 )
 	relay_all( agent2, agent1 )
 	}
 
-function sort(x)
+func sort(x)
 	{
 	if ( len(x) <= 1 )
 		return x
@@ -193,11 +192,10 @@ function sort(x)
 	return [sort(x[x < pivot]), x[x == pivot], sort(x[x > pivot])]
 	}
 
-function sort_pair(x, y)
+func sort_pair(x, y)
 	{
 	if ( len(x) <= 1 )
 		return y
-	else
 
 	pivot := x[random(1,len(x))]
 	below := x < pivot
@@ -208,11 +206,11 @@ function sort_pair(x, y)
 			sort_pair(x[above], y[above])]
 	}
 
-function order(x)	sort_pair(x, 1:len(x))
+func order(x)	sort_pair(x, 1:len(x))
 
-function sync(ref c)	request c->["*sync*"]()
+func sync(ref c)	request c->["*sync*"]()
 
-function array(init, ...)
+func array(init, ...)
 	{
 	if ( num_args(...) == 0 )
 		return init
@@ -235,8 +233,8 @@ function array(init, ...)
 		return F
 		}
 
-	local p := prod(...)
-	local value := []
+	p := prod(...)
+	value := []
 
 	if ( length(init) > 0 )
 		{
@@ -261,8 +259,6 @@ function array(init, ...)
 # array corresponding to a column in the table.
 func table_to_arrays(tbl, array_names)
 	{
-	local num_elements, num_arrays, arrays, mask, result, i
-
 	num_elements := len(tbl)
 	num_arrays := len(split(tbl[1]))
 

@@ -141,6 +141,7 @@ DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
 DERIVE_SEQUENCER_BUILTIN(SymbolNamesBuiltIn,NUM_ARGS_VARIES,"symbol_names")
 DERIVE_SEQUENCER_BUILTIN(SymbolValueBuiltIn,1,"symbol_value")
 DERIVE_SEQUENCER_BUILTIN(SymbolSetBuiltIn,NUM_ARGS_VARIES,"symbol_set")
+DERIVE_SEQUENCER_BUILTIN(SymbolDeleteBuiltIn,1,"symbol_delete")
 
 DERIVE_SEQUENCER_BUILTIN(LastWheneverExecutedBuiltIn,0,"last_whenever_executed")
 DERIVE_SEQUENCER_BUILTIN(CurrentWheneverBuiltIn,0,"current_whenever")

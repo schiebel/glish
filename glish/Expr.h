@@ -178,6 +178,9 @@ class VarExpr : public Expr {
 
 	access_type Access() { return access; }
 
+	// Used by Sequencer::DeleteVal (and in turn by 'symbol_delete()')
+	void change_id( char * );
+
     protected:
 	char* id;
 	scope_type scope;

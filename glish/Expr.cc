@@ -116,6 +116,20 @@ VarExpr::~VarExpr()
 		delete id;
 	}
 
+void VarExpr::change_id( char *newid )
+	{
+	//
+	// if scope_offset is less than 0, then this VarExpr is
+	// simply a reference to a global variable.
+	//
+	if ( scope_offset >= 0 )
+		delete id;
+	else
+		scope_offset = 0;
+
+	id = newid;
+	}
+
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 			int var_frame_offset,
 			Sequencer* var_sequencer ) : Expr(var_id), access(PARSE_ACCESS)

@@ -1683,6 +1683,25 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	return new IValue( glish_true );
 	}
 
+IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
+	{
+	int len = args_val->length();
+	const IValue *str = (*args_val)[0];
+
+	if ( ! str || str->Type() != TYPE_STRING )
+		{
+		error->Report( this, " takes 1 string argument" );
+		return error_ivalue();
+		}
+
+	charptr *strs = str->StringPtr(0);
+
+	for ( int i = 0; i < str->Length(); i++ )
+		sequencer->DeleteVal( strs[i] );
+
+	return new IValue( glish_true );
+	}
+
 IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Frame* cur = sequencer->CurrentFrame();
@@ -2154,6 +2173,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolSetBuiltIn( s ) );
+	s->AddBuiltIn( new SymbolDeleteBuiltIn( s ) );
 
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
