@@ -1985,12 +1985,12 @@ ScriptSelectee::ScriptSelectee( ScriptClient* client, Agent* agent, int conn_soc
 
 int ScriptSelectee::NotifyOfSelection()
 	{
-	fd_set fd_mask;
+	fd_set fdmask;
 
-	FD_ZERO( &fd_mask );
-	FD_SET( connection_socket, &fd_mask );
+	FD_ZERO( &fdmask );
+	FD_SET( connection_socket, &fdmask );
 
-	GlishEvent* e = script_client->NextEvent( &fd_mask );
+	GlishEvent* e = script_client->NextEvent( &fdmask );
 	script_client->AddEventSources();
 
 	if ( ! e )
