@@ -60,16 +60,21 @@ void GcRef::AddZero( void *p )
 		}
 	else if ( mZEROLIST(mask) )
 		{
-		((void_list*)zero)->append(p);
+		if ( ! ((void_list*)zero)->is_member(p) )
+			((void_list*)zero)->append(p);
 		}
 	else if ( mZERO(mask) )
 		{
-		void *t = zero;
-		void_list *lst = new void_list;
-		lst->append(t);
-		lst->append(p);
-		mask &= ~mZERO();
-		mask |= mZEROLIST();
+		if ( p != zero )
+			{
+			void *t = zero;
+			void_list *lst = new void_list;
+			lst->append(t);
+			lst->append(p);
+			zero = lst;
+			mask &= ~mZERO();
+			mask |= mZEROLIST();
+			}
 		}
 	else
 		{

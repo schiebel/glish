@@ -190,8 +190,8 @@ class CreateTaskBuiltIn : public BuiltIn {
 	    : BuiltIn("create_task", NUM_ARGS_VARIES)
 		{ sequencer = arg_sequencer; }
 
-	IValue* DoCall( const_args_list* args_val );
-	void DoSideEffectsCall( const_args_list* args_val,
+	IValue* DoCall( evalOpt &opt, const_args_list* args_val );
+	void DoSideEffectsCall( evalOpt &opt, const_args_list* args_val,
 				int& side_effects_okay );
 
     protected:

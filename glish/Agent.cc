@@ -280,9 +280,9 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	if ( args->length() == 1 && ! (*args)[0]->Name() )
 		{
 		Expr* arg_expr = (*args)[0]->Arg();
-
-		return use_refs ? arg_expr->RefEval( VAL_CONST ) :
-					arg_expr->CopyEval();
+		evalOpt opt;
+		return use_refs ? arg_expr->RefEval( opt, VAL_CONST ) :
+					arg_expr->CopyEval(opt);
 		}
 
 	// Build up a record.
@@ -303,8 +303,9 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 			}
 
 		Expr* arg_expr = p->Arg();
+		evalOpt opt;
 		IValue* arg_val = use_refs ?
-			arg_expr->RefEval( VAL_CONST ) : arg_expr->CopyEval();
+			arg_expr->RefEval( opt, VAL_CONST ) : arg_expr->CopyEval(opt);
 
 		event_val->AssignRecordElement( index, arg_val );
 

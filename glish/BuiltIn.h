@@ -26,13 +26,13 @@ class BuiltIn : public Func {
 		}
 
 	const char* Name()				{ return description; }
-	IValue* Call( parameter_list* args, evalOpt &opt );
+	IValue* Call( evalOpt &opt, parameter_list* args );
 
-	virtual IValue* DoCall( const_args_list* args_vals ) = 0;
+	virtual IValue* DoCall( evalOpt &opt, const_args_list* args_vals ) = 0;
 
 	// Used when the call is just for side-effects; sets side_effects_okay
 	// to true if it was okay to call this function just for side effects.
-	virtual void DoSideEffectsCall( const_args_list* args_vals,
+	virtual void DoSideEffectsCall( evalOpt &opt, const_args_list* args_vals,
 					int& side_effects_okay );
 
 	// If do_deref is true then all reference arguments are dereferenced.
@@ -72,7 +72,7 @@ class OneValueArgBuiltIn : public BuiltIn {
 				const char* name ) : BuiltIn(name, 1)
 		{ func = arg_func; }
 
-	IValue* DoCall( const_args_list* args_val );
+	IValue* DoCall( evalOpt &opt, const_args_list* args_val );
 
     protected:
 	value_func_1_value_arg func;
@@ -89,7 +89,7 @@ class NumericVectorBuiltIn : public BuiltIn {
 				const char* name ) : BuiltIn(name, 1)
 		{ func = arg_func; cfunc = arg_cfunc; }
 
-	IValue* DoCall( const_args_list* args_val );
+	IValue* DoCall( evalOpt &opt, const_args_list* args_val );
 
     protected:
 	double_func_1_double_arg func;
@@ -101,7 +101,7 @@ class NumericVectorBuiltIn : public BuiltIn {
 class name : public BuiltIn {						\
     public:								\
 	name() : BuiltIn(description, num_args)	{ init }		\
-	IValue* DoCall( const_args_list* args_vals );			\
+	IValue* DoCall( evalOpt &opt, const_args_list* args_vals );	\
 	};
 
 
@@ -155,7 +155,7 @@ DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
 class IsConstBuiltIn : public BuiltIn {
     public:
 	IsConstBuiltIn() : BuiltIn("is_const", 1 )	{ preserve = 1; }
-	IValue* DoCall( const_args_list* args_vals );
+	IValue* DoCall( evalOpt &opt, const_args_list* args_vals );
 	};
 
 #define DERIVE_SEQUENCER_BUILTIN(name,num_args,description)		\
@@ -164,7 +164,7 @@ class name : public BuiltIn {						\
 	name( Sequencer* arg_sequencer )				\
 	    : BuiltIn(description, num_args)				\
 		{ sequencer = arg_sequencer; }				\
-	IValue* DoCall( const_args_list* args_vals );			\
+	IValue* DoCall( evalOpt &opt, const_args_list* args_vals );	\
 									\
     protected:								\
 	Sequencer* sequencer;						\

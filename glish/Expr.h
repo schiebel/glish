@@ -59,8 +59,6 @@ typedef enum { PARSE_ACCESS, USE_ACCESS } access_type;
 //
 typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 
-extern void eval_opt_created( );
-
 class evalOpt {
     public:
 	// Different types of expression evaluation: evaluate and return a
@@ -77,10 +75,18 @@ class evalOpt {
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
 	enum returnType { VALUE_NEEDED=9 };
 
-	evalOpt( ) : mask(0) { }
-	evalOpt( exprType t ) : mask(1<<t) { }
-	evalOpt( flowType t ) : mask(1<<t) { }
-	evalOpt( returnType t ) : mask(1<<t) { }
+	evalOpt( int OK=0 ) : mask(0) { }
+	evalOpt( exprType t, int OK=0 ) : mask(1<<t) { }
+	evalOpt( flowType t, int OK=0 ) : mask(1<<t) { }
+	evalOpt( returnType t, int OK=0 ) : mask(1<<t) { }
+
+	// This is sort of messed up... the copy ctor preserves all flags
+	// but the assignment operator doesn't fiddle with the flow flags.
+	// This is due to the semantics of Expr and Stmt flags, Stmt functions
+	// were built using reference semantics while Expr functions used
+	// value semantics... need to work on this...
+	evalOpt( const evalOpt &o ) : mask(o.mask) { }
+	evalOpt &operator=( const evalOpt &o ) { mask = o.mask & ~0x1e0 | mask & 0x1e0; return *this; }
 
 	void set( flowType t ) { mask = mask & ~0x1e0 | 1<<t; }
 	void set( exprType t ) { mask = mask & ~0x1f | 1<<t; }
@@ -133,8 +139,8 @@ class Expr : public ParseNode {
 	//
 	// If 'perserve' is true, it implies that no Deref()s etc. (which
 	// would otherwise be harmless) should be done.
-	IValue* CopyEval( int preserve = 0 )
-		{ evalOpt opt(preserve ? evalOpt::COPY_PRESERVE : evalOpt::COPY); return Eval(opt); }
+	IValue* CopyEval( evalOpt &opt, int preserve = 0 )
+		{ opt.set(preserve ? evalOpt::COPY_PRESERVE : evalOpt::COPY); return Eval(opt); }
 
 	// Returns a read-only copy (i.e., the original) of the present
 	// value of the event expression.  The caller is responsible for
@@ -142,8 +148,8 @@ class Expr : public ParseNode {
 	//
 	// If 'perserve' is true, it implies that no Deref()s etc. (which
 	// would otherwise be harmless) should be done.
-	const IValue* ReadOnlyEval( int preserve = 0 )
-		{ evalOpt opt(preserve ? evalOpt::READ_ONLY_PRESERVE : evalOpt::READ_ONLY); return Eval(opt); }
+	const IValue* ReadOnlyEval( evalOpt &opt, int preserve = 0 )
+		{ opt.set(preserve ? evalOpt::READ_ONLY_PRESERVE : evalOpt::READ_ONLY); return Eval(opt); }
 
 	// Declares that the previously returned ReadOnlyEval() value
 	// is no longer needed.
@@ -161,7 +167,7 @@ class Expr : public ParseNode {
 	virtual int DoesTrace( ) const;
 
 	// Evaluates the Expr just for side-effects.
-	virtual IValue *SideEffectsEval();
+	virtual IValue *SideEffectsEval( evalOpt & );
 
 
 	// Returns a reference to the value of the event expression.
@@ -169,7 +175,7 @@ class Expr : public ParseNode {
 	// otherwise a "const" reference.
 	//
 	// The reference should be Unref()'d once done using it.
-	virtual IValue* RefEval( value_type val_type );
+	virtual IValue* RefEval( evalOpt &opt, value_type val_type );
 
 
 	// Assigns a new value to the variable (LHS) corresponding
@@ -186,7 +192,7 @@ class Expr : public ParseNode {
 	// used by their values as soon as the function call is complete,
 	// rather than waiting for the next call to the function (and
 	// subsequent assignment to the formal parameters).
-	virtual IValue *Assign( IValue* new_value );
+	virtual IValue *Assign( evalOpt &opt, IValue* new_value );
 
 	// Applies a regular expression to the expression. This is done
 	// here because the regular expression lilely modifies the value
@@ -252,7 +258,7 @@ class VarExpr : public Expr {
 	const char *Description() const;
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
@@ -297,13 +303,13 @@ class VarExpr : public Expr {
 	void PushFrame( Frame *f ) { frames.append(f); ReleaseFrames(); }
 	void PopFrame( );
 
-	IValue *Assign( IValue* new_value );
+	IValue *Assign( evalOpt &opt, IValue* new_value );
 	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match );
 
 	// This Assignment forces VarExpr to use 'f' instead of going
 	// to the 'sequencer'. This result in a 'PushFrame(f)' too.
-	IValue *Assign( IValue* new_value, Frame *f )
-		{ PushFrame( f ); return Assign( new_value ); }
+	IValue *Assign( evalOpt &opt, IValue* new_value, Frame *f )
+		{ PushFrame( f ); return Assign( opt, new_value ); }
 
 	int LhsIs( const Expr * ) const;
 
@@ -353,7 +359,7 @@ class ValExpr : public Expr {
 	const char *Description() const;
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 
     protected:
 	IValue *val;
@@ -468,7 +474,7 @@ class AssignExpr : public BinaryExpr {
 	AssignExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( evalOpt &opt );
-	IValue *SideEffectsEval();
+	IValue *SideEffectsEval( evalOpt & );
 	int Invisible() const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -511,8 +517,8 @@ class ConstructExpr : public Expr {
 	const char *Description() const;
 
     protected:
-	IValue* BuildArray();
-	IValue* BuildRecord();
+	IValue* BuildArray( evalOpt &opt );
+	IValue* BuildRecord( evalOpt &opt );
 
 	//
 	//  0 => OK, !0 == error value
@@ -538,9 +544,9 @@ class ArrayRefExpr : public UnaryExpr {
 	ArrayRefExpr( Expr* op1, expr_list* a );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 
-	IValue *Assign( IValue* new_value );
+	IValue *Assign( evalOpt &opt, IValue* new_value );
 	IValue *ApplyRegx( regexptr *ptr, int len, RegexMatch &match );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
@@ -562,9 +568,9 @@ class RecordRefExpr : public UnaryExpr {
 	RecordRefExpr( Expr* op, char* record_field );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 
-	IValue *Assign( IValue* new_value );
+	IValue *Assign( evalOpt &opt, IValue* new_value );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -586,9 +592,9 @@ class AttributeRefExpr : public BinaryExpr {
 	AttributeRefExpr( Expr* op, char* attribute );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 
-	IValue *Assign( IValue* new_value );
+	IValue *Assign( evalOpt &opt, IValue* new_value );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -610,7 +616,7 @@ class RefExpr : public UnaryExpr {
 	RefExpr( Expr* op, value_type type );
 
 	IValue* Eval( evalOpt &opt );
-	IValue *Assign( IValue* new_value );
+	IValue *Assign( evalOpt &opt, IValue* new_value );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -653,7 +659,7 @@ class CallExpr : public UnaryExpr {
 	CallExpr( Expr* func, ParameterPList* args, Sequencer *seq_arg );
 
 	IValue* Eval( evalOpt &opt );
-	IValue *SideEffectsEval();
+	IValue *SideEffectsEval( evalOpt & );
 	int DoesTrace( ) const;
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
@@ -684,7 +690,7 @@ class SendEventExpr : public Expr {
 	SendEventExpr( EventDesignator* sender, ParameterPList* args );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* SideEffectsEval();
+	IValue* SideEffectsEval( evalOpt & );
 
 	void StandAlone( );
 
@@ -711,7 +717,7 @@ class LastEventExpr : public Expr {
 	LastEventExpr( Sequencer* sequencer, last_event_type type );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -730,7 +736,7 @@ class LastRegexExpr : public Expr {
 	LastRegexExpr( Sequencer* sequencer, last_regex_type type );
 
 	IValue* Eval( evalOpt &opt );
-	IValue* RefEval( value_type val_type );
+	IValue* RefEval( evalOpt &opt, value_type val_type );
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }

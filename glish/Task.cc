@@ -675,7 +675,7 @@ TaskAttr::~TaskAttr()
 	}
 
 
-IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
+IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	// Arguments are:
 	//
@@ -824,7 +824,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-void CreateTaskBuiltIn::DoSideEffectsCall( const_args_list* args_val,
+void CreateTaskBuiltIn::DoSideEffectsCall( evalOpt &opt, const_args_list* args_val,
 						int& side_effects_okay )
 	{
 	// Check for synchronous shell call; we allow those to be
@@ -841,7 +841,7 @@ void CreateTaskBuiltIn::DoSideEffectsCall( const_args_list* args_val,
 			side_effects_okay = 1;
 		}
 
-	Unref( DoCall( args_val ) );
+	Unref( DoCall( opt, args_val ) );
 	}
 
 

@@ -27,9 +27,9 @@ int ParseNode::canDelete() const
 
 Expr::~Expr() { }
 
-IValue *Expr::SideEffectsEval()
+IValue *Expr::SideEffectsEval( evalOpt &opt )
 	{
-	const IValue* v = ReadOnlyEval();
+	const IValue* v = ReadOnlyEval( opt );
 
 	if ( v )
 		{
@@ -48,9 +48,9 @@ IValue *Expr::SideEffectsEval()
 	return 0;
 	}
 
-IValue* Expr::RefEval( value_type val_type )
+IValue* Expr::RefEval( evalOpt &opt, value_type val_type )
 	{
-	IValue* value = CopyEval();
+	IValue* value = CopyEval(opt);
 	IValue* result;
 
 	if ( val_type == VAL_VAL || val_type == VAL_CONST )
@@ -67,7 +67,7 @@ IValue* Expr::RefEval( value_type val_type )
 	return result;
 	}
 
-IValue *Expr::Assign( IValue* /* new_value */ )
+IValue *Expr::Assign( evalOpt &, IValue * )
 	{
 	return (IValue*) Fail( this, "is not a valid target for assignment" );
 	}
@@ -214,7 +214,6 @@ void VarExpr::set( scope_type var_scope, int var_scope_offset,
 IValue* VarExpr::Eval( evalOpt &opt )
 	{
 	access = USE_ACCESS;
-
 	IValue *value = 0;
 	int len = frames.length();
 	if ( len && ! hold_frames )
@@ -239,7 +238,7 @@ IValue* VarExpr::Eval( evalOpt &opt )
 	return CopyOrRefValue( value, opt );
 	}
 
-IValue* VarExpr::RefEval( value_type val_type )
+IValue* VarExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
 	access = USE_ACCESS;
 	IValue* var = 0;
@@ -267,7 +266,7 @@ IValue* VarExpr::RefEval( value_type val_type )
 	return new IValue( var, val_type );
 	}
 
-IValue *VarExpr::Assign( IValue* new_value )
+IValue *VarExpr::Assign( evalOpt &, IValue* new_value )
 	{
 	access = USE_ACCESS;
 
@@ -397,9 +396,10 @@ Expr *ScriptVarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 
 	if ( ((VarExpr*)ret)->Scope() == GLOBAL_SCOPE )
 		{
-		const IValue *v = ret->ReadOnlyEval();
+		evalOpt opt;
+		const IValue *v = ret->ReadOnlyEval(opt);
 		if ( v->Type() == TYPE_BOOL )
-			sequencer->InitScriptClient( );
+			sequencer->InitScriptClient( opt );
 		ret->ReadOnlyDone( v );
 		}
 
@@ -441,7 +441,7 @@ IValue* ValExpr::Eval( evalOpt &opt )
 	return CopyOrRefValue( val, opt );
 	}
 
-IValue* ValExpr::RefEval( value_type val_type )
+IValue* ValExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
 	return new IValue( val, val_type );
 	}
@@ -490,7 +490,7 @@ FuncExpr::FuncExpr( UserFunc* f, IValue *attr )
 	attributes = attr;
 	}
 
-IValue* FuncExpr::Eval( evalOpt & )
+IValue* FuncExpr::Eval( evalOpt &opt )
 	{
 	UserFunc *ret = func->clone();
 	ret->EstablishScope();
@@ -575,7 +575,7 @@ NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand )
 
 IValue* NegExpr::Eval( evalOpt &opt )
 	{
-	IValue* result = op->CopyEval( opt.copy_preserve() );
+	IValue* result = op->CopyEval( opt, opt.copy_preserve() );
 	result->Negate();
 	return result;
 	}
@@ -591,7 +591,7 @@ NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand )
 
 IValue* NotExpr::Eval( evalOpt &opt )
 	{
-	IValue* result = op->CopyEval( opt.copy_preserve() );
+	IValue* result = op->CopyEval( opt, opt.copy_preserve() );
 	result->Not();
 	return result;
 	}
@@ -605,9 +605,9 @@ GenerateExpr::GenerateExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* GenerateExpr::Eval( evalOpt & )
+IValue* GenerateExpr::Eval( evalOpt &opt )
 	{
-	const IValue* file_val = op->ReadOnlyEval();
+	const IValue* file_val = op->ReadOnlyEval(opt);
 
 	if ( file_val->Type() != TYPE_FILE )
 		{
@@ -656,31 +656,35 @@ AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 
 IValue* AssignExpr::Eval( evalOpt &opt )
 	{
+	evalOpt lopt(opt);		// save state of options
+
 	IValue *r_err = 0;
-	IValue *r = right->CopyEval( left->LhsIs(right) ? 1 : 0 );
+	IValue *r = right->CopyEval( opt, left->LhsIs(right) ? 1 : 0 );
 	if ( ! r ) return 0;
 	if ( r->Type() == TYPE_FAIL )
 		r_err = copy_value(r);
-	IValue *l_err = left->Assign( r );
+
+	opt = lopt;
+	IValue *l_err = left->Assign( opt, r );
 
 	if ( r_err )
 		return r_err;
 	if ( l_err && l_err->Type() == TYPE_FAIL )
 		return (IValue*) Fail( l_err );
 
-	if ( opt.copy() || opt.copy_preserve() )
-		return left->CopyEval();
+	if ( lopt.copy() || lopt.copy_preserve() )
+		return left->CopyEval(opt);
 
-	else if ( opt.read_only() || opt.read_only_preserve() )
-		return (IValue*) left->ReadOnlyEval( opt.read_only_preserve() );
+	else if ( lopt.read_only() || lopt.read_only_preserve() )
+		return (IValue*) left->ReadOnlyEval( opt, lopt.read_only_preserve() );
 
 	else
 		return 0;
 	}
 
-IValue *AssignExpr::SideEffectsEval()
+IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 	{
-	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	opt.set(evalOpt::SIDE_EFFECTS);
 	IValue *ret = Eval(opt);
 	if ( ret )
 		{
@@ -732,7 +736,8 @@ OrExpr::OrExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 IValue* OrExpr::Eval( evalOpt &opt )
 	{
 	Str err;
-	const IValue* left_value = left->ReadOnlyEval();
+	evalOpt lopt(opt);		// save state of options
+	const IValue* left_value = left->ReadOnlyEval( opt );
 
 	int cond = left_value->BoolVal(1,err);
 
@@ -744,7 +749,7 @@ IValue* OrExpr::Eval( evalOpt &opt )
 
 	if ( cond )
 		{
-		if ( opt.copy() || opt.copy_preserve() )
+		if ( lopt.copy() || lopt.copy_preserve() )
 			{
 			IValue* result = copy_value( left_value );
 			left->ReadOnlyDone( left_value );
@@ -758,6 +763,7 @@ IValue* OrExpr::Eval( evalOpt &opt )
 	else
 		{
 		left->ReadOnlyDone( left_value );
+		opt = lopt;
 		return right->Eval( opt );
 		}
 	}
@@ -774,17 +780,19 @@ AndExpr::AndExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 IValue* AndExpr::Eval( evalOpt &opt )
 	{
 	Str err;
-	const IValue* left_value = left->ReadOnlyEval();
+	evalOpt lopt(opt);		// save state of options
+
+	const IValue* left_value = left->ReadOnlyEval( opt );
 	int left_is_true = left_value->BoolVal(1,err);
 	left->ReadOnlyDone( left_value );
 
 	if ( err.chars() )
 		return (IValue*) Fail(err.chars());
 
-	if ( opt.copy() || opt.copy_preserve() )
+	if ( lopt.copy() || lopt.copy_preserve() )
 		{
 		if ( left_is_true )
-			return right->CopyEval( opt.copy_preserve() );
+			return right->CopyEval( opt, lopt.copy_preserve() );
 		else
 			return false_ivalue();
 		}
@@ -792,7 +800,7 @@ IValue* AndExpr::Eval( evalOpt &opt )
 	else
 		{
 		if ( left_is_true )
-			return (IValue*) right->ReadOnlyEval();
+			return (IValue*) right->ReadOnlyEval( opt );
 		else
 			return false_ivalue();
 		}
@@ -858,10 +866,10 @@ IValue* ConstructExpr::Eval( evalOpt &opt )
 		return empty_ivalue();
 
 	else if ( is_array_constructor )
-		return BuildArray();
+		return BuildArray( opt );
 
 	else
-		return BuildRecord();
+		return BuildRecord( opt );
 	}
 
 int ConstructExpr::Describe( OStream &s, const ioOpt &opt ) const
@@ -878,7 +886,7 @@ int ConstructExpr::Describe( OStream &s, const ioOpt &opt ) const
 	return 1;
 	}
 
-IValue* ConstructExpr::BuildArray()
+IValue* ConstructExpr::BuildArray( evalOpt &opt )
 	{
 	typedef const IValue* const_value_ptr;
 
@@ -889,7 +897,7 @@ IValue* ConstructExpr::BuildArray()
 		Parameter* arg = (*args)[i];
 
 		if ( arg->IsEllipsis() )
-			num_values += (*args)[i]->NumEllipsisVals();
+			num_values += (*args)[i]->NumEllipsisVals( opt );
 		else
 			++num_values;
 		}
@@ -903,17 +911,17 @@ IValue* ConstructExpr::BuildArray()
 
 		if ( arg->IsEllipsis() )
 			{
-			int len = arg->NumEllipsisVals();
+			int len = arg->NumEllipsisVals( opt );
 
 			for ( int j = 0; j < len; ++j )
 				{
-				values[i+j] = (const IValue*)(arg->NthEllipsisVal(j)->Deref());
+				values[i+j] = (const IValue*)(arg->NthEllipsisVal(opt,j)->Deref());
 				total_length += values[i+j]->Length();
 				}
 			}
 		else
 			{
-			values[i] = arg->Arg()->ReadOnlyEval();
+			values[i] = arg->Arg()->ReadOnlyEval( opt );
 			total_length += values[i]->Length();
 			}
 		}
@@ -1100,14 +1108,14 @@ BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY, twist
 	return result;
 	}
 
-IValue* ConstructExpr::BuildRecord()
+IValue* ConstructExpr::BuildRecord( evalOpt &opt )
 	{
 	recordptr rec = create_record_dict();
 
 	loop_over_list( *args, i )
 		{
 		Parameter* p = (*args)[i];
-		IValue *arg = p->Arg()->CopyEval();
+		IValue *arg = p->Arg()->CopyEval(opt);
 		if ( p->ParamType() == VAL_CONST )
 			arg->MakeConst();
 		rec->Insert( string_dup( p->Name() ), arg );
@@ -1138,7 +1146,8 @@ ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1)
 
 IValue* ArrayRefExpr::Eval( evalOpt &opt )
 	{
-	const IValue* array = op->ReadOnlyEval();
+	evalOpt lopt(opt);		// save state of options
+	const IValue* array = op->ReadOnlyEval( opt );
 	IValue* result;
 
 	const attributeptr ptr = array->AttributePtr();
@@ -1164,11 +1173,11 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 					pl.append( new ActualParameter() );
 				}
 
-			evalOpt opt(evalOpt::COPY);
+			opt = lopt;
 			result = CallFunc( func_val, opt, &pl );
 			if ( ! result )
 				{
-				if ( opt.side_effects() )
+				if ( lopt.side_effects() )
 					result = error_ivalue();
 				}
 			else
@@ -1198,7 +1207,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 				{
 				arg = (*args)[i];
 				val_list.append( arg ?
-						arg->ReadOnlyEval() : 0 );
+						arg->ReadOnlyEval(opt) : 0 );
 				}
 
 			result = (IValue*)((*array)[&val_list]);
@@ -1225,7 +1234,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 		return (IValue*) Fail( "invalid missing parameter" );
 		}
 
-	const IValue* index_val = arg->ReadOnlyEval();
+	const IValue* index_val = arg->ReadOnlyEval(opt);
 	const attributeptr indx_attr = index_val->AttributePtr();
 	const IValue* indx_shape;
 
@@ -1264,6 +1273,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 				array->ExistingRecordElement( index_val );
 
 			const_result = (const IValue *) (const_result->Deref());
+			opt = lopt;
 			result = CopyOrRefValue( const_result, opt );
 			}
 		else
@@ -1285,9 +1295,9 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* ArrayRefExpr::RefEval( value_type val_type )
+IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
-	IValue* array_ref = op->RefEval( val_type );
+	IValue* array_ref = op->RefEval( opt, val_type );
 	IValue* array = (IValue*) array_ref->Deref();
 
 	IValue* result = 0;
@@ -1327,7 +1337,7 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 				{
 				arg = (*args)[i];
 				val_list.append( arg ?
-						arg->ReadOnlyEval() : 0 );
+						arg->ReadOnlyEval(opt) : 0 );
 				}
 
 			result = (IValue*)(array->SubRef( &val_list ));
@@ -1353,7 +1363,7 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 		return (IValue*) Fail( this, ": invalid missing parameter" );
 		}
 
-	const IValue* index_val = arg->ReadOnlyEval();
+	const IValue* index_val = arg->ReadOnlyEval(opt);
 	const attributeptr indx_attr = index_val->AttributePtr();
 	const IValue* indx_shape;
 
@@ -1401,15 +1411,15 @@ IValue* ArrayRefExpr::CallFunc( Func *fv, evalOpt &opt,
 	// "op[]" that needs to apply array referencing doesn't endlessly
 	// loop.
 	fv->Mark( 1 );
-	IValue* ret = fv->Call( f_args, opt );
+	IValue* ret = fv->Call( opt, f_args );
 	fv->Mark( 0 );
 
 	return ret;
 	}
 
-IValue *ArrayRefExpr::Assign( IValue* new_value )
+IValue *ArrayRefExpr::Assign( evalOpt &opt, IValue* new_value )
 	{
-	IValue* lhs_value_ref = op->RefEval( VAL_REF );
+	IValue* lhs_value_ref = op->RefEval( opt, VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
 
 	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
@@ -1478,7 +1488,7 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 				{
 				arg = (*args)[i];
 				val_list.append( arg ?
-						arg->ReadOnlyEval() : 0 );
+						arg->ReadOnlyEval(opt) : 0 );
 				}
 
 			lhs_value->AssignElements( &val_list, new_value );
@@ -1498,7 +1508,7 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 		return (IValue*) Fail( this, " invalid array addressing" );
 		}
 
-	const IValue* index = (*args)[0]->ReadOnlyEval();
+	const IValue* index = (*args)[0]->ReadOnlyEval(opt);
 	const attributeptr indx_attr = index->AttributePtr();
 	const IValue* indx_shape;
 
@@ -1576,23 +1586,25 @@ RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
 
 IValue* RecordRefExpr::Eval( evalOpt &opt )
 	{
-	const IValue* record = op->ReadOnlyEval();
+	evalOpt lopt(opt);		// save state of options
+
+	const IValue* record = op->ReadOnlyEval(opt);
 	const IValue* const_result = (const IValue*)(record->Deref()->ExistingRecordElement( field ));
 
 	const_result = (const IValue*)(const_result->Deref());
 
 	IValue* result;
 
-	result = CopyOrRefValue( const_result, opt );
+	result = CopyOrRefValue( const_result, lopt );
 
 	op->ReadOnlyDone( record );
 
 	return result;
 	}
 
-IValue* RecordRefExpr::RefEval( value_type val_type )
+IValue* RecordRefExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
-	IValue* value_ref = op->RefEval( val_type );
+	IValue* value_ref = op->RefEval( opt, val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
 
 	value = (IValue*)(value->GetOrCreateRecordElement( field ));
@@ -1604,9 +1616,9 @@ IValue* RecordRefExpr::RefEval( value_type val_type )
 	return value;
 	}
 
-IValue *RecordRefExpr::Assign( IValue* new_value )
+IValue *RecordRefExpr::Assign( evalOpt &opt, IValue* new_value )
 	{
-	IValue* lhs_value_ref = op->RefEval( VAL_REF );
+	IValue* lhs_value_ref = op->RefEval( opt, VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
 
 	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
@@ -1679,7 +1691,9 @@ AttributeRefExpr::AttributeRefExpr( Expr* op1, Expr* op2 ) :
 
 IValue* AttributeRefExpr::Eval( evalOpt &opt )
 	{
-	const IValue* val = left->ReadOnlyEval();
+	evalOpt lopt(opt);		// save state of options
+
+	const IValue* val = left->ReadOnlyEval(opt);
 	IValue* result = 0;
 	const IValue* const_result = 0;
 
@@ -1688,7 +1702,7 @@ IValue* AttributeRefExpr::Eval( evalOpt &opt )
 
 	else if ( right )
 		{
-		const IValue* index_val = right->ReadOnlyEval();
+		const IValue* index_val = right->ReadOnlyEval(opt);
 		if ( index_val && index_val->Type() == TYPE_STRING &&
 		     index_val->Length() == 1  )
 			const_result = (const IValue*)(val->ExistingAttribute( index_val ));
@@ -1717,15 +1731,15 @@ IValue* AttributeRefExpr::Eval( evalOpt &opt )
 		}
 
 	if ( ! result )
-		result = CopyOrRefValue( (const IValue*)(const_result->Deref()), opt );
+		result = CopyOrRefValue( (const IValue*)(const_result->Deref()), lopt );
 
 	left->ReadOnlyDone( val );
 	return result;
 	}
 
-IValue* AttributeRefExpr::RefEval( value_type val_type )
+IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
-	IValue* value_ref = left->RefEval( val_type );
+	IValue* value_ref = left->RefEval( opt, val_type );
 	IValue* value = (IValue*)(value_ref->Deref());
 
 	if ( field )
@@ -1736,7 +1750,7 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 
 	else if ( right )
 		{
-		const IValue* index_val = right->ReadOnlyEval();
+		const IValue* index_val = right->ReadOnlyEval(opt);
 
 		if ( index_val && index_val->Type() == TYPE_STRING &&
 		     index_val->Length() == 1  )
@@ -1761,9 +1775,9 @@ IValue* AttributeRefExpr::RefEval( value_type val_type )
 	return value;
 	}
 
-IValue *AttributeRefExpr::Assign( IValue* new_value )
+IValue *AttributeRefExpr::Assign( evalOpt &opt, IValue* new_value )
 	{
-	IValue* lhs_value_ref = left->RefEval( VAL_REF );
+	IValue* lhs_value_ref = left->RefEval( opt, VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
 
 	if ( field )
@@ -1771,7 +1785,7 @@ IValue *AttributeRefExpr::Assign( IValue* new_value )
 
 	else if ( right )
 		{
-		const IValue* index_val = right->ReadOnlyEval();
+		const IValue* index_val = right->ReadOnlyEval(opt);
 		if ( index_val && index_val->Type() == TYPE_STRING &&
 		     index_val->Length() == 1  )
 			{
@@ -1848,9 +1862,9 @@ RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_)
 	type = arg_type;
 	}
 
-IValue* RefExpr::Eval( evalOpt & )
+IValue* RefExpr::Eval( evalOpt &opt )
 	{
-	IValue *val = op->RefEval( type );
+	IValue *val = op->RefEval( opt, type );
 
 	if ( type == VAL_CONST )
 		val->MakeModConst();
@@ -1858,13 +1872,13 @@ IValue* RefExpr::Eval( evalOpt & )
 	return val;
 	}
 
-IValue *RefExpr::Assign( IValue* new_value )
+IValue *RefExpr::Assign( evalOpt &opt, IValue* new_value )
 	{
 	Str err;
 	const char *ret = 0;
 	if ( type == VAL_VAL )
 		{
-		IValue* value = op->RefEval( VAL_REF );
+		IValue* value = op->RefEval( opt, VAL_REF );
 
 		if ( value->VecRefDeref()->IsConst() )
 			ret = "'const' values cannot be modified.";
@@ -1882,10 +1896,10 @@ IValue *RefExpr::Assign( IValue* new_value )
 	else if ( type == VAL_CONST )
 		{
 		new_value->MakeConst( );
-		return op->Assign( new_value );
+		return op->Assign( opt, new_value );
 		}
 	else
-		return Expr::Assign( new_value );
+		return Expr::Assign( opt, new_value );
 
 	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}
@@ -1925,8 +1939,8 @@ RangeExpr::RangeExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 
 IValue* RangeExpr::Eval( evalOpt &opt )
 	{
-	const IValue* left_val = left->ReadOnlyEval();
-	const IValue* right_val = right->ReadOnlyEval();
+	const IValue* left_val = left->ReadOnlyEval(opt);
+	const IValue* right_val = right->ReadOnlyEval(opt);
 
 	IValue* result;
 
@@ -1993,8 +2007,8 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) 
 
 IValue* ApplyRegExpr::Eval( evalOpt &opt )
 	{
-	const IValue* strval = left->ReadOnlyEval();
-	const IValue* regval = right->ReadOnlyEval();
+	const IValue* strval = left->ReadOnlyEval(opt);
+	const IValue* regval = right->ReadOnlyEval(opt);
 
 	IValue* result = 0;
 
@@ -2130,7 +2144,7 @@ IValue* ApplyRegExpr::Eval( evalOpt &opt )
 			}
 		else
 			{
-			IValue* strval_ref = left->RefEval( VAL_REF );
+			IValue* strval_ref = left->RefEval( opt, VAL_REF );
 			IValue* rstrval = (IValue*) strval_ref->Deref();
 
 			if ( rstrval->Type() != TYPE_SUBVEC_REF )
@@ -2181,7 +2195,8 @@ CallExpr::CallExpr( Expr* func, parameter_list* args_args, Sequencer* seq_arg )
 
 IValue* CallExpr::Eval( evalOpt &opt )
 	{
-	const IValue* func = op->ReadOnlyEval();
+	evalOpt lopt(opt);
+	const IValue* func = op->ReadOnlyEval(opt);
 	Func* func_val = func->FuncVal();
 
 	if ( Sequencer::CurSeq()->System().Trace() )
@@ -2192,9 +2207,10 @@ IValue* CallExpr::Eval( evalOpt &opt )
 
 	sequencer->PushFuncName( string_dup(op->Description()) );
 
-	if ( ! func_val || ! (result = func_val->Call(args,opt)) )
+	opt = lopt;
+	if ( ! func_val || ! (result = func_val->Call(opt,args)) )
 		{
-		if ( ! opt.side_effects() )
+		if ( ! lopt.side_effects() )
 			result = false_ivalue();
 		}
 
@@ -2210,9 +2226,9 @@ int CallExpr::DoesTrace( ) const
 	}
 
 
-IValue *CallExpr::SideEffectsEval()
+IValue *CallExpr::SideEffectsEval( evalOpt &opt )
 	{
-	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	opt.set(evalOpt::SIDE_EFFECTS);
 	IValue* result = Eval( opt );
 
 	if ( result )
@@ -2254,13 +2270,14 @@ IncludeExpr::IncludeExpr( Expr* fle, Sequencer* seq_arg )
 
 IValue* IncludeExpr::Eval( evalOpt &opt )
 	{
-	const IValue* file_val = op->ReadOnlyEval();
+	evalOpt lopt(opt);
+	const IValue* file_val = op->ReadOnlyEval(opt);
 	char *fle = file_val->StringVal();
 	op->ReadOnlyDone( file_val );
 
-	IValue *ret = sequencer->Include( fle );
+	IValue *ret = sequencer->Include( opt, fle );
 
-	if ( opt.side_effects() )
+	if ( lopt.side_effects() )
 		{
 		Unref(ret);
 		ret = 0;
@@ -2317,9 +2334,9 @@ IValue* SendEventExpr::Eval( evalOpt &opt )
 		return result;
 	}
 
-IValue *SendEventExpr::SideEffectsEval()
+IValue *SendEventExpr::SideEffectsEval( evalOpt &opt )
 	{
-	evalOpt opt(evalOpt::SIDE_EFFECTS);
+	opt.set(evalOpt::SIDE_EFFECTS);
 	IValue *result = Eval(opt);
 	if ( result )
 		{
@@ -2396,7 +2413,7 @@ IValue* LastEventExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* LastEventExpr::RefEval( value_type val_type )
+IValue* LastEventExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
 	Notification* n = sequencer->LastNotification();
 
@@ -2475,7 +2492,7 @@ IValue* LastRegexExpr::Eval( evalOpt &opt )
 	return result;
 	}
 
-IValue* LastRegexExpr::RefEval( value_type val_type )
+IValue* LastRegexExpr::RefEval( evalOpt &opt, value_type val_type )
 	{
 	RegexMatch &match = sequencer->GetMatch();
 

@@ -55,7 +55,7 @@ const char *BuiltIn::Description() const
 	return description;
 	}
 
-IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
+IValue* BuiltIn::Call( evalOpt &opt, parameter_list* args )
 	{
 	if ( num_args != NUM_ARGS_VARIES )
 		{
@@ -65,7 +65,7 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 			{
 			if ( (*args)[i]->IsEllipsis() )
 				num_args_present +=
-					(*args)[i]->NumEllipsisVals();
+					(*args)[i]->NumEllipsisVals( opt );
 			else
 				++num_args_present;
 			}
@@ -100,11 +100,11 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 
 		if ( arg->IsEllipsis() )
 			{
-			int len = arg->NumEllipsisVals();
+			int len = arg->NumEllipsisVals( opt );
 
 			for ( int j = 0; j < len; ++j )
 				{
-				arg_val = arg->NthEllipsisVal( j );
+				arg_val = arg->NthEllipsisVal( opt, j );
 				if ( arg_val->Type() == TYPE_FAIL &&
 				     ! handle_fail )
 					{
@@ -121,9 +121,9 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 		else
 			{
 			if ( do_ref_eval )
-				arg_val = arg->Arg()->RefEval( VAL_REF );
+				arg_val = arg->Arg()->RefEval( opt, VAL_REF );
 			else
-				arg_val = arg->Arg()->ReadOnlyEval( preserve );
+				arg_val = arg->Arg()->ReadOnlyEval( opt, preserve );
 
 			if ( arg_val->Type() == TYPE_FAIL &&
 			     ! handle_fail )
@@ -145,7 +145,7 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 		if ( opt.side_effects() )
 			{
 			int side_effects_okay = 0;
-			DoSideEffectsCall( args_vals, side_effects_okay );
+			DoSideEffectsCall( opt, args_vals, side_effects_okay );
 			result = 0;
 			}
 
@@ -153,7 +153,7 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 			{
 			IValue *last = handle_fail ? FailStmt::SwapFail(0) : 0;
 
-			result = DoCall( args_vals );
+			result = DoCall( opt, args_vals );
 
 			if ( handle_fail && result && result->Type() != TYPE_FAIL )
 				FailStmt::SetFail(last);
@@ -182,11 +182,11 @@ IValue* BuiltIn::Call( parameter_list* args, evalOpt &opt )
 	return result;
 	}
 
-void BuiltIn::DoSideEffectsCall( const_args_list* args_vals,
+void BuiltIn::DoSideEffectsCall( evalOpt &opt, const_args_list* args_vals,
 				int& side_effects_okay )
 	{
 	side_effects_okay = side_effects_call_okay;
-	Unref( DoCall( args_vals ) );
+	Unref( DoCall( opt, args_vals ) );
 	}
 
 int BuiltIn::Describe( OStream& s, const ioOpt &opt ) const
@@ -222,13 +222,13 @@ IValue *BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,
 	}
 
 
-IValue* OneValueArgBuiltIn::DoCall( const_args_list* args_val )
+IValue* OneValueArgBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	return (*func)( (*args_val)[0] );
 	}
 
 
-IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
+IValue* NumericVectorBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* arg = (*args_val)[0];
 	IValue* result;
@@ -271,7 +271,7 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-IValue* RealBuiltIn::DoCall( const_args_list* args_val )
+IValue* RealBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -339,7 +339,7 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.r,
 	return result;
 	}
 
-IValue* ImagBuiltIn::DoCall( const_args_list* args_val )
+IValue* ImagBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -376,7 +376,7 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.i,
 	return result;
 	}
 
-IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
+IValue* StrlenBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -393,7 +393,7 @@ IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( ret, len );
 	}
 
-IValue* WhichIncludeBuiltIn::DoCall( const_args_list* args_val )
+IValue* WhichIncludeBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -413,7 +413,7 @@ IValue* WhichIncludeBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( (charptr*) ret, len );
 	}
 
-IValue* WhichClientBuiltIn::DoCall( const_args_list* args_val )
+IValue* WhichClientBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -433,7 +433,7 @@ IValue* WhichClientBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( (charptr*) ret, len );
 	}
 
-IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
+IValue* ReadlineBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -458,7 +458,7 @@ IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 	return ret;
 	}
 
-IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
+IValue* ComplexBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 	IValue* result;
@@ -594,7 +594,7 @@ COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 	return result;
 	}
 
-IValue* SumBuiltIn::DoCall( const_args_list* args_val )
+IValue* SumBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	glish_type max_type;
 	IValue* result;
@@ -627,7 +627,7 @@ IValue* SumBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
+IValue* ProdBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	glish_type max_type;
 	IValue* result;
@@ -675,7 +675,7 @@ IValue* ProdBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-IValue* LengthBuiltIn::DoCall( const_args_list* args_val )
+IValue* LengthBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int num = args_val->length();
 
@@ -694,7 +694,7 @@ IValue* LengthBuiltIn::DoCall( const_args_list* args_val )
 		return empty_ivalue();
 	}
 
-IValue* RangeBuiltIn::DoCall( const_args_list* args_val )
+IValue* RangeBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	glish_type max_type;
 	IValue* result;
@@ -798,7 +798,7 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,off,,RANGEBUILTIN_XLATE)			\
 	return result;
 	}
 
-IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
+IValue* SeqBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 
@@ -872,7 +872,7 @@ IValue* SeqBuiltIn::DoCall( const_args_list* args_val )
 	return result_val;
 	}
 
-IValue* RepBuiltIn::DoCall( const_args_list* args_val )
+IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* element = (*args_val)[0];
 	const IValue* times = (*args_val)[1];
@@ -1019,12 +1019,12 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 	return ret ? ret : error_ivalue();
 	}
 
-IValue* NumArgsBuiltIn::DoCall( const_args_list* args_val )
+IValue* NumArgsBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	return new IValue( args_val->length() );
 	}
 
-IValue* NthArgBuiltIn::DoCall( const_args_list* args_val )
+IValue* NthArgBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 	Str err;
@@ -1044,7 +1044,7 @@ IValue* NthArgBuiltIn::DoCall( const_args_list* args_val )
 	return copy_value( (*args_val)[n] );
 	}
 
-IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
+IValue* RandomBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 	const IValue *val = 0;
@@ -1207,7 +1207,7 @@ XBIND_ACTION(TYPE_DCOMPLEX,dcomplex_ptr,DcomplexPtr,index,xlate,.r,stride,COLS,O
 		break;
 
 #define XBINDBUILTIN(name,ROWS,COLS,stride,OFF,ADV1,ADV2)		\
-IValue* name::DoCall( const_args_list* args_vals )			\
+IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 	{								\
 	int numeric = -1, rows = -1, minrows = -1;			\
 	int cols = 0;							\
@@ -1377,7 +1377,7 @@ XBINDBUILTIN(CbindBuiltIn,0,1,1,1,off,off)
 XBINDBUILTIN(RbindBuiltIn,1,0,cols,shape[0],offset+shape[0],offset+1)
 
 
-IValue* IsConstBuiltIn::DoCall( const_args_list* args_val )
+IValue* IsConstBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	int len = args_val->length();
 
@@ -1387,7 +1387,7 @@ IValue* IsConstBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( (*args_val)[0]->IsConst() ? glish_true : glish_false );
 	}
 
-IValue* IsModifiableBuiltIn::DoCall( const_args_list* args_val )
+IValue* IsModifiableBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 
@@ -1444,7 +1444,7 @@ if ( GRP##_itr )							\
 			GRP##_prev = CUR = *GRP++;			\
 		}
 
-IValue* TrBuiltIn::DoCall( const_args_list* args_val )
+IValue* TrBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 
@@ -1524,7 +1524,7 @@ IValue* TrBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( (charptr*) ret, src_len );
 	}
 
-IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
+IValue* PasteBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	if ( args_val->length() == 0 )
 		return (IValue*) Fail( "paste() invoked with no arguments" );
@@ -1604,7 +1604,7 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( (charptr*) result, 1 );
 	}
 
-IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
+IValue* SplitBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 
@@ -1627,7 +1627,7 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
+IValue* SizeofBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	if ( args_val->length() <= 0 )
 		return (IValue*) Fail( this, " requires one or two arguments" );
@@ -1641,7 +1641,7 @@ IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( val->Sizeof( verbose && verbose->IsNumeric() ? verbose->IntVal() : 0 ) );
 	}
 
-IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
+IValue* AllocInfoBuiltIn::DoCall( evalOpt &opt, const_args_list* )
 	{
 	recordptr rec = create_record_dict();
 #if defined(ENABLE_GC)
@@ -1655,7 +1655,7 @@ IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	return new IValue( rec );
 	}
 
-IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
+IValue* IsNaNBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const Value* val = (*args_val)[0];
 	glish_type type;
@@ -1710,10 +1710,9 @@ case tag:						\
 	return new IValue( glish_false );
 	}
 
-IValue* PreserveEventsBuiltIn::DoCall( const_args_list* args_val )
+IValue* PreserveEventsBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue* val = (const IValue*) (*args_val)[0];
-	glish_type type;
 
 	if ( ! val || ! val->IsAgentRecord() )
 		return new IValue( glish_false );
@@ -1727,7 +1726,7 @@ IValue* PreserveEventsBuiltIn::DoCall( const_args_list* args_val )
 
 
 
-IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
+IValue* OpenBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 	if ( len == 0 )
@@ -1753,7 +1752,7 @@ IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( ret, len );
 	}
 
-IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
+IValue* ReadBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue *file_val = (*args_val)[0];
 	const IValue *num_val = (*args_val)[1];
@@ -1815,7 +1814,7 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	return result;
 	}
 
-IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
+IValue* WriteBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	if ( args_val->length() < 3 )
 		return (IValue*) Fail( "too few arguments for \"write\"" );
@@ -1856,7 +1855,7 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( glish_true );
 	}
 
-IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
+IValue* SprintfBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	int len = args_val->length();
 	if ( len < 1 )
@@ -1899,14 +1898,14 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( err );
 	}
 
-IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
+IValue* PrintfBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	const IValue *out = (*args_val)[0];
 	pager->report( ioOpt(ioOpt::NO_NEWLINE(),'\0'), out );
 	return new IValue( glish_true );
 	}
 
-IValue* StatBuiltIn::DoCall( const_args_list* args_val )
+IValue* StatBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	{
 	const IValue *file_val = (*args_val)[0];
 	const IValue *bytes_val = (*args_val)[1];
@@ -2000,7 +1999,7 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( rec ? rec : cur );
 	}
 
-IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
+IValue* ReadValueBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	static sos_fd_source FD;
 	static sos_in sos( &FD );
@@ -2023,7 +2022,7 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
+IValue* WriteValueBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	static sos_fd_sink FD;
 	static sos_out sos( &FD );
@@ -2050,7 +2049,7 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	return result ? result : new IValue( glish_true );
 	}
 
-IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
+IValue* WheneverStmtsBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	Agent* agent = (*args_val)[0]->AgentVal();
 
@@ -2060,7 +2059,7 @@ IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
 		return agent->AssociatedStatements();
 	}
 
-IValue* WheneverActiveBuiltIn::DoCall( const_args_list* args_val )
+IValue* WheneverActiveBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
 
@@ -2077,7 +2076,7 @@ IValue* WheneverActiveBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* ActiveAgentsBuiltIn::DoCall( evalOpt &, const_args_list* /* args_val */ )
 	{
 	IValue* r = create_irecord();
 
@@ -2095,7 +2094,7 @@ IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return r;
 	}
 
-IValue* BundleEventsBuiltIn::DoCall( const_args_list* args_val )
+IValue* BundleEventsBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	if ( args_val->length() < 1 )
 		return (IValue*) Fail( this, " takes one or two arguments" );
@@ -2113,7 +2112,7 @@ IValue* BundleEventsBuiltIn::DoCall( const_args_list* args_val )
 				   glish_true : glish_false );
 	}
 
-IValue* FlushEventsBuiltIn::DoCall( const_args_list* args_val )
+IValue* FlushEventsBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	Agent* agent = (*args_val)[0]->AgentVal();
 
@@ -2124,7 +2123,7 @@ IValue* FlushEventsBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
-IValue* TimeBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* TimeBuiltIn::DoCall( evalOpt &, const_args_list* /* args_val */ )
 	{
 	IValue *ret = new IValue((double)0.0);
 	(ret->DoublePtr())[0] = get_current_time();
@@ -2132,13 +2131,13 @@ IValue* TimeBuiltIn::DoCall( const_args_list* /* args_val */ )
 	}
 
 
-IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CreateAgentBuiltIn::DoCall( evalOpt &, const_args_list* /* args_val */ )
 	{
 	Agent* user_agent = new UserAgent( sequencer );
 	return user_agent->AgentRecord();
 	}
 
-IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolNamesBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 	{
 	int len = args_val->length();
 	Scope *scope = sequencer->GetScope( );
@@ -2176,7 +2175,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 				Parameter arg( VAL_CONST, (Expr*) member ); Ref( (Expr*) member );
 				p.append( &arg );
 				evalOpt opt(evalOpt::COPY);
-				IValue *r = func->Call( &p, opt );
+				IValue *r = func->Call( opt, &p );
 				if ( r && r->IsNumeric() )
 					flag = r->IntVal();
 				Unref( r );
@@ -2192,7 +2191,7 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	return new IValue( (charptr*) name_ary, cnt );
 	}
 
-IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolValueBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 	{
 	const IValue *str = (*args_val)[0];
 
@@ -2210,7 +2209,7 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 			Expr *exp = sequencer->LookupID( string_dup(strs[i]), GLOBAL_SCOPE, 0, 0);
 			if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
 				{
-				IValue *val = exp->CopyEval();
+				IValue *val = exp->CopyEval(opt);
 				if ( val )
 					rptr->Insert( string_dup(strs[i]), val );
 				}
@@ -2221,7 +2220,7 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 		{
 		Expr *exp = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 0, 0);
 		if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
-			ret = exp->CopyEval();
+			ret = exp->CopyEval(opt);
 		}
 
 	return ret ? ret : empty_ivalue();
@@ -2237,7 +2236,7 @@ static int valid_symbol_name( const char *s )
 	return ! *s;
 	}
 
-IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolSetBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 	{
 	int len = args_val->length();
 
@@ -2265,7 +2264,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		while ( (member = (IValue*)(rptr->NextEntry( key, c ))) )
 			{
 			Expr *id = sequencer->LookupID( string_dup(key), GLOBAL_SCOPE, 1, 0 );
-			id->Assign( copy_value(member) );
+			id->Assign( opt, copy_value(member) );
 			}
 		}
 	else
@@ -2277,7 +2276,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 		if ( valid_symbol_name(strs[0]) )
 			{
 			Expr *id = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 1, 0 );
-			id->Assign( copy_value( arg2 ) );
+			id->Assign( opt, copy_value( arg2 ) );
 			}
 		else
 			return (IValue*) Fail( "invalid symbol name, \"", strs[0], "\"" );
@@ -2286,7 +2285,7 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	return new IValue( glish_true );
 	}
 
-IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
+IValue* SymbolDeleteBuiltIn::DoCall( evalOpt &, const_args_list *args_val )
 	{
 	const IValue *str = (*args_val)[0];
 
@@ -2301,7 +2300,7 @@ IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
 	return new IValue( glish_true );
 	}
 
-IValue* IsDefinedBuiltIn::DoCall( const_args_list *args_val )
+IValue* IsDefinedBuiltIn::DoCall( evalOpt &, const_args_list *args_val )
 	{
 	const IValue *str = (*args_val)[0];
 
@@ -2334,7 +2333,7 @@ IValue* IsDefinedBuiltIn::DoCall( const_args_list *args_val )
 	return ret;
 	}
 
-IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* MissingBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
 	Frame* cur = sequencer->FuncFrame();
 	if ( ! cur )
@@ -2344,21 +2343,21 @@ IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	}
 
 #if defined(ENABLE_GC)
-IValue* CollectGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CollectGarbageBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
 	GC_gcollect( );
 	GC_gcollect( );
 	return new IValue( glish_true );
 	}
 
-IValue* DumpGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* DumpGarbageBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
 	GC_dump( );
 	return new IValue( glish_true );
 	}
 #endif
 
-IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* CurrentWheneverBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
 	Notification* n = sequencer->LastNotification();
 
@@ -2368,7 +2367,7 @@ IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return new IValue( n->notifiee->stmt()->Index() );
 	}
 
-IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
+IValue* EvalBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 	{
 	int len = args_val->length();
 	IValue *result = 0;
@@ -2381,7 +2380,7 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 		
 		lines[len] = 0;
 
-		result = sequencer->Eval( (const char **) lines );
+		result = sequencer->Eval( opt, (const char **) lines );
 
 		for ( int j = 0; j < len; j++ )
 			free_memory( lines[j] );
@@ -2392,7 +2391,7 @@ IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
 	return result ? result : empty_ivalue();
 	}
 
-IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
+IValue* LastWheneverExecutedBuiltIn::DoCall( evalOpt &, const_args_list * )
 	{
 	Stmt* s = sequencer->LastWheneverExecuted();
 
@@ -2736,7 +2735,7 @@ char* paste( parameter_list* args )
 		args2.append( (*args)[i] );
 
 	evalOpt opt(evalOpt::COPY);
-	IValue* args_value = paste.Call( &args2, opt );
+	IValue* args_value = paste.Call( opt, &args2 );
 
 	// ### could save on some string copies here by returning the
 	// value instead, and using StringPtr() instead of StringVal()
@@ -2760,7 +2759,8 @@ char* paste( const_args_list* args )
 	loop_over_list( *args, i )
 		args2.append( (*args)[i] );
 
-	IValue* args_value = paste.DoCall( &args2 );
+	evalOpt opt(evalOpt::COPY);
+	IValue* args_value = paste.DoCall( opt, &args2 );
 	char* result = args_value->StringVal();
 	Unref( args_value );
 
@@ -2769,8 +2769,7 @@ char* paste( const_args_list* args )
 
 
 static void add_one_arg_built_in( Sequencer* s, value_func_1_value_arg func,
-					const char* name, int do_deref = 1,
-					int handle_fail = 0 )
+				  const char* name, int do_deref = 1, int handle_fail = 0 )
 	{
 	BuiltIn* b = new OneValueArgBuiltIn( func, name );
 	b->SetDeref( do_deref );

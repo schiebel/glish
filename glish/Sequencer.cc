@@ -646,7 +646,7 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		param.append( p );						\
 		Func *func = ((IValue*)VAR##_val->Deref())->FuncPtr()[0];	\
 		evalOpt opt(evalOpt::COPY);					\
-		IValue *ret = func->Call( &param, opt);				\
+		IValue *ret = func->Call( opt, &param );			\
 		done = 1;							\
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
@@ -1162,7 +1162,7 @@ void Sequencer::toplevelreset()
 	current_await_done = 0;
 	}
 
-void Sequencer::InitScriptClient( )
+void Sequencer::InitScriptClient( evalOpt &opt )
 	{
 	// Create "script" global.
 	script_client = new ScriptClient( argc_, argv_, MultiClientScript(), Client::TRANSIENT, run_file );
@@ -1174,7 +1174,7 @@ void Sequencer::InitScriptClient( )
 		ScriptAgent* script_agent =
 			new ScriptAgent( this, script_client );
 		script_client->SetInterface( selector, script_agent );
-		script_expr->Assign( script_agent->AgentRecord() );
+		script_expr->Assign( opt, script_agent->AgentRecord() );
 
 		IValue *val = new IValue( glish_true );
 		sys_val->SetField( "is_script_client", val );
@@ -1195,7 +1195,7 @@ void Sequencer::InitScriptClient( )
 
 	else
 		{
-		script_expr->Assign( new IValue( glish_false ) );
+		script_expr->Assign( opt, new IValue( glish_false ) );
 		IValue *val = new IValue( glish_false );
 		sys_val->SetField( "is_script_client", val );
 		Unref(val);
@@ -1325,6 +1325,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				system(this), script_client(0), script_client_active(0),
 				expanded_name(0), run_file(0), doing_pager(0)
 	{
+	evalOpt opt(1);
 
 #if defined(ENABLE_GC)
 	/* We try to make sure that we allocate at 	*/
@@ -1420,13 +1421,13 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 	Expr* system_expr = InstallID( string_dup( "system" ), GLOBAL_SCOPE );
 	system_expr->SetChangeNotice(system_change_function);
-	system_expr->Assign( sys_val );
+	system_expr->Assign( opt, sys_val );
 
 	SetupSysValue( sys_val );
 
 	// Create place for the script variable to be filled in later
 	script_expr = InstallID( string_dup( "script" ), GLOBAL_SCOPE );
-	script_expr->Assign( new IValue( glish_false ) );
+	script_expr->Assign( opt, new IValue( glish_false ) );
 
 	name = argv[0];
 	interpreter_path = which_executable( argv[0] );
@@ -1518,15 +1519,15 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			break;
 		}
 
-	MakeArgvGlobal( argv, argc, 1 );
-	MakeEnvGlobal();
+	MakeArgvGlobal( opt, argv, argc, 1 );
+	MakeEnvGlobal( opt );
 	BuildSuspendList();
 
 	char* monitor_client_name = getenv( "glish_monitor" );
 	if ( monitor_client_name )
 		ActivateMonitor( monitor_client_name );
 
-	Parse( glish_init );
+	Parse( opt, glish_init );
 
 	FILE* glish_rc_file;
 	char glish_rc_filename[256];
@@ -1544,7 +1545,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		if ( is_regular_file( glish_rc_filename ) &&
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
-				Parse( glish_rc_file, glish_rc_filename );
+				Parse( opt, glish_rc_file, glish_rc_filename );
 				loaded_system_glishrc = 1;
 				}
 		}
@@ -1560,7 +1561,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 		if ( is_regular_file( glish_rc_filename ) &&
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
-				Parse( glish_rc_file, glish_rc_filename );
+				Parse( opt, glish_rc_file, glish_rc_filename );
 		}
 
 	//
@@ -1569,7 +1570,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	if ( (glish_rc_dir = getenv( "GLISHRC" )) &&
 	     is_regular_file( glish_rc_dir ) &&
 	     (glish_rc_file = fopen( glish_rc_dir, "r")) )
-		Parse( glish_rc_file, glish_rc_dir );
+		Parse( opt, glish_rc_file, glish_rc_dir );
 	else
 		{
 		//
@@ -1577,7 +1578,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		//
 		if ( is_regular_file( GLISH_RC_FILE ) &&
 		     (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
-			Parse( glish_rc_file, GLISH_RC_FILE );
+			Parse( opt, glish_rc_file, GLISH_RC_FILE );
 
 		else if ( (glish_rc_dir = getenv( "HOME" )) )
 			{
@@ -1586,7 +1587,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 			if ( is_regular_file(glish_rc_filename) &&
 			     (glish_rc_file = fopen( glish_rc_filename, "r")) )
-				Parse( glish_rc_file, glish_rc_filename );
+				Parse( opt, glish_rc_file, glish_rc_filename );
 			}
 		}
 
@@ -1613,7 +1614,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			if ( ! include_once.Lookup((*load_list)[j]) )
 				{
 				expanded_name = (*load_list)[j];
-				Parse( (*load_list)[j] );
+				Parse( opt, (*load_list)[j] );
 				}
 
 		delete_name_list( load_list );
@@ -1626,16 +1627,16 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	if ( argc > 0 && strcmp( argv[0], "--" ) && (run_file = which_include(argv[0])) )
 		{
 		do_interactive = 0;
-		MakeArgvGlobal( argv, argc, 0 );
+		MakeArgvGlobal( opt, argv, argc, 0 );
 		if ( ! include_once.Lookup( run_file ) )
-			Parse( run_file );
+			Parse( opt, run_file );
 		}
 
 	if ( ! ScriptCreated() )
-		InitScriptClient( );
+		InitScriptClient( opt );
 
 	if ( do_interactive )
-		Parse( stdin );
+		Parse( opt, stdin );
 	}
 
 
@@ -1699,8 +1700,9 @@ Sequencer::~Sequencer()
 
 void Sequencer::AddBuiltIn( BuiltIn* built_in )
 	{
+	evalOpt opt;
 	Expr* id = InstallID( string_dup( built_in->Name() ), GLOBAL_SCOPE );
-	id->Assign( new IValue( built_in ) );
+	id->Assign( opt, new IValue( built_in ) );
 	}
 
 
@@ -2183,13 +2185,13 @@ void Sequencer::ReleaseQueue( )
 	hold_queue -= 1;
 	}
 
-const IValue *Sequencer::LookupVal( const char *id )
+const IValue *Sequencer::LookupVal( evalOpt &opt, const char *id )
 	{
 	Expr *expr = 0;
 	const IValue *val = 0;
 	if ( cur_sequencer && (expr = cur_sequencer->LookupID( string_dup( id ), GLOBAL_SCOPE, 0 )) )
 		{
-		val = expr->ReadOnlyEval();
+		val = expr->ReadOnlyEval( opt );
 		expr->ReadOnlyDone( val );	// **BUG**
 		}
 	return val;
@@ -2669,7 +2671,7 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 	}
 
 
-IValue *Sequencer::Exec( int startup_script, int value_needed )
+IValue *Sequencer::Exec( evalOpt &opt, int startup_script, int value_needed )
 	{
 	if ( interactive( ) )
 		return 0;
@@ -2683,12 +2685,12 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 	IValue *ret = 0;
 	if ( stmts )
 		{
-		evalOpt flow(evalOpt::VALUE_NEEDED);
+		opt.set(evalOpt::VALUE_NEEDED);
 		Stmt *cur_stmts = stmts;	// do this dance with stmts to
 		Ref(cur_stmts);			// prevent stmts from being freed
 						// or reassigned as part of an eval()
 
-		ret = cur_stmts->Exec( flow );
+		ret = cur_stmts->Exec( opt );
 
 		if ( ! value_needed )
 			{
@@ -3526,7 +3528,7 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 	}
 
 
-void Sequencer::MakeEnvGlobal()
+void Sequencer::MakeEnvGlobal( evalOpt &opt )
 	{
 	IValue* env_value = create_irecord();
 
@@ -3552,11 +3554,11 @@ void Sequencer::MakeEnvGlobal()
 			}
 
 	Expr* env_expr = LookupID( string_dup( "environ" ), GLOBAL_SCOPE );
-	env_expr->Assign( env_value );
+	env_expr->Assign( opt, env_value );
 	}
 
 
-void Sequencer::MakeArgvGlobal( char** argv, int argc, int append_name )
+void Sequencer::MakeArgvGlobal( evalOpt &opt, char** argv, int argc, int append_name )
 	{
 	// If there's an initial "--" argument, remove it, it's a vestige
 	// from when "--" was needed to separate script files from their
@@ -3577,7 +3579,7 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc, int append_name )
 		}
 
 	Expr* argv_expr = LookupID( string_dup( "argv" ), GLOBAL_SCOPE );
-	argv_expr->Assign( argv_value );
+	argv_expr->Assign( opt, argv_value );
 	}
 
 
@@ -3598,7 +3600,7 @@ void Sequencer::BuildSuspendList()
 	}
 
 
-IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
+IValue *Sequencer::Parse( evalOpt &opt, FILE* file, const char* filename, int value_needed )
 	{
 	restart_yylex( file );
 
@@ -3626,7 +3628,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 		}
 
 	NodeUnref( stmts );
-	IValue *ret = glish_parser( stmts );
+	IValue *ret = glish_parser( opt, stmts );
 
 	if ( ret )
 		{
@@ -3645,7 +3647,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 			}
 		}
 	else
-		ret = Exec( 1, value_needed );
+		ret = Exec( opt, 1, value_needed );
 
 
 	line_num = 0;
@@ -3656,7 +3658,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 	}
 
 
-IValue *Sequencer::Parse( const char file[], int value_needed )
+IValue *Sequencer::Parse( evalOpt &opt, const char file[], int value_needed )
 	{
 	if ( ! is_regular_file( file ) )
 		return (IValue*) generate_error( "\"", file, "\" does not exist or is not a regular file" );
@@ -3667,20 +3669,20 @@ IValue *Sequencer::Parse( const char file[], int value_needed )
 		return (IValue*) generate_error( "can't open file \"", file, "\"" );
 
 
-	return Parse( f, file, value_needed );
+	return Parse( opt, f, file, value_needed );
 	}
 
-IValue *Sequencer::Parse( const char* strings[], int value_needed )
+IValue *Sequencer::Parse( evalOpt &opt, const char* strings[], int value_needed )
 	{
 	scan_strings( strings );
-	return Parse( 0, "glish internal initialization", value_needed );
+	return Parse( opt, 0, "glish internal initialization", value_needed );
 	}
 
 extern void *current_flex_buffer();
 extern void *new_flex_buffer( FILE * );
 extern void delete_flex_buffer(void*);
 extern void set_flex_buffer(void*);
-IValue *Sequencer::Eval( const char* strings[] )
+IValue *Sequencer::Eval( evalOpt &opt, const char* strings[] )
 	{
 	void *old_buf = current_flex_buffer();
 	void *new_buf = new_flex_buffer( 0 );
@@ -3690,7 +3692,7 @@ IValue *Sequencer::Eval( const char* strings[] )
 	set_flex_buffer(new_buf);
 	ClearStmt();
 	scan_strings( strings );
-	IValue *ret = Parse( 0, "glish eval", 1 );
+	IValue *ret = Parse( opt, 0, "glish eval", 1 );
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
 	interactive_set(is_interactive);
@@ -3699,7 +3701,7 @@ IValue *Sequencer::Eval( const char* strings[] )
 	}
 
 extern void clear_error();
-IValue *Sequencer::Include( const char *file )
+IValue *Sequencer::Include( evalOpt &opt, const char *file )
 	{
 	int orig_scope_len = scopes.length();
 
@@ -3752,7 +3754,7 @@ IValue *Sequencer::Include( const char *file )
 	interactive_set( 0 );
 
 	NodeUnref( stmts );
-	IValue *ret = glish_parser( stmts );
+	IValue *ret = glish_parser( opt, stmts );
 
 	if ( ! ret )
 		{
@@ -3762,7 +3764,7 @@ IValue *Sequencer::Include( const char *file )
 
 		if ( glish_include_jmpbuf_set )
 			{
-			ret = Exec( 1, 1 );
+			ret = Exec( opt, 1, 1 );
 			const stack_type *xsx = 0;
 			if ( (xsx = PopFrames( )) != incst )
 				fatal->Report("stack inconsistency in Sequencer::Include");
@@ -3772,7 +3774,7 @@ IValue *Sequencer::Include( const char *file )
 			if ( setjmp(glish_include_jmpbuf) == 0 )
 				{
 				glish_include_jmpbuf_set = 1;
-				ret = Exec( 1, 1 );
+				ret = Exec( opt, 1, 1 );
 				if ( PopFrames( ) != incst )
 					fatal->Report("stack inconsistency in Sequencer::Include");
 				}

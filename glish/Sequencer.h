@@ -281,7 +281,7 @@ public:
 
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
-	static const IValue *LookupVal( const char *id );
+	static const IValue *LookupVal( evalOpt &opt, const char *id );
 	// Deletes a given global value. This is used by 'symbol_delete()' which
 	// is the only way to get rid of a 'const' value.
 	void DeleteVal( const char* id );
@@ -367,9 +367,9 @@ public:
 	// sets "err" to a non-zero value if an error occurs
 	Channel* GetHostDaemon( const char* host, int &err );
 
-	IValue *Exec( int startup_script = 0, int value_needed = 0 );
-	IValue *Eval( const char* strings[] );
-	IValue *Include( const char* file );
+	IValue *Exec( evalOpt &opt, int startup_script = 0, int value_needed = 0 );
+	IValue *Eval( evalOpt &opt, const char* strings[] );
+	IValue *Include( evalOpt &, const char* file );
 	// called when "pragma include once" is used
 	void IncludeOnce( );
 
@@ -484,7 +484,7 @@ public:
 		script_created = set_to;
 		return script_created;
 		}
-	void InitScriptClient( );
+	void InitScriptClient( evalOpt & );
 
 	static void TopLevelReset();
 
@@ -513,12 +513,12 @@ public:
 	int Verbose( ) const { return verbose; }
 
 protected:
-	void MakeEnvGlobal();
-	void MakeArgvGlobal( char** argv, int argc, int append_name=0 );
+	void MakeEnvGlobal( evalOpt &opt );
+	void MakeArgvGlobal( evalOpt &opt, char** argv, int argc, int append_name=0 );
 	void BuildSuspendList();
-	IValue *Parse( FILE* file, const char* filename = 0, int value_needed=0 );
-	IValue *Parse( const char file[], int value_needed=0 );
-	IValue *Parse( const char* strings[], int value_needed=0 );
+	IValue *Parse( evalOpt &, FILE* file, const char* filename = 0, int value_needed=0 );
+	IValue *Parse( evalOpt &, const char file[], int value_needed=0 );
+	IValue *Parse( evalOpt &, const char* strings[], int value_needed=0 );
 
 	RemoteDaemon* CreateDaemon( const char* host );
 	// Sets err to a non-zero value if an error occurred
@@ -649,6 +649,6 @@ protected:
 	int shutdown_posted;
 	};
 
-extern IValue *glish_parser( Stmt *&stmt );
+extern IValue *glish_parser( evalOpt &, Stmt *&stmt );
 
 #endif /* sequencer_h */

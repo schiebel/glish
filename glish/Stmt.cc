@@ -135,12 +135,10 @@ SeqStmt::SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs )
 
 IValue* SeqStmt::DoExec( evalOpt &flow )
 	{
-	// Must preserve value_needed flag; it would be
-	// nice to have a more elegant way to do this...
-	int value_needed = flow.value_needed();
+	evalOpt lflow(flow);
 	flow.clear(evalOpt::VALUE_NEEDED);
 	IValue* result = lhs->Exec( flow );
-	if ( value_needed ) flow.set(evalOpt::VALUE_NEEDED);
+	flow = lflow;
 
 	if ( flow.Next() )
 		{
@@ -752,11 +750,11 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 	sequencer = arg_sequencer;
 	}
 
-IValue* ActivateStmt::DoExec( evalOpt & )
+IValue* ActivateStmt::DoExec( evalOpt &opt )
 	{
 	if ( expr )
 		{
-		IValue* index_value = expr->CopyEval();
+		IValue* index_value = expr->CopyEval(opt);
 
 		if ( ! index_value->IsNumeric() )
 			{
@@ -849,7 +847,7 @@ IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 
 IValue* IfStmt::DoExec( evalOpt &flow )
 	{
-	const IValue* test_value = expr->ReadOnlyEval();
+	const IValue* test_value = expr->ReadOnlyEval(flow);
 	Str err;
 	int take_true_branch = test_value->BoolVal(1,err);
 	expr->ReadOnlyDone( test_value );
@@ -926,7 +924,7 @@ ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
 
 IValue* ForStmt::DoExec( evalOpt &flow )
 	{
-	IValue* range_value = range->CopyEval();
+	IValue* range_value = range->CopyEval(flow);
 
 	if ( ! range_value ) return 0;
 
@@ -953,7 +951,7 @@ IValue* ForStmt::DoExec( evalOpt &flow )
 				iter_value = (IValue*)((*range_value)[loop_counter]);
 				}
 
-			index->Assign( iter_value );
+			index->Assign( flow, iter_value );
 
 			Unref( result );
 
@@ -1028,7 +1026,7 @@ IValue* WhileStmt::DoExec( evalOpt &flow )
 
 	while ( 1 )
 		{
-		const IValue* test_value = test->ReadOnlyEval();
+		const IValue* test_value = test->ReadOnlyEval( flow );
 		int do_test = test_value->BoolVal(1,err);
 		test->ReadOnlyDone( test_value );
 
@@ -1138,7 +1136,7 @@ IValue* FailStmt::DoExec( evalOpt &flow )
 	//
 	// Assign message separately so that the message is preserved.
 	//
-	if ( arg ) ret->SetFailMessage( arg->CopyEval() );
+	if ( arg ) ret->SetFailMessage( arg->CopyEval(flow) );
 
 	return ret;
 	}
@@ -1193,13 +1191,13 @@ IncludeStmt::~IncludeStmt()
 	if ( arg ) NodeUnref( arg );
 	}
 
-IValue* IncludeStmt::DoExec( evalOpt & )
+IValue* IncludeStmt::DoExec( evalOpt &flow )
 	{
-	const IValue *str_val = arg->ReadOnlyEval();
+	const IValue *str_val = arg->ReadOnlyEval( flow );
 	char *str = str_val->StringVal();
 	arg->ReadOnlyDone( str_val );
 
-	IValue *ret = sequencer->Include( str );
+	IValue *ret = sequencer->Include( flow, str );
 
 	free_memory( str );
 	return ret;
@@ -1231,9 +1229,9 @@ ExprStmt::~ExprStmt()
 IValue* ExprStmt::DoExec( evalOpt &flow )
 	{
 	if ( flow.value_needed() && ! expr->Invisible() )
-		return expr->CopyEval();
+		return expr->CopyEval(flow);
 	else
-		return expr->SideEffectsEval();
+		return expr->SideEffectsEval( flow );
 	}
 
 int ExprStmt::DoesTrace( ) const
@@ -1261,13 +1259,13 @@ int ExitStmt::canDelete() const
 	return can_delete;
 	}
 
-IValue* ExitStmt::DoExec( evalOpt & )
+IValue* ExitStmt::DoExec( evalOpt &opt )
 	{
 	can_delete = 0;
 
 	glish_cleanup();
 
-	int exit_val = status ? status->CopyEval()->IntVal() : 0;
+	int exit_val = status ? status->CopyEval(opt)->IntVal() : 0;
 
 	delete sequencer;
 
@@ -1331,7 +1329,7 @@ IValue* ReturnStmt::DoExec( evalOpt &flow )
 	flow.set(evalOpt::RETURN);
 
 	if ( retval )
-		return retval->CopyEval();
+		return retval->CopyEval(flow);
 
 	else
 		return 0;

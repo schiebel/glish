@@ -64,13 +64,13 @@ Parameter::Parameter( value_type arg_parm_type,
 	can_delete = 0;
 	}
 
-int Parameter::NumEllipsisVals() const
+int Parameter::NumEllipsisVals( evalOpt &opt ) const
 	{
 	if ( ! is_ellipsis )
 		fatal->Report(
 			"Parameter::NumEllipsisVals called but not ellipsis" );
 
-	const IValue* values = Arg()->ReadOnlyEval();
+	const IValue* values = Arg()->ReadOnlyEval(opt);
 
 	int n = values->RecordPtr(0)->Length();
 
@@ -79,13 +79,13 @@ int Parameter::NumEllipsisVals() const
 	return n;
 	}
 
-const IValue* Parameter::NthEllipsisVal( int n ) const
+const IValue* Parameter::NthEllipsisVal( evalOpt &opt, int n ) const
 	{
 	if ( ! is_ellipsis )
 		fatal->Report(
 			"Parameter::NthEllipsisVal called but not ellipsis" );
 
-	const IValue* values = Arg()->ReadOnlyEval();
+	const IValue* values = Arg()->ReadOnlyEval(opt);
 
 	if ( n < 0 || n >= values->RecordPtr(0)->Length() )
 		fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
@@ -179,11 +179,11 @@ UserFunc::~UserFunc()
 		Unref( misc );
 	}
 
-IValue* UserFunc::Call( parameter_list* args, evalOpt &opt )
+IValue* UserFunc::Call( evalOpt &opt, parameter_list* args )
 	{
 	IValue *last = FailStmt::SwapFail(0);
 
-	IValue *ret = kernel->Call(args, opt, stack);
+	IValue *ret = kernel->Call( opt, args, stack);
 
 	if ( ret && ret->Type() != TYPE_FAIL )
 		FailStmt::SetFail(last);
@@ -199,7 +199,7 @@ void UserFunc::EstablishScope()
 		{
 		scope_established = 1;
 		stack = sequencer->LocalFrames();
-		if ( stack ) AddCycleRoot( this );
+// 		if ( stack ) AddCycleRoot( this );
 		}
 	}
 
@@ -254,7 +254,7 @@ UserFuncKernel::~UserFuncKernel()
 	NodeUnref( body );
 	}
 
-IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *stack )
+IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *stack )
 	{
 	if ( ! valid )
 		return error_ivalue( "function not valid" );
@@ -321,9 +321,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 
 		if ( arg->IsEllipsis() )
 			{
-			fail = AddEllipsisArgs( call_frame, arg_cnt, arg, num_args, num_formals,
-						ellipsis_value );
-			for ( int j = 0; j < arg->NumEllipsisVals(); ++j )
+			fail = AddEllipsisArgs( opt, call_frame, arg_cnt, arg,
+						num_args, num_formals, ellipsis_value );
+			for ( int j = 0; j < arg->NumEllipsisVals(opt); ++j )
 				ADD_MISSING_INFO(glish_false)
 			}
 
@@ -338,9 +338,8 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 					Expr* dflt = f ? f->DefaultValue() : 0;
 					if ( dflt )
 						{
-						fail = ArgOverFlow( dflt, num_args,
-								    num_formals,
-								    ellipsis_value );
+						fail = ArgOverFlow( opt, dflt, num_args,
+								    num_formals, ellipsis_value );
 						ADD_MISSING_INFO(glish_true)
 						}
 					else
@@ -350,9 +349,8 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 					}
 				else
 					{
-					fail = ArgOverFlow( p->Arg(), num_args,
-							    num_formals,
-							    ellipsis_value );
+					fail = ArgOverFlow( opt, p->Arg(), num_args,
+							    num_formals, ellipsis_value );
 					ADD_MISSING_INFO(glish_false)
 					}
 				}
@@ -366,9 +364,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 					Expr* dflt = f ? f->DefaultValue() : 0;
 					if ( dflt )
 						{
-						IValue *v = EvalParam( f, dflt, fail );
+						IValue *v = EvalParam( opt, f, dflt, fail );
 						if ( fail ) break;
-						((VarExpr*)(*formals)[i]->Arg())->Assign( v, call_frame );
+						((VarExpr*)(*formals)[i]->Arg())->Assign( opt, v, call_frame );
 						arg_cnt++;
 						ADD_MISSING_INFO(glish_true)
 						}
@@ -379,9 +377,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 					}
 				else
 					{
-					IValue *v = EvalParam( f, (*args)[i]->Arg(), fail );
+					IValue *v = EvalParam( opt, f, (*args)[i]->Arg(), fail );
 					if ( fail ) break;
-					((VarExpr*)(*formals)[i]->Arg())->Assign( v, call_frame );
+					((VarExpr*)(*formals)[i]->Arg())->Assign( opt, v, call_frame );
 					arg_cnt++;
 					ADD_MISSING_INFO(glish_false)
 					}
@@ -454,7 +452,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 
 			if ( f->IsEllipsis() )
 				{
-				((VarExpr*)(*formals)[num_args]->Arg())->Assign( ellipsis_value, call_frame );
+				((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, ellipsis_value, call_frame );
 				arg_cnt++;
 				continue;
 				}
@@ -472,9 +470,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 
 			if ( match < num_supplied_args )
 				{
-				IValue *v = EvalParam( f, (*args)[match]->Arg(), fail );
+				IValue *v = EvalParam( opt, f, (*args)[match]->Arg(), fail );
 				if ( fail ) break;
-				((VarExpr*)(*formals)[num_args]->Arg())->Assign( v, call_frame );
+				((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, v, call_frame );
 				arg_cnt++;
 				ADD_MISSING_INFO(glish_false)
 				}
@@ -489,9 +487,9 @@ IValue* UserFuncKernel::Call( parameter_list* args, evalOpt &opt, stack_type *st
 							this );
 				else
 					{
-					IValue *v = EvalParam( f, default_value, fail );
+					IValue *v = EvalParam( opt, f, default_value, fail );
 					if ( fail ) break;
-					((VarExpr*)(*formals)[num_args]->Arg())->Assign( v, call_frame );
+					((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, v, call_frame );
 					arg_cnt++;
 					ADD_MISSING_INFO(glish_true)
 					}
@@ -564,7 +562,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 	if ( subsequence_expr )
 		{
 		UserAgent* self = new UserAgent( sequencer, 1 );
-		subsequence_expr->Assign( new IValue( self->AgentRecord(),
+		subsequence_expr->Assign( opt, new IValue( self->AgentRecord(),
 							VAL_REF ) );
 		if ( reflect_events )
 			self->SetReflect( );
@@ -628,7 +626,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type * )
 			}
 
 		file_name = file;
-		result = subsequence_expr->RefEval( VAL_REF );
+		result = subsequence_expr->RefEval( opt, VAL_REF );
 		file_name = old_file_name;
 
 		if ( opt.side_effects() )
@@ -650,14 +648,14 @@ int UserFuncKernel::Describe( OStream& s, const ioOpt &opt ) const
 	}
 
 
-IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual, IValue *&fail )
+IValue* UserFuncKernel::EvalParam( evalOpt &opt, Parameter* p, Expr* actual, IValue *&fail )
 	{
 	fail = 0;
 	value_type param_type = p->ParamType();
 
 	if ( param_type == VAL_CONST )
 		{
-		IValue *ret = actual->CopyEval();
+		IValue *ret = actual->CopyEval(opt);
 		if ( ret->Type() == TYPE_FAIL )
 			{
 			fail = ret;
@@ -668,7 +666,7 @@ IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual, IValue *&fail )
 		}
 	else if ( param_type == VAL_VAL )
 		{
-		IValue *ret = actual->CopyEval();
+		IValue *ret = actual->CopyEval(opt);
 		if ( ret->Type() == TYPE_FAIL )
 			{
 			fail = ret;
@@ -678,7 +676,7 @@ IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual, IValue *&fail )
 		}
 	else
 		{
-		IValue *ret = actual->RefEval( param_type );
+		IValue *ret = actual->RefEval( opt, param_type );
 		if ( ret->Type() == TYPE_FAIL )
 			{
 			fail = ret;
@@ -689,11 +687,11 @@ IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual, IValue *&fail )
 	}
 
 
-IValue *UserFuncKernel::AddEllipsisArgs( Frame *call_frame, int &arg_cnt,
+IValue *UserFuncKernel::AddEllipsisArgs( evalOpt &opt, Frame *call_frame, int &arg_cnt,
 				Parameter* actual_ellipsis, int& num_args,
 				int num_formals, IValue* formal_ellipsis_value )
 	{
-	int len = actual_ellipsis->NumEllipsisVals();
+	int len = actual_ellipsis->NumEllipsisVals(opt);
 
 	for ( int i = 0; i < len; ++i )
 		{
@@ -710,7 +708,7 @@ IValue *UserFuncKernel::AddEllipsisArgs( Frame *call_frame, int &arg_cnt,
 			sprintf( field_name, "%d",
 				formal_ellipsis_value->RecordPtr(0)->Length() );
 
-			val = actual_ellipsis->NthEllipsisVal( i );
+			val = actual_ellipsis->NthEllipsisVal( opt, i );
 
 			IValue* val_ref = new IValue( (IValue*) val, VAL_CONST );
 			formal_ellipsis_value->AssignRecordElement( field_name,
@@ -729,18 +727,18 @@ IValue *UserFuncKernel::AddEllipsisArgs( Frame *call_frame, int &arg_cnt,
 				"\"...\" is a \"const\" reference, formal",
 					f->Name(), " is \"ref\"" );
 
-		val = actual_ellipsis->NthEllipsisVal( i );
+		val = actual_ellipsis->NthEllipsisVal( opt, i );
 
 		if ( f->ParamType() == VAL_VAL )
 			{
-			((VarExpr*)(*formals)[num_args]->Arg())->Assign( copy_value(val), call_frame );
+			((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, copy_value(val), call_frame );
 			arg_cnt++;
 			}
 
 		else
 			{
 			IValue* val_ref = new IValue( (IValue*) val, VAL_CONST );
-			((VarExpr*)(*formals)[num_args]->Arg())->Assign( val_ref, call_frame );
+			((VarExpr*)(*formals)[num_args]->Arg())->Assign( opt, val_ref, call_frame );
 			arg_cnt++;
 			}
 
@@ -751,12 +749,12 @@ IValue *UserFuncKernel::AddEllipsisArgs( Frame *call_frame, int &arg_cnt,
 	}
 
 
-void UserFuncKernel::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
+void UserFuncKernel::AddEllipsisValue( evalOpt &opt, IValue* ellipsis_value, Expr* arg )
 	{
 	char field_name[256];
 	sprintf( field_name, "%d", ellipsis_value->RecordPtr(0)->Length() );
 
-	IValue* val = arg->RefEval( VAL_CONST );
+	IValue* val = arg->RefEval( opt, VAL_CONST );
 
 	ellipsis_value->AssignRecordElement( field_name, val );
 
@@ -764,11 +762,11 @@ void UserFuncKernel::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	}
 
 
-IValue *UserFuncKernel::ArgOverFlow( Expr* arg, int num_args, int num_formals,
+IValue *UserFuncKernel::ArgOverFlow( evalOpt &opt, Expr* arg, int num_args, int num_formals,
 				IValue* ellipsis_value )
 	{
 	if ( ellipsis_value )
-		AddEllipsisValue( ellipsis_value, arg );
+		AddEllipsisValue( opt, ellipsis_value, arg );
 
 	else
 		if ( num_args == num_formals )

@@ -118,6 +118,7 @@ static IValue *parse_error = 0;
 static int status;
 static int scope_depth = 0;
 static Stmt *cur_stmt = null_stmt;
+static evalOpt *eval_options;
 
 #ifdef GGC
 /* collect values for garbage collection w/ functions */
@@ -576,7 +577,7 @@ block_head:	'{'
 function:	function_head opt_id '(' formal_param_list ')' cont func_attributes cont func_body
 		no_cont
 			{
-			IValue *attributes = $7 ? $7->CopyEval() : 0;
+			IValue *attributes = $7 ? $7->CopyEval(*eval_options) : 0;
 			Unref($7);
 
 			int frame_size = current_sequencer->PopScope();
@@ -626,7 +627,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes co
 						/* keep ufunc from being deleted with $$ */
 						Ref(ufunc);
 
-						if ( err = func->Assign( ref ) )
+						if ( err = func->Assign( *eval_options, ref ) )
 							{
 							Unref( $$ );
 							$$ = new ConstExpr( err );
@@ -1055,9 +1056,10 @@ void clear_error()
 	status = 0;
 	}
 
-IValue *glish_parser( Stmt *&stmt )
+IValue *glish_parser( evalOpt &opt, Stmt *&stmt )
 	{
 	cur_stmt = stmt = null_stmt;
+	eval_options = &opt;
 
 #ifdef GGC
 	if ( ! gc_registry )
@@ -1088,9 +1090,9 @@ IValue *glish_parser( Stmt *&stmt )
 			if ( setjmp(glish_top_jmpbuf) == 0 )
 				{
 				glish_top_jmpbuf_set = 1;
-				evalOpt flow(evalOpt::VALUE_NEEDED);
-				val = loc_stmt->Exec( flow );
-				if ( ! flow.Next() )
+				opt.set(evalOpt::VALUE_NEEDED);
+				val = loc_stmt->Exec( opt );
+				if ( ! opt.Next() )
 					warn->Report("control flow (loop/break/return) ignored" );
 				}
 

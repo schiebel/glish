@@ -51,7 +51,8 @@ EventDesignator::~EventDesignator( )
 
 Agent* EventDesignator::EventAgent( value_type val_type )
 	{
-	event_agent_ref = agent->RefEval( val_type );
+	evalOpt opt;
+	event_agent_ref = agent->RefEval( opt, val_type );
 	IValue* event_agent_val = (IValue*)(event_agent_ref->Deref());
 
 	if ( ! event_agent_val->IsAgentRecord() )
@@ -192,7 +193,8 @@ name_list &EventDesignator::EventNames( int force_eval )
 	if ( ! event_name_expr )
 		return *names;
 
-	const IValue* index_val = event_name_expr->ReadOnlyEval();
+	evalOpt opt;
+	const IValue* index_val = event_name_expr->ReadOnlyEval( opt );
 
 	if ( index_val->Type() == TYPE_STRING )
 		{

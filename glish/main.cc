@@ -220,7 +220,8 @@ int main( int argc, char** argv )
 
 	s = new Sequencer( argc, argv );
 
-	s->Exec();
+	evalOpt opt;
+	s->Exec(opt);
 
 	glish_cleanup();
 
@@ -551,7 +552,8 @@ static void glish_dump_core( const char *file )
 			{
 			// "val" may be LEAKED, but we don't care;
 			//  we're dumping core
-			const IValue *val = ((Expr*)member)->ReadOnlyEval( );
+			evalOpt opt;
+			const IValue *val = ((Expr*)member)->ReadOnlyEval( opt );
 
 			glish_type type = val->Type();
 			if ( type != TYPE_FUNC && type != TYPE_AGENT &&

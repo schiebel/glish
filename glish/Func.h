@@ -19,7 +19,7 @@ typedef PList(Parameter) parameter_list;
 
 class Func : public GlishObject {
     public:
-	virtual IValue* Call( parameter_list* args, evalOpt &opt ) = 0;
+	virtual IValue* Call( evalOpt &opt, parameter_list* args ) = 0;
 
 	int Mark() const	{ return mark; }
 	void Mark( int m )	{ mark = m; }
@@ -49,11 +49,11 @@ class Parameter : public GlishObject {
 	Expr* DefaultValue() const		{ return default_value; }
 
 	// Number of values represented by "..." argument.
-	int NumEllipsisVals() const;
+	int NumEllipsisVals( evalOpt & ) const;
 
 	// Returns the nth value from a "..." argument; the first such
 	// value is indexed using n=0.
-	const IValue* NthEllipsisVal( int n ) const;
+	const IValue* NthEllipsisVal( evalOpt &, int n ) const;
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
@@ -123,7 +123,7 @@ class UserFuncKernel : public GlishObject {
 			const IValue *attributes, IValue *&err );
 	~UserFuncKernel();
 
-	IValue* Call( parameter_list* args, evalOpt &opt, stack_type *stack = 0);
+	IValue* Call( evalOpt &opt, parameter_list* args, stack_type *stack = 0);
 	IValue* DoCall( evalOpt &opt, stack_type *stack = 0 );
 
 	int Describe( OStream& s, const ioOpt &opt ) const;
@@ -131,19 +131,19 @@ class UserFuncKernel : public GlishObject {
 		{ return Describe( s, ioOpt() ); }
 
     protected:
-	IValue* EvalParam( Parameter* p, Expr* actual, IValue *&fail );
+	IValue* EvalParam( evalOpt &, Parameter* p, Expr* actual, IValue *&fail );
 
 	// Decode an actual "..." argument.
 	// returning 0 means OK, non-zero indicates error
-	IValue *AddEllipsisArgs( Frame *, int &arg_cnt, Parameter* actual_ellipsis,
+	IValue *AddEllipsisArgs( evalOpt &, Frame *, int &arg_cnt, Parameter *actual_ellipsis,
 				int& num_args, int num_formals,
 				IValue* formal_ellipsis_value );
 
 	// Add to a formal "..." parameter.
-	void AddEllipsisValue( IValue* ellipsis_value, Expr* arg );
+	void AddEllipsisValue( evalOpt &, IValue *ellipsis_value, Expr *arg );
 
 	// returning 0 means OK, non-zero indicates error
-	IValue *ArgOverFlow( Expr* arg, int num_args, int num_formals,
+	IValue *ArgOverFlow( evalOpt &, Expr* arg, int num_args, int num_formals,
 				IValue* ellipsis_value );
 
 	parameter_list* formals;
@@ -167,7 +167,7 @@ class UserFunc : public Func {
 
 	~UserFunc();
 
-	IValue* Call( parameter_list* args, evalOpt &opt );
+	IValue* Call( evalOpt &opt, parameter_list* args );
 
 	void EstablishScope();
 	UserFunc *clone() { return new UserFunc(this); }
