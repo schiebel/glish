@@ -583,7 +583,7 @@ JobSaveCommand (cmd, gn)
     ClientData   gn;
 {
     cmd = (ClientData) Var_Subst (NULL, (char *) cmd, (GNode *) gn, FALSE);
-    (void)Lst_AtEnd (postCommands->commands, cmd);
+    Cmd_AtEnd( postCommands, cmd );
     return (0);
 }
 
@@ -1476,71 +1476,51 @@ JobStart (gn, flags, previous)
 	noExec = FALSE;
 
 	/*
-	 * used to be backwards; replace when start doing multiple commands
-	 * per shell.
+	 * Be compatible: If this is the first time for this node,
+	 * verify its commands are ok and open the commands list for
+	 * sequential access by later invocations of JobStart.
+	 * Once that is done, we take the next command off the list
+	 * and print it to the command file. If the command was an
+	 * ellipsis, note that there's nothing more to execute.
 	 */
-	if (compatMake) {
-	    /*
-	     * Be compatible: If this is the first time for this node,
-	     * verify its commands are ok and open the commands list for
-	     * sequential access by later invocations of JobStart.
-	     * Once that is done, we take the next command off the list
-	     * and print it to the command file. If the command was an
-	     * ellipsis, note that there's nothing more to execute.
-	     */
-	    if ((job->flags&JOB_FIRST) && (Lst_Open(gn->commands) != SUCCESS)){
-		cmdsOK = FALSE;
-	    } else {
-		LstNode	ln = Lst_Next (gn->commands);
-		    
-		if ((ln == NILLNODE) ||
-		    JobPrintCommand ((char *)Lst_Datum (ln), job))
-		{
-		    noExec = TRUE;
-		    Lst_Close (gn->commands);
-		}
-		if (noExec && !(job->flags & JOB_FIRST)) {
-		    /*
-		     * If we're not going to execute anything, the job
-		     * is done and we need to close down the various
-		     * file descriptors we've opened for output, then
-		     * call JobDoOutput to catch the final characters or
-		     * send the file to the screen... Note that the i/o streams
-		     * are only open if this isn't the first job.
-		     * Note also that this could not be done in
-		     * Job_CatchChildren b/c it wasn't clear if there were
-		     * more commands to execute or not...
-		     */
-		    if (usePipes) {
-#ifdef RMT_WILL_WATCH
-			Rmt_Ignore(job->inPipe);
-#else
-			FD_CLR(job->inPipe, &outputs);
-#endif
-			if (job->outPipe != job->inPipe) {
-			    (void)close (job->outPipe);
-			}
-			JobDoOutput (job, TRUE);
-			(void)close (job->inPipe);
-		    } else {
-			(void)close (job->outFd);
-			JobDoOutput (job, TRUE);
-		    }
-		}
-	    }
+	if ((job->flags&JOB_FIRST) && (Lst_Open(gn->commands) != SUCCESS)){
+	    cmdsOK = FALSE;
 	} else {
-	    /*
-	     * We can do all the commands at once. hooray for sanity
-	     */
-	    numCommands = 0;
-	    Lst_ForEach (gn->commands, JobPrintCommand, (ClientData)job);
-	    
-	    /*
-	     * If we didn't print out any commands to the shell script,
-	     * there's not much point in executing the shell, is there?
-	     */
-	    if (numCommands == 0) {
+	    LstNode	ln = Lst_Next (gn->commands);
+
+	    if ((ln == NILLNODE) ||
+		JobPrintCommand ((char *)Lst_Datum (ln), job))
+	    {
 		noExec = TRUE;
+		Lst_Close (gn->commands);
+	    }
+	    if (noExec && !(job->flags & JOB_FIRST)) {
+		/*
+		 * If we're not going to execute anything, the job
+		 * is done and we need to close down the various
+		 * file descriptors we've opened for output, then
+		 * call JobDoOutput to catch the final characters or
+		 * send the file to the screen... Note that the i/o streams
+		 * are only open if this isn't the first job.
+		 * Note also that this could not be done in
+		 * Job_CatchChildren b/c it wasn't clear if there were
+		 * more commands to execute or not...
+		 */
+		if (usePipes) {
+#ifdef RMT_WILL_WATCH
+		    Rmt_Ignore(job->inPipe);
+#else
+		    FD_CLR(job->inPipe, &outputs);
+#endif
+		    if (job->outPipe != job->inPipe) {
+			(void)close (job->outPipe);
+		    }
+		    JobDoOutput (job, TRUE);
+		    (void)close (job->inPipe);
+		} else {
+		    (void)close (job->outFd);
+		    JobDoOutput (job, TRUE);
+		}
 	    }
 	}
     } else if (noExecute) {
