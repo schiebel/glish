@@ -513,7 +513,10 @@ val_type Value::name( int n, Str &err ) const				\
 		}							\
 	}
 
-XXX_VAL(BoolVal, glish_bool, .r || ptr.i, ? glish_true : glish_false, text_to_integer, "bool", glish_false)
+inline glish_bool text_to_bool( const char *str, int &successful )
+	{ successful = 1; return *str ? glish_true : glish_false; }
+
+XXX_VAL(BoolVal, glish_bool, .r || ptr.i, ? glish_true : glish_false, text_to_bool, "bool", glish_false)
 XXX_VAL(ByteVal, byte, .r,, text_to_integer, "byte", 0)
 XXX_VAL(ShortVal, short, .r,, text_to_integer, "short", 0)
 XXX_VAL(IntVal, int, .r,, text_to_integer, "integer", 0)

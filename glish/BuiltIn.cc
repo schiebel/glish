@@ -1817,22 +1817,8 @@ IValue* name( const IValue* arg )					\
 	return ret;							\
 	}
 
-glish_bool string_to_bool( const char* string )
-	{
-	while ( *string == ' ' ) string++;
-
-	if ( *string == 'T' && (string[1] == ' ' || string[1] == '\0') )
-		return glish_true;
-	if ( *string == 'F' && (string[1] == ' ' || string[1] == '\0') )
-		return glish_false;
-
-	int successful;
-	double d = text_to_double( string, successful );
-	if ( successful )
-		return d ? glish_true : glish_false;
-	else
-		return glish_false;
-	}
+inline glish_bool string_to_bool( const char* string )
+	{ return *string ? glish_true : glish_false; }
 
 DEFINE_AS_XXX_BUILT_IN(as_boolean_built_in, glish_bool, TYPE_BOOL,
 	string_to_bool, CoerceToBoolArray, "as_boolean", glish_false,,)
