@@ -122,6 +122,7 @@ DERIVE_BUILTIN(CbindBuiltIn,NUM_ARGS_VARIES,"cbind",)
 DERIVE_BUILTIN(RbindBuiltIn,NUM_ARGS_VARIES,"rbind",)
 
 DERIVE_BUILTIN(IsModifiableBuiltIn,1,"is_modifiable",)
+DERIVE_BUILTIN(TrBuiltIn,NUM_ARGS_VARIES,"tr",)
 
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
 DERIVE_BUILTIN(SplitBuiltIn,NUM_ARGS_VARIES,"split",)
