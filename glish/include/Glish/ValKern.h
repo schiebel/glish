@@ -16,7 +16,7 @@ typedef PDict(Value)* recordptr;
 typedef recordptr attributeptr;
 typedef void* voidptr;
 
-extern recordptr copy_record_dict( recordptr );
+extern recordptr copy_record_dict( recordptr, int deep=0 );
 extern recordptr create_record_dict();
 void delete_record( recordptr r );
 

@@ -26,14 +26,15 @@
 #define PASTE(a,b) a/**/b
 #endif
 #if defined(__cplusplus)
-#define UsE(x) inline void UsE_PaStE(x)(char *) { UsE_PaStE(x)(x); }
+#define UsE(x) inline void UsE_PaStE(x)(const char *) { UsE_PaStE(x)(x); }
 #else
-#define UsE(x) static void UsE_PaStE(x)(char *d) { UsE_PaStE(x)(x); }
+#define UsE(x) static void UsE_PaStE(x)(const char *d) { UsE_PaStE(x)(x); }
 #endif
+
 #if ! defined(RCSID)
 #if ! defined(NO_RCSID)
-#define RCSID(str)                      \
-        static char *rcsid_ = str;      \
+#define RCSID(str)				\
+        static const char *rcsid_ = str;	\
         UsE(rcsid_)
 #else
 #define RCSID(str)

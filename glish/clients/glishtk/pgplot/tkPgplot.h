@@ -29,104 +29,104 @@ class TkPgplot : public TkProxy {
 	int CanExpand () const;
 
 	// Standard PGPLOT routines.
-	char *Pgarro (Value *);
-	char *Pgask (Value *);
-	char *Pgbbuf (Value *);
-	char *Pgbeg (Value *);
-	char *Pgbin (Value *);
-	char *Pgbox (Value *);
-	char *Pgcirc (Value *);
-	char *Pgclos (Value *);
-	char *Pgconb (Value *);
-	char *Pgconl (Value *);
-	char *Pgcons (Value *);
-	char *Pgcont (Value *);
-	char *Pgctab (Value *);
-	char *Pgdraw (Value *);
-	char *Pgebuf (Value *);
-	char *Pgend (Value *);
-	char *Pgenv (Value *);
-	char *Pgeras (Value *);
-	char *Pgerrb (Value *);
-	char *Pgerrx (Value *);
-	char *Pgerry (Value *);
-	char *Pgetxt (Value *);
-	char *Pggray (Value *);
-	char *Pghi2d (Value *);
-	char *Pghist (Value *);
-	char *Pgiden (Value *);
-	char *Pgimag (Value *);
-	char *Pglab (Value *);
-	char *Pgldev (Value *);
-	char *Pglen (Value *);
-	char *Pgline (Value *);	
-	char *Pgmove (Value *);
-	char *Pgmtxt (Value *);
-	char *Pgnumb (Value *);
-	char *Pgopen (Value *);
-	char *Pgpage (Value *);
-	char *Pgpanl (Value *);
-	char *Pgpap (Value *);
-	char *Pgpixl (Value *);
-	char *Pgpnts (Value *);
-	char *Pgpoly (Value *);
-	char *Pgpt (Value *);
-	char *Pgptxt (Value *);
-	char *Pgqah (Value *);
-	char *Pgqcf (Value *);
-	char *Pgqch (Value *);
-	char *Pgqci (Value *);
-	char *Pgqcir (Value *);
-	char *Pgqcol (Value *);
-	char *Pgqcr (Value *);
-	char *Pgqcs (Value *);
-	char *Pgqfs (Value *);
-	char *Pgqhs (Value *);
-	char *Pgqid (Value *);
-	char *Pgqinf (Value *);
-	char *Pgqitf (Value *);
-	char *Pgqls (Value *);
-	char *Pgqlw (Value *);
-	char *Pgqpos (Value *);
-	char *Pgqtbg (Value *);
-	char *Pgqtxt (Value *);
-	char *Pgqvp (Value *);
-	char *Pgqvsz (Value *);
-	char *Pgqwin (Value *);
-	char *Pgrect (Value *);
-	char *Pgrnd (Value *);
-	char *Pgrnge (Value *);
-	char *Pgsah (Value *);
-	char *Pgsave (Value *);
-	char *Pgscf (Value *);
-	char *Pgsch (Value *);
-	char *Pgsci (Value *);
-	char *Pgscir (Value *);
-	char *Pgscr (Value *);
-	char *Pgscrn (Value *);
-	char *Pgsfs (Value *);
-	char *Pgshls (Value *);
-	char *Pgshs (Value *);
-	char *Pgsitf (Value *);
-	char *Pgslct (Value *);
-	char *Pgsls (Value *);
-	char *Pgslw (Value *);
-	char *Pgstbg (Value *);
-	char *Pgsubp (Value *);
-	char *Pgsvp (Value *);
-	char *Pgswin (Value *);
-	char *Pgtbox (Value *);
-	char *Pgtext (Value *);
-	char *Pgunsa (Value *);
-	char *Pgupdt (Value *);
-	char *Pgvect (Value *);
-	char *Pgvsiz (Value *);
-	char *Pgvstd (Value *);
-	char *Pgwedg (Value *);
-	char *Pgwnad (Value *);
+	const char *Pgarro (Value *);
+	const char *Pgask (Value *);
+	const char *Pgbbuf (Value *);
+	const char *Pgbeg (Value *);
+	const char *Pgbin (Value *);
+	const char *Pgbox (Value *);
+	const char *Pgcirc (Value *);
+	const char *Pgclos (Value *);
+	const char *Pgconb (Value *);
+	const char *Pgconl (Value *);
+	const char *Pgcons (Value *);
+	const char *Pgcont (Value *);
+	const char *Pgctab (Value *);
+	const char *Pgdraw (Value *);
+	const char *Pgebuf (Value *);
+	const char *Pgend (Value *);
+	const char *Pgenv (Value *);
+	const char *Pgeras (Value *);
+	const char *Pgerrb (Value *);
+	const char *Pgerrx (Value *);
+	const char *Pgerry (Value *);
+	const char *Pgetxt (Value *);
+	const char *Pggray (Value *);
+	const char *Pghi2d (Value *);
+	const char *Pghist (Value *);
+	const char *Pgiden (Value *);
+	const char *Pgimag (Value *);
+	const char *Pglab (Value *);
+	const char *Pgldev (Value *);
+	const char *Pglen (Value *);
+	const char *Pgline (Value *);	
+	const char *Pgmove (Value *);
+	const char *Pgmtxt (Value *);
+	const char *Pgnumb (Value *);
+	const char *Pgopen (Value *);
+	const char *Pgpage (Value *);
+	const char *Pgpanl (Value *);
+	const char *Pgpap (Value *);
+	const char *Pgpixl (Value *);
+	const char *Pgpnts (Value *);
+	const char *Pgpoly (Value *);
+	const char *Pgpt (Value *);
+	const char *Pgptxt (Value *);
+	const char *Pgqah (Value *);
+	const char *Pgqcf (Value *);
+	const char *Pgqch (Value *);
+	const char *Pgqci (Value *);
+	const char *Pgqcir (Value *);
+	const char *Pgqcol (Value *);
+	const char *Pgqcr (Value *);
+	const char *Pgqcs (Value *);
+	const char *Pgqfs (Value *);
+	const char *Pgqhs (Value *);
+	const char *Pgqid (Value *);
+	const char *Pgqinf (Value *);
+	const char *Pgqitf (Value *);
+	const char *Pgqls (Value *);
+	const char *Pgqlw (Value *);
+	const char *Pgqpos (Value *);
+	const char *Pgqtbg (Value *);
+	const char *Pgqtxt (Value *);
+	const char *Pgqvp (Value *);
+	const char *Pgqvsz (Value *);
+	const char *Pgqwin (Value *);
+	const char *Pgrect (Value *);
+	const char *Pgrnd (Value *);
+	const char *Pgrnge (Value *);
+	const char *Pgsah (Value *);
+	const char *Pgsave (Value *);
+	const char *Pgscf (Value *);
+	const char *Pgsch (Value *);
+	const char *Pgsci (Value *);
+	const char *Pgscir (Value *);
+	const char *Pgscr (Value *);
+	const char *Pgscrn (Value *);
+	const char *Pgsfs (Value *);
+	const char *Pgshls (Value *);
+	const char *Pgshs (Value *);
+	const char *Pgsitf (Value *);
+	const char *Pgslct (Value *);
+	const char *Pgsls (Value *);
+	const char *Pgslw (Value *);
+	const char *Pgstbg (Value *);
+	const char *Pgsubp (Value *);
+	const char *Pgsvp (Value *);
+	const char *Pgswin (Value *);
+	const char *Pgtbox (Value *);
+	const char *Pgtext (Value *);
+	const char *Pgunsa (Value *);
+	const char *Pgupdt (Value *);
+	const char *Pgvect (Value *);
+	const char *Pgvsiz (Value *);
+	const char *Pgvstd (Value *);
+	const char *Pgwedg (Value *);
+	const char *Pgwnad (Value *);
 
 	// change cursor
-	char *Cursor (Value *);
+	const char *Cursor (Value *);
 
     protected:
 	int is_valid;
@@ -137,7 +137,7 @@ class TkPgplot : public TkProxy {
 class PgProc : public TkProc {
     public:
 
-	PgProc(TkPgplot *f, char *(TkPgplot::*p)(Value*), TkStrToValProc cvt = 0)
+	PgProc(TkPgplot *f, const char *(TkPgplot::*p)(Value*), TkStrToValProc cvt = 0)
 			: TkProc(f,cvt), pgproc(p) { }
 
 	PgProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
@@ -149,7 +149,7 @@ class PgProc : public TkProc {
 	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
 
     protected:
-	char *(TkPgplot::*pgproc)(Value*);
+	const char *(TkPgplot::*pgproc)(Value*);
 };
 
 #endif

@@ -355,6 +355,11 @@ Value *copy_value( const Value *value )
 	return (Value*)copy_value( (const IValue*) value );
 	}
 
+Value *deep_copy_value( const Value *value )
+	{
+	return (Value*)deep_copy_value( (const IValue*) value );
+	}
+
 int write_agent( sos_out &sos, Value *val_, sos_header &head, const ProxyId &proxy_id )
 	{
 	if ( val_->Type() != TYPE_AGENT )

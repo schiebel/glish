@@ -42,7 +42,7 @@ void ProxyA::ProcessEvent( const char *name, Value *val )
 
 int main( int argc, char** argv )
 	{
-        ProxyStore stor( argc, argv );
+        ClientProxyStore stor( argc, argv );
 	stor.Register( "make", ProxyA::Create );
 	stor.Loop();
         return 0;

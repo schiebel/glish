@@ -1943,3 +1943,78 @@ const char *strip_path( const char *path )
 		if ( *p == '/' ) l = p+1;
 	return l;
 	}
+
+static char **load_path = 0;
+static int load_path_len = 0;
+
+void set_load_path( char **path, int len )
+	{
+	if ( ! path || len <= 0 || load_path == path ) return;
+
+	if ( load_path )
+		{
+		for ( int i=0; i < load_path_len; ++i )
+			free_memory( load_path[i] );
+		free_memory( load_path );
+		}
+
+	load_path = path;
+	load_path_len = len;
+	}
+
+void set_load_path( Value *v )
+	{
+	if ( v && v->Type() == TYPE_STRING && v->Length() > 0 )
+		{
+		char **path = alloc_charptr( v->Length() );
+		charptr *ptr = v->StringPtr(0);
+		for ( int i = 0; i < v->Length(); ++i )
+			path[i] = string_dup( ptr[i] );
+		set_load_path( path, v->Length() );
+		}
+	}
+
+char *which_shared_object( const char* filename )
+	{
+	char **paths = load_path;
+	int len = load_path_len;
+
+	int sl = strlen(filename);
+	int do_pre_post = 1;
+
+	if ( sl > 3 && filename[sl-1] == 'o' && filename[sl-2] == 's' && filename[sl-3] == '.' )
+		do_pre_post = 0;
+
+	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
+		{
+		if ( access( filename, R_OK ) == 0 )
+			return strdup( filename );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < len; i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			if ( do_pre_post )
+				{
+				sprintf( directory, "%s/%s.so", paths[i], filename );
+				if ( access( directory, R_OK ) == 0 )
+					return strdup( directory );
+				else
+					{
+					sprintf( directory, "%s/lib%s.so", paths[i], filename );
+					if ( access( directory, R_OK ) == 0 )
+						return strdup( directory );
+					}
+				}
+			else
+				{
+				sprintf( directory, "%s/%s", paths[i], filename );
+				if ( access( directory, R_OK ) == 0 )
+					return strdup( directory );
+				}
+
+	return 0;
+	}

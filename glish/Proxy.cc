@@ -48,11 +48,11 @@ class event_queue_item GC_FINAL_CLASS {
 	char *reply_name;
 };
 
-ProxyStore::ProxyStore( int &argc, char **argv,
-			Client::ShareType multithreaded ) :
-		Client( argc, argv, multithreaded ) { }
+ClientProxyStore::ClientProxyStore( int &argc, char **argv,
+			ShareType multithreaded ) :
+		client( argc, argv, (Client::ShareType) multithreaded ) { }
 	
-ProxyStore::~ProxyStore( )
+ClientProxyStore::~ClientProxyStore( )
 	{
 	while ( pxlist.length() > 0 )
 		{
@@ -70,49 +70,34 @@ ProxyStore::~ProxyStore( )
 		}
 	}
 
-GlishEvent *ProxyStore::NextEvent(const struct timeval *timeout, int &timedout)
+GlishEvent *ClientProxyStore::NextEvent(const struct timeval *timeout, int &timedout)
 	{
 	if ( equeue.length() )
 		{
 		timedout = 0;
-		Unref(last_event);
+		Unref(client.last_event);
 		event_queue_item *eqi = equeue.remove_nth(0);
-		last_event = eqi->Event();
-		pending_reply = eqi->ReplyName();
+		client.last_event = eqi->Event();
+		client.pending_reply = eqi->ReplyName();
 		delete eqi;
-		return last_event;
+		return client.last_event;
 		}
-	return Client::NextEvent(timeout,timedout);
+	return client.NextEvent(timeout,timedout);
 	}
 
-GlishEvent *ProxyStore::NextEvent( fd_set* mask )
+GlishEvent *ClientProxyStore::NextEvent( EventSource* source )
 	{
 	if ( equeue.length() )
 		{
-		Unref(last_event);
+		Unref(client.last_event);
 		event_queue_item *eqi = equeue.remove_nth(0);
-		last_event = eqi->Event();
-		pending_reply = eqi->ReplyName();
+		client.last_event = eqi->Event();
+		client.pending_reply = eqi->ReplyName();
 		delete eqi;
-		return last_event;
+		return client.last_event;
 		}
 
-	return Client::NextEvent(mask);
-	}
-
-GlishEvent *ProxyStore::NextEvent( EventSource* source )
-	{
-	if ( equeue.length() )
-		{
-		Unref(last_event);
-		event_queue_item *eqi = equeue.remove_nth(0);
-		last_event = eqi->Event();
-		pending_reply = eqi->ReplyName();
-		delete eqi;
-		return last_event;
-		}
-
-	return Client::NextEvent(source);
+	return client.NextEvent(source);
 	}
 
 void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data )
@@ -164,13 +149,13 @@ void ProxyStore::removeProxy( Proxy *p )
 	pxlist.remove( p );
 	}
 
-const ProxyId ProxyStore::getId( )
+const ProxyId ClientProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
-	GlishEvent *save_last = last_event;
-	last_event = 0;
-	char *rname = pending_reply;
-	pending_reply = 0;
+	GlishEvent *save_last = client.last_event;
+	client.last_event = 0;
+	char *rname = client.pending_reply;
+	client.pending_reply = 0;
 
 	GlishEvent e( (const char*) PXGETID, (const Value*) v );
 	e.SetIsProxy( );
@@ -178,26 +163,26 @@ const ProxyId ProxyStore::getId( )
 
 	// we could get other events before our
 	// *proxy-id* event is responded to...
-	GlishEvent *reply = Client::NextEvent( );
+	GlishEvent *reply = client.NextEvent( );
 	while ( strcmp(reply->Name(),PXGETID) )
 		{
-		equeue.append(new event_queue_item(reply,pending_reply));
-		last_event = 0;
-		reply = Client::NextEvent( );
+		equeue.append(new event_queue_item(reply,client.pending_reply));
+		client.last_event = 0;
+		reply = client.NextEvent( );
 		}
 
 	if ( ! reply || reply->Val()->Type() != TYPE_INT ||
 	     reply->Val()->Length() != ProxyId::len() )
 		{
-		Unref( last_event );
-		last_event = save_last;
+		Unref( client.last_event );
+		client.last_event = save_last;
 		return ProxyId();
 		}
 
 	ProxyId result(reply->Val()->IntPtr(0));
-	Unref( last_event );
-	last_event = save_last;
-	pending_reply = rname;
+	Unref( client.last_event );
+	client.last_event = save_last;
+	client.pending_reply = rname;
 
 	return result;
 	}

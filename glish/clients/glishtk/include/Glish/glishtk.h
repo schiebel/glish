@@ -46,28 +46,31 @@ extern char *glishtk_quote_string( charptr*, int, int quote_empty_string=1 );
 extern char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
 
 //###  scrollbar callback
-extern char *glishtk_scrolled_update(TkProxy *proxy, const char *cmd, Value *args);
+extern const char *glishtk_scrolled_update(TkProxy *proxy, const char *cmd, Value *args);
 
 //###  Callback Procs
-typedef char *(*TkEventProc)(Tcl_Interp*, Tk_Window, const char *, Value*);
-typedef char *(*TkOneParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, Value *);
-typedef char *(*TkTwoParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, const char *, Value *);
-typedef char *(*TkOneIntProc)(Tcl_Interp*, Tk_Window, const char *, int, Value *);
-typedef char *(*TkTwoIntProc)(Tcl_Interp*, Tk_Window, const char *, const char *, int, Value *);
-typedef char *(*TkEventAgentProc)(TkProxy*, const char *, Value*);
-typedef char *(*TkEventAgentProc2)(TkProxy*, const char *, const char *, Value*);
-typedef char *(*TkEventAgentProc3)(TkProxy*, const char *, const char *, const char *, Value*);
-typedef char *(*TkEventAgentProc4)(TkProxy*, const char *, int, Value *);
-typedef char *(*TkEventAgentProc5)(TkProxy*, const char *, const char *, int, Value *);
-typedef Value *(*TkStrToValProc)( char * );
+typedef const char *(*TkEventProc)(Tcl_Interp*, Tk_Window, const char *, Value*);
+typedef const char *(*TkOneParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, Value *);
+typedef const char *(*TkTwoParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, const char *, Value *);
+typedef const char *(*TkOneIntProc)(Tcl_Interp*, Tk_Window, const char *, int, Value *);
+typedef const char *(*TkTwoIntProc)(Tcl_Interp*, Tk_Window, const char *, const char *, int, Value *);
+typedef const char *(*TkEventAgentProc)(TkProxy*, const char *, Value*);
+typedef const char *(*TkEventAgentProc2)(TkProxy*, const char *, const char *, Value*);
+typedef const char *(*TkEventAgentProc3)(TkProxy*, const char *, const char *, const char *, Value*);
+typedef const char *(*TkEventAgentProc4)(TkProxy*, const char *, int, Value *);
+typedef const char *(*TkEventAgentProc5)(TkProxy*, const char *, const char *, int, Value *);
+typedef Value *(*TkStrToValProc)( const char * );
 
 class glishtk_event;
 glish_declare(PQueue,glishtk_event);
 
-extern "C" void GlishTk_init( ProxyStore * );
+//### Initialization function for loaded object...
+extern "C" void GlishTk_init( ProxyStore *, int, const char * const * );
+extern "C" void GlishTk_loop( ProxyStore *, const GlishCallback *, int, const GlishCallback *, int );
 
 class TkProxy : public Proxy {
-    friend void GlishTk_init( ProxyStore * );    
+    friend void GlishTk_init( ProxyStore *, int, const char * const * );
+    friend void GlishTk_loop( ProxyStore *, const GlishCallback *, int, const GlishCallback *, int );
     public:
 	TkProxy( ProxyStore *s, int init_graphic=1 );
 	~TkProxy();
@@ -158,10 +161,6 @@ class TkProxy : public Proxy {
 	// For keeping track of last error
 	static Value *last_error;
 	static Value *bitmap_path;
-	static Value *load_path;
-
-	// locate the shared object file
-	static char *which_shared_object( const char* filename );
 
 	unsigned int enable_state;
 

@@ -72,6 +72,7 @@ typedef SubVecRef(charptr) charptrref;
 	copy_array( src, (void *) new type[len], length, type )
 
 extern Value* copy_value( const Value* value );
+extern Value* deep_copy_value( const Value* value /* , int i=0 */ );
 
 extern const Value* false_value;
 extern Value* empty_value( glish_type t = TYPE_INT );
@@ -186,7 +187,7 @@ public:
 	int IsNumeric() const;
 
 	// True if the value is a record corresponding to a  Proxy agent.
-	virtual int IsAgentRecord() const;
+	virtual int IsAgentRecord( int inc_proxy = 1 ) const;
 
 	// Returns the "n"'th element coereced to the corresponding type.
 	glish_bool BoolVal( int n = 1, Str &err = glish_errno ) const;
@@ -465,7 +466,7 @@ public:
 	const Value *GetAttributes() const { return attributes; }
 
 	// Retrieve the non-modifiable set of attributes, possibly nil.
-	const attributeptr AttributePtr() const
+	attributeptr AttributePtr() const
 		{
 		return attributes ? attributes->RecordPtr(0) : 0;
 		}
@@ -481,6 +482,12 @@ public:
 	Value* CopyAttributePtr() const
 		{
 		return attributes ? copy_value( attributes ) : 0;
+		}
+
+	// Retrieve a copy of a (possibly nil) attribute set.(do a deep copy)
+	Value* DeepCopyAttributePtr() const
+		{
+		return attributes ? deep_copy_value( attributes ) : 0;
 		}
 
 	// Returns an (unmodifiable) existing Value, or false_value if the
@@ -540,6 +547,13 @@ public:
 		{
 		DeleteAttributes();
 		attributes = value->CopyAttributePtr();
+		}
+
+	// Take new attributes from the given value (do a deep copy).
+	void DeepCopyAttributes( const Value* value )
+		{
+		DeleteAttributes();
+		attributes = value->DeepCopyAttributePtr();
 		}
 
 	// Sets all of a Value's attributes (can be nil).
@@ -678,8 +692,8 @@ extern int compatible_types( const Value* v1, const Value* v2,
 extern void init_values();
 extern void finalize_values();
 
-extern charptr *csplit( char* source, int &len, char* split_chars = " \t\n" );
-extern Value* split( char* source, char* split_chars = " \t\n" );
+extern charptr *csplit( char* source, int &len, const char* split_chars = " \t\n" );
+extern Value* split( char* source, const char* split_chars = " \t\n" );
 
 // The following convert a string to integer/double/dcomplex.  They
 // set successful to return true if the conversion was successful,

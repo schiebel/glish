@@ -1,17 +1,17 @@
 #include "tkUtil.h"
 #include "comdefs.h"
 
-Value *glishtk_str( char *str )
+Value *glishtk_str( const char *str )
 	{
 	return new Value( str );
 	}
 
-Value *glishtk_strtoint( char *str )
+Value *glishtk_strtoint( const char *str )
 	{
 	return new Value( atoi(str) );
 	}
 
-char *glishtk_onestr( TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_onestr( TkProxy *proxy, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -30,7 +30,7 @@ char *glishtk_onestr( TkProxy *proxy, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_onedim(TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_onedim(TkProxy *proxy, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 

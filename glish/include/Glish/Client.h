@@ -177,6 +177,7 @@ extern int glish_timedoutdummy;
 extern EventContext glish_ec_dummy;
 
 class Client GC_FINAL_CLASS {
+    friend class ClientProxyStore;
     public:
 	//
 	//  The "Type" describes how the client is shared by glish users
@@ -502,5 +503,9 @@ inline sos_status *send_event( sos_sink &out, const char* name, const Value* val
 	GlishEvent e( name, value );
 	return send_event( out, name, &e, can_suspend, proxy_id, transcript );
 	}
+
+void set_load_path( Value * );
+void set_load_path( char **path, int len );
+char *which_shared_object( const char* filename );
 
 #endif	/* client_h */

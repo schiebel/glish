@@ -19,6 +19,7 @@ RCSID("@(#) $Id$")
 #include "Select.h"
 #include "RemoteExec.h"
 #include "Task.h"
+#include "LdAgent.h"
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
@@ -65,7 +66,7 @@ void Serialize::set( char *new_string )
 	ary[str_element] = new_string;
 	}
 
-Task::Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast ) : Agent( s, DestructLast )
+Task::Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast ) : ProxySource( s, DestructLast )
 	{
 	attrs = task_attrs;
 	pending_events = 0;
@@ -675,7 +676,8 @@ void ClientTask::CreateAsyncClient( const char** argv )
 
 TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channel,
 		    int arg_async_flag, int arg_ping_flag, int arg_suspend_flag,
-		    int arg_force_sockets, const char *name_, char *transcript_ )
+		    int arg_force_sockets, const char *name_, char *transcript_,
+		    int loaded_client_flag )
 	{
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
@@ -689,6 +691,7 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channe
 	name = name_ ? string_dup(name_) : 0;
 	force_sockets = arg_force_sockets;
 	pid = 0;
+	loaded_client = loaded_client_flag;
 	}
 
 TaskAttr::~TaskAttr()
@@ -728,7 +731,7 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 
 	const_args_list& args = *args_val;
 
-	int task_args_start = 10;
+	int task_args_start = 11;
 
 	if ( args.length() <= task_args_start )
 		return (IValue*) Fail( "too few arguments given to create_task" );
@@ -750,6 +753,7 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	int suspend_flag = args[5]->IntVal();
 	int force_sockets = args[8]->IntVal();
 	char* transcript_file = GetString( args[9] );
+	int loaded_client = args[10]->IntVal();
 
 	int shm_flag = 1;
 	const char *script_name = 0;
@@ -801,8 +805,8 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	else if ( ! client_flag && sequencer->LocalHost( hostname ) )
 		{
 		//
-		// if this is a local shell client, prevent it from
-		// being started by the daemon
+		// if this is a local shell client or a dynamically loaded
+		// client, prevent it from being started by the daemon
 		//
 		if ( hostname )
 			free_memory( hostname );
@@ -819,7 +823,7 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	shm_flag = shm_flag && args[7]->IntVal();
 
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag,
-			      ping_flag, suspend_flag, force_sockets, script_name, transcript_file );
+			      ping_flag, suspend_flag, force_sockets, script_name, transcript_file, loaded_client );
 
 	// Collect the arguments to the task.
 	const_args_list task_args;
@@ -831,8 +835,10 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	if ( client_flag )
 		result = CreateClient( &task_args, shm_flag );
 
-	else
-		{ // Shell client.
+	else if ( loaded_client )
+		result = CreateLoadedClient( &task_args );
+
+	else	{ // Shell client.
 		if ( async_flag )
 			result = CreateAsyncShell( &task_args );
 
@@ -1153,6 +1159,11 @@ IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args, int shm_flag )
 		return task->AgentRecord();
 	}
 
+IValue* CreateTaskBuiltIn::CreateLoadedClient( const_args_list* args )
+	{
+	Agent *task = new LoadedAgent( args, attrs, sequencer );
+	return task->AgentRecord();
+	}
 
 IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 	{
@@ -1174,142 +1185,11 @@ void Task::sendEvent( sos_sink &fd, const char* event_name,
 	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask *Task::GetProxy( const ProxyId &proxy_id )
-	{
-	loop_over_list( ptlist, i )
-		if ( ptlist[i]->Id() == proxy_id )
-			return ptlist[i];
-	return 0;
-	}
-
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
 	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id, (FILE*) TranscriptFile( ) );
 	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
-	}
-
-ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), bundle(0), bundle_size(0),
-								    task(t), id(id_)
-								    
-	{
-	char buf[128];
-	sprintf(buf, "<proxy:%d>", id.id());
-	agent_ID = string_dup(buf);
-	task->RegisterProxy(this);
-	SetActive( );
-	}
-
-void ProxyTask::SetActivity( State s )
-	{
-	active = s;
-
-	CreateEvent( "active", new IValue( active != sFINISHED ), 0, 1 );
-
-	if ( active == sFINISHED )
-		(void) (*agents).remove( this );
-	}
-
-void ProxyTask::WrapperGone( const IValue *v )
-	{
-	if ( agent_value == v )
-		{
-		// must be careful with agent_value, otherwise we end up in an
-		// infinite loop because this function is called as 'v' is being
-		// deleted, NewEvent() Ref()'s and Unref()'s the agent_value which
-		// results in WrapperGone being called repeatedly. So the solution
-		// is to Ref() it; it is already being deleated so it won't result
-		// in a memory leak.
-		Ref((GlishObject*)v); Ref((GlishObject*)v); Ref((GlishObject*)v);
-		IValue *val = new IValue(glish_true);
-		sequencer->NewEvent( this, "done", val, 0, 0 );
-		agent_value = 0;
-		}
-	}
-
-ProxyTask::~ProxyTask( )
-	{
-	if ( bundle && bundle->Length() >= bundle_size )
-		FlushEvents( );
-
-	IValue *val = new IValue(glish_true);
-	task->SendEvent( "terminate", val, 0, 1, id );
-	Unref( val );
-
-	task->UnregisterProxy(this);
-
-	if ( bundle ) delete_record( bundle );
-	if ( agent_ID ) free_memory((char*)agent_ID);
-	}
-
-IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
-			      int is_request, int log, Expr */* from_subsequence */ )
-	{
-	if ( bundle_size )
-		{
-		if ( is_request )
-			{
-			FlushEvents( );
-			return task->SendEvent( event_name, args, is_request, log, id );
-			}
-		else
-			{
-			if ( ! bundle ) bundle = create_record_dict( );
-			IValue* val = BuildEventValue( args, 0 );
-			char *nme = alloc_char( strlen(event_name) + 9 );
-			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
-			bundle->Insert( nme, val );
-			if ( bundle->Length() >= bundle_size )
-				FlushEvents( );
-			return 0;
-			}
-		}
-	else
-		return task->SendEvent( event_name, args, is_request, log, id );
-	}
-
-int ProxyTask::BundleEvents( int howmany )
-	{
-	bundle_size = howmany <= 1 ? 0 : howmany;
-
-	if ( bundle && bundle->Length() >= bundle_size )
-		FlushEvents( );
-
-	if ( bundle && bundle_size <= 0 )
-		{
-		delete_record( bundle );
-		bundle = 0;
-		}
-
-	return 1;
-	}
-
-int ProxyTask::FlushEvents( )
-	{
-	if ( bundle && bundle->Length() > 0 )
-		{
-		IValue *val = new IValue( bundle );
-		task->SendEvent( "event-bundle", val, 0, 1, id, 1 );
-		Unref( val );
-		bundle = 0;
-		}
-	return 1;
-	}
-
-int ProxyTask::IsProxy( ) const
-	{
-	return 1;
-	}
-
-void ProxyTask::AbnormalExit( int status )
-	{
-	recordptr rec = create_record_dict();
-	rec->Insert(string_dup("id"), new IValue((int*)id.array(),ProxyId::len(),COPY_ARRAY));
-	rec->Insert(string_dup("value"), new IValue( task->AgentID() ));
-	GlishEvent *event = new GlishEvent( (const char*) "fail", (Value*)(new IValue( rec )) );
-	event->SetIsProxy( );
-	event->SetIsQuiet( );
-	sequencer->NewEvent( task, event, 0 );
 	}
 
 void TaskLocalExec::AbnormalExit( int status )

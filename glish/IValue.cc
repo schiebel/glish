@@ -283,18 +283,30 @@ IValue::~IValue()
 	DeleteValue();
 	}
 
-int IValue::IsAgentRecord() const
+int IValue::IsAgentRecord( int inc_proxy ) const
 	{
-	if ( Type() == TYPE_RECORD )
+	if ( Type() == TYPE_REF )
+		return Deref()->IsAgentRecord(inc_proxy);
+
+	IValue *v = 0;
+	if ( Type() == TYPE_RECORD && (v = (IValue*) (*RecordPtr(0))[AGENT_MEMBER_NAME]) )
 		{
-		Value *v = (*RecordPtr(0))[AGENT_MEMBER_NAME];
-		if ( v && v->Deref()->Type() == TYPE_AGENT )
+		v = (IValue*) v->Deref( );
+		if ( v->Type() == TYPE_AGENT || inc_proxy &&
+		     v->Type() == TYPE_INT && v->Length() == ProxyId::len() )
+			{
+// 			fprintf( stderr, "\t\t\t\t\t\t\t>>%d/1<<\n", inc_proxy );
 			return 1;
+			}
 		else
+			{
+// 			fprintf( stderr, "\t\t\t\t\t\t\t>>%d/0<<\n", inc_proxy );
 			return 0;
+			}
 		}
-	else
-		return 0;
+
+// 	fprintf( stderr, "\t\t\t\t\t\t\t>>>%d/0<<<\n", inc_proxy );
+	return 0;
 	}
 
 
@@ -2215,6 +2227,110 @@ IValue *copy_value( const IValue *value )
 
 		default:
 			fatal->Report( "bad type in copy_value(IValue*) [", value->Type(), "]" );
+		}
+
+	return copy;
+	}
+
+IValue *deep_copy_value( const IValue *value, int proxy_subst )
+	{
+	if ( value->IsRef() )
+		return deep_copy_value( (const IValue*) value->RefPtr() );
+
+	IValue *copy = 0;
+	switch( value->Type() )
+		{
+		case TYPE_BOOL:
+#define DCOPY_ARY(accessor)							\
+	copy = new IValue( value->accessor(0), value->Length(), COPY_ARRAY );	\
+	copy->DeepCopyAttributes( value );					\
+	break;
+			DCOPY_ARY(BoolPtr)
+		case TYPE_BYTE:
+			DCOPY_ARY(BytePtr)
+		case TYPE_SHORT:
+			DCOPY_ARY(ShortPtr)
+		case TYPE_INT:
+			DCOPY_ARY(IntPtr)
+		case TYPE_FLOAT:
+			DCOPY_ARY(FloatPtr)
+		case TYPE_DOUBLE:
+			DCOPY_ARY(DoublePtr)
+		case TYPE_COMPLEX:
+			DCOPY_ARY(ComplexPtr)
+		case TYPE_DCOMPLEX:
+			DCOPY_ARY(DcomplexPtr)
+		case TYPE_STRING:
+			DCOPY_ARY(StringPtr)
+		case TYPE_REGEX:
+			DCOPY_ARY(RegexPtr)
+		case TYPE_RECORD:
+// 			if ( value->IsAgentRecord() )
+// 				{
+// 				copy = new IValue( (Value*) value, VAL_REF );
+// 				copy->CopyAttributes( value );
+// 				}
+// 			else
+				{
+				copy = new IValue( copy_record_dict( value->RecordPtr(0), 1 ) );
+				copy->DeepCopyAttributes( value );
+				}
+			break;
+		case TYPE_FAIL:
+			copy = new IValue( );
+			copy->DeepCopyAttributes( value );
+			copy->SetFail( copy_record_dict( value->GetFailDict(), 1 ) );
+			break;
+			
+		case TYPE_AGENT:
+			{
+			Agent *agent = value->AgentVal( );
+			if ( agent && agent->IsProxy( ) )
+				{
+				const ProxyId &id = ((ProxyTask*) agent)->Id();
+				int *idv = alloc_int( 3 );
+				idv[0] = id.interp( );
+				idv[1] = id.task( );
+				idv[2] = id.id( );
+				copy = new IValue( idv, 3 );
+				}
+			else
+				copy = new IValue( glish_false );
+			}
+			break;
+
+		case TYPE_FUNC:
+		case TYPE_FILE:
+			copy = new IValue( *value );
+			break;
+
+		case TYPE_SUBVEC_REF:
+			switch ( value->VecRefPtr()->Type() )
+				{
+#define DCOPY_REF(tag,accessor)						\
+	case tag:							\
+		copy = new IValue( value->accessor ); 			\
+		copy->DeepCopyAttributes( value );			\
+		break;
+
+				DCOPY_REF(TYPE_BOOL,BoolRef())
+				DCOPY_REF(TYPE_BYTE,ByteRef())
+				DCOPY_REF(TYPE_SHORT,ShortRef())
+				DCOPY_REF(TYPE_INT,IntRef())
+				DCOPY_REF(TYPE_FLOAT,FloatRef())
+				DCOPY_REF(TYPE_DOUBLE,DoubleRef())
+				DCOPY_REF(TYPE_COMPLEX,ComplexRef())
+				DCOPY_REF(TYPE_DCOMPLEX,DcomplexRef())
+				DCOPY_REF(TYPE_STRING,StringRef())
+
+				default:
+					fatal->Report( "bad type in deep_copy_value(IValue*) [",
+						       value->VecRefPtr()->Type(), "]" );
+				}
+			break;
+
+		default:
+			fatal->Report( "bad type in deep_copy_value(IValue*) [", value->Type(), "]" );
 		}
 
 	return copy;

@@ -9,10 +9,12 @@ RCSID("@(#) $Id$")
 #include "tkCore.h"
 #include "tkCanvas.h"
 
-extern "C" void GlishTk_init( ProxyStore * );
+extern "C" void GlishTk_init( ProxyStore *, int, const char * const * );
+extern "C" void GlishTk_loop( ProxyStore *, const GlishCallback *, int, const GlishCallback *, int );
 
-void GlishTk_init( ProxyStore *store )
+void GlishTk_init( ProxyStore *store, int, const char * const * )
 	{
+
 	TkProxy::set_global_store( store );
 
 	store->Register( "frame", TkFrameP::Create );
@@ -34,4 +36,28 @@ void GlishTk_init( ProxyStore *store )
 
 	store->Register( "tk_load", TkProxy::Load );
 	store->Register( "tk_loadpath", TkProxy::SetLoadPath );
+	}
+
+static void fileproc_callback( ClientData data, int )
+	{
+	GlishCallback *gcb = (GlishCallback*) data;
+	(*gcb->func)( gcb->data );
+	}
+
+void GlishTk_loop( ProxyStore *store, const GlishCallback *rinfo, int rlen, const GlishCallback *winfo, int wlen )
+	{
+	const char *result = TkProxy::init_tk(0);
+
+	for ( int i=0; i<rlen; ++i )
+		if ( rinfo[i].fd && rinfo[i].func )
+			Tk_CreateFileHandler( rinfo[i].fd, TK_READABLE, fileproc_callback, new GlishCallback( rinfo[i] ) );
+
+	for ( LOOPDECL i=0; i<wlen; ++i )
+		if ( winfo[i].fd && winfo[i].func )
+			Tk_CreateFileHandler( winfo[i].fd, TK_WRITABLE, fileproc_callback, new GlishCallback( winfo[i] ) );
+
+	store->Initialized( );
+
+	while ( ! store->Done( ) )
+		TkProxy::DoOneTkEvent( );
 	}

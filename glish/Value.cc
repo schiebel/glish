@@ -391,21 +391,30 @@ int Value::IsNumeric() const
 		}
 	}
 
-
-int Value::IsAgentRecord() const
+int Value::IsAgentRecord( int inc_proxy ) const
 	{
+	if ( Type() == TYPE_REF )
+		return Deref()->IsAgentRecord(inc_proxy);
+
 	if ( Type() == TYPE_RECORD )
 		{
 		Value *v = (*RecordPtr(0))[AGENT_MEMBER_NAME];
 		if ( ! v ) return 0;
 		v = v->Deref();
 		if ( v->Type() == TYPE_INT && v->Length() == ProxyId::len() )
+			{
+// 			fprintf( stderr, "\t\t\t\t\t\t\t>>%d/1<<\n", inc_proxy );
 			return 1;
+			}
 		else
+			{
+// 			fprintf( stderr, "\t\t\t\t\t\t\t>>>%d/0<<<\n", inc_proxy );
 			return 0;
+			}
 		}
-	else
-		return 0;
+
+// 	fprintf( stderr, "\t\t\t\t\t\t\t>>>%d/0<<<\n", inc_proxy );
+	return 0;
 	}
 
 #define DEFINE_CONST_ACCESSOR(name,tag,type,MOD,CONST)			\
@@ -2887,7 +2896,7 @@ void finalize_values()
 	delete (Value*) false_value;
 	}
 
-charptr *csplit( char* source, int &num_pieces, char* split_chars )
+charptr *csplit( char* source, int &num_pieces, const char* split_chars )
 	{
 
 	if ( strlen(split_chars) == 0 )
@@ -2927,7 +2936,7 @@ charptr *csplit( char* source, int &num_pieces, char* split_chars )
 	return strings;
 	}
 
-Value *split( char* source, char* split_chars )
+Value *split( char* source, const char* split_chars )
 	{
 	int i = 0;
 	charptr *s = csplit( source, i, split_chars );

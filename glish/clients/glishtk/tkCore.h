@@ -15,32 +15,32 @@
 // Split a string up into an array of strings with each newline character
 extern Value *glishtk_splitnl( char * );
 // Split a string up into an array of ints with each space character
-extern Value *glishtk_splitsp_int( char * );
+extern Value *glishtk_splitsp_int( const char * );
 // Split a string up into an array of strings with each space character
 // note the array which is returned will be trashed by subsequent calls.
 extern char **glishtk_splitsp_str_( char *, int & );
 extern Value *glishtk_splitsp_str( char * );
 
 //###  Functions for Invoking Tk Commands For Callbacks
-extern char *glishtk_nostr(TkProxy *proxy, const char *cmd, Value *args);
-extern char *glishtk_oneint(TkProxy *proxy, const char *cmd, Value *args);
-extern char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue,
+extern const char *glishtk_nostr(TkProxy *proxy, const char *cmd, Value *args);
+extern const char *glishtk_oneint(TkProxy *proxy, const char *cmd, Value *args);
+extern const char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue,
 			       const char *pfalse, Value *args);
-extern char *glishtk_onebool(TkProxy *proxy, const char *cmd, Value *args);
-extern char *glishtk_oneintlist(TkProxy *proxy, const char *cmd, int howmany, Value *args);
-extern char *glishtk_oneidx(TkProxy *, const char *cmd, Value *args);
-extern char *glishtk_oneortwoidx(TkProxy *, const char *cmd, Value *args);
-extern char *glishtk_strandidx(TkProxy *, const char *cmd, Value *args);
-extern char *glishtk_strwithidx(TkProxy *, const char *cmd, const char *param,
+extern const char *glishtk_onebool(TkProxy *proxy, const char *cmd, Value *args);
+extern const char *glishtk_oneintlist(TkProxy *proxy, const char *cmd, int howmany, Value *args);
+extern const char *glishtk_oneidx(TkProxy *, const char *cmd, Value *args);
+extern const char *glishtk_oneortwoidx(TkProxy *, const char *cmd, Value *args);
+extern const char *glishtk_strandidx(TkProxy *, const char *cmd, Value *args);
+extern const char *glishtk_strwithidx(TkProxy *, const char *cmd, const char *param,
 						Value *args);
-extern char *glishtk_no2str(TkProxy *, const char *cmd, const char *param,
+extern const char *glishtk_no2str(TkProxy *, const char *cmd, const char *param,
 						Value *args);
 
-extern char *glishtk_scrollbar_update(TkProxy *, const char *cmd, Value *args);
+extern const char *glishtk_scrollbar_update(TkProxy *, const char *cmd, Value *args);
 
 //### Event handlers common to Frame and tkCore widgets
-extern char *glishtk_bind(TkProxy *agent, const char *, Value *args );
-extern char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args );
+extern const char *glishtk_bind(TkProxy *agent, const char *, Value *args );
+extern const char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args );
 
 class TkFrameP : public TkFrame {
     public:
@@ -65,25 +65,25 @@ class TkFrameP : public TkFrame {
 	void LeaderMapped( );
 	void LeaderUnmapped( );
 
-	char *SetSide( Value * );
-	char *SetPadx( Value * );
-	char *SetPady( Value * );
-	char *SetExpand( Value * );
-	char *GetTag( Value * );
+	const char *SetSide( Value * );
+	const char *SetPadx( Value * );
+	const char *SetPady( Value * );
+	const char *SetExpand( Value * );
+	const char *GetTag( Value * );
 
-	char *SetIcon( Value * );
+	const char *SetIcon( Value * );
 
-	char *Grab( int global_scope=0 );
-	char *Release( );
-	char *GrabCB( Value * );
-	char *ReleaseCB( Value * );
-	char *FontsCB( Value * );
+	const char *Grab( int global_scope=0 );
+	const char *Release( );
+	const char *GrabCB( Value * );
+	const char *ReleaseCB( Value * );
+	const char *FontsCB( Value * );
 
-	char *IconifyCB( Value * );
-	char *DeiconifyCB( Value * );
+	const char *IconifyCB( Value * );
+	const char *DeiconifyCB( Value * );
 
-	char *Raise( Value * );
-	char *Title( Value * );
+	const char *Raise( Value * );
+	const char *Title( Value * );
 
 	void Pack();
 	void PackSpecial( TkProxy * );
@@ -138,7 +138,7 @@ class TkFrameP : public TkFrame {
 class FmeProc : public TkProc {
     public:
 
-	FmeProc(TkFrameP *f, char *(TkFrameP::*p)(Value*), TkStrToValProc cvt = 0)
+	FmeProc(TkFrameP *f, const char *(TkFrameP::*p)(Value*), TkStrToValProc cvt = 0)
 			: TkProc(f,cvt), fproc(p) { }
 
 	FmeProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
@@ -150,7 +150,7 @@ class FmeProc : public TkProc {
 	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
 
     protected:
-	char *(TkFrameP::*fproc)(Value*);
+	const char *(TkFrameP::*fproc)(Value*);
 };
 
 class TkButton : public TkFrame {

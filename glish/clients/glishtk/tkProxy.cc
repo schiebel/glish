@@ -25,7 +25,6 @@ int TkProxy::hold_tk_events = 0;
 int TkProxy::hold_glish_events = 0;
 Value *TkProxy::last_error = 0;
 Value *TkProxy::bitmap_path = 0;
-Value *TkProxy::load_path = 0;
 int TkProxy::widget_index = 0;
 
 unsigned long TkFrame::count = 0;
@@ -150,13 +149,13 @@ char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data,
 	return out;
 	}
 
-char *glishtk_winfo(TkProxy *proxy, const char *cmd, Value * )
+const char*glishtk_winfo(TkProxy *proxy, const char *cmd, Value * )
 	{
 	tcl_VarEval( proxy, "winfo ", cmd, SP, Tk_PathName(proxy->Self( )), (char *)NULL );
 	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
-char *glishtk_focus(TkProxy *proxy, const char *cmd, Value * )
+const char*glishtk_focus(TkProxy *proxy, const char *cmd, Value * )
 	{
 	tcl_VarEval( proxy, "focus ", Tk_PathName(proxy->Self( )), (char *)NULL );
 	return Tcl_GetStringResult(proxy->Interp( ));
@@ -244,7 +243,7 @@ TkProc::TkProc(TkProxy *a, const char *c, const char *x, int y, TkEventAgentProc
 
 Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{
-	char *val = 0;
+	const char *val = 0;
 
 	if ( proc )
 		val = (*proc)(tcl, s,cmdstr,arg);
@@ -348,8 +347,9 @@ const char *TkProxy::init_tk( int visible_root )
                                 ClientData cd = 0;
                                 Tk_CreateErrorHandler(Tk_Display(root), -1, -1, -1,  glishtk_tkerrorhandler, cd);
 				static char tk_follow[] = "tk_focusFollowsMouse";
-				if ( ! TkProxy::global_store ||
-				     strcmp( "click", TkProxy::global_store->GetOption("focus") ) )
+				const char *option = 0;
+				if ( ! TkProxy::global_store || ! (option = TkProxy::global_store->GetOption("focus")) ||
+				     strcmp( "click", option ) )
 					Tcl_Eval(tcl, tk_follow);
 
 				if ( ! visible_root )
@@ -597,59 +597,12 @@ static char *join_path( const char **path, int len, const char *var_name = 0 )
 
 void TkProxy::SetLoadPath( ProxyStore *, Value *v )
 	{
-	if ( v && v->Type() == TYPE_STRING )
+	if ( v && v->Type() == TYPE_STRING && v->Length() > 0 )
 		{
-		if ( load_path ) Unref( load_path );
-		load_path = v;
-		Ref( load_path );
-		char *libpath = join_path(load_path->StringPtr(),load_path->Length(),"LD_LIBRARY_PATH");
+		set_load_path( v );
+		char *libpath = join_path(v->StringPtr(0),v->Length(),"LD_LIBRARY_PATH");
 		putenv(libpath);	// here we leak libpath, because putenv
 		}			// depends on it sticking around
-	}
-
-char *TkProxy::which_shared_object( const char* filename )
-	{
-	charptr *paths = load_path ? load_path->StringPtr() : 0;
-	int len = load_path ? load_path->Length() : 0;
-
-	int sl = strlen(filename);
-	int do_pre_post = 1;
-
-	if ( sl > 3 && filename[sl-1] == 'o' && filename[sl-2] == 's' && filename[sl-3] == '.' )
-		do_pre_post = 0;
-
-	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
-		{
-		if ( access( filename, R_OK ) == 0 )
-			return strdup( filename );
-		else
-			return 0;
-		}
-
-	char directory[1024];
-
-	for ( int i = 0; i < len; i++ )
-		if ( paths[i] && strlen(paths[i]) )
-			if ( do_pre_post )
-				{
-				sprintf( directory, "%s/%s.so", paths[i], filename );
-				if ( access( directory, R_OK ) == 0 )
-					return strdup( directory );
-				else
-					{
-					sprintf( directory, "%s/lib%s.so", paths[i], filename );
-					if ( access( directory, R_OK ) == 0 )
-						return strdup( directory );
-					}
-				}
-			else
-				{
-				sprintf( directory, "%s/%s", paths[i], filename );
-				if ( access( directory, R_OK ) == 0 )
-					return strdup( directory );
-				}
-
-	return 0;
 	}
 
 int TkProxy::DoOneTkEvent( int flags, int hold_wait )
@@ -854,7 +807,7 @@ void TkProxy::do_pack( int argc, char **argv)
 	int set_cmd = 0;
 	if ( argc > 0 && ! argv[0] )
 		{
-		argv[0] = "pack";
+		argv[0] = (char*) "pack";
 		set_cmd = 1;
 		}
 	tcl_ArgEval( this, argc, argv );
@@ -906,7 +859,7 @@ int TkProxy::IsPseudo( )
 	return 1;
 	}
 
-char *glishtk_scrolled_update(TkProxy *proxy, const char *, Value *val )
+const char*glishtk_scrolled_update(TkProxy *proxy, const char *, Value *val )
 	{
 	if ( val->Type() != TYPE_STRING || val->Length() != 1 )
 		return 0;

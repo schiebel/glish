@@ -448,6 +448,137 @@ int Agent::IsPseudo( ) const
 	return 0;
 	}
 
+ProxyTask *ProxySource::GetProxy( const ProxyId &proxy_id )
+	{
+	loop_over_list( ptlist, i )
+		if ( ptlist[i]->Id() == proxy_id )
+			return ptlist[i];
+	return 0;
+	}
+
+ProxyTask::ProxyTask( const ProxyId &id_, ProxySource *t, Sequencer *s ) : Agent(s), bundle(0),
+				bundle_size(0), task(t), id(id_)
+								    
+	{
+	char buf[128];
+	sprintf(buf, "<proxy:%d>", id.id());
+	agent_ID = string_dup(buf);
+	task->RegisterProxy(this);
+	SetActive( );
+	}
+
+void ProxyTask::SetActivity( State s )
+	{
+	active = s;
+
+	CreateEvent( "active", new IValue( active != sFINISHED ), 0, 1 );
+
+	if ( active == sFINISHED )
+		(void) (*agents).remove( this );
+	}
+
+void ProxyTask::WrapperGone( const IValue *v )
+	{
+	if ( agent_value == v )
+		{
+		// must be careful with agent_value, otherwise we end up in an
+		// infinite loop because this function is called as 'v' is being
+		// deleted, NewEvent() Ref()'s and Unref()'s the agent_value which
+		// results in WrapperGone being called repeatedly. So the solution
+		// is to Ref() it; it is already being deleated so it won't result
+		// in a memory leak.
+		Ref((GlishObject*)v); Ref((GlishObject*)v); Ref((GlishObject*)v);
+		IValue *val = new IValue(glish_true);
+		sequencer->NewEvent( this, "done", val, 0, 0 );
+		agent_value = 0;
+		}
+	}
+
+ProxyTask::~ProxyTask( )
+	{
+	if ( bundle && bundle->Length() >= bundle_size )
+		FlushEvents( );
+
+	IValue *val = new IValue(glish_true);
+	task->SendEvent( "terminate", val, 0, 1, id );
+	Unref( val );
+
+	task->UnregisterProxy(this);
+
+	if ( bundle ) delete_record( bundle );
+	if ( agent_ID ) free_memory((char*)agent_ID);
+	}
+
+IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
+			      int is_request, int log, Expr */* from_subsequence */ )
+	{
+	if ( bundle_size )
+		{
+		if ( is_request )
+			{
+			FlushEvents( );
+			return task->SendEvent( event_name, args, is_request, log, id );
+			}
+		else
+			{
+			if ( ! bundle ) bundle = create_record_dict( );
+			IValue* val = BuildEventValue( args, 0 );
+			char *nme = alloc_char( strlen(event_name) + 9 );
+			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
+			bundle->Insert( nme, val );
+			if ( bundle->Length() >= bundle_size )
+				FlushEvents( );
+			return 0;
+			}
+		}
+	else
+		return task->SendEvent( event_name, args, is_request, log, id );
+	}
+
+int ProxyTask::BundleEvents( int howmany )
+	{
+	bundle_size = howmany <= 1 ? 0 : howmany;
+
+	if ( bundle && bundle->Length() >= bundle_size )
+		FlushEvents( );
+
+	if ( bundle && bundle_size <= 0 )
+		{
+		delete_record( bundle );
+		bundle = 0;
+		}
+
+	return 1;
+	}
+
+int ProxyTask::FlushEvents( )
+	{
+	if ( bundle && bundle->Length() > 0 )
+		{
+		IValue *val = new IValue( bundle );
+		task->SendEvent( "event-bundle", val, 0, 1, id, 1 );
+		Unref( val );
+		bundle = 0;
+		}
+	return 1;
+	}
+
+int ProxyTask::IsProxy( ) const
+	{
+	return 1;
+	}
+
+void ProxyTask::AbnormalExit( int status )
+	{
+	recordptr rec = create_record_dict();
+	rec->Insert(string_dup("id"), new IValue((int*)id.array(),ProxyId::len(),COPY_ARRAY));
+	rec->Insert(string_dup("value"), new IValue( task->AgentID() ));
+	GlishEvent *event = new GlishEvent( (const char*) "fail", (Value*)(new IValue( rec )) );
+	event->SetIsProxy( );
+	event->SetIsQuiet( );
+	sequencer->NewEvent( task, event, 0 );
+	}
+
 class uagent_await_info GC_FINAL_CLASS {
     public:
 	uagent_await_info( const char *n, UserAgent *a ) : name_(n), agent_(a), result_(0) { }

@@ -14,14 +14,15 @@ RCSID("@(#) $Id$")
 #include "Glish/Value.h"
 #include "system.h"
 #include "comdefs.h"
+#include "Glish/Reporter.h"
 
-extern Value *glishtk_valcast( char * );
+extern Value *glishtk_valcast( const char * );
 
 unsigned long TkFrameP::grab = 0;
 
-Value *glishtk_splitnl( char *str )
+Value *glishtk_splitnl( const char *str )
 	{
-	char *prev = str;
+	const char *prev = str;
 	int nls = 0;
 
 	if ( ! str || ! str[0] )
@@ -38,8 +39,10 @@ Value *glishtk_splitnl( char *str )
 	for ( nls = 0, str = prev; *str; str++ )
 		if ( *str == '\n' )
 			{
-			*str = (char) 0;
-			ary[nls++] = strdup( prev );
+			int len = str-prev;
+			ary[nls] = (char*) alloc_memory( len+1 );
+			memcpy( ary[nls], prev, len );
+			ary[nls++][len] = '\0';
 			prev = str+1;
 			}
 
@@ -49,17 +52,16 @@ Value *glishtk_splitnl( char *str )
 	return new Value( (const char **) ary, nls );
 	}
 
-Value *glishtk_splitsp_int( char *sel )
+Value *glishtk_splitsp_int( const char *sel )
 	{
-	char *start = sel;
-	char *end;
+	const char *start = sel;
+	const char *end;
 	int cnt = 0;
 	static int len = 2;
 	static int *ary = (int*) alloc_memory( sizeof(int)*len );
 
 	while ( *start && (end = strchr(start,' ')) )
 		{
-		*end = (char) 0;
 #define EXPAND_ACTION_A					\
 		if ( cnt >= len )			\
 			{				\
@@ -68,8 +70,7 @@ Value *glishtk_splitsp_int( char *sel )
 			}
 		EXPAND_ACTION_A
 		ary[cnt++] = atoi(start);
-		*end++ = ' ';
-		start = end;
+		start = end+1;
 		}
 
 	if ( *start )
@@ -81,17 +82,16 @@ Value *glishtk_splitsp_int( char *sel )
 	return new Value( ary, cnt, COPY_ARRAY );
 	}
 
-char **glishtk_splitsp_str_( char *sel, int &cnt )
+char **glishtk_splitsp_str_( const char *sel, int &cnt )
 	{
-	char *start = sel;
-	char *end;
+	const char *start = sel;
+	const char *end;
 	cnt = 0;
 	static int len = 2;
 	static char **ary = (char**) alloc_memory( sizeof(char*)*len );
 
 	while ( *start && (end = strchr(start,' ')) )
 		{
-		*end = (char) 0;
 #define EXPAND_ACTION_B					\
 		if ( cnt >= len )			\
 			{				\
@@ -99,9 +99,11 @@ char **glishtk_splitsp_str_( char *sel, int &cnt )
 			ary = (char **) realloc(ary, len * sizeof(char*) );\
 			}
 		EXPAND_ACTION_B
-		ary[cnt++] = strdup(start);
-		*end++ = ' ';
-		start = end;
+		int len = end-start;
+		ary[cnt] = (char*) alloc_memory( len+1 );
+		memcpy( ary[cnt], start, len );
+		ary[cnt++][len] = '\0';
+		start = end+1;
 		}
 
 	if ( *start )
@@ -113,20 +115,20 @@ char **glishtk_splitsp_str_( char *sel, int &cnt )
 	return ary;
 	}
 
-Value *glishtk_splitsp_str( char *s )
+Value *glishtk_splitsp_str( const char *s )
 	{
 	int len=0;
 	char **str = glishtk_splitsp_str_(s, len);
 	return new Value( (charptr*) str, len, COPY_ARRAY );
 	}
 
-char *glishtk_nostr( TkProxy *proxy, const char *cmd, Value * )
+const char *glishtk_nostr( TkProxy *proxy, const char *cmd, Value * )
 	{
 	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, (char *)NULL );
 	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
-char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -153,7 +155,7 @@ char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_oneint( TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_oneint( TkProxy *proxy, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -177,7 +179,7 @@ char *glishtk_oneint( TkProxy *proxy, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_onedouble(TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_onedouble(TkProxy *proxy, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -201,7 +203,7 @@ char *glishtk_onedouble(TkProxy *proxy, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue, const char *pfalse,
+const char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue, const char *pfalse,
 				Value *args )
 	{
 	char *ret = 0;
@@ -214,12 +216,12 @@ char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue, cons
 	return ret;
 	}
 
-char *glishtk_onebool(TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_onebool(TkProxy *proxy, const char *cmd, Value *args )
 	{
 	return glishtk_onebinary(proxy, cmd, "true", "false", args);
 	}
 
-char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -231,19 +233,25 @@ char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
 	{
+	char *ret = 0;
 	if ( ! *cmd )
 		{
-		if ( args->IsNumeric() && args->Length() > 0 )
+		if ( args->Length() > 0 )
 			{
-			if ( args->IntVal() )
-				a->Disable( );
+			if ( args->IsNumeric() )
+				{
+				if ( args->IntVal() )
+					a->Disable( );
+				else
+					a->Enable( );
+				}
 			else
-				a->Enable( );
+				a->Error("wrong type, numeric expected");
 			}
 		else
-			a->Error("wrong type, numeric expected");
+			  ret = (char*) (a->Enabled() ? "F" : "T");
 		}
 	else
 		if ( *cmd == '1' )
@@ -251,13 +259,13 @@ char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
 		else
 			a->Enable( 0 );
 
-	return 0;
+	return ret;
 	}
 
-char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one-or-two index function";
+	const char *event_name = "one-or-two index function";
 
 	if ( args->Type() == TYPE_RECORD )
 		{
@@ -323,16 +331,16 @@ struct strary_ret {
   int len;
 };
 
-Value *glishtk_strary_to_value( char *s )
+Value *glishtk_strary_to_value( const char *s )
 	{
 	strary_ret *r = (strary_ret*) s;
 	Value *ret = new Value((charptr*) r->ary,r->len);
 	delete r;
 	return ret;
 	}
-char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 	{
-	char *event_name = "one-or-two index array function";
+	const char *event_name = "one-or-two index array function";
 
 	strary_ret *ret = 0;
 
@@ -393,11 +401,11 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 	return (char*) ret;
 	}
 
-char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
+const char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 			      Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "listbox select function";
+	const char *event_name = "listbox select function";
 
 	if ( args->Length() <= 0 )
 		a->Error("zero length value");
@@ -424,10 +432,10 @@ char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 	return ret;
 	}
 
-char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "string-and-index function";
+	const char *event_name = "string-and-index function";
 
 	if ( args->Length() <= 0 )
 		a->Error("zero length value");
@@ -457,10 +465,10 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
+const char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 				Value *args )
 	{
-	char *event_name = "text append function";
+	const char *event_name = "text append function";
 
 	if ( args->Length() <= 0 )
 		a->Error("zero length value");
@@ -513,10 +521,10 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 	return 0;
 	}
 
-char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
+const char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
 			   Value *args )
 	{
-	char *event_name = "tag function";
+	const char *event_name = "tag function";
 
 	if ( args->Length() < 2 )
 		{
@@ -568,9 +576,9 @@ char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
 	return 0;
 	}
 
-char *glishtk_text_configfunc(TkProxy *proxy, const char *cmd, const char *param, Value *args )
+const char *glishtk_text_configfunc(TkProxy *proxy, const char *cmd, const char *param, Value *args )
 	{
-	char *event_name = "tag function";
+	const char *event_name = "tag function";
 	if ( args->Length() < 2 )
 		{
 		proxy->Error("wrong number of arguments");
@@ -608,7 +616,7 @@ char *glishtk_text_configfunc(TkProxy *proxy, const char *cmd, const char *param
 	return 0;
 	}
 
-char *glishtk_text_rangesfunc( TkProxy *proxy, const char *cmd, const char *param, Value *args )
+const char *glishtk_text_rangesfunc( TkProxy *proxy, const char *cmd, const char *param, Value *args )
 	{
 	char *ret = 0;
 
@@ -624,13 +632,13 @@ char *glishtk_text_rangesfunc( TkProxy *proxy, const char *cmd, const char *para
 	return ret;
 	}
 
-char *glishtk_no2str(TkProxy *a, const char *cmd, const char *param, Value * )
+const char *glishtk_no2str(TkProxy *a, const char *cmd, const char *param, Value * )
 	{
 	tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, param, (char *)NULL );
 	return Tcl_GetStringResult(a->Interp());
 	}
 
-char *glishtk_listbox_insert_action(TkProxy *a, const char *cmd, Value *str_v, charptr where="end" )
+const char *glishtk_listbox_insert_action(TkProxy *a, const char *cmd, Value *str_v, charptr where="end" )
 	{
 	int len = str_v->Length();
 
@@ -652,9 +660,9 @@ char *glishtk_listbox_insert_action(TkProxy *a, const char *cmd, Value *str_v, c
 	return "";
 	}
 
-char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 	{
-	char *event_name = "listbox insert function";
+	const char *event_name = "listbox insert function";
 
 	if ( args->Length() <= 0 )
 		return "";
@@ -676,7 +684,7 @@ char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 	return "";
 	}
 
-char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
+const char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
 	{
 	int len = val->Length();
 
@@ -716,10 +724,10 @@ char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
 	return ret;
 	}
 
-char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 	{
-	char *ret = 0;
-	char *event_name = "listbox get function";
+	const char *ret = 0;
+	const char *event_name = "listbox get function";
 
 	if ( args->Length() <= 0 )
 		a->Error("zero length value");
@@ -750,7 +758,7 @@ char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
+const char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
@@ -767,7 +775,7 @@ char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 	return ret;
 	}
 
-char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
+const char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
 	{
 	if ( ! val->IsNumeric() || val->Length() < 2 )
 		{
@@ -781,7 +789,7 @@ char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
 	return 0;
 	}
 
-char *glishtk_button_state(TkProxy *a, const char *, Value *args )
+const char *glishtk_button_state(TkProxy *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
@@ -792,7 +800,7 @@ char *glishtk_button_state(TkProxy *a, const char *, Value *args )
 	return ret;
 	}
 
-char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 	{
 	TkButton *Self = (TkButton*)a;
 	TkButton *Parent = Self->Parent();
@@ -813,7 +821,7 @@ char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, const char *pfalse,
+const char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, const char *pfalse,
 				Value *args )
 	{
 	TkButton *Self = (TkButton*)a;
@@ -829,7 +837,7 @@ char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, con
 	return ret;
 	}
 
-Value *glishtk_strtobool( char *str )
+Value *glishtk_strtobool( const char *str )
 	{
 	if ( str && (*str == 'T' || *str == '1') )
 		return new Value( glish_true );
@@ -837,7 +845,7 @@ Value *glishtk_strtobool( char *str )
 		return new Value( glish_false );
 	}
 
-Value *glishtk_strtofloat( char *str )
+Value *glishtk_strtofloat( const char *str )
 	{
 	return new Value( atof(str) );
 	}
@@ -876,7 +884,7 @@ typedef PDict(glishtk_bindlist) glishtk_bindtable;
 
 int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
-	static char *event_names[] =
+	static const char *event_names[] =
 	  {
 	    "", "", "KeyPress", "KeyRelease", "ButtonPress", "ButtonRelease",
 	    "MotionNotify", "EnterNotify", "LeaveNotify", "FocusIn", "FocusOut",
@@ -928,9 +936,9 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 
 static glishtk_bindtable *glishtk_table = 0;
 static name_hash *glishtk_untable = 0;
-char *glishtk_bind(TkProxy *agent, const char *, Value *args )
+const char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 	{
-	char *event_name = "agent bind function";
+	const char *event_name = "agent bind function";
 	EXPRINIT( agent, event_name)
 
 	if ( args->Length() >= 2 )
@@ -982,9 +990,9 @@ char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 	return 0;
 	}
 
-char *glishtk_unbind(TkProxy *agent, const char *, Value *args )
+const char *glishtk_unbind(TkProxy *agent, const char *, Value *args )
 	{
-	char *event_name = "agent unbind function";
+	const char *event_name = "agent unbind function";
 	if ( args->Type() == TYPE_STRING && args->Length() >= 1 )
 		{
 		char *cback = 0;
@@ -1064,12 +1072,12 @@ int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, char *[] )
 	return TCL_OK;
 	}
 
-char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *, Value * )
+const char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *, Value * )
 	{
 	return (char*) new Value( Tk_Width(self) );
 	}
 
-char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *, Value * )
+const char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *, Value * )
 	{
 	return (char*) new Value( Tk_Height(self) );
 	}
@@ -1203,7 +1211,7 @@ void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
 		}
 	}
 
-char *glishtk_agent_map(TkProxy *a, const char *cmd, Value *)
+const char *glishtk_agent_map(TkProxy *a, const char *cmd, Value *)
 	{
 	a->SetMap( cmd[0] == 'M' ? 1 : 0, cmd[1] == 'T' ? 1 : 0 );
 	return 0;
@@ -1291,24 +1299,24 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	if ( logf && *logf ) logfile = fopen( logf, "w" );
 
 	int c = 0;
-	argv[c++] = "toplevel";
+	argv[c++] = (char*) "toplevel";
 	argv[c++] = (char*) NewName();
-	argv[c++] = "-borderwidth";
-	argv[c++] = "0";
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-borderwidth";
+	argv[c++] = (char*) "0";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = (char*) height;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
 	if ( new_cmap )
 		{
-		argv[c++] = "-colormap";
-		argv[c++] = "new";
+		argv[c++] = (char*) "-colormap";
+		argv[c++] = (char*) "new";
 		}
 	if ( visual )
 		{
-		argv[c++] = "-visual";
+		argv[c++] = (char*) "-visual";
 		argv[c++] = visual;
 		}
 
@@ -1347,37 +1355,37 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	expand = strdup(expand_);
 
 	c = 0;
-	argv[c++] = "frame";
+	argv[c++] = (char*) "frame";
 	argv[c++] = (char*) NewName( topwin );
 
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief_;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = (char*) height;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
 	if ( cursor && *cursor )
 		{
-		argv[c++] = "-cursor";
+		argv[c++] = (char*) "-cursor";
 		argv[c++] = (char*) cursor;
 		}
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
@@ -1489,43 +1497,43 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	expand = strdup(expand_);
 
 	int c = 0;
-	argv[c++] = "frame";
+	argv[c++] = (char*) "frame";
 	argv[c++] = (char*) NewName(frame->Self());
 
 	if ( new_cmap )
 		{
-		argv[c++] = "-colormap";
-		argv[c++] = "new";
+		argv[c++] = (char*) "-colormap";
+		argv[c++] = (char*) "new";
 		}
 
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief_;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = (char*) height;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
 	if ( cursor && *cursor )
 		{
-		argv[c++] = "-cursor";
+		argv[c++] = (char*) "-cursor";
 		argv[c++] = (char*) cursor;
 		}
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
@@ -1600,17 +1608,17 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	expand = strdup(expand_);
 
 	int c = 0;
-	argv[c++] = "frame";
+	argv[c++] = (char*) "frame";
 	argv[c++] = (char*) NewName(canvas->Self());
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief_;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = (char*) height;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
 
 	tcl_ArgEval( this, c, argv );
@@ -1736,7 +1744,7 @@ TkFrameP::~TkFrameP( )
 	if ( logfile ) fclose( logfile );
 	}
 
-char *TkFrameP::SetIcon( Value *args )
+const char *TkFrameP::SetIcon( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		{
@@ -1755,7 +1763,7 @@ char *TkFrameP::SetIcon( Value *args )
 	return (char*) (icon ? icon : "");
 	}
 
-char *TkFrameP::SetSide( Value *args )
+const char *TkFrameP::SetSide( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		{
@@ -1771,7 +1779,7 @@ char *TkFrameP::SetSide( Value *args )
 	return side;
 	}
 
-char *TkFrameP::SetPadx( Value *args )
+const char *TkFrameP::SetPadx( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
 		{
@@ -1799,7 +1807,7 @@ char *TkFrameP::SetPadx( Value *args )
 	return Tcl_GetStringResult(tcl);
 	}
 
-char *TkFrameP::SetPady( Value *args )
+const char *TkFrameP::SetPady( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
 		{
@@ -1827,12 +1835,12 @@ char *TkFrameP::SetPady( Value *args )
 	return Tcl_GetStringResult(tcl);
 	}
 
-char *TkFrameP::GetTag( Value * )
+const char *TkFrameP::GetTag( Value * )
 	{
 	return tag;
 	}
 
-char *TkFrameP::SetExpand( Value *args )
+const char *TkFrameP::SetExpand( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		{
@@ -1848,7 +1856,7 @@ char *TkFrameP::SetExpand( Value *args )
 	return expand;
 	}
 
-char *TkFrameP::Grab( int global_scope )
+const char *TkFrameP::Grab( int global_scope )
 	{
 	if ( grab ) return 0;
 
@@ -1861,7 +1869,7 @@ char *TkFrameP::Grab( int global_scope )
 	return "";
 	}
 
-char *TkFrameP::GrabCB( Value *args )
+const char *TkFrameP::GrabCB( Value *args )
 	{
 	if ( grab ) return 0;
 
@@ -1873,19 +1881,19 @@ char *TkFrameP::GrabCB( Value *args )
 	return Grab( global_scope );
 	}
 
-char *TkFrameP::IconifyCB( Value * )
+const char *TkFrameP::IconifyCB( Value * )
 	{
 	tcl_VarEval( this, "wm iconify ", Tk_PathName(topwin), (char *)NULL );
 	return Tcl_GetStringResult(tcl);
 	}
 
-char *TkFrameP::DeiconifyCB( Value * )
+const char *TkFrameP::DeiconifyCB( Value * )
 	{
 	tcl_VarEval( this, "wm deiconify ", Tk_PathName(topwin), (char *)NULL );
 	return Tcl_GetStringResult(tcl);
 	}
 
-char *TkFrameP::Raise( Value *args )
+const char *TkFrameP::Raise( Value *args )
 	{
 	TkProxy *agent = 0;
 	if ( args->IsAgentRecord( ) && (agent = (TkProxy*) store->GetProxy(args)) )
@@ -1896,7 +1904,7 @@ char *TkFrameP::Raise( Value *args )
 	return "";
 	}
 
-char *TkFrameP::Title( Value *args )
+const char *TkFrameP::Title( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
 {
@@ -1908,9 +1916,9 @@ char *TkFrameP::Title( Value *args )
 	return "";
 	}
 
-char *TkFrameP::FontsCB( Value *args )
+const char *TkFrameP::FontsCB( Value *args )
 	{
-	char *wild = "-*-*-*-*-*-*-*-*-*-*-*-*-*-*";
+	const char *wild = "-*-*-*-*-*-*-*-*-*-*-*-*-*-*";
 	char **fonts = 0;
 	int len = 0;
 
@@ -1935,7 +1943,7 @@ char *TkFrameP::FontsCB( Value *args )
 	return (char*) ret;
 	}
 
-char *TkFrameP::Release( )
+const char *TkFrameP::Release( )
 	{
 	if ( ! grab || grab != Id() ) return 0;
 
@@ -1945,7 +1953,7 @@ char *TkFrameP::Release( )
 	return "";
 	}
 
-char *TkFrameP::ReleaseCB( Value * )
+const char *TkFrameP::ReleaseCB( Value * )
 	{
 	return Release( );
 	}
@@ -1960,13 +1968,13 @@ void TkFrameP::PackSpecial( TkProxy *agent )
 	char **argv = (char**) alloc_memory( sizeof(char*)*(cnt+8) );
 
 	int i = 0;
-	argv[i++] = "pack";
+	argv[i++] = (char*) "pack";
 	argv[i++] = Tk_PathName( agent->Self() );
-	argv[i++] = "-side";
+	argv[i++] = (char*) "-side";
 	argv[i++] = side;
-	argv[i++] = "-padx";
+	argv[i++] = (char*) "-padx";
 	argv[i++] = padx;
-	argv[i++] = "-pady";
+	argv[i++] = (char*) "-pady";
 	argv[i++] = pady;
 
 	cnt=0;
@@ -2010,11 +2018,11 @@ void TkFrameP::Pack( )
 
 		if ( c > 1 )
 			{
-			argv[c++] = "-side";
+			argv[c++] = (char*) "-side";
 			argv[c++] = side;
-			argv[c++] = "-padx";
+			argv[c++] = (char*) "-padx";
 			argv[c++] = padx;
-			argv[c++] = "-pady";
+			argv[c++] = (char*) "-pady";
 			argv[c++] = pady;
 
 			do_pack(c,argv);
@@ -2092,6 +2100,8 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	if ( args->Length() != 22 )
 		InvalidNumberOfArgs(22);
 
+	init_reporters();
+
 	SETINIT
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
 	SETSTR( relief )
@@ -2162,7 +2172,7 @@ const char **TkFrameP::PackInstruction()
 
 	if ( strcmp(expand,"none") )
 		{
-		ret[c++] = "-fill";
+		ret[c++] = (char*) "-fill";
 		ret[c++] = expand;
 
 		if ( ! canvas && (! frame || ! strcmp(expand,"both") ||
@@ -2171,13 +2181,13 @@ const char **TkFrameP::PackInstruction()
 			! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") ||
 						 ! strcmp(frame->Side(),"bottom"))) )
 			{
-			ret[c++] = "-expand";
-			ret[c++] = "true";
+			ret[c++] = (char*) "-expand";
+			ret[c++] = (char*) "true";
 			}
 		else
 			{
-			ret[c++] = "-expand";
-			ret[c++] = "false";
+			ret[c++] = (char*) "-expand";
+			ret[c++] = (char*) "false";
 			}
 		ret[c++] = 0;
 		return (const char**) ret;
@@ -2207,7 +2217,7 @@ FILE *TkFrameP::Logfile( )
 
 Value *FmeProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{
-	char *val = 0;
+	const char *val = 0;
 
 	if ( fproc && agent )
 		val = (((TkFrameP*)agent)->*fproc)( arg);
@@ -2408,25 +2418,25 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	if ( type == RADIO )
 		{
 		sprintf(var_name,"%s%lx",type_,radio->Id());
-		argv[c++] = "-variable";
+		argv[c++] = (char*) "-variable";
 		argv[c++] = var_name;
 		sprintf(val_name,"BVaLuE%lx",Id());
-		argv[c++] = "-value";
+		argv[c++] = (char*) "-value";
 		argv[c++] = val_name;
 		}
 
 	if ( type == CHECK )
 		{
 		sprintf(var_name,"%s%lx",type_,Id());
-		argv[c++] = "-variable";
+		argv[c++] = (char*) "-variable";
 		argv[c++] = var_name;
 		}
 
-	argv[c++] = "-padx";
+	argv[c++] = (char*) "-padx";
 	argv[c++] = (char*) padx;
-	argv[c++] = "-pady";
+	argv[c++] = (char*) "-pady";
 	argv[c++] = (char*) pady;
-	argv[c++] = "-justify";
+	argv[c++] = (char*) "-justify";
 	argv[c++] = (char*) justify;
 
 	if ( bitmap_ && strlen( bitmap_ ) )
@@ -2436,7 +2446,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 			{
 			bitmap = (char*) alloc_memory(strlen(expanded)+2);
 			sprintf(bitmap,"@%s",expanded);
-			argv[c++] = "-bitmap";
+			argv[c++] = (char*) "-bitmap";
 			argv[c++] = bitmap;
 			free_memory( expanded );
 			}
@@ -2444,55 +2454,55 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 
 	if ( ! bitmap )
 		{
-		argv[c++] = "-width";
+		argv[c++] = (char*) "-width";
 		argv[c++] = width_;
-		argv[c++] = "-height";
+		argv[c++] = (char*) "-height";
 		argv[c++] = height_;
-		argv[c++] = "-text";
+		argv[c++] = (char*) "-text";
 		label = glishtk_quote_string(label_);
 		argv[c++] = label;
 		}
 
-	argv[c++] = "-anchor";
+	argv[c++] = (char*) "-anchor";
 	argv[c++] = (char*) anchor;
 
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
 
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-state";
+	argv[c++] = (char*) "-state";
 	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
 	if ( type != MENU )
 		{
-		argv[c++] = "-command";
+		argv[c++] = (char*) "-command";
 		char *cback = glishtk_make_callback( tcl, buttoncb, this );
 		argv[c++] = cback;
 		FILE *fle = Logfile();
@@ -2504,14 +2514,14 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	switch ( type )
 		{
 		case RADIO:
-			argv[0] = "radiobutton";
+			argv[0] = (char*) "radiobutton";
 			tcl_ArgEval( this, c, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case CHECK:
-			argv[0] = "checkbutton";
+			argv[0] = (char*) "checkbutton";
 			tcl_ArgEval( this, c, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2519,17 +2529,17 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 			break;
 		case MENU:
 			{
-			argv[0] = "menubutton";
+			argv[0] = (char*) "menubutton";
 			tcl_ArgEval( this, c, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
-			argv[0] = "menu";
+			argv[0] = (char*) "menu";
 			argv[1] = (char*) NewName(self);
-			argv[2] = "-tearoff";
-			argv[3] = "0";
+			argv[2] = (char*) "-tearoff";
+			argv[3] = (char*) "0";
 			tcl_ArgEval( this, 4, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2540,7 +2550,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 			}
 			break;
 		default:
-			argv[0] = "button";
+			argv[0] = (char*) "button";
 			tcl_ArgEval( this, c, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2574,7 +2584,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("bitmap", new TkProc(this, "-bitmap", glishtk_bitmap, glishtk_str));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_onestr, glishtk_str));
 	procs.Insert("height", new TkProc(this, "-height", glishtk_onedim, glishtk_strtoint));
@@ -2634,32 +2644,32 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 
 	int c = 3;
 	argv[0] = 0;		// not available yet for cascaded menues
-	argv[1] = "add";
+	argv[1] = (char*) "add";
 	argv[2] = 0;
 
 	if ( type == RADIO )
 		{
 		sprintf(var_name,"%s%lx",type_,radio->Id());
-		argv[c++] = "-variable";
+		argv[c++] = (char*) "-variable";
 		argv[c++] = var_name;
 		sprintf(val_name,"BVaLuE%lx",Id());
-		argv[c++] = "-value";
+		argv[c++] = (char*) "-value";
 		argv[c++] = val_name;
 		}
 
 	if ( type == CHECK )
 		{
 		sprintf(var_name,"%s%lx",type_,Id());
-		argv[c++] = "-variable";
+		argv[c++] = (char*) "-variable";
 		argv[c++] = var_name;
 		}
 
 #if 0
-	argv[c++] = "-padx";
+	argv[c++] = (char*) "-padx";
 	argv[c++] = (char*) padx;
-	argv[c++] = "-pady";
+	argv[c++] = (char*) "-pady";
 	argv[c++] = (char*) pady;
-	argv[c++] = "-justify";
+	argv[c++] = (char*) "-justify";
 	argv[c++] = (char*) justify;
 #endif
 
@@ -2670,7 +2680,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 			{
 			bitmap = (char*) alloc_memory(strlen(expanded)+2);
 			sprintf(bitmap,"@%s",expanded);
-			argv[c++] = "-bitmap";
+			argv[c++] = (char*) "-bitmap";
 			argv[c++] = bitmap;
 			free_memory( expanded );
 			}
@@ -2679,48 +2689,48 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	if ( ! bitmap )
 		{
 #if 0
-		argv[c++] = "-width";
+		argv[c++] = (char*) "-width";
 		argv[c++] = width_;
-		argv[c++] = "-height";
+		argv[c++] = (char*) "-height";
 		argv[c++] = height_;
 #endif
-		argv[c++] = "-label";
+		argv[c++] = (char*) "-label";
 		label = glishtk_quote_string(label_);
 		argv[c++] = label;
 		}
 
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
 
 #if 0
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 #endif
-	argv[c++] = "-foreground";
+	argv[c++] = (char*) "-foreground";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-state";
+	argv[c++] = (char*) "-state";
 	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-activeforeground";
+		argv[c++] = (char*) "-activeforeground";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-activebackground";
+		argv[c++] = (char*) "-activebackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 
-	argv[c++] = "-command";
+	argv[c++] = (char*) "-command";
 	char *cback = glishtk_make_callback( tcl, buttoncb, this );
 	argv[c++] = cback;
 
@@ -2730,7 +2740,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 		case RADIO:
 			{
 			argv[0] = Tk_PathName(Menu());
-			argv[2] = "radio";
+			argv[2] = (char*) "radio";
 			tcl_ArgEval( this, c, argv);
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2743,7 +2753,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 		case CHECK:
 			{
 			argv[0] = Tk_PathName(Menu());
-			argv[2] = "check";
+			argv[2] = (char*) "check";
 			tcl_ArgEval( this, c, argv);
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2756,10 +2766,10 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 		case MENU:
 			{
 			char *av[10];
-			av[0] = "menu";
+			av[0] = (char*) "menu";
 			av[1] = (char*) NewName(menu->Menu());
-			av[2] = "-tearoff";
-			av[3] = "0";
+			av[2] = (char*) "-tearoff";
+			av[3] = (char*) "0";
 			tcl_ArgEval( this, 4, av );
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2767,8 +2777,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 			argv[0] = Tk_PathName(menu->Menu());
-			argv[2] = "cascade";
-			argv[c++] = "-menu";
+			argv[2] = (char*) "cascade";
+			argv[c++] = (char*) "-menu";
 			argv[c++] = Tk_PathName(self);
 			tcl_ArgEval( this, c, argv );
 			ctor_error = Tcl_GetStringResult(tcl);
@@ -2780,7 +2790,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 			break;
 		default:
 			argv[0] = Tk_PathName(Menu());
-			argv[2] = "command";
+			argv[2] = (char*) "command";
 			tcl_ArgEval( this, c, argv);
 			ctor_error = Tcl_GetStringResult(tcl);
 			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
@@ -2818,7 +2828,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
 	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
@@ -2946,7 +2956,7 @@ void TkButton::State(unsigned char s)
 		char var_name[256];
 		sprintf(var_name,"radio%lx",radio->Id());
 		radio->RadioID( 0 );
-		Tcl_SetVar( tcl, var_name, "", TCL_GLOBAL_ONLY );
+		Tcl_SetVar( tcl, var_name, (char*) "", TCL_GLOBAL_ONLY );
 		}
 	else
 		{
@@ -2968,20 +2978,20 @@ const char **CLASS::PackInstruction()			\
 	int c = 0;					\
 	if ( fill )					\
 		{					\
-		ret[c++] = "-fill";			\
+		ret[c++] = (char*) "-fill";		\
 		ret[c++] = fill;			\
 		if ( ! strcmp(fill,"both") ||		\
 		     ! strcmp(fill, frame->Expand()) ||	\
 		     frame->NumChildren() == 1 &&	\
 		     ! strcmp(fill,"y") )		\
 			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "true";		\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "true";	\
 			}				\
 		else					\
 			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "false";		\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "false";	\
 			}				\
 		ret[c++] = 0;				\
 		return (const char **) ret;		\
@@ -3027,7 +3037,7 @@ int scalecb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	return TCL_OK;
 	}
 
-char *glishtk_scale_ends(TkProxy *a, const char *cmd, Value *args )
+const char *glishtk_scale_ends(TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	Tk_Window self = a->Self();
@@ -3064,7 +3074,7 @@ char *glishtk_scale_ends(TkProxy *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
+const char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	{
 	TkScale *s = (TkScale*)a;
 	if ( args->IsNumeric() && args->Length() > 0 )
@@ -3157,59 +3167,59 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	sprintf(width_,"%d", width);
 
 	int c = 2;
-	argv[0] = "scale";
+	argv[0] = (char*) "scale";
 	argv[1] = (char*) NewName(frame->Self());
-	argv[c++] = "-from";
+	argv[c++] = (char*) "-from";
 	argv[c++] = from_c;
-	argv[c++] = "-to";
+	argv[c++] = (char*) "-to";
 	argv[c++] = to_c;
-	argv[c++] = "-length";
+	argv[c++] = (char*) "-length";
 	argv[c++] = (char*) len;
-	argv[c++] = "-resolution";
+	argv[c++] = (char*) "-resolution";
 	argv[c++] = (char*) resolution_;
-	argv[c++] = "-orient";
+	argv[c++] = (char*) "-orient";
 	argv[c++] = (char*) orient;
 	if ( text_ && *text_ )
 		{
-		argv[c++] = "-label";
+		argv[c++] = (char*) "-label";
 		text = glishtk_quote_string(text_);
 		argv[c++] = text;
 		}
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width_;
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-activebackground";
+		argv[c++] = (char*) "-activebackground";
 		argv[c++] = hlcolor_;
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = hlbackground_;
 		}
  	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
-	argv[c++] = "-variable";
+	argv[c++] = (char*) "-variable";
 	argv[c++] = var_name;
 
 	tcl_ArgEval( this, c, argv );
@@ -3258,7 +3268,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	procs.Insert("value", new TkProc(this, "", glishtk_scale_value, glishtk_strtofloat));
 	procs.Insert("width", new TkProc(this, "-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
@@ -3399,55 +3409,55 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	int c = 0;
 	argv[c++] = Tk_PathName(self);
-	argv[c++] = "config";
-	argv[c++] = "-width";
+	argv[c++] = (char*) "config";
+	argv[c++] = (char*) "-width";
 	argv[c++] = width_;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = height_;
-	argv[c++] = "-wrap";
+	argv[c++] = (char*) "-wrap";
 	argv[c++] = (char*) wrap;
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-state";
+	argv[c++] = (char*) "-state";
 	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
 	char ys[100];
-	argv[c++] = "-yscrollcommand";
+	argv[c++] = (char*) "-yscrollcommand";
 	char *cback = glishtk_make_callback( tcl, text_yscrollcb, this, ys );
 	argv[c++] = cback;
 	FILE *fle = Logfile();
 	if ( fle )
 		fprintf( fle, "proc %s { f l } { puts \"(text yscroll:%s) %s\" }\n", cback, cback, Tk_PathName(self) );
-	argv[c++] = "-xscrollcommand";
+	argv[c++] = (char*) "-xscrollcommand";
 	argv[c++] = cback = glishtk_make_callback( tcl, text_xscrollcb, this );
 	if ( fle )
 		fprintf( fle, "proc %s { f l } { puts \"(text xscroll:%s) %s\" }\n", cback, cback, Tk_PathName(self) );
@@ -3476,7 +3486,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("deltag", new TkProc(this, "tag", "delete", glishtk_text_rangesfunc));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_onestr, glishtk_str));
 	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
@@ -3641,36 +3651,36 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	sprintf(width_,"%d", width);
 
 	int c = 0;
-	argv[c++] = "scrollbar";
+	argv[c++] = (char*) "scrollbar";
 	argv[c++] = (char*) NewName(frame->Self());
-	argv[c++] = "-orient";
+	argv[c++] = (char*) "-orient";
 	argv[c++] = (char*) orient;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = width_;
 
 	if ( jump )
 		{
-		argv[c++] = "-jump";
-		argv[c++] = "true";
+		argv[c++] = (char*) "-jump";
+		argv[c++] = (char*) "true";
 		}
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
-	argv[c++] = "-command";
+	argv[c++] = (char*) "-command";
 	char *cback = glishtk_make_callback( tcl, scrollbarcb, this );
 	argv[c++] = cback;
 	FILE *fle = Logfile();
@@ -3706,30 +3716,30 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("jump", new TkProc(this, "-jump", glishtk_onebool));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 const char **TkScrollbar::PackInstruction()
 	{
 	static char *ret[7];
-	ret[0] = "-fill";
+	ret[0] = (char*) "-fill";
 	tcl_VarEval( this, Tk_PathName(self), " cget -orient", (char *)NULL );
 	char *orient = Tcl_GetStringResult(tcl);
 	if ( orient[0] == 'v' && ! strcmp(orient,"vertical") )
-		ret[1] = "y";
+		ret[1] = (char*) "y";
 	else
-		ret[1] = "x";
+		ret[1] = (char*) "x";
 	ret[2] = ret[4] = 0;
 	if ( frame->ExpandNum(this,1) == 0 || ! strcmp(frame->Expand(),ret[1]) )
 		{
-		ret[2] = "-expand";
-		ret[3] = "true";
+		ret[2] = (char*) "-expand";
+		ret[3] = (char*) "true";
 		}
 	else
 		{
-		ret[2] = "-expand";
-		ret[3] = "false";
+		ret[2] = (char*) "-expand";
+		ret[3] = (char*) "false";
 		}
 
 	return (const char **) ret;
@@ -3804,47 +3814,47 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify
 	sprintf(width,"%d",width_);
 
 	int c = 0;
-	argv[c++] = "label";
+	argv[c++] = (char*) "label";
 	argv[c++] = (char*) NewName(frame->Self());
-	argv[c++] = "-text";
+	argv[c++] = (char*) "-text";
 	text = glishtk_quote_string(text_);
 	argv[c++] = text;
-	argv[c++] = "-justify";
+	argv[c++] = (char*) "-justify";
 	argv[c++] = (char*) justify;
-	argv[c++] = "-padx";
+	argv[c++] = (char*) "-padx";
 	argv[c++] = (char*) padx;
-	argv[c++] = "-pady";
+	argv[c++] = (char*) "-pady";
 	argv[c++] = (char*) pady;
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = width;
-	argv[c++] = "-anchor";
+	argv[c++] = (char*) "-anchor";
 	argv[c++] = (char*) anchor;
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
@@ -3974,52 +3984,52 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	sprintf(width_,"%d",width);
 
 	int c = 0;
-	argv[c++] = "entry";
+	argv[c++] = (char*) "entry";
 	argv[c++] =  (char*) NewName(frame->Self());
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = width_;
-	argv[c++] = "-justify";
+	argv[c++] = (char*) "-justify";
 	argv[c++] = (char*) justify;
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-state";
+	argv[c++] = (char*) "-state";
 	argv[c++] = (char*) (disabled ? "disabled" : "normal");
 	if ( disabled ) disable_count++;
 
 	if ( ! show )
 		{
-		argv[c++] = "-show";
+		argv[c++] = (char*) "-show";
 		argv[c++] = (char*) (show ? "true" : "false");
 		}
-	argv[c++] = "-exportselection";
+	argv[c++] = (char*) "-exportselection";
 	argv[c++] = (char*) (exportselection ? "true" : "false");
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
-	argv[c++] = "-xscrollcommand";
+	argv[c++] = (char*) "-xscrollcommand";
 	char *cback = glishtk_make_callback( tcl, entry_xscrollcb, this );
 	argv[c++] = cback;
 	FILE *fle = Logfile();
@@ -4057,7 +4067,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
-	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	procs.Insert("exportselection", new TkProc(this, "-exportselection", glishtk_onebool));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_onestr, glishtk_str));
@@ -4169,47 +4179,47 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr wid
 	if ( ! frame || ! frame->Self() ) return;
 
 	int c = 2;
-	argv[0] = "message";
+	argv[0] = (char*) "message";
 	argv[1] = (char*) NewName( frame->Self() );
-	argv[c++] = "-text";
+	argv[c++] = (char*) "-text";
 	text = glishtk_quote_string(text_);
 	argv[c++] = text;
-	argv[c++] = "-justify";
+	argv[c++] = (char*) "-justify";
 	argv[c++] = (char*) justify;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-padx";
+	argv[c++] = (char*) "-padx";
 	argv[c++] = (char*) padx;
-	argv[c++] = "-pady";
+	argv[c++] = (char*) "-pady";
 	argv[c++] = (char*) pady;
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-anchor";
+	argv[c++] = (char*) "-anchor";
 	argv[c++] = (char*) anchor;
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
@@ -4348,54 +4358,54 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	sprintf(height_,"%d",height);
 
 	int c = 0;
-	argv[c++] = "listbox";
+	argv[c++] = (char*) "listbox";
 	argv[c++] = (char*) NewName(frame->Self());
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = width_;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = height_;
-	argv[c++] = "-selectmode";
+	argv[c++] = (char*) "-selectmode";
 	argv[c++] = (char*) mode;
 	if ( font[0] )
 		{
-		argv[c++] = "-font";
+		argv[c++] = (char*) "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-fg";
+	argv[c++] = (char*) "-fg";
 	argv[c++] = (char*) foreground_;
-	argv[c++] = "-bg";
+	argv[c++] = (char*) "-bg";
 	argv[c++] = (char*) background_;
-	argv[c++] = "-exportselection";
+	argv[c++] = (char*) "-exportselection";
 	argv[c++] = (char*) (exportselection ? "true" : "false");
 
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
 	char ys[100];
-	argv[c++] = "-yscrollcommand";
+	argv[c++] = (char*) "-yscrollcommand";
 	char *cback = glishtk_make_callback( tcl, listbox_yscrollcb, this, ys );
 	argv[c++] = cback;
 	FILE *fle = Logfile();
 	if ( fle )
 		fprintf( fle, "proc %s { f l } { puts \"(listbox yscroll:%s) %s\" }\n", cback, cback, argv[1] );
-	argv[c++] = "-xscrollcommand";
+	argv[c++] = (char*) "-xscrollcommand";
 	argv[c++] = cback = glishtk_make_callback( tcl, listbox_xscrollcb, this );
 	if ( fle )
 		fprintf( fle, "proc %s { f l } { puts \"(listbox xscroll:%s) %s\" }\n", cback, cback, argv[1] );

@@ -134,12 +134,12 @@ extern const char *sys_error_desc();
 #define UsE_PaStE(b) UsE__/**/b/**/_
 #endif
 #if defined(__cplusplus)
-#define UsE(x) inline void UsE_PaStE(x)(char *) { UsE_PaStE(x)(x); }
+#define UsE(x) inline void UsE_PaStE(x)(const char *) { UsE_PaStE(x)(x); }
 #else
-#define UsE(x) static void UsE_PaStE(x)(char *d) { UsE_PaStE(x)(x); }
+#define UsE(x) static void UsE_PaStE(x)(const char *d) { UsE_PaStE(x)(x); }
 #endif
-#define RCSID(str)			\
-	static char *rcsid_ = str;	\
+#define RCSID(str)				\
+	static const char *rcsid_ = str;	\
 	UsE(rcsid_)
 #else
 #define RCSID(str)

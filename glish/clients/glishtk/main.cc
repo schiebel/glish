@@ -6,13 +6,15 @@ RCSID("@(#) $Id$")
 #include <dlfcn.h>
 #include "Glish/glishtk.h"
 #include "Glish/Proxy.h"
+#include "Glish/Reporter.h"
 #include "tkUtil.h"
 
-class TkStore : public ProxyStore {
+class TkStore : public ClientProxyStore {
     public:
-	TkStore( int &argc, char **argv, Client::ShareType multithreaded = NONSHARED );
+	TkStore( int &argc, char **argv, ProxyStore::ShareType multithreaded = NONSHARED );
 	void FD_Change( int fd, int add_flag );
 	void Loop( );
+	int Done( ) const { return done; }
 
 	const char *GetOption( const char * ) const;
 
@@ -60,8 +62,8 @@ void TkStore::fileproc( ClientData data, int )
 		}
 	}
 
-TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
-				ProxyStore( argc, argv, multithreaded ), focus_follows(1), done(0)
+TkStore::TkStore( int &argc, char **argv, ProxyStore::ShareType multithreaded ) :
+				ClientProxyStore( argc, argv, multithreaded ), focus_follows(1), done(0)
 	{
 	for ( int i=1; i < argc; ++i )
 		{
@@ -71,7 +73,7 @@ TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
 					focus_follows = 0;
 		}
 
-	SetQuiet();
+	SetQuiet( );
 	fd_set fds;
 	FD_ZERO( &fds );
 	int num = AddInputMask( &fds );
@@ -101,8 +103,10 @@ const char *TkStore::GetOption( const char *op ) const
 int main( int argc, char** argv )
 	{
 	void *handle = 0;
-	typedef void (*InitFunc)( ProxyStore * );
-	if ( ! (handle = dlopen( "GlishTk.so", RTLD_NOW | RTLD_GLOBAL )) )
+	char *sopath = which_shared_object( "GlishTk.so" );
+	sopath = sopath ? sopath : string_dup( "GlishTk.so" );
+
+	if ( ! (handle = dlopen( sopath, RTLD_NOW | RTLD_GLOBAL )) )
 		{
 		const char *error = dlerror( );
 		if ( ! error )
@@ -114,7 +118,7 @@ int main( int argc, char** argv )
 		}
 
 	
-	InitFunc func = (InitFunc) dlsym( handle, "GlishTk_init" );
+	GlishInitFunc func = (GlishInitFunc) dlsym( handle, "GlishTk_init" );
 	if ( ! func )
 		{
 		const char *error = dlerror( );
@@ -127,7 +131,7 @@ int main( int argc, char** argv )
 		}
 
 	TkStore stor( argc, argv );
-	(*func)( &stor );
+	(*func)( &stor, argc, (const char * const *) argv );
 
 	stor.Loop();
 

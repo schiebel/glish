@@ -15,6 +15,7 @@ RCSID("@(#) $Id$")
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "Pager.h"
+#include <pthread.h>
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -61,6 +62,7 @@ extern int glish_include_jmpbuf_set;
 #include "Frame.h"
 #include "BuiltIn.h"
 #include "Task.h"
+#include "LdAgent.h"
 #include "input.h"
 #include "Channel.h"
 #include "Select.h"
@@ -938,8 +940,10 @@ void SystemInfo::update_path( )
 		     v2 != false_value &&
 		     ( v2->Type() == TYPE_STRING || v2->Type() == TYPE_RECORD ) &&
 		     v2->Length() )
+			{
 			ldpath = v2;
-
+			set_load_path( (Value*) ldpath );
+			}
 		}
 
 	update &= ~PATH();
@@ -1278,7 +1282,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		if ( ldpath && len )
 			{
 			recordptr ld = create_record_dict( );
-			ld->Insert( string_dup(local_host_name()), new IValue(ldpath,len) );
+			IValue *pathval = new IValue(ldpath,len);
+			ld->Insert( string_dup(local_host_name()), pathval );
+			set_load_path( (Value*) pathval );
 			path->Insert( string_dup("lib"), new IValue( ld ) );
 			}
 		}
@@ -1289,7 +1295,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		if ( lbpath && len )
 			{
 			recordptr ld = create_record_dict( );
-			ld->Insert( string_dup(local_host_name()), new IValue(lbpath,len) );
+			IValue *pathval = new IValue(lbpath,len);
+			ld->Insert( string_dup(local_host_name()), pathval );
+			set_load_path( (Value*) pathval );
 			path->Insert( string_dup("lib"), new IValue( ld ) );
 			}
 		}
@@ -1342,12 +1350,32 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	Unref(nogui);
 	}
 
-int *Sequencer::NewObjId( Task *t )
+char *Sequencer::NewTaskId( int &idi )
+	{
+	static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+	pthread_mutex_lock( &lock );
+	idi = ++last_task_id;
+	pthread_mutex_unlock( &lock );
+
+	char buf[128];
+	sprintf( buf, "<task:%d>", idi );
+	char* new_ID = string_dup( buf );
+
+	return new_ID;
+	}
+
+int *Sequencer::NewObjId( int TaskId )
 	{
 	int *ret = alloc_int(3);
+	static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+	pthread_mutex_lock( &lock );
 	ret[0] = xpid;
-	ret[1] = t->TaskIDi();
+	ret[1] = TaskId;
 	ret[2] = ++obj_cnt;
+	pthread_mutex_unlock( &lock );
+
 	return ret;
 	}
 
@@ -2789,12 +2817,7 @@ IValue *Sequencer::PopFailStack( )
 
 char* Sequencer::RegisterTask( Task* new_task, int &idi )
 	{
-	char buf[128];
-	sprintf( buf, "<task:%d>", ++last_task_id );
-
-	char* new_ID = string_dup( buf );
-	idi = last_task_id;
-
+	char* new_ID = NewTaskId( idi );
 	ids_to_tasks.Insert( new_ID, new_task );
 
 	//
@@ -3340,7 +3363,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		{
 		if ( ! strcmp( event_name, "*proxy-id*" ) )
 			{
-			IValue *result = new IValue(NewObjId(task),ProxyId::len());
+			IValue *result = new IValue(NewObjId(task->TaskIDi()),ProxyId::len());
 			task->SendEvent( event_name, result );
 			Unref(result);
 			}
@@ -3434,6 +3457,124 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	else
 		return 0;
 	}
+
+
+int Sequencer::NewEvent( LoadedAgent* task, GlishEvent* event, int complain_if_no_interest,
+			 NotifyTrigger *t, int preserve )
+	{
+	if ( ! event )
+		{ // task termination
+
+		if ( task->Finished() )
+			return 0;
+
+		// Abnormal termination - no "done" message first.
+		event = new GlishEvent( (const char*) "fail",
+					(Value*)(new IValue( task->AgentID() )) );
+		}
+
+	const char* event_name = event->name;
+	IValue* value = (IValue*)event->value;
+	Agent *agent = task;
+
+	if ( verbose > 0 )
+		message->Report( name, ": received event ",
+				 task->Name(), ".", event_name, " ", value );
+
+	if ( monitor_task /* && task != monitor_task */ )
+		LogEvent( task->TaskID(), task->Name(), event_name, value, 1 );
+
+	if ( event->IsProxy() )
+		{
+		if ( value->Type() == TYPE_RECORD )
+			{
+			const IValue *nid = 0;
+			const IValue *nval = 0;
+			if ( (nval = (IValue*)value->HasRecordElement("*proxy-create*")) &&
+			     nval->Type() == TYPE_INT && nval->Length() == ProxyId::len())
+				{
+				ProxyTask *pxy = new ProxyTask(ProxyId(nval->IntPtr(0)), task, this);
+				event->SetValue( (Value*)(value = pxy->AgentRecord()) );
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
+				}
+			else if ( (nval = (IValue*)value->HasRecordElement("value")) &&
+				  (nid = (IValue*)value->HasRecordElement("id")) &&
+				  nid->Type() == TYPE_INT && nid->Length() == ProxyId::len())
+				{
+				ProxyId id(nid->IntPtr(0));
+				ProxyTask *pxy = task->GetProxy(id);
+				if ( pxy )
+					{
+					const IValue *pp = 0;
+					if ( nval->Type() == TYPE_RECORD &&
+					     (pp = (IValue*)nval->HasRecordElement("*proxy-create*")) &&
+					     pp->Type() == TYPE_INT && pp->Length() == ProxyId::len() )
+						{
+						ProxyTask *pxy = new ProxyTask(ProxyId(pp->IntPtr(0)), task, this);
+						event->SetValue( (Value*)(value = pxy->AgentRecord()) );
+						}
+					else
+						event->SetValue((Value*)copy_value(nval));
+
+					if ( ! strcmp( event_name, "done" ) )
+						pxy->SetFinished( );
+
+					agent = pxy;
+					}
+				else
+					{
+					//
+					// If we have a bogus ProxyId & this is a "done" event,
+					// odds are that this is just a proxy that was deleted
+					// from the interpreter side of things... the event
+					// will have already been delivered to those looking for
+					// events from the proxy...
+					//
+					if ( strcmp( event_name, "done" ) )
+						{
+						// BAD PROXY IDENTIFIER
+						fprintf( stderr, "\t\t\t===> Sequencer::NewEvent( ): bad proxy identifier!\n" );
+						}
+					Unref( event );
+					return 0;
+					}
+
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
+				}
+			else
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
+			}
+		else
+			if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
+		}
+
+	else if ( ! strcmp( event_name, "established" ) )
+		{
+		// We already did the SetActive() when the channel
+		// was established.
+		}
+
+	else if ( ! strcmp( event_name, "done" ) )
+		task->SetFinished();
+
+	else if ( ! strcmp( event_name, "fail" ) )
+		{
+		task->SetFinished();
+		complain_if_no_interest = 1;
+		}
+
+	else if ( ! strcmp( event_name, "*rendezvous*" ) )
+		Rendezvous( event_name, value );
+
+	else if ( ! strcmp( event_name, "*forward*" ) )
+		ForwardEvent( event_name, value );
+
+	else
+		if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
+
+	return NewEvent( agent, event, complain_if_no_interest, t, preserve );
+	}
+
 
 void Sequencer::CheckAwait( Agent* agent, const char* event_name, IValue *event_val )
 	{

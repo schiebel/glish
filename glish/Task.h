@@ -7,21 +7,17 @@
 #include "Agent.h"
 #include "BuiltIn.h"
 #include "LocalExec.h"
-#include "Glish/Client.h"
 
 class Channel;
 class Selector;
 class GlishEvent;
 class ProxyTask;
 
-glish_declare(PList,ProxyTask);
-typedef PList(ProxyTask) proxytask_list;
-
 class TaskAttr GC_FINAL_CLASS {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
 		  int async_flag=0, int ping_flag=0, int suspend_flag=0, int force_sockets=0,
-		  const char *name_ = 0, char *transcript_=0 );
+		  const char *name_ = 0, char *transcript_=0, int loaded_client_flag=0 );
 
 	~TaskAttr();
 	void OpenTranscript( );
@@ -38,10 +34,10 @@ class TaskAttr GC_FINAL_CLASS {
 	char *transcript;
 	void *transcript_file;
 	int pid;
+	int loaded_client;
 	};
 
-
-class Task : public Agent {
+class Task : public ProxySource {
     public:
 	Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast=0 );
 	~Task();
@@ -112,12 +108,6 @@ class Task : public Agent {
 		sendEvent( fd, &e, can_suspend, proxy_id );
 		}
 
-	void RegisterProxy( ProxyTask *p )
-		{ if ( ! ptlist.is_member(p) ) ptlist.append( p ); }
-	void UnregisterProxy( ProxyTask *p )
-		{ ptlist.remove(p); }
-	ProxyTask *GetProxy( const ProxyId &proxy_id );
-
 	void AbnormalExit( int );
 
     protected:
@@ -154,8 +144,6 @@ class Task : public Agent {
 
 	int protocol;	// which protocol the client speaks, or 0 if not known
 
-	proxytask_list ptlist;
-
 	// Pipes used for local connections.
 	int pipes_used;
 	int read_pipe[2], write_pipe[2];
@@ -182,7 +170,6 @@ class ClientTask : public Task {
 	int useshm;
 	void CreateAsyncClient( const char** argv );
 	};
-
 
 class CreateTaskBuiltIn : public BuiltIn {
     public:
@@ -228,6 +215,7 @@ class CreateTaskBuiltIn : public BuiltIn {
 	// Create an asynchronous shell or client.
 	IValue* CreateAsyncShell( const_args_list* args );
 	IValue* CreateClient( const_args_list* args, int shm_flag );
+	IValue* CreateLoadedClient( const_args_list* args );
 
 	// Check to see whether the creation of the given task was
 	// successful. Returns 0 if creation was successful, or an
@@ -237,36 +225,6 @@ class CreateTaskBuiltIn : public BuiltIn {
 	Sequencer* sequencer;
 	TaskAttr* attrs;	// attributes for task currently being created
 	};
-
-class ProxyTask : public Agent {
-    public:
-	ProxyTask( const ProxyId &id_, Task *t, Sequencer *s );
-	~ProxyTask( );
-
-	void SetActivity( State );
-
-	IValue* SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence=0 );
-
-	// Returns non-zero on success
-	int BundleEvents( int howmany=0 );
-	int FlushEvents( );
-
-	const ProxyId &Id() const { return id; }
-
-	void WrapperGone( const IValue *v );
-
-	int IsProxy( ) const;
-
-	void AbnormalExit( int );
-
-    private:
-	recordptr bundle;
-	int       bundle_size;
-
-	Task *task;
-	ProxyId id;
-};
 
 class TaskLocalExec : public LocalExec {
     public:

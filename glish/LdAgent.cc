@@ -320,18 +320,23 @@ LoadedAgent::LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer
 	     arg->Type() == TYPE_STRING && arg->Length() > 0 )
 		{
 		charptr object = arg->StringPtr(0)[0];
-		
-		if ( ! (handle = dlopen( "GlishTk.so", RTLD_NOW | RTLD_GLOBAL )) )
+		char *sopath = which_shared_object( "GlishTk.so" );
+		sopath = sopath ? sopath : string_dup( "GlishTk.so" );
+
+		if ( ! (handle = dlopen( sopath, RTLD_NOW | RTLD_GLOBAL )) )
 			{
 			const char *error = dlerror( );
 			if ( ! error )
 				perror( "Error:" );
 			else
 				fprintf( stderr, "%s\n", error );
-			fprintf( stderr, "Couldn't open shared object: \"GlishTk.so\"\n" );
+			fprintf( stderr, "Couldn't open shared object: \"%s\"\n", sopath );
+			free_memory( sopath );
 			}
 		else
 			{
+			free_memory( sopath );
+
 			GlishInitFunc func = (GlishInitFunc) dlsym( handle, "GlishTk_init" );
 			if ( ! func )
 				{
@@ -370,6 +375,7 @@ LoadedAgent::LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer
 					}
 				}
 			}
+
 		}
 	}
 

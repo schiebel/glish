@@ -408,7 +408,7 @@ int Selector::DoSelection( Sequencer *seq, int CanBlock )
 			--status;
 			}
 
-		if ( break_selection ) {status = 0; break;}
+		if ( break_selection ) {return 1;}
 		}
 
 	if ( status != 0 )

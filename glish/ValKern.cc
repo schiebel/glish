@@ -592,7 +592,7 @@ void delete_record( recordptr r )
 // 	release_garbage( );
 	}
 
-recordptr copy_record_dict( recordptr rptr )
+recordptr copy_record_dict( recordptr rptr, int deep )
 	{
 	int ordered = rptr->IsOrdered();
 	recordptr new_record = new PDict(Value)( ordered ? ORDERED : UNORDERED );
@@ -606,7 +606,7 @@ recordptr copy_record_dict( recordptr rptr )
 		for ( int i = 0; i < rptr->Length(); i++ )
 			{
 			member = rptr->NthEntry(i,key);
-			new_member = copy_value( member );
+			new_member = deep ? deep_copy_value( member ) : copy_value( member );
 			if ( member->IsConst() )
 				new_member->MakeConst();
 			if ( member->IsModConst() )
@@ -618,7 +618,7 @@ recordptr copy_record_dict( recordptr rptr )
 		{
 		IterCookie *c = rptr->InitForIteration();
 		while ( (member = rptr->NextEntry( key, c )) ) 
-			new_record->Insert( string_dup( key ), copy_value( member ) );
+			new_record->Insert( string_dup( key ), deep ? deep_copy_value( member ) : copy_value( member ) );
 		}
 
 	return new_record;

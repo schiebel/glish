@@ -9,6 +9,7 @@
 #include "Glish/Queue.h"
 #include "Agent.h"
 #include "Regex.h"
+#include "Select.h"
 
 class UserAgent;
 class GlishEvent;
@@ -28,6 +29,7 @@ extern int lookup_print_precision( );
 extern int lookup_print_limit( );
 
 class Task;
+class LoadedAgent;
 class BuiltIn;
 class AcceptSocket;
 class AcceptSelectee;
@@ -250,6 +252,7 @@ class await_type GC_FINAL_CLASS {
 };
 
 class Sequencer GC_FINAL_CLASS {
+friend class LoadedProxyStore;
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
 	inline unsigned int VERB_FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
@@ -473,6 +476,8 @@ public:
 
 	int NewEvent( Task* task, GlishEvent* event, int complain_if_no_interest = 0,
 		      NotifyTrigger *t=0, int preserve=0 );
+	int NewEvent( LoadedAgent* task, GlishEvent* event, int complain_if_no_interest = 0,
+		      NotifyTrigger *t=0, int preserve=0 );
 	int NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_interest = 0,
 		      NotifyTrigger *t=0, int preserve=0 );
 	int NewEvent( Agent* agent, const char* event_name, IValue* value,
@@ -575,6 +580,8 @@ public:
 	int AddStdinSelectee( );
 	int RemoveStdinSelectee( );
 
+	void AddSelectee( Selectee *s ) { selector->AddSelectee( s ); }
+
 protected:
 	void MakeEnvGlobal( evalOpt &opt );
 	void MakeArgvGlobal( evalOpt &opt, char** argv, int argc, int append_name=0 );
@@ -597,7 +604,10 @@ protected:
 	void PushAwait( );
 	await_type *PopAwait();
 
-	int *NewObjId( Task *t );
+	// both of these used by multiple threads
+	int *NewObjId( int );
+	char *NewTaskId( int & );
+
 	int xpid;
 	int obj_cnt;
 

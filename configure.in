@@ -510,6 +510,13 @@ AC_CHECK_LIB(bsd, main)
 AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
+AC_CHECK_LIB(pthread, main, [changequote(, )dnl
+  ac_tr_lib=HAVE_LIB`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+changequote([, ])dnl
+  AC_DEFINE_UNQUOTED($ac_tr_lib)
+  GLIBS="-lpthread $GLIBS"
+])
+
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS(gethostname waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr sigfpe)
 
@@ -1093,6 +1100,7 @@ dnl##	CLIENT_LIBS -	The libraries needed to link a Glish client indicated
 dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
 dnl##	TKCLIENT_LIBS - The libraries needed to link a Glish client indicated
 dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
+dnl##	TKLIB_LIBS -    The libraries needed to link the glish/tk library
 dnl##	SHARED_LIB -	'lib_tgt' if shared libary should be built, empty otherwise
 dnl##	STATIC_LIB -	'lib_tgt' if static libary should be built, empty otherwise
 dnl##	SHARED_BIN -	'bin_tgt' if shared binary should be built, empty otherwise
@@ -1681,10 +1689,12 @@ if test "$static_binary" = "yes"; then
     GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+	TKLIB_LIBS="$TKLIB_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
 else
     SHARED_BIN=bin_tgt
@@ -1692,16 +1702,23 @@ else
     GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
     CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
+    TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
+	TKLIB_LIBS="$TKLIB_LIBS -lnpd${NPD_SLIB_VERSION}"
     fi
     if test -n "$DL_LIBS"; then
-	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
     fi
 fi
+
+dnl##
+dnl## Add in libraries which are specific to the glish
+dnl## interpreter...
+dnl##
+GLISH_LIBS="$GLISH_LIBS $GLIBS $DL_LIBS"
 
 dnl##
 dnl## Client library depencencies
@@ -1810,6 +1827,7 @@ AC_SUBST(TK_CXX_RPATH)
 AC_SUBST(GLISH_LIBS)
 AC_SUBST(CLIENT_LIBS)
 AC_SUBST(CLIENT_LIBS_DEPEND)
+AC_SUBST(TKLIB_LIBS)
 AC_SUBST(TKCLIENT_LIBS)
 AC_SUBST(TKCLIENT_LIBS_expanded)
 AC_SUBST(SHARED_LIB)

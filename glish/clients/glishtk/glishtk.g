@@ -5,10 +5,13 @@ func init_glishtk( ) {
 
     if ( ! is_record(system.tk) ) system.tk := [=]
 
-    if ( is_string(system.tk.focus ) )
+    if ( is_string( system.tk.focus ) )
         gtk := client( 'glishtk', '-focus', system.tk.focus )
     else
-        gtk := client( 'glishtk' )
+	if ( is_boolean( system.tk.load ) && system.tk.load )
+	        gtk := dl_client( 'GlishTk.so' )
+	else
+	        gtk := client( 'glishtk' )
 
     system.tk.version := gtk->version()
 

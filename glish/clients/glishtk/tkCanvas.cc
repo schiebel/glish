@@ -56,13 +56,13 @@ static char **Argv = 0;
 		Argv = (char**) realloc_memory( Argv, Argv_len * sizeof(char*) );		\
 		}
 
-Value *glishtk_StrToInt( char *str )
+Value *glishtk_StrToInt( const char *str )
 	{
 	int i = atoi(str);
 	return new Value( i );
 	}
 
-char *glishtk_heightwidth_query(TkProxy *proxy, const char *cmd, Value *args )
+const char *glishtk_heightwidth_query(TkProxy *proxy, const char *cmd, Value *args )
 	{
 	static char buf[256];
 
@@ -84,9 +84,9 @@ char *glishtk_heightwidth_query(TkProxy *proxy, const char *cmd, Value *args )
 	return buf;
 	}
 
-char *glishtk_oneintlist_query(TkProxy *proxy, const char *cmd, int howmany, Value *args )
+const char *glishtk_oneintlist_query(TkProxy *proxy, const char *cmd, int howmany, Value *args )
 	{
-	char *event_name = "one int list function";
+	const char *event_name = "one int list function";
 	if ( args->Length() >= howmany )
 		{
 		static int len = 4;
@@ -120,10 +120,10 @@ char *glishtk_oneintlist_query(TkProxy *proxy, const char *cmd, int howmany, Val
 	}
 
 
-char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value *args )
+const char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one int list function";
+	const char *event_name = "one int list function";
 
 	if ( args->Type() == TYPE_RECORD )
 		{
@@ -160,7 +160,7 @@ char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value
 	return ret;
 	}
 
-char *glishtk_canvas_tagfunc(TkProxy *proxy, const char *cmd, const char *subcmd,
+const char *glishtk_canvas_tagfunc(TkProxy *proxy, const char *cmd, const char *subcmd,
 				int howmany, Value *args )
 	{
 	if ( args->Length() <= 0 )
@@ -241,11 +241,11 @@ else									\
 	free_memory( str );						\
 	}
 
-char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
+const char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
 	{
 	char buf[50];
 	int rows;
-	char *event_name = "one string + n int function";
+	const char *event_name = "one string + n int function";
 	TkCanvas *agent = (TkCanvas*)agent_;
 	HASARG( agent_, args, > 0 )
 	static char tag[256];
@@ -389,7 +389,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 	return tag;
 	}
 
-char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
+const char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *param, Value *args )
 	{
 	if ( args->Type() != TYPE_RECORD )
 		return 0;
@@ -574,7 +574,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 	return tag;
 	}
 
-char *glishtk_canvas_delete(TkProxy *proxy, const char *, Value *args )
+const char *glishtk_canvas_delete(TkProxy *proxy, const char *, Value *args )
 	{
 	if ( args->Type() == TYPE_RECORD )
 		{
@@ -601,9 +601,9 @@ char *glishtk_canvas_delete(TkProxy *proxy, const char *, Value *args )
 	return 0;
 	}
 
-char *glishtk_canvas_move(TkProxy *proxy, const char *, Value *args )
+const char *glishtk_canvas_move(TkProxy *proxy, const char *, Value *args )
 	{
-	char *event_name = "canvas move function";
+	const char *event_name = "canvas move function";
 	EXPRINIT( proxy, event_name )
 	if ( args->Length() >= 3 )
 		{
@@ -673,7 +673,7 @@ typedef PDict(glishtk_canvas_bindlist) glishtk_canvas_bindtable;
 
 int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	{
-	static char *event_names[] =
+	static const char *event_names[] =
 	  {
 	    "", "", "KeyPress", "KeyRelease", "ButtonPress", "ButtonRelease",
 	    "MotionNotify", "EnterNotify", "LeaveNotify", "FocusIn", "FocusOut",
@@ -737,10 +737,10 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 
 static glishtk_canvas_bindtable *glishtk_canvas_table = 0;
 static name_hash *glishtk_canvas_untable = 0;
-char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
+const char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	{
 	static glishtk_canvas_bindtable table;
-	char *event_name = "canvas bind function";
+	const char *event_name = "canvas bind function";
 	EXPRINIT( agent, event_name )
 
 	if ( args->Length() >= 3 )
@@ -841,9 +841,9 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	return 0;
 	}
 
-char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
+const char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 	{
-	char *event_name = "agent unbind function";
+	const char *event_name = "agent unbind function";
 	if ( args->Type() == TYPE_STRING && args->Length() >= 1 ) 
 		{
 		char *cback = 0;
@@ -957,22 +957,22 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 	}
 
 
-Value *glishtk_tkcast( char *tk )
+Value *glishtk_tkcast( const char *tk )
 	{
 	TkProxy *agent = (TkProxy*) tk;
 	agent->SendCtor("newtk");
 	return 0;
 	}
 
-Value *glishtk_valcast( char *val )
+Value *glishtk_valcast( const char *val )
 	{
         Value *v = (Value*) val;
 	return v ? v : error_value();
 	}
 
-char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
+const char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
 	{
-	char *event_name = "canvas bind function";
+	const char *event_name = "canvas bind function";
 	TkCanvas *canvas = (TkCanvas*)agent;
 	static char tag[256];
 	EXPRINIT( agent, event_name )
@@ -1068,47 +1068,47 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 		sprintf(region_str ,"{%d %d %d %d}", region[0], region[1], region[2], region[3]);
 
 	int c = 0;
-	argv[c++] = "canvas";
+	argv[c++] = (char*) "canvas";
 	argv[c++] = (char*) NewName(frame->Self());
-	argv[c++] = "-relief";
+	argv[c++] = (char*) "-relief";
 	argv[c++] = (char*) relief;
-	argv[c++] = "-width";
+	argv[c++] = (char*) "-width";
 	argv[c++] = (char*) width;
-	argv[c++] = "-height";
+	argv[c++] = (char*) "-height";
 	argv[c++] = (char*) height;
 	if ( region )
 		{
-		argv[c++] = "-scrollregion";
+		argv[c++] = (char*) "-scrollregion";
 		argv[c++] = region_str;
 		}
-	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) "-borderwidth";
 	argv[c++] = (char*) borderwidth;
-	argv[c++] = "-background";
+	argv[c++] = (char*) "-background";
 	argv[c++] = (char*) background_;
 	if ( hlcolor_ && *hlcolor_ )
 		{
-		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) "-highlightcolor";
 		argv[c++] = (char*) hlcolor_;
 		}
 	if ( hlbackground_ && *hlbackground_ )
 		{
-		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) "-highlightbackground";
 		argv[c++] = (char*) hlbackground_;
 		}
 	if ( hlthickness && *hlthickness )
 		{
-		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) "-highlightthickness";
 		argv[c++] = (char*) hlthickness;
 		}
 
 	char ys[100];
-	argv[c++] = "-yscrollcommand";
+	argv[c++] = (char*) "-yscrollcommand";
 	char *cback = glishtk_make_callback( tcl, canvas_yscrollcb, this, ys );
 	argv[c++] = cback;
 	FILE *fle = Logfile();
 	if ( fle )
 		fprintf( fle, "proc %s { } { puts \"(canvas yscroll:%s) %s\" }\n", cback, cback, argv[1] );
-	argv[c++] = "-xscrollcommand";
+	argv[c++] = (char*) "-xscrollcommand";
 	argv[c++] = cback = glishtk_make_callback( tcl, canvas_xscrollcb, this );
 	if ( fle )
 		fprintf( fle, "proc %s { } { puts \"(canvas xscroll:%s) %s\" }\n", cback, cback, argv[1] );
@@ -1191,20 +1191,20 @@ const char **CLASS::PackInstruction()			\
 	int c = 0;					\
 	if ( fill )					\
 		{					\
-		ret[c++] = "-fill";			\
+		ret[c++] = (char*) "-fill";		\
 		ret[c++] = fill;			\
 		if ( ! strcmp(fill,"both") ||		\
 		     ! strcmp(fill, frame->Expand()) ||	\
 		     frame->NumChildren() == 1 &&	\
 		     ! strcmp(fill,"y") )		\
 			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "true";		\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "true";	\
 			}				\
 		else					\
 			{				\
-			ret[c++] = "-expand";		\
-			ret[c++] = "false";		\
+			ret[c++] = (char*) "-expand";	\
+			ret[c++] = (char*) "false";	\
 			}				\
 		ret[c++] = 0;				\
 		return (const char**) ret;		\

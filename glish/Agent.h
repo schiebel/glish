@@ -5,6 +5,7 @@
 #define agent_h
 
 #include "Stmt.h"
+#include "Glish/Client.h"
 
 class IValue;
 class Sequencer;
@@ -13,6 +14,8 @@ class Task;
 class Agent;
 class NotifyTrigger;
 class stack_type;
+class ProxyTask;
+class ProxyId;
 
 typedef const char const_char;
 glish_declare(PList,const_char);
@@ -20,6 +23,9 @@ typedef PList(const_char) string_list;
 
 glish_declare(PList,Agent);
 typedef PList(Agent) agent_list;
+
+glish_declare(PList,ProxyTask);
+typedef PList(ProxyTask) proxytask_list;
 
 class Notifiee : public GlishRef {
     public:
@@ -199,6 +205,57 @@ class Agent : public GlishObject {
 
 	State active;
 	};
+
+class ProxySource : public Agent {
+    public:
+	ProxySource( Sequencer *s, int DestructLast ) : Agent( s, DestructLast ) { }
+	virtual IValue* SendEvent( const char* event_name, parameter_list* args,
+			int is_request, int log, const ProxyId &proxy_id ) = 0;
+	virtual IValue* SendEvent( const char* event_name, IValue *&event_val,
+			int is_request=0, int log=0,
+			const ProxyId &proxy_id=glish_proxyid_dummy,
+			int is_bundle=0 ) = 0;
+
+	void RegisterProxy( ProxyTask *p )
+		{ if ( ! ptlist.is_member(p) ) ptlist.append( p ); }
+	void UnregisterProxy( ProxyTask *p )
+		{ ptlist.remove(p); }
+
+	ProxyTask *GetProxy( const ProxyId &proxy_id );
+
+    protected:
+	proxytask_list ptlist;
+};
+
+class ProxyTask : public Agent {
+    public:
+	ProxyTask( const ProxyId &id_, ProxySource *t, Sequencer *s );
+	~ProxyTask( );
+
+	void SetActivity( State );
+
+	IValue* SendEvent( const char* event_name, parameter_list* args,
+				int is_request, int log, Expr *from_subsequence=0 );
+
+	// Returns non-zero on success
+	int BundleEvents( int howmany=0 );
+	int FlushEvents( );
+
+	const ProxyId &Id() const { return id; }
+
+	void WrapperGone( const IValue *v );
+
+	int IsProxy( ) const;
+
+	void AbnormalExit( int );
+
+    private:
+	recordptr bundle;
+	int       bundle_size;
+
+	ProxySource *task;
+	ProxyId id;
+};
 
 class uagent_await_info;
 glish_declare(PList,uagent_await_info);

@@ -13,10 +13,7 @@ RCSID("@(#) $Id$")
 #include "cpgplot.h"
 
 extern "C" int Tkpgplot_Init(Tcl_Interp *);
-
-extern ProxyStore *global_store;
 #define SP " "
-
 
 #define InvalidArg( num )						\
 	{								\
@@ -26,7 +23,7 @@ extern ProxyStore *global_store;
 
 #define InvalidNumberOfArgs( num )					\
 	{								\
-	global_store->Error( "invalid number of arguments, " ## #num ## " expected" );\
+	global_store->Error( "invalid number of arguments, expected " ## #num ); \
 	return;								\
 	}
 
@@ -174,7 +171,7 @@ extern ProxyStore *global_store;
 #define EXPRINIT(EVENT)							\
 	if ( args->Type() != TYPE_RECORD )				\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);			\
 		return 0;						\
 		}							\
 									\
@@ -192,7 +189,7 @@ extern ProxyStore *global_store;
 			       ! var##_val_ ->IsNumeric() ) ||		\
 		var##_val_ ->Length() <= 0 )				\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);			\
 		return 0;						\
 		}							\
 	else								\
@@ -210,7 +207,7 @@ extern ProxyStore *global_store;
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);			\
 		return 0;						\
 		}
 
@@ -277,7 +274,7 @@ static int colorcells_available(Tk_Window w, int needed) {
 
 Value *PgProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg) {
 
-	char *val = 0;
+	const char *val = 0;
 
 	if ( pgproc && agent )
 		val = (((TkPgplot*)agent)->*pgproc)( arg);
@@ -348,16 +345,16 @@ struct tk_iarrayRec {
 	int *val;
 };
 
-extern Value *glishtk_str(char *str);
+extern Value *glishtk_str( const char *str);
 
-Value *tk_castfToStr( char *str ) {
+Value *tk_castfToStr( const char *str ) {
 
 	tk_farrayRec *floats = (tk_farrayRec *)str;
 
 	return new Value(floats->val, floats->len);
 }
 
-Value *tk_castiToStr(char *str) {
+Value *tk_castiToStr(const char *str) {
 
 	tk_iarrayRec *ints = (tk_iarrayRec *)str;
 
@@ -460,7 +457,7 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 
 static glishtk_pgplot_bindtable *glishtk_pgplot_table = 0;
 static name_hash *glishtk_pgplot_untable = 0;
-char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
+const char *glishtk_pgplot_bind( TkProxy *proxy, const char*, Value *args ) {
 	char *event_name = "pgplot bind function";
 	EXPRINIT(event_name)
 
@@ -469,8 +466,8 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 		EXPRSTR(button, event_name);
 		EXPRSTR(event, event_name);
 
-		tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
-		const char *current = Tcl_GetStringResult(agent->Interp( ));
+		tcl_VarEval( proxy, "bind ", Tk_PathName(proxy->Self()), SP, button, (char *)NULL );
+		const char *current = Tcl_GetStringResult(proxy->Interp( ));
 		char last_buffer[50];
 		char *last = 0;
 		if ( current && *current )
@@ -482,7 +479,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 			last = last != last_buffer ? last_buffer : 0;
 			}
 
-		glishtk_pgplot_bindinfo *binfo = new glishtk_pgplot_bindinfo((TkPgplot *)agent, event, button);
+		glishtk_pgplot_bindinfo *binfo = new glishtk_pgplot_bindinfo((TkPgplot *)proxy, event, button);
 
 		if ( ! glishtk_pgplot_table ) glishtk_pgplot_table = new glishtk_pgplot_bindtable;
 
@@ -490,9 +487,9 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 		if ( ! last || ! (list = (*glishtk_pgplot_table)[last]) )
 			{
 			list = new glishtk_pgplot_bindlist;
-			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, list);
+			char *cback = last = glishtk_make_callback(proxy->Interp(), glishtk_pgplot_bindcb, list);
 			(*glishtk_pgplot_table).Insert( strdup(cback), list );
-			tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button,
+			tcl_VarEval( proxy, "bind ", Tk_PathName(proxy->Self()), SP, button,
 				     " {", cback, " %x %y %b %T %K %A }", (char *)NULL );
 
 			}
@@ -511,7 +508,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 	return 0;
 }
 
-char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
+const char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "agent unbind function";
 	if ( args->Type() == TYPE_STRING && args->Length() >= 1 )
@@ -587,11 +584,11 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 	}
 
 
-Value *glishtk_int( char *sel ) {
+Value *glishtk_int( const char *sel ) {
 	return new Value(atoi(sel));
 }
 
-char *glishtk_oneornodim( TkProxy *proxy, const char *cmd, Value *args ) {
+const char *glishtk_oneornodim( TkProxy *proxy, const char *cmd, Value *args ) {
 	char *event_name = "one or zero dim function";
 
 	if (args->Length() > 0)
@@ -1015,7 +1012,7 @@ void TkPgplot::xScrolled(const double *d) {
 	else CURSOR_name_match(color, 3)				\
 }
 
-char *TkPgplot::Cursor( Value *args ) {
+const char *TkPgplot::Cursor( Value *args ) {
 
 	if ( is_graphic )
 		{
@@ -1060,7 +1057,7 @@ char *TkPgplot::Cursor( Value *args ) {
 }
 
 //PGARRO -- draw an arrow
-char *TkPgplot::Pgarro( Value *args ) {
+const char *TkPgplot::Pgarro( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(x1);
@@ -1078,7 +1075,7 @@ char *TkPgplot::Pgarro( Value *args ) {
 }
 
 //PGASK -- control new page prompting
-char *TkPgplot::Pgask( Value *args ) {
+const char *TkPgplot::Pgask( Value *args ) {
 
 	if ( args->Length() <= 0 )
 		{
@@ -1093,7 +1090,7 @@ char *TkPgplot::Pgask( Value *args ) {
 }
 
 //PGBBUF -- begin batch of output (buffer)
-char *TkPgplot::Pgbbuf( Value* ) {
+const char *TkPgplot::Pgbbuf( Value* ) {
 
 	cpgslct(id);
 	cpgbbuf();
@@ -1102,7 +1099,7 @@ char *TkPgplot::Pgbbuf( Value* ) {
 }
 
 //PGBEG -- begin PGPLOT, open output device
-char *TkPgplot::Pgbeg( Value *args ) {
+const char *TkPgplot::Pgbeg( Value *args ) {
 
 	GETSTART(4);
 	GETINT(unit);
@@ -1120,7 +1117,7 @@ char *TkPgplot::Pgbeg( Value *args ) {
 }
 
 //PGBIN -- histogram of binned data
-char *TkPgplot::Pgbin( Value *args ) {
+const char *TkPgplot::Pgbin( Value *args ) {
 
 	GETSTART(3);
 	GETFLOATARRAY(x);
@@ -1136,7 +1133,7 @@ char *TkPgplot::Pgbin( Value *args ) {
 }
 
 //PGBOX -- draw labeled frame around viewport
-char *TkPgplot::Pgbox( Value *args ) {
+const char *TkPgplot::Pgbox( Value *args ) {
 
 	GETSTART(6);
 	GETSTRING(xopt);
@@ -1158,7 +1155,7 @@ char *TkPgplot::Pgbox( Value *args ) {
 }
 
 //PGCIRC -- draw a filled or outline circle
-char *TkPgplot::Pgcirc( Value *args ) {
+const char *TkPgplot::Pgcirc( Value *args ) {
 
 	GETSTART(3);
 	GETFLOAT(xcent);
@@ -1174,7 +1171,7 @@ char *TkPgplot::Pgcirc( Value *args ) {
 }
 
 //PGCLOS -- close the selected graphics device
-char *TkPgplot::Pgclos( Value* ) {
+const char *TkPgplot::Pgclos( Value* ) {
 
 	cpgslct(id);
 	cpgclos();
@@ -1183,7 +1180,7 @@ char *TkPgplot::Pgclos( Value* ) {
 }
 
 //PGCONB -- contour map of a 2D data array, with blanking
-char *TkPgplot::Pgconb( Value *args ) {
+const char *TkPgplot::Pgconb( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(a);
@@ -1205,7 +1202,7 @@ char *TkPgplot::Pgconb( Value *args ) {
 }
 
 //PGCONL -- label contour map of a 2D data array
-char *TkPgplot::Pgconl( Value *args ) {
+const char *TkPgplot::Pgconl( Value *args ) {
 
 	GETSTART(6);
 	GETFLOATARRAY(a);
@@ -1228,7 +1225,7 @@ char *TkPgplot::Pgconl( Value *args ) {
 }
 
 //PGCONS -- contour map of a 2D data array (fast algorithm)
-char *TkPgplot::Pgcons( Value *args ) {
+const char *TkPgplot::Pgcons( Value *args ) {
 
 	GETSTART(3);
 	GETFLOATARRAY(a);
@@ -1248,7 +1245,7 @@ char *TkPgplot::Pgcons( Value *args ) {
 }
 
 //PGCONT -- contour map of a 2D data array (contour-following)
-char *TkPgplot::Pgcont( Value *args ) {
+const char *TkPgplot::Pgcont( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(a);
@@ -1271,7 +1268,7 @@ char *TkPgplot::Pgcont( Value *args ) {
 }
 
 //PGCTAB -- install the color table to be used by PGIMAG
-char *TkPgplot::Pgctab( Value *args ) {
+const char *TkPgplot::Pgctab( Value *args ) {
 
 	GETSTART(6);
 	GETFLOATARRAY(l);
@@ -1299,7 +1296,7 @@ char *TkPgplot::Pgctab( Value *args ) {
 }
 
 //PGDRAW -- draw a line from the current pen position to a point
-char *TkPgplot::Pgdraw( Value *args ) {
+const char *TkPgplot::Pgdraw( Value *args ) {
 
 	GETSTART(2);
 	GETFLOAT(x);
@@ -1313,7 +1310,7 @@ char *TkPgplot::Pgdraw( Value *args ) {
 }
 
 //PGEBUF -- end batch of output (buffer)
-char *TkPgplot::Pgebuf( Value* ) {
+const char *TkPgplot::Pgebuf( Value* ) {
 
 	cpgslct(id);
 	cpgebuf();
@@ -1322,7 +1319,7 @@ char *TkPgplot::Pgebuf( Value* ) {
 }
 
 //PGEND -- terminate PGPLOT
-char *TkPgplot::Pgend( Value* ) {
+const char *TkPgplot::Pgend( Value* ) {
 
 	// JAU: Using this and then calling ~TkPgplot causes PGPLOT to whine!
 	cpgslct(id);
@@ -1332,7 +1329,7 @@ char *TkPgplot::Pgend( Value* ) {
 }
 
 //PGENV -- set window and viewport and draw labeled frame
-char *TkPgplot::Pgenv( Value *args ) {
+const char *TkPgplot::Pgenv( Value *args ) {
 
 	static Value xargs;
 
@@ -1357,7 +1354,7 @@ char *TkPgplot::Pgenv( Value *args ) {
 }
 
 //PGERAS -- erase all graphics from current page
-char *TkPgplot::Pgeras( Value* ) {
+const char *TkPgplot::Pgeras( Value* ) {
 
 	cpgslct(id);
 	cpgeras();
@@ -1366,7 +1363,7 @@ char *TkPgplot::Pgeras( Value* ) {
 }
 
 //PGERRB -- horizontal or vertical error bar
-char *TkPgplot::Pgerrb( Value *args ) {
+const char *TkPgplot::Pgerrb( Value *args ) {
 
 	GETSTART(5);
 	GETINT(dir);
@@ -1386,7 +1383,7 @@ char *TkPgplot::Pgerrb( Value *args ) {
 }
 
 //PGERRX -- horizontal error bar
-char *TkPgplot::Pgerrx( Value *args ) {
+const char *TkPgplot::Pgerrx( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(x1);
@@ -1404,7 +1401,7 @@ char *TkPgplot::Pgerrx( Value *args ) {
 }
 
 //PGERRY -- vertical error bar
-char *TkPgplot::Pgerry( Value *args ) {
+const char *TkPgplot::Pgerry( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(x);
@@ -1424,7 +1421,7 @@ char *TkPgplot::Pgerry( Value *args ) {
 //PGETXT -- erase text from graphics display
 // JAU: Not listed in current Glish/PGPLOT documentation.
 // (An effective no-op anyway....)
-char *TkPgplot::Pgetxt( Value* ) {
+const char *TkPgplot::Pgetxt( Value* ) {
 
 	cpgslct(id);
 	cpgetxt();
@@ -1433,7 +1430,7 @@ char *TkPgplot::Pgetxt( Value* ) {
 }
 
 //PGGRAY -- gray-scale map of a 2D data array
-char *TkPgplot::Pggray( Value *args ) {
+const char *TkPgplot::Pggray( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(a);
@@ -1452,7 +1449,7 @@ char *TkPgplot::Pggray( Value *args ) {
 }
 
 //PGHI2D -- cross-sections through a 2D data array
-char *TkPgplot::Pghi2d ( Value *args ) {
+const char *TkPgplot::Pghi2d ( Value *args ) {
 
 	GETSTART(6);
 	GETFLOATARRAY(data);
@@ -1475,7 +1472,7 @@ char *TkPgplot::Pghi2d ( Value *args ) {
 }
 
 //PGHIST -- histogram of unbinned data
-char *TkPgplot::Pghist( Value *args ) {
+const char *TkPgplot::Pghist( Value *args ) {
 
 	GETSTART(5);
 	GETFLOATARRAY(data);
@@ -1495,7 +1492,7 @@ char *TkPgplot::Pghist( Value *args ) {
 }
 
 //PGIDEN -- write username, date, and time at bottom of plot
-char *TkPgplot::Pgiden(Value*) {
+const char *TkPgplot::Pgiden(Value*) {
 
 	cpgslct(id);
 	cpgiden();
@@ -1504,7 +1501,7 @@ char *TkPgplot::Pgiden(Value*) {
 }
 
 //PGIMAG -- color image from a 2D data array
-char *TkPgplot::Pgimag( Value *args ) {
+const char *TkPgplot::Pgimag( Value *args ) {
 
 	GETSTART(4);
 	GETFLOATARRAY(a);
@@ -1523,7 +1520,7 @@ char *TkPgplot::Pgimag( Value *args ) {
 }
 
 //PGLAB -- write labels for x-axis, y-axis, and top of plot
-char *TkPgplot::Pglab( Value *args ) {
+const char *TkPgplot::Pglab( Value *args ) {
 
 	GETSTART(3);
 	GETSTRING(xlbl);
@@ -1539,7 +1536,7 @@ char *TkPgplot::Pglab( Value *args ) {
 }
 
 //PGLDEV -- list available device types
-char *TkPgplot::Pgldev( Value* ) {
+const char *TkPgplot::Pgldev( Value* ) {
 
 	cpgslct(id);
 	cpgldev();
@@ -1548,7 +1545,7 @@ char *TkPgplot::Pgldev( Value* ) {
 }
 
 //PGLEN -- find length of a string in a variety of units
-char *TkPgplot::Pglen( Value *args ) {
+const char *TkPgplot::Pglen( Value *args ) {
 
 	GETSTART(2);
 	GETINT(units);
@@ -1567,7 +1564,7 @@ char *TkPgplot::Pglen( Value *args ) {
 }
 
 //PGLINE -- draw a polyline (curve defined by line-segments)
-char *TkPgplot::Pgline( Value *args ) {
+const char *TkPgplot::Pgline( Value *args ) {
 
 	GETSTART(2);
 	GETFLOATARRAY(xpts);
@@ -1581,7 +1578,7 @@ char *TkPgplot::Pgline( Value *args ) {
 }
 
 //PGMOVE -- move pen (change current pen position)
-char *TkPgplot::Pgmove( Value *args ) {
+const char *TkPgplot::Pgmove( Value *args ) {
 
 	GETSTART(2);
 	GETFLOAT(x);
@@ -1595,7 +1592,7 @@ char *TkPgplot::Pgmove( Value *args ) {
 }
 
 //PGMTXT -- write text at position relative to viewport
-char *TkPgplot::Pgmtxt( Value *args ) {
+const char *TkPgplot::Pgmtxt( Value *args ) {
 
 	GETSTART(5);
 	GETSTRING(side);
@@ -1615,7 +1612,7 @@ char *TkPgplot::Pgmtxt( Value *args ) {
 }
 
 //PGNUMB -- convert a number into a plottable character string
-char *TkPgplot::Pgnumb( Value *args ) {
+const char *TkPgplot::Pgnumb( Value *args ) {
 	GETSTART(3);
 	GETINT(mm);
 	GETINT(pp);
@@ -1633,7 +1630,7 @@ char *TkPgplot::Pgnumb( Value *args ) {
 }
 
 //PGOPEN -- open a graphics device
-char *TkPgplot::Pgopen( Value *args ) {
+const char *TkPgplot::Pgopen( Value *args ) {
 
 	if ( args->Type() != TYPE_STRING )
 		{
@@ -1656,7 +1653,7 @@ char *TkPgplot::Pgopen( Value *args ) {
 }
 
 //PGPAGE -- advance to new page
-char *TkPgplot::Pgpage( Value* ) {
+const char *TkPgplot::Pgpage( Value* ) {
 
 	cpgslct(id);
 	cpgpage();
@@ -1665,7 +1662,7 @@ char *TkPgplot::Pgpage( Value* ) {
 }
 
 //PGPANL -- switch to a different panel on the view surface
-char *TkPgplot::Pgpanl( Value *args ) {
+const char *TkPgplot::Pgpanl( Value *args ) {
 
 	GETSTART(2);
 	GETINT(ix);
@@ -1679,7 +1676,7 @@ char *TkPgplot::Pgpanl( Value *args ) {
 }
 
 //PGPAP -- change the size of the view surface
-char *TkPgplot::Pgpap( Value *args ) {
+const char *TkPgplot::Pgpap( Value *args ) {
 
 	GETSTART(2);
 	GETFLOAT(width);
@@ -1693,7 +1690,7 @@ char *TkPgplot::Pgpap( Value *args ) {
 }
 
 //PGPIXL -- draw pixels
-char *TkPgplot::Pgpixl( Value *args ) {
+const char *TkPgplot::Pgpixl( Value *args ) {
 
 	GETSTART(5);
 	GETINTARRAY(ia);
@@ -1714,7 +1711,7 @@ char *TkPgplot::Pgpixl( Value *args ) {
 }
 
 //PGPNTS -- draw one or more graph markers, not all the same
-char *TkPgplot::Pgpnts( Value *args ) {
+const char *TkPgplot::Pgpnts( Value *args ) {
 
 	GETSTART(3);
 	GETFLOATARRAY(x);
@@ -1733,7 +1730,7 @@ char *TkPgplot::Pgpnts( Value *args ) {
 }
 
 //PGPOLY -- fill a polygonal area with shading
-char *TkPgplot::Pgpoly( Value *args ) {
+const char *TkPgplot::Pgpoly( Value *args ) {
 
 	GETSTART(2);
 	GETFLOATARRAY(xpts);
@@ -1747,7 +1744,7 @@ char *TkPgplot::Pgpoly( Value *args ) {
 }
 
 //PGPT -- draw one or more graph markers
-char *TkPgplot::Pgpt( Value *args ) {
+const char *TkPgplot::Pgpt( Value *args ) {
 
 	GETSTART(3);
 	GETFLOATARRAY(xpts);
@@ -1763,7 +1760,7 @@ char *TkPgplot::Pgpt( Value *args ) {
 }
 
 //PGPTXT -- write text at arbitrary position and angle
-char *TkPgplot::Pgptxt( Value *args ) {
+const char *TkPgplot::Pgptxt( Value *args ) {
 
 	GETSTART(5);
 	GETFLOAT(x);
@@ -1783,8 +1780,7 @@ char *TkPgplot::Pgptxt( Value *args ) {
 }
 
 //PGQAH -- inquire arrow-head style
-char *
-TkPgplot::Pgqah( Value* ) {
+const char *TkPgplot::Pgqah( Value* ) {
 
 	static tk_farrayRec qah;
 	int fs = 0;			// Gets returned as float; can't mix types.
@@ -1799,7 +1795,7 @@ TkPgplot::Pgqah( Value* ) {
 }
 
 //PGQCF -- inquire character font
-char *TkPgplot::Pgqcf( Value* ) {
+const char *TkPgplot::Pgqcf( Value* ) {
 
 	static tk_iarrayRec qcf;
 
@@ -1812,7 +1808,7 @@ char *TkPgplot::Pgqcf( Value* ) {
 }
 
 //PGQCH -- inquire character height
-char *TkPgplot::Pgqch( Value* ) {
+const char *TkPgplot::Pgqch( Value* ) {
 
 	static tk_farrayRec qch;
 
@@ -1825,7 +1821,7 @@ char *TkPgplot::Pgqch( Value* ) {
 }
 
 //PGQCI -- inquire color index
-char *TkPgplot::Pgqci( Value* ) {
+const char *TkPgplot::Pgqci( Value* ) {
 
 	static tk_iarrayRec qci;
 
@@ -1838,7 +1834,7 @@ char *TkPgplot::Pgqci( Value* ) {
 }
 
 //PGQCIR -- inquire color index range
-char *TkPgplot::Pgqcir( Value* ) {
+const char *TkPgplot::Pgqcir( Value* ) {
 
 	static tk_iarrayRec qcir;
 
@@ -1851,7 +1847,7 @@ char *TkPgplot::Pgqcir( Value* ) {
 }
 
 //PGQCOL -- inquire color capability
-char *TkPgplot::Pgqcol( Value* ) {
+const char *TkPgplot::Pgqcol( Value* ) {
 
 	static tk_iarrayRec qcol;
 
@@ -1864,7 +1860,7 @@ char *TkPgplot::Pgqcol( Value* ) {
 }
 
 //PGQCR -- inquire color representation
-char *TkPgplot::Pgqcr( Value *args ) {
+const char *TkPgplot::Pgqcr( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -1884,7 +1880,7 @@ char *TkPgplot::Pgqcr( Value *args ) {
 }
 
 //PGQCS -- inquire character height in a variety of units
-char *TkPgplot::Pgqcs( Value *args ) {
+const char *TkPgplot::Pgqcs( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -1904,7 +1900,7 @@ char *TkPgplot::Pgqcs( Value *args ) {
 }
 
 //PGQFS -- inquire fill-area style
-char *TkPgplot::Pgqfs( Value* ) {
+const char *TkPgplot::Pgqfs( Value* ) {
 
 	static tk_iarrayRec qfs;
 
@@ -1917,7 +1913,7 @@ char *TkPgplot::Pgqfs( Value* ) {
 }
 
 //PGQHS -- inquire hatching style
-char *TkPgplot::Pgqhs( Value* ) {
+const char *TkPgplot::Pgqhs( Value* ) {
 
 	static tk_farrayRec qhs;
 
@@ -1930,7 +1926,7 @@ char *TkPgplot::Pgqhs( Value* ) {
 }
 
 //PGQID -- inquire current device identifier
-char *TkPgplot::Pgqid( Value* ) {
+const char *TkPgplot::Pgqid( Value* ) {
 
 	static tk_iarrayRec qid;
 
@@ -1943,7 +1939,7 @@ char *TkPgplot::Pgqid( Value* ) {
 }
 
 //PGQINF -- inquire PGPLOT general information
-char *TkPgplot::Pgqinf( Value *args ) {
+const char *TkPgplot::Pgqinf( Value *args ) {
 
 	if ( args->Type() != TYPE_STRING )
 		{
@@ -1964,7 +1960,7 @@ char *TkPgplot::Pgqinf( Value *args ) {
 }
 
 //PGQITF -- inquire image transfer function
-char *TkPgplot::Pgqitf( Value* ) {
+const char *TkPgplot::Pgqitf( Value* ) {
 
 	static tk_iarrayRec qitf;
 
@@ -1977,7 +1973,7 @@ char *TkPgplot::Pgqitf( Value* ) {
 }
 
 //PGQLS -- inquire line style
-char *TkPgplot::Pgqls( Value* ) {
+const char *TkPgplot::Pgqls( Value* ) {
 
 	static tk_iarrayRec qls;
 
@@ -1990,7 +1986,7 @@ char *TkPgplot::Pgqls( Value* ) {
 }
 
 //PGQLW -- inquire line width
-char *TkPgplot::Pgqlw( Value* ) {
+const char *TkPgplot::Pgqlw( Value* ) {
 
 	static tk_iarrayRec qlw;
 
@@ -2003,7 +1999,7 @@ char *TkPgplot::Pgqlw( Value* ) {
 }
 
 //PGQPOS -- inquire current pen position
-char *TkPgplot::Pgqpos( Value* ) {
+const char *TkPgplot::Pgqpos( Value* ) {
 
 	static tk_farrayRec qpos;
 
@@ -2016,7 +2012,7 @@ char *TkPgplot::Pgqpos( Value* ) {
 }
 
 //PGQTBG -- inquire text background color index
-char *TkPgplot::Pgqtbg( Value* ) {
+const char *TkPgplot::Pgqtbg( Value* ) {
 
 	static tk_iarrayRec qtbg;
 
@@ -2029,7 +2025,7 @@ char *TkPgplot::Pgqtbg( Value* ) {
 }
 
 //PGQTXT -- find bounding box of text string
-char *TkPgplot::Pgqtxt( Value *args ) {
+const char *TkPgplot::Pgqtxt( Value *args ) {
 
 	GETSTART(5);
 	GETFLOAT(x);
@@ -2054,7 +2050,7 @@ char *TkPgplot::Pgqtxt( Value *args ) {
 }
 
 //PGQVP -- inquire viewport size and position
-char *TkPgplot::Pgqvp( Value *args ) {
+const char *TkPgplot::Pgqvp( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2074,7 +2070,7 @@ char *TkPgplot::Pgqvp( Value *args ) {
 }
 
 //PGQVSZ -- find the window defined by the full view surface
-char *TkPgplot::Pgqvsz( Value *args ) {
+const char *TkPgplot::Pgqvsz( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2095,7 +2091,7 @@ char *TkPgplot::Pgqvsz( Value *args ) {
 }
 
 //PGQWIN -- inquire window boundary coordinates
-char *TkPgplot::Pgqwin( Value* ) {
+const char *TkPgplot::Pgqwin( Value* ) {
 
 	static tk_farrayRec qwin;
 
@@ -2108,7 +2104,7 @@ char *TkPgplot::Pgqwin( Value* ) {
 }
 
 //PGRECT -- draw a rectangle, using fill-area attributes
-char *TkPgplot::Pgrect( Value *args ) {
+const char *TkPgplot::Pgrect( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(x1);
@@ -2126,7 +2122,7 @@ char *TkPgplot::Pgrect( Value *args ) {
 }
 
 //PGRND -- find the smallest 'round' nubmer greater than x
-char *TkPgplot::Pgrnd( Value *args ) {
+const char *TkPgplot::Pgrnd( Value *args ) {
 
 	GETSTART(2);
 	GETFLOAT(x);
@@ -2144,7 +2140,7 @@ char *TkPgplot::Pgrnd( Value *args ) {
 }
 
 //PGRNGE -- choose axis limits
-char *TkPgplot::Pgrnge( Value *args ) {
+const char *TkPgplot::Pgrnge( Value *args ) {
 
 	GETSTART(2);
 	GETFLOAT(x1);
@@ -2163,7 +2159,7 @@ char *TkPgplot::Pgrnge( Value *args ) {
 }
 
 //PGSAH -- set arrow-head style
-char *TkPgplot::Pgsah( Value *args ) {
+const char *TkPgplot::Pgsah( Value *args ) {
 
 	GETSTART(3);
 	GETINT(fs);
@@ -2179,7 +2175,7 @@ char *TkPgplot::Pgsah( Value *args ) {
 }
 
 //PGSAVE -- save PGPLOT attributes
-char *TkPgplot::Pgsave( Value* ) {
+const char *TkPgplot::Pgsave( Value* ) {
 
 	cpgslct(id);
 	cpgsave();
@@ -2188,7 +2184,7 @@ char *TkPgplot::Pgsave( Value* ) {
 }
 
 //PGSCF -- set character font
-char *TkPgplot::Pgscf( Value *args ) {
+const char *TkPgplot::Pgscf( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2203,7 +2199,7 @@ char *TkPgplot::Pgscf( Value *args ) {
 }
 
 //PGSCH -- set character height
-char *TkPgplot::Pgsch( Value *args ) {
+const char *TkPgplot::Pgsch( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2218,7 +2214,7 @@ char *TkPgplot::Pgsch( Value *args ) {
 }
 
 //PGSCI -- set color index
-char *TkPgplot::Pgsci( Value *args ) {
+const char *TkPgplot::Pgsci( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2233,7 +2229,7 @@ char *TkPgplot::Pgsci( Value *args ) {
 }
 
 //PGSCIR -- set color index range
-char *TkPgplot::Pgscir( Value *args ) {
+const char *TkPgplot::Pgscir( Value *args ) {
 
 	GETSTART(2);
 	GETINT(icilo);
@@ -2247,7 +2243,7 @@ char *TkPgplot::Pgscir( Value *args ) {
 }
 
 //PGSCR -- set color representation
-char *TkPgplot::Pgscr( Value *args ) {
+const char *TkPgplot::Pgscr( Value *args ) {
 
 	GETSTART(4);
 	GETINT(ci);
@@ -2265,7 +2261,7 @@ char *TkPgplot::Pgscr( Value *args ) {
 }
 
 //PGSCRN -- set color representation by name
-char *TkPgplot::Pgscrn( Value *args ) {
+const char *TkPgplot::Pgscrn( Value *args ) {
 
 	GETSTART(2);
 	GETINT(ci);
@@ -2284,7 +2280,7 @@ char *TkPgplot::Pgscrn( Value *args ) {
 }
 
 //PGSFS -- set fill-area style
-char *TkPgplot::Pgsfs( Value *args ) {
+const char *TkPgplot::Pgsfs( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2299,7 +2295,7 @@ char *TkPgplot::Pgsfs( Value *args ) {
 }
 
 //PGSHLS -- set color representation using HLS system
-char *TkPgplot::Pgshls( Value *args ) {
+const char *TkPgplot::Pgshls( Value *args ) {
 
 	GETSTART(4);
 	GETINT(ci);
@@ -2317,7 +2313,7 @@ char *TkPgplot::Pgshls( Value *args ) {
 }
 
 //PGSHS -- set hatching style
-char *TkPgplot::Pgshs( Value *args ) {
+const char *TkPgplot::Pgshs( Value *args ) {
 
 	GETSTART(3);
 	GETFLOAT(angle);
@@ -2333,7 +2329,7 @@ char *TkPgplot::Pgshs( Value *args ) {
 }
 
 //PGSITF -- set image transfer function
-char *TkPgplot::Pgsitf( Value *args ) {
+const char *TkPgplot::Pgsitf( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2348,7 +2344,7 @@ char *TkPgplot::Pgsitf( Value *args ) {
 }
 
 //PGSLCT -- select an open graphics device
-char *TkPgplot::Pgslct( Value *args ) {
+const char *TkPgplot::Pgslct( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2362,7 +2358,7 @@ char *TkPgplot::Pgslct( Value *args ) {
 }
 
 //PGSLS -- set line style
-char *TkPgplot::Pgsls( Value *args ) {
+const char *TkPgplot::Pgsls( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2377,7 +2373,7 @@ char *TkPgplot::Pgsls( Value *args ) {
 }
 
 //PGSLW -- set line width
-char *TkPgplot::Pgslw( Value *args ) {
+const char *TkPgplot::Pgslw( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2392,7 +2388,7 @@ char *TkPgplot::Pgslw( Value *args ) {
 }
 
 //PGSTBG -- set text background color index
-char *TkPgplot::Pgstbg( Value *args ) {
+const char *TkPgplot::Pgstbg( Value *args ) {
 
 	if ( args->Length() <= 0 || ! args->IsNumeric() )
 		{
@@ -2407,7 +2403,7 @@ char *TkPgplot::Pgstbg( Value *args ) {
 }
 
 //PGSUBP -- subdivide view surface into panels
-char *TkPgplot::Pgsubp( Value *args ) {
+const char *TkPgplot::Pgsubp( Value *args ) {
 
 	GETSTART(2);
 	GETINT(nxsub);
@@ -2421,7 +2417,7 @@ char *TkPgplot::Pgsubp( Value *args ) {
 }
 
 //PGSVP -- set viewport (normalized device coordinates)
-char *TkPgplot::Pgsvp( Value *args ) {
+const char *TkPgplot::Pgsvp( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(xleft);
@@ -2439,7 +2435,7 @@ char *TkPgplot::Pgsvp( Value *args ) {
 }
 
 //PGSWIN -- set window
-char *TkPgplot::Pgswin( Value *args ) {
+const char *TkPgplot::Pgswin( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(x1);
@@ -2457,7 +2453,7 @@ char *TkPgplot::Pgswin( Value *args ) {
 }
 
 //PGTBOX -- draw frame and write (DD) HH MM SS.S labelling
-char *TkPgplot::Pgtbox( Value *args ) {
+const char *TkPgplot::Pgtbox( Value *args ) {
 
 	GETSTART(6);
 	GETSTRING(xopt);
@@ -2479,7 +2475,7 @@ char *TkPgplot::Pgtbox( Value *args ) {
 }
 
 //PGTEXT -- write text (horizontal, left-justified)
-char *TkPgplot::Pgtext( Value *args ) {
+const char *TkPgplot::Pgtext( Value *args ) {
 
 	GETSTART(3);
 	GETFLOAT(x);
@@ -2495,7 +2491,7 @@ char *TkPgplot::Pgtext( Value *args ) {
 }
 
 //PGUPDT -- update display
-char *TkPgplot::Pgupdt( Value* ) {
+const char *TkPgplot::Pgupdt( Value* ) {
 
 	cpgslct(id);
 	cpgupdt();
@@ -2504,7 +2500,7 @@ char *TkPgplot::Pgupdt( Value* ) {
 }
 
 //PGUNSA -- restore PGPLOT attributes
-char *TkPgplot::Pgunsa( Value* ) {
+const char *TkPgplot::Pgunsa( Value* ) {
 
 	cpgslct(id);
 	cpgunsa();
@@ -2513,7 +2509,7 @@ char *TkPgplot::Pgunsa( Value* ) {
 }
 
 //PGVECT -- vector map of a 2D data array, with blanking
-char *TkPgplot::Pgvect( Value *args ) {
+const char *TkPgplot::Pgvect( Value *args ) {
 
 	GETSTART(6);
 	GETFLOATARRAY(a);
@@ -2536,7 +2532,7 @@ char *TkPgplot::Pgvect( Value *args ) {
 }
 
 //PGVSIZ -- set viewport (inches)
-char *TkPgplot::Pgvsiz( Value *args ) {
+const char *TkPgplot::Pgvsiz( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(xleft);
@@ -2554,7 +2550,7 @@ char *TkPgplot::Pgvsiz( Value *args ) {
 }
 
 //pgvstd -- set standard (default) viewport
-char *TkPgplot::Pgvstd( Value* ) {
+const char *TkPgplot::Pgvstd( Value* ) {
 
 	cpgslct(id);
 	cpgvstd();
@@ -2563,7 +2559,7 @@ char *TkPgplot::Pgvstd( Value* ) {
 }
 
 //PGWEDG -- annotate an image plot with a wedge
-char *TkPgplot::Pgwedg( Value *args ) {
+const char *TkPgplot::Pgwedg( Value *args ) {
 
 	GETSTART(6);
 	GETSTRING(size);
@@ -2585,7 +2581,7 @@ char *TkPgplot::Pgwedg( Value *args ) {
 }
 
 //PGWNAD -- set window and adjust viewport to same aspect ratio
-char *TkPgplot::Pgwnad( Value *args ) {
+const char *TkPgplot::Pgwnad( Value *args ) {
 
 	GETSTART(4);
 	GETFLOAT(x1);

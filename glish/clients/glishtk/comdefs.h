@@ -18,7 +18,7 @@
 
 #define InvalidNumberOfArgs( num )					\
 	{								\
-	global_store->Error( "invalid number of arguments, " ## #num ## " expected" );\
+	global_store->Error( "invalid number of arguments, expected " ## #num ); \
 	return;								\
 	}
 
