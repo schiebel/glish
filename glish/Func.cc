@@ -456,7 +456,13 @@ IValue* UserFunc::EvalParam( Parameter* p, Expr* actual )
 	{
 	value_type param_type = p->ParamType();
 
-	if ( param_type == VAL_VAL )
+	if ( param_type == VAL_CONST )
+		{
+		IValue *ret = actual->CopyEval();
+		ret->MakeConst( );
+		return ret;
+		}
+	else if ( param_type == VAL_VAL )
 		return actual->CopyEval();
 	else
 		return actual->RefEval( param_type );

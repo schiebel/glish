@@ -35,7 +35,9 @@
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
 %type <param_list> opt_actual_param_list opt_actual_params
+%type <param_list> array_record_ctor_list array_record_params
 %type <param> formal_param actual_param opt_actual_param
+%type <param> array_record_param
 %type <val_type> value_type formal_param_class
 
 
@@ -316,7 +318,7 @@ expression:
 	|	'[' '=' ']'
 			{ $$ = new ConstructExpr( 0 ); }
 
-	|	'[' actual_param_list ']'
+	|	'[' array_record_ctor_list ']'
 			{ $$ = new ConstructExpr( $2 ); }
 
 	|	expression ':' expression
@@ -491,7 +493,7 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 formal_param_class:
 		value_type
 	|
-			{ $$ = VAL_CONST; }
+			{ $$ = VAL_VAL; }
 	;
 
 formal_param_default:
@@ -519,6 +521,56 @@ actual_params:	actual_params ',' actual_param
 
 actual_param:	scoped_expr
 			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+
+	|	TOK_ID '=' scoped_expr
+			{
+			Ref( $3 );
+			$$ = new ActualParameter( $1, VAL_VAL, $3, 0, $3 );
+			}
+
+	|	TOK_ELLIPSIS
+			{
+			Expr* ellipsis =
+				current_sequencer->LookupID(
+					strdup( "..." ), LOCAL_SCOPE, 0 );
+
+			if ( ! ellipsis )
+				{
+				error->Report( "\"...\" not available" ); 
+				$$ = new ActualParameter( 0, VAL_VAL,
+					new ConstExpr( error_ivalue() ) );
+				}
+
+			else
+				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
+							1 );
+			}
+	;
+
+array_record_ctor_list:
+		array_record_params
+	|
+			{ $$ = new parameter_list; }
+	;
+
+array_record_params:	array_record_params ',' array_record_param
+			{ $1->append( $3 ); }
+
+	|	array_record_param
+			{
+			$$ = new parameter_list;
+			$$->append( $1 );
+			}
+	;
+
+array_record_param:	scoped_expr
+			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+
+	|	TOK_CONST TOK_ID '=' scoped_expr
+			{
+			Ref( $4 );
+			$$ = new ActualParameter( $2, VAL_CONST, $4, 0, $4 );
+			}
 
 	|	TOK_ID '=' scoped_expr
 			{

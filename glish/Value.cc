@@ -123,10 +123,6 @@ Value::Value( Value* ref_value, value_type val_type )
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
 		fatal->Report( "bad value_type in Value::Value" );
 
-	if ( ref_value->IsConst() && val_type == VAL_REF )
-		warn->Report(
-			"\"ref\" reference created from \"const\" reference" );
-
 	ref_value = ref_value->Deref();
 
 	Ref( ref_value );
@@ -2948,6 +2944,18 @@ void Value::AssignRecordElement( const char* index, Value* value )
 
 	recordptr rptr = RecordPtr();
 	Value* member = (*rptr)[index];
+
+	if ( member && member->IsConst() )
+		{
+		error->Report( "'const' values cannot be modified." );
+		return;
+		}
+
+	if ( ! member && IsFieldConst() )
+		{
+		error->Report( "fields cannot be added to a 'const' record." );
+		return;
+		}
 
 	Ref( value );	// So AssignElements() doesn't throw it away.
 

@@ -934,8 +934,13 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
-			prev_value = frame_value;
-			frame_value = value;
+			if ( frame_value && frame_value->IsConst() )
+				error->Report( "'const' values cannot be modified." );
+			else
+				{
+				prev_value = frame_value;
+				frame_value = value;
+				}
 			}
 			break;
 		case FUNC_SCOPE:
@@ -950,8 +955,13 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 			IValue*& frame_value =
 				frames[offset]->FrameElement( frame_offset );
-			prev_value = frame_value;
-			frame_value = value;
+			if ( frame_value && frame_value->IsConst() )
+				error->Report( "'const' values cannot be modified." );
+			else
+				{
+				prev_value = frame_value;
+				frame_value = value;
+				}
 			}
 			break;
 		case GLOBAL_SCOPE:
@@ -960,6 +970,11 @@ void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				fatal->Report(
 				"bad global frame offset in Sequencer::FrameElement" );
 			prev_value = global_frame.replace( frame_offset, value );
+			if ( prev_value && prev_value->IsConst() )
+				{
+				prev_value = global_frame.replace( frame_offset, prev_value );
+				error->Report( "'const' values cannot be modified." );
+				}
 			}
 			break;
 		default:

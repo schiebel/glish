@@ -187,8 +187,13 @@ public:
 	int IsRef() const 
 		{ return kernel.Type() == TYPE_REF; }
 
-	// True if the value is a constant reference.
+	// True if the value is a constant value.
 	int IsConst() const { return kernel.IsConst(); }
+	void MakeConst() { kernel.MakeConst(); }
+
+	// A record to which no new values can be added
+	int IsFieldConst() const { return kernel.IsFieldConst(); }
+	void MakeFieldConst() { kernel.MakeFieldConst(); }
 
 	// True if the value is a sub-vector reference.
 	int IsVecRef() const { return kernel.Type() == TYPE_SUBVEC_REF; }
