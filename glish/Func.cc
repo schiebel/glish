@@ -608,7 +608,7 @@ void UserFunc::ArgOverFlow( Expr* arg, int num_args, int num_formals,
 
 	else
 		{
-		if ( num_args == num_formals + 1 )
+		if ( num_args == num_formals )
 			{
 			error->Report( "too many arguments (> ",
 				num_formals, ") supplied in call to",

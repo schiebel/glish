@@ -893,17 +893,15 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0)
+		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+
 	{
 	char *argv[13];
 
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
-		{
-		error->Report("Frame creation failed, check DISPLAY environment variable.");
-		return;
-		}
+		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
 
 	id = ++frame_count;
 	tl_count++;
@@ -978,7 +976,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0)
+		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
 	{
 	char *argv[12];
 	frame = frame_;
@@ -986,10 +984,9 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
-		{
-		error->Report("Frame creation failed, check DISPLAY environment variable.");
-		return;
-		}
+		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
+
+	if ( ! frame || ! frame->Self() ) return;
 
 	side = strdup(side_);
 	padx = strdup(padx_);
@@ -1033,7 +1030,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
-		  pseudo( 0 ), radio_id(0)
+		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0)
 	{
 	char *argv[12];
 	frame = 0;
@@ -1043,10 +1040,9 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
-		{
-		error->Report("Frame creation failed, check DISPLAY environment variable.");
-		return;
-		}
+		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
+
+	if ( ! canvas || ! canvas->Self() ) return;
 
 	side = strdup(side_);
 	padx = strdup(padx_);
@@ -1412,6 +1408,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 
 	id = ++button_count;
 
+	if ( ! frame || ! frame->Self() ) return;
+
 	char width_[30];
 	char height_[30];
 	char var_name[256];
@@ -1528,6 +1526,8 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	if ( ! frame_->IsMenu() )
 		fatal->Report("internal error with creation of menu entry");
+
+	if ( ! menu || ! menu->Self() ) return;
 
 	char *argv[34];
 
@@ -1748,6 +1748,8 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 
 	agent_ID = "<graphic:scale>";
 
+	if ( ! frame || ! frame->Self() ) return;
+
 	sprintf(from_,"%d",from);
 	sprintf(to_,"%d",to);
 
@@ -1845,6 +1847,8 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	char *argv[24];
 
 	agent_ID = "<graphic:text>";
+
+	if ( ! frame || ! frame->Self() ) return;
 
 	self = rivet_create(TextClass, frame->Self(), 0, 0);
 
@@ -1994,6 +1998,8 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 	agent_ID = "<graphic:scrollbar>";
 
+	if ( ! frame || ! frame->Self() ) return;
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-orient";
@@ -2069,6 +2075,8 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	char width[30];
 
 	agent_ID = "<graphic:label>";
+
+	if ( ! frame || ! frame->Self() ) return;
 
 	sprintf(width,"%d",width_);
 
@@ -2168,6 +2176,8 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	char width_[30];
 
 	agent_ID = "<graphic:entry>";
+
+	if ( ! frame || ! frame->Self() ) return;
 
 	sprintf(width_,"%d",width);
 
@@ -2283,6 +2293,8 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 
 	agent_ID = "<graphic:message>";
 
+	if ( ! frame || ! frame->Self() ) return;
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-text";
@@ -2383,6 +2395,8 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	char height_[40];
 
 	agent_ID = "<graphic:listbox>";
+
+	if ( ! frame || ! frame->Self() ) return;
 
 	sprintf(width_,"%d",width);
 	sprintf(height_,"%d",height);

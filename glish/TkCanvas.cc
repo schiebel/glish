@@ -758,6 +758,8 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	int region_is_copy = 0;
 	int *region = 0;
 
+	if ( ! frame || ! frame->Self() ) return;
+
 	if (region_->Length() >= 4)
 		region = region_->CoerceToIntArray( region_is_copy, 4 );
 
