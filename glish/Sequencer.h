@@ -534,6 +534,9 @@ public:
 
 	int CurWheneverIndex( );
 
+	// Called when the user aborts the glish session...
+	void AbortOccurred( );
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc, int append_name=0 );
@@ -666,6 +669,9 @@ protected:
 	int doing_pager;
 
 	EnvHolder env;
+
+	// set when the system->exit event is posted
+	int shutdown_posted;
 	};
 
 extern IValue *glish_parser( Stmt *&stmt );

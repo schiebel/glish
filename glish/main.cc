@@ -111,7 +111,7 @@ void glish_cleanup( )
 	nb_readline_cleanup();
 #endif
 	set_term_unchar_mode();
-	Sequencer::CurSeq()->System().AbortOccurred();
+	Sequencer::CurSeq()->AbortOccurred();
 	}
 
 

@@ -1349,6 +1349,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 	multi_script = Client::NONSHARED;
 	script_created = 0;
+	shutdown_posted = 0;
 	doing_init = 1;
 	argc_ = argc;
 	argv_ = argv;
@@ -1647,10 +1648,13 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 Sequencer::~Sequencer()
 	{
-	IValue exit_val(glish_true);
-
-	SystemEvent( "exit", &exit_val );
-	RunQueue( );
+	if ( ! shutdown_posted )
+		{
+		shutdown_posted = 1;
+		IValue exit_val(glish_true);
+		SystemEvent( "exit", &exit_val );
+		RunQueue( );
+		}
 
 	shutting_glish_down = 1;
 
@@ -3971,6 +3975,19 @@ void Sequencer::ClearWhenevers( )
 	int len = cur_whenever.length();
 	while ( len > 0 )
 		cur_whenever.remove_nth(--len);
+	}
+
+void Sequencer::AbortOccurred( )
+	{
+	if ( ! shutdown_posted )
+		{
+		shutdown_posted = 1;
+		IValue exit_val(glish_true);
+		SystemEvent( "exit", &exit_val );
+		RunQueue( );
+		}
+
+	System().AbortOccurred();
 	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
