@@ -39,7 +39,7 @@ extern void glish_event_posted( int );
 extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
 
 //###  Function to Make Callbacks
-extern const char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
+extern char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
 
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
@@ -196,8 +196,8 @@ class TkAgent : public Proxy {
 
 	static void Version( ProxyStore *p, Value *v, void *c);
 	static void HaveGui( ProxyStore *p, Value *v, void *c);
-	static void HoldEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events++; }
-	static void ReleaseEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events--; }
+	static void HoldEvents( ProxyStore *p=0, Value *v=0, void *c=0);
+	static void ReleaseEvents( ProxyStore *p=0, Value *v=0, void *c=0);
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );
 	static int DoOneTkEvent( );
 	static void SetBitmapPath( ProxyStore *p, Value *v, void *c);

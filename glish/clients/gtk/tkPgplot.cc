@@ -666,7 +666,7 @@ TkPgplot::xScrolled (const double *d)
 #define CURSOR_name_match(NAME, NUM)					\
 	if (!strcmp (name, #NAME))					\
 		{							\
-		if ( item[NUM] ) free_memory( item[NUM] );		\
+		if ( item[NUM] ) free_memory( (void*) item[NUM] );	\
 		item[NUM] = val->StringVal();				\
 		}
 
@@ -703,7 +703,7 @@ char *TkPgplot::Cursor (Value *args)
 				CURSOR_match
 			else
 				{
-				if ( item[c] ) free_memory( item[c] );
+				if ( item[c] ) free_memory( (void*) item[c] );
 				item[c] = val->StringVal();
 				}
 			}

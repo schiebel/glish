@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 
 #if defined(TKPGPLOT)
 #include "tkPgplot.h"
+extern "C" int Tkpgplot_Init(Tcl_Interp *interp);
 #endif
 
 #include <X11/Xlib.h>
@@ -41,7 +42,7 @@ int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 	if ( argc < 1 ) return TCL_ERROR;
 
 	static char *buf = 0;
-	static unsigned int blen = 0;
+	static int blen = 0;
 
 	if ( ! blen )
 		{
@@ -76,7 +77,7 @@ int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 	return Tcl_Eval( interp, buf );
 	}
 
-const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data, char *out )
+char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data, char *out )
 	{
 	static int index = 0;
 	static char buf[100];
@@ -88,7 +89,7 @@ const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData
 
 char *glishtk_quote_string( charptr str )
 	{
-	char *ret = alloc_memory(strlen(str)+3);
+	char *ret = (char*) alloc_memory(strlen(str)+3);
 	sprintf(ret,"{%s}", str);
 	return ret;
 	}
@@ -297,7 +298,6 @@ Value *glishtk_splitsp_str( char *s )
 
 #define EXPRVAL(var,EVENT)						\
 	const Value *var = rptr->NthEntry( c++, key );			\
-	const Value *var##_val_ = var;					\
 	if ( ! var )							\
 		{							\
 		global_store->Error("bad value: %s", EVENT);		\
@@ -314,7 +314,7 @@ Value *glishtk_splitsp_str( char *s )
 		return 0;						\
 		}
 
-#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,const Value *var##_val_ = var;)
+#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,)
 
 #define EXPRSTR(var,EVENT)						\
 	charptr var = 0;						\
@@ -562,7 +562,6 @@ char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 char *glishtk_bitmap(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
-	char *event_name = "one string function";
 
 	if ( args->Type() == TYPE_STRING )
 		{
@@ -603,7 +602,7 @@ char *glishtk_onedim(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	return ret;
 	}
 
-char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
+char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	{
 	Tcl_VarEval( tcl, "winfo ", cmd, SP, Tk_PathName(self), 0 );
 	return Tcl_GetStringResult(tcl);
@@ -633,12 +632,12 @@ char *glishtk_oneint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	return ret;
 	}
 
-char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *cmd, Value *args )
+char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *, Value * )
 	{
 	return (char*) new Value( Tk_Width(self) );
 	}
 
-char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *cmd, Value *args )
+char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *, Value * )
 	{
 	return (char*) new Value( Tk_Height(self) );
 	}
@@ -908,7 +907,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 			char *s = val->StringVal( ' ', 0, 1 );
 			if ( i != 1 || param )
 				{
-				argv[argc] = alloc_memory(strlen(s)+3);
+				argv[argc] = (char*) alloc_memory(strlen(s)+3);
 				sprintf(argv[argc],"{%s}", s);
 				++argc;
 				}
@@ -1017,7 +1016,7 @@ char *glishtk_text_configfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, 
 	argv[argc++] = (char*) param;
 	EXPRSTR(tag, event_name)
 	argv[argc++] = (char*) tag;
-	const Value *val;
+
 	for ( int i=c; i < args->Length(); i++ )
 		{
 		const Value *val = rptr->NthEntry( i, key );
@@ -1181,7 +1180,7 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, Value *args )
 	return ret;
 	}
 
-char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_listbox_nearest(TkAgent *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
@@ -1321,6 +1320,16 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 		}
 	else
 		return new Value( glish_false );
+	}
+
+void TkAgent::HoldEvents( ProxyStore *, Value *, void *)
+	{
+	hold_tk_events++;
+	}
+
+void TkAgent::ReleaseEvents( ProxyStore *, Value *, void *)
+	{
+	hold_tk_events--;
 	}
 
 void TkAgent::ProcessEvent( const char *name, Value *val )
@@ -1642,10 +1651,9 @@ struct glishtk_bindinfo
 		}
 	};
 
-int glishtk_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	glishtk_bindinfo *info = (glishtk_bindinfo*) data;
-	int dummy;
 	recordptr rec = create_record_dict();
 
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
@@ -1684,7 +1692,7 @@ char *glishtk_bind(TkAgent *agent, const char *, Value *args )
 	return 0;
 	}
 
-int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, char *[] )
 	{
 	((TkFrame*)data)->KillFrame();
 	return TCL_OK;
@@ -1732,9 +1740,7 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
 		
 		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
-		int req_width = atoi(Tcl_GetStringResult(tcl));
 		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
-		int req_height = atoi(Tcl_GetStringResult(tcl));
 
 		TkFrame *f = (TkFrame*) clientData;
 		f->ResizeEvent();
@@ -1773,7 +1779,6 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 
 	{
 	char *argv[17];
-	char geometry[40];
 
 	agent_ID = "<graphic:frame>";
 
@@ -1792,7 +1797,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		{
 		int c = 0;
 		argv[c++] = "toplevel";
-		argv[c++] = NewName();
+		argv[c++] = (char*) NewName();
 		argv[c++] = "-borderwidth";
 		argv[c++] = "0";
 		argv[c++] = "-width";
@@ -1846,7 +1851,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 
 	int c = 0;
 	argv[c++] = "frame";
-	argv[c++] = NewName(pseudo ? pseudo : root);
+	argv[c++] = (char*) NewName(pseudo ? pseudo : root);
 
 	if ( new_cmap )
 		{
@@ -1963,7 +1968,7 @@ TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_
 
 	int c = 0;
 	argv[c++] = "frame";
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 
 	if ( new_cmap )
 		{
@@ -2048,7 +2053,7 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 
 	int c = 0;
 	argv[c++] = "frame";
-	argv[c++] = NewName(canvas->Self());
+	argv[c++] = (char*) NewName(canvas->Self());
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief_;
 	argv[c++] = "-borderwidth";
@@ -2672,7 +2677,7 @@ TkButton::~TkButton( )
 
 static unsigned char dont_invoke_button = 0;
 
-int buttoncb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int buttoncb( ClientData data, Tcl_Interp *, int, char *[] )
 	{
 	((TkButton*)data)->ButtonPressed();
 	return TCL_OK;
@@ -2761,7 +2766,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 
 	int c = 0;
 	argv[c++] = 0;
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 
 	if ( type == RADIO )
 		{
@@ -2800,7 +2805,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = "-height";
 		argv[c++] = height_;
 		argv[c++] = "-text";
-		argv[c++] = label;
+		argv[c++] = (char*) label;
 		}
 
 	argv[c++] = "-anchor";
@@ -2849,7 +2854,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 			argv[0] = "menu";
-			argv[1] = NewName(self);
+			argv[1] = (char*) NewName(self);
 			argv[2] = "-tearoff";
 			argv[3] = "0";
 			Tk_MenuCmd( root, tcl, 4, argv );
@@ -3029,7 +3034,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 			{
 			char *av[10];
 			av[0] = "menu";
-			av[1] = NewName(menu->Menu());
+			av[1] = (char*) NewName(menu->Menu());
 			av[2] = "-tearoff";
 			av[3] = "0";
 			Tk_MenuCmd( root, tcl, 4, av );
@@ -3243,7 +3248,7 @@ void TkScale::UnMap()
 	}
 
 unsigned int TkScale::scale_count = 0;
-int scalecb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int scalecb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	((TkScale*)data)->ValueSet( atof(argv[1]) );
 	return TCL_OK;
@@ -3287,7 +3292,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 
 	int c = 2;
 	argv[0] = "scale";
-	argv[1] = NewName(frame->Self());
+	argv[1] = (char*) NewName(frame->Self());
 	argv[c++] = "-from";
 	argv[c++] = from_c;
 	argv[c++] = "-to";
@@ -3431,7 +3436,7 @@ void TkText::UnMap()
 	TkAgent::UnMap();
 	}
 
-int text_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int text_yscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3440,7 +3445,7 @@ int text_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	return TCL_OK;
 	}
 
-int text_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int text_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3511,7 +3516,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	const char *nme = NewName(frame->Self());
 	Tcl_VarEval( tcl, "text ", nme, 0 );
-	self = Tk_NameToWindow( tcl, nme, root );
+	self = Tk_NameToWindow( tcl, (char*) nme, root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkText::TkText")
@@ -3698,7 +3703,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 
 	int c = 0;
 	argv[c++] = "scrollbar";
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
 	argv[c++] = "-width";
@@ -3811,7 +3816,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 
 	int c = 0;
 	argv[c++] = "label";
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-text";
 	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
@@ -3909,13 +3914,13 @@ void TkEntry::UnMap()
 	TkAgent::UnMap();
 	}
 
-int entry_returncb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int entry_returncb( ClientData data, Tcl_Interp *, int, char *[] )
 	{
 	((TkEntry*)data)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int entry_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3944,7 +3949,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 	int c = 0;
 	argv[c++] = "entry";
-	argv[c++] =  NewName(frame->Self());
+	argv[c++] =  (char*) NewName(frame->Self());
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-justify";
@@ -4086,7 +4091,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 
 	int c = 2;
 	argv[0] = "message";
-	argv[1] = NewName( frame->Self() );
+	argv[1] = (char*) NewName( frame->Self() );
 	argv[c++] = "-text";
 	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
@@ -4186,7 +4191,7 @@ void TkListbox::UnMap()
 	TkAgent::UnMap();
 	}
 
-int listbox_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4195,7 +4200,7 @@ int listbox_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4204,7 +4209,7 @@ int listbox_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	return TCL_OK;
 	}
 
-int listbox_button1cb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
+int listbox_button1cb( ClientData data, Tcl_Interp*, int, char *[] )
 	{
 	((TkListbox*)data)->elementSelected();
 	return TCL_OK;
@@ -4229,7 +4234,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 
 	int c = 0;
 	argv[c++] = "listbox";
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-height";

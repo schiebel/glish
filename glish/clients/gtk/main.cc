@@ -36,7 +36,7 @@ void TkStore::FD_Change( int fd, int add_flag )
 		Tk_DeleteFileHandler( fd );
 	}
 
-void TkStore::fileproc( ClientData data, int fd )
+void TkStore::fileproc( ClientData data, int )
 	{
 	TkStore *stor = (TkStore*) data;
 	GlishEvent *e = stor->NextEvent();

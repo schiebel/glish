@@ -113,7 +113,6 @@ int TkCanvas::count = 0;
 
 #define EXPRVAL(var,EVENT)						\
 	const Value *var = rptr->NthEntry( c++, key );			\
-	const Value *var##_val_ = var;					\
 	if ( ! var )							\
 		{							\
 		global_store->Error("bad value: %s", EVENT);		\
@@ -130,7 +129,7 @@ int TkCanvas::count = 0;
 		return 0;						\
 		}
 
-#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,const Value *var##_val_ = var;)
+#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,)
 
 #define EXPRSTR(var,EVENT)						\
 	charptr var = 0;						\
@@ -256,8 +255,6 @@ Value *glishtk_StrToInt( char *str )
 
 char *glishtk_heightwidth_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
-	char *ret = 0;
-	char *event_name = "one dim function";
 	static char buf[256];
 
 	if ( args->Type() == TYPE_STRING )
@@ -280,7 +277,6 @@ char *glishtk_heightwidth_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd
 
 char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, int howmany, Value *args )
 	{
-	char *ret = 0;
 	char *event_name = "one int list function";
 	if ( args->Length() >= howmany )
 		{
@@ -418,7 +414,7 @@ if ( strcmp(key,"tag") )						\
 			sizeof(char)*(strlen(key)+2) );			\
 	sprintf(Arg_name[name_cnt],"-%s",key);				\
 	EXPRSTR( str, event_name )					\
-	Arg_val[name_cnt] = alloc_memory(strlen(str)+3);		\
+	Arg_val[name_cnt] = (char*) alloc_memory(strlen(str)+3);		\
 	sprintf(Arg_val[name_cnt++],"{%s}",str);			\
 	EXPR_DONE( str )						\
 	}								\
@@ -460,7 +456,6 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 
 		for (int i = 0; i < (*args).Length(); i++)
 			{
-			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
@@ -494,7 +489,6 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
-			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
@@ -519,7 +513,6 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
-			const Value *val = rptr->NthEntry( i, key );
 			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
@@ -623,7 +616,7 @@ char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *para
 							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
 							Arg_name[name_cnt] = (char*) alloc_memory(sizeof(char)*(strlen(key)+2) );
 							sprintf(Arg_name[name_cnt],"-%s",key);
-							Arg_val[name_cnt] = alloc_memory(strlen(str)+3);
+							Arg_val[name_cnt] = (char*) alloc_memory(strlen(str)+3);
 							sprintf(Arg_val[name_cnt++],"{%s}",str);
 							}
 						else
@@ -703,7 +696,7 @@ char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *para
 							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
 							Arg_name[name_cnt] = (char*) alloc_memory(sizeof(char)*(strlen(key)+2) );
 							sprintf(Arg_name[name_cnt],"-%s",key);
-							Arg_val[name_cnt] = alloc_memory(strlen(str)+3);
+							Arg_val[name_cnt] = (char*) alloc_memory(strlen(str)+3);
 							sprintf(Arg_val[name_cnt++],"{%s}",str);
 							}
 						else
@@ -747,8 +740,6 @@ char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *para
 
 char *glishtk_canvas_delete(Tcl_Interp *tcl, Tk_Window self, const char *, Value *args )
 	{
-	char *event_name = "canvas delete function";
-
 	if ( args->Type() == TYPE_RECORD )
 		{
 		recordptr rptr = args->RecordPtr(0);
@@ -828,10 +819,9 @@ struct glishtk_canvas_bindinfo
 		}
 	};
 
-int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
+int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	{
 	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) data;
-	int dummy;
 	recordptr rec = create_record_dict();
 	Tk_Window self = info->canvas->Self();
 
@@ -939,7 +929,7 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	return 0;
 	}
 
-int canvas_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int canvas_yscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -948,7 +938,7 @@ int canvas_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	return TCL_OK;
 	}
 
-int canvas_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+int canvas_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -1004,7 +994,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 
 	int c = 0;
 	argv[c++] = "canvas";
-	argv[c++] = NewName(frame->Self());
+	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief;
 	argv[c++] = "-width";
