@@ -972,6 +972,9 @@ end_literal_ids:
 
 void error_reset( )
 	{
+	extern void scanner_reset( );
+	scanner_reset( );
+
 	current_sequencer->ClearWhenevers();
 
 	if ( interactive( ) )

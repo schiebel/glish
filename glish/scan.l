@@ -893,3 +893,9 @@ void clear_statement_can_end( )
 	{
 	statement_can_end = 0;
 	}
+
+void scanner_reset( )
+	{
+	BEGIN(INITIAL);
+	paren_count = 0;
+	}
