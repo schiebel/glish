@@ -13,11 +13,6 @@ RCSID("@(#) $Id$")
 #include <signal.h>
 #include <time.h>
 
-#if defined(_AIX)
-// for bzero()
-#include <strings.h>
-#endif
-
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif
@@ -364,7 +359,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 		if ( argc < 2 ||
 		     (! streq( argv[0], "-host" ) &&
 		      ! streq( argv[0], "-pipes" )) )
-			fatal->Report(
+			glish_fatal->Report(
 		"invalid Client argument list - missing connection arguments" );
 
 		if ( streq( argv[0], "-host" ) )
@@ -374,7 +369,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 			argc -= 2, argv += 2;
 
 			if ( argc < 2 || ! streq( argv[0], "-port" ) )
-				fatal->Report(
+				glish_fatal->Report(
 			"invalid Client argument list - missing port number" );
 
 			int port = atoi( argv[1] );
@@ -383,7 +378,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 			int socket = get_tcp_socket();
 
 			if ( ! remote_connection( socket, is_localhost ? "localhost" : host, port ) )
-				fatal->Report( "could not establish Client connection to interpreter" );
+				glish_fatal->Report( "could not establish Client connection to interpreter" );
 
 			read_fd = write_fd = socket;
 			}
@@ -393,7 +388,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 			++argv, --argc;	// skip -pipes argument
 
 			if ( argc < 2 )
-				fatal->Report(
+				glish_fatal->Report(
 			"invalid Client argument list - missing pipe fds" );
 
 			read_fd = atoi( argv[0] );
@@ -463,7 +458,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 
 	if ( multithreaded != NONSHARED && ReRegister() )
 		{
-		fatal->Report("multithreaded client with no glishd present");
+		glish_fatal->Report("multithreaded client with no glishd present");
 		}
 
 	if ( have_interpreter_connection )
@@ -516,7 +511,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 
 	if ( multithreaded != NONSHARED && ReRegister() )
 		{
-		fatal->Report("multithreaded client with no glishd present");
+		glish_fatal->Report("multithreaded client with no glishd present");
 		}
 
 	SendEstablishedEvent( last_context );
@@ -554,7 +549,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name,
 
 	if ( multithreaded != NONSHARED && ReRegister() )
 		{
-		fatal->Report("multithreaded client with no glishd present");
+		glish_fatal->Report("multithreaded client with no glishd present");
 		}
 
 	SendEstablishedEvent( last_context );
@@ -769,9 +764,9 @@ void Client::PostEvent( const char* event_name, const Value* event_value,
 	if ( &proxy_id != &glish_proxyid_dummy )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+		rec->Insert( string_dup("id"), ValCtor::create((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 		rec->Insert( string_dup("value"), copy_value(event_value) );
-		GlishEvent e( event_name, create_value(rec) );
+		GlishEvent e( event_name, ValCtor::create(rec) );
 		e.SetIsProxy( );
 		SendEvent( &e, -1, context );
 		}
@@ -810,7 +805,7 @@ void Client::PostEvent( const char* event_name, const char* event_fmt,
 void Client::Reply( const Value* event_value, const ProxyId &proxy_id )
 	{
 	if ( ! ReplyPending() )
-		error->Report( prog_name,
+		glish_error->Report( prog_name,
 	" issued Reply without having received a corresponding request" );
 
 	else
@@ -818,9 +813,9 @@ void Client::Reply( const Value* event_value, const ProxyId &proxy_id )
 		if ( &proxy_id != &glish_proxyid_dummy )
 			{
 			recordptr rec = create_record_dict( );
-			rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+			rec->Insert( string_dup("id"), ValCtor::create((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 			rec->Insert( string_dup("value"), copy_value(event_value) );
-			GlishEvent e( (const char*) pending_reply, create_value(rec) );
+			GlishEvent e( (const char*) pending_reply, ValCtor::create(rec) );
 			e.SetIsReply();
 			e.SetIsProxy();
 			PostEvent( &e );
@@ -914,7 +909,7 @@ int Client::ReRegister( char* registration_name )
 
 	if ( ! glishd_running )
 		{
-		message->Report( "local daemon not running, client will not be shared..." );
+		glish_message->Report( "local daemon not running, client will not be shared..." );
 		return 0;
 		}
 
@@ -944,7 +939,7 @@ int Client::ReRegister( char* registration_name )
 	reg_val[1] = string_dup( multithreaded == GROUP ? "GROUP" :
 			     multithreaded == WORLD ? "WORLD" : "USER" );
 
-	GlishEvent e((const char*) "*register-persistent*", create_value((charptr*)reg_val,2) );
+	GlishEvent e((const char*) "*register-persistent*", ValCtor::create((charptr*)reg_val,2) );
 	send_event( es->Sink(), &e, (FILE*) transcript_file );
 
 	//
@@ -1028,7 +1023,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				RemoveInterpreter( source );
 				FD_Change( fd_src.fd(), 0 );
 				return new GlishEvent( (const char *) "*end-context*",
-					create_value("*stdio*") );
+					ValCtor::create("*stdio*") );
 				}
 			}
 
@@ -1048,7 +1043,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		else
 			{
 			*delim++ = '\0';
-			result = create_value( delim );
+			result = ValCtor::create( delim );
 			}
 
 		last_event = new GlishEvent( string_dup( buf ), result );
@@ -1090,7 +1085,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				int my_socket = get_tcp_socket();
 				if ( ! remote_connection( my_socket, host, port ) )
 					{
-					fatal->Report( "could not establish Client"
+					glish_fatal->Report( "could not establish Client"
 						"connection to interpreter" );
 					}
 
@@ -1109,7 +1104,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				SendEstablishedEvent( last_context );
 
 				last_event = new GlishEvent( (const char *) "*new-context*",
-					create_value( es->Context().id() ) );
+					ValCtor::create( es->Context().id() ) );
 
 				return last_event;
 				}
@@ -1147,7 +1142,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 				Value* request = v->Field( "*request*" );
 
 				if ( ! request )
-					fatal->Report(
+					glish_fatal->Report(
 						"bad request/reply event" );
 
 				Ref( request );
@@ -1208,7 +1203,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		//
 		if ( persistent != TRANSIENT || event_sources.length() > 1 )
 			last_event = new GlishEvent( (const char *) "*end-context*",
-						     create_value( last_context.id() ) );		
+						     ValCtor::create( last_context.id() ) );		
 		}
 
 	return last_event;
@@ -1252,7 +1247,7 @@ void Client::BuildLink( Value* v )
 
 	char* sink_id = 0;
 	if ( ! v->FieldVal( "sink_id", sink_id ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	sink_id_list* remote_sinks = context_sinks[ last_context.id() ];
 
@@ -1284,7 +1279,7 @@ void Client::BuildLink( Value* v )
 
 	int is_local;
 	if ( ! v->FieldVal( "is_local", is_local ) )
-		fatal->Report( "internal link event lacks is_local field" );
+		glish_fatal->Report( "internal link event lacks is_local field" );
 
 	if ( is_local )
 		{
@@ -1320,7 +1315,7 @@ EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )
 	if ( ! v->FieldVal( "event", event_name ) ||
 	     ! v->FieldVal( "new_name", new_name ) ||
 	     ! v->FieldVal( "sink_id", task_id ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	event_link_context_list* cl = context_links[ last_context.id() ];
 
@@ -1374,17 +1369,17 @@ void Client::RendezvousAsOriginator( Value* v )
 	EventLink* el = AddOutputLink( v, 0, is_new );
 
 	if ( ! el || is_new )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	int output_fd;
 
 	int accept_fd;
 	if ( ! v->FieldVal( "accept_fd", accept_fd ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	char* sink_id;
 	if ( ! v->FieldVal( "sink_id", sink_id ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	sink_id_list* remote_sinks = context_sinks[ last_context.id() ];
 
@@ -1426,14 +1421,14 @@ void Client::RendezvousAsOriginator( Value* v )
 		{ // Create a new socket connection.
 		int is_local;
 		if ( ! v->FieldVal( "is_local", is_local ) )
-			fatal->Report( "bad internal link event" );
+			glish_fatal->Report( "bad internal link event" );
 
 		output_fd = is_local ?
 			accept_local_connection( accept_fd ) :
 			accept_connection( accept_fd );
 
 		if ( output_fd < 0 )
-			fatal->Report( "socket accept for link failed" );
+			glish_fatal->Report( "socket accept for link failed" );
 
 		(*remote_sinks).Insert( sink_id, output_fd );
 		}
@@ -1448,7 +1443,7 @@ void Client::RendezvousAsResponder( Value* v )
 	{
 	char* source_id;
 	if ( ! v->FieldVal( "source_id", source_id ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	sink_id_list* remote_sources = context_sources[ last_context.id() ];
 
@@ -1469,7 +1464,7 @@ void Client::RendezvousAsResponder( Value* v )
 
 	int is_local;
 	if ( ! v->FieldVal( "is_local", is_local ) )
-		fatal->Report( "bad internal link event" );
+		glish_fatal->Report( "bad internal link event" );
 
 	if ( is_local )
 		{
@@ -1477,10 +1472,10 @@ void Client::RendezvousAsResponder( Value* v )
 
 		char* path;
 		if ( ! v->FieldVal( "path", path ) )
-			fatal->Report( "bad internal link event" );
+			glish_fatal->Report( "bad internal link event" );
 
 		if ( ! local_connection( input_fd, path ) )
-			fatal->Report( "couldn't connect to local socket",
+			glish_fatal->Report( "couldn't connect to local socket",
 					path );
 
 		// Now that we've rendezvous'd, remove the Unix-domain
@@ -1500,7 +1495,7 @@ void Client::RendezvousAsResponder( Value* v )
 
 		if ( ! v->FieldVal( "host", host ) ||
 		     ! v->FieldVal( "port", port ) )
-			fatal->Report( "bad internal link event" );
+			glish_fatal->Report( "bad internal link event" );
 
 		input_fd = get_tcp_socket();
 
@@ -1533,9 +1528,9 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 	if ( ! have_interpreter_connection || streq( context.id(), "*stdio*" ) )
 		{
 		if ( value )
-			message->Report( name, " ", value );
+			glish_message->Report( name, " ", value );
 		else
-			message->Report( name, " <no value>" );
+			glish_message->Report( name, " <no value>" );
 		return;
 		}
 
@@ -1646,7 +1641,7 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	if ( ! fields ) return 0;
 
 	if ( type != SOS_STRING )
-		fatal->Report("field names expected first when reading record");
+		glish_fatal->Report("field names expected first when reading record");
 
 	recordptr nr = create_record_dict();
 
@@ -1663,11 +1658,11 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	Value *ret = 0;
 	if ( is_fail )
 		{
-		ret = create_value();
+		ret = ValCtor::create();
 		ret->SetFail( nr );
 		}
 	else
-		ret = create_value( nr );
+		ret = ValCtor::create( nr );
 
 	return ret;
 	}
@@ -1693,31 +1688,31 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
 		{
 		case SOS_INT: 
 			if ( head.ugetc(0) == TYPE_BOOL )
-				val = create_value( (glish_bool*) ary, len );
+				val = ValCtor::create( (glish_bool*) ary, len );
 			else
-				val = create_value( (int*) ary, len );
+				val = ValCtor::create( (int*) ary, len );
 			break;
-		case SOS_BYTE: val = create_value( (byte*) ary, len ); break;
-		case SOS_SHORT: val = create_value( (short*) ary, len ); break;
+		case SOS_BYTE: val = ValCtor::create( (byte*) ary, len ); break;
+		case SOS_SHORT: val = ValCtor::create( (short*) ary, len ); break;
 		case SOS_FLOAT:
 			if ( head.ugetc(0) == TYPE_COMPLEX )
-				val = create_value( (glish_complex*) ary, len / 2 );
+				val = ValCtor::create( (glish_complex*) ary, len / 2 );
 			else
-				val = create_value( (float*) ary, len );
+				val = ValCtor::create( (float*) ary, len );
 			break;
 		case SOS_DOUBLE:
 			if ( head.ugetc(0) == TYPE_DCOMPLEX )
-				val = create_value( (glish_dcomplex*) ary, len / 2 );
+				val = ValCtor::create( (glish_dcomplex*) ary, len / 2 );
 			else
-				val = create_value( (double*) ary, len );
+				val = ValCtor::create( (double*) ary, len );
 			break;
-		case SOS_STRING: val = create_value( (charptr*) ary, len ); break;
+		case SOS_STRING: val = ValCtor::create( (charptr*) ary, len ); break;
 		case SOS_RECORD: val = read_record( sos, len, head.ugetc(0) == TYPE_FAIL ); break;
 		default:
 #ifdef SOS_DEBUG
 			cerr << "header: " << head << endl;
 #endif
-			fatal->Report( "bad type in 'read_value( sos_in &, char *&, unsigned char &)'" );
+			glish_fatal->Report( "bad type in 'read_value( sos_in &, char *&, unsigned char &)'" );
 		}
 
 	if ( name_len )
@@ -1728,9 +1723,7 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
 
 		if ( transcript )
 			{
-			struct timeval sent;
-			sent.tv_sec = head.time();
-			sent.tv_usec = 0;
+			time_t sent = head.time( );
 
 			struct timeval cur;
 			struct timezone tz;
@@ -1738,12 +1731,12 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
 
 			char buf1[512];
 			char buf2[512];
-			struct tm *ltime = localtime( &sent.tv_sec );
+			struct tm *ltime = localtime( &sent );
 			int len = strftime( buf1, 512, "%Y/%m/%d*%H:%M:%S.%%05.0f*%z", ltime );
 			if ( len > 0 )
 				{
 				len = sprintf( buf2, buf1, head.utime() * TRANSCRIPT_USEC_SCALE );
-				ltime = localtime( &cur.tv_sec );
+				ltime = localtime( (time_t*) &cur.tv_sec );
 				len = strftime( buf1, 512, "%%s %Y/%m/%d*%H:%M:%S.%%05.0f*%z %%s %%s\n", ltime );
 				if ( len > 0 )
 					fprintf( transcript, buf1, buf2, cur.tv_usec * TRANSCRIPT_USEC_SCALE, name, type_names[val->Type()] );
@@ -1777,7 +1770,7 @@ GlishEvent* recv_event( sos_source &in, FILE *transcript )
 	if ( ! result ) return 0;
 
 	if ( ! name )
-		fatal->Report("no event name found");
+		glish_fatal->Report("no event name found");
 
 	GlishEvent *e = new GlishEvent( name, result );
 	e->SetFlags( flags );
@@ -1875,7 +1868,7 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			break;
 		case TYPE_AGENT:
 			if ( &proxy_id == &glish_proxyid_dummy ||
-			     ! write_agent( sos, val, head, proxy_id ) )
+			     ! ValCtor::write_agent( sos, val, head, proxy_id ) )
 				{
 				write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, transcript, been_there );
 				return;
@@ -1886,7 +1879,7 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			return;
 			break;
                 default:
-                        fatal->Report( "bad type in write_value()" );
+                        glish_fatal->Report( "bad type in write_value()" );
  		}
 
 	if ( name ) sos.write( name, strlen(name), sos_sink::COPY );
@@ -1907,7 +1900,7 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 		{
 		struct timeval sent = sos.get_stamp( );
 		char buf[512];
-		struct tm *ltime = localtime( &sent.tv_sec );
+		struct tm *ltime = localtime( (time_t*) &sent.tv_sec );
 		int len = strftime( buf, 512, "%Y/%m/%d*%H:%M:%S.%%05.0f*%z                                 %%s %%s\n", ltime );
 		if ( len > 0 )
 			fprintf( transcript, buf, sent.tv_usec * TRANSCRIPT_USEC_SCALE, name ? name : "", type_names[val->Type()] );
@@ -1989,13 +1982,15 @@ void set_load_path( Value *v )
 
 char *which_shared_object( const char* filename )
 	{
+	const char *suffix = "@SLIB_SUFFIX@";
+	int suffix_len = strlen(suffix);
 	char **paths = load_path;
 	int len = load_path_len;
 
 	int sl = strlen(filename);
 	int do_pre_post = 1;
 
-	if ( sl > 3 && filename[sl-1] == 'o' && filename[sl-2] == 's' && filename[sl-3] == '.' )
+	if ( sl > suffix_len && ! strcmp( suffix, &filename[sl-suffix_len] ) )
 		do_pre_post = 0;
 
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
@@ -2012,12 +2007,12 @@ char *which_shared_object( const char* filename )
 		if ( paths[i] && strlen(paths[i]) )
 			if ( do_pre_post )
 				{
-				sprintf( directory, "%s/%s.so", paths[i], filename );
+				sprintf( directory, "%s/%s@SLIB_SUFFIX@", paths[i], filename );
 				if ( access( directory, R_OK ) == 0 )
 					return strdup( directory );
 				else
 					{
-					sprintf( directory, "%s/lib%s.so", paths[i], filename );
+					sprintf( directory, "%s/lib%s@SLIB_SUFFIX@", paths[i], filename );
 					if ( access( directory, R_OK ) == 0 )
 						return strdup( directory );
 					}

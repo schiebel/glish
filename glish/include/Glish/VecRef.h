@@ -89,7 +89,7 @@ type* SubVecRef(type)::DupVec( type *ret ) const			\
 		int off = TranslateIndex( i, &err );			\
 		if ( err )						\
 			{						\
-			error->Report( "invalid subscript (", i+1,	\
+			glish_error->Report( "invalid subscript (", i+1,\
 			"), sub-vector reference is probably invalid" );\
 			break;						\
 			}						\
@@ -103,7 +103,7 @@ type& SubVecRef(type)::operator[]( int index )				\
 	int off = TranslateIndex( index, &err );			\
 	if ( err )							\
 		{							\
-		error->Report("invalid subscript (", index+1,		\
+		glish_error->Report("invalid subscript (", index+1,	\
 			"), sub-vector reference is probably invalid");	\
 		static type error_value;				\
 		return error_value;					\

@@ -1,12 +1,11 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997,1998,2000 Associated Universities Inc.
+// Copyright (c) 1997,1998,2000,2004 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
 #include <iostream.h>
-#include <strstream.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -40,7 +39,7 @@ void back_offsets_type::set( int index, int off, int soff, scope_type type )
 		s.append( type );
 		}
 	else
-		fatal->Report( "offset added past end of list in back_offsets_type::set()" );
+		glish_fatal->Report( "offset added past end of list in back_offsets_type::set()" );
 
 	}
 
@@ -168,7 +167,7 @@ IValue* Expr::CopyOrRefValue( const IValue* value, evalOpt &opt )
 		// SIDE_EFFECTS should've been caught earlier; making it
 		// this far indicates that the function erroneously overrode
 		// SideEffectsEval().
-		fatal->Report( "bad evalOpt::Type in Expr::CopyOrRefValue" );
+		glish_fatal->Report( "bad evalOpt::Type in Expr::CopyOrRefValue" );
 		return 0;
 		}
 	}
@@ -381,7 +380,7 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 							this, created );
 			break;
 		default:
-			fatal->Report("bad scope modifier tag in VarExpr::DoBuildFrameInfo()");
+			glish_fatal->Report("bad scope modifier tag in VarExpr::DoBuildFrameInfo()");
 		}
 
 	if ( ret && ret != this )
@@ -767,7 +766,7 @@ IValue *AssignExpr::SideEffectsEval( evalOpt &opt )
 		else if ( lopt.result_perishable( ) )
 			return ret;
 
-		fatal->Report(
+		glish_fatal->Report(
 		"value unexpected returnedly in AssignExpr::SideEffectsEval" );
 		}
 
@@ -1203,7 +1202,7 @@ BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY, twist
 			break;
 
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 		    "bad type tag in ConstructExpr::ConstructArray()" );
 		}
 
@@ -1218,7 +1217,7 @@ IValue * ConstructExpr::ConstructRecord( const IValue* values[], int num_values 
 	for ( int i=0; i < num_values; ++i )
 		{
 		if ( values[i]->Type() != TYPE_RECORD )
-			fatal->Report( "bad value in ConstructExpr::ConstructRecord()" );
+			glish_fatal->Report( "bad value in ConstructExpr::ConstructRecord()" );
 		  
 		recordptr rptr = values[i]->RecordPtr(0);
 		IterCookie* c = rptr->InitForIteration();
@@ -1356,7 +1355,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 
 	if ( args->length() != 1 )
 		{
-		warn->Report( this, "invalid array addressing" );
+		glish_warn->Report( this, "invalid array addressing" );
 		op->ReadOnlyDone( array );
 		return error_ivalue();
 		}
@@ -1490,7 +1489,7 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 
 	if ( args->length() != 1 )
 		{
-		warn->Report( this, ": invalid array addressing" );
+		glish_warn->Report( this, ": invalid array addressing" );
 		Unref( array_ref );
 		return error_ivalue();
 		}
@@ -1941,7 +1940,7 @@ IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 			}
 		else
 			{
-			warn->Report( this, " invalid attribute access" );
+			glish_warn->Report( this, " invalid attribute access" );
 			value = error_ivalue();
 			}
 
@@ -2380,7 +2379,7 @@ IValue* ApplyRegExpr::Eval( evalOpt &opt )
 
 
 	else
-		fatal->Report( "bad type in ApplyRegExpr::Eval( )" );
+		glish_fatal->Report( "bad type in ApplyRegExpr::Eval( )" );
 
 	right->ReadOnlyDone( regval );
 	left->ReadOnlyDone( strval );
@@ -2417,8 +2416,8 @@ IValue* CallExpr::Eval( evalOpt &opt )
 	Func* func_val = func->FuncVal();
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( Describe(message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
-			message->Stream() << endl;
+		if ( Describe(glish_message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
+			glish_message->Stream() << endl;
 
 	IValue* result = 0;
 
@@ -2562,7 +2561,7 @@ IValue *SendEventExpr::SideEffectsEval( evalOpt &opt )
 		if ( result->Type() == TYPE_FAIL )
 			return result;
 
-		fatal->Report(
+		glish_fatal->Report(
 		"value unexpectedly returned in SendEventExpr::SideEffectsEval" );
 		}
 
@@ -2626,7 +2625,7 @@ IValue* LastEventExpr::Eval( evalOpt &opt )
 			break;
 
 		default:
-			fatal->Report( "bad type in LastEventExpr::Eval" );
+			glish_fatal->Report( "bad type in LastEventExpr::Eval" );
 		}
 
 	return result;
@@ -2651,7 +2650,7 @@ IValue* LastEventExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		result = new IValue( n->value, val_type );
 
 	else
-		fatal->Report( "bad type in LastEventExpr::RefEval" );
+		glish_fatal->Report( "bad type in LastEventExpr::RefEval" );
 
 	return result;
 	}
@@ -2706,7 +2705,7 @@ IValue* LastRegexExpr::Eval( evalOpt &opt )
 			result = empty_ivalue();
 		}
 	else
-		fatal->Report( "bad type in LastRegexExpr::Eval" );
+		glish_fatal->Report( "bad type in LastRegexExpr::Eval" );
 
 	return result;
 	}
@@ -2727,7 +2726,7 @@ IValue* LastRegexExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		}
 
 	else
-		fatal->Report( "bad type in LastRegexExpr::RefEval" );
+		glish_fatal->Report( "bad type in LastRegexExpr::RefEval" );
 
 	return result;
 	}

@@ -81,7 +81,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 	if ( nl.length() == 0 )
 		{
 		EventAgentDone();
-		error->Report( "->* illegal for sending an event" );
+		glish_error->Report( "->* illegal for sending an event" );
 		--send_count;
 		return is_request ? error_ivalue() : 0;
 		}
@@ -91,7 +91,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 	if ( a && ! a->Finished( ) )
 		{
 		if ( nl.length() > 1 )
-			error->Report( this,
+			glish_error->Report( this,
 				       "must designate exactly one event" );
 
 		result = a->SendEvent( nl[0], arguments, is_request, Agent::mLOG( ), from_subsequence );
@@ -136,7 +136,7 @@ void EventDesignator::Register( Notifiee* notifiee )
 		}
 
 	else
-		error->Report( EventAgentExpr(), "is not an agent" );
+		glish_error->Report( EventAgentExpr(), "is not an agent" );
 
 	EventAgentDone();
 	}
@@ -159,7 +159,7 @@ void EventDesignator::UnRegister( Stmt* s )
 		}
 
 	else
-		error->Report( EventAgentExpr(), "is not an agent" );
+		glish_error->Report( EventAgentExpr(), "is not an agent" );
 
 	EventAgentDone();
 	}
@@ -208,7 +208,7 @@ name_list &EventDesignator::EventNames( int force_eval )
 		}
 
 	else
-		error->Report( this, "does not have a string-valued index" );
+		glish_error->Report( this, "does not have a string-valued index" );
 
 	event_name_expr->ReadOnlyDone( index_val );
 

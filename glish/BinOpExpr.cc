@@ -186,7 +186,7 @@ IValue* ArithExpr::OpCompute( IValue* lhs, const IValue* rhs, int lhs_len,
 			break;
 
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad operands type in ArithExpr::OpCompute()" );
 		}
 
@@ -312,22 +312,22 @@ COMPUTE_OP(ModuloExpr,%=,int,mod_fpe_errmsg)
 
 void ModuloExpr::Compute( float*, float*, int, int, const char *& )
 	{
-	fatal->Report( "ModuloExpr::Compute() called with float operands" );
+	glish_fatal->Report( "ModuloExpr::Compute() called with float operands" );
 	}
 
 void ModuloExpr::Compute( double*, double*, int, int, const char *& )
 	{
-	fatal->Report( "ModuloExpr::Compute() called with double operands" );
+	glish_fatal->Report( "ModuloExpr::Compute() called with double operands" );
 	}
 
 void ModuloExpr::Compute( glish_complex*, glish_complex*, int, int, const char *& )
 	{
-	fatal->Report( "ModuloExpr::Compute() called with complex operands" );
+	glish_fatal->Report( "ModuloExpr::Compute() called with complex operands" );
 	}
 
 void ModuloExpr::Compute( glish_dcomplex*, glish_dcomplex*, int, int, const char *& )
 	{
-	fatal->Report( "ModuloExpr::Compute() called with dcomplex operands" );
+	glish_fatal->Report( "ModuloExpr::Compute() called with dcomplex operands" );
 	}
 
 
@@ -347,22 +347,22 @@ glish_type PowerExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
 
 void PowerExpr::Compute( byte*, byte*, int, int, const char *& )
 	{
-	fatal->Report( "PowerExpr::Compute() called with byte operands" );
+	glish_fatal->Report( "PowerExpr::Compute() called with byte operands" );
 	}
 
 void PowerExpr::Compute( short*, short*, int, int, const char *& )
 	{
-	fatal->Report( "PowerExpr::Compute() called with short operands" );
+	glish_fatal->Report( "PowerExpr::Compute() called with short operands" );
 	}
 
 void PowerExpr::Compute( int*, int*, int, int, const char *& )
 	{
-	fatal->Report( "PowerExpr::Compute() called with integer operands" );
+	glish_fatal->Report( "PowerExpr::Compute() called with integer operands" );
 	}
 
 void PowerExpr::Compute( float*, float*, int, int, const char *& )
 	{
-	fatal->Report( "PowerExpr::Compute() called with float operands" );
+	glish_fatal->Report( "PowerExpr::Compute() called with float operands" );
 	}
 
 void PowerExpr::Compute( double lhs[], double rhs[], int lhs_len,
@@ -377,7 +377,7 @@ void PowerExpr::Compute( double lhs[], double rhs[], int lhs_len,
 
 void PowerExpr::Compute( glish_complex*, glish_complex*, int, int, const char *& )
 	{
-	fatal->Report( "PowerExpr::Compute() called with complex operands" );
+	glish_fatal->Report( "PowerExpr::Compute() called with complex operands" );
 	}
 
 void PowerExpr::Compute( glish_dcomplex lhs[], glish_dcomplex rhs[],
@@ -520,7 +520,7 @@ IValue* RelExpr::OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len )
 				return new IValue( glish_bool( lhs != rhs ) );
 
 			else
-				fatal->Report(
+				glish_fatal->Report(
 				"bad operands type in RelExpr::OpCompute()" );
 			break;
 
@@ -530,7 +530,7 @@ IValue* RelExpr::OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len )
 			break;
 
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad operands type in RelExpr::OpCompute()" );
 		}
 
@@ -583,7 +583,7 @@ DEFINE_REL_EXPR(GT_Expr, >)
 #define DEFINE_LOG_EXPR_COMPUTE(type, typename)				\
 void LogExpr::Compute( type*, type*, glish_bool*, int, int )		\
 	{								\
-	fatal->Report( "LogExpr::Compute called with", typename, "operands" );\
+	glish_fatal->Report( "LogExpr::Compute called with", typename, "operands" );\
 	}
 DEFINE_LOG_EXPR_COMPUTE(glish_bool, "boolean")
 DEFINE_LOG_EXPR_COMPUTE(byte, "byte")

@@ -108,6 +108,13 @@
 #endif 
 
 //======================================================================
+#if defined(apple) || defined(__APPLE_CC__)
+#define SOS_SHMEM 1
+#define SOS_MEMMAP 1
+#define SOS_ARC SOS_SPARC
+#endif 
+
+//======================================================================
 #if defined(sparc) || defined(__sparc__)
 #define SOS_SHMEM 1
 #define SOS_MEMMAP 1
@@ -242,7 +249,8 @@ typedef unsigned char sos_code;
  || defined(mv147) || defined(__mv147__) || defined(VXWORKS) \
  || defined(__i486__) || defined(__i386__) || defined(__ia64__) \
  || defined(mips) || defined(__mips__) \
- || defined(masscomp) || defined(__masscomp__) || defined(_AIX)
+ || defined(masscomp) || defined(__masscomp__) || defined(_AIX) \
+ || defined(__APPLE_CC__)
 #define SOS_IEEEFP
 #define SOS_FLOAT SOS_IFLOAT
 #define SOS_DOUBLE SOS_IDOUBLE

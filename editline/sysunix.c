@@ -12,7 +12,7 @@ RCSID("@(#) $Id$")
 #include <signal.h>
 
 #if	defined(HAVE_TCGETATTR)
-#if	defined(HAVE_TERMIO_H)
+#if	defined(HAVE_TERMIO_H) || defined(HAVE_TERMIOS_H)
 #include <termios.h>
 #endif
 

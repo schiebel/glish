@@ -151,7 +151,7 @@ void ProxyStore::removeProxy( Proxy *p )
 
 const ProxyId ClientProxyStore::getId( )
 	{
-	static Value *v =  create_value(glish_true);
+	static Value *v =  ValCtor::create(glish_true);
 	GlishEvent *save_last = client.last_event;
 	client.last_event = 0;
 	char *rname = client.pending_reply;
@@ -308,27 +308,27 @@ Proxy *Proxy::Done( Value * )
 void Proxy::SendCtor( const char *name, Proxy *source )
 	{
 	recordptr rec = create_record_dict();
-	rec->Insert( string_dup(PXCREATE), create_value((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
+	rec->Insert( string_dup(PXCREATE), ValCtor::create((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
 	if ( ! source )
 		{
 		if ( ReplyPending( ) )
 			{
 			char *pending = store->TakePending();
-			GlishEvent e( pending, create_value(rec) );
+			GlishEvent e( pending, ValCtor::create(rec) );
 			e.SetIsReply( );
 			e.SetIsProxy( );
 			PostEvent( &e );
 			}
 		else
 			{
-			GlishEvent e( name, create_value(rec) );
+			GlishEvent e( name, ValCtor::create(rec) );
 			e.SetIsProxy( );
 			PostEvent( &e );
 			}
 		}
 	else
 		{
-		Value *v = create_value(rec);
+		Value *v = ValCtor::create(rec);
 		if ( ReplyPending( ) )
 			source->Reply( v );
 		else

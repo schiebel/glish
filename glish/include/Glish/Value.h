@@ -11,17 +11,6 @@
 #include "Glish/Complex.h"
 #include "Glish/ValKern.h"
 
-// Different types of values: constant references, references, and
-// ordinary (non-indirect) values.
-typedef enum { VAL_CONST, VAL_REF, VAL_VAL } value_reftype;
-
-// Different types of storage for an array used to construct a Value.
-typedef enum {
-	COPY_ARRAY,		// copy the array
-	TAKE_OVER_ARRAY,	// use the array, delete it when done with it
-	PRESERVE_ARRAY		// use the array, don't delete it or grow it
-	} array_storage_type;
-
 extern int glish_dummy_int;
 
 class Value;
@@ -42,38 +31,11 @@ typedef const Value const_value;
 glish_declare(PList,const_value);
 typedef PList(const_value) const_value_list;
 
-// Classes for subvector references.
-class VecRef;
-#define SubVecRef(type) glish_name2(type,SubVecRef)
-class SubVecRef(glish_bool);
-class SubVecRef(byte);
-class SubVecRef(short);
-class SubVecRef(int);
-class SubVecRef(float);
-class SubVecRef(double);
-class SubVecRef(glish_complex);
-class SubVecRef(glish_dcomplex);
-class SubVecRef(charptr);
-
-typedef SubVecRef(glish_bool) glish_boolref;
-typedef SubVecRef(byte) byteref;
-typedef SubVecRef(short) shortref;
-typedef SubVecRef(int) intref;
-typedef SubVecRef(float) floatref;
-typedef SubVecRef(double) doubleref;
-typedef SubVecRef(glish_complex) complexref;
-typedef SubVecRef(glish_dcomplex) dcomplexref;
-typedef SubVecRef(charptr) charptrref;
-
-
 #define copy_array(src,dest,len,type) \
 	memcpy( (void*) dest, (void*) src, sizeof(type) * len )
 
 #define copy_values(src,type) \
 	copy_array( src, (void *) new type[len], length, type )
-
-extern Value* copy_value( const Value* value );
-extern Value* deep_copy_value( const Value* value );
 
 extern const Value* false_value;
 extern Value* empty_value( glish_type t = TYPE_INT );
@@ -487,16 +449,10 @@ public:
 		}
 
 	// Retrieve a copy of a (possibly nil) attribute set.
-	Value* CopyAttributePtr() const
-		{
-		return attributes ? copy_value( attributes ) : 0;
-		}
+	Value* CopyAttributePtr() const;
 
 	// Retrieve a copy of a (possibly nil) attribute set.(do a deep copy)
-	Value* DeepCopyAttributePtr() const
-		{
-		return attributes ? deep_copy_value( attributes ) : 0;
-		}
+	Value* DeepCopyAttributePtr() const;
 
 	// Returns an (unmodifiable) existing Value, or false_value if the
 	// given attribute does not exist.
@@ -588,17 +544,7 @@ public:
 	//
 	// Public to allow users to implement their own copy on write
 	// until copy on write is a formal part of Glish.
-	Value* CopyUnref()
-		{
-		if ( RefCount() == 1 )
-			return this;
-		else
-			{
-			Unref( this );	// Safe!
-			Value* copy = copy_value( this );
-			return copy;
-			}
-		}
+	Value* CopyUnref();
 
 	int Sizeof( int verbose=0, const char *id=0, int tab_count=0, const char *tab="  ", int skip_first=0 ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
@@ -728,56 +674,6 @@ extern Value *Fail( const RMessage&, const RMessage& = EndMessage,
 
 extern Value *Fail( );
 
-// This is a real bother, but it is the best compromise available. C++ has
-// no virtual constructors, but when compiling the Glish interpreter, we
-// want IValues to be created, and when compiling the clients, we want
-// Values to be created. In main.cc, these are defined and return an
-// IValue* they are also defined in glishlib.cc (which goes into libglish)
-// and return a Value*
-extern Value *create_value( );
-extern Value *create_value( const char *message, const char *file, int line, int auto_fail=1 );
-extern Value *create_value( const Value *val, const char *file, int line );
-extern Value *create_value( const Value &value );
-extern Value *create_value( glish_bool value );
-extern Value *create_value( byte value );
-extern Value *create_value( short value );
-extern Value *create_value( int value );
-extern Value *create_value( float value );
-extern Value *create_value( double value );
-extern Value *create_value( glish_complex value );
-extern Value *create_value( glish_dcomplex value );
-extern Value *create_value( const char* value );
-extern Value *create_value( recordptr value );
-extern Value *create_value( Value* ref_value, value_reftype val_type );
-extern Value *create_value( Value* ref_value, int index[], int num_elements,
-			    value_reftype val_type, int take_index = 0 );
-extern Value *create_value( glish_bool value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( byte value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( short value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( int value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( float value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( double value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( glish_complex value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( glish_dcomplex value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( charptr value[], int num_elements,
-	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( glish_boolref& value_ref );
-extern Value *create_value( byteref& value_ref );
-extern Value *create_value( shortref& value_ref );
-extern Value *create_value( intref& value_ref );
-extern Value *create_value( floatref& value_ref );
-extern Value *create_value( doubleref& value_ref );
-extern Value *create_value( complexref& value_ref );
-extern Value *create_value( dcomplexref& value_ref );
-extern Value *create_value( charptrref& value_ref );
-
+#include "Glish/ValCtor.h"
 
 #endif /* value_h */

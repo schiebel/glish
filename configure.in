@@ -511,7 +511,7 @@ dnl## Checks for header files.
 dnl##
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h limits.h float.h machine/fpu.h stropts.h sys/signal.h fp.h sys/time.h stdlib.h dirent.h termio.h sys/shm.h siginfo.h ucontext.h floatingpoint.h malloc.h)
+AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h limits.h float.h machine/fpu.h stropts.h sys/signal.h fp.h sys/time.h stdlib.h dirent.h termio.h termios.h sys/shm.h siginfo.h ucontext.h floatingpoint.h malloc.h mach-o/dyld.h crt_externs.h)
 
 dnl##
 dnl## Checks for typedefs, structures, and compiler characteristics.
@@ -811,15 +811,15 @@ if test -z "$NO_TK"; then
     ## if we couldn't find the tcl library using tclsh, look a little harder
     ##
     if test -z "$tcl_lib"; then
-        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib"
+        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib /Volumes/aips/sw/lib"
         saved_LDFLAGS="$LDFLAGS"
         for i in $dirs ; do
             LDFLAGS="-L$i $saved_LDFLAGS"
             for g in `ls -1 $i/libtcl* 2> /dev/null | egrep ['tcl[0-9.]'] | \
-                      sed -e 's/^.*\/libtcl/tcl/' -e ['s/\.[a-z][a-z]*$//'] | sort -u -r`; do
+                      sed -e 's/^.*\/libtcl/tcl/' -e ['s/\.[a-z.][a-z.]*$//'] | sort -u -r`; do
                 tcle=`echo $g | sed 's/^tcl//'`
                 for f in `ls -1 $i/libtk* 2> /dev/null | grep -v tkx | egrep ['tk[0-9.]'] | \
-                          sed -e 's/^.*\/libtk/tk/' -e ['s/\.[a-z][a-z]*$//'] | sort -u -r`; do
+                          sed -e 's/^.*\/libtk/tk/' -e ['s/\.[a-z.][a-z.]*$//'] | sort -u -r`; do
                     ext=`echo $f | sed 's/^tk//'`
                     AC_RECHECK_LIB(tk$ext,main,[
                         tcl_lib="-L$i -ltk$ext -ltcl$tcle"
@@ -914,7 +914,7 @@ else
     XINCLUDES=""
     TK_LIB=""
     do_tk='no'
-    TK_INCL=""
+   T K_INCL=""
     x_includes=""
     x_libraries=""
 fi
@@ -926,7 +926,7 @@ dnl## Non-standard setup
 dnl##
 dnl##--------------------------------------------------------------------
 
-   ## Derived from the Tk configure.in...
+a   ## Derived from the Tk configure.in...
 dnl##
 dnl## Look for status of gettimeofday. Find out what is available, and
 dnl## if it is declared
@@ -986,7 +986,7 @@ if `echo $cxx_include_path | sed ['s/\/[^/]*include\//X/'] > /dev/null 2>&1`; th
     cxx_library_path=`echo $cxx_include_path | sed -e ['s/^[^\/]*//'] -e ['s/\/[^/]*include\/.*/\/lib/'] -e 's/\/lib\/.*/\/lib/' -e 's/\n$//'`
 fi
 AC_MSG_RESULT($cxx_library_path)
-if test -n "$cxx_library_path"; then
+if test -n "$cxx_library_path" -a "$cxx_library_path" '!=' '/usr/lib'; then
     cxx_lpath="-L$cxx_library_path"
     cxx_rpath=":$cxx_library_path"
 fi
@@ -1732,6 +1732,69 @@ case $host_os in
 	TK_LD_RPATH=""
 	GC_MACH_DEP=mach_dep.o
 	;;
+    darwin*)
+	CLIENT_LIBS_extra=
+	MALLOC=''
+	SLIB_CFLAGS="+z"
+	SLIB_LABEL=''
+	SLIB_LD="g++ -dynamiclib -single_module"
+	SLIB_LD_LIBS='-L/opt/local/lib ${LIBS}'
+	SLIB_LD_LIBS_sos='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd'
+	SLIB_LD_LIBS_regx=$SLIB_LD_LIBS_sos
+	SLIB_LD_LIBS_edit=$SLIB_LD_LIBS_sos
+	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd'
+	SLIB_LD_LIBS_glishp='-L${LIBDIR_P} -L${LIBDIR} -lglish -lregx -ledit -lsos -lnpd'
+	SLIB_LD_LIBS_glishtk='-lX11'
+	dnl##
+	dnl## This is recommended by the linker:
+	dnl##
+	dnl## SLIB_LD_FLAGS_glishtk="-Wl,-bind_at_load"
+	dnl##
+	dnl## i.e. c++ -I[...] -g -O -o glishtk main.o -L[...] lglisht -lglish -lsos -lnpd -ltk8.4 -ltcl8.4 -lm -lX11 -ldl
+	dnl##	   ld: warning multiple definitions of symbol _tclIntPlatStubsPtr
+	dnl##	   /opt/local/lib/libtcl8.4.dylib(tclStubLib.o) definition of _tclIntPlatStubsPtr
+	dnl##	         [...]
+	dnl##	   ld: warning suggest use of -bind_at_load, as lazy binding may result in errors or different symbols being used
+	dnl##
+	dnl## however, there is no way to get this passed down to ld, -Wlinker -bind_at_load or
+	dnl## -Wl,-bind_at_load results in errors from libtool (unknow option)...
+	dnl##
+	SLIB_LD_FLAGS_glishtk=
+	SLIB_SUFFIX=".dylib"
+	DL_LIBS="-ldl"
+	LD_FLAGS="-Wl,-E"
+	RPATH_PREFIX="-L"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-L$full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	if test -n "$cxx_rpath"; then
+	    TK_LD_RPATH="-L$full_libdir_p:$full_libdir"
+	else
+	    TK_LD_RPATH="-L$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+        ADD_LD_SEARCH([-L],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-L],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-L],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+	GC_MACH_DEP=mach_dep.o
+	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/^/./" -e "s/$/$SLIB_SUFFIX/" )
+	MACH_SYSINFO=sysinfo/darwin.cc
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH=`echo $TK_LD_RPATH | sed 's/:/ -L/g'`
+	fi
+	if test -n "$GLISH_LD_SEARCH"; then
+	    GLISH_LD_SEARCH=`echo $GLISH_LD_SEARCH | sed 's/:/ -L/g'`
+	fi
+
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $TK_LIB -lX11"
+	;;
 esac
 
 dnl##
@@ -1791,7 +1854,7 @@ dnl##
 if test "$static_binary" = "yes"; then
     SHARED_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHTK \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
@@ -1801,10 +1864,11 @@ if test "$static_binary" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKLIB_LIBS="$TKLIB_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
+    CLIENT_LIBS="$CLIENT_LIBS $CLIENT_LIBS_extra"
 else
     SHARED_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHP $LINK_LIBGLISH_interp $LINK_LIBSOS $LINK_LIBEDIT $LINK_LIBREGX"
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISH_interp $LINK_LIBSOS $LINK_LIBEDIT $LINK_LIBREGX"
     CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISH $LINK_LIBSOS"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHTK ${GLISH_SLIB_VERSION} $LINK_LIBGLISH $LINK_LIBSOS"
     TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISH $LINK_LIBSOS"
@@ -1814,6 +1878,7 @@ else
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $LINK_LIBNPD"
 	TKLIB_LIBS="$TKLIB_LIBS $LINK_LIBNPD"
     fi
+    CLIENT_LIBS="$CLIENT_LIBS $CLIENT_LIBS_extra"
     if test -n "$DL_LIBS"; then
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
     fi
@@ -1912,9 +1977,18 @@ AC_SUBST(SLIB_CFLAGS)
 AC_SUBST(SLIB_LABEL)
 AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
+AC_SUBST(SLIB_LD_LIBS_sos)
+AC_SUBST(SLIB_LD_LIBS_regx)
+AC_SUBST(SLIB_LD_LIBS_edit)
+AC_SUBST(SLIB_LD_LIBS_glish)
+AC_SUBST(SLIB_LD_LIBS_glishp)
+AC_SUBST(SLIB_LD_LIBS_glishtk)
+AC_SUBST(SLIB_LD_FLAGS_glishtk)
 AC_SUBST(SLIB_SUFFIX)
 AC_SUBST(LIB_SUFFIX)
 AC_SUBST(GLISH_LIB_SUFFIX)
+
+AC_SUBST(LDOBJ_LIBS)
 
 AC_SUBST(GLISH_SLIB_SUFFIX)
 AC_SUBST(SOS_SLIB_SUFFIX)
@@ -2025,4 +2099,4 @@ SLIB_SYM_LINKS="$make_slib_symlinks"
 AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/Client.cc:glish/Client.cc.in glish/$ARCH/LdAgent.cc:glish/LdAgent.cc.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/main.cc:glish/clients/glishtk/main.cc.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

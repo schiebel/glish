@@ -273,13 +273,13 @@ void MkTab::CreateTab( ProxyStore *s, Value *args )
 		s->Error( "invalid tab container" );
 	}
 
-int combobox_returncb( ClientData data, Tcl_Interp *, int, CONST84 char *[] )
+int combobox_returncb( ClientData data, Tcl_Interp *, int, CONST char *[] )
 	{
 	((MkCombobox*)data)->Return();
 	return TCL_OK;
 	}
 
-int combobox_selectcb( ClientData data, Tcl_Interp *, int, CONST84 char *[] )
+int combobox_selectcb( ClientData data, Tcl_Interp *, int, CONST char *[] )
 	{
 	((MkCombobox*)data)->Selection();
 	return TCL_OK;
@@ -421,6 +421,8 @@ const char *MkCombobox::Insert( Value *val )
 
 		tcl_ArgEval( this, c, argv );
 		}
+
+	return "";
 	}
 
 void MkCombobox::finalize_string( void *s ) { free_memory( (char*) s ); }

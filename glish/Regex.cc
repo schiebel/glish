@@ -246,7 +246,7 @@ void regxsubst::split( char **dest, const char *src )
 	{
 	if ( scnt <= 0 ) return;
 
-	if ( splits[0] < src ) fatal->Report( "initial split is before source in regxsubst::split( )" );
+	if ( splits[0] < src ) glish_fatal->Report( "initial split is before source in regxsubst::split( )" );
 
 	for ( int i=0; i < scnt; ++i, ++dest )
 		{

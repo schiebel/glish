@@ -868,6 +868,53 @@ Value *glishtk_strtobool( const char *str )
 		return new Value( glish_false );
 	}
 
+Value *glishtk_strtoboolvec( const char *str )
+	{
+	int how_many = 0;
+	for ( const char *xptr = str; *xptr; ++xptr )
+		{
+		if ( *xptr == 'T' || *xptr == '1' || *xptr == 'F' || *xptr == '0' ) ++how_many;
+		}
+
+	glish_bool *bv = alloc_glish_bool( how_many );
+	int count = 0;
+	if ( how_many > 0 )
+		{
+		for ( const char *yptr = str; *yptr && count < how_many; ++yptr )
+			{
+			if ( (*yptr == 'T' || *yptr == '1') )
+				bv[count++] = glish_true;
+			else if ( (*yptr == 'F' || *yptr == '0') )
+				bv[count++] = glish_false;
+			}
+		}
+	return new Value( bv, count );
+	}
+
+Value *glishtk_strtointvec( const char *str_ )
+	{
+	char *str = string_dup( str_ );
+	int how_many = 0;
+	for ( char *xptr = strtok( str, " \n\t\r\f\v"); xptr; xptr = strtok( 0, " \n\t\r\f\v") )
+		{
+		if ( xptr ) ++how_many;
+		}
+
+	int *iv = alloc_int( how_many );
+	int count = 0;
+	if ( how_many > 0 )
+		{
+		strcpy( str, str_ );
+		for ( char *yptr = strtok( str, " \n\t\r\f\v"); yptr; yptr = strtok( 0, " \n\t\r\f\v") )
+			{
+			if ( yptr ) iv[count++] = atoi( yptr );
+			}
+		}
+
+	free_memory( str );
+	return new Value( iv, count );
+	}
+
 Value *glishtk_strtofloat( const char *str )
 	{
 	return new Value( atof(str) );
@@ -905,7 +952,7 @@ typedef PList(glishtk_bindinfo) glishtk_bindlist;
 glish_declare(PDict,glishtk_bindlist);
 typedef PDict(glishtk_bindlist) glishtk_bindtable;
 
-int glishtk_bindcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int glishtk_bindcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	static const char *event_names[] =
 	  {
@@ -1089,7 +1136,7 @@ const char *glishtk_unbind(TkProxy *agent, const char *, Value *args )
 	}
 
 
-int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, CONST84 char *[] )
+int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, CONST char *[] )
 	{
 	((TkFrameP*)data)->KillFrame();
 	return TCL_OK;
@@ -1483,6 +1530,10 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	procs.Insert("title", new FmeProc( this, &TkFrameP::Title ));
 	procs.Insert("unmap", new FmeProc(this, "UT", glishtk_agent_map));
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
+
+	procs.Insert("resizable", new FmeProc( this, &TkFrameP::SetResizable, glishtk_strtoboolvec));
+	procs.Insert("minsize", new FmeProc( this, &TkFrameP::SetMinsize, glishtk_strtointvec));
+	procs.Insert("maxsize", new FmeProc( this, &TkFrameP::SetMaxsize, glishtk_strtointvec));
 
 	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
 	if ( ! tlead )
@@ -1943,6 +1994,75 @@ const char *TkFrameP::SetPady( Value *args )
 		}
 
 	tcl_VarEval( this, Tk_PathName(self), " cget -pady", (char *)NULL );
+	return Tcl_GetStringResult(tcl);
+	}
+
+const char *TkFrameP::SetResizable( Value *args )
+	{
+	if ( ! topwin ) { return "T T"; }
+
+	if ( args->Type() == TYPE_BOOL )
+		{
+		if ( args->Length() == 1 )
+			{
+			glish_bool resizable = args->BoolVal( );
+			tcl_VarEval( this, "wm resizable ",Tk_PathName(topwin), resizable ? " true true" : " false false", (char *)NULL );
+			}
+		else if ( args->Length() >= 2 )
+			{
+			glish_bool xresize = args->BoolVal( 1 );
+			glish_bool yresize = args->BoolVal( 2 );
+			tcl_VarEval( this, "wm resizable ",Tk_PathName(topwin),
+				     xresize ? " true" : " false",
+				     yresize ? " true" : " false", (char *)NULL );
+			}
+		}
+
+	tcl_VarEval( this, "wm resizable ", Tk_PathName(topwin), (char *)NULL );
+	return Tcl_GetStringResult(tcl);
+	}
+
+const char *TkFrameP::SetMinsize( Value *args )
+	{
+	if ( ! topwin ) { return ""; }
+
+	if ( args->Type() == TYPE_INT )
+		{
+		if ( args->Length() >= 2 )
+			{
+			int w = args->IntVal( );
+			int h = args->IntVal( 2 );
+			char wstr[35];
+			char hstr[35];
+			sprintf( wstr, " %d", w );
+			sprintf( hstr, " %d", h );
+			tcl_VarEval( this, "wm minsize ", Tk_PathName(topwin), wstr, hstr, (char *)NULL );
+			}
+		}
+
+	tcl_VarEval( this, "wm minsize ", Tk_PathName(topwin), (char *)NULL );
+	return Tcl_GetStringResult(tcl);
+	}
+
+const char *TkFrameP::SetMaxsize( Value *args )
+	{
+	if ( ! topwin ) { return ""; }
+
+	if ( args->Type() == TYPE_INT )
+		{
+		if ( args->Length() >= 2 )
+			{
+			int w = args->IntVal( );
+			int h = args->IntVal( 2 );
+			char wstr[35];
+			char hstr[35];
+			sprintf( wstr, " %d", w );
+			sprintf( hstr, " %d", h );
+			tcl_VarEval( this, "wm maxsize ", Tk_PathName(topwin), wstr, hstr, (char *)NULL );
+			}
+		}
+
+	tcl_VarEval( this, "wm maxsize ", Tk_PathName(topwin), (char *)NULL );
 	return Tcl_GetStringResult(tcl);
 	}
 
@@ -2433,7 +2553,7 @@ TkButton::~TkButton( )
 
 static unsigned char dont_invoke_button = 0;
 
-int buttoncb( ClientData data, Tcl_Interp *, int, CONST84 char *[] )
+int buttoncb( ClientData data, Tcl_Interp *, int, CONST char *[] )
 	{
 	((TkButton*)data)->ButtonPressed();
 	return TCL_OK;
@@ -3147,7 +3267,7 @@ void TkScale::UnMap()
 	}
 
 unsigned int TkScale::scale_count = 0;
-int scalecb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int scalecb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	((TkScale*)data)->ValueSet( atof(argv[1]) );
 	return TCL_OK;
@@ -3477,7 +3597,7 @@ void TkText::UnMap()
 	TkProxy::UnMap();
 	}
 
-int text_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int text_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3486,7 +3606,7 @@ int text_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
 	return TCL_OK;
 	}
 
-int text_xscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int text_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -3720,7 +3840,7 @@ void TkScrollbar::UnMap()
 	TkProxy::UnMap();
 	}
 
-int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, CONST84 char *argv[] )
+int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, CONST char *argv[] )
 	{
 	char buf[256];
 	int vert = 0;
@@ -4069,13 +4189,13 @@ void TkEntry::UnMap()
 	TkProxy::UnMap();
 	}
 
-int entry_returncb( ClientData data, Tcl_Interp *, int, CONST84 char *[] )
+int entry_returncb( ClientData data, Tcl_Interp *, int, CONST char *[] )
 	{
 	((TkEntry*)data)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int entry_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4447,7 +4567,7 @@ void TkListbox::UnMap()
 	TkProxy::UnMap();
 	}
 
-int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4456,7 +4576,7 @@ int listbox_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] 
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -4465,7 +4585,7 @@ int listbox_xscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] 
 	return TCL_OK;
 	}
 
-int listbox_button1cb( ClientData data, Tcl_Interp*, int, CONST84 char *[] )
+int listbox_button1cb( ClientData data, Tcl_Interp*, int, CONST char *[] )
 	{
 	((TkListbox*)data)->elementSelected();
 	return TCL_OK;

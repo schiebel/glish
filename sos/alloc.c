@@ -1,14 +1,41 @@
+/* ======================================================================
+** alloc.cc
+**
+** $Id$
+**
+** Copyright (c) 1997 Associated Universities Inc.
+**
+**======================================================================
+*/
+#include "sos/sos.h"
+RCSID("@(#) $Id$")
+#include "config_p.h"
+#include "sos/alloc.h"
 #include <stdlib.h>
 
-void *npd_malloc( size_t size )
-{
+void* sos_alloc_memory( unsigned int size )
+	{
 #if defined(_AIX) || defined(__alpha__)
-        if ( ! size ) size += 8;
+	if ( ! size ) size += 8;
 #endif
-return malloc( size > 0 ? size : 8 );
-}
+	return (void*) malloc( size );
+	}
 
-void npd_free( void *ptr )
-{
-  if ( ptr ) free( ptr );
-}
+void* sos_alloc_zero_memory( unsigned int size )
+	{
+#if defined(_AIX) || defined(__alpha__)
+	if ( ! size ) size += 8;
+#endif
+	return (void*) calloc( 1, size );
+	}
+
+void* sos_realloc_memory( void* ptr, unsigned int new_size )
+	{
+	return (void*) realloc( (malloc_t) ptr, new_size );
+	}
+
+void sos_free_memory( void* ptr )
+	{
+	if ( ptr ) free( (malloc_t) ptr );
+	}
+

@@ -284,7 +284,7 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 		}
 
 "++"|"--"	{
-		error->Report( yytext, " is not a valid Glish operator" );
+		glish_error->Report( yytext, " is not a valid Glish operator" );
 		paren_count = 0;
 		return TOK_FLEX_ERROR;
 		}
@@ -526,7 +526,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			v = new IValue( r );
 		else
 			{
-			v = (IValue*) generate_error(r->Error());
+			v = (IValue*) ValCtor::error(r->Error());
 			delete r;
 			}
 		DO_GC_REGISTER
@@ -561,7 +561,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 
 <QUOTE,ATTR_QUOTE>\r?\n	{
-		error->Report( "unmatched quote (",
+		glish_error->Report( "unmatched quote (",
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;
 		BEGIN(INITIAL);
@@ -578,7 +578,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		if ( ! unknown_pragma.Lookup(yytext) )
 			{
 			unknown_pragma.Insert(string_dup(yytext),1);
-			warn->Report( "unknown pragma found:", yytext );
+			glish_warn->Report( "unknown pragma found:", yytext );
 			}
 		BEGIN(INITIAL);
 		break;
@@ -616,7 +616,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		}
 
 <*>.		{
-		error->Report( "unrecognized character '", yytext, "'" );
+		glish_error->Report( "unrecognized character '", yytext, "'" );
 		SET_STATEMENT_CAN_END;
 		BEGIN(INITIAL);
 		paren_count = 0;

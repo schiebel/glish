@@ -25,7 +25,7 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 		buf_size *= 2;
 		buf = realloc_char( buf, buf_size );
 		if ( ! buf )
-			fatal->Report( "out of memory in append_buf()" );
+			glish_fatal->Report( "out of memory in append_buf()" );
 
 		buf_ptr = buf + buf_ptr_offset;
 		buf_remaining = &buf[buf_size] - buf_ptr;
@@ -243,7 +243,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 
 	char* buf = alloc_char( buf_size );
 	if ( ! buf )
-		fatal->Report( "out of memory in Value::StringVal()" );
+		glish_fatal->Report( "out of memory in Value::StringVal()" );
 
 	char* buf_ptr = buf;
 
@@ -321,7 +321,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 #endif
 
 		default:
-			fatal->Report( "bad type in Value::StringVal()" );
+			glish_fatal->Report( "bad type in Value::StringVal()" );
 		}
 
 
@@ -411,14 +411,14 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 				PLACE_ELEMENT_ACTION(buffer,str_buffer,index,flt_prec)\
 									\
 				default:				\
-					fatal->Report(			\
+					glish_fatal->Report(			\
 				    "bad type in Value::StringVal()" ); \
 				} 					\
 			}						\
 			break;						\
 									\
 		default:						\
-			fatal->Report(					\
+			glish_fatal->Report(					\
 			    "bad type in Value::StringVal()" );		\
 		}
 
@@ -511,7 +511,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 		column_width_len *= 2;
 		column_width = realloc_int( column_width, column_width_len );
 		if ( ! column_width )
-			fatal->Report( "out of memory in Value::StringVal()" );
+			glish_fatal->Report( "out of memory in Value::StringVal()" );
 		}
 
 	while ( shape_len > indices_len )
@@ -520,7 +520,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 		indices = realloc_int( indices, indices_len );
 		factor = realloc_int( factor, indices_len );
 		if ( ! indices || ! factor )
-			fatal->Report( "out of memory in Value::StringVal()" );
+			glish_fatal->Report( "out of memory in Value::StringVal()" );
 		}
 
 	// Calculate the size and the offset for the columns.

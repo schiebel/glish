@@ -69,7 +69,7 @@ Parameter::Parameter( value_reftype arg_parm_type,
 int Parameter::NumEllipsisVals( evalOpt &opt ) const
 	{
 	if ( ! is_ellipsis )
-		fatal->Report(
+		glish_fatal->Report(
 			"Parameter::NumEllipsisVals called but not ellipsis" );
 
 	const IValue* values = Arg()->ReadOnlyEval(opt);
@@ -84,13 +84,13 @@ int Parameter::NumEllipsisVals( evalOpt &opt ) const
 const IValue* Parameter::NthEllipsisVal( evalOpt &opt, int n ) const
 	{
 	if ( ! is_ellipsis )
-		fatal->Report(
+		glish_fatal->Report(
 			"Parameter::NthEllipsisVal called but not ellipsis" );
 
 	const IValue* values = Arg()->ReadOnlyEval(opt);
 
 	if ( n < 0 || n >= values->RecordPtr(0)->Length() )
-		fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
+		glish_fatal->Report( "bad value of n in Parameter::NthEllipsisVal" );
 
 	char field_name[256];
 	sprintf( field_name, "*%d", n+1 );
@@ -330,7 +330,7 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 	int missing_len = 0;
 	glish_bool* missing = alloc_glish_bool( missing_size );
 	if ( ! missing )
-		fatal->Report( "out of memory in UserFunc::Call" );
+		glish_fatal->Report( "out of memory in UserFunc::Call" );
 
 // Macro to note which arguments were missing and which were present.  Use
 // is: spin through the arguments sequentially and call the macro with either
@@ -342,7 +342,7 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 		missing_size *= 2;					\
 		missing = realloc_glish_bool( missing, missing_size );	\
 		if ( ! missing )					\
-			fatal->Report( "out of memory in UserFunc::Call" );\
+			glish_fatal->Report( "out of memory in UserFunc::Call" );\
 		}							\
 	missing[missing_len++] = value;					\
 	}
@@ -597,11 +597,11 @@ IValue* UserFuncKernel::Call( evalOpt &opt, parameter_list* args, stack_type *st
 			((VarExpr*)(*formals)[i]->Arg())->ReleaseFrames( );
 
 		if ( sequencer->PopFrame() != call_frame )
-			fatal->Report( "frame inconsistency in UserFunc::DoCall" );
+			glish_fatal->Report( "frame inconsistency in UserFunc::DoCall" );
 
 		if ( stack )
 			if ( sequencer->PopFrames( ) != stack )
-				fatal->Report( "stack inconsistency in UserFunc::DoCall" );
+				glish_fatal->Report( "stack inconsistency in UserFunc::DoCall" );
 
 		//
 		// Pop off down to the NULL we pushed on...
@@ -676,7 +676,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				else
 					{
 					if ( ! flow.result_perishable( ) )
-						warn->Report( "value (",result,") returned from subsequence replaced by ref self" );
+						glish_warn->Report( "value (",result,") returned from subsequence replaced by ref self" );
 					Unref( result );
 					result = 0;
 					}
@@ -692,7 +692,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 			{
 			result = subsequence_expr->RefEval( opt, VAL_REF );
 			if ( opt.side_effects() )
-				warn->Report( "agent returned by subsequence ignored" );
+				glish_warn->Report( "agent returned by subsequence ignored" );
 			}
 		}
 

@@ -20,11 +20,6 @@ RCSID("@(#) $Id$")
 int interpreter_state = 0;
 SOStream *Reporter::sout = 0;
 
-extern void show_glish_stack( OStream& );
-extern void log_output( const char * );
-extern int do_output_log();
-extern int glish_silent;
-
 class ProxyStream : public OStream {
     public:
 	ProxyStream( ostream &s_ ) : s(s_) { }
@@ -100,10 +95,10 @@ RMessage EndMessage( "" );
 // Due to bugs in gcc-2.1, we don't initialize these here but rather
 // have Sequencer::Sequencer do it.
 
-Reporter* warn = 0;
-Reporter* error = 0;
-Reporter* fatal = 0;
-Reporter* message = 0;
+Reporter* glish_warn = 0;
+Reporter* glish_error = 0;
+Reporter* glish_fatal = 0;
+Reporter* glish_message = 0;
 
 
 RMessage::RMessage( const GlishObject* message_object )
@@ -233,7 +228,7 @@ void Reporter::report( const ioOpt &opt, const RMessage& m0,
 		     )
 	{
 
-	if ( glish_silent ) return;
+	if ( ValCtor::silent( ) ) return;
 
 	const int max_messages = 50;
 	const RMessage* messages[max_messages];
@@ -257,7 +252,7 @@ void Reporter::report( const ioOpt &opt, const RMessage& m0,
 	messages[16] = &m16;
 	messages[11] = &EndMessage;
 
-	if ( (do_log = loggable && do_output_log()) )
+	if ( (do_log = loggable && ValCtor::do_log()) )
 		sout->reset();
 
 	Prolog(opt);
@@ -295,7 +290,7 @@ void Reporter::report( const ioOpt &opt, const RMessage& m0,
 		}
 
 	if ( do_log )
-		log_output( sout->str() );
+		ValCtor::log( sout->str() );
 
 	Epilog(opt);
 
@@ -348,7 +343,7 @@ void ErrorReporter::Prolog( const ioOpt &opt )
 
 void FatalReporter::Prolog( const ioOpt &opt )
 	{
-	show_glish_stack( stream );
+	ValCtor::show_stack( stream );
 	Reporter::Prolog(opt);
 	stream << "fatal internal error";
 	if ( do_log ) *sout << "fatal internal error";
@@ -364,7 +359,7 @@ void FatalReporter::Prolog( const ioOpt &opt )
 void FatalReporter::Epilog( const ioOpt &opt )
 	{
 	Reporter::Epilog(opt);
-	glish_cleanup();
+	ValCtor::cleanup();
 	exit( 1 );
 	}
 
@@ -379,10 +374,10 @@ void init_reporters()
 	static int did_init = 0;
 	if ( ! did_init )
 		{
-		warn = new WarningReporter;
-		error = new ErrorReporter;
-		fatal = new FatalReporter;
-		message = new MessageReporter;
+		glish_warn = new WarningReporter;
+		glish_error = new ErrorReporter;
+		glish_fatal = new FatalReporter;
+		glish_message = new MessageReporter;
 		did_init = 1;
 		}
 	}
@@ -392,10 +387,10 @@ void finalize_reporters()
 	static int did_final = 0;
 	if ( ! did_final )
 		{
-		if ( warn ) delete warn;
-		if ( error ) delete error;
-		if ( fatal ) delete fatal;
-		if ( message ) delete message;
+		if ( glish_warn ) delete glish_warn;
+		if ( glish_error ) delete glish_error;
+		if ( glish_fatal ) delete glish_fatal;
+		if ( glish_message ) delete glish_message;
 		did_final = 1;
 		}
 	}

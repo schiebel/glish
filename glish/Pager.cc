@@ -6,7 +6,6 @@
 RCSID("@(#) $Id$")
 #include "Pager.h"
 #include "Executable.h"
-extern int glish_silent;
 
 Reporter* pager = 0;
 
@@ -22,7 +21,7 @@ void PagerReporter::report( const ioOpt &opt, const RMessage& m0,
 			  )
 	{
 
-	if ( glish_silent ) return;
+	if ( ValCtor::silent( ) ) return;
 
 	charptr *exec_ary = seq->System().PagerExec();
 	int exec_len = seq->System().PagerExecLen();
@@ -31,7 +30,7 @@ void PagerReporter::report( const ioOpt &opt, const RMessage& m0,
 
 	if ( ! exec_ary || exec_len < 0 || limit < 0 ||
 	     ! (exec = which_executable( exec_ary[0] )) )
-		message->report( opt, m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
+		glish_message->report( opt, m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
 				 m9, m10, m11, m12, m13, m14, m15, m16 );
 	else
 		{
@@ -46,7 +45,7 @@ void PagerReporter::report( const ioOpt &opt, const RMessage& m0,
 
 		if ( line_count <= limit &&
 		     char_count / 85 <= limit )
-			message->report( opt, ((SOStream&)stream).str() );
+			glish_message->report( opt, ((SOStream&)stream).str() );
 		else
 			{
 			int x = 0;

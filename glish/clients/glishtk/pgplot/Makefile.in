@@ -9,6 +9,8 @@ MK_LIB = @MAKE_SLIB@
 TK_LIB = @TK_LIB@
 CLIENT_LIBS = @TK_LD_RPATH@ @TKCLIENT_LIBS@
 
+LDOBJ_LIBS = @LDOBJ_LIBS@
+
 CXXFLAGS = @SLIB_CFLAGS@ @TK_FLAGS@ @CXXFLAGS@
 
 CPLUS = @CXX@
@@ -47,7 +49,7 @@ XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 PGINC = @PGPLOTINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(GLISHTK_INC) -I$(GLISHTK_SRC)/$(ARCH) -I$(GLISH_INC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
+INCLUDE = -I. -I$(SRC) -I$(GLISHTK_INC) -I$(GLISH_INC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
 
 OBJS = tkPgplot.o
 
@@ -77,8 +79,8 @@ install:  make-libdir $(INSTALLED_LOADABLES) make-scriptdir $(INSTALLED_SCRIPTS)
 
 tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc; \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc;	\
+	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) @TK_DRIVER_PATH@ -c $(SRC)/tkPgplot.cc; \
+	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) @TK_DRIVER_PATH@ -c $(SRC)/tkPgplot.cc;	\
 	else										\
 	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
 	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
@@ -86,11 +88,11 @@ tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 
 gPgplot$(SUFFIX): $(OBJS)
 	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @PGDRV_LIBS@ $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @PGDRV_LIBS@ $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100; \
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @TK_DRIVER_LIB@ $(LDOBJ_LIBS) $(DL_LIBS); \
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @TK_DRIVER_LIB@ $(LDOBJ_LIBS) $(DL_LIBS) 2>&1 | head -100; \
 	else										\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100; \
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LDOBJ_LIBS) $(DL_LIBS);		\
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LDOBJ_LIBS) $(DL_LIBS) 2>&1 | head -100; \
 	fi
 
 $(SCRIPTDIR_P)/pgplot.g: pgplot.g

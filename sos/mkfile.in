@@ -9,7 +9,7 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
 #IF SHARED
 MK_LIB = @MAKE_SLIB@
-LD_LIBS = @SLIB_LD_LIBS@
+LD_LIBS = @SLIB_LD_LIBS@ @SLIB_LD_LIBS_sos@
 CFLAGS = @CFLAGS@ @SLIB_CFLAGS@
 CXXFLAGS = @CXXFLAGS@ @SLIB_CXXFLAGS@
 GSUFFIX = @SOS_SLIB_SUFFIX@
@@ -74,13 +74,13 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-OBJS = convert.o header.o io.o longint.o types.o list.o ref.o alloc.o
+OBJS = convert.o header.o io.o longint.o types.o list.o ref.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
-	$(D)types.o $(D)list.o $(D)ref.o $(D)alloc.o
+	$(D)types.o $(D)list.o $(D)ref.o
 
-GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o gcalloc.o
+GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o
 GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
-	$(D)gctypes.o $(D)gclist.o $(D)gcref.o $(D)gcalloc.o
+	$(D)gctypes.o $(D)gclist.o $(D)gcref.o
 
 HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
 	$(INCDIR)/sos/header.h $(INCDIR)/sos/mdep.h $(INCDIR)/sos/list.h \
@@ -192,12 +192,6 @@ $(D)ref.o: $(SRC)/ref.cc $(H)/ref.h
 
 $(D)gcref.o: $(SRC)/ref.cc $(H)/ref.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcref.o $(SRC)/ref.cc $(T)
-
-$(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h
-	$(CC) $(INCLUDE) $(CFLAGS) -c $(SRC)/alloc.c $(T)
-
-$(D)gcalloc.o: $(SRC)/alloc.c $(H)/alloc.h
-	$(CC) $(INCLUDE) $(CFLAGS) -DENABLE_GC -c -o gcalloc.o $(SRC)/alloc.c $(T)
 
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)

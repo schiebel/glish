@@ -58,7 +58,7 @@ int suspend_user = 0;
 void glishd_sighup();
 void install_terminate_handlers();
 
-#ifndef __linux__
+#if !(defined( __linux__) || defined(__APPLE_CC__))
 extern "C" char* sys_errlist[];
 #endif
 extern "C" int chdir( const char* path );
@@ -1354,7 +1354,7 @@ void Interp::CreateClient( Value* value, dUser *hub )
 
 	if ( exec->ExecError() )
 		{
-		error->Report( "problem exec'ing client ", 
+		glish_error->Report( "problem exec'ing client ", 
 			client_argv[0], ": ", sys_errlist[errno] );
 		free_memory( lookup );
 		return;
@@ -1374,7 +1374,7 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 
 	if ( argc < 1 )
 		{
-		error->Report( "no client name given" );
+		glish_error->Report( "no client name given" );
 		interpreter->PostEvent( "client-up-reply", false_value );
 		return;
 		}
@@ -1408,7 +1408,7 @@ void Interp::ShellCommand( Value* cmd )
 	{
 	char* command;
 	if ( ! cmd->FieldVal( "command", command ) )
-		error->Report( "remote glishd received bad shell command:",
+		glish_error->Report( "remote glishd received bad shell command:",
 				cmd );
 
 	char* input;
@@ -1467,7 +1467,7 @@ void Interp::KillClient( Value* client_id )
 	LocalExec* client = clients[id];
 
 	if ( ! client )
-		error->Report( "no such client ", id );
+		glish_error->Report( "no such client ", id );
 
 	else
 		{
@@ -1489,7 +1489,7 @@ void Interp::ChangeDir()
 	{
 	if ( chdir( work_dir ) < 0 && ! did_wd_msg )
 		{
-		error->Report( "couldn't change to directory ", work_dir, ": ",
+		glish_error->Report( "couldn't change to directory ", work_dir, ": ",
 					sys_errlist[errno] );
 		did_wd_msg = 1;
 		}

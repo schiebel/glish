@@ -287,9 +287,6 @@ glish_declare(PList,const_ivalue);
 typedef PList(const_ivalue) const_ivalue_list;
 typedef PList(const_ivalue) const_args_list;
 
-extern IValue* copy_value( const IValue* value );
-extern IValue* deep_copy_value( const IValue* value );
-
 inline IValue* empty_ivalue(glish_type t = TYPE_INT) { return (IValue*) empty_value(t); }
 inline IValue* empty_bool_ivalue() { return (IValue*) empty_bool_value(); }
 inline IValue* error_ivalue( ) { return (IValue*) error_value(); }
@@ -321,5 +318,8 @@ extern IValue* dcomplex_rel_op_compute( const IValue* lhs, const IValue* rhs,
 				int lhs_len, RelExpr* expr );
 extern IValue* string_rel_op_compute( const IValue* lhs, const IValue* rhs,
 				int lhs_len, RelExpr* expr );
+
+inline IValue *copy_value( const IValue *v ) { return (IValue*) ValCtor::copy( v ); }
+inline IValue *deep_copy_value( const IValue *v ) { return (IValue*) ValCtor::deep_copy( v ); }
 
 #endif /* ivalue_h */

@@ -16,7 +16,7 @@ RCSID("@(#) $Id$")
 #include <fcntl.h>
 
 // For MAXINT, MAXFLOAT, HUGE.
-#include <values.h>
+#include <limits.h>
 
 #include "sos/io.h"
 #if USENPD
@@ -44,6 +44,7 @@ RCSID("@(#) $Id$")
 #else
 #define HUGE (infinity())
 #endif
+#endif
 
 #if !defined(MAXINT)
 #define MAXINT 0x7fffffff
@@ -51,7 +52,6 @@ RCSID("@(#) $Id$")
 #if !defined(MAXFLOAT)
 // Half-assed guess.
 #define MAXFLOAT 1e38
-#endif
 #endif
 
 const char *BuiltIn::Description() const
@@ -694,7 +694,7 @@ IValue* ProdBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 			PRODBUILTIN_ACTION(double,CoerceToDoubleArray)
 
 		default:
-			fatal->Report( "bad type in ProdBuiltIn::DoCall()" );
+			glish_fatal->Report( "bad type in ProdBuiltIn::DoCall()" );
 			return 0;
 		}
 
@@ -960,7 +960,7 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 		REPBUILTIN_ACTION_A(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 			default:
-				fatal->Report(
+				glish_fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 			}
 		}
@@ -996,7 +996,7 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_REGEX,regexptr,RegexVal,new Regex,)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 				}
 			}
@@ -1033,7 +1033,7 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	REPBUILTIN_ACTION_C(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 					"bad type in RepBuiltIn::DoCall()" );
 				}
 			}
@@ -1175,7 +1175,7 @@ IValue* RandomBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	XBIND_PLACE_ACTION(TYPE_COMPLEX,glish_complex,array,to,from,,)	\
 	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,array,to,from,,) \
 		default:						\
-		 fatal->Report( "bad type in CbindBuiltIn::DoCall()" );	\
+		 glish_fatal->Report( "bad type in CbindBuiltIn::DoCall()" );	\
 		}
 
 #define XBIND_ACTION(tag,ptr_name,source,OFFSET,XLATE,access,stride,COLS,OFF,ADV1,ADV2)	\
@@ -1329,7 +1329,7 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		XBIND_ALLOC_PTR(TYPE_COMPLEX,glish_complex)		\
 		XBIND_ALLOC_PTR(TYPE_DCOMPLEX,glish_dcomplex)		\
 		default:						\
-		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
+		glish_fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
 		}							\
 									\
 	int offset = 0;							\
@@ -1361,14 +1361,14 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 					{				\
 	XBIND_ACTIONS(index,XBIND_XLATE,stride,COLS,OFF,ADV1,ADV2)	\
 					default:			\
-					fatal->Report(			\
+					glish_fatal->Report(			\
 				"bad type in CbindBuiltIn::DoCall()" );	\
 						}			\
 				}					\
 				break;					\
 									\
 			default:					\
-			fatal->Report("bad type in CbindBuiltIn::DoCall()");\
+			glish_fatal->Report("bad type in CbindBuiltIn::DoCall()");\
 			}						\
 		}							\
 									\
@@ -1383,7 +1383,7 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		XBIND_RETURN_ACTION(TYPE_COMPLEX,glish_complex)		\
 		XBIND_RETURN_ACTION(TYPE_DCOMPLEX,glish_dcomplex)	\
 		default:						\
-		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
+		glish_fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
 		}							\
 									\
 	if ( result_value )						\
@@ -1570,8 +1570,12 @@ IValue* PasteBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 		string_vals = alloc_charptr( args_val->length() );
 		for ( ; i < args_val->length(); ++i )
 			{
-			unsigned int limit = (*args_val)[i]->PrintLimit();
-			string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
+//			-------------------------------------------------------------
+//			Why would paste be sensitive to system.print.limit, again?
+//			unsigned int limit = (*args_val)[i]->PrintLimit();
+//			string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
+//			-------------------------------------------------------------
+			string_vals[i] = (*args_val)[i]->StringVal( ' ', 0, 1 );
 			len += strlen( string_vals[i] ) + sep_len;
 			}
 		}
@@ -1674,6 +1678,14 @@ IValue* AllocInfoBuiltIn::DoCall( evalOpt &opt, const_args_list* )
 #if defined(ENABLE_GC)
 	rec->Insert(string_dup("used"),new IValue((double)GC_get_heap_size()));
 	rec->Insert(string_dup("unused"),new IValue(0));
+#elif defined(__APPLE_CC__)
+	sequencer->InfoUpdate( );
+	rec->Insert(string_dup("used"),new IValue(sequencer->SwapUsed( )));
+	rec->Insert(string_dup("unused"),new IValue(sequencer->SwapFree( )));
+	recordptr phyrec = create_record_dict();
+	phyrec->Insert(string_dup("used"),new IValue(sequencer->MemoryUsed( )));
+	phyrec->Insert(string_dup("unused"),new IValue(sequencer->MemoryFree( )));
+	rec->Insert(string_dup("physical"),new IValue(phyrec));
 #else
 	struct mallinfo info = mallinfo();
 	rec->Insert(strdup("used"),new IValue((double)(info.uordblks + info.usmblks + info.hblkhd)));
@@ -2690,13 +2702,13 @@ IValue* as_string_built_in( const IValue* arg )
 				AS_STRING_ACTION(index,COERCE_XXX_TO_STRING_SUBVECREF_XLATE)
 
 				default:
-					fatal->Report( "bad type tag in as_string()" );
+					glish_fatal->Report( "bad type tag in as_string()" );
 				}
 			}
 			break;
 
 		default:
-			fatal->Report( "bad type tag in as_string()" );
+			glish_fatal->Report( "bad type tag in as_string()" );
 		}
 
 	return new IValue( (charptr*) result, len );
@@ -2791,7 +2803,7 @@ IValue* field_names_built_in( const IValue* arg )
 		{
 		IValue* nth_val = (IValue*)record_dict->NthEntry( i, key );
 		if ( ! nth_val )
-			fatal->Report(
+			glish_fatal->Report(
 				"bad record in field_names_built_in" );
 		names[i] = string_dup( key );
 		}
@@ -2866,17 +2878,17 @@ static void add_one_arg_built_in( Sequencer* s, value_func_1_value_arg func,
 //
 glish_dcomplex asin( const glish_dcomplex )
 	{
-	error->Report( "Sorry, complex arcsine not yet implemented" );
+	glish_error->Report( "Sorry, complex arcsine not yet implemented" );
 	return glish_dcomplex( 0, 0 );
 	}
 glish_dcomplex acos( const glish_dcomplex )
 	{
-	error->Report( "Sorry, complex arccosine not yet implemented" );
+	glish_error->Report( "Sorry, complex arccosine not yet implemented" );
 	return glish_dcomplex( 0, 0 );
 	}
 glish_dcomplex atan( const glish_dcomplex )
 	{
-	error->Report( "Sorry, complex arctangent not yet implemented" );
+	glish_error->Report( "Sorry, complex arctangent not yet implemented" );
 	return glish_dcomplex( 0, 0 );
 	}
 
@@ -2962,7 +2974,11 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );
 	s->AddBuiltIn( new SizeofBuiltIn );
+#if defined(__APPLE_CC__)
+	s->AddBuiltIn( new AllocInfoBuiltIn( s ) );
+#else
 	s->AddBuiltIn( new AllocInfoBuiltIn );
+#endif
 
 	s->AddBuiltIn( new IsNaNBuiltIn );
 	s->AddBuiltIn( new PreserveEventsBuiltIn );

@@ -518,9 +518,9 @@ NONE)
 esac
 
 host=`$ac_config_sub $host_alias`
-host_cpu=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\1/'`
-host_vendor=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\2/'`
-host_os=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\3/'`
+host_cpu=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\2/'`
+host_os=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\3/'`
 echo "$ac_t""$host" 1>&6
 
     ARCH="$host"
@@ -2240,15 +2240,15 @@ fi
     ## if we couldn't find the tcl library using tclsh, look a little harder
     ##
     if test -z "$tcl_lib"; then
-        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib"
+        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib /Volumes/aips/sw/lib"
         saved_LDFLAGS="$LDFLAGS"
         for i in $dirs ; do
             LDFLAGS="-L$i $saved_LDFLAGS"
             for g in `ls -1 $i/libtcl* 2> /dev/null | egrep 'tcl[0-9.]' | \
-                      sed -e 's/^.*\/libtcl/tcl/' -e 's/\.[a-z][a-z]*$//' | sort -u -r`; do
+                      sed -e 's/^.*\/libtcl/tcl/' -e 's/\.[a-z.][a-z.]*$//' | sort -u -r`; do
                 tcle=`echo $g | sed 's/^tcl//'`
                 for f in `ls -1 $i/libtk* 2> /dev/null | grep -v tkx | egrep 'tk[0-9.]' | \
-                          sed -e 's/^.*\/libtk/tk/' -e 's/\.[a-z][a-z]*$//' | sort -u -r`; do
+                          sed -e 's/^.*\/libtk/tk/' -e 's/\.[a-z.][a-z.]*$//' | sort -u -r`; do
                     ext=`echo $f | sed 's/^tk//'`
                     ac_lib_var=`echo tk$ext'_'main | tr './+\055' '__p_'`
 if eval "test \"`echo '$''{ac_cv_lib_'$ac_lib_var'+set}'`\" != set"; then
@@ -2729,9 +2729,9 @@ NONE)
 esac
 
 host=`$ac_config_sub $host_alias`
-host_cpu=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\1/'`
-host_vendor=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\2/'`
-host_os=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\3/'`
+host_cpu=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\2/'`
+host_os=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\3/'`
 echo "$ac_t""$host" 1>&6
 
 fi
@@ -2749,6 +2749,11 @@ LINK_LIBSOS="-lsos"
 LINK_LIBNPD="-lnpd"
 
 PGDRV_LIBS="-lgtkpgdrv"
+
+TK_DRIVER_CONFIG='tkpgplot/$ARCH/config.h:tkpgplot/config.h.in'
+TK_DRIVER_MAKEFILE='tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in'
+TK_DRIVER_PATH='-I$(SRC)/tkpgplot'
+TK_DRIVER_LIB='-lgtkpgdrv'
 
 case $host_os in
     aix*)
@@ -2932,7 +2937,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 2936 "configure"
+#line 2941 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -3027,7 +3032,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 3031 "configure"
+#line 3036 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -3135,12 +3140,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 3139 "configure"
+#line 3144 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:3144: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3149: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3227,12 +3232,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 3231 "configure"
+#line 3236 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:3236: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3241: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3523,6 +3528,70 @@ fi
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
 	;;
+    darwin*)
+        TK_DRIVER_CONFIG=
+        TK_DRIVER_MAKEFILE=
+	TK_DRIVER_PATH=
+	TK_DRIVER_LIB=
+	SLIB_CFLAGS="+z"
+	SLIB_LD="g++ -dynamiclib -single_module"
+	SLIB_SUFFIX=".dylib"
+	DL_LIBS="-ldl"
+
+	GLISH_SLIB_SUFFIX=".$_cv_version$SLIB_SUFFIX"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-L$full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	if test -n "$cxx_rpath"; then
+	    TK_LD_RPATH="-L$full_libdir_p:$full_libdir"
+	else
+	    TK_LD_RPATH="-L$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+        
+    if test -n "$tcl_library"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-L$tcl_library"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$tcl_library"
+        fi
+    fi
+
+        
+    if test -n "$x_libraries"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-L$x_libraries"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$x_libraries"
+        fi
+    fi
+
+        
+    if test -n "$PGPLOTLINKSEARCH"; then
+        if test -z "$TK_LD_RPATH"; then
+            TK_LD_RPATH="-L$PGPLOTLINKSEARCH"
+        else
+            TK_LD_RPATH="$TK_LD_RPATH:$PGPLOTLINKSEARCH"
+        fi
+    fi
+
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH=`echo $TK_LD_RPATH | sed 's/:/ -L/g'`
+	fi
+	if test -n "$GLISH_LD_SEARCH"; then
+	    GLISH_LD_SEARCH=`echo $GLISH_LD_SEARCH | sed 's/:/ -L/g'`
+	fi
+
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lpgplot $TK_LIB -lX11"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -lX11"
+	;;
 esac
 
 if test -z "$SLIB_$CXXFLAGS"; then
@@ -3586,7 +3655,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3590 "configure"
+#line 3659 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3594,7 +3663,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3598: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3667: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3617,7 +3686,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3621 "configure"
+#line 3690 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3625,7 +3694,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3629: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3698: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3676,17 +3745,22 @@ echo "$ac_t""$SLIB_CXXFLAGS" 1>&6
 
 
 
+
+
+
+
+
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
-
-$mkhier "tkpgplot/$ARCH"
 
 if test -n "$SLIB_LABEL"; then
     label_slib="yes"
 fi
 
-rm -f $ARCH/preprocess.conf
+if test -n "$TK_DRIVER_CONFIG" -o -n "$TK_DRIVER_MAKEFILE"; then
+    $mkhier "tkpgplot/$ARCH"
+    rm -f $ARCH/preprocess.conf
 
 cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
@@ -3711,6 +3785,7 @@ EOF
 rm -f tkpgplot/$ARCH/Makefile.in
 /bin/sh $ARCH/preprocess.conf > tkpgplot/$ARCH/Makefile.in
 
+fi
 
 
 trap '' 1 2 15
@@ -3802,7 +3877,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in $ARCH/config.h:config.h.in tkpgplot/$ARCH/config.h:tkpgplot/config.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in $TK_DRIVER_MAKEFILE $ARCH/config.h:config.h.in $TK_DRIVER_CONFIG" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -3866,11 +3941,14 @@ s%@SLIB_CXXFLAGS@%$SLIB_CXXFLAGS%g
 s%@SLIB_LD_LIBS@%$SLIB_LD_LIBS%g
 s%@GLISH_SLIB_SUFFIX@%$GLISH_SLIB_SUFFIX%g
 s%@SLIB_SUFFIX@%$SLIB_SUFFIX%g
+s%@LDOBJ_LIBS@%$LDOBJ_LIBS%g
 s%@LIB_SUFFIX@%$LIB_SUFFIX%g
 s%@MAKE_LIB@%$MAKE_LIB%g
 s%@MAKE_SLIB@%$MAKE_SLIB%g
 s%@TK_LD_RPATH@%$TK_LD_RPATH%g
 s%@TK_CXX_RPATH@%$TK_CXX_RPATH%g
+s%@TK_DRIVER_PATH@%$TK_DRIVER_PATH%g
+s%@TK_DRIVER_LIB@%$TK_DRIVER_LIB%g
 s%@TKCLIENT_LIBS@%$TKCLIENT_LIBS%g
 s%@PGPLOT_LIBS@%$PGPLOT_LIBS%g
 s%@PGDRV_LIBS@%$PGDRV_LIBS%g
@@ -3881,7 +3959,7 @@ CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"$ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in"}
+CONFIG_FILES=\${CONFIG_FILES-"$ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in $TK_DRIVER_MAKEFILE"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -3959,7 +4037,7 @@ ac_eB='$%\1#\2define\3'
 ac_eC=' '
 ac_eD='%g'
 
-CONFIG_HEADERS=${CONFIG_HEADERS-"$ARCH/config.h:config.h.in tkpgplot/$ARCH/config.h:tkpgplot/config.h.in"}
+CONFIG_HEADERS=${CONFIG_HEADERS-"$ARCH/config.h:config.h.in $TK_DRIVER_CONFIG"}
 for ac_file in .. $CONFIG_HEADERS; do if test "x$ac_file" != x..; then
   # Support "outfile[:infile]", defaulting infile="outfile.in".
   case "$ac_file" in

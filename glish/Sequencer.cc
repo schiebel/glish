@@ -43,6 +43,10 @@ RCSID("@(#) $Id$")
 #include <sys/select.h>
 #endif
 
+#ifdef HAVE_CRT_EXTERNS_H
+#include <crt_externs.h>
+#endif
+
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 64
 #endif
@@ -683,9 +687,9 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		done = 1;							\
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
-			error->Report("in trace function (disconnecting):");	\
-			ret->Describe( error->Stream(), ioOpt(ioOpt::SHORT()) );\
-			error->Stream() << endl;				\
+			glish_error->Report("in trace function (disconnecting):");	\
+			ret->Describe( glish_error->Stream(), ioOpt(ioOpt::SHORT()) );\
+			glish_error->Stream() << endl;				\
 			Unref(VAR##_val);					\
 			VAR##_val = 0;						\
 			done = 0;						\
@@ -1212,7 +1216,7 @@ void Sequencer::InitScriptClient( evalOpt &opt )
 
 		// Don't print messages and dump core when we receive
 		// a SIGTERM, because it means our interpreter has exited.
-		(void) install_signal_handler( SIGTERM, glish_cleanup );
+		(void) install_signal_handler( SIGTERM, ValCtor::cleanup );
 
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
@@ -1538,10 +1542,10 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				if ( argv[0] && strlen(argv[0]) )
 					load_list->append( argv[0] );
 				else
-					fatal->Report("bad file name with \"-l\".");
+					glish_fatal->Report("bad file name with \"-l\".");
 				}
 			else
-				fatal->Report("\"-l\" given with no file to load.");
+				glish_fatal->Report("\"-l\" given with no file to load.");
 
 		else if ( ! strcmp( argv[0], "-tk" ) )
 			load_list->append( "glishtk.g" );
@@ -1568,34 +1572,34 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 		else if ( ! strcmp( argv[0], "-version" ) )
 			{
-			message->Report( "Glish version ", GLISH_VERSION, ". " );
+			glish_message->Report( "Glish version ", GLISH_VERSION, ". " );
 			exit( 0 );
 			}
 
 		else if ( ! strcmp( argv[0], "-info" ) )
 			{
-			message->Report( "Glish version:          ", GLISH_VERSION, ". " );
-			message->Report( "script directory:       ", SCRIPTDIR );
-			message->Report( "site glishrc directory: ", RCDIR );
-			message->Report( "key directory:          ", KEYDIR );
+			glish_message->Report( "Glish version:          ", GLISH_VERSION, ". " );
+			glish_message->Report( "script directory:       ", SCRIPTDIR );
+			glish_message->Report( "site glishrc directory: ", RCDIR );
+			glish_message->Report( "key directory:          ", KEYDIR );
 			exit( 0 );
 			}
 
 		else if ( ! strcmp( argv[0], "-help" ) )
 			{
-			message->Report( "-help        get this output" );
-			message->Report( "-version     get glish version" );
-			message->Report( "-info        get glish directory information" );
-			message->Report( "-l <FILE>    load <FILE> after .glishrc" );
-			message->Report( "-vf          report each \"dropped\" fail value" );
-			message->Report( "-vi          report each included file" );
-			message->Report( "-v[1-9]      set the verbosity level" );
-			message->Report( "-w           report each generated error string" );
-			message->Report( "-noaf        suppress auto-fail behavior (TEMPOARY FLAG)" );
-			message->Report( "-faildef     initialized values to <fail> by default" );
-			message->Report( "<FILE>       execute <FILE> rather than running interactively" );
-			message->Report( "<ENV>=<VAL>  export <ENV> to the environment with value <VAL>" );
-			message->Report( "--           end arguments to Glish" );
+			glish_message->Report( "-help        get this output" );
+			glish_message->Report( "-version     get glish version" );
+			glish_message->Report( "-info        get glish directory information" );
+			glish_message->Report( "-l <FILE>    load <FILE> after .glishrc" );
+			glish_message->Report( "-vf          report each \"dropped\" fail value" );
+			glish_message->Report( "-vi          report each included file" );
+			glish_message->Report( "-v[1-9]      set the verbosity level" );
+			glish_message->Report( "-w           report each generated error string" );
+			glish_message->Report( "-noaf        suppress auto-fail behavior (TEMPOARY FLAG)" );
+			glish_message->Report( "-faildef     initialized values to <fail> by default" );
+			glish_message->Report( "<FILE>       execute <FILE> rather than running interactively" );
+			glish_message->Report( "<ENV>=<VAL>  export <ENV> to the environment with value <VAL>" );
+			glish_message->Report( "--           end arguments to Glish" );
 			exit( 0 );
 			}
 
@@ -1744,7 +1748,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			if ( exp_name && is_regular_file( exp_name ) )
 				load_list->replace(i,exp_name);
 			else
-				fatal->Report("Can't include file \"",
+				glish_fatal->Report("Can't include file \"",
 						      (*load_list)[i],"\".");
 			}
 
@@ -1856,7 +1860,7 @@ void Sequencer::AddBuiltIn( BuiltIn* built_in )
 void Sequencer::QueueNotification( Notification* n )
 	{
 	if ( verbose > 1 )
-		message->Report( "queueing", n );
+		glish_message->Report( "queueing", n );
 
 	notification_queue.EnQueue( n );
 	}
@@ -1938,7 +1942,7 @@ int Sequencer::PopScope( back_offsets_type **back_ref_ptr )
 	int top_scope_pos = scopes.length() - 1;
 
 	if ( top_scope_pos < 0 )
-		fatal->Report( "scope underflow in Sequencer::PopScope" );
+		glish_fatal->Report( "scope underflow in Sequencer::PopScope" );
 
 	Scope* top_scope = scopes[top_scope_pos];
 	int frame_size = top_scope->Length();
@@ -1953,7 +1957,7 @@ int Sequencer::PopScope( back_offsets_type **back_ref_ptr )
 		int back_ref_top = back_refs.length()-1;
 
 		if ( back_ref_top < 0 )
-			fatal->Report( "back reference underflow in Sequencer::PopScope" );
+			glish_fatal->Report( "back reference underflow in Sequencer::PopScope" );
 
 		expr_list *back = back_refs.remove_nth( back_ref_top );
 
@@ -1981,10 +1985,10 @@ void Sequencer::StashScope( )
 	int top_scope_pos = scopes.length() - 1;
 
 	if ( stashed_scope )
-		fatal->Report( "stashed scope overflow in Sequencer::StashScope" );
+		glish_fatal->Report( "stashed scope overflow in Sequencer::StashScope" );
 
 	if ( top_scope_pos < 0 )
-		fatal->Report( "scope underflow in Sequencer::StashScope" );
+		glish_fatal->Report( "scope underflow in Sequencer::StashScope" );
 
 	stashed_scope = scopes[top_scope_pos];
 	scopes.remove( stashed_scope );
@@ -1996,7 +2000,7 @@ void Sequencer::StashScope( )
 void Sequencer::RestoreScope( )
 	{
 	if ( ! stashed_scope )
-		fatal->Report( "stashed scope underflow in Sequencer::RestoreScope" );
+		glish_fatal->Report( "stashed scope underflow in Sequencer::RestoreScope" );
 
 	scopes.append( stashed_scope );
 	if ( stashed_scope->GetScopeType() != LOCAL_SCOPE )
@@ -2061,7 +2065,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn, int bool_in
 			scope_index = 0;
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::InstallID()" );
+			glish_fatal->Report("bad scope tag in Sequencer::InstallID()" );
 
 		}
 
@@ -2078,7 +2082,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn, int bool_in
 		{
 		cur_scope->ClearGlobalRef( id );
 		if ( do_warn )
-			warn->Report( "scope of \"", id,"\" goes from global to local");
+			glish_warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
 	Expr *old = (Expr*) cur_scope->Insert( id, result );
@@ -2180,7 +2184,7 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 						  ((VarExpr*)result)->change_func() );
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+			glish_fatal->Report("bad scope tag in Sequencer::LookupID()" );
 
 		}
 
@@ -2214,7 +2218,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 			scope_index = 0;
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::InstallID()" );
+			glish_fatal->Report("bad scope tag in Sequencer::InstallID()" );
 
 		}
 
@@ -2229,7 +2233,7 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
 		cur_scope->ClearGlobalRef( id );
-		warn->Report( "scope of \"", id,"\" goes from global to local");
+		glish_warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
 	Expr *old = (Expr*) cur_scope->Insert( id, var );
@@ -2308,7 +2312,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var, int &creat
 				return InstallVar( id, GLOBAL_SCOPE, var );
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+			glish_fatal->Report("bad scope tag in Sequencer::LookupID()" );
 
 		}
 
@@ -2496,7 +2500,7 @@ Frame* Sequencer::PopFrame( )
 	int top_frame_pos = frames().length() - 1;
 
 	if ( top_frame_pos < howmany - 1 )
-		fatal->Report(
+		glish_fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
 
 	Frame *top_frame = 0;
@@ -2565,7 +2569,7 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 				offset += global_frames()[gs_off];
 
 			if ( offset < 0 || offset >= frames().length() || ! frames()[offset] )
-				fatal->Report(
+				glish_fatal->Report(
 		    "local frame error in Sequencer::FrameElement (",
 		    scope_offset, ",", gs_off ? global_frames()[gs_off] : -1,
 		    "," , frames().length(), ")" );
@@ -2579,7 +2583,7 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 			int offset = global_frames()[gs_off];
 
 			if ( offset < 0 || offset >= frames().length() )
-				fatal->Report(
+				glish_fatal->Report(
 		    "local frame error in Sequencer::FrameElement (",
 		    offset, " (", gs_off, "), ", frames().length(), ")" );
 
@@ -2589,13 +2593,13 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 		case GLOBAL_SCOPE:
 			{
 			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-				fatal->Report(
+				glish_fatal->Report(
 				"bad global frame offset in Sequencer::FrameElement" );
 			return global_frame[frame_offset];
 			}
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::FrameElement()" );
+			glish_fatal->Report("bad scope tag in Sequencer::FrameElement()" );
 		}
 
 	return 0;
@@ -2621,7 +2625,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				offset += global_frames()[gs_off];
 
 			if ( offset < 0 || offset >= frames().length() )
-				fatal->Report(
+				glish_fatal->Report(
 		    "local frame error in Sequencer::SetFrameElement (",
 		    scope_offset, ",", gs_off ? global_frames()[gs_off] : -1,
 		    "," , frames().length(), ")" );
@@ -2646,7 +2650,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			int offset = global_frames()[gs_off];
 
 			if ( offset < 0 || offset >= frames().length() )
-				fatal->Report(
+				glish_fatal->Report(
 		    "local frame error in Sequencer::SetFrameElement (",
 		    offset, " (", gs_off, "), ", frames().length(), ")" );
 
@@ -2667,7 +2671,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 		case GLOBAL_SCOPE:
 			{
 			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-				fatal->Report(
+				glish_fatal->Report(
 				"bad global frame offset in Sequencer::FrameElement" );
 			prev_value = global_frame.replace( frame_offset, value );
 			if ( prev_value && prev_value->IsConst() )
@@ -2684,7 +2688,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			}
 			break;
 		default:
-			fatal->Report("bad scope tag in Sequencer::SetFrameElement()" );
+			glish_fatal->Report("bad scope tag in Sequencer::SetFrameElement()" );
 
 
 		}
@@ -2732,7 +2736,7 @@ void Sequencer::PopFuncName( )
 	int top_pos = cur_sequencer->func_names.length() - 1;
 
 	if ( top_pos < 0 )
-		fatal->Report(
+		glish_fatal->Report(
 			"local frame stack underflow in Sequencer::PopFuncName" );
 
 	func_name_info *top = cur_sequencer->func_names.remove_nth( top_pos );
@@ -2959,9 +2963,9 @@ IValue *Sequencer::Exec( evalOpt &opt, int startup_script, int value_needed )
 	if ( interactive( ) )
 		return 0;
 
-	if ( error->Count() > 0 )
+	if ( glish_error->Count() > 0 )
 		{
-		message->Report( "execution aborted" );
+		glish_message->Report( "execution aborted" );
 		return 0;
 		}
 
@@ -2979,8 +2983,8 @@ IValue *Sequencer::Exec( evalOpt &opt, int startup_script, int value_needed )
 			{
 			if ( ret && ret->Type() == TYPE_FAIL )
 				{
-				ret->Describe( error->Stream() );
-			        error->Stream() << endl;
+				ret->Describe( glish_error->Stream() );
+			        glish_error->Stream() << endl;
 				}
 			Unref( ret );
 			ret = 0;
@@ -3179,7 +3183,7 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 
 	if ( ! result )
 		{
-		warn->Report( agent, " terminated without replying to ",
+		glish_warn->Report( agent, " terminated without replying to ",
 				event_name, " request" );
 		result = error_ivalue();
 		}
@@ -3268,7 +3272,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 
 	if ( ! establish_event )
 		{
-		error->Report( "new connection immediately broken" );
+		glish_error->Report( "new connection immediately broken" );
 		return 0;
 		}
 
@@ -3285,7 +3289,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 	else if ( ! v->FieldVal( "name", task_id ) ||
 		  ! v->FieldVal( "protocol", protocol ) )
 		{
-		error->Report( "bad connection establishment" );
+		glish_error->Report( "bad connection establishment" );
 		return 0;
 		}
 
@@ -3295,7 +3299,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 
 	if ( ! task )
 		{
-		error->Report( "connection received from non-existent task ",
+		glish_error->Report( "connection received from non-existent task ",
 				task_id );
 		Unref( establish_event );
 		return 0;
@@ -3372,7 +3376,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	Agent *agent = task;
 
 	if ( verbose > 0 )
-		message->Report( name, ": received event ",
+		glish_message->Report( name, ": received event ",
 				 task->Name(), ".", event_name, " ", value );
 
 	if ( monitor_task && task != monitor_task )
@@ -3497,7 +3501,7 @@ int Sequencer::NewEvent( LoadedAgent* task, GlishEvent* event, int complain_if_n
 	Agent *agent = task;
 
 	if ( verbose > 0 )
-		message->Report( name, ": received event ",
+		glish_message->Report( name, ": received event ",
 				 task->Name(), ".", event_name, " ", value );
 
 	if ( monitor_task /* && task != monitor_task */ )
@@ -3663,7 +3667,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name, IValue *event_
 	if ( ! reply_event )							\
 		{								\
 		if ( ignore_event )						\
-			warn->Report( "event ", agent->Name(), ".", event_name,	\
+			glish_warn->Report( "event ", agent->Name(), ".", event_name,	\
 				      " ignored due to \"await\"" );		\
 		else if ( ! await.agent() || ! await_finished )			\
 			{							\
@@ -3675,7 +3679,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name, IValue *event_
 							       value, t, preserve ); \
 										\
 			if ( ! was_interest && complain_if_no_interest )	\
-				warn->Report( "event ", agent->Name(), ".",	\
+				glish_warn->Report( "event ", agent->Name(), ".",	\
 					      event_name, " (", value, 		\
 					      ") dropped" );			\
 										\
@@ -3743,7 +3747,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 	if ( ! reply_event )
 		{
 		if ( ignore_event )
-			warn->Report( "event ", agent->Name(), ".", event_name,
+			glish_warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
 		else if ( ! aw || ! aw->agent() || ! await_finished )
 			{
@@ -3755,7 +3759,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 							       value, t, preserve );
 
 			if ( ! was_interest && complain_if_no_interest )
-				warn->Report( "event ", agent->Name(), ".",
+				glish_warn->Report( "event ", agent->Name(), ".",
 					      event_name, " (", value,
 					      ") dropped" );
 
@@ -3829,7 +3833,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 	if ( ! reply_event )
 		{
 		if ( ignore_event )
-			warn->Report( "event ", agent->Name(), ".", event_name,
+			glish_warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
 		else if ( ! aw || ! aw->agent() || ! await_finished )
 			{
@@ -3841,7 +3845,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 							       value, t, preserve );
 
 			if ( ! was_interest && complain_if_no_interest )
-				warn->Report( "event ", agent->Name(), ".",
+				glish_warn->Report( "event ", agent->Name(), ".",
 					      event_name, " (", value,
 					      ") dropped" );
 
@@ -3921,10 +3925,17 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 
 void Sequencer::MakeEnvGlobal( evalOpt &opt )
 	{
+
+#ifndef HAVE_CRT_EXTERNS_H
+	char** env = environ;
+#else
+	char** env = *_NSGetEnviron( );
+#endif
+
 	IValue* env_value = create_irecord();
 
-	if ( environ )
-		for ( char** env_ptr = environ; *env_ptr; ++env_ptr )
+	if ( env )
+		for ( char** env_ptr = env; *env_ptr; ++env_ptr )
 			{
 			char* delim = strchr( *env_ptr, '=' );
 
@@ -4002,7 +4013,7 @@ IValue *Sequencer::Parse( evalOpt &opt, FILE* file, const char* filename, int va
 
 	if ( yyin && isatty( fileno( yyin ) ) )
 		{
-		message->Report( "Glish version ", GLISH_VERSION, ". " );
+		glish_message->Report( "Glish version ", GLISH_VERSION, ". " );
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -4023,7 +4034,7 @@ IValue *Sequencer::Parse( evalOpt &opt, FILE* file, const char* filename, int va
 
 	if ( ret )
 		{
-		if ( ! in_evaluation( ) ) error->Report( "syntax errors parsing input" );
+		if ( ! in_evaluation( ) ) glish_error->Report( "syntax errors parsing input" );
 		SetErrorResult( ret );
 
 		if ( stmts )
@@ -4052,12 +4063,12 @@ IValue *Sequencer::Parse( evalOpt &opt, FILE* file, const char* filename, int va
 IValue *Sequencer::Parse( evalOpt &opt, const char file[], int value_needed )
 	{
 	if ( ! is_regular_file( file ) )
-		return (IValue*) generate_error( "\"", file, "\" does not exist or is not a regular file" );
+		return (IValue*) ValCtor::error( "\"", file, "\" does not exist or is not a regular file" );
 
 	FILE* f = fopen( file, "r" );
 
 	if ( ! f )
-		return (IValue*) generate_error( "can't open file \"", file, "\"" );
+		return (IValue*) ValCtor::error( "can't open file \"", file, "\"" );
 
 
 	return Parse( opt, f, file, value_needed );
@@ -4100,7 +4111,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 
 	if ( ! expanded_name )
 		{
-		error->Report( "could not include '", file, "', file not found" );
+		glish_error->Report( "could not include '", file, "', file not found" );
 		return error_ivalue();
 		}
 	else if ( include_once.Lookup(expanded_name) )
@@ -4114,7 +4125,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 		{
 		free_memory( expanded_name );
 		expanded_name = 0;
-		return (IValue*) generate_error( "\"",file, "\" does not exist or is not a regular file" );
+		return (IValue*) ValCtor::error( "\"",file, "\" does not exist or is not a regular file" );
 		}
 
 	FILE *fptr = fopen( expanded_name, "r");
@@ -4123,7 +4134,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 		{
 		free_memory( expanded_name );
 		expanded_name = 0;
-		return (IValue*) generate_error( file, " not found" );
+		return (IValue*) ValCtor::error( file, " not found" );
 		}
 
 	if ( VERB_INCL(verbose_mask) )
@@ -4141,7 +4152,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 	line_num = 1;
 
 
-	error->SetCount(0);
+	glish_error->SetCount(0);
 	interactive_set( 0 );
 
 	NodeUnref( stmts );
@@ -4158,7 +4169,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 			ret = Exec( opt, 1, 1 );
 			const stack_type *xsx = 0;
 			if ( (xsx = PopFrames( )) != incst )
-				fatal->Report("stack inconsistency in Sequencer::Include");
+				glish_fatal->Report("stack inconsistency in Sequencer::Include");
 			}
 		else
 			{
@@ -4167,7 +4178,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 				glish_include_jmpbuf_set = 1;
 				ret = Exec( opt, 1, 1 );
 				if ( PopFrames( ) != incst )
-					fatal->Report("stack inconsistency in Sequencer::Include");
+					glish_fatal->Report("stack inconsistency in Sequencer::Include");
 				}
 			else
 				{
@@ -4211,7 +4222,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 	file_name = old_file_name;
 
 	clear_error();
-	error->SetCount(0);
+	glish_error->SetCount(0);
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
 	fclose( fptr );
@@ -4337,13 +4348,13 @@ void Sequencer::Rendezvous( const char* event_name, IValue* value )
 
 	if ( ! value->FieldVal( "source_id", source_id ) ||
 	     ! value->FieldVal( "sink_id", sink_id ) )
-		fatal->Report( "bad internal", event_name, "event" );
+		glish_fatal->Report( "bad internal", event_name, "event" );
 
 	Task* src = ids_to_tasks[source_id];
 	Task* snk = ids_to_tasks[sink_id];
 
 	if ( ! src || ! snk )
-		fatal->Report( "no such source or sink ID in internal",
+		glish_fatal->Report( "no such source or sink ID in internal",
 				event_name, "event:", source_id, sink_id );
 
 	// By sending out these two events immediately, before any other
@@ -4373,12 +4384,12 @@ void Sequencer::ForwardEvent( const char* event_name, IValue* value )
 
 	if ( ! value->FieldVal( "receipient", receipient_id ) ||
 	     ! value->FieldVal( "event", new_event_name ) )
-		fatal->Report( "bad internal event \"", event_name, "\"" );
+		glish_fatal->Report( "bad internal event \"", event_name, "\"" );
 
 	Task* task = ids_to_tasks[receipient_id];
 
 	if ( ! task )
-		fatal->Report( "no such receipient ID in ", event_name,
+		glish_fatal->Report( "no such receipient ID in ", event_name,
 				"internal event:", receipient_id );
 
 	task->SendSingleValueEvent( new_event_name, value, Agent::mLOG( ) );
@@ -4435,7 +4446,7 @@ void Sequencer::RunQueue( int await_ended )
 			}
 
 		if ( verbose > 1 )
-			message->Report( "doing", n );
+			glish_message->Report( "doing", n );
 
 		if ( n->notifiee->stack() )
 			PushFrames( n->notifiee->stack() );
@@ -4471,7 +4482,7 @@ void Sequencer::RunQueue( int await_ended )
 		if ( n->notifiee->stack() )
 			{
 			if ( n->notifiee->stack() != PopFrames( ) )
-				fatal->Report( "stack inconsistency in Sequencer::RunQueue" );
+				glish_fatal->Report( "stack inconsistency in Sequencer::RunQueue" );
 			}
 		else if ( n->notifiee->frame() )
 			(void) PopFrame();
@@ -4656,7 +4667,7 @@ int DaemonSelectee::NotifyOfSelection()
 			{
 			if ( daemon->State() == DAEMON_LOST )
 				{
-				message->Report( "connectivity to daemon @ ",
+				glish_message->Report( "connectivity to daemon @ ",
 						daemon->Host(), " restored" );
 				message_name = "connection_restored";
 				}
@@ -4667,7 +4678,7 @@ int DaemonSelectee::NotifyOfSelection()
 		else
 			{
 			if ( strcmp( e->name, "established" ) )
-				error->Report( "received unsolicited message from daemon @ ",
+				glish_error->Report( "received unsolicited message from daemon @ ",
 					       daemon->Host(), ", [", e->name, "]"  );
 			}
 
@@ -4676,7 +4687,7 @@ int DaemonSelectee::NotifyOfSelection()
 
 	else
 		{
-		error->Report( "Glish daemon @ ", daemon->Host(),
+		glish_error->Report( "Glish daemon @ ", daemon->Host(),
 				" terminated" );
 		selector->DeleteSelectee( daemon_fd.fd() );
 		message_name = "daemon_terminated";
@@ -4712,7 +4723,7 @@ int ProbeTimer::DoExpiration()
 		{
 		if ( r->State() == DAEMON_REPLY_PENDING )
 			{ // Oops.  Haven't gotten a reply from our last probe.
-			warn->Report( "connection to Glish daemon @ ", key,
+			glish_warn->Report( "connection to Glish daemon @ ", key,
 					" lost" );
 			r->SetState( DAEMON_LOST );
 

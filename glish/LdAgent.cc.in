@@ -83,7 +83,7 @@ GlishEvent* LoadedProxyStore::NextEvent( EventSource * )
 		if ( last_event->IsRequest() && v->FieldVal( "*reply*", pending_reply ) )
 			{  // Request/reply event; unwrap the request
 			IValue *request = (IValue*) v->Field( "*request*" );
-			if ( ! request ) fatal->Report( "bad request/reply event" );
+			if ( ! request ) glish_fatal->Report( "bad request/reply event" );
 			Ref( request );
 			Unref(v);
 			last_event->value = request;
@@ -96,15 +96,15 @@ GlishEvent* LoadedProxyStore::NextEvent( EventSource * )
 void LoadedProxyStore::Reply( const Value *event_value, const ProxyId &proxy_id )
 	{
 	if ( ! ReplyPending() )
-		error->Report( "issued Reply without having received a corresponding request" );
+		glish_error->Report( "issued Reply without having received a corresponding request" );
 	else
 		{
 		  if ( &proxy_id != &glish_proxyid_dummy && proxy_id.interp() && proxy_id.task() && proxy_id.id() )
 			{
 			recordptr rec = create_record_dict( );
-			rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+			rec->Insert( string_dup("id"), ValCtor::create((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 			rec->Insert( string_dup("value"), deep_copy_value(event_value) );
-			GlishEvent e( (const char*) pending_reply, create_value(rec) );
+			GlishEvent e( (const char*) pending_reply, ValCtor::create(rec) );
 			e.SetIsReply();
 			e.SetIsProxy();
 			PostEvent( &e );
@@ -127,9 +127,9 @@ void LoadedProxyStore::PostEvent( const char* event_name, const Value* event_val
 	if ( &proxy_id != &glish_proxyid_dummy && proxy_id.interp() && proxy_id.task() && proxy_id.id() )
 		{
 		recordptr rec = create_record_dict( );
-		rec->Insert( string_dup("id"), create_value((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
+		rec->Insert( string_dup("id"), ValCtor::create((int*)proxy_id.array(),ProxyId::len(),COPY_ARRAY) );
 		rec->Insert( string_dup("value"), deep_copy_value(event_value) );
-		GlishEvent e( event_name, create_value(rec) );
+		GlishEvent e( event_name, ValCtor::create(rec) );
 		e.SetIsProxy( );
 		PostEvent( &e, context );
 		}
@@ -320,8 +320,8 @@ LoadedAgent::LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer
 	     arg->Type() == TYPE_STRING && arg->Length() > 0 )
 		{
 		charptr object = arg->StringPtr(0)[0];
-		char *sopath = which_shared_object( "GlishTk.so" );
-		sopath = sopath ? sopath : string_dup( "GlishTk.so" );
+		char *sopath = which_shared_object( "GlishTk@SLIB_SUFFIX@" );
+		sopath = sopath ? sopath : string_dup( "GlishTk@SLIB_SUFFIX@" );
 
 		if ( ! (handle = dlopen( sopath, RTLD_NOW | RTLD_GLOBAL )) )
 			{
@@ -336,7 +336,6 @@ LoadedAgent::LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer
 		else
 			{
 			free_memory( sopath );
-
 			GlishInitFunc func = (GlishInitFunc) dlsym( handle, "GlishTk_init" );
 			if ( ! func )
 				{

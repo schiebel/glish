@@ -12,11 +12,11 @@ SHELL = /bin/sh
 SH = $(SHELL)
 
 all:
-	@if test -z "$(ARCH)"; then 				\
+	if test -z "$(ARCH)"; then 				\
 		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	if test -d tkpgplot; then				\
+	if test -d tkpgplot/$(ARCH); then			\
 		(cd tkpgplot; $(MAKE) $$FLGS all); fi;		\
 	(cd $(BUILD_DIR); $(MAKE) $$FLGS all)
 
@@ -26,7 +26,7 @@ install:
 		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	if test -d tkpgplot; then				\
+	if test -d tkpgplot/$(ARCH); then			\
 		(cd tkpgplot; $(MAKE) $$FLGS install); fi;	\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
 

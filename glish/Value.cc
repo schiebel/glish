@@ -18,8 +18,6 @@ RCSID("@(#) $Id$")
 
 #define AGENT_MEMBER_NAME "*agent*"
 
-extern int glish_collecting_garbage;
-
 int num_Values_created = 0;
 int num_Values_deleted = 0;
 
@@ -74,7 +72,7 @@ Value::Value( const Value *val, const char *, int )
 			sary[x] = string_dup(sptr[x]);
 		sary[x] = (charptr) alloc_char( strlen((*glish_files)[file]) + 1);
 		strcpy( (char*) sary[x], (*glish_files)[file] );
-		rptr->Insert("file",create_value( sary, v->Length() + 1 ));
+		rptr->Insert("file",ValCtor::create( sary, v->Length() + 1 ));
 		Unref(v);
 		}
 	v = (*rptr)["line"];
@@ -86,7 +84,29 @@ Value::Value( const Value *val, const char *, int )
 		for ( ; x < v->Length(); ++x )
 			iary[x] = iptr[x];
 		iary[x] = line;
-		rptr->Insert("line",create_value( iary, v->Length() + 1 ));
+		rptr->Insert("line",ValCtor::create( iary, v->Length() + 1 ));
+		}
+	}
+
+Value *Value::CopyAttributePtr() const
+	{
+	return attributes ? ValCtor::copy( attributes ) : 0;
+	}
+
+Value *Value::DeepCopyAttributePtr() const
+	{
+	return attributes ? ValCtor::deep_copy( attributes ) : 0;
+	}
+
+Value *Value::CopyUnref()
+	{
+	if ( RefCount() == 1 )
+		return this;
+	else
+		{
+		Unref( this );	// Safe!
+		Value* copy = ValCtor::copy( this );
+		return copy;
 		}
 	}
 
@@ -113,19 +133,19 @@ void Value::SetFail( const char *message, const char *xfile, int lineNum )
 	attributeptr attr = ModAttributePtr();
 	if ( xfile && xfile[0] )
 		{
-		rptr->Insert( string_dup("file"), create_value( xfile ) );
-		Unref( (Value*) attr->Insert( string_dup("file"), create_value( xfile ) ) );
+		rptr->Insert( string_dup("file"), ValCtor::create( xfile ) );
+		Unref( (Value*) attr->Insert( string_dup("file"), ValCtor::create( xfile ) ) );
 		if ( lineNum > 0 )
 			{
-			rptr->Insert( string_dup("line"), create_value( lineNum ) );
-			Unref( (Value*) attr->Insert( string_dup("line"), create_value( lineNum ) ) );
+			rptr->Insert( string_dup("line"), ValCtor::create( lineNum ) );
+			Unref( (Value*) attr->Insert( string_dup("line"), ValCtor::create( lineNum ) ) );
 			}
 		}
 
 	if ( message )
 		{
-		rptr->Insert( string_dup("message"), create_value( message ) );
-		Unref( (Value*) attr->Insert( string_dup("message"), create_value( message ) ) );
+		rptr->Insert( string_dup("message"), ValCtor::create( message ) );
+		Unref( (Value*) attr->Insert( string_dup("message"), ValCtor::create( message ) ) );
 		}
 	}
 	  
@@ -191,7 +211,7 @@ Value::Value( Value* ref_value, value_reftype val_type )
 
 	int is_const = ref_value->IsConst() | ref_value->IsRefConst();
 // 	if ( val_type != VAL_CONST && val_type != VAL_REF )
-// 		fatal->Report( "bad value_reftype in Value::Value" );
+// 		glish_fatal->Report( "bad value_reftype in Value::Value" );
 
 	ref_value = ref_value->Deref();
 	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst() |
@@ -273,17 +293,17 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 			value_reftype val_type, int take_index )
 	{
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
-		fatal->Report( "bad value_reftype in Value::Value" );
+		glish_fatal->Report( "bad value_reftype in Value::Value" );
 
 	if ( ref_value->IsConst() && val_type == VAL_REF )
-		warn->Report(
+		glish_warn->Report(
 			"\"ref\" reference created from \"const\" reference" );
 
 	ref_value = ref_value->Deref();
 
 	int max_index;
 	if ( IndexRange( index, num_elements, max_index ) )
-		fatal->Report( "bad index in Value::Value" );
+		glish_fatal->Report( "bad index in Value::Value" );
 
 	if ( max_index > ref_value->Length() )
 		if ( ! ref_value->Grow( max_index ) )
@@ -320,7 +340,7 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 			break;
 
 		default:
-			fatal->Report( "bad Value in Value::Value" );
+			glish_fatal->Report( "bad Value in Value::Value" );
 		}
 
 	if ( val_type == VAL_CONST )
@@ -336,7 +356,7 @@ void Value::DeleteValue()
 
 void Value::DeleteAttributes()
 	{
-	if ( ! glish_collecting_garbage )
+	if ( ! ValCtor::collecting_garbage( ) )
 		Unref( attributes );
 	attributes = 0;
 	}
@@ -385,7 +405,7 @@ int Value::IsNumeric() const
 
 		case TYPE_ERROR:
 		default:
-			fatal->Report( "bad type in Value::IsNumeric()" );
+			glish_fatal->Report( "bad type in Value::IsNumeric()" );
 
 			return 0;	// for overly clever compilers
 		}
@@ -418,7 +438,7 @@ type Value::name( int modify ) const					\
 	if ( IsVecRef() ) 						\
 		return ((const Value*) VecRefPtr()->Val())->name( modify ); \
 	else if ( Type() != tag )					\
-		fatal->Report( "bad use of const accessor" );		\
+		glish_fatal->Report( "bad use of const accessor" );		\
 	return (type) (modify ? kernel.MOD() : kernel.CONST()); 	\
 	}
 
@@ -461,9 +481,9 @@ DEFINE_ACCESSOR(FailPtr,TYPE_FAIL,recordptr,modRecord,constRecord)
 type& Value::name() const						\
 	{								\
 	if ( ! IsVecRef() )						\
-		fatal->Report( "bad use of subarray reference accessor" );\
+		glish_fatal->Report( "bad use of subarray reference accessor" );\
 	if ( VecRefPtr()->Type() != tag )				\
-		fatal->Report( "bad use of subarray reference accessor" );\
+		glish_fatal->Report( "bad use of subarray reference accessor" );\
 	return *(VecRefPtr()->name());					\
 	}
 
@@ -481,7 +501,7 @@ DEFINE_CONST_REF_ACCESSOR(StringRef,TYPE_STRING,charptrref)
 type& Value::name()							\
 	{								\
 	if ( ! IsVecRef() )						\
-		fatal->Report( "bad use of subarray reference accessor" );\
+		glish_fatal->Report( "bad use of subarray reference accessor" );\
 	if ( VecRefPtr()->Type() != tag )				\
 		Polymorph( tag );					\
 	return *(VecRefPtr()->name());					\
@@ -560,7 +580,7 @@ val_type Value::name( int n, Str &err ) const				\
 				text_func( StringPtr(0)[n - 1], successful ) ); \
 									\
 			if ( ! successful )				\
-				warn->Report( "string \"", this,	\
+				glish_warn->Report( "string \"", this,	\
 					"\" converted to ", type_name );\
 			return result;					\
 			}						\
@@ -588,7 +608,7 @@ val_type Value::name( int n, Str &err ) const				\
 			}						\
 									\
 		default:						\
-			fatal->Report( "bad type in Value::XXX_VAL()" );\
+			glish_fatal->Report( "bad type in Value::XXX_VAL()" );\
 			return zero;					\
 		}							\
 	}
@@ -620,7 +640,7 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 			(tmp = precv->IntVal()) >= 0 )
 		limit = tmp;
 	else 
-		limit = lookup_print_precision( );
+		limit = ValCtor::print_precision( );
 
 	if ( limit >= 0 )
 		{
@@ -645,7 +665,7 @@ unsigned int Value::PrintLimit( ) const
 			(tmp = limitv->IntVal()) > 0 )
 		limit = tmp;
 	else 
-		limit = lookup_print_limit();
+		limit = ValCtor::print_limit();
 
 	return limit;
 	}
@@ -656,7 +676,7 @@ char* Value::RecordStringVal( char sep, int max_elements,
 	static value_list been_there;
 
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		fatal->Report( "non-record type in Value::RecordStringVal()" );
+		glish_fatal->Report( "non-record type in Value::RecordStringVal()" );
 
 	recordptr rptr = RecordPtr(0);
 	int len = rptr->Length();
@@ -687,7 +707,7 @@ char* Value::RecordStringVal( char sep, int max_elements,
 		Value* nth_val = rptr->NthEntry( i, key_strs[i] );
 
 		if ( ! nth_val )
-			fatal->Report(
+			glish_fatal->Report(
 				"bad record in Value::RecordStringVal()" );
 
 		element_strs[i] = nth_val->StringVal( sep, max_elements, use_attr, evalable, 0, err );
@@ -769,7 +789,7 @@ const Value* Value::VecRefDeref() const
 		return Deref()->name( is_copy, size, result );		\
 									\
 	if ( ! IsNumeric() )						\
-		fatal->Report( "non-numeric type in coercion of", this,	\
+		glish_fatal->Report( "non-numeric type in coercion of", this,	\
 				"to ", type_name );			\
 									\
 	if ( ! result && length == size && Type() == gtype )		\
@@ -836,7 +856,7 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[j].i,DcomplexPtr,j,)
 	int off = ref->TranslateIndex( j, &err );			\
 	if ( err )							\
 		{							\
-		error->Report( "index (=",j,				\
+		glish_error->Report( "index (=",j,				\
 			") is out of range. Sub-vector reference may be invalid" );\
 		return 0;						\
 		}
@@ -848,7 +868,7 @@ BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[off].i,ComplexPtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERCE_ACTION_XLATE)
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToBoolArray()" );
 			return 0;
 		}
@@ -857,7 +877,7 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off
 
 
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToBoolArray()" );
 			return 0;
 		}
@@ -916,7 +936,7 @@ COERCE_ACTION_(TYPE_COMPLEX,glish_complex,.r,type,ComplexPtr,off,COERCE_ACTION_X
 COERCE_ACTION_(TYPE_DCOMPLEX,glish_dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
-					error->Report(			\
+					glish_error->Report(			\
 					"bad type in Value::",error_msg);\
 					return 0;			\
 				}					\
@@ -936,7 +956,7 @@ byte* Value::CoerceToByteArray( int& is_copy, int size, byte* result ) const
 		COERCE_ACTIONS(byte,"CoerceToByteArray()",_)
 #endif
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToByteArray()" );
 			return 0;
 		}
@@ -957,7 +977,7 @@ short* Value::CoerceToShortArray( int& is_copy, int size, short* result ) const
 #endif
 
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToShortArray()" );
 			return 0;
 		}
@@ -977,7 +997,7 @@ int* Value::CoerceToIntArray( int& is_copy, int size, int* result ) const
 		COERCE_ACTIONS(int,"CoerceToIntArray()",_)
 #endif
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToIntArray()" );
 			return 0;
 		}
@@ -994,7 +1014,7 @@ float* Value::CoerceToFloatArray( int& is_copy, int size, float* result ) const
 		{
 		COERCE_ACTIONS(float,"CoerceToFloatArray()",_)
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToFloatArray()" );
 			return 0;
 		}
@@ -1011,7 +1031,7 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 		{
 		COERCE_ACTIONS(double,"CoerceToDoubleArray()",_)
 		default:
-			error->Report(
+			glish_error->Report(
 			    "bad type in Value::CoerceToDoubleArray()" );
 			return 0;
 		}
@@ -1075,7 +1095,7 @@ COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,glish_complex,type,ComplexPtr,off,COERCE_
 COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
-					error->Report(			\
+					glish_error->Report(			\
 					"bad type in Value::",error_msg );\
 					return 0;			\
 				}					\
@@ -1092,7 +1112,7 @@ glish_complex* Value::CoerceToComplexArray( int& is_copy, int size,
 		{
 		COERCE_COMPLEX_ACTIONS(float,"CoerceToComplexArray()")
 		default:
-			error->Report(
+			glish_error->Report(
 				"bad type in Value::CoerceToComplexArray()" );
 			return 0;
 		}
@@ -1111,7 +1131,7 @@ glish_dcomplex* Value::CoerceToDcomplexArray( int& is_copy, int size,
 		{
 		COERCE_COMPLEX_ACTIONS(double,"CoerceToDcomplexArray()")
 		default:
-			error->Report(
+			glish_error->Report(
 			    "bad type in Value::CoerceToDcomplexArray()" );
 			return 0;
 		}
@@ -1132,7 +1152,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 		// they are uninitialized variables. This if-clause permits this
 		// conversion.
 // 		if ( size > 1 )
-// 			warn->Report( "array values lost due to conversion to string type" );
+// 			glish_warn->Report( "array values lost due to conversion to string type" );
 		is_copy = 1;
 		char **ary = alloc_charptr(size);
 		for ( int x=0; x < size; ++x )
@@ -1166,7 +1186,7 @@ charptr* Value::CoerceToStringArray( int& is_copy, int size, charptr* result ) c
 			int off  = ref->TranslateIndex( j, &err );
 			if ( err )
 				{
-				error->Report( "index (=",j,
+				glish_error->Report( "index (=",j,
 					       ") is out of range. Sub-vector reference may be invalid" );
 				return 0;
 				}
@@ -1205,7 +1225,7 @@ Value* Value::RecordRef( const Value* index ) const
 				copy_value( ExistingRecordElement( key ) ) );
 		}
 
-	return create_value( new_record );
+	return ValCtor::create( new_record );
 	}
 
 
@@ -1255,7 +1275,7 @@ Value* Value::GetOrCreateRecordElement( const char* field )
 
 	if ( ! member )
 		{
-		member = create_value( glish_false );
+		member = ValCtor::create( glish_false );
 		member->MarkUninitialized( );
 		RecordPtr()->Insert( string_dup( field ), member );
 		}
@@ -1266,7 +1286,7 @@ Value* Value::GetOrCreateRecordElement( const char* field )
 const Value* Value::HasRecordElement( const char* field ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		fatal->Report( "non-record in Value::HasRecordElement" );
+		glish_fatal->Report( "non-record in Value::HasRecordElement" );
 
 	return (*RecordPtr(0))[field];
 	}
@@ -1418,7 +1438,7 @@ DEFINE_FIELD_PTR(FieldStringPtr,TYPE_STRING,charptr*,StringPtr)
 #define DEFINE_SET_FIELD_SCALAR(type)					\
 void Value::SetField( const char* field, type val )			\
 	{								\
-	Value* field_elem = create_value( val );			\
+	Value* field_elem = ValCtor::create( val );			\
 	AssignRecordElement( field, field_elem );			\
 	Unref( field_elem );						\
 	}
@@ -1427,7 +1447,7 @@ void Value::SetField( const char* field, type val )			\
 void Value::SetField( const char* field, type val[], int num_elements,	\
 			array_storage_type arg_storage )		\
 	{								\
-	Value* field_elem = create_value( val, num_elements, arg_storage );\
+	Value* field_elem = ValCtor::create( val, num_elements, arg_storage );\
 	AssignRecordElement( field, field_elem );			\
 	Unref( field_elem );						\
 	}
@@ -1452,7 +1472,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 	{
 	if ( ! index->IsNumeric() )
 		{
-		error->Report( "non-numeric array index:", index );
+		glish_error->Report( "non-numeric array index:", index );
 		return 0;
 		}
 
@@ -1465,7 +1485,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 		int index_len = num_indices;
 		if ( check_size && index_len != kernel.Length() )
 			{
-			error->Report( "boolean array index has", index_len,
+			glish_error->Report( "boolean array index has", index_len,
 					"elements, array has", kernel.Length() );
 			return 0;
 			}
@@ -1498,7 +1518,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 Value* Value::RecordSlice( int* indices, int num_indices, int always_preserve_fields ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		fatal->Report( "non-record type in Value::RecordSlice()" );
+		glish_fatal->Report( "non-record type in Value::RecordSlice()" );
 
 	int max_index = 0;
 	const char *err = IndexRange( indices, num_indices, max_index );
@@ -1521,13 +1541,13 @@ Value* Value::RecordSlice( int* indices, int num_indices, int always_preserve_fi
 		Value* new_member = rptr->NthEntry( indices[i] - 1, key );
 
 		if ( ! new_member )
-			fatal->Report( "no member corresponding to key = \"",
+			glish_fatal->Report( "no member corresponding to key = \"",
 					key, "\" in Value::RecordSlice" );
 
 		new_record->Insert( string_dup( key ), copy_value( new_member ) );
 		}
 
-	return create_value( new_record );
+	return ValCtor::create( new_record );
 	}
 
 
@@ -1572,7 +1592,7 @@ void Value::AssignElements( Value* value )
 void Value::AssignElements( const_value_list* args_val, Value* value )
 	{
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
-		error->Report("bad type in Value::AssignElements,", __LINE__);
+		glish_error->Report("bad type in Value::AssignElements,", __LINE__);
 	else
 		AssignArrayElements( args_val, value );
 
@@ -1583,7 +1603,7 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		{
-		error->Report( this, " is not a record" );
+		glish_error->Report( this, " is not a record" );
 		return;
 		}
 
@@ -1595,7 +1615,7 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 
 	if ( value->VecRefDeref()->Type() != TYPE_RECORD )
 		{
-		error->Report( "assignment of non-record type to subrecord" );
+		glish_error->Report( "assignment of non-record type to subrecord" );
 		return;
 		}
 
@@ -1604,7 +1624,7 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 
 	if ( index->Length() != rhs_rptr->Length() )
 		{
-		error->Report( "in record assignment: # record indices (",
+		glish_error->Report( "in record assignment: # record indices (",
 				index->Length(),
 				") differs from # right-hand elements (",
 				rhs_rptr->Length(), ")" );
@@ -1620,13 +1640,13 @@ void Value::AssignRecordElements( Value* value )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		{
-		error->Report( this, " is not a record" );
+		glish_error->Report( this, " is not a record" );
 		return;
 		}
 
 	if ( value->VecRefDeref()->Type() != TYPE_RECORD )
 		{
-		error->Report( "assignment of non-record type to subrecord" );
+		glish_error->Report( "assignment of non-record type to subrecord" );
 		return;
 		}
 
@@ -1645,20 +1665,20 @@ void Value::AssignRecordElements( Value* value )
 void Value::AssignRecordElement( const char* index, Value* value )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		fatal->Report( this, " is not a record" );
+		glish_fatal->Report( this, " is not a record" );
 
 	recordptr rptr = RecordPtr();
 	Value* member = (*rptr)[index];
 
 	if ( member && member->IsConst() )
 		{
-		error->Report( "'const' values cannot be modified." );
+		glish_error->Report( "'const' values cannot be modified." );
 		return;
 		}
 
 	if ( ! member && IsFieldConst() )
 		{
-		error->Report( "fields cannot be added to a 'const' record." );
+		glish_error->Report( "fields cannot be added to a 'const' record." );
 		return;
 		}
 
@@ -1679,7 +1699,7 @@ void Value::AssignRecordElement( const char* index, Value* value )
 void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		fatal->Report(
+		glish_fatal->Report(
 			"non-record type in Value::AssignRecordSlice()" );
 
 	recordptr rptr = RecordPtr();
@@ -1688,7 +1708,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 	const char *err = IndexRange( indices, num_indices, max_index );
 	if ( err )
 		{
-		error->Report( err );
+		glish_error->Report( err );
 		return;
 		}
 
@@ -1700,7 +1720,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 			AssignRecordElement( NthFieldName( n ), value );
 
 		else if ( n > rptr->Length() + 1 )
-			error->Report( "record index (=", n,
+			glish_error->Report( "record index (=", n,
 				") out of range (> ", rptr->Length() + 1, ")" );
 
 		else
@@ -1713,7 +1733,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 	// Assigning multiple elements.
 	if ( value->VecRefDeref()->Type() != TYPE_RECORD )
 		{
-		error->Report(
+		glish_error->Report(
 			"non-record type assigned to record slice" );
 		return;
 		}
@@ -1722,7 +1742,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 
 	if ( rhs_rptr->Length() != num_indices )
 		{
-		error->Report( "length mismatch,", num_indices,
+		glish_error->Report( "length mismatch,", num_indices,
 				" indices given but RHS has ",
 				rhs_rptr->Length(), " elements" );
 		return;
@@ -1737,7 +1757,7 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 			AssignRecordElement( NthFieldName( n ), val );
 
 		else if ( n > rptr->Length() + 1 )
-			error->Report( "record index (=", n,
+			glish_error->Report( "record index (=", n,
 				") out of range (> ", rptr->Length() + 1, ")" );
 
 		else
@@ -1768,7 +1788,7 @@ void Value::AssignArrayElements( Value* value, int* indices, int num_indices )
 
 	if ( rhs_len != num_indices )
 		{
-		error->Report( "in array assignment: # indices (",
+		glish_error->Report( "in array assignment: # indices (",
 				num_indices, ") doesn't match # values (",
 				rhs_len, ")" );
 		}
@@ -1789,7 +1809,7 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 	const char *err = IndexRange( indices, num_indices, max_index, min_index );
 	if ( err )
 		{
-		error->Report( err );
+		glish_error->Report( err );
 		return;
 		}
 
@@ -1871,13 +1891,13 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 			"bad subvec type in Value::AssignArrayElements()" );
 				}
 			break;
 
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad type in Value::AssignArrayElements()" );
 		}
 	}
@@ -1895,13 +1915,13 @@ void Value::AssignArrayElements( Value* value )
 
 	if ( Length() > val_len )
 		{
-		warn->Report( "partial assignment to \"",this,"\"" );
+		glish_warn->Report( "partial assignment to \"",this,"\"" );
 		max_index = val_len;
 		}
 
 	else if ( Length() < val_len )
 		if ( ! Grow( (unsigned int) val_len ) )
-			warn->Report( "partial assignment from \"",value,"\"" );
+			glish_warn->Report( "partial assignment from \"",value,"\"" );
 
 	switch ( Type() )
 		{
@@ -1966,12 +1986,12 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 		"bad sub-array reference in Value::AssignArrayElements()" );
 				}
 			break;
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad type in Value::AssignArrayElements()" );
 		}
 	}
@@ -2002,7 +2022,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	{
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
 		{
-		error->Report( "invalid type in n-D assignment:", this );
+		glish_error->Report( "invalid type in n-D assignment:", this );
 		return;
 		}
 
@@ -2012,7 +2032,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
 	if ( ! shape_val || ! shape_val->IsNumeric() )
 		{
-		warn->Report( "invalid or non-existant \"shape\" attribute" );
+		glish_warn->Report( "invalid or non-existant \"shape\" attribute" );
 
 		Ref(value);		// Our caller && AssignElements() will unref
 
@@ -2026,7 +2046,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	int shape_len = shape_val->Length();
 	if ( shape_len != args_len )
 		{
-		error->Report( "invalid number of indexes for:", this );
+		glish_error->Report( "invalid number of indexes for:", this );
 		return;
 		}
 
@@ -2045,7 +2065,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 			{
 			if ( ! arg->IsNumeric() )
 				{
-				error->Report( "index #", i+1, "into", this,
+				glish_error->Report( "index #", i+1, "into", this,
 						"is not numeric");
 
 				SUBOP_CLEANUP_1
@@ -2060,7 +2080,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 				int ind = arg->IntVal();
 				if ( ind < 1 || ind > shape[i] )
 					{
-					error->Report( "index #", i+1, "into",
+					glish_error->Report( "index #", i+1, "into",
 						this, "is out of range");
 					SUBOP_CLEANUP_1
 					return;
@@ -2086,7 +2106,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	// Check to see if we're valid.
 	if ( cur_factor > Length() )
 		{
-		error->Report( "\"::shape\"/length mismatch" );
+		glish_error->Report( "\"::shape\"/length mismatch" );
 		SUBOP_CLEANUP_1
 		return;
 		}
@@ -2094,7 +2114,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	glish_type max_type;
 	if ( ! compatible_types( this, value, max_type ) )
 		{
-		error->Report( "non-compatible types for assignment" );
+		glish_error->Report( "non-compatible types for assignment" );
 		SUBOP_CLEANUP_1
 		return;
 		}
@@ -2138,7 +2158,7 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	int off = ref->TranslateIndex( offset, &err );			\
 	if ( err )							\
 		{							\
-		error->Report("index ",offset,				\
+		glish_error->Report("index ",offset,				\
 			" out of range. Sub-vector reference may be invalid" );\
 		return;							\
 		}
@@ -2163,14 +2183,14 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 				"bad subvec type in Value::AssignArrayElements" );
 					}
 				}
 				break;
 
 			default:			
-				fatal->Report(
+				glish_fatal->Report(
 					"bad type in Value::AssignArrayElements" );
 			}
 		return;
@@ -2219,11 +2239,11 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 
 				SUBOP_CLEANUP(i)
 				if ( len[i] > 1 )
-					error->Report( "index #", i+1, ",",
+					glish_error->Report( "index #", i+1, ",",
 							j+1, " into ", this, 
 							"is out of range.");
 				else
-					error->Report( "index #", i+1, "into",
+					glish_error->Report( "index #", i+1, "into",
 						this, "is out of range.");
 				}
 			}
@@ -2292,7 +2312,7 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,off
 			free_memory( vec );				\
 		free_memory( len );					\
 		SUBOP_CLEANUP_2(shape_len)				\
-		error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
+		glish_error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
 		return;							\
 		}
 
@@ -2316,14 +2336,14 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
 	CoerceToStringArray, off, string_dup, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 				"bad subref type in Value::AssignArrayElements" );
 				}
 			}
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::AssignArrayElements" );
+			glish_fatal->Report( "bad type in Value::AssignArrayElements" );
 		}
 
 	SUBOP_CLEANUP_2(shape_len)
@@ -2360,7 +2380,7 @@ void Value::Negate()
 	{
 	if ( ! IsNumeric() )
 		{
-		error->Report( "negation of non-numeric value:", this );
+		glish_error->Report( "negation of non-numeric value:", this );
 		return;
 		}
 
@@ -2400,7 +2420,7 @@ COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,-)
 COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,-)
 
 		default:
-			fatal->Report( "bad type in Value::Negate()" );
+			glish_fatal->Report( "bad type in Value::Negate()" );
 		}
 	}
 
@@ -2416,7 +2436,7 @@ void Value::Not()
 
 	if ( ! IsNumeric() )
 		{
-		error->Report( "logical negation of non-numeric value:", this );
+		glish_error->Report( "logical negation of non-numeric value:", this );
 		return;
 		}
 
@@ -2464,7 +2484,7 @@ NOT_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
 	int off = ref->TranslateIndex( i, &err );			\
 	if ( err )							\
 		{							\
-		error->Report( "index (=",i,				\
+		glish_error->Report( "index (=",i,				\
 			") is out of range. Sub-vector reference may be invalid" );\
 		free_memory( result );					\
 		return;							\
@@ -2476,7 +2496,7 @@ NOT_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,NOT_ACTION_XLATE)
 NOT_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[off].i,ComplexPtr,off,NOT_ACTION_XLATE)
 NOT_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XLATE)
 				default:
-					error->Report( "bad type in Value::Not()" );
+					glish_error->Report( "bad type in Value::Not()" );
 					free_memory( result );
 					return;
 				}
@@ -2485,7 +2505,7 @@ NOT_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACT
 
 
 		default:
-			error->Report( "bad type in Value::Not()" );
+			glish_error->Report( "bad type in Value::Not()" );
 			free_memory( result );
 			return;
 		}
@@ -2550,7 +2570,7 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 
 		case TYPE_RECORD:
 			if ( length > 1 )
-				warn->Report(
+				glish_warn->Report(
 			"array values lost due to conversion to record type" );
 
 			kernel.SetRecord( create_record_dict() );
@@ -2558,7 +2578,7 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::Polymorph()" );
+			glish_fatal->Report( "bad type in Value::Polymorph()" );
 		}
 	}
 
@@ -2597,14 +2617,14 @@ VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,string_dup)
 
 		case TYPE_RECORD:
 			if ( length > 1 )
-				warn->Report(
+				glish_warn->Report(
 			"array values lost due to conversion to record type" );
 
 			kernel.SetRecord( create_record_dict() );
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::VecRefPolymorph()" );
+			glish_fatal->Report( "bad type in Value::VecRefPolymorph()" );
 		}
 	}
 
@@ -2612,7 +2632,7 @@ VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,string_dup)
 Value* Value::AttributeRef( const Value* index ) const
 	{
 	return attributes ? attributes->RecordRef( index ) :
-		create_value( glish_false );
+		ValCtor::create( glish_false );
 	}
 
 int Value::Grow( unsigned int new_size )
@@ -2636,12 +2656,12 @@ int Value::Grow( unsigned int new_size )
 		case TYPE_REGEX:
 		case TYPE_FILE:
 		case TYPE_RECORD:
-			error->Report( "cannot increase array of",
+			glish_error->Report( "cannot increase array of",
 					type_names[Type()], "via assignment" );
 			return 0;
 
 		default:
-			fatal->Report( "bad type in Value::Grow()" );
+			glish_fatal->Report( "bad type in Value::Grow()" );
 		}
 
 	return 1;
@@ -2757,7 +2777,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 				rec->Insert( key, member );
 				}
 
-			v = create_value( rec );
+			v = ValCtor::create( rec );
 			}
 			break;
 		case TYPE_STRING:
@@ -2771,7 +2791,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 				offset += l+1;
 				}
 
-			v = create_value((charptr*)s, h.len);
+			v = ValCtor::create((charptr*)s, h.len);
 			}
 			break;
 		default:
@@ -2784,7 +2804,7 @@ Value *ValueFromMemBlock(char *memory, int &offset)
 
 #define VALUE_FROM_MEM_ACTION(tag,type)				\
 	case tag:						\
-		v = create_value( (type*) values, h.len / sizeof(type) ); \
+		v = ValCtor::create( (type*) values, h.len / sizeof(type) ); \
 		break;
 
 VALUE_FROM_MEM_ACTION(TYPE_BOOL, glish_bool)
@@ -2797,7 +2817,7 @@ VALUE_FROM_MEM_ACTION(TYPE_COMPLEX, glish_complex)
 VALUE_FROM_MEM_ACTION(TYPE_DCOMPLEX, glish_dcomplex)
 
 				default:
-					fatal->Report( "Bad type (", (int) h.type, ") in ValueFromMemBlock( )" );
+					glish_fatal->Report( "Bad type (", (int) h.type, ") in ValueFromMemBlock( )" );
 				}
 			}
 		}
@@ -2821,7 +2841,7 @@ Value *ValueFromMemBlock( char *memory )
 Value* empty_value(glish_type t)
 	{
 	int i = 0;
-	Value *ret = create_value( &i, 0, COPY_ARRAY );
+	Value *ret = ValCtor::create( &i, 0, COPY_ARRAY );
 	if ( t != TYPE_INT ) ret->Polymorph( t );
 	return ret;
 	}
@@ -2829,27 +2849,27 @@ Value* empty_value(glish_type t)
 Value* empty_bool_value()
 	{
 	glish_bool b = glish_false;
-	return create_value( &b, 0, COPY_ARRAY );
+	return ValCtor::create( &b, 0, COPY_ARRAY );
 	}
 
 Value* error_value( )
 	{
-	return create_value( );
+	return ValCtor::create( );
 	}
 
 Value* error_value( const char *message, int auto_fail )
 	{
-	return create_value( message, (const char*) 0, 0, auto_fail );
+	return ValCtor::create( message, (const char*) 0, 0, auto_fail );
 	}
 
 Value* error_value( const char *message, const char *file, int line, int auto_fail )
 	{
-	return create_value( message, file, line, auto_fail );
+	return ValCtor::create( message, file, line, auto_fail );
 	}
 
 Value* create_record()
 	{
-	return create_value( create_record_dict() );
+	return ValCtor::create( create_record_dict() );
 	}
 
 int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
@@ -2861,7 +2881,7 @@ int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 		{
 		if ( ! v2->IsNumeric() )
 			{
-			error->Report( "numeric and non-numeric types mixed" );
+			glish_error->Report( "numeric and non-numeric types mixed" );
 			return 0;
 			}
 
@@ -2872,7 +2892,7 @@ int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 		{
 		if ( t != max_type )
 			{
-			error->Report( "types are incompatible" );
+			glish_error->Report( "types are incompatible" );
 			return 0;
 			}
 		}
@@ -2884,7 +2904,7 @@ int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 void init_values()
 	{
 	if ( ! false_value )
-		false_value = create_value( glish_false );
+		false_value = ValCtor::create( glish_false );
 	}
 
 void finalize_values()
@@ -2936,7 +2956,7 @@ Value *split( char* source, const char* split_chars )
 	{
 	int i = 0;
 	charptr *s = csplit( source, i, split_chars );
-	return create_value( s, i );
+	return ValCtor::create( s, i );
 	}
 
 int text_to_integer( const char text[], int& successful )
@@ -3043,7 +3063,7 @@ Value *Fail( const RMessage& m0,
 	       const RMessage& m15, const RMessage& m16
 	   )
 	{
-	return generate_error( m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,
+	return ValCtor::error( m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,
 			       m10,m11,m12,m13,m14,m15,m16 );
 	}
 

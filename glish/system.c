@@ -29,7 +29,7 @@ RCSID("@(#) $Id$")
 #include <sys/un.h>
 #include <sys/resource.h>
 #include <string.h>
-#include <termio.h>
+#include <termios.h>
 #include <sys/uio.h>
 #include <stddef.h>
 
@@ -78,6 +78,11 @@ extern int gettimeofday (struct timeval *, struct timezone *);
 #   endif
 #endif
 
+#if !defined(TCGETA)
+#define TCGETA TIOCGETA
+#define TCSETAF TIOCSETAF
+#endif
+
 static int tcp_proto_number();
 static void set_tcp_nodelay( int socket );
 static void gripe( char msg[] );
@@ -98,7 +103,7 @@ int get_tcp_socket()
         {
         int result_socket = socket( PF_INET, SOCK_STREAM, tcp_proto_number() );
 
-        if ( ! result_socket )
+        if ( result_socket < 0 )
                 pgripe( "can't create socket" );
 
 	set_tcp_nodelay( result_socket );
@@ -111,7 +116,7 @@ int get_local_socket()
         {
         int result_socket = socket( PF_UNIX, SOCK_STREAM, 0 );
 
-        if ( ! result_socket )
+        if ( result_socket < 0 )
                 pgripe( "can't create socket" );
 
         return result_socket;
@@ -981,12 +986,12 @@ void set_tcp_nodelay( int socket )
 #endif
 	}
 
-static struct termio tbufsave;
+static struct termios tbufsave;
 static char char_mode = 0;
 
 void set_term_char_mode()
 	{
-	struct termio tbuf;
+	struct termios tbuf;
 	
 	if ( ! char_mode )
 		{

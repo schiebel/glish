@@ -14,7 +14,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
 #IF SHARED
 MK_LIB = @MAKE_SLIB@
-LD_LIBS = @SLIB_LD_LIBS@
+LD_LIBS_glish = @SLIB_LD_LIBS@ @SLIB_LD_LIBS_glish@
+LD_LIBS_glishp = @SLIB_LD_LIBS@ @SLIB_LD_LIBS_glishp@
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@ @SLIB_CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
 
@@ -44,7 +45,8 @@ AIXSLIBS = -Wl,-bI:$(LIBDIR_P)/libregx.exp -Wl,-bI:$(LIBDIR_P)/libedit.exp -Wl,-
 #FI
 #ELSE
 MK_LIB = @MAKE_LIB@
-LD_LIBS = 
+LD_LIBS_glish = 
+LD_LIBS_glishp = 
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
 GSUFFIX = @GLISH_LIB_SUFFIX@
@@ -121,27 +123,30 @@ H = $(SRC)/include/Glish
 
 INTERP_OBJS = IValue.o Agent.o BinOpExpr.o BuiltIn.o Daemon.o Event.o Expr.o File.o Frame.o \
 	Func.o Pager.o Reflex.o Regex.o RemoteExec.o Sequencer.o Select.o Stmt.o Task.o LdAgent.o \
-	glish_init.o parse.o sprintf.o scan.o Sysinfo.o
+	glish_init.o parse.o sprintf.o scan.o Sysinfo.o IValCtorKern.o 
 
 CLIENT_OBJS = Value.o ValKern.o Client.o Complex.o Dict.o Executable.o LocalExec.o Object.o \
-	Proxy.o Queue.o Reporter.o Socket.o Str.o Stream.o VecRef.o glishlib.o system.o @ARCH_OBJ@
+	Proxy.o Queue.o Reporter.o Socket.o Str.o Stream.o VecRef.o glishlib.o system.o \
+	ValCtor.o ValCtorKern.o @ARCH_OBJ@
 
 CLIENT_GCOBJS = gcValue.o gcValKern.o gcClient.o gcComplex.o gcDict.o gcExecutable.o gcLocalExec.o \
 	gcObject.o gcProxy.o gcQueue.o gcReporter.o gcSocket.o gcStr.o gcStream.o gcVecRef.o \
-	gcsystem.o @ARCH_OBJ@
+	gcsystem.o ValCtor.o ValCtorKern.o @ARCH_OBJ@
 
 INTERP_OBJS_PROXY = $(D)IValue.o $(D)Agent.o $(D)BinOpExpr.o $(D)BuiltIn.o $(D)Daemon.o \
 	$(D)Event.o $(D)Expr.o $(D)File.o $(D)Frame.o $(D)Func.o $(D)Pager.o \
 	$(D)Reflex.o $(D)Regex.o $(D)RemoteExec.o $(D)Sequencer.o $(D)Select.o $(D)Stmt.o $(D)Task.o $(D)LdAgent.o \
-	$(D)glish_init.o $(D)parse.o $(D)sprintf.o $(D)scan.o $(D)Sysinfo.o
+	$(D)glish_init.o $(D)parse.o $(D)sprintf.o $(D)scan.o $(D)Sysinfo.o IValCtorKern.o 
 
 CLIENT_OBJS_PROXY = $(D)Value.o $(D)ValKern.o $(D)Client.o $(D)Complex.o $(D)Dict.o \
 	$(D)Executable.o $(D)LocalExec.o $(D)Object.o $(D)Proxy.o $(D)Queue.o $(D)Reporter.o \
-	$(D)Socket.o $(D)Str.o $(D)Stream.o $(D)VecRef.o $(D)glishlib.o $(D)system.o @ARCH_OBJ@
+	$(D)Socket.o $(D)Str.o $(D)Stream.o $(D)VecRef.o $(D)glishlib.o $(D)system.o \
+	$(D)ValCtor.o $(D)ValCtorKern.o @ARCH_OBJ@
 
 CLIENT_GCOBJS_PROXY = $(D)gcValue.o $(D)gcValKern.o $(D)gcClient.o $(D)gcComplex.o $(D)gcDict.o \
 	$(D)gcExecutable.o $(D)gcLocalExec.o $(D)gcObject.o $(D)gcProxy.o $(D)gcQueue.o $(D)gcReporter.o \
-	$(D)gcSocket.o $(D)gcStr.o $(D)gcStream.o $(D)gcVecRef.o $(D)gcsystem.o @ARCH_OBJ@
+	$(D)gcSocket.o $(D)gcStr.o $(D)gcStream.o $(D)gcVecRef.o $(D)gcsystem.o \
+	$(D)ValCtor.o $(D)ValCtorKern.o @ARCH_OBJ@
 
 KEY_HEADERS = \
 	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \
@@ -173,7 +178,8 @@ HDRS = $(INCDIR)/Glish/Dict.h $(INCDIR)/Glish/Object.h $(INCDIR)/Glish/Reporter.
 	$(INCDIR)/Glish/ValKern.h $(INCDIR)/Glish/glish.h $(INCDIR)/Glish/Client.h \
 	$(INCDIR)/Glish/GlishType.h $(INCDIR)/Glish/Proxy.h $(INCDIR)/Glish/Str.h \
 	$(INCDIR)/Glish/Value.h $(INCDIR)/Glish/Complex.h $(INCDIR)/Glish/List.h \
-	$(INCDIR)/Glish/Queue.h $(INCDIR)/Glish/Stream.h $(INCDIR)/Glish/VecRef.h
+	$(INCDIR)/Glish/Queue.h $(INCDIR)/Glish/Stream.h $(INCDIR)/Glish/VecRef.h \
+	$(INCDIR)/Glish/ValCtor.h $(INCDIR)/Glish/ValCtorKern.h
 
 TAR_FILE = glish.tar
 
@@ -181,32 +187,32 @@ all: $(AIXSYM_P) $(LIBTGT) $(BINTGT)
 
 install: $(AIXSYM) $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P)
+lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX)
 
 bin_tgt: $(BINDIR_P)/glish
 
-INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(PLIB) $(INCDIR)/Glish $(HDRS)
+INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(INCDIR)/Glish $(HDRS)
 
 INSTALL_bin_tgt: $(BINDIR)/glish
 
-glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(GSUFFIX) $(PLIB_P) $(GLIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(MALLIB) $(GLISH_LIBS) @LIBS@ @BIN_LIBS@ @EXTRA_LIBS@
+glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(GSUFFIX) $(INTERP_OBJS) $(GLIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glish main.o $(INTERP_OBJS) $(MALLIB) $(GLISH_LIBS) @LIBS@ @BIN_LIBS@ @EXTRA_LIBS@
 
 libglish$(GSUFFIX): $(CLIENT_OBJS_PROXY)
 	rm -f libglish$(GSUFFIX)
-	$(MK_LIB) libglish$(GSUFFIX) $(LABEL) $(CLIENT_OBJS) $(LD_LIBS) $(AIXSLIBS)
+	$(MK_LIB) libglish$(GSUFFIX) $(LABEL) $(CLIENT_OBJS) $(LD_LIBS_glish) $(AIXSLIBS)
 	$(RANLIB) libglish$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_OBJS)
 
 libglishgc$(GSUFFIX): $(CLIENT_GCOBJS_PROXY) $(INTERP_OBJS_PROXY)
 	rm -f libglishgc$(GSUFFIX)
-	$(MK_LIB) libglishgc$(GSUFFIX) $(LABELGC) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS) $(AIXSLIBS)
+	$(MK_LIB) libglishgc$(GSUFFIX) $(LABELGC) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS_glish) $(AIXSLIBS)
 	$(RANLIB) libglishgc$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_GCOBJS) $(INTERP_OBJS)
 
 libglishp$(GSUFFIX): $(INTERP_OBJS_PROXY)
 	rm -f libglishp$(GSUFFIX)
-	$(MK_LIB) libglishp$(GSUFFIX) $(LABELP) $(INTERP_OBJS) $(LD_LIBS)
+	$(MK_LIB) libglishp$(GSUFFIX) $(LABELP) $(INTERP_OBJS) $(LD_LIBS_glishp)
 	$(RANLIB) libglishp$(GSUFFIX)
 	$(MINSPACE_RM) $(INTERP_OBJS)
 
@@ -337,17 +343,17 @@ $(D)Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
     $(SRC)/BuiltIn.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/Task.cc $(T)
 
-$(D)LdAgent.o:	$(SRC)/LdAgent.cc $(SRC)/LdAgent.h $(KEY_HEADERS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/LdAgent.cc $(T)
+$(D)LdAgent.o:	../LdAgent.cc $(SRC)/LdAgent.h $(KEY_HEADERS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c ../LdAgent.cc $(T)
 
 $(D)IValue.o: $(SRC)/Value.cc $(SRC)/StringVal $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
 				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
 			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/IValue.cc $(T)
 
-$(D)Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
+$(D)Client.o: ../Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 		$(H)/Reporter.h $(SRC)/ports.h
-	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Client.cc $(T)
+	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -c ../Client.cc $(T)
 
 $(D)gcClient.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 		$(H)/Reporter.h $(SRC)/ports.h
@@ -422,8 +428,23 @@ $(D)gcStream.o: $(SRC)/Stream.cc $(H)/Stream.h
 $(D)ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValKern.cc $(T)
 
+$(D)ValCtor.o: $(SRC)/ValCtor.cc $(H)/ValCtor.h $(H)/ValCtorKern.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValCtor.cc $(T)
+
+$(D)ValCtorKern.o: $(SRC)/ValCtorKern.cc $(H)/ValCtorKern.h $(SRC)/ValCtorKernDefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValCtorKern.cc $(T)
+
+$(D)IValCtorKern.o: $(SRC)/IValCtorKern.cc $(SRC)/IValCtorKern.h $(SRC)/ValCtorKernDefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/IValCtorKern.cc $(T)
+
 $(D)gcValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcValKern.o $(SRC)/ValKern.cc $(T)
+
+$(D)gcValCtor.o: $(SRC)/ValCtor.cc $(H)/ValCtor.h $(H)/ValCtorKern.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcValCtor.o $(SRC)/ValCtor.cc $(T)
+
+$(D)gcValCtorKern.o:f $(SRC)/ValCtorKern.cc $(H)/ValCtorKern.h $(SRC)/ValCtorKernDefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcValCtorKern.o $(SRC)/ValCtorKern.cc $(T)
 
 $(D)Value.o: $(SRC)/Value.cc $(SRC)/StringVal $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Value.cc $(T)
@@ -517,6 +538,14 @@ $(INCDIR)/Glish/Reporter.h: $(H)/Reporter.h
 $(INCDIR)/Glish/ValKern.h: $(H)/ValKern.h
 	@rm -f $@
 	cp $(H)/ValKern.h $@
+
+$(INCDIR)/Glish/ValCtor.h: $(H)/ValCtor.h
+	@rm -f $@
+	cp $(H)/ValCtor.h $@
+
+$(INCDIR)/Glish/ValCtorKern.h: $(H)/ValCtorKern.h
+	@rm -f $@
+	cp $(H)/ValCtorKern.h $@
 
 $(INCDIR)/Glish/glish.h: $(H)/glish.h
 	@rm -f $@

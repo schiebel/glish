@@ -40,10 +40,10 @@ include:
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
+	@$(MAKE) build.npd
 	@$(MAKE) build.sos
 	@$(MAKE) build.regx
 	@$(MAKE) build.editline
-	@$(MAKE) build.npd
 	@$(MAKE) build.glish
 
 install_r: 
@@ -97,7 +97,6 @@ distclean.sos:
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
 	cd sos; $(MAKE) $$FLGS distclean
-
 ##
 ## Building REGX
 ##

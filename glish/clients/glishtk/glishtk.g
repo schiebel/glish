@@ -95,12 +95,12 @@ func init_glishtk( load=F ) {
     ret.message := func ( parent, text='message', width=180, justify='left', font='', padx=4,
 			  pady=2, relief='flat', borderwidth=3, foreground='black',
 			  background='lightgrey', anchor='c', fill='none',
-			  hlcolor='', hlbackground='', hlthickness='' )
+			  hlcolor='', hlbackground='', hlthickness='', aspect=-1 )
 				{
 				if ( system.nogui ) fail "GUI disabled"
 				return gtk->message( parent, text, width, justify, font, padx, pady,
 						relief, borderwidth, foreground, background,
-						anchor, fill, hlcolor, hlbackground, hlthickness )
+						anchor, fill, hlcolor, hlbackground, hlthickness, aspect )
 				}
 
     ret.listbox := func ( parent, width=20, height=6, mode='browse', font='', relief='sunken',
@@ -136,7 +136,7 @@ func init_glishtk( load=F ) {
 						 foreground, background )
 				}
 
-    ret.combobox := func ( parent, entries, width=30, justify='left', font='', relief='sunken', borderwidth=2,
+    ret.new_combobox := func ( parent, entries, width=30, justify='left', font='', relief='sunken', borderwidth=2,
 			   foreground='black', background='lightgrey', state='normal', expand='x' )
 				{
 				if ( system.nogui ) fail "GUI disabled"
@@ -178,7 +178,7 @@ listbox := dgtk.listbox
 canvas := dgtk.canvas
 tabbox := dgtk.tabbox
 tab := dgtk.tab
-combobox := dgtk.combobox
+new_combobox := dgtk.new_combobox
 
 have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold

@@ -19,6 +19,9 @@
 /* Define if you have <termio.h>.  */
 #undef HAVE_TERMIO_H
 
+/* Define if you have <termios.h>.  */
+#undef HAVE_TERMIOS_H
+
 /* Define if the tcgetattr() function is available. */
 #undef HAVE_TCGETATTR
 

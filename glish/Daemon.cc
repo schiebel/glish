@@ -96,7 +96,7 @@ Channel *start_remote_daemon( const char *host )
 	
 	close( input[1] );
 
-	message->Report( "waiting for daemon ..." );
+	glish_message->Report( "waiting for daemon ..." );
 	int new_conn = accept_connection( connection_socket.FD() );
 
 	if ( binpath ) free_memory( binpath );
@@ -169,7 +169,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 		if ( ! reported_key_problem )
 			{
 			reported_key_problem = 1;
-			warn->Report("couldn't create key file.");
+			glish_warn->Report("couldn't create key file.");
 			}
 		return 0;
 		}
@@ -191,7 +191,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 			Unref( daemon_channel );
 			close( daemon_socket );
 			err = 1;
-			error->Report("Daemon creation failed, not authorized.");
+			glish_error->Report("Daemon creation failed, not authorized.");
 			return 0;
 			}
 
@@ -203,7 +203,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 		char work_dir[MAXPATHLEN];
 
 		if ( ! getcwd( work_dir, sizeof( work_dir ) ) )
-			fatal->Report( "problems getting cwd:", work_dir );
+			glish_fatal->Report( "problems getting cwd:", work_dir );
 
 		Value work_dir_value( work_dir );
 		send_event( daemon_channel->Sink(), "setwd",

@@ -55,7 +55,7 @@ VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index,
 	Value* v = value->VecRefDeref();
 
 	if ( ! v->IsNumeric() && v->Type() != TYPE_STRING)
-		  error->Report( "bad type in VecRef::VecRef()" );
+		  glish_error->Report( "bad type in VecRef::VecRef()" );
 
 	if ( ! take_indices )
 		{
@@ -114,7 +114,7 @@ Value* VecRef::FindIndices( Value* value, int* Indices, int num )
 SubVecRef(type)* VecRef::name()						\
 	{								\
 	if ( val->Type() != tag )					\
-		fatal->Report( "bad type in VecRef::name" );		\
+		glish_fatal->Report( "bad type in VecRef::name" );		\
 									\
 	if ( ref && ref->Type() == tag )				\
 		/* We already have a suitable SubVecRef. */		\

@@ -285,7 +285,7 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 static int (*glishtk_dflt_xioerror_handler)(Display *) = 0;
 int glishtk_xioerror_handler(Display *d)
 	{
-	glish_cleanup();
+	ValCtor::cleanup();
 	if ( glishtk_dflt_xioerror_handler )
 		(*glishtk_dflt_xioerror_handler)(d);
 	exit(1);
@@ -302,7 +302,7 @@ int  glishtk_tkerrorhandler(ClientData cd, XErrorEvent*e){
 }
 int glishtk_xerror_handler(Display *d, XErrorEvent*e)
 	{
-	glish_cleanup();
+	ValCtor::cleanup();
 	if ( glishtk_dflt_xerror_handler )
 		(*glishtk_dflt_xerror_handler)(d,e);
 	exit(1);

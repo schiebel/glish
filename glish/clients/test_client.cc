@@ -26,7 +26,7 @@ int main( int argc, char** argv )
 	cout << "\n";
 
 	for ( GlishEvent* e; (e = c.NextEvent()); )
-		message->Report( "received event, name = ", e->name,
+		glish_message->Report( "received event, name = ", e->name,
 				 ", value =", e->value );
 
 	return 0;

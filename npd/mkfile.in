@@ -11,7 +11,6 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CFLAGS = @CFLAGS@ @SLIB_CFLAGS@
-CXXFLAGS = @CXXFLAGS@ @SLIB_CXXFLAGS@
 GSUFFIX = @NPD_SLIB_SUFFIX@
 SUFFIX = @SLIB_SUFFIX@
 RANLIB = :
@@ -49,7 +48,6 @@ GCLIB = $(LIBDIR)/libnpdgc$(SUFFIX)
 #FI
 
 CC = @CC@
-CPLUS = @CXX@
 LIBS = @LIBS@
 
 D = @DOT@
@@ -124,8 +122,8 @@ libnpdgc$(GSUFFIX): $(GCOBJS_PROXY)
 	$(RANLIB) libnpdgc$(GSUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
-glishkey: libnpd$(GSUFFIX) genkey.o $(LIBDIR_P)/libsos.a
-	$(CPLUS) $(INC) $(CXXFLAGS) -o glishkey genkey.o libnpd$(GSUFFIX) $(LIBDIR_P)/libsos.a -lm @LIBS@ @BIN_LIBS@
+glishkey: libnpd$(GSUFFIX) genkey.o
+	$(CC) $(INC) $(CFLAGS) -o glishkey genkey.o libnpd$(GSUFFIX) -lm @LIBS@ @BIN_LIBS@
 
 $(LIBDIR_P)/libnpd$(GSUFFIX):libnpd$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)

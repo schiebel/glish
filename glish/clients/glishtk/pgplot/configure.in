@@ -545,15 +545,15 @@ if test -z "$NO_TK"; then
     ## if we couldn't find the tcl library using tclsh, look a little harder
     ##
     if test -z "$tcl_lib"; then
-        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib"
+        dirs="/usr/lib /usr/local/lib /opt/local/lib /usr/local/tcl/lib /opt/local/tcl/lib /usr/unsupported/lib /usr/unsupported/tcl/lib /usr/sww/lib /usr/sww/tcl/lib /loc/lib /loc/tcl/lib /Volumes/aips/sw/lib"
         saved_LDFLAGS="$LDFLAGS"
         for i in $dirs ; do
             LDFLAGS="-L$i $saved_LDFLAGS"
             for g in `ls -1 $i/libtcl* 2> /dev/null | egrep ['tcl[0-9.]'] | \
-                      sed -e 's/^.*\/libtcl/tcl/' -e ['s/\.[a-z][a-z]*$//'] | sort -u -r`; do
+                      sed -e 's/^.*\/libtcl/tcl/' -e ['s/\.[a-z.][a-z.]*$//'] | sort -u -r`; do
                 tcle=`echo $g | sed 's/^tcl//'`
                 for f in `ls -1 $i/libtk* 2> /dev/null | grep -v tkx | egrep ['tk[0-9.]'] | \
-                          sed -e 's/^.*\/libtk/tk/' -e ['s/\.[a-z][a-z]*$//'] | sort -u -r`; do
+                          sed -e 's/^.*\/libtk/tk/' -e ['s/\.[a-z.][a-z.]*$//'] | sort -u -r`; do
                     ext=`echo $f | sed 's/^tk//'`
                     AC_RECHECK_LIB(tk$ext,main,[
                         tcl_lib="-L$i -ltk$ext -ltcl$tcle"
@@ -861,6 +861,11 @@ LINK_LIBSOS="-lsos"
 LINK_LIBNPD="-lnpd"
 
 PGDRV_LIBS="-lgtkpgdrv"
+
+TK_DRIVER_CONFIG='tkpgplot/$ARCH/config.h:tkpgplot/config.h.in'
+TK_DRIVER_MAKEFILE='tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in'
+TK_DRIVER_PATH='-I$(SRC)/tkpgplot'
+TK_DRIVER_LIB='-lgtkpgdrv'
 
 case $host_os in
     aix*)
@@ -1337,6 +1342,46 @@ case $host_os in
 	GLISH_LD_SEARCH=""
 	TK_LD_RPATH=""
 	;;
+    darwin*)
+        TK_DRIVER_CONFIG=
+        TK_DRIVER_MAKEFILE=
+	TK_DRIVER_PATH=
+	TK_DRIVER_LIB=
+	SLIB_CFLAGS="+z"
+	SLIB_LD="g++ -dynamiclib -single_module"
+	SLIB_SUFFIX=".dylib"
+	DL_LIBS="-ldl"
+
+	GLISH_SLIB_SUFFIX=".$_cv_version$SLIB_SUFFIX"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-L$full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	if test -n "$cxx_rpath"; then
+	    TK_LD_RPATH="-L$full_libdir_p:$full_libdir"
+	else
+	    TK_LD_RPATH="-L$full_libdir_p$cxx_rpath:$full_libdir"
+	fi
+
+        ADD_LD_SEARCH([-L],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-L],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-L],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH=`echo $TK_LD_RPATH | sed 's/:/ -L/g'`
+	fi
+	if test -n "$GLISH_LD_SEARCH"; then
+	    GLISH_LD_SEARCH=`echo $GLISH_LD_SEARCH | sed 's/:/ -L/g'`
+	fi
+
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lpgplot $TK_LIB -lX11"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -lX11"
+	;;
 esac
 
 dnl##
@@ -1466,11 +1511,16 @@ AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(GLISH_SLIB_SUFFIX)
 AC_SUBST(SLIB_SUFFIX)
+
+AC_SUBST(LDOBJ_LIBS)
+
 AC_SUBST(LIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
 AC_SUBST(TK_LD_RPATH)
 AC_SUBST(TK_CXX_RPATH)
+AC_SUBST(TK_DRIVER_PATH)
+AC_SUBST(TK_DRIVER_LIB)
 
 AC_SUBST(TKCLIENT_LIBS)
 AC_SUBST(PGPLOT_LIBS)
@@ -1487,15 +1537,16 @@ if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
 
-$mkhier "tkpgplot/$ARCH"
-
 if test -n "$SLIB_LABEL"; then
     label_slib="yes"
 fi
 
-PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"
+if test -n "$TK_DRIVER_CONFIG" -o -n "$TK_DRIVER_MAKEFILE"; then
+    $mkhier "tkpgplot/$ARCH"
+    PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"
 AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
+fi
 
-AC_CONFIG_HEADER($ARCH/config.h:config.h.in tkpgplot/$ARCH/config.h:tkpgplot/config.h.in)
-AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in)
+AC_CONFIG_HEADER($ARCH/config.h:config.h.in $TK_DRIVER_CONFIG)
+AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in $TK_DRIVER_MAKEFILE)

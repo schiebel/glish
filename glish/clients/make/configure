@@ -516,9 +516,9 @@ NONE)
 esac
 
 host=`$ac_config_sub $host_alias`
-host_cpu=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\1/'`
-host_vendor=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\2/'`
-host_os=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\3/'`
+host_cpu=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\2/'`
+host_os=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\3/'`
 echo "$ac_t""$host" 1>&6
 
     ARCH="$host"
@@ -2964,9 +2964,9 @@ NONE)
 esac
 
 host=`$ac_config_sub $host_alias`
-host_cpu=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\1/'`
-host_vendor=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\2/'`
-host_os=`echo $host | sed 's/^\(.*\)-\(.*\)-\(.*\)$/\3/'`
+host_cpu=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\1/'`
+host_vendor=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\2/'`
+host_os=`echo $host | sed 's/^\([^-][^-]*\)-\([^-][^-]*\)-\([^-][^-]*\).*/\3/'`
 echo "$ac_t""$host" 1>&6
 
 fi
@@ -3184,6 +3184,9 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 	GLISH_LD_SEARCH=""
 	;;
     unix_sv*)
+	GLISH_LD_SEARCH=""
+	;;
+    darwin*)
 	GLISH_LD_SEARCH=""
 	;;
 esac

@@ -5,6 +5,17 @@
 #ifndef glish_h
 #define glish_h
 
+// Different types of values: constant references, references, and
+// ordinary (non-indirect) values.
+typedef enum { VAL_CONST, VAL_REF, VAL_VAL } value_reftype;
+
+// Different types of storage for an array used to construct a Value.
+typedef enum {
+	COPY_ARRAY,		// copy the array
+	TAKE_OVER_ARRAY,	// use the array, delete it when done with it
+	PRESERVE_ARRAY		// use the array, don't delete it or grow it
+	} array_storage_type;
+
 /*
 ** use the allocation routines declared here
 */
@@ -103,6 +114,31 @@ typedef void (*glish_signal_handler)( );
 #else
 #define RCSID(str)
 #endif
+#endif
+
+#if defined(__cplusplus)
+// Classes for subvector references.
+class VecRef;
+#define SubVecRef(type) glish_name2(type,SubVecRef)
+class SubVecRef(glish_bool);
+class SubVecRef(byte);
+class SubVecRef(short);
+class SubVecRef(int);
+class SubVecRef(float);
+class SubVecRef(double);
+class SubVecRef(glish_complex);
+class SubVecRef(glish_dcomplex);
+class SubVecRef(charptr);
+
+typedef SubVecRef(glish_bool) glish_boolref;
+typedef SubVecRef(byte) byteref;
+typedef SubVecRef(short) shortref;
+typedef SubVecRef(int) intref;
+typedef SubVecRef(float) floatref;
+typedef SubVecRef(double) doubleref;
+typedef SubVecRef(glish_complex) complexref;
+typedef SubVecRef(glish_dcomplex) dcomplexref;
+typedef SubVecRef(charptr) charptrref;
 #endif
 
 #endif

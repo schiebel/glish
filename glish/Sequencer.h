@@ -586,6 +586,12 @@ public:
 
 	void AddSelectee( Selectee *s ) { selector->AddSelectee( s ); }
 
+	int MemoryUsed( ) const { return info.MemoryUsed( ); }
+	int MemoryFree( ) const { return info.MemoryFree( ); }
+	int SwapUsed( ) const { return info.SwapUsed( ); }
+	int SwapFree( ) const { return info.SwapFree( ); }
+	void InfoUpdate( ) { info.Update( ); }
+
 protected:
 	void MakeEnvGlobal( evalOpt &opt );
 	void MakeArgvGlobal( evalOpt &opt, char** argv, int argc, int append_name=0 );

@@ -84,8 +84,8 @@ make-incdir:
 
 install:  make-bindir make-scriptdir make-incdir $(BINDIR)/glishtk $(SCRIPTDIR)/glishtk.g $(INCDIR)/Glish $(HDRS)
 
-main.o: $(SRC)/main.cc $(H)/glishtk.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
+main.o: ../main.cc $(H)/glishtk.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c ../main.cc 
 
 malloc.o: $(GLISH_SRC)/malloc.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c

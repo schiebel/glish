@@ -63,7 +63,7 @@ void Frame::clear()
 IValue*& Frame::FrameElement( int offset )
 	{
 	if ( offset < 0 || offset >= size )
-		fatal->Report( "bad offset in Frame::FrameElement" );
+		glish_fatal->Report( "bad offset in Frame::FrameElement" );
 
 	return values[offset];
 	}

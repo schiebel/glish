@@ -32,6 +32,10 @@ RCSID("@(#) $Id$")
 #include <vfork.h>
 #endif
 
+#ifdef HAVE_CRT_EXTERNS_H
+#include <crt_externs.h>
+#endif
+
 #include "LocalExec.h"
 
 LocalExec::LocalExec( const char* arg_executable, const char** argv )
@@ -71,7 +75,13 @@ void LocalExec::MakeExecutable( const char** argv )
 
 	if ( pid_ == 0 )
 		{ // child
+
+#ifndef HAVE_CRT_EXTERNS_H
 		char** env = environ;
+#else
+		char** env = *_NSGetEnviron( );
+#endif
+
 #ifndef POSIX
 		execve( executable, (char **)argv, env );
 #else

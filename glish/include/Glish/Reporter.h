@@ -92,98 +92,13 @@ class Reporter GC_FINAL_CLASS {
 	};
 
 
-// Unfortunately "error", "fatal", and "warn" are popular names and their
-// use has led to a number of hard-to-debug name clashes.
-#define error glish_error
-#define warn glish_warn
-#define fatal glish_fatal
-#define message glish_message
-
-extern Reporter* error;
-extern Reporter* warn;
-extern Reporter* fatal;
-extern Reporter* message;
+extern Reporter* glish_error;
+extern Reporter* glish_warn;
+extern Reporter* glish_fatal;
+extern Reporter* glish_message;
 
 extern void init_reporters();
 extern void finalize_reporters();
 
-extern void report_error( const RMessage&, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage 
-		);
 
-extern void report_error( const char *file, int line,
-		const RMessage&, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage 
-		);
-
-extern Value *generate_error( int auto_fail, const RMessage&,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage 
-		);
-
-inline Value *generate_error( const RMessage &a, const RMessage &b = EndMessage,
-		const RMessage &c = EndMessage, const RMessage &d = EndMessage,
-		const RMessage &e = EndMessage, const RMessage &f = EndMessage,
-		const RMessage &g = EndMessage, const RMessage &h = EndMessage,
-		const RMessage &i = EndMessage, const RMessage &j = EndMessage,
-		const RMessage &k = EndMessage, const RMessage &l = EndMessage,
-		const RMessage &m = EndMessage, const RMessage &n = EndMessage,
-		const RMessage &o = EndMessage, const RMessage &p = EndMessage,
-		const RMessage &q = EndMessage 
-		) { return generate_error( 1, a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q ); }
-
-extern Value *generate_error( int auto_fail, const char *file, int line,
-		const RMessage&, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage 
-		);
-
-inline Value *generate_error( const char *file, int line,
-		const RMessage &a, const RMessage &b = EndMessage,
-		const RMessage &c = EndMessage, const RMessage &d = EndMessage,
-		const RMessage &e = EndMessage, const RMessage &f = EndMessage,
-		const RMessage &g = EndMessage, const RMessage &h = EndMessage,
-		const RMessage &i = EndMessage, const RMessage &j = EndMessage,
-		const RMessage &k = EndMessage, const RMessage &l = EndMessage,
-		const RMessage &m = EndMessage, const RMessage &n = EndMessage,
-		const RMessage &o = EndMessage, const RMessage &p = EndMessage,
-		const RMessage &q = EndMessage 
-		) { return generate_error( 1, file, line, a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q ); }
-
-extern const Str generate_error_str( const RMessage&, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage 
-		);
 #endif	/* reporter_h */

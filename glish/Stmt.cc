@@ -82,8 +82,8 @@ IValue* Stmt::Exec( evalOpt &flow )
 	flow.set(evalOpt::NEXT);
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( ! DoesTrace() && Describe(message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
-			message->Stream() << endl;
+		if ( ! DoesTrace() && Describe(glish_message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
+			glish_message->Stream() << endl;
 
 	IValue* result = DoExec( flow );
 
@@ -354,7 +354,7 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 	notify_count -= 1;
 
 	if ( ! flow.Next() )
-		warn->Report( "loop/break/return does not make sense inside",
+		glish_warn->Report( "loop/break/return does not make sense inside",
 				this );
 	}
 
@@ -1069,7 +1069,7 @@ IValue* PrintStmt::DoExec( evalOpt & )
 		}
 
 	else
-		message->Report( "" );
+		glish_message->Report( "" );
 
 	return 0;
 	}
@@ -1235,7 +1235,7 @@ IValue* ExitStmt::DoExec( evalOpt &opt )
 	{
 	can_delete = 0;
 
-	glish_cleanup();
+	ValCtor::cleanup();
 
 	int exit_val = status ? status->CopyEval(opt)->IntVal() : 0;
 
@@ -1358,7 +1358,7 @@ IValue* StmtBlock::DoExec( evalOpt &flow )
 		result = stmt->Exec( flow );
 
 		if ( sequencer->PopFrame() != call_frame )
-			fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
+			glish_fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
 
 		Unref( call_frame );
 		}

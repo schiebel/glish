@@ -567,6 +567,9 @@ case $host_os in
     unix_sv*)
 	GLISH_LD_SEARCH=""
 	;;
+    darwin*)
+	GLISH_LD_SEARCH=""
+	;;
 esac
 
 dnl##

@@ -462,7 +462,7 @@ local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
 			if ( $2 != 0 )
-				warn->Report( "compound assignment in", $$ );
+				glish_warn->Report( "compound assignment in", $$ );
 			}
 	|	TOK_ID
 			{
@@ -486,7 +486,7 @@ global_item:	TOK_ID TOK_ASSIGN scoped_expr
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
 			if ( $2 != 0 )
-				warn->Report( "compound assignment in", $$ );
+				glish_warn->Report( "compound assignment in", $$ );
 			}
 	|	TOK_ID
 			{
@@ -508,7 +508,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 
 			if ( ! id )
 				{
-				warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
+				glish_warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
 				id = current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 				}
 			else
@@ -518,7 +518,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
 			if ( $2 != 0 )
-				warn->Report( "compound assignment in", $$ );
+				glish_warn->Report( "compound assignment in", $$ );
 			}
 	|	TOK_ID
 			{
@@ -527,7 +527,7 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 
 			if ( ! id )
 				{
-				warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
+				glish_warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
 				id = current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 				}
 			else
@@ -723,7 +723,7 @@ actual_param:	scoped_expr
 
 			if ( ! ellipsis )
 				{
-				error->Report( "\"...\" not available" );
+				glish_error->Report( "\"...\" not available" );
 				IValue *v = error_ivalue();
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
@@ -776,7 +776,7 @@ array_record_param:	scoped_expr
 
 			if ( ! ellipsis )
 				{
-				error->Report( "\"...\" not available" ); 
+				glish_error->Report( "\"...\" not available" ); 
 				IValue *v = error_ivalue();
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
@@ -841,7 +841,7 @@ opt_actual_param:	scoped_expr
 
 			if ( ! ellipsis )
 				{
-				error->Report( "\"...\" not available" ); 
+				glish_error->Report( "\"...\" not available" ); 
 				IValue *v = error_ivalue();
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
@@ -992,16 +992,16 @@ void yyerror( char msg[] )
 		{
 		if ( glish_regex_matched )
 			{
-			parse_error = (IValue*) generate_error( msg, " at or near '", yytext,
+			parse_error = (IValue*) ValCtor::error( msg, " at or near '", yytext,
 					"'; a regular expression\n",
 					"was matched in this statement, perhaps it is a mistaken arithmetic expression?" );
-			error->Report( msg, " at or near '", yytext, "'; a regular expression\n",
+			glish_error->Report( msg, " at or near '", yytext, "'; a regular expression\n",
 				       "was matched in this statement, perhaps it is a mistaken arithmetic expression?" );
 			}
 		else
 			{
-			parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
-			error->Report( msg, " at or near '", yytext, "'" );
+			parse_error = (IValue*) ValCtor::error( msg, " at or near '", yytext, "'" );
+			glish_error->Report( msg, " at or near '", yytext, "'" );
 			}
 		}
 
@@ -1019,7 +1019,7 @@ IValue *glish_parser( evalOpt &opt, Stmt *&stmt )
 	cur_stmt = stmt = null_stmt;
 	eval_options = &opt;
 
-	error->SetCount(0);
+	glish_error->SetCount(0);
 	status = 0;
 
 	if ( interactive( ) )
@@ -1043,7 +1043,7 @@ IValue *glish_parser( evalOpt &opt, Stmt *&stmt )
 				opt.set(evalOpt::VALUE_NEEDED);
 				val = loc_stmt->Exec( opt );
 				if ( ! opt.Next() )
-					warn->Report("control flow (loop/break/return) ignored" );
+					glish_warn->Report("control flow (loop/break/return) ignored" );
 				}
 
 			glish_top_jmpbuf_set = 0;
@@ -1106,8 +1106,8 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 		CMPD(TOK_AND_AND, AndExpr);
 
 		default:
-			fatal->Report( "unknown compound assignment type =",
-					tok_type );
+			glish_fatal->Report( "unknown compound assignment type =",
+					     tok_type );
 			return 0;
 		}
 	}

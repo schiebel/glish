@@ -2705,5 +2705,7 @@ extern "C" int Gpgplot_Init(Tcl_Interp *tcl)
 	return TCL_OK;
 	}
 
+#if 0
 extern "C" int grexec_();
 void *grexec__ = (void*) grexec_;
+#endif

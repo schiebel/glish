@@ -5,7 +5,7 @@
 ##
 
 MK_LIB = @MAKE_SLIB@
-LD_LIBS = @SLIB_LD_LIBS@
+LD_LIBS = @SLIB_LD_LIBS@ @SLIB_LD_LIBS_glishtk@
 CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
 GSUFFIX = @GLISH_SLIB_SUFFIX@
 SUFFIX = @SLIB_SUFFIX@
@@ -16,7 +16,7 @@ LABEL = @SLIB_LABEL@libglishtk$(GSUFFIX)
 
 TK_LIB = @TK_LIB@
 LIBS = @TK_LD_RPATH@ @TKLIB_LIBS@ $(TK_LIB) @LIBS@
-LDOBJ_LIBS = @TK_LD_RPATH@ @TKCLIENT_LIBS@ $(TK_LIB) @LIBS@
+LDOBJ_LIBS = @LDOBJ_LIBS@
 
 CPLUS = @CXX@
 INSTALL = @INSTALL@
@@ -75,7 +75,7 @@ install:  make-libdir $(AIXSYM) $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$
 
 libglishtk$(GSUFFIX): $(OBJS)
 	rm -f libglishtk$(GSUFFIX)
-	$(MK_LIB) libglishtk$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS)
+	$(MK_LIB) libglishtk$(GSUFFIX) $(LABEL) @SLIB_LD_FLAGS_glishtk@ $(OBJS) $(LD_LIBS)
 
 $(LIBDIR_P)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
@@ -96,7 +96,7 @@ $(LIBDIR)/libglishtk.exp: libglishtk$(GSUFFIX)
 #FI
 
 GlishTk$(SUFFIX): $(LOBJS)
-	$(MK_LIB) GlishTk$(SUFFIX) $(LOBJS) $(LDOBJ_LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100
+	$(MK_LIB) GlishTk$(SUFFIX) $(LOBJS) $(LDOBJ_LIBS) $(DL_LIBS) 2>&1 | head -100
 
 $(LIBDIR_P)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
 	$(MKHIER) $(LIBDIR_P)

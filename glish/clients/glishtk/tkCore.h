@@ -74,6 +74,10 @@ class TkFrameP : public TkFrame {
 	const char *SetExpand( Value * );
 	const char *GetTag( Value * );
 
+	const char *SetResizable( Value * );
+	const char *SetMinsize( Value * );
+	const char *SetMaxsize( Value * );
+
 	const char *SetIcon( Value * );
 
 	const char *Grab( int global_scope=0 );

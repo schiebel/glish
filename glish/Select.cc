@@ -217,7 +217,7 @@ void Selector::DeleteSelectee( int selectee_fd, Selectee *replacement )
 
 	if ( ! s )
 		{
-		error->Report( "bad fd in Selector::DeleteSelectee" );
+		glish_error->Report( "bad fd in Selector::DeleteSelectee" );
 		return;
 		}
 

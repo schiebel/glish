@@ -9,11 +9,6 @@ RCSID("@(#) $Id$")
 #include "Glish/Reporter.h"
 #include "tkUtil.h"
 
-#if defined(_AIX)
-// for bzero()
-#include <strings.h>
-#endif
-
 class TkStore : public ClientProxyStore {
     public:
 	TkStore( int &argc, char **argv, ProxyStore::ShareType multithreaded = NONSHARED );
@@ -108,8 +103,8 @@ const char *TkStore::GetOption( const char *op ) const
 int main( int argc, char** argv )
 	{
 	void *handle = 0;
-	char *sopath = which_shared_object( "GlishTk.so" );
-	sopath = sopath ? sopath : string_dup( "GlishTk.so" );
+	char *sopath = which_shared_object( "GlishTk@SLIB_SUFFIX@" );
+	sopath = sopath ? sopath : string_dup( "GlishTk@SLIB_SUFFIX@" );
 
 	if ( ! (handle = dlopen( sopath, RTLD_NOW | RTLD_GLOBAL )) )
 		{

@@ -33,9 +33,9 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel, const char* arg_executable,
 	while ( argv[argc] ) ++argc;
 
 	recordptr rec = create_record_dict();
-	rec->Insert( string_dup("name"), create_value( arg_name ? arg_name : arg_executable ) );
-	rec->Insert( string_dup("argv"), create_value( argv, argc, COPY_ARRAY ) );
-	rec->Insert( string_dup("id"), create_value( id ) );
+	rec->Insert( string_dup("name"), ValCtor::create( arg_name ? arg_name : arg_executable ) );
+	rec->Insert( string_dup("argv"), ValCtor::create( argv, argc, COPY_ARRAY ) );
+	rec->Insert( string_dup("id"), ValCtor::create( id ) );
 	Value param( rec );
 	send_event( daemon_channel->Sink(), "client", &param );
 	}

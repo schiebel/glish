@@ -668,7 +668,7 @@ typedef PList(glishtk_canvas_bindinfo) glishtk_canvas_bindlist;
 glish_declare(PDict,glishtk_canvas_bindlist);
 typedef PDict(glishtk_canvas_bindlist) glishtk_canvas_bindtable;
 
-int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, CONST84 char *argv[] )
+int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, CONST char *argv[] )
 	{
 	static const char *event_names[] =
 	  {
@@ -994,7 +994,7 @@ const char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
 	return 0;
 	}
 
-int canvas_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int canvas_yscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);
@@ -1003,7 +1003,7 @@ int canvas_yscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
 	return TCL_OK;
 	}
 
-int canvas_xscrollcb( ClientData data, Tcl_Interp *, int, CONST84 char *argv[] )
+int canvas_xscrollcb( ClientData data, Tcl_Interp *, int, CONST char *argv[] )
 	{
 	double firstlast[2];
 	firstlast[0] = atof(argv[1]);

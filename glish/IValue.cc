@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997,1998,2000 Associated Universities Inc.
+// Copyright (c) 1997,1998,2000,2004 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
@@ -8,7 +8,6 @@ RCSID("@(#) $Id$")
 #include "input.h"
 #include <string.h>
 #include <iostream.h>
-#include <strstream.h>
 #include <stdlib.h>
 
 #include "IValue.h"
@@ -317,7 +316,7 @@ type IValue::name( int modify ) const					\
 	if ( IsVecRef() ) 						\
 		return ((const IValue*) VecRefPtr()->Val())->name();	\
 	else if ( Type() != tag )					\
-		fatal->Report( "bad use of const accessor" );		\
+		glish_fatal->Report( "bad use of const accessor" );		\
 									\
 	return (type) ( modify ? kernel.modArray() : kernel.constArray() );\
 	}
@@ -357,7 +356,7 @@ Agent* IValue::AgentVal() const
 			return ((IValue*)member)->AgentVal();
 		}
 
-	error->Report( this, " is not an agent value" );
+	glish_error->Report( this, " is not an agent value" );
 	return 0;
 	}
 
@@ -365,18 +364,18 @@ Func* IValue::FuncVal() const
 	{
 	if ( Type() != TYPE_FUNC )
 		{
-		error->Report( this, " is not a function value" );
+		glish_error->Report( this, " is not a function value" );
 		return 0;
 		}
 
 	if ( Length() == 0 )
 		{
-		error->Report( "empty function array" );
+		glish_error->Report( "empty function array" );
 		return 0;
 		}
 
 	if ( Length() > 1 )
-		warn->Report( "more than one function element in", this,
+		glish_warn->Report( "more than one function element in", this,
 				", excess ignored" );
 
 	return FuncPtr(0)[0];
@@ -387,18 +386,18 @@ Regex* IValue::RegexVal() const
 	{
 	if ( Type() != TYPE_REGEX )
 		{
-		error->Report( this, " is not a regular expression value" );
+		glish_error->Report( this, " is not a regular expression value" );
 		return 0;
 		}
 
 	if ( Length() == 0 )
 		{
-		error->Report( "empty regular expression array" );
+		glish_error->Report( "empty regular expression array" );
 		return 0;
 		}
 
 	if ( Length() > 1 )
-		warn->Report( "more than one regular expression element in", this,
+		glish_warn->Report( "more than one regular expression element in", this,
 				", excess ignored" );
 
 	return RegexPtr(0)[0];
@@ -409,18 +408,18 @@ File* IValue::FileVal() const
 	{
 	if ( Type() != TYPE_FILE )
 		{
-		error->Report( this, " is not a file value" );
+		glish_error->Report( this, " is not a file value" );
 		return 0;
 		}
 
 	if ( Length() == 0 )
 		{
-		error->Report( "empty file array" );
+		glish_error->Report( "empty file array" );
 		return 0;
 		}
 
 	if ( Length() > 1 )
-		warn->Report( "more than one file element in", this,
+		glish_warn->Report( "more than one file element in", this,
 				", excess ignored" );
 
 	return FilePtr(0)[0];
@@ -430,13 +429,13 @@ File* IValue::FileVal() const
 funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) const
 	{
 	if ( Type() != TYPE_FUNC )
-		fatal->Report( "non-func type in CoerceToFuncArray()" );
+		glish_fatal->Report( "non-func type in CoerceToFuncArray()" );
 
 	if ( size != Length() )
-		fatal->Report( "size != length in CoerceToFuncArray()" );
+		glish_fatal->Report( "size != length in CoerceToFuncArray()" );
 
 	if ( result )
-		fatal->Report( "prespecified result in CoerceToFuncArray()" );
+		glish_fatal->Report( "prespecified result in CoerceToFuncArray()" );
 
 	is_copy = 0;
 	return FuncPtr(0);
@@ -445,13 +444,13 @@ funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) co
 regexptr* IValue::CoerceToRegexArray( int& is_copy, int size, regexptr* result ) const
 	{
 	if ( Type() != TYPE_REGEX )
-		fatal->Report( "non regular expression type in CoerceToRegexArray()" );
+		glish_fatal->Report( "non regular expression type in CoerceToRegexArray()" );
 
 	if ( size != Length() )
-		fatal->Report( "size != length in CoerceToRegexArray()" );
+		glish_fatal->Report( "size != length in CoerceToRegexArray()" );
 
 	if ( result )
-		fatal->Report( "prespecified result in CoerceToRegexArray()" );
+		glish_fatal->Report( "prespecified result in CoerceToRegexArray()" );
 
 	is_copy = 0;
 	return RegexPtr(0);
@@ -460,13 +459,13 @@ regexptr* IValue::CoerceToRegexArray( int& is_copy, int size, regexptr* result )
 fileptr* IValue::CoerceToFileArray( int& is_copy, int size, fileptr* result ) const
 	{
 	if ( Type() != TYPE_FILE )
-		fatal->Report( "non file type in CoerceToFileArray()" );
+		glish_fatal->Report( "non file type in CoerceToFileArray()" );
 
 	if ( size != Length() )
-		fatal->Report( "size != length in CoerceToFileArray()" );
+		glish_fatal->Report( "size != length in CoerceToFileArray()" );
 
 	if ( result )
-		fatal->Report( "prespecified result in CoerceToFileArray()" );
+		glish_fatal->Report( "prespecified result in CoerceToFileArray()" );
 
 	is_copy = 0;
 	return FilePtr(0);
@@ -532,7 +531,7 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
 	if ( ! shape_val || ! shape_val->IsNumeric() )
 		{
-		warn->Report( "invalid or non-existant \"shape\" attribute" );
+		glish_warn->Report( "invalid or non-existant \"shape\" attribute" );
 
 		if ( args_len >= 1 )
 			return operator[]( (IValue*) (*args_val)[0] );
@@ -758,14 +757,14 @@ SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
 	theLen, off,string_dup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 				"bad subref type in Value::operator[]" );
 				}
 			}
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::operator[]" );
+			glish_fatal->Report( "bad type in Value::operator[]" );
 		}
 
 	SUBOP_CLEANUP_2(shape_len)
@@ -986,14 +985,14 @@ ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref
 ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
 
 		default:
-			fatal->Report( "bad type in Value::ArrayRef()" );
+			glish_fatal->Report( "bad type in Value::ArrayRef()" );
 			return 0;
 		}
 	}
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::ArrayRef()" );
+			glish_fatal->Report( "bad type in Value::ArrayRef()" );
 			return 0;
 		}
 
@@ -1127,7 +1126,7 @@ IValue* IValue::Pick( const IValue *index ) const
 		}
 
 #define PICK_FAIL_IVAL(x) return (IValue*) Fail x;
-#define PICK_FAIL_VOID(x) { error->Report x; return; }
+#define PICK_FAIL_VOID(x) { glish_error->Report x; return; }
 
 	PICK_INITIALIZE( PICK_FAIL_IVAL, return this->operator[]( index );)
 
@@ -1206,14 +1205,14 @@ PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,string_dup,
 	PICK_ACTION_XLATE(PICK_ACTION_CLEANUP),PICK_ACTION_CLEANUP)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 					"bad subref type in Value::Pick" );
 				}
 			}
 			break;
 
 		default:
-			fatal->Report( "bad subref type in Value::Pick" );
+			glish_fatal->Report( "bad subref type in Value::Pick" );
 		}
 
 	PICK_CLEANUP
@@ -1298,7 +1297,7 @@ void IValue::PickAssign( const IValue* index, IValue* value )
 					{				\
 					PICK_CLEANUP			\
 					free_memory( offset_vec );	\
-					error->Report("index number ", i,\
+					glish_error->Report("index number ", i,\
 							" (=", cur,	\
 							") is out of range");\
 					return;				\
@@ -1344,7 +1343,7 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,)
 		{							\
 		PICK_CLEANUP						\
 		free_memory( offset_vec );				\
-		error->Report( "index number ", j, " (=",cur,		\
+		glish_error->Report( "index number ", j, " (=",cur,		\
 			") is out of range. Sub-vector reference may be invalid" );\
 		return;							\
 		}
@@ -1370,14 +1369,14 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,
 	PICKASSIGN_ACTION_XLATE)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 					"bad type in Value::PickAssign" );
 				}
 			}
 			break;
 
 		default:
-			fatal->Report( "bad type in Value::PickAssign" );
+			glish_fatal->Report( "bad type in Value::PickAssign" );
 		}
 
 	PICK_CLEANUP
@@ -1396,7 +1395,7 @@ IValue* IValue::SubRef( const IValue* index, int &err, value_reftype vtype )
 		int i = index->IntVal( );
 		if ( i == Length( ) + 1 )
 			{
-			ret = (IValue*) create_value( glish_false );
+			ret = (IValue*) ValCtor::create( glish_false );
 			ret->MarkUninitialized( );
 			AssignRecordElement( NewFieldName(0), ret );
 			}
@@ -1438,7 +1437,7 @@ IValue* IValue::SubRef( const_value_list *args_val, int &err, value_reftype VT )
 	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
 	if ( ! shape_val || ! shape_val->IsNumeric() )
 		{
-		warn->Report( "invalid or non-existant \"shape\" attribute" );
+		glish_warn->Report( "invalid or non-existant \"shape\" attribute" );
 
 		const IValue* arg = (IValue*) (*args_val)[0];
 		if ( arg )
@@ -1615,7 +1614,7 @@ IValue* IValue::SubRef( const_value_list *args_val, int &err, value_reftype VT )
 			if ( len[x] > 1 )
 				len[z++] = len[x];
 
-		Value* len_v = create_value( len, z );
+		Value* len_v = ValCtor::create( len, z );
 		result->AssignAttribute( "shape", len_v );
 		Unref( len_v );
 		}
@@ -1640,7 +1639,7 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 	const char *err = IndexRange( indices, num_indices, max_index, min_index );
 	if ( err )
 		{
-		error->Report( err );
+		glish_error->Report( err );
 		return;
 		}
 
@@ -1728,13 +1727,13 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 			"bad subvec type in IValue::AssignArrayElements()" );
 				}
 			break;
 
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad type in IValue::AssignArrayElements()" );
 		}
 	}
@@ -1752,13 +1751,13 @@ void IValue::AssignArrayElements( Value* value )
 
 	if ( Length() > val_len )
 		{
-		warn->Report( "partial assignment to \"",this,"\"" );
+		glish_warn->Report( "partial assignment to \"",this,"\"" );
 		max_index = val_len;
 		}
 
 	else if ( Length() < val_len )
 		if ( ! Grow( (unsigned int) val_len ) )
-			warn->Report( "partial assignment from \"",value,"\"" );
+			glish_warn->Report( "partial assignment from \"",value,"\"" );
 
 	switch ( Type() )
 		{
@@ -1829,12 +1828,12 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
 
 				default:
-					fatal->Report(
+					glish_fatal->Report(
 		"bad sub-array reference in IValue::AssignArrayElements()" );
 				}
 			break;
 		default:
-			fatal->Report(
+			glish_fatal->Report(
 				"bad type in IValue::AssignArrayElements()" );
 		}
 	}
@@ -1955,14 +1954,14 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 			}
 		case TYPE_RECORD:
 			if ( length > 1 && ! IsUninitialized( ) )
-				warn->Report( "array values lost due to conversion to record type" );
+				glish_warn->Report( "array values lost due to conversion to record type" );
 
 			kernel.SetRecord( create_record_dict() );
 
 			break;
 
 		default:
-			fatal->Report( "bad type in IValue::Polymorph()" );
+			glish_fatal->Report( "bad type in IValue::Polymorph()" );
 		}
 	}
 
@@ -2166,75 +2165,6 @@ void init_ivalues( )
 	register_type_funcs( TYPE_FILE, copy_files, delete_files );
 	register_type_funcs( TYPE_AGENT, copy_agents, delete_agents );
 	}
-
-IValue *copy_value( const IValue *value )
-	{
-	if ( value->IsRef() )
-		return copy_value( (const IValue*) value->RefPtr() );
-
-	IValue *copy = 0;
-	switch( value->Type() )
-		{
-		case TYPE_BOOL:
-		case TYPE_BYTE:
-		case TYPE_SHORT:
-		case TYPE_INT:
-		case TYPE_FLOAT:
-		case TYPE_DOUBLE:
-		case TYPE_COMPLEX:
-		case TYPE_DCOMPLEX:
-		case TYPE_STRING:
-		case TYPE_AGENT:
-		case TYPE_FUNC:
-		case TYPE_REGEX:
-		case TYPE_FILE:
-		case TYPE_FAIL:
-			copy = new IValue( *value );
-			break;
-		case TYPE_RECORD:
-			if ( value->IsAgentRecord() )
-				{
-				copy = new IValue( (Value*) value, VAL_REF );
-				copy->CopyAttributes( value );
-				}
-			else
-				copy = new IValue( *value );
-			break;
-
-		case TYPE_SUBVEC_REF:
-			switch ( value->VecRefPtr()->Type() )
-				{
-
-#define COPY_REF(tag,accessor)						\
-	case tag:							\
-		copy = new IValue( value->accessor ); 			\
-		copy->CopyAttributes( value );				\
-		break;
-
-				COPY_REF(TYPE_BOOL,BoolRef())
-				COPY_REF(TYPE_BYTE,ByteRef())
-				COPY_REF(TYPE_SHORT,ShortRef())
-				COPY_REF(TYPE_INT,IntRef())
-				COPY_REF(TYPE_FLOAT,FloatRef())
-				COPY_REF(TYPE_DOUBLE,DoubleRef())
-				COPY_REF(TYPE_COMPLEX,ComplexRef())
-				COPY_REF(TYPE_DCOMPLEX,DcomplexRef())
-				COPY_REF(TYPE_STRING,StringRef())
-
-				default:
-					fatal->Report( "bad type in copy_value(IValue*) [",
-						       value->VecRefPtr()->Type(), "]" );
-				}
-			break;
-
-		default:
-			fatal->Report( "bad type in copy_value(IValue*) [", value->Type(), "]" );
-		}
-
-	return copy;
-	}
-
-IValue *deep_copy_value( const IValue *value ) { return copy_value( value ); }
 
 #define DEFINE_XXX_REL_OP_COMPUTE(name,type,coerce_func)		\
 IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )\

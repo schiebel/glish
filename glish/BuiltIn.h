@@ -129,7 +129,6 @@ DERIVE_BUILTIN(TrBuiltIn,NUM_ARGS_VARIES,"tr",)
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
 DERIVE_BUILTIN(SplitBuiltIn,NUM_ARGS_VARIES,"split",)
 DERIVE_BUILTIN(SizeofBuiltIn,NUM_ARGS_VARIES,"sizeof",)
-DERIVE_BUILTIN(AllocInfoBuiltIn,0,"alloc_info",)
 
 DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
 DERIVE_BUILTIN(PreserveEventsBuiltIn,1,"preserve_events",)
@@ -169,6 +168,12 @@ class name : public BuiltIn {						\
 	Sequencer* sequencer;						\
 	};
 
+
+#if defined(__APPLE_CC__)
+DERIVE_SEQUENCER_BUILTIN(AllocInfoBuiltIn,0,"alloc_info")
+#else
+DERIVE_BUILTIN(AllocInfoBuiltIn,0,"alloc_info",)
+#endif
 
 DERIVE_SEQUENCER_BUILTIN(ReadlineBuiltIn,1,"internal_readline")
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
