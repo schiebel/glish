@@ -181,8 +181,8 @@ ID	[A-Za-z_][A-Za-z0-9_]*
 WS	[ \t]+
 OWS	[ \t]*
 D	[0-9]
-RXSTART	[!/#@%^&*|+^,.~`;:-]
-RXCONT	[^\n\\!/#@%^&*|+^,.~`;:-]
+RXSTART	[!/#@%^&*|+~`;:-]
+RXCONT	[^\n\\!/#@%^&*|+~`;:-]
 
 FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
@@ -610,6 +610,9 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		}
 
 <<EOF>>		{
+		if ( newline_is_semi )
+			return ';';
+
 		int nesting = file_list.length();
 		if ( nesting > 0 )
 			{

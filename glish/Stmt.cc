@@ -808,18 +808,27 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	if ( ! range_value ) return 0;
 
 	IValue* result = 0;
+	glish_type type = range_value->Type();
 
-	if ( ! range_value->IsNumeric() && range_value->Type() != TYPE_STRING )
+	if ( ! range_value->IsNumeric() && type != TYPE_STRING && type != TYPE_RECORD )
 		result = (IValue*) Fail( "range (", range,
-				") in for loop is not numeric or string" );
+				") in for loop is not numeric or record or string" );
 	else
 		{
 		int len = range_value->Length();
 
 		for ( int i = 1; i <= len; ++i )
 			{
-			IValue* loop_counter = new IValue( i );
-			IValue* iter_value = (IValue*)((*range_value)[loop_counter]);
+			IValue *iter_value = 0;
+			IValue *loop_counter = 0;
+
+			if ( type == TYPE_RECORD )
+				iter_value = new IValue( * (IValue*) range_value->NthField( i ) );
+			else
+				{
+				loop_counter = new IValue( i );
+				iter_value = (IValue*)((*range_value)[loop_counter]);
+				}
 
 			index->Assign( iter_value );
 
