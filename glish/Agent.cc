@@ -106,8 +106,7 @@ int Agent::CreateEvent( const char* event_name, IValue* event_value,
 			NotifyTrigger *t )
 	{
 	if ( ! agent_value )
-		fatal->Report(
-			"no event agent value in Agent::CreateEvent" );
+		return 0;
 
 	return NotifyInterestedParties( event_name, event_value, t );
 	}
@@ -302,7 +301,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value,
 		there_is_interest = 1;
 		}
 
-	if ( ! there_is_interest && agent_value->Type() == TYPE_RECORD )
+	if ( agent_value && ! there_is_interest && agent_value->Type() == TYPE_RECORD )
 		{
 		// We have to assign the corresponding field in the agent
 		// record right here, ourselves, since the sequencer isn't

@@ -109,20 +109,31 @@ public:
 	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 	inline unsigned int PRINTPRECISION( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
 	inline unsigned int INCLUDE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
+	inline unsigned int LOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 
-	int Trace() { if ( TRACE(update) ) update_trace( ); return trace; }
+	int Trace() { if ( TRACE(update) ) update_output( ); return trace; }
+	int Log() { if ( LOGX(update) ) update_output( ); return log; }
+	void DoLog( const char *, int len=-1 );
 	int PrintLimit() { if ( PRINTLIMIT(update) ) update_print( ); return printlimit; }
 	int PrintPrecision() { if ( PRINTPRECISION(update) ) update_print( ); return printprecision; }
 	charptr *Include() { if ( INCLUDE(update) ) update_include( ); return include; }
 	int IncludeLen() { if ( INCLUDE(update) ) update_include( ); return includelen; }
-	SystemInfo() : val(0), update( ~((unsigned int) 0) ) { }
+	SystemInfo() : val(0), update( ~((unsigned int) 0) ), log_name(0), log_val(0), log_file(0) { }
 	void SetVal(IValue *v);
+	~SystemInfo();
+	void AbortOccurred();
 private:
-	void update_trace( );
+	void update_output( );
 	void update_print( );
 	void update_include( );
 	IValue *val;
 	int trace;
+
+	int log;
+	IValue *log_val;
+	int log_file;
+	char *log_name;
+
 	int printlimit;
 	int printprecision;
 	charptr *include;

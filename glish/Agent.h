@@ -103,6 +103,11 @@ class Agent : public GlishObject {
 
 	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
+	// Sometimes the wrapper of a Task (subclass of Agent) can go
+	// out-of-scope and be deleted, but the Task sticks around
+	// until the client terminates (right?)
+	void WrapperGone() { agent_value = 0; }
+
     protected:
 	IValue* BuildEventValue( parameter_list* args, int use_refs );
 

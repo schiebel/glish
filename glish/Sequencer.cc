@@ -11,6 +11,8 @@ RCSID("@(#) $Id$")
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #ifdef HAVE_SIGPROCMASK
 #include <signal.h>
@@ -321,6 +323,14 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+SystemInfo::~SystemInfo()
+	{
+	if ( val ) Unref( val );
+	if ( log_file ) close( log_file );
+	if ( log_val ) Unref( log_val );
+	if ( log_name ) delete log_name;
+	}
+
 void SystemInfo::SetVal(IValue *v)
 	{
 	if ( val ) Unref( val );
@@ -329,23 +339,103 @@ void SystemInfo::SetVal(IValue *v)
 	update = ~((unsigned int) 0);
 	}
 
-void SystemInfo::update_trace( )
+void SystemInfo::DoLog( const char *buf, int len )
+	{
+	if ( LOGX(update) )
+		update_output( );
+	if ( log_file )
+		write(log_file, buf, len >= 0 ? len : strlen(buf));
+	}
+
+void SystemInfo::AbortOccurred()
+	{
+	if ( log_file ) close(log_file);
+	}
+
+void SystemInfo::update_output( )
 	{
 	const IValue *v1;
 	const IValue *v2;
 
 	trace = 0;
+	log = 0;
 	if ( val && val->Type() == TYPE_RECORD &&
 	     val->HasRecordElement( "output" ) &&
 	     (v1 = (const IValue*)(val->ExistingRecordElement( "output" ))) &&
-	     v1 != false_value && v1->Type() == TYPE_RECORD &&
-	     v1->HasRecordElement( "trace" ) &&
-	     (v2 = (const IValue*)(v1->ExistingRecordElement("trace"))) &&
-	     v2 != false_value && v2->Type() == TYPE_BOOL &&
-	     v2->BoolVal() == glish_true )
-		trace = 1;
+	     v1 != false_value && v1->Type() == TYPE_RECORD )
+		{
+		if ( v1->HasRecordElement( "trace" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("trace"))) &&
+		     v2 != false_value && v2->Type() == TYPE_BOOL &&
+		     v2->BoolVal() == glish_true )
+			trace = 1;
+
+		if ( v1->HasRecordElement( "log" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("log"))) &&
+		     v2 != false_value )
+			switch( v2->Type() )
+				{
+				case TYPE_STRING:
+					{
+					log = 1;
+					char *nf = v2->StringVal();
+					if ( log_name )
+						if ( strcmp(nf,log_name) )
+							{
+							delete log_name;
+							log_name = nf;
+							}
+						else
+							delete nf;
+					else
+						log_name = nf;
+
+					if ( nf == log_name )
+						{
+						if ( log_file ) close( log_file );
+						if ( access(log_name, F_OK) )
+							log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
+						else
+							{
+							log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
+							if ( log_file ) chmod(log_name, S_IRUSR | S_IWUSR);
+							}
+						}
+
+					if ( log_val )
+						{
+						Unref(log_val);
+						log_val = 0;
+						}
+					}
+					break;
+				case TYPE_AGENT:
+				case TYPE_FUNC:
+					{
+					log = 1;
+					if ( log_val != v2 )
+						{
+						Unref(log_val);
+						log_val = (IValue*) v2;
+						if (log_val) Ref(log_val);
+						}
+					if ( log_name )
+						{
+						delete log_name;
+						log_name = 0;
+						}
+					if ( log_file )
+						{
+						close(log_file);
+						log_file = 0;
+						}
+					}
+					break;
+				}
+		}
 
 	update &= ~TRACE();
+	update &= ~LOGX();
 	}
 
 void SystemInfo::update_print( )

@@ -146,6 +146,8 @@ IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT)
 
 void IValue::DeleteValue()
 	{
+	if ( Type() == TYPE_AGENT )
+		AgentVal()->WrapperGone();
 	}
 
 IValue::~IValue()

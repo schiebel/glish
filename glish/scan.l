@@ -516,7 +516,14 @@ int scanner_read( char buf[], int max_size )
 	if ( interactive && yyin == stdin )
 		{
 		const char* prompt = first_line ? "- " : "+ ";
-		return interactive_read( yyin, prompt, buf, max_size );
+		if ( Sequencer::CurSeq()->System().Log() )
+			{
+			int len = interactive_read( yyin, prompt, buf, max_size );
+			Sequencer::CurSeq()->System().DoLog(buf,len);
+			return len;
+			}
+		else
+			return interactive_read( yyin, prompt, buf, max_size );
 		}
 	else
 		return read( fileno( yyin ), buf, max_size );
