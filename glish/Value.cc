@@ -2955,6 +2955,18 @@ void Value::AssignElements( const_value_list* args_val, Value* value )
 		return;
 		}
 	
+	glish_type max_type;
+	if ( ! compatible_types( this, value, max_type ) )
+		{
+		error->Report( "non-compatible types for assignment" );
+		SUBOP_CLEANUP_1
+		Unref(value);
+		return;
+		}
+
+	Polymorph( max_type );
+	value->Polymorph( max_type );
+
 	if ( max_len == 1 ) 
 		{
 		SUBOP_CLEANUP_1
