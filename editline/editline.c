@@ -1186,7 +1186,8 @@ nb_reset_term( int enter )
 		if ( ! count && still_collecting_data )
 			{
 			rl_ttyset(0);
-			clear_line();
+			TTYput('\r');
+
 			/* do these two instead of redisplay()
 			 * to avoid generating a new line
 			 */
