@@ -242,19 +242,28 @@ int glishtk_xioerror_handler(Display *d)
 	return 1;
 	}
 
-void TkProxy::init_tk( int visible_root )
+const char *TkProxy::init_tk( int visible_root )
 	{
 	if ( ! root )
 		{
 		if ( ! tcl )
 			{
 			tcl = Tcl_CreateInterp();
-			Tcl_Init( tcl );
+			if ( ! tcl ) return "TCL creation failed";
+			}
+
+		static int tcl_started = TCL_ERROR;
+
+		if ( tcl_started == TCL_ERROR )
+			{
+			tcl_started = Tcl_Init( tcl );
+			if ( tcl_started == TCL_ERROR )
+				return Tcl_GetStringResult(tcl);
 			}
 
 		static int tk_started = TCL_ERROR;
 
-		if ( tcl && tk_started == TCL_ERROR )
+		if ( tk_started == TCL_ERROR )
 			{
 			tk_started = Tk_Init(tcl);
 
@@ -272,6 +281,8 @@ void TkProxy::init_tk( int visible_root )
 					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), 0 );
 					}
 				}
+			else
+				return Tcl_GetStringResult(tcl);
 			}
 		}
 
@@ -280,6 +291,8 @@ void TkProxy::init_tk( int visible_root )
 		root_unmapped = 0;
 		tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(root), 0 );
 		}
+
+	return 0;
 	}
 
 void TkProxy::HoldEvents( ProxyStore *, Value * )
@@ -300,8 +313,9 @@ void TkProxy::ProcessEvent( const char *name, Value *val )
 
 	if ( proc != 0 )
 		{
+		static Value *true_result = new Value( glish_true );
 		Value *v = (*proc)( tcl, self, val );
-		if ( v && ReplyPending() ) Reply( v );
+		if ( ReplyPending() ) Reply( v ? v : true_result );
 		}
 	else
 		Error("unknown event");
@@ -313,8 +327,8 @@ int TkProxy::IsValid() const { return self != 0; }
 
 void TkProxy::SetError( Value *v )
 	{
-	if ( last_error ) Unref(last_error);
-	last_error = v;
+	if ( last_error ) Unref(v);
+	else last_error = v;
 	}
 
 void TkProxy::PostTkEvent( const char *s, Value *v )
@@ -390,8 +404,12 @@ void TkProxy::Load( ProxyStore *s, Value *arg )
 
 	if ( toload )
 		{
-		init_tk(0);
-		if ( module )
+		const char *err = init_tk(0);
+
+		if ( err )
+			s->Error( err );
+
+		else if ( module )
 			{
 			if ( tcl_VarEval( tcl, "load ", toload, " ", module, 0 ) == TCL_ERROR )
 				s->Error( Tcl_GetStringResult(tcl) );
@@ -611,7 +629,8 @@ TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ),
 
 	if ( init_graphic )
 		{
-		init_tk( );
+		const char *err = init_tk( );
+		if ( err ) SetError( new Value(err) );
 
 		procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
 		procs.Insert("foreground", new TkProc("-fg", glishtk_onestr, glishtk_str));

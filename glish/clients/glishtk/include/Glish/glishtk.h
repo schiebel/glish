@@ -125,7 +125,7 @@ class TkProxy : public Proxy {
 	void do_pack( int argc, char **argv)
 		{ Tk_PackCmd( root, tcl, argc, argv ); }
 
-	static void init_tk( int visible_root=1 );
+	static const char *init_tk( int visible_root=1 );
 	tkprochash procs;
 	static int widget_index;
 	static int root_unmapped;

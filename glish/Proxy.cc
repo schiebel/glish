@@ -20,16 +20,22 @@ class pxy_store_cbinfo {
 	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), cb3(0), data(data_) { }
 	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), cb3(0), data(data_) { }
 	pxy_store_cbinfo( PxyStoreCB3 cb ) : cb1(0), cb2(0), cb3(cb), data(0) { }
-	void invoke( ProxyStore *s, Value *v, GlishEvent *e )
-		{ if ( cb1 ) (*cb1)( s, v, e, data );
-		  else if ( cb2 ) (*cb2)( s, v, data );
-		  else if ( cb3 ) (*cb3)(s,v); }
+	void invoke( ProxyStore *s, Value *v, GlishEvent *e );
     private:
 	PxyStoreCB1 cb1;
 	PxyStoreCB2 cb2;
 	PxyStoreCB3 cb3;
 	void *data;
 };
+
+void pxy_store_cbinfo::invoke( ProxyStore *s, Value *v, GlishEvent *e )
+	{
+	static Value *true_reply = new Value(glish_true);
+	if ( cb1 ) (*cb1)( s, v, e, data );
+	else if ( cb2 ) (*cb2)( s, v, data );
+	else if ( cb3 ) (*cb3)(s,v);
+	if ( s->ReplyPending() ) s->Reply(true_reply);
+	}
 
 class event_queue_item {
     public:
