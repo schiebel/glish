@@ -1022,7 +1022,7 @@ dnl##
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgregex$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -1034,7 +1034,7 @@ if test "$static_binary" = "yes"; then
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit"
+    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lgregex"
     CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
