@@ -133,7 +133,9 @@ inline unsigned int strlen( const str_ref &ref )
 	{ return ref.s->kernel->strlen(ref.off); }
 
 typedef str* strptr;
+#if defined(ENABLE_STR) || !defined(sos_io_h_)
 typedef const char * const * const_charptr;
 typedef const char* charptr;
+#endif
 
 #endif

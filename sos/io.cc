@@ -28,13 +28,13 @@ RCSID("@(#) $Id$")
 #define MAXIOV 16
 #endif
 
-unsigned int FD_SINK::tmp_buf_count = 10;
-unsigned int FD_SINK::tmp_buf_size = 1024;
+unsigned int sos_fd_sink::tmp_buf_count = 10;
+unsigned int sos_fd_sink::tmp_buf_size = 1024;
 
-SINK::~SINK() { }
-SOURCE::~SOURCE() { }
+sos_sink::~sos_sink() { }
+sos_source::~sos_source() { }
 
-FD_SINK::FD_SINK( int fd_ ) : fd(fd_)
+sos_fd_sink::sos_fd_sink( int fd_ ) : fd(fd_)
 	{
 	iov = (void*) alloc_memory( MAXIOV * sizeof( struct iovec ) );
 	status = (buffer_type*) alloc_memory( MAXIOV * sizeof( buffer_type ) );
@@ -44,7 +44,7 @@ FD_SINK::FD_SINK( int fd_ ) : fd(fd_)
 	tmp_buf_cur = 0;
 	}
 
-unsigned int FD_SINK::write( const char *buf, unsigned int len, buffer_type type )
+unsigned int sos_fd_sink::write( const char *buf, unsigned int len, buffer_type type )
 	{
 	struct iovec *iov_ = (struct iovec*) iov;
 	if ( fd < 0 ) return 0;
@@ -73,7 +73,7 @@ unsigned int FD_SINK::write( const char *buf, unsigned int len, buffer_type type
 	return len;
 	}
 
-unsigned int FD_SINK::flush( )
+unsigned int sos_fd_sink::flush( )
 	{
 	if ( iov_cnt == 0 ) return 0;
 	struct iovec *iov_ = (struct iovec*) iov;
@@ -87,24 +87,24 @@ unsigned int FD_SINK::flush( )
 	return ret;
 	}
 
-FD_SINK::~FD_SINK()
+sos_fd_sink::~sos_fd_sink()
 	{
 	flush( );
 	if ( fd >= 0 ) close(fd);
 	}
 
-unsigned int FD_SOURCE::read( char *buf, unsigned int len )
+unsigned int sos_fd_source::read( char *buf, unsigned int len )
 	{
 	if ( fd < 0 ) return 0;
 	return ::read( fd, buf, len );
 	}
 
-FD_SOURCE::~FD_SOURCE()
+sos_fd_source::~sos_fd_source()
 	{
 	if ( fd >= 0 ) close(fd);
 	}
 
-sos_sink::sos_sink( SINK &out_, int integral_header ) : out(out_)
+sos_out::sos_out( sos_sink &out_, int integral_header ) : out(out_)
 	{
 	if ( integral_header )
 		not_integral = 0;
@@ -125,7 +125,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 		head.set(l,SOSTYPE);				\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
-		out.write( head.iBuffer(), SOS_HEADER_SIZE, SINK::COPY ); \
+		out.write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
 		out.write( a, l * sos_size(SOSTYPE), type );	\
 		}						\
 	else							\
@@ -140,11 +140,11 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
 
 #define PUTNUMERIC(TYPE,SOSTYPE)				\
-void sos_sink::put( TYPE *a, unsigned int l,			\
-		    SINK::buffer_type type )			\
+void sos_out::put( TYPE *a, unsigned int l,			\
+		    sos_sink::buffer_type type )		\
 	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)		\
-void sos_sink::put( TYPE *a, unsigned int l, sos_header &h,	\
-		    SINK::buffer_type type ) 			\
+void sos_out::put( TYPE *a, unsigned int l, sos_header &h,	\
+		    sos_sink::buffer_type type ) 		\
 	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
 
 PUTNUMERIC(byte,SOS_BYTE)
@@ -155,11 +155,11 @@ PUTNUMERIC(double,SOS_DOUBLE)
 
 #define COMMA(X) , X
 #define PUTCHAR(TYPE)						\
-void sos_sink::put( TYPE *a, unsigned int l, sos_code t,	\
-		    SINK::buffer_type type )			\
+void sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
+		    sos_sink::buffer_type type )		\
 	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)	\
-void sos_sink::put( TYPE *a, unsigned int l, sos_code t,	\
-		    sos_header &h, SINK::buffer_type type )	\
+void sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
+		    sos_header &h, sos_sink::buffer_type type )	\
 	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
 
 PUTCHAR(char)
@@ -198,10 +198,10 @@ PUTCHAR(unsigned char)
 			}						\
 		}							\
 									\
-	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
+	out.write( buf, total + SOS_HEADER_SIZE, sos_sink::FREE );	\
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
 									\
-	if ( type == SINK::FREE )					\
+	if ( type == sos_sink::FREE )					\
 		{							\
 		for ( int X = 0; X < len; X++ )				\
 			free_memory( (char*) s[X] );			\
@@ -241,19 +241,19 @@ PUTCHAR(unsigned char)
 			*lptr++ = 0;					\
 		}							\
 									\
-	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
+	out.write( buf, total + SOS_HEADER_SIZE, sos_sink::FREE );	\
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
 	}
 
-void sos_sink::put( charptr *s, unsigned int len, SINK::buffer_type type )
+void sos_out::put( charptr *s, unsigned int len, sos_sink::buffer_type type )
 	PUTCHARPTR_BODY(zero_user_area)
-void sos_sink::put( charptr *s, unsigned int len, sos_header &h, SINK::buffer_type type )
+void sos_out::put( charptr *s, unsigned int len, sos_header &h, sos_sink::buffer_type type )
 	PUTCHARPTR_BODY(h.iBuffer() + 18)
 
 #if defined(ENABLE_STR)
-void sos_sink::put( const str &s )
+void sos_out::put( const str &s )
 	PUTSTR_BODY(zero_user_area)
-void sos_sink::put( const str &s, sos_header &h )
+void sos_out::put( const str &s, sos_header &h )
 	PUTSTR_BODY(h.iBuffer() + 18)
 #endif
 
@@ -270,12 +270,12 @@ void sos_sink::put( const str &s, sos_header &h )
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 	head.stamp();					\
 							\
-	out.write( head.iBuffer(), SOS_HEADER_SIZE, SINK::COPY ); \
+	out.write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
 	}
 
-void sos_sink::put_record_start( unsigned int l )
+void sos_out::put_record_start( unsigned int l )
 	PUTREC_BODY(zero_user_area)
-void sos_sink::put_record_start( unsigned int l, sos_header &h )
+void sos_out::put_record_start( unsigned int l, sos_header &h )
 	PUTREC_BODY(h.iBuffer() + 18)
 
 #if defined(VAXFP)
@@ -297,14 +297,14 @@ void sos_sink::put_record_start( unsigned int l, sos_header &h )
 			else swap_abcdefgh_efghabcd(result,len);
 #endif
 
-sos_sink::~sos_sink() { if ( not_integral ) free_memory(not_integral); }
+sos_out::~sos_out() { if ( not_integral ) free_memory(not_integral); }
 
-sos_source::sos_source( SOURCE &in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
+sos_in::sos_in( sos_source &in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
 			head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), not_integral(integral_header ? 0 : 1)
 	{
 	}
 
-void *sos_source::get( unsigned int &len, sos_code &type )
+void *sos_in::get( unsigned int &len, sos_code &type )
 	{
 	type = SOS_UNKNOWN;
 	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
@@ -324,7 +324,7 @@ void *sos_source::get( unsigned int &len, sos_code &type )
 		}
 	}
 
-void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
+void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 	{
 	type = SOS_UNKNOWN;
 	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
@@ -367,7 +367,7 @@ void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
 		}
 	}
 
-void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &head )
+void *sos_in::get_numeric( sos_code type, unsigned int &len, sos_header &head )
 	{
 	char *result_ = 0;
 	char *result = 0;
@@ -416,7 +416,7 @@ void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &hea
 	}
 
 #if defined(ENABLE_STR)
-void *sos_source::get_string( unsigned int &len, sos_header &head )
+void *sos_in::get_string( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) alloc_memory(len);
@@ -448,10 +448,10 @@ void *sos_source::get_string( unsigned int &len, sos_header &head )
 	return ns;
 	}
 #else
-void *sos_source::get_string( unsigned int &, sos_header & ) { return 0; }
+void *sos_in::get_string( unsigned int &, sos_header & ) { return 0; }
 #endif
 
-void *sos_source::get_chars( unsigned int &len, sos_header &head )
+void *sos_in::get_chars( unsigned int &len, sos_header &head )
 	{
 	int swap = ! (head.magic() & SOS_MAGIC);
 	char *buf = (char*) alloc_memory(len);
@@ -480,4 +480,4 @@ void *sos_source::get_chars( unsigned int &len, sos_header &head )
 	return ary;
 	}
 
-sos_source::~sos_source() { }
+sos_in::~sos_in() { }
