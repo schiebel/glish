@@ -458,9 +458,16 @@ int main( int argc, char** argv )
 			if ( streq( e->name, "interval" ) )
 				{
 				tlist.remove_time("");
-				tlist.add_time( e->value->DoubleVal(), "" );
+				if ( e->value->DoubleVal() > 0 )
+					tlist.add_time( e->value->DoubleVal(), "" );
 				// !!! do we need to factor in  !!!
 				// !!! time already elapsed??   !!!
+				ilist.build( INIT );
+				}
+
+			else if ( streq( e->name, "stop" ) )
+				{
+				tlist.remove_time("");
 				ilist.build( INIT );
 				}
 
@@ -480,15 +487,18 @@ int main( int argc, char** argv )
 
 				double *times = val->DoublePtr();
 				charptr *tags = (charptr*) alloc_memory(val->Length()*sizeof(charptr));
+				int len = 0;
 
 				for (int i=0; i < val->Length(); ++i )
-					{
-					sprintf( tag, "tmr%x", ++tag_cnt );
-					tlist.add_time( times[i], tag );
-					tags[i] = strdup(tag);
-					}
+					if ( times[i] > 0 )
+						{
+						sprintf( tag, "tmr%x", ++tag_cnt );
+						tlist.add_time( times[i], tag );
+						tags[i] = strdup(tag);
+						++len;
+						}
 
-				Value ret( tags, val->Length() );
+				Value ret( tags, len );
 				if ( e->IsRequest() )
 					c.Reply( &ret );
 				else
