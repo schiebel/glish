@@ -79,7 +79,7 @@ class GcRef GC_FINAL_CLASS {
 	int doSoftDelete( ) const { return mSOFTDELETE(mask); }
 
 	refmode_t mask;
-	unsigned short ref_count;
+	unsigned int ref_count;
 };
 
 inline void Ref( GcRef* object )
