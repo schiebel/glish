@@ -192,7 +192,7 @@ class Agent : public GlishObject {
 class UserAgent : public Agent {
     public:
 	UserAgent( Sequencer* s, int is_subsequence_arg=0 ) : Agent(s),
-	  	is_subsequence(is_subsequence_arg) { }
+	  	is_subsequence(is_subsequence_arg), reflect_events(0) { }
 
 	// Send an event with the given name and associated values
 	// to the associated user agent.

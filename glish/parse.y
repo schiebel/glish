@@ -97,7 +97,7 @@ extern "C" {
 	void yyerror( char msg[] );
 }
 
-Expr *glish_current_subsequence = 0;
+expr_list *glish_current_subsequence = 0;
 /* reset glish state after an error */
 static void error_reset( );
 
@@ -644,7 +644,9 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes fu
 				Unref( ufunc );
 				}
 
-			glish_current_subsequence = 0;
+			int tmplen;
+			if ( $1 && (tmplen = glish_current_subsequence->length()) )
+				glish_current_subsequence->remove_nth(tmplen-1);
 			}
 	;
 
@@ -661,8 +663,8 @@ function_head:	TOK_FUNCTION
 	|	TOK_SUBSEQUENCE
 			{
 			current_sequencer->PushScope( FUNC_SCOPE );
-			$$ = glish_current_subsequence = current_sequencer->InstallID( strdup( "self" ), LOCAL_SCOPE );
-
+			$$ = current_sequencer->InstallID( strdup( "self" ), LOCAL_SCOPE );
+			glish_current_subsequence->append($$);
 #ifdef GGC
 			gc_registry_offset->append( gc_registry->length() );
 			++glish_do_gc_register;

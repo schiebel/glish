@@ -19,7 +19,6 @@ RCSID("@(#) $Id$")
 #include "Regex.h"
 #include "File.h"
 
-extern Expr *glish_current_subsequence;
 
 int ParseNode::canDelete() const
 	{
@@ -2298,7 +2297,8 @@ SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
 	sender = arg_sender;
 	args = arg_args;
 	is_request_reply = 1;
-	in_subsequence = glish_current_subsequence;
+	int sqlen = glish_current_subsequence->length();
+	in_subsequence =  sqlen ? (*glish_current_subsequence)[sqlen-1] : 0;
 	}
 
 IValue* SendEventExpr::Eval( eval_type etype )

@@ -548,4 +548,7 @@ class NullStmt : public Stmt {
 extern Stmt* null_stmt;
 extern Stmt* merge_stmts( Stmt* stmt1, Stmt* stmt2 );
 
+/* Used to setup subsequence whenevers */
+extern expr_list *glish_current_subsequence;
+
 #endif /* stmt_h */

@@ -21,7 +21,6 @@ RCSID("@(#) $Id$")
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
 unsigned int WheneverStmt::notify_count = 0;
-extern Expr *glish_current_subsequence;
 
 
 Stmt::~Stmt() { }
@@ -149,7 +148,8 @@ WheneverStmtCtor::WheneverStmtCtor( event_dsg_list* arg_trigger, Sequencer* arg_
 	cur = 0;
 	sequencer = arg_sequencer;
 	sequencer->RegisterWhenever(this);
-	in_subsequence = glish_current_subsequence;
+	int sqlen = glish_current_subsequence->length();
+	in_subsequence =  sqlen ? (*glish_current_subsequence)[sqlen-1] : 0;
 	}
 
 int WheneverStmtCtor::Index( )

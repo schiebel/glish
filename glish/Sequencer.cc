@@ -1334,6 +1334,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	error_result = 0;
 
 	agents = new agent_list;
+	glish_current_subsequence = new expr_list;
 
 	glish_files = new name_list;
 	glish_files->append(0);
