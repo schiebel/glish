@@ -303,6 +303,8 @@ void TkProxy::HoldEvents( ProxyStore *, Value * )
 void TkProxy::ReleaseEvents( ProxyStore *, Value * )
 	{
 	hold_tk_events--;
+	if ( hold_tk_events < 0 )
+		hold_tk_events = 0;
 	}
 
 void TkProxy::ProcessEvent( const char *name, Value *val )
