@@ -1,9 +1,10 @@
 // $Header$
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#ifdef GLISHTK
+
 #include "TkCanvas.h"
 
-#ifdef GLISHTK
 #include <string.h>
 #include <stdlib.h>
 #include "Rivet/rivet.h"
