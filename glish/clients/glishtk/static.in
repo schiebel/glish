@@ -55,13 +55,9 @@ CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(GLISH_SRC) -I$(GLISH_SRC)/include 
 
 CLIENTS = $(BINDIR_P)/glishtk
 
-INSTALLED_CLIENTS = $(BINDIR)/glishtk
-
 SCRIPTS = $(SCRIPTDIR_P)/glishtk.g
 
 HEADERS = $(INCDIR_P)/Glish/glishtk.h
-
-INSTALLED_SCRIPTS = $(SCRIPTDIR)/glishtk.g
 
 TAR_FILE = glishtk.tar
 
@@ -85,7 +81,7 @@ make-incdir_p:
 make-incdir:
 	$(MKHIER) $(INCDIR)
 
-install:  make-bindir make-scriptdir make-incdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
+install:  make-bindir make-scriptdir make-incdir $(BINDIR)/glishtk $(SCRIPTDIR)/glishtk.g $(INCDIR)/Glish/glishtk.h
 
 tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
@@ -118,6 +114,9 @@ $(SCRIPTDIR)/glishtk.g: $(SRC)/glishtk.g
 
 $(INCDIR_P)/Glish/glishtk.h: $(H)/glishtk.h
 	$(INSTALL_DATA) $(H)/glishtk.h $(INCDIR_P)/Glish
+
+$(INCDIR)/Glish/glishtk.h: $(H)/glishtk.h
+	$(INSTALL_DATA) $(H)/glishtk.h $(INCDIR)/Glish
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
