@@ -123,7 +123,11 @@ public:
 	int PrintPrecision() { if ( PRINTPRECISION(update) ) update_print( ); return printprecision; }
 	charptr *Include() { if ( INCLUDE(update) ) update_include( ); return include; }
 	int IncludeLen() { if ( INCLUDE(update) ) update_include( ); return includelen; }
-	SystemInfo() : val(0), update( ~((unsigned int) 0) ), log_name(0), log_val(0), log_file(0) { }
+	SystemInfo() : val(0), update( ~((unsigned int) 0) ), 
+			log(0), log_val(0), log_file(0), log_name(0),
+			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
+			olog(0), olog_val(0), olog_file(0), olog_name(0),
+			printlimit(0), printprecision(-1), include(0), includelen(0) { }
 	void SetVal(IValue *v);
 	~SystemInfo();
 	void AbortOccurred();

@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <iostream.h>
 
-#define DEFINE_FUNCS(MACRO)	\
+#define DEFINE_FUNCS_NO_CHARPTR(MACRO)	\
 MACRO(float)			\
 MACRO(double)			\
 MACRO(int)			\
@@ -20,7 +20,10 @@ MACRO(unsigned int)		\
 MACRO(unsigned long)		\
 MACRO(unsigned short)		\
 MACRO(unsigned char)		\
-MACRO(void*)			\
+MACRO(void*)
+
+#define DEFINE_FUNCS(MACRO)	\
+DEFINE_FUNCS_NO_CHARPTR(MACRO)	\
 MACRO(const char*)
 
 int OStream::reset() { return 0; }
@@ -50,10 +53,10 @@ DBuf::~DBuf() { if ( buf ) delete buf; }
 int DBuf::put( TYPE v, const char *format )				\
 	{								\
 	sprintf(tmpbuf,format,v);					\
-	int l = strlen(tmpbuf);						\
-	if ( len_ + l >= size_ )					\
+	unsigned int l = strlen(tmpbuf);				\
+	if ( len_ + l + 1 >= size_ )					\
 		{							\
-		while ( len_ + l >= size_ ) size_ *= 2;			\
+		while ( len_ + l + 1 >= size_ ) size_ *= 2;		\
 		buf = (char*) realloc_memory( (void*) buf, size_ + 1 );	\
 		}							\
 	memcpy(&buf[len_],tmpbuf,l);					\
@@ -61,7 +64,19 @@ int DBuf::put( TYPE v, const char *format )				\
 	return l;							\
 	}
 
-DEFINE_FUNCS(DEFINE_APPEND)
+DEFINE_FUNCS_NO_CHARPTR(DEFINE_APPEND)
+int DBuf::put( const char *v, const char * )
+	{
+	unsigned int l = strlen(v);
+	if ( len_ + l + 1 >= size_ )
+		{
+		while ( len_ + l + 1 >= size_ ) size_ *= 2;
+		buf = (char*) realloc_memory( (void*) buf, size_ + 1 );
+		}
+	memcpy(&buf[len_],v,l);
+	len_ += l;
+	return l;
+	}
 
 void DBuf::reset() { len_ = 0; }
 
