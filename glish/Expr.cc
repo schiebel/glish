@@ -110,7 +110,7 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		{
 		IValue *result = 0;
-		if ( value->IsRef() )
+		if ( value->IsRef() && etype == EVAL_COPY_PRESERVE )
 			result = new IValue( (IValue*) value->Deref(), VAL_REF );
 		else
 			result = copy_value( value );
@@ -558,9 +558,9 @@ NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* NegExpr::Eval( eval_type /* etype */ )
+IValue* NegExpr::Eval( eval_type etype )
 	{
-	IValue* result = op->CopyEval();
+	IValue* result = op->CopyEval( etype == EVAL_COPY_PRESERVE );
 	result->Negate();
 	return result;
 	}
@@ -574,9 +574,9 @@ NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
-IValue* NotExpr::Eval( eval_type /* etype */ )
+IValue* NotExpr::Eval( eval_type etype )
 	{
-	IValue* result = op->CopyEval();
+	IValue* result = op->CopyEval( etype == EVAL_COPY_PRESERVE );
 	result->Not();
 	return result;
 	}
@@ -768,7 +768,7 @@ IValue* AndExpr::Eval( eval_type etype )
 	if ( etype == EVAL_COPY || etype == EVAL_COPY_PRESERVE )
 		{
 		if ( left_is_true )
-			return right->CopyEval();
+			return right->CopyEval( etype == EVAL_COPY_PRESERVE );
 		else
 			return false_ivalue();
 		}

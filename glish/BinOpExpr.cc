@@ -115,9 +115,9 @@ IValue *BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
 	}
 
 
-IValue* ArithExpr::Eval( eval_type /* etype */ )
+IValue* ArithExpr::Eval( eval_type etype )
 	{
-	IValue* result = left->CopyEval();
+	IValue* result = left->CopyEval( etype == EVAL_COPY_PRESERVE );
 	const IValue* rhs = right->ReadOnlyEval();
 
 	const char *err_str = 0;
