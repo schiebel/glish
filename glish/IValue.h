@@ -53,22 +53,22 @@ public:
 	IValue( );
 	IValue( const char *message, const char *file, int lineNum );
 	IValue( const Value *val, const char *file, int lineNum ) :
-				unref(0), Value( val, file, lineNum ) { }
+				Value( val, file, lineNum ) { }
 
-	IValue( const Value &v ) : unref(0), Value(v)
+	IValue( const Value &v ) : Value(v)
 		{ if ( v.doPropagate( ) ) SetUnref( ((IValue &)v).unref ); }
-	IValue( const IValue &v ) : unref(0), Value(v)
+	IValue( const IValue &v ) : Value(v)
 		{ if ( v.doPropagate( ) ) SetUnref( ((IValue &)v).unref ); }
 
-	IValue( glish_bool v ) : unref(0), Value( v ) { }
-	IValue( byte v ) : unref(0), Value( v ) { }
-	IValue( short v ) : unref(0), Value( v ) { }
-	IValue( int v ) : unref(0), Value( v ) { }
-	IValue( float v ) : unref(0), Value( v ) { }
-	IValue( double v ) : unref(0), Value( v ) { }
-	IValue( complex v ) : unref(0), Value( v ) { }
-	IValue( dcomplex v ) : unref(0), Value( v ) { }
-	IValue( const char* v ) : unref(0), Value( v ) { }
+	IValue( glish_bool v ) : Value( v ) { }
+	IValue( byte v ) : Value( v ) { }
+	IValue( short v ) : Value( v ) { }
+	IValue( int v ) : Value( v ) { }
+	IValue( float v ) : Value( v ) { }
+	IValue( double v ) : Value( v ) { }
+	IValue( complex v ) : Value( v ) { }
+	IValue( dcomplex v ) : Value( v ) { }
+	IValue( const char* v ) : Value( v ) { }
 	IValue( funcptr v );
 	IValue( regexptr v );
 	IValue( fileptr v );
@@ -78,45 +78,45 @@ public:
 	// "TAKE_OVER_ARRAY" it will simply be used.
 	IValue( agentptr value, array_storage_type storage = COPY_ARRAY );
 
-	IValue( recordptr v ) : unref(0), Value( v ) { }
+	IValue( recordptr v ) : Value( v ) { }
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
 	IValue( Value* ref_value, value_type val_type ) :
-			unref(0), Value( ref_value, val_type ) { }
+			Value( ref_value, val_type ) { }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
-		value_type val_type, int take_index = 0 ) : unref(0),
+		value_type val_type, int take_index = 0 ) :
 			Value( ref_value, index, num_elements,
 			       val_type, take_index ) { }
 
 	IValue( glish_bool value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( byte value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( short value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( int value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( float value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( double value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( complex value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( dcomplex value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( charptr value[], int num_elements,
-		array_storage_type storage = TAKE_OVER_ARRAY ) : unref(0),
+		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
@@ -125,15 +125,15 @@ public:
 	IValue( fileptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 
-	IValue( glish_boolref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( byteref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( shortref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( intref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( floatref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( doubleref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( complexref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( dcomplexref& value_ref ) : unref(0), Value( value_ref ) { }
-	IValue( charptrref& value_ref ) : unref(0), Value( value_ref ) { }
+	IValue( glish_boolref& value_ref ) : Value( value_ref ) { }
+	IValue( byteref& value_ref ) : Value( value_ref ) { }
+	IValue( shortref& value_ref ) : Value( value_ref ) { }
+	IValue( intref& value_ref ) : Value( value_ref ) { }
+	IValue( floatref& value_ref ) : Value( value_ref ) { }
+	IValue( doubleref& value_ref ) : Value( value_ref ) { }
+	IValue( complexref& value_ref ) : Value( value_ref ) { }
+	IValue( dcomplexref& value_ref ) : Value( value_ref ) { }
+	IValue( charptrref& value_ref ) : Value( value_ref ) { }
 
 	~IValue();
 
