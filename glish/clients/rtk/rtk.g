@@ -80,6 +80,11 @@ func init_rtk( ) {
 					     nysub, relief, borderwidth, padx, pady,
 					     foreground, background, fill, mincolors,
 					     maxcolors, cmapshare, cmapfail )
+
+    ret.tk_hold := func ( ) { rtk->tk_hold(T); return T }
+    ret.tk_release := func ( ) { rtk->tk_release(T); return T }
+    ret.tk_iconpath := func ( path ) { rtk->tk_iconpath(path); return T }
+
     return ref ret
 }
 
@@ -96,3 +101,7 @@ message := dtk.message
 listbox := dtk.listbox
 canvas := dtk.canvas
 pgplot := dtk.pgplot
+
+tk_hold := dtk.tk_hold
+tk_release := dtk.tk_release
+tk_iconpath := dtk.tk_iconpath

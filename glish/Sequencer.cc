@@ -2926,7 +2926,11 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 					agent = pxy;
 					}
 				else
-					error->Report( "bad proxy identifier" );
+					{
+					// BAD PROXY IDENTIFIER
+					Unref( event );
+					return 0;
+					}
 
 				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 				}

@@ -83,6 +83,9 @@ int main( int argc, char** argv )
 #if defined(TKPGPLOT)
 	stor.Register( "pgplot", TkPgplot::Create );
 #endif
+	stor.Register( "tk_hold", TkAgent::HoldEvents );
+	stor.Register( "tk_release", TkAgent::ReleaseEvents );
+	stor.Register( "tk_iconpath", TkAgent::SetBitmapPath );
 
 	stor.Loop();
 	}

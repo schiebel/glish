@@ -1317,8 +1317,7 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 
 void TkAgent::ProcessEvent( const char *name, Value *val )
 	{
-	if ( ! IsValid() )
-		Error("graphic is defunct");
+	if ( ! IsValid() ) return;
 
 	TkProc *proc = procs[name];
 
@@ -1396,12 +1395,13 @@ int TkAgent::DoOneTkEvent( )
 	return ret;
 	}
 
-void TkAgent::SetBitmapPath( const Value *p )
+void TkAgent::SetBitmapPath( ProxyStore *, Value *v, void *)
 	{
-	if ( p->Type() == TYPE_STRING )
+	if ( v && v->Type() == TYPE_STRING )
 		{
 		if ( bitmap_path ) Unref( bitmap_path );
-		bitmap_path = new Value( *p );
+		bitmap_path = v;
+		Ref( bitmap_path );
 		}
 	}
 

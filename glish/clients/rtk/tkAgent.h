@@ -183,11 +183,11 @@ class TkAgent : public Proxy {
 	static int GlishEventsHeld() { return hold_glish_events; }
 	static void FlushGlishEvents();
 
-	static void HoldEvents() { hold_tk_events++; }
-	static void ReleaseEvents() { hold_tk_events--; }
+	static void HoldEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events++; }
+	static void ReleaseEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events--; }
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );
 	static int DoOneTkEvent( );
-	static void SetBitmapPath( const Value *p );
+	static void SetBitmapPath( ProxyStore *p, Value *v, void *c);
 
 	// For some widgets, they must be enabled before an action is performed
 	// otherwise widgets which are disabled will not even accept changes
