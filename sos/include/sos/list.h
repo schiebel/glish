@@ -63,7 +63,6 @@ class BaseList : public GcRef {
 
 	void insert(ent);	  // add at head of list
 	ent remove(ent);	  // delete entry from list
-	ent swap(ent O,ent N);	  // delete entry from list
 	void insert_nth(int,ent); // add at nth slot in list
 	ent remove_nth(int);	  // delete nth entry from list
 	ent get();		  // return and remove ent at end of list
@@ -77,7 +76,7 @@ class BaseList : public GcRef {
 	// four bytes & use this cautiously!
 	FINAL set_finalize_handler( FINAL=0 );
 
-	ent replace(int, ent);	// replace entry #i with a new value
+	ent replace(int, ent);     // replace entry #i with a new value
 
 	// return nth ent of list (do not remove).
 	ent operator[]( int i ) const
@@ -142,8 +141,6 @@ struct List(type) : BaseList						\
 	void append(type a)	{ BaseList::append(PASTE(type,_to_void)(a)); } \
 	type remove(type a)						\
 			{ return PASTE(void_to_,type)(BaseList::remove(PASTE(type,_to_void)(a))); } \
-	type swap(type Old, type New)					\
-			{ return PASTE(void_to_,type)(BaseList::swap(PASTE(type,_to_void)(Old),PASTE(type,_to_void)(New))); } \
 	void insert_nth(int n, type a)					\
 				{ BaseList::insert_nth(n,PASTE(type,_to_void)(a)); } \
 	type remove_nth(int n)	{ return PASTE(void_to_,type)(BaseList::remove_nth(n)); } \
@@ -184,8 +181,6 @@ struct PList(type) : BaseList						\
 	void append(type* a)	{ BaseList::append(ent(a)); }		\
 	type* remove(type* a)						\
 		{ return (type*)BaseList::remove(ent(a)); }		\
-	type* swap(type *Old, type *New)				\
-		{ return (type*)BaseList::swap(ent(Old),ent(New)); }	\
 	void insert_nth(int n, type* a)					\
 				{ BaseList::insert_nth(n,ent(a)); }	\
 	type* remove_nth(int n)	{ return (type*)(BaseList::remove_nth(n)); } \

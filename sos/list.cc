@@ -141,21 +141,6 @@ ent BaseList::remove(ent a)
 	return remove_nth(i);
 	}
 
-ent BaseList::swap(ent Old, ent New)
-	{
-	int i = 0;
-	for ( ; i < num_entries && Old != entry[i]; i++ )
-		;
-
-	if ( i >= 0 && i < num_entries )
-		{
-		entry[i] = New;
-		return Old;
-		}
-
-	return 0;
-	}
-
 ent BaseList::remove_nth(int n)
 	{
 	if ( n < 0 || n >= num_entries )
