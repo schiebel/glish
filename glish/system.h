@@ -121,6 +121,7 @@ extern "C" {
 	 * correctly declaring their argument type.
 	 */
 	void* alloc_memory( unsigned int size );
+	void* alloc_zero_memory( unsigned int size );
 	void* realloc_memory( void* ptr, unsigned int new_size );
 	void free_memory( void* ptr );
 
