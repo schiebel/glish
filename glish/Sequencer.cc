@@ -2797,6 +2797,8 @@ IValue *Sequencer::Include( const char *file )
 		}
 	else if ( include_once.Lookup(expanded_name) )
 		{
+		free_memory( expanded_name );
+		expanded_name = 0;
 		return new IValue( glish_true );
 		}
 
@@ -2825,8 +2827,6 @@ IValue *Sequencer::Include( const char *file )
 
 	NodeUnref( stmts );
 	IValue *ret = glish_parser( stmts );
-	free_memory( expanded_name );
-	expanded_name = 0;
 
 	if ( ! ret )
 		{
@@ -2837,16 +2837,25 @@ IValue *Sequencer::Include( const char *file )
 			ret = 0;
 			}
 		}
-	else if ( stmts )
+	else 
 		{
-		stmt_list del;
-		stmts->CollectUnref(del);
-		loop_over_list( del, i )
-			NodeUnref( del[i] );
-		stmts = 0;
-		while ( scopes.length() > orig_scope_len )
-			PopScope();
+		if ( include_once.Lookup(expanded_name) )
+			free_memory( include_once.Remove(expanded_name) );
+
+		if ( stmts )
+			{
+			stmt_list del;
+			stmts->CollectUnref(del);
+			loop_over_list( del, i )
+				NodeUnref( del[i] );
+			stmts = 0;
+			while ( scopes.length() > orig_scope_len )
+				PopScope();
+			}
 		}
+
+	free_memory( expanded_name );
+	expanded_name = 0;
 
 	line_num = old_line_num;
 	file_name = old_file_name;
