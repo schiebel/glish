@@ -1,30 +1,34 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <osfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/types.h>
+
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+
+#if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
+#ifndef WEXITSTATUS
+#define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
+#endif
+
+#ifdef HAVE_VFORK_H
+#include <vfork.h>
+#endif
 
 #include "Glish/Client.h"
 
 #include "Channel.h"
 
-
-#ifdef SABER
-#include <libc.h>
-#define WEXITSTATUS(x)  (((union wait*)&(x))->w_retcode)
-#endif
-
-#ifdef hpux
-#define WEXITSTATUS(x)  (((union wait*)&(x))->w_retcode)
-#endif
-
-#ifdef __STDC__
-typedef void (*SIG_PF)();
-#endif
 
 inline int streq( const char* a, const char* b )
 	{
@@ -100,7 +104,7 @@ int main( int argc, char** argv )
 
 	child_name = argv[0];
 
-	(void) signal( SIGCHLD, (SIG_PF) child_exit_handler );
+	(void) install_signal_handler( SIGCHLD, child_exit_handler );
 
 	if ( pipe( child_exit_pipe ) < 0 )
 		{
@@ -321,27 +325,12 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status )
 
 int await_child_exit()
 	{ // EOF - presumably the child is about to exit.
-
-// See glish/LocalExec.cc for an explanation of the following black magic.
-#ifdef __GNUG__
-#ifndef __libgxx_sys_wait_h
-#define wait WaitStatus
-#endif
-#endif
-
-#ifdef __libgxx_sys_wait_h
-	// The g++ 2.1 headers define wait3() to take an int* as its
-	// first argument, not a union wait*.
 	int child_status;
-#else
-	union wait child_status;
-#endif
-
 	int child_id;
 
 	do
 		{
-		child_id = wait3( &child_status, 0, 0 );
+		child_id = waitpid( pid_t(0), &child_status, WNOHANG );
 		}
 	while ( child_id < 0 && errno == EINTR );
 

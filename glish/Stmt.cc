@@ -5,19 +5,17 @@
 #include <stream.h>
 #include <string.h>
 
-#include "Glish/Value.h"
-
+#include "Reporter.h"
+#include "Sequencer.h"
 #include "Stmt.h"
 #include "BuiltIn.h"
 #include "Task.h"
-#include "Reporter.h"
-#include "Sequencer.h"
 
 
 Stmt* null_stmt;
 
 
-Value* Stmt::Exec( bool value_needed, stmt_flow_type& flow )
+Value* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	{
 	int prev_line_num = line_num;
 
@@ -35,13 +33,13 @@ void Stmt::Notify( Agent* /* agent */ )
 	{
 	}
 
-bool Stmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
+int Stmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
 			Value* /* value */ ) const
 	{
-	return true;
+	return 1;
 	}
 
-void Stmt::SetActivity( bool /* activate */ )
+void Stmt::SetActivity( int /* activate */ )
 	{
 	}
 
@@ -53,9 +51,9 @@ SeqStmt::SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs )
 	description = "sequence";
 	}
 
-Value* SeqStmt::DoExec( bool value_needed, stmt_flow_type& flow )
+Value* SeqStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	{
-	Value* result = lhs->Exec( false, flow );
+	Value* result = lhs->Exec( 0, flow );
 
 	if ( flow == FLOW_NEXT )
 		{
@@ -82,7 +80,7 @@ WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt* arg_stmt,
 	trigger = arg_trigger;
 	stmt = arg_stmt;
 	sequencer = arg_sequencer;
-	active = false;
+	active = 0;
 
 	index = sequencer->RegisterStmt( this );
 
@@ -93,7 +91,7 @@ WheneverStmt::~WheneverStmt()
 	{
 	}
 
-Value* WheneverStmt::DoExec( bool /* value_needed */,
+Value* WheneverStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
 	Frame* frame = sequencer->CurrentFrame();
@@ -101,7 +99,7 @@ Value* WheneverStmt::DoExec( bool /* value_needed */,
 	loop_over_list( *trigger, i )
 		(*trigger)[i]->Register( new Notifiee( this, frame ) );
 
-	active = true;
+	active = 1;
 
 	sequencer->WheneverExecuted( this );
 
@@ -111,20 +109,20 @@ Value* WheneverStmt::DoExec( bool /* value_needed */,
 void WheneverStmt::Notify( Agent* /* agent */ )
 	{
 	stmt_flow_type flow;
-	Unref( stmt->Exec( false, flow ) );
+	Unref( stmt->Exec( 0, flow ) );
 
 	if ( flow != FLOW_NEXT )
 		warn->Report( "loop/break/return does not make sense inside",
 				this );
 	}
 
-bool WheneverStmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
+int WheneverStmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
 				Value* /* value */ ) const
 	{
 	return active;
 	}
 
-void WheneverStmt::SetActivity( bool activate )
+void WheneverStmt::SetActivity( int activate )
 	{
 	active = activate;
 	}
@@ -149,7 +147,7 @@ LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
 	description = "link";
 	}
 
-Value* LinkStmt::DoExec( bool /* value_needed */, stmt_flow_type& /* flow */ )
+Value* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	loop_over_list( *source, i )
 		{
@@ -255,7 +253,7 @@ void LinkStmt::MakeLink( Task* src, const char* source_event,
 
 void LinkStmt::LinkAction( Task* src, Value* v )
 	{
-	src->SendSingleValueEvent( "*link-sink*", v, true );
+	src->SendSingleValueEvent( "*link-sink*", v, 1 );
 	}
 
 
@@ -268,11 +266,11 @@ UnLinkStmt::UnLinkStmt( event_list* arg_source, event_list* arg_sink,
 
 void UnLinkStmt::LinkAction( Task* src, Value* v )
 	{
-	src->SendSingleValueEvent( "*unlink-sink*", v, true );
+	src->SendSingleValueEvent( "*unlink-sink*", v, 1 );
 	}
 
 
-AwaitStmt::AwaitStmt( event_list* arg_await_list, bool arg_only_flag,
+AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 			event_list* arg_except_list, Sequencer* arg_sequencer )
 	{
 	await_list = arg_await_list;
@@ -284,7 +282,7 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, bool arg_only_flag,
 	description = "await";
 	}
 
-Value* AwaitStmt::DoExec( bool /* value_needed */, stmt_flow_type& /* flow */ )
+Value* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	loop_over_list( *await_list, i )
 		(*await_list)[i]->Register( new Notifiee( this, 0 ) );
@@ -322,7 +320,7 @@ void AwaitStmt::Describe( ostream& s ) const
 	}
 
 
-ActivateStmt::ActivateStmt( bool arg_activate, Expr* e,
+ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 				Sequencer* arg_sequencer )
 	{
 	activate = arg_activate;
@@ -332,7 +330,7 @@ ActivateStmt::ActivateStmt( bool arg_activate, Expr* e,
 	description = "activate";
 	}
 
-Value* ActivateStmt::DoExec( bool /* value_needed */,
+Value* ActivateStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
 	if ( expr )
@@ -399,10 +397,10 @@ IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 	description = "if";
 	}
 
-Value* IfStmt::DoExec( bool value_needed, stmt_flow_type& flow )
+Value* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	{
 	const Value* test_value = expr->ReadOnlyEval();
-	bool take_true_branch = test_value->BoolVal();
+	int take_true_branch = test_value->BoolVal();
 	expr->ReadOnlyDone( test_value );
 
 	Value* result = 0;
@@ -447,7 +445,7 @@ ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
 	description = "for";
 	}
 
-Value* ForStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
+Value* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	Value* range_value = range->CopyEval();
 
@@ -469,7 +467,7 @@ Value* ForStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
 			index->Assign( iter_value );
 
 			Unref( result );
-			result = body->Exec( false, flow );
+			result = body->Exec( 0, flow );
 
 			Unref( loop_counter );
 
@@ -504,20 +502,20 @@ WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
 	description = "while";
 	}
 
-Value* WhileStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
+Value* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	Value* result = 0;
 
 	while ( 1 )
 		{
 		const Value* test_value = test->ReadOnlyEval();
-		bool do_test = test_value->BoolVal();
+		int do_test = test_value->BoolVal();
 		test->ReadOnlyDone( test_value );
 
 		if ( do_test )
 			{
 			Unref( result );
-			result = body->Exec( false, flow );
+			result = body->Exec( 0, flow );
 			if ( flow == FLOW_BREAK || flow == FLOW_RETURN )
 				break;
 			}
@@ -541,7 +539,7 @@ void WhileStmt::Describe( ostream& s ) const
 	}
 
 
-Value* PrintStmt::DoExec( bool /* value_needed */, stmt_flow_type& /* flow */ )
+Value* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	if ( args )
 		{
@@ -566,7 +564,7 @@ void PrintStmt::Describe( ostream& s ) const
 	}
 
 
-Value* ExprStmt::DoExec( bool value_needed, stmt_flow_type& /* flow */ )
+Value* ExprStmt::DoExec( int value_needed, stmt_flow_type& /* flow */ )
 	{
 	if ( value_needed && ! expr->Invisible() )
 		return expr->CopyEval();
@@ -588,7 +586,7 @@ void ExprStmt::DescribeSelf( ostream& s ) const
 	expr->DescribeSelf( s );
 	}
 
-Value* ExitStmt::DoExec( bool /* value_needed */, stmt_flow_type& /* flow */ )
+Value* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	int exit_val = status ? status->CopyEval()->IntVal() : 0;
 
@@ -610,19 +608,19 @@ void ExitStmt::Describe( ostream& s ) const
 		}
 	}
 
-Value* LoopStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
+Value* LoopStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_LOOP;
 	return 0;
 	}
 
-Value* BreakStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
+Value* BreakStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_BREAK;
 	return 0;
 	}
 
-Value* ReturnStmt::DoExec( bool /* value_needed */, stmt_flow_type& flow )
+Value* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_RETURN;
 
@@ -644,7 +642,7 @@ void ReturnStmt::Describe( ostream& s ) const
 		}
 	}
 
-Value* NullStmt::DoExec( bool /* value_needed */, stmt_flow_type& /* flow */ )
+Value* NullStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	return 0;
 	}

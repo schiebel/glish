@@ -3,6 +3,7 @@
 #include <stream.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "Agent.h"
 #include "Frame.h"
 #include "Glish/Value.h"
@@ -73,17 +74,17 @@ Agent::~Agent()
 	}
 
 void Agent::SendSingleValueEvent( const char* event_name, const Value* value,
-					bool log )
+					int log )
 	{
 	ConstExpr c( value );	// ### make sure ConstExpr doesn't nuke
-	Parameter p( "event_in", VAL_VAL, &c, false );
+	Parameter p( "event_in", VAL_VAL, &c, 0 );
 	parameter_list plist;
 	plist.append( &p );
 
-	SendEvent( event_name, &plist, false, log );
+	SendEvent( event_name, &plist, 0, log );
 	}
 
-bool Agent::CreateEvent( const char* event_name, Value* event_value )
+int Agent::CreateEvent( const char* event_name, Value* event_value )
 	{
 	if ( ! agent_value )
 		fatal->Report(
@@ -93,7 +94,7 @@ bool Agent::CreateEvent( const char* event_name, Value* event_value )
 	}
 
 void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
-					bool is_copy )
+					int is_copy )
 	{
 	if ( ! field )
 		field = INTERESTED_IN_ALL;
@@ -120,19 +121,19 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 		}
 	}
 
-bool Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
+int Agent::HasRegisteredInterest( Stmt* stmt, const char* field )
 	{
 	notification_list* interest = interested_parties[field];
 
 	if ( interest && SearchNotificationList( interest, stmt ) )
-		return true;
+		return 1;
 
 	interest = interested_parties[INTERESTED_IN_ALL];
 
 	if ( interest && SearchNotificationList( interest, stmt ) )
-		return true;
+		return 1;
 
-	return false;
+	return 0;
 	}
 
 Value* Agent::AssociatedStatements()
@@ -166,7 +167,7 @@ Value* Agent::AssociatedStatements()
 		"internal inconsistency in Agent::AssociatedStatements" );
 
 	Value* r = create_record();
-	r->SetField( "event", event, num_stmts );
+	r->SetField( "event", (charptr*) event, num_stmts );
 	r->SetField( "stmt", stmt, num_stmts );
 
 	return r;
@@ -185,10 +186,10 @@ void Agent::DescribeSelf( ostream& s ) const
 		s << "<agent>";
 	}
 
-Value* Agent::BuildEventValue( parameter_list* args, bool use_refs )
+Value* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	{
 	if ( args->length() == 0 )
-		return new Value( false );
+		return error_value();
 
 	if ( args->length() == 1 )
 		{
@@ -228,10 +229,10 @@ Value* Agent::BuildEventValue( parameter_list* args, bool use_refs )
 	return event_val;
 	}
 
-bool Agent::NotifyInterestedParties( const char* field, Value* value )
+int Agent::NotifyInterestedParties( const char* field, Value* value )
 	{
 	notification_list* interested = interested_parties[field];
-	bool there_is_interest = false;
+	int there_is_interest = 0;
 
 	if ( interested )
 		{
@@ -244,7 +245,7 @@ bool Agent::NotifyInterestedParties( const char* field, Value* value )
 			(void) DoNotification( (*interested)[i], field, value );
 			}
 
-		there_is_interest = true;
+		there_is_interest = 1;
 		}
 
 	interested = interested_parties[INTERESTED_IN_ALL];
@@ -254,7 +255,7 @@ bool Agent::NotifyInterestedParties( const char* field, Value* value )
 		loop_over_list( *interested, i )
 			(void) DoNotification( (*interested)[i], field, value );
 
-		there_is_interest = true;
+		there_is_interest = 1;
 		}
 
 	if ( ! there_is_interest && agent_value->Type() == TYPE_RECORD )
@@ -270,7 +271,7 @@ bool Agent::NotifyInterestedParties( const char* field, Value* value )
 	return there_is_interest;
 	}
 
-bool Agent::DoNotification( Notifiee* n, const char* field, Value* value )
+int Agent::DoNotification( Notifiee* n, const char* field, Value* value )
 	{
 	Stmt* s = n->stmt;
 
@@ -280,30 +281,31 @@ bool Agent::DoNotification( Notifiee* n, const char* field, Value* value )
 
 		sequencer->QueueNotification( note );
 
-		return true;
+		return 1;
 		}
 
 	else
-		return false;
+		return 0;
 	}
 
-bool Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
+int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
 	{
 	loop_over_list( *list, i )
 		if ( (*list)[i]->stmt == stmt )
-			return true;
+			return 1;
 
-	return false;
+	return 0;
 	}
 
 
 Value* UserAgent::SendEvent( const char* event_name, parameter_list* args,
-				bool /* is_request */, bool log )
+				int /* is_request */, int log )
 	{
-	Value* event_val = BuildEventValue( args, false );
+	Value* event_val = BuildEventValue( args, 0 );
 
 	if ( log )
-		sequencer->LogEvent( "<agent>", event_name, event_val, false );
+		sequencer->LogEvent( "<agent>", "<agent>",
+					event_name, event_val, 0 );
 
 	CreateEvent( event_name, event_val );
 

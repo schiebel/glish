@@ -1,11 +1,17 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <osfcn.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 #include "Glish/Dict.h"
 #include "Glish/Client.h"
@@ -15,16 +21,11 @@
 #include "Reporter.h"
 #include "Socket.h"
 #include "ports.h"
-#include "system.h"
-
-#if defined (SABER)
-#include <libc.h>
-#endif
 
 
 extern "C" {
-char* sys_errlist[];
-int chdir( const char* path );
+	extern char* sys_errlist[];
+	extern int chdir( const char* path );
 }
 
 
@@ -77,7 +78,7 @@ protected:
 	char* work_dir;		// working-directory for this interpreter.
 
 	// Whether we've generated an error message for a bad work_dir.
-	bool did_wd_msg;
+	int did_wd_msg;
 
 	// Clients created on behalf of interpreter.
 	PDict(LocalExec) clients;
@@ -93,17 +94,9 @@ const char* prog_name;
 
 int main( int argc, char** argv )
 	{
-	char local_host[64];
-
-	if ( gethostname( local_host, sizeof( local_host ) ) < 0 )
-		{
-		fprintf( stderr, "%s: unknown local host", argv[0] );
-		strcpy( local_host, "<unknown>" );
-		}
-
 	static char prog_name_buf[1024];
 	sprintf( prog_name_buf, "%s @ %s [%d]", argv[0],
-			local_host, int( getpid() ) );
+			local_host_name(), int( getpid() ) );
 
 	prog_name = prog_name_buf;
 
@@ -232,7 +225,7 @@ GlishDaemon::GlishDaemon( Client* client )
 	{
 	interpreter = client;
 	work_dir = 0;
-	did_wd_msg = false;
+	did_wd_msg = 0;
 	}
 
 GlishDaemon::~GlishDaemon()
@@ -298,7 +291,7 @@ int GlishDaemon::ClientHasTerminated( int pid )
 void GlishDaemon::SetWD( Value* v )
 	{
 	delete work_dir;
-	did_wd_msg = false;
+	did_wd_msg = 0;
 	work_dir = v->StringVal();
 
 	ChangeDir();	// try it out to see if it's okay
@@ -383,7 +376,7 @@ void GlishDaemon::ShellCommand( Value* cmd )
 
 	if ( ! shell )
 		{
-		Value F( false );
+		Value F( glish_false );
 		interpreter->PostEvent( "fail", &F );
 		}
 	else
@@ -394,7 +387,7 @@ void GlishDaemon::ShellCommand( Value* cmd )
 		// easy since it will grow the array as needed.  The
 		// entire result could then be stuffed into a record.
 
-		Value T( true );
+		Value T( glish_true );
 
 		interpreter->PostEvent( "okay", &T );
 		char line_buf[8192];
@@ -405,7 +398,7 @@ void GlishDaemon::ShellCommand( Value* cmd )
 		interpreter->PostEvent( "done", &T );
 
 		// Cfront, in its infinite bugginess, complains about
-		// "int assigned to enum bool" if we use
+		// "int assigned to enum glish_bool" if we use
 		//
 		//	Value status_val( pclose( shell ) );
 		//
@@ -453,6 +446,6 @@ void GlishDaemon::ChangeDir()
 		{
 		error->Report( "couldn't change to directory ", work_dir, ": ",
 					sys_errlist[errno] );
-		did_wd_msg = true;
+		did_wd_msg = 1;
 		}
 	}

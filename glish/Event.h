@@ -24,7 +24,7 @@ public:
 	// called already knows what the event name is.  If is_request is
 	// true than this is a request/response event, and the value of
 	// the response is returned; otherwise the function returns nil.
-	Value* SendEvent( ParameterPList* arguments, bool is_request );
+	Value* SendEvent( ParameterPList* arguments, int is_request );
 
 	// Used to register a "notifiee" (i.e., an event statement plus
 	// an associated Frame) as wanting to be notified of occurrences

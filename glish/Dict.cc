@@ -43,8 +43,18 @@ Dictionary::Dictionary( dict_order ordering, int initial_size )
 
 Dictionary::~Dictionary()
 	{
+	for ( int i = 0; i < num_buckets; ++i )
+		if ( tbl[i] )
+			delete tbl[i];
+
 	delete tbl;
-	delete order;
+
+	if ( order )
+		{
+		while ( order->length() > 0 )
+			delete order->get();
+		delete order;
+		}
 	}
 
 

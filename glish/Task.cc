@@ -10,8 +10,6 @@
 
 #include "system.h"
 
-#include "Glish/Client.h"
-
 #include "Channel.h"
 #include "Select.h"
 #include "LocalExec.h"
@@ -29,14 +27,14 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	channel = 0;
 	local_channel = 0;
 	selector = 0;
-	task_error = true;
-	no_such_program = true;
+	task_error = 1;
+	no_such_program = 1;
 	executable = 0;
 	name = 0;
 	read_pipe_str = write_pipe_str = 0;
-	pipes_used = false;
+	pipes_used = 0;
 
-	active = false;	// not true till we get a .established event
+	active = 0;	// not true till we get a .established event
 
 	id = sequencer->RegisterTask( this );
 
@@ -64,12 +62,12 @@ Task::~Task()
 	}
 
 Value* Task::SendEvent( const char* event_name, parameter_list* args,
-			bool is_request, bool log )
+			int is_request, int log )
 	{
 	if ( task_error )
-		return is_request ? new Value( false ) : 0;
+		return is_request ? error_value() : 0;
 
-	Value* event_val = BuildEventValue( args, true );
+	Value* event_val = BuildEventValue( args, 1 );
 	Value* result = 0;
 
 	if ( is_request && ! channel )
@@ -85,7 +83,7 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 
 		if ( ! channel )
 			// Connection problem, bail out.
-			return new Value( false );
+			return error_value();
 		}
 
 	if ( ! channel )
@@ -105,7 +103,7 @@ Value* Task::SendEvent( const char* event_name, parameter_list* args,
 		int fd = channel->WriteFD();
 
 		if ( log )
-			sequencer->LogEvent( id, event_name, event_val, false );
+			sequencer->LogEvent( id, name, event_name, event_val, 0 );
 
 		if ( is_request )
 			{
@@ -146,14 +144,13 @@ void Task::SetChannel( Channel* c, Selector* s )
 		{
 		loop_over_list( *pending_event_names, i )
 			{
-			char* name = (*pending_event_names)[i];
+			char* n = (*pending_event_names)[i];
 			Value* value = (*pending_event_values)[i];
 
-			sequencer->LogEvent( id, name, value, false );
+			sequencer->LogEvent( id, name, n, value, 0 );
+			send_event( channel->WriteFD(), n, value );
 
-			send_event( channel->WriteFD(), name, value );
-
-			delete name;
+			delete n;
 			Unref( value );
 			}
 
@@ -198,8 +195,9 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 	int use_socket = attrs->daemon_channel || attrs->async_flag;
 
-	// Leave room for the executable's name, -id flag, and id.
-	argc += 3;
+	// Leave room for the executable's name, the -id flag, the id,
+	// the -interpreter flag, and the interpreter's tag.
+	argc += 5;
 
 	if ( use_socket )
 		// Leave room for -host <host> -port <port>
@@ -224,7 +222,7 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 	if ( use_socket )
 		{
-		pipes_used = false;
+		pipes_used = 0;
 
 		argv[argp++] = "-host";
 		argv[argp++] = sequencer->ConnectionHost();
@@ -238,7 +236,7 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 		if ( pipe( read_pipe ) < 0 || pipe( write_pipe ) < 0 )
 			perror( "glish: problem creating pipe" );
 
-		pipes_used = true;
+		pipes_used = 1;
 
 		mark_close_on_exec( read_pipe[0] );
 		mark_close_on_exec( write_pipe[1] );
@@ -252,6 +250,9 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 		sprintf( buf, "%d", read_pipe[1] );
 		argv[argp++] = read_pipe_str = strdup( buf );
 		}
+
+	argv[argp++] = "-interpreter";
+	argv[argp++] = sequencer->InterpreterTag();
 
 	if ( attrs->suspend_flag )
 		argv[argp++] = "-suspend";
@@ -290,8 +291,8 @@ void Task::Exec( const char** argv )
 								write_pipe[1] );
 		}
 
-	no_such_program = false;
-	task_error = bool( executable->ExecError() );
+	no_such_program = 0;
+	task_error = executable->ExecError();
 
 	if ( ! task_error )
 		// This is a little buggy - we'd like the sequencer to know
@@ -316,7 +317,7 @@ void Task::Exec( const char** argv )
 	delete exec_name;
 	}
 
-void Task::SetActivity( bool is_active )
+void Task::SetActivity( int is_active )
 	{
 	active = is_active;
 	CreateEvent( "active", new Value( is_active ) );
@@ -336,7 +337,7 @@ ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 
 	// Turn off async attribute; we don't want the shell_client
 	// program to run asynchronously.
-	attrs->async_flag = false;
+	attrs->async_flag = 0;
 
 	int argc;
 	// Need three arguments: sh, -c, arg-string
@@ -370,7 +371,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 	// See if based on its name we should suspend this client.
 	if ( s->ShouldSuspend( name ) )
-		task_attrs->suspend_flag = true;
+		task_attrs->suspend_flag = 1;
 
 	// Count up how many arguments there are.
 	int num_args = 0;
@@ -390,7 +391,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 	int argp = argc - num_args;
 	int first_arg_pos = argp;
-	bool saw_name = false;
+	int saw_name = 0;
 
 	loop_over_list( *args, j )
 		{
@@ -399,14 +400,15 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 		if ( arg->Type() == TYPE_STRING )
 			{
 			charptr* words = arg->StringPtr();
+			int n = arg->Length();
 
-			for ( int k = 0; k < arg->Length(); ++k )
+			for ( int k = 0; k < n; ++k )
 				{
 				if ( saw_name )
 					argv[argp++] = strdup( words[k] );
 				else
 					// Skip over name.
-					saw_name = true;
+					saw_name = 1;
 				}
 			}
 
@@ -416,7 +418,7 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 				argv[argp++] = arg->StringVal();
 			else
 				// Skip over name.
-				saw_name = true;
+				saw_name = 1;
 			}
 		}
 
@@ -436,8 +438,8 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 
 void ClientTask::CreateAsyncClient( const char** argv )
 	{
-	no_such_program = false;
-	task_error = false;
+	no_such_program = 0;
+	task_error = 0;
 
 	sequencer->NewClientStarted();
 
@@ -449,8 +451,8 @@ void ClientTask::CreateAsyncClient( const char** argv )
 
 
 TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname,
-		    Channel* arg_daemon_channel, bool arg_async_flag,
-		    bool arg_ping_flag, bool arg_suspend_flag )
+		    Channel* arg_daemon_channel, int arg_async_flag,
+		    int arg_ping_flag, int arg_suspend_flag )
 	{
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
@@ -483,7 +485,7 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( args.length() <= task_args_start )
 		{
 		error->Report( "too few arguments given to create_task" );
-		return new Value( false );
+		return error_value();
 		}
 
 	char* var_ID = GetString( args[0] );
@@ -491,10 +493,10 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 	// If the following values are changed, be sure to also change
 	// them in CreateTaskBuiltIn::DoSideEffectsCall().
-	bool client_flag = args[2]->BoolVal();
-	bool async_flag = args[3]->BoolVal();
-	bool ping_flag = args[4]->BoolVal();
-	bool suspend_flag = args[5]->BoolVal();
+	int client_flag = args[2]->IntVal();
+	int async_flag = args[3]->IntVal();
+	int ping_flag = args[4]->IntVal();
+	int suspend_flag = args[5]->IntVal();
 	Value* input = 0;
 
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )
@@ -552,7 +554,7 @@ Value* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 void CreateTaskBuiltIn::DoSideEffectsCall( const_args_list* args_val,
-						bool& side_effects_okay )
+						int& side_effects_okay )
 	{
 	// Check for synchronous shell call; we allow those to be
 	// for side-effects only.  The corresponding arguments are
@@ -561,11 +563,11 @@ void CreateTaskBuiltIn::DoSideEffectsCall( const_args_list* args_val,
 	const_args_list& args = *args_val;
 	if ( args.length() > 3 )
 		{
-		bool client_flag = args[2]->BoolVal();
-		bool async_flag = args[3]->BoolVal();
+		int client_flag = args[2]->IntVal();
+		int async_flag = args[3]->IntVal();
 
 		if ( ! client_flag && ! async_flag )
-			side_effects_okay = true;
+			side_effects_okay = 1;
 		}
 
 	Unref( DoCall( args_val ) );
@@ -591,10 +593,10 @@ Value* CreateTaskBuiltIn::SynchronousShell( const char* command,
 		{
 		warn->Report( "could not execute shell command \"", command,
 				"\"" );
-		return new Value( false );
+		return error_value();
 		}
 
-	Value* result = GetShellCmdOutput( command, shell, false );
+	Value* result = GetShellCmdOutput( command, shell, 0 );
 
 	int status = pclose_with_input( shell );
 
@@ -630,10 +632,10 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
-		return new Value( false );
+		return error_value();
 		}
 
-	bool was_okay = e->value->BoolVal();
+	int was_okay = e->value->IntVal();
 	delete e;
 
 	if ( ! was_okay )
@@ -641,16 +643,16 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 		warn->Report( "could not execute shell command \"", command,
 				"\" on host ", attrs->hostname );
 
-		return new Value( false );
+		return error_value();
 		}
 
-	Value* result = GetShellCmdOutput( command, 0, true );
+	Value* result = GetShellCmdOutput( command, 0, 1 );
 
 	e = recv_event( attrs->daemon_channel->ReadFD() );
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
-		return new Value( false );
+		return error_value();
 		}
 
 	int status = e->value->IntVal();
@@ -670,7 +672,7 @@ Value* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 
 
 Value* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
-						bool is_remote )
+						int is_remote )
 	{
 #define MAX_CMD_OUTPUT_LINES 8192
 	charptr event_values[MAX_CMD_OUTPUT_LINES];
@@ -790,7 +792,7 @@ void CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 	}
 
 
-bool same_host( Task* t1, Task* t2 )
+int same_host( Task* t1, Task* t2 )
 	{
 	const char* t1_host = t1->Host();
 	const char* t2_host = t2->Host();
@@ -801,5 +803,5 @@ bool same_host( Task* t1, Task* t2 )
 	if ( ! t2_host )
 		t2_host = "localhost";
 
-	return strcmp( t1_host, t2_host ) ? false : true;
+	return ! strcmp( t1_host, t2_host );
 	}

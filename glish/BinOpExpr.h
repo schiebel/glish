@@ -33,8 +33,8 @@ class BinOpExpr : public BinaryExpr {
 	//
 	// The third argument is set to true if this expression operates
 	// element-by-element on arrays, false otherwise.
-	virtual bool TypeCheck( const Value* lhs, const Value* rhs,
-				bool& element_by_element ) const;
+	virtual int TypeCheck( const Value* lhs, const Value* rhs,
+				int& element_by_element ) const;
 
 	// What type the BinOpExpr's operands should be promoted to.  The
 	// default OperandsType implements numeric promotion (higher operand
@@ -50,7 +50,7 @@ class BinOpExpr : public BinaryExpr {
 	// the length of rhs, otherwise the length of lhs).  Returns true
 	// all checking was okay, false otherwise (in which case lhs_len
 	// may not have been set).
-	bool Compute( const Value* lhs, const Value* rhs, int& lhs_len ) const;
+	int Compute( const Value* lhs, const Value* rhs, int& lhs_len ) const;
 
 	binop op;
 	};
@@ -67,11 +67,19 @@ class ArithExpr : public BinOpExpr {
 
 	Value* Eval( eval_type etype );
 
+	virtual void Compute( byte lhs[], byte rhs[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( short lhs[], short rhs[],
+				int lhs_len, int rhs_incr ) = 0;
 	virtual void Compute( int lhs[], int rhs[],
 				int lhs_len, int rhs_incr ) = 0;
 	virtual void Compute( float lhs[], float rhs[],
 				int lhs_len, int rhs_incr ) = 0;
 	virtual void Compute( double lhs[], double rhs[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( complex lhs[], complex rhs[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( dcomplex lhs[], dcomplex rhs[],
 				int lhs_len, int rhs_incr ) = 0;
 
     protected:
@@ -84,9 +92,15 @@ class name : public ArithExpr {						\
 	name( Expr* op1, Expr* op2 )					\
 		: ArithExpr(op, op1, op2, op_name)	{ }		\
 	overloads							\
+	void Compute( byte lhs[], byte rhs[], int lhs_len, int rhs_incr );\
+	void Compute( short lhs[], short rhs[], int lhs_len, int rhs_incr );\
 	void Compute( int lhs[], int rhs[], int lhs_len, int rhs_incr );\
 	void Compute( float lhs[], float rhs[], int lhs_len, int rhs_incr );\
 	void Compute( double lhs[], double rhs[], int lhs_len, int rhs_incr );\
+	void Compute( complex lhs[], complex rhs[], int lhs_len,	\
+			int rhs_incr );					\
+	void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,	\
+			int rhs_incr );					\
 	};
 
 DECLARE_ARITH_EXPR(AddExpr, OP_ADD, "+",)
@@ -109,20 +123,30 @@ class RelExpr : public BinOpExpr {
 
 	Value* Eval( eval_type etype );
 
-	virtual void Compute( bool lhs[], bool rhs[], bool result[],
+	virtual void Compute( glish_bool lhs[], glish_bool rhs[],
+				glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( int lhs[], int rhs[], bool result[],
+	virtual void Compute( byte lhs[], byte rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( float lhs[], float rhs[], bool result[],
+	virtual void Compute( short lhs[], short rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( double lhs[], double rhs[], bool result[],
+	virtual void Compute( int lhs[], int rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( charptr lhs[], charptr rhs[], bool result[],
+	virtual void Compute( float lhs[], float rhs[], glish_bool result[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( double lhs[], double rhs[], glish_bool result[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( complex lhs[], complex rhs[], glish_bool result[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( dcomplex lhs[], dcomplex rhs[],
+				glish_bool result[],
+				int lhs_len, int rhs_incr ) = 0;
+	virtual void Compute( charptr lhs[], charptr rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
 
     protected:
-	bool TypeCheck( const Value* lhs, const Value* rhs,
-			bool& element_by_element ) const;
+	int TypeCheck( const Value* lhs, const Value* rhs,
+			int& element_by_element ) const;
 	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;
 	Value* OpCompute( const Value* lhs, const Value* rhs, int lhs_len );
 	};
@@ -133,15 +157,24 @@ class name : public RelExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
 		: RelExpr(op, op1, op2, op_name)	{ }		\
-	void Compute( bool lhs[], bool rhs[], bool result[],		\
+	void Compute( glish_bool lhs[], glish_bool rhs[],		\
+			glish_bool result[],				\
 			int lhs_len, int rhs_incr );			\
-	void Compute( int lhs[], int rhs[], bool result[],		\
+	void Compute( byte lhs[], byte rhs[], glish_bool result[],	\
 			int lhs_len, int rhs_incr );			\
-	void Compute( float lhs[], float rhs[], bool result[],		\
+	void Compute( short lhs[], short rhs[], glish_bool result[],	\
 			int lhs_len, int rhs_incr );			\
-	void Compute( double lhs[], double rhs[], bool result[],	\
+	void Compute( int lhs[], int rhs[], glish_bool result[],	\
 			int lhs_len, int rhs_incr );			\
-	void Compute( charptr lhs[], charptr rhs[], bool result[],	\
+	void Compute( float lhs[], float rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr );			\
+	void Compute( double lhs[], double rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr );			\
+	void Compute( complex lhs[], complex rhs[], glish_bool result[],\
+			int lhs_len, int rhs_incr );			\
+	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],\
+			int lhs_len, int rhs_incr );			\
+	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],\
 			int lhs_len, int rhs_incr );			\
 	};
 
@@ -161,20 +194,28 @@ class LogExpr : public RelExpr {
 			: RelExpr(op, op1, op2, desc)	{ }
 
 
-	void Compute( bool lhs[], bool rhs[], bool result[],
+	void Compute( glish_bool lhs[], glish_bool rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( int lhs[], int rhs[], bool result[],
+	void Compute( byte lhs[], byte rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( float lhs[], float rhs[], bool result[],
+	void Compute( short lhs[], short rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( double lhs[], double rhs[], bool result[],
+	void Compute( int lhs[], int rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( charptr lhs[], charptr rhs[], bool result[],
+	void Compute( float lhs[], float rhs[], glish_bool result[],
+			int lhs_len, int rhs_incr );
+	void Compute( double lhs[], double rhs[], glish_bool result[],
+			int lhs_len, int rhs_incr );
+	void Compute( complex lhs[], complex rhs[], glish_bool result[],
+			int lhs_len, int rhs_incr );
+	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],
+			int lhs_len, int rhs_incr );
+	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
 
     protected:
-	bool TypeCheck( const Value* lhs, const Value* rhs,
-			bool& element_by_element ) const;
+	int TypeCheck( const Value* lhs, const Value* rhs,
+			int& element_by_element ) const;
 	glish_type OperandsType( const Value* lhs, const Value* rhs ) const;
 	};
 
@@ -184,8 +225,34 @@ class name : public LogExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
 		: LogExpr(op, op1, op2, op_name)	{ }		\
-	void Compute( bool lhs[], bool rhs[], bool result[],		\
-		int lhs_len, int rhs_incr );				\
+									\
+	void Compute( glish_bool lhs[], glish_bool rhs[],		\
+			glish_bool result[], int lhs_len, int rhs_incr );\
+									\
+	void Compute( int lhs[], int rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( float lhs[], float rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( double lhs[], double rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( complex lhs[], complex rhs[], glish_bool result[],\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( byte lhs[], byte rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
+	void Compute( short lhs[], short rhs[], glish_bool result[],	\
+			int lhs_len, int rhs_incr )			\
+		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
 	};
 
 DECLARE_LOG_EXPR(LogAndExpr, OP_AND, "&")

@@ -2,6 +2,9 @@
 // $Header$
 
 #include <string.h>
+#include <iostream.h>
+#include <osfcn.h>
+#include <ctype.h>
 
 #include "Expr.h"
 #include "BuiltIn.h"
@@ -15,16 +18,16 @@ extern YYSTYPE yylval;
 char* input_file_name;
 
 // Whether the last token might be the end of a statement.
-bool statement_can_end = false;
+int statement_can_end = 0;
 
-bool interactive = false;
-bool first_line = true;
+int interactive = 0;
+int first_line = 1;
 
 // When we convert a newline to a ';' we don't bump the line count just
 // yet, as that'll result in the line count being one too high for the
 // statement that ends with that ';'.  So instead we set this flag and
 // subsequently bump the line count on the next call.
-bool bump_line_num = false;
+int bump_line_num = 0;
 
 // A class for holding information on an input file: where we are in
 // it (i.e., its flex buffer), its name, and the current line number.
@@ -41,9 +44,9 @@ protected:
 	YY_BUFFER_STATE buf;
 	char* filename;
 	int line;
-	bool save_first_line;
-	bool save_bump_line_num;
-	bool save_statement_can_end;
+	int save_first_line;
+	int save_bump_line_num;
+	int save_statement_can_end;
 	};
 
 // List of input buffers associated with included files.
@@ -59,14 +62,14 @@ static void new_file();
 
 #define RETURN_CONSTANT(value)					\
 	{							\
-	statement_can_end = true;				\
+	statement_can_end = 1;					\
 	yylval.expr = new ConstExpr( new Value( value ) );	\
 	return TOK_CONSTANT;					\
 	}
 
 #define RETURN_LAST_EVENT(type)					\
 	{							\
-	statement_can_end = true;				\
+	statement_can_end = 1;					\
 	yylval.event_type = type;				\
 	return TOK_LAST_EVENT;					\
 	}
@@ -79,8 +82,8 @@ static void new_file();
 
 #define RETURN_ACTIVATE(is_activate)				\
 	{							\
-	statement_can_end = true;				\
-	yylval.bval = is_activate;				\
+	statement_can_end = 1;					\
+	yylval.ival = is_activate;				\
 	return TOK_ACTIVATE;					\
 	}
 
@@ -91,12 +94,14 @@ static void new_file();
 // compilers don't complain about the zillions of actions that
 // terminate with a "return" followed by a "break".
 #define YY_BREAK
+
+#define yywrap() 1
 %}
 
-%x quote record_field event_name incl
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL ATTR ATTR_QUOTE
 
 	static char literal[512];
-	static bool is_double_quote;
+	static int is_double_quote;
 
 
 ID	[A-Za-z_][A-Za-z0-9_]*
@@ -104,20 +109,22 @@ WS	[ \t]+
 OWS	[ \t]*
 D	[0-9]
 
+FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))(e[-+]?{D}+)?
+
 %%
 	// Whether to return a ';' token if a newline is seen.
-	bool newline_is_semi = statement_can_end;
+	int newline_is_semi = statement_can_end;
 
 	if ( bump_line_num )
 		++line_num;
 
-	bump_line_num = false;
-	statement_can_end = false;
+	bump_line_num = 0;
+	statement_can_end = 0;
 
 
 [!:;,|&({[+*/%^=-]	return yytext[0];
 
-[)\]]		statement_can_end = true; return yytext[0];
+[)\]]		statement_can_end = 1; return yytext[0];
 
 "}"		{
 		if ( newline_is_semi )
@@ -134,8 +141,9 @@ D	[0-9]
 		break;
 		}
 
-"."		BEGIN(record_field); return yytext[0];
-"->"		BEGIN(event_name); return TOK_ARROW;
+"."		BEGIN(RECORD_FIELD); return yytext[0];
+"->"		BEGIN(SCAN_EVENT_NAME); return TOK_ARROW;
+"::"		BEGIN(ATTR); return TOK_ATTR;
 
 "..."		return TOK_ELLIPSIS;
 
@@ -164,27 +172,27 @@ D	[0-9]
 "&&:="		RETURN_COMPOUND(TOK_AND_AND);
 "||:="		RETURN_COMPOUND(TOK_OR_OR);
 
-activate	RETURN_ACTIVATE(true);
+activate	RETURN_ACTIVATE(1);
 await		return TOK_AWAIT;
-break		statement_can_end = true; return TOK_BREAK;
+break		statement_can_end = 1; return TOK_BREAK;
 const		return TOK_CONST;
-deactivate	RETURN_ACTIVATE(false);
+deactivate	RETURN_ACTIVATE(0);
 do		return TOK_DO;
 else		return TOK_ELSE;
 except		return TOK_EXCEPT;
-exit		statement_can_end = true; return TOK_EXIT;
+exit		statement_can_end = 1; return TOK_EXIT;
 for		return TOK_FOR;
 func(tion)?	return TOK_FUNCTION;
 if		return TOK_IF;
 in		return TOK_IN;
 link		return TOK_LINK;
 local		return TOK_LOCAL;
-next|continue	statement_can_end = true; return TOK_LOOP;
+next|continue	statement_can_end = 1; return TOK_LOOP;
 only		return TOK_ONLY;
 print		return TOK_PRINT;
 ref		return TOK_REF;
 request		return TOK_REQUEST;
-return		statement_can_end = true; return TOK_RETURN;
+return		statement_can_end = 1; return TOK_RETURN;
 send		return TOK_SEND;
 subseq(uence)?	return TOK_SUBSEQUENCE;
 to		return TOK_TO;
@@ -197,53 +205,68 @@ while		return TOK_WHILE;
 "$name"		RETURN_LAST_EVENT( EVENT_NAME );
 "$value"	RETURN_LAST_EVENT( EVENT_VALUE );
 
-F		RETURN_CONSTANT( false );
-T		RETURN_CONSTANT( true );
+F		RETURN_CONSTANT( glish_false );
+T		RETURN_CONSTANT( glish_true );
 
-include		BEGIN(incl); break;
+include		BEGIN(INCL); break;
 
 {ID}		{
-		statement_can_end = true;
+		statement_can_end = 1;
 		yylval.id = strdup( yytext );
 		return TOK_ID;
 		}
 
-<record_field>{ID}	|
-<event_name>{ID}	{
-		// We use a separate start condition for .name's so
+<RECORD_FIELD,ATTR,SCAN_EVENT_NAME>{ID}	{
+		// We use a separate start condition for these names so
 		// that they can include reserved words.
 
 		BEGIN(INITIAL);
-		statement_can_end = true;
+		statement_can_end = 1;
 		yylval.id = strdup( yytext );
 		return TOK_ID;
 		}
 
-<event_name>[*\[]	BEGIN(INITIAL); return yytext[0];
+<SCAN_EVENT_NAME>[*\[]	BEGIN(INITIAL); return yytext[0];
 
 {D}+		RETURN_CONSTANT( atoi( yytext ) );
 
-(({D}*"."?{D}+)|({D}+"."?{D}*))(e[-+ ]?{D}+)?	{
+{FLOAT}		{
 		RETURN_CONSTANT( atof( yytext ) );
+		}
+
+({FLOAT}[-+])?{FLOAT}i {
+		RETURN_CONSTANT( atodcpx( yytext ) );
 		}
 
 ["']		{
 		literal[0] = '\0';
-		is_double_quote = bool( yytext[0] == '"' );
-		BEGIN(quote);
+		is_double_quote = yytext[0] == '"';
+		BEGIN(QUOTE);
 		break;
 		}
 
-<quote>[^'"\n\\]+	strcat( literal, yytext ); break;
-<quote>"\\n"	strcat( literal, "\n" ); break;
-<quote>"\\t"	strcat( literal, "\t" ); break;
-<quote>"\\r"	strcat( literal, "\r" ); break;
-<quote>"\\f"	strcat( literal, "\f" ); break;
-<quote>"\\"\n{OWS}	++line_num; break;
-<quote>"\\".	strcat( literal, &yytext[1] ); break;
+<ATTR>"["	{
+		BEGIN(INITIAL);
+		return yytext[0];
+		}
 
-<quote>\"	|
-<quote>\'	{
+<ATTR>["']	{
+		literal[0] = '\0';
+		is_double_quote = yytext[0] == '"';
+		BEGIN(ATTR_QUOTE);
+		break;
+		}
+
+<QUOTE,ATTR_QUOTE>[^'"\n\\]+	strcat( literal, yytext ); break;
+<QUOTE,ATTR_QUOTE>"\\n"		strcat( literal, "\n" ); break;
+<QUOTE,ATTR_QUOTE>"\\t"		strcat( literal, "\t" ); break;
+<QUOTE,ATTR_QUOTE>"\\r"		strcat( literal, "\r" ); break;
+<QUOTE,ATTR_QUOTE>"\\f"		strcat( literal, "\f" ); break;
+<QUOTE,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
+<QUOTE,ATTR_QUOTE>"\\".		strcat( literal, &yytext[1] ); break;
+
+<QUOTE>\"	|
+<QUOTE>\'	{
 		if ( (is_double_quote && yytext[0] == '\'') ||
 		     (! is_double_quote && yytext[0] == '"') )
 			strcat( literal, &yytext[0] );
@@ -254,7 +277,7 @@ include		BEGIN(incl); break;
 
 			if ( is_double_quote )
 				{
-				statement_can_end = true;
+				statement_can_end = 1;
 				yylval.expr = new ConstExpr( split( literal ) );
 				return TOK_CONSTANT;
 				}
@@ -266,15 +289,32 @@ include		BEGIN(incl); break;
 		break;
 		}
 
-<quote>\n	{
+<ATTR_QUOTE>\"	|
+<ATTR_QUOTE>\'	{
+		if ( (is_double_quote && yytext[0] == '\'') ||
+		     (! is_double_quote && yytext[0] == '"') )
+			strcat( literal, &yytext[0] );
+
+		else
+			{
+			BEGIN(INITIAL);
+			statement_can_end = 1;
+			yylval.id = strdup( literal );
+			return TOK_ID;
+			}
+
+		break;
+		}
+
+<QUOTE,ATTR_QUOTE>\n	{
 		error->Report( "unmatched quote (",
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;
 		BEGIN(INITIAL);
-		RETURN_CONSTANT( false );
+		RETURN_CONSTANT( glish_false );
 		}
 
-<incl>\"[^"]*\"	{
+<INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote
 		char* filename = &yytext[1];	// skip leading quote
 		FILE* file = fopen( filename, "r" );
@@ -298,30 +338,45 @@ include		BEGIN(incl); break;
 		break;
 		}
 
-<INITIAL,record_field,event_name>#.*	break; // comment
-<INITIAL,record_field,event_name,incl>{WS}+	break; // eat whitespace
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*		break; // comment
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,ATTR>{WS}+	break; // eat whitespace
 
-<INITIAL,record_field,event_name>\\\n	{
+<INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
 		++line_num;
-		first_line = false;
+		first_line = 0;
 		break;
 		}
 
-<INITIAL,record_field,event_name,incl>\n	{
+<ATTR>\n	{
+		// Treat this case as ending the newline, so that
+		// "foo := bar::" works as expected.
+		BEGIN(INITIAL);
+		bump_line_num = 1;
+		return ';';
+		}
+
+<ATTR>.		{ // Allow "bar:::=" to work.
+		unput( yytext[0] );
+		statement_can_end = 1;
+		BEGIN(INITIAL);
+		break;
+		}
+
+<*>\n		{
 		if ( newline_is_semi )
 			{
-			bump_line_num = true;
+			bump_line_num = 1;
 			return ';';
 			}
 
 		++line_num;
-		first_line = false;
+		first_line = 0;
 		break;
 		}
 
-<INITIAL,record_field,event_name,incl>.	{
+<*>.		{
 		error->Report( "unrecognized character '", yytext, "'" );
-		statement_can_end = true;
+		statement_can_end = 1;
 		BEGIN(INITIAL);
 		break;
 		}
@@ -367,24 +422,63 @@ InputFileInfo::~InputFileInfo()
 	}
 
 
+// If non-null, we're scanning an array of strings, with our present
+// position given by input_offset.
+static const char** input_strings;
+static int input_offset;
+
+void scan_strings( const char** strings )
+	{
+	input_strings = strings;
+	input_offset = 0;
+	}
+
 int scanner_read( char buf[], int max_size )
 	{
-	if ( interactive )
+	if ( input_strings )
 		{
-		printf( "%s ", first_line ? "-" : "+" );
-		fflush( stdout );
+		const char* s = input_strings[input_offset];
+		if ( ! s )
+			{ // All done.
+			input_strings = 0;
+			return 0;
+			}
 
-		current_sequencer->EventLoop();
+		char* bufptr = buf;
+		while ( max_size > 0 && s )
+			{
+			int len = strlen( s );
+			if ( len >= max_size )
+				// Okay, we've read enough.
+				return bufptr - buf;
+
+			strcpy( bufptr, s );
+			bufptr[len] = '\n';
+			++len;	// add in the newline
+			bufptr += len;
+			max_size -= len;
+
+			// Move on to the next string.
+			s = input_strings[++input_offset];
+			}
+
+		return bufptr - buf;
 		}
 
-	return read( fileno( yyin ), buf, max_size );
+	if ( interactive && yyin == stdin )
+		{
+		const char* prompt = first_line ? "- " : "+ ";
+		return interactive_read( yyin, prompt, buf, max_size );
+		}
+	else
+		return read( fileno( yyin ), buf, max_size );
 	}
 
 void restart_yylex( FILE* input_file )
 	{
-	static bool first_call = true;
+	static int first_call = 1;
 
-	if ( yyin != stdin )
+	if ( yyin && yyin != stdin )
 		fclose( yyin );
 
 	yyin = input_file;
@@ -392,7 +486,7 @@ void restart_yylex( FILE* input_file )
 	new_file();
 
 	if ( first_call )
-		first_call = false;
+		first_call = 0;
 	else
 		yyrestart( yyin );
 	}
@@ -400,7 +494,7 @@ void restart_yylex( FILE* input_file )
 void new_file()
 	{
 	line_num = 1;
-	first_line = true;
-	bump_line_num = false;
-	statement_can_end = false;
+	first_line = 1;
+	bump_line_num = 0;
+	statement_can_end = 0;
 	}

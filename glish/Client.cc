@@ -1,16 +1,24 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdlib.h>
 #include <osfcn.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 
-#include <sys/types.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 extern "C" {
 #include <netinet/in.h>
+#ifndef HAVE_STRDUP
+char* strdup( const char* );
+#endif
 }
 
 #include "Sds/sdsgen.h"
@@ -22,15 +30,13 @@ extern "C" {
 #include "glish_event.h"
 #include "system.h"
 
-#ifdef SABER
-#include <libc.h>
-#endif
 
+typedef RETSIGTYPE (*SigHandler)(int);
 
 static Client* current_client;
-static const char* prog_name = "sequencer";
+static const char* prog_name = "glish-interpreter";
 
-static bool did_init = false;
+static int did_init = 0;
 
 
 inline streq( const char* s1, const char* s2 )
@@ -91,21 +97,27 @@ Client::Client( int& argc, char** argv )
 
 	ClientInit();
 
-	bool suspend = false;
+	int suspend = 0;
 
-	no_glish = false;
+	no_glish = 0;
+	interpreter_tag = "*no-interpreter*";
 
 	if ( argc < 2 || ! streq( argv[0], "-id" ) )
 		{
-		// We weren't invoked by the sequencer.  Set things up
+		// We weren't invoked by the Glish interpreter.  Set things up
 		// so that we receive "events" from stdin and send them
 		// to stdout.
-		have_sequencer_connection = false;
+		have_interpreter_connection = 0;
 		client_name = prog_name;
+
+		if ( argc == 0 || (argc >= 1 && !streq( argv[0], "-glish" )) )
+			{
+			no_glish = 1;
+			}
 
 		if ( argc >= 1 && streq( argv[0], "-noglish" ) )
 			{
-			no_glish = true;
+			no_glish = 1;
 			--argc, ++argv;
 			}
 
@@ -122,7 +134,7 @@ Client::Client( int& argc, char** argv )
 
 	else
 		{
-		have_sequencer_connection = true;
+		have_interpreter_connection = 1;
 		client_name = argv[1];
 		argc -= 2, argv += 2;
 
@@ -148,7 +160,7 @@ Client::Client( int& argc, char** argv )
 
 			if ( ! remote_connection( socket, host, port ) )
 				fatal->Report(
-			"could not establish Client connection to sequencer" );
+		"could not establish Client connection to interpreter" );
 
 			read_fd = write_fd = socket;
 			}
@@ -167,9 +179,15 @@ Client::Client( int& argc, char** argv )
 			argc -= 2, argv += 2;
 			}
 
+		if ( argc > 1 && streq( argv[0], "-interpreter" ) )
+			{
+			interpreter_tag = argv[1];
+			argc -= 2, argv += 2;
+			}
+
 		if ( argc > 0 && streq( argv[0], "-suspend" ) )
 			{
-			suspend = true;
+			suspend = 1;
 			--argc, ++argv;
 			}
 		}
@@ -185,7 +203,7 @@ Client::Client( int& argc, char** argv )
 			sleep( 1 );	// allow debugger to attach
 		}
 
-	if ( have_sequencer_connection )
+	if ( have_interpreter_connection )
 		SendEstablishedEvent();
 
 	CreateSignalHandler();
@@ -208,8 +226,8 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name )
 
 	ClientInit();
 
-	no_glish = false;
-	have_sequencer_connection = true;
+	no_glish = 0;
+	have_interpreter_connection = 1;
 
 	read_fd = client_read_fd;
 	write_fd = client_write_fd;
@@ -221,9 +239,9 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name )
 
 Client::~Client()
 	{
-	signal( SIGIO, former_handler );
+	(void) install_signal_handler( SIGIO, former_handler );
 
-	if ( have_sequencer_connection )
+	if ( have_interpreter_connection )
 		PostEvent( "done", client_name );
 
 	if ( ! no_glish )
@@ -293,6 +311,22 @@ void Client::Unrecognized()
 	PostEvent( "unrecognized", last_event->name );
 	}
 
+void Client::Error( const char* msg )
+	{
+	if ( last_event )
+		PostEvent( "error", "bad \"%s\" event: %s",
+				last_event->name, msg );
+	else
+		PostEvent( "error", msg );
+	}
+
+void Client::Error( const char* fmt, const char* arg )
+	{
+	char buf[8192];
+	sprintf( buf, fmt, arg );
+	Error( buf );
+	}
+
 void Client::PostEvent( const char* event_name, const Value* event_value )
 	{
 	SendEvent( event_name, event_value, 0 );
@@ -314,6 +348,14 @@ void Client::PostEvent( const char* event_name, const char* event_fmt,
 	{
 	char buf[8192];
 	sprintf( buf, event_fmt, event_arg );
+	PostEvent( event_name, buf );
+	}
+
+void Client::PostEvent( const char* event_name, const char* event_fmt,
+    const char* arg1, const char* arg2 )
+	{
+	char buf[8192];
+	sprintf( buf, event_fmt, arg1, arg2 );
 	PostEvent( event_name, buf );
 	}
 
@@ -374,24 +416,19 @@ void Client::ClientInit()
 		init_reporters();
 		init_values();
 
-		did_init = true;
+		did_init = 1;
 		}
 
 	last_event = 0;
 	pending_reply = 0;
 
-	if ( gethostname( local_host, sizeof( local_host ) ) < 0 )
-		{
-		fprintf( stderr, "%s: unknown local host", prog_name );
-		strcpy( local_host, "<unknown>" );
-		}
+	local_host = local_host_name();
 	}
 
 void Client::CreateSignalHandler()
 	{
 	current_client = this;
-	former_handler = (SigHandler)
-		signal( SIGIO, SigHandler( Client_signal_handler ) );
+	former_handler = install_signal_handler( SIGIO, Client_signal_handler );
 	}
 
 void Client::SendEstablishedEvent()
@@ -410,7 +447,7 @@ GlishEvent* Client::GetEvent( int fd )
 	{
 	Unref( last_event );
 
-	if ( have_sequencer_connection )
+	if ( have_interpreter_connection )
 		{
 		last_event = recv_event( fd );
 
@@ -422,11 +459,11 @@ GlishEvent* Client::GetEvent( int fd )
 			// cobble together a dummy event.
 
 			input_links.remove( fd );
-			FD_Change( fd, false );
+			FD_Change( fd, 0 );
 
 			last_event =
 				new GlishEvent( strdup( "*dummy*" ),
-						new Value( false ) );
+						error_value() );
 			}
 
 		if ( last_event )
@@ -465,7 +502,7 @@ GlishEvent* Client::GetEvent( int fd )
 		Value* result;
 
 		if ( ! delim )
-			result = new Value( false );
+			result = error_value();
 
 		else
 			{
@@ -481,15 +518,21 @@ GlishEvent* Client::GetEvent( int fd )
 		const char* name = last_event->name;
 
 		if ( streq( name, "terminate" ) )
+			{
+			Unref(last_event);
 			last_event = 0;
+			}
 
 		else if ( name[0] == '*' )
 			{
 			Value* v = last_event->value;
 
-			if ( streq( name, "*link-sink*" ) )
+			if ( streq( name, "*sync*" ) )
+				Reply( false_value );
+
+			else if ( streq( name, "*link-sink*" ) )
 				BuildLink( v );
-	
+
 			else if ( streq( name, "*rendezvous-orig*" ) )
 				RendezvousAsOriginator( v );
 
@@ -504,7 +547,7 @@ GlishEvent* Client::GetEvent( int fd )
 	return last_event;
 	}
 
-void Client::FD_Change( int /* fd */, bool /* add_flag */ )
+void Client::FD_Change( int /* fd */, int /* add_flag */ )
 	{
 	}
 
@@ -564,7 +607,7 @@ void Client::BuildLink( Value* v )
 	// to the accept socket in lieu of B.
 	AcceptSocket* accept_socket;
 
-	bool is_local;
+	int is_local;
 	if ( ! v->FieldVal( "is_local", is_local ) )
 		fatal->Report( "internal link event lacks is_local field" );
 
@@ -689,7 +732,7 @@ void Client::RendezvousAsOriginator( Value* v )
 
 	else
 		{ // Create a new socket connection.
-		bool is_local;
+		int is_local;
 		if ( ! v->FieldVal( "is_local", is_local ) )
 			fatal->Report( "bad internal link event" );
 
@@ -724,7 +767,7 @@ void Client::RendezvousAsResponder( Value* v )
 
 	int input_fd;
 
-	bool is_local;
+	int is_local;
 	if ( ! v->FieldVal( "is_local", is_local ) )
 		fatal->Report( "bad internal link event" );
 
@@ -771,7 +814,7 @@ void Client::RendezvousAsResponder( Value* v )
 		}
 
 	input_links.append( input_fd );
-	FD_Change( input_fd, true );
+	FD_Change( input_fd, 1 );
 
 	remote_sources.Insert( source_id, input_fd );
 	}
@@ -781,7 +824,7 @@ void Client::SendEvent( const char* name, const Value* value, int sds )
 	if ( no_glish )
 		return;
 
-	if ( have_sequencer_connection )
+	if ( have_interpreter_connection )
 		{
 		event_link_list* l = output_links[name];
 
@@ -803,15 +846,19 @@ void Client::SendEvent( const char* name, const Value* value, int sds )
 
 			// If we didn't send any events then it means that
 			// all of the links are inactive.  Forward to
-			// the sequencer instead.
+			// the interpreter instead.
 			if ( ! did_send )
 				send_event( write_fd, name, value, sds );
 			}
 		else
 			send_event( write_fd, name, value, sds );
 		}
-	else
+
+	else if ( value )
 		message->Report( name, " ", value );
+
+	else
+		message->Report( name, " <no value>" );
 	}
 
 static int read_buffer( int fd, char* buffer, int buf_size )
@@ -893,9 +940,9 @@ GlishEvent* recv_event( int fd )
 		{
 		sds_cleanup();
 
-		int sds = (int) sds_load_fd( fd, size, 8192 );
+		int sds = (int) sds_read_open_fd( fd, size,0,0 );
 
-		if ( sds < 0 )
+		if ( sds <= 0 )
 			{
 			if ( sds != SDS_FILE_WR )
 				error->Report( prog_name,
@@ -912,7 +959,7 @@ GlishEvent* recv_event( int fd )
 	}
 
 
-static bool send_event_header( int fd, int code, int length, const char* name )
+static int send_event_header( int fd, int code, int length, const char* name )
 	{
 	// The following is static so that we don't wind up copying
 	// uninitialized memory; makes Purify happy.
@@ -930,9 +977,9 @@ static bool send_event_header( int fd, int code, int length, const char* name )
 	hdr.event_name[MAX_EVENT_NAME_SIZE - 1] = '\0';
 
 	if ( ! write_buffer( fd, (char*) &hdr, sizeof( hdr ) ) )
-		return false;
+		return 0;
 
-	return true;
+	return 1;
 	}
 
 void send_event( int fd, const char* name, const Value* value, int sds )
@@ -940,7 +987,8 @@ void send_event( int fd, const char* name, const Value* value, int sds )
 	if ( value )
 		value = value->Deref();
 
-	if ( value && value->Type() == TYPE_STRING && value->Length() == 1 )
+	if ( value && value->Type() == TYPE_STRING && value->Length() == 1 &&
+	     ! value->AttributePtr() )
 		{
 		const_args_list a;
 		a.append( value );

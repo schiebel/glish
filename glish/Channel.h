@@ -26,7 +26,7 @@
 //
 // The state is initialized to CHAN_VALID.
 
-typedef enum { CHAN_VALID, CHAN_IN_USE, CHAN_INVALID, } ChanState;
+typedef enum { CHAN_VALID, CHAN_IN_USE, CHAN_INVALID } ChanState;
 
 
 class Channel {

@@ -29,15 +29,37 @@
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 // PURPOSE.
 
-#include <stdio.h>
+#include "system.h"
+#include <signal.h>
+#include <osfcn.h>
+#include <ctype.h>
+#include <string.h>
 
+#include "input.h"
 #include "Reporter.h"
 #include "Sequencer.h"
 
 static Sequencer* s;
 
+#if USE_EDITLINE
+extern "C" void nb_readline_cleanup();
+#endif
+
+void glish_cleanup()
+	{
+#if USE_EDITLINE
+	nb_readline_cleanup();
+#endif
+	set_term_unchar_mode();
+	exit( 0 );
+	}
+
 int main( int argc, char** argv )
 	{
+	(void) install_signal_handler( SIGINT, glish_cleanup );
+	(void) install_signal_handler( SIGHUP, glish_cleanup );
+	(void) install_signal_handler( SIGTERM, glish_cleanup );
+
 	s = new Sequencer( argc, argv );
 
 	s->Exec();
@@ -47,5 +69,84 @@ int main( int argc, char** argv )
 	// about zillions of memory leaks.  This is also the reason why
 	// s is a static and not a local.
 
+	glish_cleanup();
+
 	return 0;
 	}
+
+
+#if USE_EDITLINE
+
+extern "C" {
+	char *readline( const char * );
+	char *nb_readline( const char * );
+	extern char *rl_data_incomplete;
+	void add_history( char * );
+}
+
+static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
+	{
+	if ( from_buf )
+		{
+		char* from_buf_start = from_buf;
+
+		while ( isspace(*from_buf_start) )
+			++from_buf_start;
+
+		if ( strlen( from_buf_start ) <= max_size )
+			to_buf = strcpy( to_buf, from_buf_start );
+		else
+			{
+			cerr << "Not enough buffer size (in fmt_readline_str)"
+			     << endl;
+			free_memory( (void*) from_buf );
+			return 0;
+			}
+		  
+		if ( *to_buf )
+			add_history( to_buf );
+
+		sprintf( to_buf, "%s\n", from_buf_start );
+
+		if ( from_buf )
+			free_memory( (void*) from_buf );
+
+		return strlen( to_buf );
+		}
+
+	else
+		return 0;
+	}
+
+int interactive_read( FILE* /* file */, const char prompt[], char buf[],
+			int max_size )
+	{
+#ifndef __GNUC__
+        static int did_sync = 0;
+        if ( ! did_sync )
+		{
+		ios::sync_with_stdio();
+		did_sync = 1;
+		}
+#endif
+
+	char* ret;
+	if ( current_sequencer->ActiveClients() )
+		{
+		ret = nb_readline( prompt );
+
+		while ( ret == rl_data_incomplete )
+			{
+			current_sequencer->EventLoop();
+			ret = nb_readline( prompt );
+			}
+		}
+	else
+		{
+		current_sequencer->EventLoop();
+		ret = readline( prompt );
+		}
+
+	return fmt_readline_str( buf, max_size, ret );
+	}
+#endif
