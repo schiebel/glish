@@ -96,6 +96,7 @@ CLIENT_OBJS = \
 	Executable.o \
 	LocalExec.o \
 	Object.o \
+	Proxy.o \
 	Queue.o \
 	Reporter.o \
 	Socket.o \
@@ -141,6 +142,7 @@ CLIENT_OBJS_PROXY = \
 	$(D)Executable.o \
 	$(D)LocalExec.o \
 	$(D)Object.o \
+	$(D)Proxy.o \
 	$(D)Queue.o \
 	$(D)Reporter.o \
 	$(D)Socket.o \
@@ -324,6 +326,9 @@ $(D)LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
 
 $(D)Object.o: $(SRC)/Object.cc $(H)/Object.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Object.cc $(T)
+
+$(D)Proxy.o: $(SRC)/Proxy.cc $(H)/Proxy.h $(H)/Client.h $(H)/Value.h $(H)/Object.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Proxy.cc $(T)
 
 $(D)Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Queue.cc $(T)
