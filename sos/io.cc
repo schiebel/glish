@@ -367,7 +367,7 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 		}
 	}
 
-void *sos_in::get_numeric( sos_code type, unsigned int &len, sos_header &head )
+void *sos_in::get_numeric( sos_code &type, unsigned int &len, sos_header &head )
 	{
 	char *result_ = 0;
 	char *result = 0;

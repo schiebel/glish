@@ -131,7 +131,7 @@ public:
 	~sos_in( );
 
 private:
-	void *get_numeric( sos_code, unsigned int &, sos_header & );
+	void *get_numeric( sos_code &, unsigned int &, sos_header & );
 	void *get_string( unsigned int &, sos_header & );
 	void *get_chars( unsigned int &, sos_header & );
 	sos_header head;

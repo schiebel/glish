@@ -146,8 +146,8 @@ void sos_header::stamp()
 
 ostream &operator<< (ostream &ios, const sos_header &h)
 	{
-	long v = h.time();
-	char *time = strdup(ctime(&v));
+	unsigned int v = h.time();
+	char *time = strdup(ctime((const time_t *) &v));
 	int i = 0;
 	for (i = strlen(time) - 1; i > 0 && time[i] == '\n'; --i );
 	time[i+1] = '\0';
