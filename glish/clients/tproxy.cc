@@ -1,7 +1,5 @@
-#include "Glish/glish.h"
-RCSID("@(#) $Id$")
+#include <iostream.h>
 #include "Glish/Proxy.h"
-#include "Reporter.h"
 
 class ProxyA : public Proxy {
     public:
@@ -11,37 +9,32 @@ class ProxyA : public Proxy {
 	void ProcessEvent( const char *name, Value *val );
 };
 
-ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { 	cerr << "hello world " << id << endl; }
+ProxyA::ProxyA( ProxyStore *s ) : Proxy(s)
+	{ cerr << "Created a ProxyA: " << id << endl; }
 
 ProxyA::~ProxyA( )
-	{
-	cerr << "bye bye " << id << endl;
-	}
+	{ cerr << "Deleted a ProxyA: " << id << endl; }
 
 void ProxyA::Create( ProxyStore *s, Value *v, GlishEvent *e, void *data )
-	{
-	message->Report( v );
+	{ 
+	cerr << "In ProxyA::Create" << endl;
 	ProxyA *np = new ProxyA( s );
 	np->SendCtor("newtp");
 	}
 
 void ProxyA::ProcessEvent( const char *name, Value *val )
 	{
+	Value *result = new Value(id.id());
 	if ( ReplyPending() )
-		Reply( val );
+		Reply( result );
 	else
-		{
-		char buf[1024];
-		sprintf(buf, "ProxyA_%s", name);
-		PostEvent( buf, val );
-		}
+		PostEvent( name, result );
+	Unref( result );
 	}
 
 int main( int argc, char** argv )
 	{
-	ProxyStore stor( argc, argv );
-
-	stor.Register( "maka", ProxyA::Create );
-
+        ProxyStore stor( argc, argv );
+	stor.Register( "make", ProxyA::Create );
 	stor.Loop();
 	}
