@@ -10,6 +10,8 @@ class EventDesignator;
 
 glish_declare(PList,EventDesignator);
 typedef PList(EventDesignator) event_dsg_list;
+glish_declare(PList,PList(char));
+typedef PList(PList(char)) name_list_list;
 
 class Expr;
 class Notifiee;
@@ -68,6 +70,8 @@ protected:
 	const char* event_name_str;
 	IValue* event_agent_ref;
 	name_list *names;
+	name_list_list *deletions;
+	int send_count;
 	};
 
 extern void delete_name_list( name_list* nl );

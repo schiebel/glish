@@ -21,6 +21,8 @@ EventDesignator::EventDesignator( Expr* arg_agent, Expr* arg_event_name )
 	event_name_str = 0;
 	event_agent_ref = 0;
 	names = 0;
+	send_count = 0;
+	deletions = 0;
 	}
 
 EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
@@ -30,6 +32,8 @@ EventDesignator::EventDesignator( Expr* arg_agent, const char* arg_event_name )
 	event_name_str = arg_event_name;
 	event_agent_ref = 0;
 	names = 0;
+	send_count = 0;
+	deletions = 0;
 	}
 
 EventDesignator::~EventDesignator( )
@@ -37,6 +41,12 @@ EventDesignator::~EventDesignator( )
 	NodeUnref( agent );
 	NodeUnref( event_name_expr );
 	if ( names ) delete_name_list( names );
+	if ( deletions )
+		{
+		loop_over_list( *deletions, i )
+			delete_name_list( (*deletions)[i] );
+		delete deletions;
+		}
 	}
 
 Agent* EventDesignator::EventAgent( value_type val_type )
@@ -61,6 +71,8 @@ void EventDesignator::EventAgentDone()
 
 IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, Expr *from_subsequence )
 	{
+	++send_count;
+
 	Agent* a = EventAgent( VAL_REF );
 
 	name_list &nl = EventNames( 1 );
@@ -69,6 +81,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 		{
 		EventAgentDone();
 		error->Report( "->* illegal for sending an event" );
+		--send_count;
 		return is_request ? error_ivalue() : 0;
 		}
 
@@ -87,6 +100,14 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 		result = (IValue*) Fail( EventAgentExpr(), "is not an agent" );
 
 	EventAgentDone();
+
+	--send_count;
+
+	// This routine can be re-entrant so we must ensure that the
+	// generated name list is preserved until the send is completed.
+	// We use 'deletions' and 'send_count' for this.
+	if ( deletions && deletions->is_member( &nl ) )
+		delete_name_list( deletions->remove( &nl ) );
 
 	return result;
 	}
@@ -146,7 +167,14 @@ name_list &EventDesignator::EventNames( int force_eval )
 		{
 		if ( force_eval )
 			{
-			delete_name_list( names );
+			if ( send_count > 1 )
+				{
+				if ( ! deletions )
+					deletions = new name_list_list;
+				deletions->append( names );
+				}
+			else
+				delete_name_list( names );
 			names = 0;
 			}
 		else
