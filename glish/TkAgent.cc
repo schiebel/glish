@@ -1411,10 +1411,10 @@ void TkAgent::UnMap()
 	if ( self )
 		rivet_destroy_window( self );
 
-	Done();
-
 	frame = 0;
 	self = 0;
+
+	Done();
 	}
 
 const char **TkAgent::PackInstruction()
@@ -1559,12 +1559,12 @@ void TkFrame::Enable( int force )
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr cursor, charptr title, charptr icon ) : TkRadioContainer( s ),
-		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), is_tl( 1 ), pseudo( 0 ),
-		  reject_first_resize(1)
+		  charptr height, charptr cursor, charptr title, charptr icon, int new_cmap ) :
+		  TkRadioContainer( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
+		  is_tl( 1 ), pseudo( 0 ), reject_first_resize(1), unmapped(0)
 
 	{
-	char *argv[15];
+	char *argv[17];
 
 	agent_ID = "<graphic:frame>";
 
@@ -1607,6 +1607,13 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
+
+	if ( new_cmap )
+		{
+		argv[c++] = "-colormap";
+		argv[c++] = "new";
+		}
+
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief_;
 	argv[c++] = "-borderwidth";
@@ -1685,12 +1692,12 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor ) : TkRadioContainer( s ), side(0),
-		  padx(0), pady(0), expand(0), tag(0), canvas(0), 
-		  is_tl( 0 ), pseudo( 0 ), reject_first_resize(0)
+		  charptr width, charptr height, charptr cursor, int new_cmap ) : TkRadioContainer( s ),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), 
+		  is_tl( 0 ), pseudo( 0 ), reject_first_resize(0), unmapped(0)
 
 	{
-	char *argv[14];
+	char *argv[16];
 	frame = frame_;
 
 	agent_ID = "<graphic:frame>";
@@ -1707,6 +1714,13 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
+
+	if ( new_cmap )
+		{
+		argv[c++] = "-colormap";
+		argv[c++] = "new";
+		}
+
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief_;
 	argv[c++] = "-borderwidth";
@@ -1760,7 +1774,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkRadioContainer( s ), side(0),
-		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0)
+		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0),  unmapped(0)
 
 	{
 	char *argv[12];
@@ -1833,6 +1847,11 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 void TkFrame::UnMap()
 	{
+	if ( unmapped ) return;
+	unmapped = 1;
+
+	if ( RefCount() > 0 ) Ref(this);
+
 	if ( grab && grab == Id() )
 		Release();
 
@@ -1855,16 +1874,13 @@ void TkFrame::UnMap()
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 
 	if ( canvas )
-		{
 		rivet_va_cmd( canvas->Self(), "delete", tag, 0 );
-		Done();
-		frame = 0;
-		self = 0;
-		}
-	else
-		TkAgent::UnMap();
+	else if ( self )
+		rivet_destroy_window( self );
 
 	canvas = 0;
+	frame = 0;
+	self = 0;
 
 	if ( pseudo )
 		{
@@ -1874,6 +1890,14 @@ void TkFrame::UnMap()
 
 	if ( unmap_root )
 		rivet_unmap_window( root );
+
+	if ( ! tl_count )
+		// Empty queue
+		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
+
+	Done();
+
+	if ( RefCount() > 0 ) Unref(this);
 	}
 
 TkFrame::~TkFrame( )
@@ -1883,16 +1907,8 @@ TkFrame::~TkFrame( )
 	if ( canvas )
 		canvas->Remove( this );
 
-	UnMap();
-
 	if ( is_tl )
 		--tl_count;
-
-	if ( pseudo )
-		{
-		rivet_destroy_window( pseudo );
-		pseudo = 0;
-		}
 
 	if ( tag )
 		free_memory( tag );
@@ -1902,9 +1918,7 @@ TkFrame::~TkFrame( )
 	free_memory( pady );
 	free_memory( expand );
 
-	if ( ! tl_count )
-		// Empty queue
-		while( DoOneTkEvent( TK_X_EVENTS | TK_DONT_WAIT ) != 0 );
+	UnMap();
 	}
 
 char *TkFrame::SetIcon( parameter_list *args, int, int )
@@ -2187,8 +2201,8 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret = 0;
 
-	if ( args_val->length() != 14 )
-		return InvalidNumberOfArgs(14);
+	if ( args_val->length() != 15 )
+		return InvalidNumberOfArgs(15);
 
 	int c = 1;
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -2204,17 +2218,18 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( cursor )
 	SETSTR( title )
 	SETSTR( icon )
+	SETINT( new_cmap )
 
 	if ( parent->Type() == TYPE_BOOL )
 		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
-				    background, width, height, cursor, title, icon );
+				    background, width, height, cursor, title, icon, new_cmap );
 	else
 		{
 		Agent *agent = parent->AgentVal();
 		if ( agent && ! strcmp("<graphic:frame>", agent->AgentID()) )
 			ret =  new TkFrame( s, (TkFrame*)agent, relief,
 					    side, borderwidth, padx, pady, expand, background,
-					    width, height, cursor );
+					    width, height, cursor, new_cmap );
 		else
 			return (IValue*) generate_error("bad parent type");
 		}
@@ -2264,7 +2279,8 @@ int TkFrame::CanExpand() const
 
 Rivetobj TkFrame::TopLevel( )
 	{
-	return frame ? frame : canvas ? canvas : pseudo ? pseudo : root;
+	return frame ? frame->Self() : canvas ? canvas->Self() :
+		pseudo ? pseudo : root;
 	}
 
 void TkButton::UnMap()
@@ -2275,6 +2291,11 @@ void TkButton::UnMap()
 	if ( frame ) frame->RemoveElement( this );
 
 	if ( RefCount() > 0 ) Ref(this);
+
+	if ( type == RADIO && radio && frame != radio && menu != radio )
+		Unref(radio);
+
+	radio = 0;
 
 	if ( type == MENU )
 		{
@@ -2334,13 +2355,7 @@ TkButton::~TkButton( )
 		Unref(value);
 		}
 
-	TkAgent *f = frame;
-	TkAgent *m = menu;
-
 	UnMap();
-
-	if ( type == RADIO && radio && f != radio && m != radio )
-		Unref(radio);
 	}
 
 static unsigned char dont_invoke_button = 0;

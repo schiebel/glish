@@ -1014,7 +1014,7 @@ dcomplex* Value::CoerceToDcomplexArray( int& is_copy, int size,
 
 	switch ( Type() )
 		{
-		COERCE_COMPLEX_ACTIONS(float,"CoerceToDcomplexArray()")
+		COERCE_COMPLEX_ACTIONS(double,"CoerceToDcomplexArray()")
 		default:
 			error->Report(
 			    "bad type in Value::CoerceToDcomplexArray()" );

@@ -29,6 +29,7 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Stream.h"
 #include "glishlib.h"
+#include "input.h"
 
 #ifdef GLISHTK
 #include "TkAgent.h"
@@ -52,6 +53,12 @@ RCSID("@(#) $Id$")
 // Half-assed guess.
 #define MAXFLOAT 1e38
 #endif
+#endif
+
+#if USE_EDITLINE
+extern "C" {
+	char *readline( const char * );
+}
 #endif
 
 const char *BuiltIn::Description() const
@@ -401,6 +408,24 @@ IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
 
 	return new IValue( ret, len );
 	}
+
+IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* v = (*args_val)[0];
+
+	if ( v->Type() != TYPE_STRING )
+		return (IValue*) Fail( this, " requires a string prompt argument" );
+
+	char *prompt = v->StringVal();
+
+	char **ret = (char**) alloc_memory(sizeof(char*));
+	ret[0] = readline(prompt);
+
+	free_memory( prompt );
+
+	return new IValue( (charptr*) ret, 1 );
+	}
+
 
 IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 	{
@@ -2448,6 +2473,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new ComplexBuiltIn );
 
 	s->AddBuiltIn( new StrlenBuiltIn );
+	s->AddBuiltIn( new ReadlineBuiltIn );
 
 	s->AddBuiltIn( new SumBuiltIn );
 	s->AddBuiltIn( new ProdBuiltIn );

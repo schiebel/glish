@@ -256,10 +256,12 @@ class TkFrame : public TkRadioContainer {
     public:
 	TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor, charptr title, charptr icon );
+		  charptr width, charptr height, charptr cursor, charptr title,
+		  charptr icon, int new_cmap );
 	TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
-		  charptr background, charptr width, charptr height, charptr cursor);
+		  charptr background, charptr width, charptr height, charptr cursor,
+		  int new_cmap );
 	TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, const char *tag_ );
@@ -325,6 +327,8 @@ class TkFrame : public TkRadioContainer {
 	unsigned char reject_first_resize;
 
 	int size[2];
+
+	int unmapped;
 	};
 
 class TkButton : public TkRadioContainer {

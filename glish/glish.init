@@ -89,6 +89,9 @@ func ind(x) 1:len(x)
 func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
+func readline(prompt='>> ')
+	internal_readline(prompt)
+
 func spaste(...)
 	paste(...,sep='')
 
@@ -114,8 +117,8 @@ func frame ( parent=F, relief='flat',
 		 borderwidth=2, side='top',
 		 padx=0, pady=0, expand='both',
 		 background='lightgrey',
-		 width=70, height=50, cursor='', title='glish/tk', icon='' )
-	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title, icon )
+		 width=70, height=50, cursor='', title='glish/tk', icon='', newcmap=F )
+	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, expand, background, width, height, cursor, title, icon, newcmap )
 
 func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T, anchor='c', fill='none', group=parent )
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value, anchor, fill, group )
@@ -145,8 +148,8 @@ func listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunke
 func canvas ( parent, width=200, height=150, region=[0,0,1000,400], relief='sunken', borderwidth=2, background='lightgrey', fill='both' )
 	create_graphic( 'canvas', parent, width, height, region, relief, borderwidth, background, fill )
 
-func pgplot ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2, nxsub=1, nysub=1, relief='sunken', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
-	create_graphic( 'pgplot', parent, width, height, region, axis, nxsub, nysub, relief, borderwidth, foreground, background, fill )
+func pgplot ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2, nxsub=1, nysub=1, relief='sunken', borderwidth=2, foreground='black', background='lightgrey', fill='both', mincolors=2, maxcolors=100, cmapfail=F )
+	create_graphic( 'pgplot', parent, width, height, region, axis, nxsub, nysub, relief, borderwidth, foreground, background, fill, mincolors, maxcolors, cmapfail )
 
 func full_type_name( const x )
 	{
