@@ -6,15 +6,7 @@
 //======================================================================
 #ifndef sos_sos_h
 #define sos_sos_h
-
-//
-// stub, later these functions will be defined
-//
-#include <stdlib.h>
-#define alloc_memory malloc
-#define realloc_memory realloc
-#define free_memory free
-#define alloc_zero_memory(SIZE) calloc(SIZE,1)
+#include "sos/alloc.h"
 typedef unsigned char byte;
 
 //

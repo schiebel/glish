@@ -19,7 +19,7 @@ struct sos_header_kernel {
 	unsigned int count() { return count_; }
 	unsigned int ref() { return ++count_; }
 	unsigned int unref() { return --count_; }
-	~sos_header_kernel() { if ( freeit_ ) free_memory( buf_ ); }
+	~sos_header_kernel() { if ( freeit_ ) sos_free_memory( buf_ ); }
 	void set( void *b, unsigned int l, sos_code t, int freeit = 0 );
 	void set( unsigned int l, sos_code t ) { type_ = t; length_ = l; }
 

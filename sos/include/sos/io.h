@@ -36,10 +36,10 @@ class sos_status {
 class sos_sink {
     public:
 	enum buffer_type { FREE, HOLD, COPY };
-	virtual unsigned int write( const char *, unsigned int, buffer_type type = HOLD ) = 0;
-	unsigned int write( void *buf, unsigned int len, buffer_type type = HOLD )
+	virtual sos_status *write( const char *, unsigned int, buffer_type type = HOLD ) = 0;
+	sos_status *write( void *buf, unsigned int len, buffer_type type = HOLD )
 			{ return write( (const char *) buf, len, type ); }
-	virtual unsigned int flush( ) = 0;
+	virtual sos_status *flush( ) = 0;
 	virtual ~sos_sink();
 };
 
@@ -54,8 +54,8 @@ class sos_source {
 class sos_fd_sink : public sos_sink {
     public:
 	sos_fd_sink( int fd_ = -1 );
-	unsigned int write( const char *, unsigned int, buffer_type type = HOLD );
-	unsigned int flush( );
+	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
+	sos_status *flush( );
 
 	void setFd( int fd_ ) { fd = fd_; }
 
@@ -92,40 +92,40 @@ class sos_out {
 public:
 	sos_out( sos_sink &out_, int integral_header = 0 );
 
-	void put( byte *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( byte *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( short *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( short *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( int *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( int *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( float *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( float *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( double *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( double *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( char *a, unsigned int l, sos_code t, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( char *a, unsigned int l, sos_code t, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( unsigned char *a, unsigned int l, sos_code t, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( unsigned char *a, unsigned int l, sos_code t, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( byte *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( byte *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( short *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( short *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( int *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( int *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( float *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( float *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( double *a, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( double *a, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( char *a, unsigned int l, sos_code t, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( char *a, unsigned int l, sos_code t, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( unsigned char *a, unsigned int l, sos_code t, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( unsigned char *a, unsigned int l, sos_code t, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
 
-	void put( charptr *cv, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( charptr *cv, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
-	void put( char **cv, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ put( (charptr*)cv, l, type ); }
-	void put( char **cv, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ put( (charptr*)cv, l, h, type ); }
+	sos_status *put( charptr *cv, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( charptr *cv, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD );
+	sos_status *put( char **cv, unsigned int l, sos_sink::buffer_type type = sos_sink::HOLD )
+		{ return put( (charptr*)cv, l, type ); }
+	sos_status *put( char **cv, unsigned int l, sos_header &h, sos_sink::buffer_type type = sos_sink::HOLD )
+		{ return put( (charptr*)cv, l, h, type ); }
 
 #if defined(ENABLE_STR)
-	void put( const str & );
-	void put( const str &, sos_header &h );
+	sos_status *put( const str & );
+	sos_status *put( const str &, sos_header &h );
 #endif
 
-	void put_record_start( unsigned int l );
-	void put_record_start( unsigned int l, sos_header &h );
+	sos_status *put_record_start( unsigned int l );
+	sos_status *put_record_start( unsigned int l, sos_header &h );
 
-	void write( const char *buf, unsigned int len, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ out.write( buf, len, type ); }
+	sos_status *write( const char *buf, unsigned int len, sos_sink::buffer_type type = sos_sink::HOLD )
+		{ return out.write( buf, len, type ); }
 
-	unsigned int flush( ) { return out.flush( ); }
+	sos_status *flush( ) { return out.flush( ); }
 
 	~sos_out( );
 

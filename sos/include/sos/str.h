@@ -14,8 +14,8 @@
 class str_kernel {
 public:
 	str_kernel( unsigned int size_ = 0 ) : cnt(1), size(size_ ? size_ : 1)
-		{ ary = (char**) alloc_zero_memory(size*sizeof(char*));
-		  len = (unsigned int*) alloc_zero_memory(size*sizeof(unsigned int)); }
+		{ ary = (char**) sos_alloc_zero_memory(size*sizeof(char*));
+		  len = (unsigned int*) sos_alloc_zero_memory(size*sizeof(unsigned int)); }
 
 	str_kernel( const char * );
 

@@ -21,7 +21,7 @@ unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
 void sos_header_kernel::set( void *b, unsigned int l, sos_code t, int freeit )
 	{
 	if ( buf_ && freeit_ )
-		free_memory( buf_ );
+		sos_free_memory( buf_ );
 	buf_ = (unsigned char*) b;
 	length_ = l;
 	type_ = t;
@@ -94,10 +94,10 @@ void sos_header::scratch( )
 	if ( kernel->count() > 1 )
 		{
 		kernel->unref();
-		kernel = new sos_header_kernel((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel = new sos_header_kernel((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 		}
 	else
-		kernel->set( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		kernel->set( (char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	}
 
 void sos_header::useti( unsigned int i )
@@ -176,4 +176,9 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 		case SOS_HCUBESARC: ios << "hcubesarc"; break;
 		default: ios << "*error*";
 		}
+
+	ios << endl << "\tuser: ";
+	char *user = (char*) ((sos_header &)h).iBuffer() + 18;
+	for ( int C = 0; C < 6; C++ )
+		ios << (void*) user[C] << " ";
 	}
