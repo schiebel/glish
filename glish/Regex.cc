@@ -632,7 +632,7 @@ char *Regex::Description( char *ret ) const
 		memcpy( ptr, match, mlen );
 		ptr += mlen; *ptr++ = divider;
 		memcpy( ptr, subst.str(), slen );
-		*ptr += slen; *ptr++ = divider; *ptr = '\0';
+		ptr += slen; *ptr++ = divider; *ptr = '\0';
 		}
 	else
 		{
