@@ -1824,6 +1824,16 @@ IValue* as_string_built_in( const IValue* arg )
 	if ( arg->Type() == TYPE_STRING )
 		return copy_value( arg );
 
+	//
+	// At some point, this should properly segment the record.
+	//
+	if ( arg->Type() == TYPE_RECORD )
+		{
+		char **ptr = new char*[1];
+		ptr[0] = arg->StringVal();
+		return new IValue( (charptr*) ptr, 1 );
+		}
+
 	if ( ! arg->IsNumeric() )
 		return (IValue*) Fail( "non-numeric argument to as_string()" );
 
