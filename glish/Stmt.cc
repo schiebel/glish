@@ -833,6 +833,10 @@ FailStmt::~FailStmt()
 IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	flow = FLOW_RETURN;
+
+	if ( arg )
+		ClearFail();
+
 	IValue *ret = (IValue*) Fail( );
 
 	//
@@ -866,9 +870,17 @@ const IValue *FailStmt::GetFail()
 	return last_fail;
 	}
 
+IValue *FailStmt::SwapFail( IValue *err )
+	{
+	IValue *t = last_fail;
+	if ( err ) Ref( err );
+	last_fail = err;
+	return t;
+	}
+
 void FailStmt::SetFail( IValue *err )
 	{
-	Ref( err );
+	if ( err ) Ref( err );
 	Unref(last_fail);
 	last_fail = err;
 	}

@@ -145,7 +145,16 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			}
 
 		else
+			{
+			IValue *last = handle_fail ? FailStmt::SwapFail(0) : 0;
+
 			result = DoCall( args_vals );
+
+			if ( handle_fail && result && result->Type() != TYPE_FAIL )
+				FailStmt::SetFail(last);
+
+			Unref(last);
+			}
 		}
 	else
 		result = fail ? fail : error_ivalue();
@@ -157,13 +166,6 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 		}
 
 	delete args_vals;
-
-	//
-	// If we are returning from a function, and a failure did
-	// not occur. Clear the last <fail> stored.
-	//
-	if ( ! handle_fail && result && result->Type() != TYPE_FAIL )
-		FailStmt::ClearFail();
 
 	return result;
 	}

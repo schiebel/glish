@@ -2342,7 +2342,7 @@ IValue *Sequencer::Include( const char *file )
 	int is_interactive = interactive;
 	set_flex_buffer(new_buf);
 	int old_line_num = line_num;
-	line_num = 0;
+	line_num = 1;
 
 
 	error->SetCount(0);

@@ -639,9 +639,17 @@ IValue *copy_value( const IValue *value )
 #define DEFINE_XXX_REL_OP_COMPUTE(name,type,coerce_func)		\
 IValue* name( const IValue* lhs, const IValue* rhs, int lhs_len, RelExpr* expr )\
 	{								\
-	int lhs_copy, rhs_copy;					\
+	int lhs_copy, rhs_copy;						\
 	type* lhs_array = lhs->coerce_func( lhs_copy, lhs_len );	\
 	type* rhs_array = rhs->coerce_func( rhs_copy, rhs->Length() );	\
+									\
+	if ( ! lhs_array || ! rhs_array )				\
+		{							\
+		if ( lhs_array && lhs_copy ) delete lhs_array;		\
+		if ( rhs_array && rhs_copy ) delete rhs_array;		\
+		return new IValue( #name " failed", (const char*)0, 0 );\
+		}							\
+									\
 	glish_bool* result = new glish_bool[lhs_len];			\
 									\
 	int rhs_incr = rhs->Length() == 1 ? 0 : 1;			\

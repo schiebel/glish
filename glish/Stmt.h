@@ -311,6 +311,7 @@ class FailStmt : public Stmt {
 
 	static void SetFail( IValue *err );
 	static void ClearFail();
+	static IValue *SwapFail( IValue *err );
 	static const IValue *GetFail();
 
     protected:

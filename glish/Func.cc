@@ -173,13 +173,14 @@ UserFunc::~UserFunc()
 
 IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	{
+	IValue *last = FailStmt::SwapFail(0);
+
 	IValue *ret = kernel->Call(args, etype,stack);
-	//
-	// If we are returning from a function, and a failure did
-	// not occur. Clear the last <fail> stored.
-	//
+
 	if ( ret && ret->Type() != TYPE_FAIL )
-		FailStmt::ClearFail();
+		FailStmt::SetFail(last);
+
+	Unref(last);
 
 	return ret;
 	}
