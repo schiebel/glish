@@ -1,7 +1,7 @@
 ## $Id$
 AC_INIT(glish)
 ## Copyright (c) 1993 The Regents of the University of California.
-## Copyright (c) 1997,1998,1999,2000 Associated Universities Inc.
+## Copyright (c) 1997,1998,1999,2000,2002 Associated Universities Inc.
 ##
 ## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
 ## from ftp.ee.lbl.gov.
@@ -491,13 +491,7 @@ dnl## Checks for header files.
 dnl##
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h)
-AC_CHECK_HEADERS(limits.h float.h machine/fpu.h stropts.h)
-AC_CHECK_HEADERS(sys/signal.h fp.h)
-AC_CHECK_HEADERS(sys/time.h)
-AC_CHECK_HEADERS(stdlib.h)
-AC_CHECK_HEADERS(dirent.h termio.h sys/shm.h)
-AC_CHECK_HEADERS(siginfo.h ucontext.h floatingpoint.h)
+AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h limits.h float.h machine/fpu.h stropts.h sys/signal.h fp.h sys/time.h stdlib.h dirent.h termio.h sys/shm.h siginfo.h ucontext.h floatingpoint.h malloc.h)
 
 dnl##
 dnl## Checks for typedefs, structures, and compiler characteristics.
@@ -633,7 +627,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
     USENPD='1'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in regx/$ARCH/config.h:regx/config.h.in)
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
