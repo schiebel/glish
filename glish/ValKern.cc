@@ -210,7 +210,7 @@ void ValueKernel::array_t::Grow( unsigned int len, int do_zero )
 void ValueKernel::unrefArray(int del)
 	{
 	DIAG7((void*) this, "\t\tarray unref c:",array->ref_count,"a:",(void*)array,"d:",del)
-	if ( array && --array->ref_count == 0 )
+	if ( array && --(array->ref_count) == 0 )
 		if ( del )
 			{
 			delete array;
@@ -276,7 +276,7 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 
 
 #define ARRAY_SET_BODY(GLISH_TYPE)						\
-	unref( ARRAY(mode) ? 0 : 1 );						\
+	unref( ARRAY(mode) && copy ? 0 : 1 );					\
 	mode = ARRAY();								\
 	if ( ! array ) array = new array_t();					\
 	array->SetType( GLISH_TYPE );						\

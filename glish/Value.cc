@@ -145,7 +145,6 @@ Value::Value( Value* ref_value, value_type val_type )
 	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst() |
 			ref_value->IsRefConst() | ref_value->VecRefDeref()->IsRefConst();
 
-	Ref( ref_value );
 	kernel.SetValue(ref_value);
 
 	if ( val_type == VAL_CONST )
@@ -261,9 +260,6 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 
 void Value::DeleteValue()
 	{
-	if ( IsRef() && ! glish_collecting_garbage )
-		Unref( RefPtr() );
-
 	DeleteAttributes();
 	}
 
@@ -3343,7 +3339,7 @@ void Value::Polymorph( glish_type new_type )
 #define POLYMORPH_ACTION(tag,type,coerce_func)				\
 	case tag:							\
 		{							\
-		int is_copy;						\
+		int is_copy = 0;					\
 		type* new_val = coerce_func( is_copy, length );		\
 		if ( is_copy )						\
 			kernel.SetArray( new_val, length );		\
