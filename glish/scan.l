@@ -45,7 +45,7 @@ extern void glish_gc_register( IValue * );
 int statement_can_end = 0;
 
 extern int interactive;
-int first_line = 1;
+extern int first_line;
 
 //Transition Variables
 static int request_cnt = 0;
@@ -571,7 +571,6 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\r?\n	{
 		++line_num;
-		first_line = 0;
 		break;
 		}
 
@@ -598,7 +597,6 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			}
 
 		++line_num;
-		first_line = 0;
 		break;
 		}
 

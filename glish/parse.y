@@ -125,6 +125,7 @@ static ivalue_list *gc_registry = 0;
 static List(int) *gc_registry_offset = 0;
 #endif
 
+int first_line = 1;
 extern int glish_regex_matched;
 extern void putback_token( int );
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
@@ -134,15 +135,16 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 
 
 glish:
-		statement
+		{first_line = 0;} statement
 			{
+			first_line = 1;
 			glish_regex_matched = 0;
 			if ( interactive )
 				status = 0;
         		static int *lookahead = & ( yyclearin );
 			static int empty = *lookahead;
 
-			cur_stmt = $1;
+			cur_stmt = $2;
 
 			if ( *lookahead != empty )
 				putback_token( *lookahead );
@@ -152,6 +154,7 @@ glish:
 
 	|	error
 			{
+			first_line = 1;
 			status = 1;
 			if ( interactive )
 				{
@@ -163,6 +166,7 @@ glish:
 			}
 	|
 			{
+			first_line = 1;
 			YYABORT;
 			}
 
