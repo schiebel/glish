@@ -822,4 +822,6 @@ extern int text_to_integer( const char text[], int& successful );
 extern double text_to_double( const char text[], int& successful );
 extern dcomplex text_to_dcomplex( const char text[], int& successful );
 
+const char *print_decimal_prec( const attributeptr attr, const char *default_fmt = "%g" );
+
 #endif /* value_h */
