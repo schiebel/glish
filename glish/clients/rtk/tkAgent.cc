@@ -22,7 +22,7 @@ RCSID("@(#) $Id$")
 
 unsigned long TkRadioContainer::count = 0;
 
-ProxyStore *global_store = 0;
+extern ProxyStore *global_store;
 
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
@@ -237,16 +237,17 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 		return;							\
 		}							\
 									\
+	Ref( args );							\
 	recordptr rptr = args->RecordPtr(0);				\
-	IterCookie *c = rptr->InitForIteration();			\
-	const char *key;						\
-	int cnt = 0;
+	int c = 0;							\
+	const char *key;
+
+#define SETDONE Unref(args);
 
 #define SETVAL(var,condition)						\
-	const Value *var      = rptr->NextEntry( key, c );		\
+	const Value *var      = rptr->NthEntry( c++, key );		\
 	if ( ! ( condition) )						\
-		InvalidArg(cnt);					\
-	++cnt;
+		InvalidArg(c-1);
 
 #define SETSTR(var)							\
 	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
@@ -458,7 +459,9 @@ CLASS::~CLASS( )					\
 			global_store->Error( "tk widget creation failed" ); \
 		}						\
 	else							\
-		ret->SendCtor("newtk");
+		ret->SendCtor("newtk");				\
+								\
+	SETDONE
 
 
 #define GEOM_GET(WHAT)									\
@@ -1021,7 +1024,7 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 	const Value *val;
 	while ( (val = rptr->NextEntry( key, c )) ) 
 		{
-		if ( ! strncmp( key, "arg", 3 ) )
+		if ( strncmp( key, "arg", 3 ) )
 			{
 			int doit = 1;
 			sprintf(buf,"-%s",key);
@@ -2453,12 +2456,12 @@ void TkFrame::LeaderMoved( )
 		       rivet_path(pseudo ? pseudo : root)/*, rivet_path(tlead->TopLevel())*/, 0 );
 	}
 
-void TkFrame::Create( ProxyStore *s, Value *args )
+void TkFrame::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkFrame *ret = 0;
 
-	if ( args->Length() != 17 )
-		InvalidNumberOfArgs(17);
+	if ( args->Length() != 16 )
+		InvalidNumberOfArgs(16);
 
 	SETINIT
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -2484,6 +2487,7 @@ void TkFrame::Create( ProxyStore *s, Value *args )
 
 		if ( tl && strncmp( tl->AgentID(), "<graphic:", 9 ) )
 			{
+			SETDONE
 			global_store->Error("bad transient leader");
 			return;
 			}
@@ -2500,6 +2504,7 @@ void TkFrame::Create( ProxyStore *s, Value *args )
 					    width, height, cursor, new_cmap );
 		else
 			{
+			SETDONE
 			global_store->Error("bad parent type");
 			return;
 			}
@@ -3039,12 +3044,12 @@ void TkButton::ButtonPressed( )
 		dont_invoke_button = 0;
 	}
 
-void TkButton::Create( ProxyStore *s, Value *args )
+void TkButton::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkButton *ret;
 
-	if ( args->Length() != 20 )
-		InvalidNumberOfArgs(20);
+	if ( args->Length() != 19 )
+		InvalidNumberOfArgs(19);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3062,6 +3067,7 @@ void TkButton::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETINT( disabled )
 	SETVAL( val, 1 )
+	error->Report( val );
 	SETSTR( anchor )
 	SETSTR( fill )
 	SETSTR( bitmap )
@@ -3081,12 +3087,16 @@ void TkButton::Create( ProxyStore *s, Value *args )
 						     foreground, background, disabled, val, bitmap,
 						     (TkRadioContainer*) grp );
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+			{
+			error->Report( val );
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
 					     disabled, val, anchor, fill, bitmap, (TkRadioContainer*) grp );
+			}
 		}
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent (or group) type");
 		return;
 		}
@@ -3318,12 +3328,12 @@ void TkScale::SetValue( double d )
 		}
 	}
 
-void TkScale::Create( ProxyStore *s, Value *args )
+void TkScale::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkScale *ret;
 
-	if ( args->Length() != 16 )
-		InvalidNumberOfArgs(16);
+	if ( args->Length() != 15 )
+		InvalidNumberOfArgs(15);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3346,7 +3356,11 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
 	else
+		{
+		SETDONE
 		global_store->Error("bad parent type");
+		return;
+		}
 
 	CREATE_RETURN
 	}      
@@ -3506,12 +3520,12 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
-void TkText::Create( ProxyStore *s, Value *args )
+void TkText::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkText *ret;
 
-	if ( args->Length() != 13 )
-		InvalidNumberOfArgs(13);
+	if ( args->Length() != 12 )
+		InvalidNumberOfArgs(12);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3536,6 +3550,7 @@ void TkText::Create( ProxyStore *s, Value *args )
 		}
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}
@@ -3651,12 +3666,12 @@ int TkScrollbar::CanExpand() const
 	return 1;
 	}
 
-void TkScrollbar::Create( ProxyStore *s, Value *args )
+void TkScrollbar::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkScrollbar *ret;
 
-	if ( args->Length() != 6 )
-		InvalidNumberOfArgs(6);
+	if ( args->Length() != 5 )
+		InvalidNumberOfArgs(5);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3670,6 +3685,7 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}
@@ -3751,12 +3767,12 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
-void TkLabel::Create( ProxyStore *s, Value *args )
+void TkLabel::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkLabel *ret;
 
-	if ( args->Length() != 14 )
-		InvalidNumberOfArgs(14);
+	if ( args->Length() != 13 )
+		InvalidNumberOfArgs(13);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3779,6 +3795,7 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 				    font, relief, borderwidth, foreground, background, anchor, fill );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}
@@ -3906,12 +3923,12 @@ void TkEntry::xScrolled( const double *d )
 	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
 	}
 
-void TkEntry::Create( ProxyStore *s, Value *args )
+void TkEntry::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkEntry *ret;
 
-	if ( args->Length() != 13 )
-		InvalidNumberOfArgs(13);
+	if ( args->Length() != 12 )
+		InvalidNumberOfArgs(12);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3934,6 +3951,7 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 				    disabled, show, exp, fill );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}
@@ -4015,12 +4033,12 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
 	}
 
-void TkMessage::Create( ProxyStore *s, Value *args )
+void TkMessage::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkMessage *ret;
 
-	if ( args->Length() != 14 )
-		InvalidNumberOfArgs(14);
+	if ( args->Length() != 13 )
+		InvalidNumberOfArgs(13);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -4042,6 +4060,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, anchor, fill );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}
@@ -4161,12 +4180,12 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	procs.Insert("nearest", new TkProc(this, "", glishtk_listbox_nearest, glishtk_strtoint));
 	}
 
-void TkListbox::Create( ProxyStore *s, Value *args )
+void TkListbox::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkListbox *ret;
 
-	if ( args->Length() != 12 )
-		InvalidNumberOfArgs(12);
+	if ( args->Length() != 11 )
+		InvalidNumberOfArgs(11);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -4186,6 +4205,7 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 		ret =  new TkListbox( s, (TkFrame*)agent, width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
 	else
 		{
+		SETDONE
 		global_store->Error("bad parent type");
 		return;
 		}

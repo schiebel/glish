@@ -1,47 +1,72 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include <stdlib.h>
+#include <string.h>
 #include "Glish/Proxy.h"
-#include "Reporter.h"
+#include "tkAgent.h"
+#include "tkCanvas.h"
+#include "Rivet/rivet.h"
 
-class ProxyA : public Proxy {
+class TkStore : public ProxyStore {
     public:
-	ProxyA( ProxyStore *s );
-	~ProxyA( );
-	static void Create( ProxyStore *s, GlishEvent *e, void *data );
-	void ProcessEvent( const char *name, const Value *val );
+	TkStore( int &argc, char **argv, Client::ShareType multithreaded = NONSHARED );
+	void FD_Change( int fd, int add_flag );
+	void Loop( );
+    protected:
+	void addfile( int fd );
+	static void fileproc( ClientData data, int );
+	int done;
 };
 
-ProxyA::ProxyA( ProxyStore *s ) : Proxy(s) { 	cerr << "hello world " << id << endl; }
-
-ProxyA::~ProxyA( )
+void TkStore::addfile( int fd )
 	{
-	cerr << "bye bye " << id << endl;
+	Tk_CreateFileHandler( fd, TK_READABLE, fileproc, (ClientData) this );
 	}
 
-void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
+void TkStore::FD_Change( int fd, int add_flag )
 	{
-	message->Report( e->Val() );
-	ProxyA *np = new ProxyA( s );
-	np->SendCtor("newtp");
-	}
-
-void ProxyA::ProcessEvent( const char *name, const Value *val )
-	{
-	if ( ReplyPending() )
-		Reply( val );
+	if ( add_flag )
+		addfile( fd );
 	else
-		{
-		char buf[1024];
-		sprintf(buf, "ProxyA_%s", name);
-		PostEvent( buf, val );
-		}
+		Tk_DeleteFileHandler( fd );
 	}
 
+void TkStore::fileproc( ClientData data, int fd )
+	{
+	TkStore *stor = (TkStore*) data;
+	GlishEvent *e = stor->NextEvent();
+	if ( ! e )
+		stor->done = 1;
+	else
+		stor->ProcessEvent( e );
+	}
+
+TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) : ProxyStore( argc, argv, multithreaded ), done(0)
+	{
+	fd_set fds;
+	FD_ZERO( &fds );
+	int num = AddInputMask( &fds );
+
+	for ( int i=0,cnt=0; i < FD_SETSIZE && cnt < num; ++i )
+		if ( FD_ISSET( i, &fds ) )
+			addfile( i );
+	}
+
+void TkStore::Loop( )
+	{
+	while ( ! done )
+		Tk_DoOneEvent( 0 );
+	}
+
+ProxyStore *global_store = 0;
 int main( int argc, char** argv )
 	{
-	ProxyStore stor( argc, argv );
+	TkStore stor( argc, argv );
 
-	stor.Register( "maka", ProxyA::Create );
+	global_store = &stor;
+
+	stor.Register( "frame", TkFrame::Create );
+	stor.Register( "button", TkButton::Create );
 
 	stor.Loop();
 	}

@@ -18,12 +18,14 @@ RCSID("@(#) $Id$")
 
 class pxy_store_cbinfo {
     public:
-	pxy_store_cbinfo( PxyStoreCB cb__, void * data__ ) : cb_(cb__), data_(data__) { }
-	PxyStoreCB cb( ) { return cb_; }
-	void *data( ) { return data_; }
+	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), data(data_) { }
+	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), data(data_) { }
+	void invoke( ProxyStore *s, GlishEvent *e )
+		{ if ( cb1 ) (*cb1)( s, e, data ); else (*cb2)( s, e->Val(), data ); }
     private:
-	PxyStoreCB cb_;
-	void *data_;
+	PxyStoreCB1 cb1;
+	PxyStoreCB2 cb2;
+	void *data;
 };
 
 ProxyStore::ProxyStore( int &argc, char **argv,
@@ -45,7 +47,18 @@ ProxyStore::~ProxyStore( )
 		}
 	}
 
-void ProxyStore::Register( const char *string, PxyStoreCB cb, void *data = 0 )
+void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data = 0 )
+	{
+	char *s = strdup(string);
+	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
+	if ( old )
+		{
+		free_memory( s );
+		delete old;
+		}
+	}
+
+void ProxyStore::Register( const char *string, PxyStoreCB2 cb, void *data = 0 )
 	{
 	char *s = strdup(string);
 	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
@@ -98,48 +111,51 @@ Proxy *ProxyStore::GetProxy( const ProxyId &proxy_id )
 	return 0;
 	}
 
+void ProxyStore::ProcessEvent( GlishEvent *e )
+	{
+	if ( e->IsProxy() )
+		{
+		Value *rval = e->Val();
+		if ( rval->Type() != TYPE_RECORD )
+			{
+			Error( "bad proxy value" );
+			return;
+			}
+
+		const Value *idv = rval->HasRecordElement( "id" );
+		const Value *val = rval->HasRecordElement( "value" );
+		if ( ! idv || ! val || idv->Type() != TYPE_INT ||
+		     idv->Length() != ProxyId::len() )
+			{
+			Error( "bad proxy value" );
+			return;
+			}
+
+		ProxyId id(idv->IntPtr(0));
+		int found = 0;
+		loop_over_list( pxlist, i )
+			if ( pxlist[i]->Id() == id )
+				{
+				found = 1;
+				if ( ! strcmp( "terminate", e->Name() ) )
+					Unref(pxlist[i]->Done( val ));
+				else
+					pxlist[i]->ProcessEvent( e->Name(), val );
+				break;
+				}
+
+		if ( ! found ) Error( "bad proxy id" );
+		}
+	else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
+		cbi->invoke( this, e );
+	else
+		Unrecognized( );
+	}
+
 void ProxyStore::Loop( )
 	{
 	for ( GlishEvent* e; (e = NextEvent()); )
-		{
-		if ( e->IsProxy() )
-			{
-			Value *rval = e->Val();
-			if ( rval->Type() != TYPE_RECORD )
-				{
-				Error( "bad proxy value" );
-				continue;
-				}
-
-			const Value *idv = rval->HasRecordElement( "id" );
-			const Value *val = rval->HasRecordElement( "value" );
-			if ( ! idv || ! val || idv->Type() != TYPE_INT ||
-			     idv->Length() != ProxyId::len() )
-				{
-				Error( "bad proxy value" );
-				continue;
-				}
-
-			ProxyId id(idv->IntPtr(0));
-			int found = 0;
-			loop_over_list( pxlist, i )
-				if ( pxlist[i]->Id() == id )
-					{
-					found = 1;
-					if ( ! strcmp( "terminate", e->Name() ) )
-						Unref(pxlist[i]->Done( val ));
-					else
-						pxlist[i]->ProcessEvent( e->Name(), val );
-					break;
-					}
-
-			if ( ! found ) Error( "bad proxy id" );
-			}
-		else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
-			(*cbi->cb())( this, e, cbi->data() );
-		else
-			Unrecognized( );
-		}
+		ProcessEvent( e );
 	}
 
 void Proxy::setId( const ProxyId &i ) { id = i; }

@@ -12,9 +12,10 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include "Rivet/rivet.h"
 #include "Reporter.h"
-#include "Value.h"
+#include "Glish/Value.h"
 #include "system.h"
 
+extern ProxyStore *global_store;
 
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%x%s%x",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
@@ -32,32 +33,34 @@ RCSID("@(#) $Id$")
 		Value *err = ret->GetError();			\
 		if ( err )					\
 			{					\
-			Ref(err);				\
-			return err;				\
+			global_store->Error( err );		\
+			Unref( err );				\
 			}					\
 		else						\
-			return (Value*) generate_error( "tk widget creation failed" ); \
+			global_store->Error( "tk widget creation failed" ); \
 		}						\
 	else							\
-		return ret->AgentRecord();
-
+		ret->SendCtor("newtk");
 
 int TkCanvas::count = 0;
 
-#define InvalidArg( num )					\
-	(Value*) generate_error("invalid type for argument ", num)
+#define InvalidArg( num )						\
+	{								\
+	global_store->Error( "invalid type for argument " ## #num );	\
+	return;								\
+	}
 
 #define InvalidNumberOfArgs( num )					\
 	{								\
-	Error( "invalid number of arguments, " ## #num ## " expected" );\
+	global_store->Error( "invalid number of arguments, " ## #num ## " expected" );\
 	return;								\
 	}
 
 #define SETINIT								\
 	if ( args->Type() != TYPE_RECORD )				\
 		{							\
-		error->Report("bad value");				\
-		return 0;						\
+		global_store->Error("bad value");			\
+		return;							\
 		}							\
 									\
 	recordptr rptr = args->RecordPtr(0);				\
@@ -68,7 +71,7 @@ int TkCanvas::count = 0;
 #define SETVAL(var,condition)						\
 	const Value *var      = rptr->NextEntry( key, c );		\
 	if ( ! ( condition) )						\
-		return InvalidArg(cnt);					\
+		InvalidArg(cnt);					\
 	++cnt;
 
 #define SETSTR(var)							\
@@ -166,7 +169,6 @@ int TkCanvas::count = 0;
 #define EXPRINT(var,EVENT)                                              \
         int var = 0;                                                    \
 	EXPRINTVALXX(var##_val_,EVENT,)                                 \
-	Expr *var##_expr_ = var##_val__expr_;				\
         var = var##_val_ ->IntVal();
 
 #define EXPRINT2(var,EVENT)						\
@@ -362,7 +364,7 @@ char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 			}
 	else if ( args->Length() > 1 && args->Length() >= howmany )
 		{
-		for (int i=c; i < args->Length(); i++)
+		for (int i=0; i < args->Length(); i++)
 			{
 			EXPRSTR(str, event_name)
 			Argv[argc] = (char*)str;
@@ -414,11 +416,11 @@ strcat(tagstr, STR);							\
 tagstr_cnt += strlen(STR);
 
 #define POINTFUNC_NAMED_ACTION				 		\
-if ( strcmp((*args)[c]->Name(),"tag") )					\
+if ( strcmp(key,"tag") )						\
 	{								\
 	Arg_name[name_cnt] = (char*) alloc_memory( 			\
-			sizeof(char)*(strlen((*args)[c]->Name())+2) );	\
-	sprintf(Arg_name[name_cnt],"-%s",(*args)[c]->Name());		\
+			sizeof(char)*(strlen(key)+2) );			\
+	sprintf(Arg_name[name_cnt],"-%s",key);				\
 	EXPRSTR( str, event_name )					\
 	Arg_val[name_cnt++] = strdup(str);				\
 	EXPR_DONE( str )						\
@@ -432,8 +434,9 @@ else									\
 	EXPR_DONE( str_v )						\
 	}
 
-		for (int i = 0; i < (*args).Length(); i++)
-			if ( (*args)[c]->Name() )
+		while ( (val = rptr->NextEntry( key, c )) ) 
+			{
+			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
@@ -443,6 +446,7 @@ else									\
 				Argv[argc++] = strdup(str);
 				EXPR_DONE( str )
 				}
+			}
 		}
 	else if ( shape_val != false_value && shape_val->IsNumeric() &&
 		  shape_val->Length() == 2 && shape_val->IntVal(2) == 2 &&
@@ -463,13 +467,11 @@ else									\
 			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
-		for ( i = c; i < (*args).Length(); i++)
-			if ( (*args)[c]->Name() )
+		while ( (val = rptr->NextEntry( key, c )) )
+			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
-			else
-				c++;
 		}
 	else if ( val->Length() > 1 && val->IsNumeric() )
 		{
@@ -485,13 +487,13 @@ else									\
 			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
-		for (i = c; i < (*args).Length(); i++)
-			if ( (*args)[c]->Name() )
+		while ( (val = rptr->NextEntry( key, c )) ) 
+			{
+			if ( strncmp( key, "arg", 3 ) )
 				{
 				POINTFUNC_NAMED_ACTION
 				}
-			else
-				c++;
+			}
 		}
 	else
 		{
@@ -682,7 +684,8 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 Value *glishtk_tkcast( char *tk )
 	{
 	TkAgent *agent = (TkAgent*) tk;
-	return agent ? agent->AgentRecord() : error_value();
+	agent->SendCtor("newtk");
+	return 0;
 	}
 
 Value *glishtk_valcast( char *val )
@@ -910,14 +913,14 @@ int CLASS::CanExpand() const				\
 STD_EXPAND_PACKINSTRUCTION(TkCanvas)
 STD_EXPAND_CANEXPAND(TkCanvas)
 	  
-void TkCanvas::Create( ProxyStore *s, Value *args )
+void TkCanvas::Create( ProxyStore *s, Value *args, void * )
 	{
 	TkCanvas *ret;
 
-	if ( args->Length() != 9 )
-		InvalidNumberOfArgs(9);
+	if ( args->Length() != 8 )
+		InvalidNumberOfArgs(8);
 
-	int c = 1;
+	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
 	SETDIM( width )
 	SETDIM( height )
@@ -927,7 +930,14 @@ void TkCanvas::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( fill )
 
-	ret =  new TkCanvas( s, (TkFrame*)parent->AgentVal(), width, height, region, relief, borderwidth, background, fill );
+	TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret = new TkCanvas( s, (TkFrame*)agent, width, height, region, relief, borderwidth, background, fill );
+	else
+		{
+		global_store->Error("bad parent type");
+		return;
+		}
 
 	CREATE_RETURN
 	}

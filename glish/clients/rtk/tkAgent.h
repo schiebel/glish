@@ -302,7 +302,7 @@ class TkFrame : public TkRadioContainer {
 	void RemoveElement( TkAgent *obj );
 	void UnMap();
 
-	static void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 	~TkFrame();
 
 	const char *Expand() const { return expand; }
@@ -373,7 +373,7 @@ class TkButton : public TkRadioContainer {
 	const char *Index( ) const { return menu_index ? menu_index : ""; }
 
 	void ButtonPressed( );
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 
 	const char **PackInstruction();
 	int CanExpand() const;
@@ -418,7 +418,7 @@ class TkScale : public TkAgent {
 	void ValueSet( double );
 	// set value
 	void SetValue( double );
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 	~TkScale();
 
 	const char **PackInstruction();
@@ -445,7 +445,7 @@ class TkText : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
@@ -472,7 +472,7 @@ class TkScrollbar : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 	void Scrolled( Value *data );
 	~TkScrollbar();
 
@@ -486,7 +486,7 @@ class TkLabel : public TkAgent {
 		 charptr font, charptr relief, charptr borderwidth,
 		 charptr foreground, charptr background, charptr anchor, charptr fill );
 
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 	~TkLabel();
 
 	const char **PackInstruction();
@@ -503,7 +503,7 @@ class TkEntry : public TkAgent {
 		 charptr borderwidth, charptr foreground, charptr background,
 		 int disabled, int show, int exportselection, charptr fill );
 
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 
 	charptr IndexCheck( charptr );
 
@@ -535,7 +535,7 @@ class TkMessage : public TkAgent {
 		   charptr relief, charptr borderwidth,
 		   charptr foreground, charptr background, charptr anchor, charptr fill );
 
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 
 	~TkMessage();
 
@@ -559,7 +559,7 @@ class TkListbox : public TkAgent {
 	void xScrolled( const double *firstlast );
 	void elementSelected( );
   
-	void Create( ProxyStore *, Value *);
+	static void Create( ProxyStore *, Value *, void *);
 
 	const char **PackInstruction();
 	int CanExpand() const;

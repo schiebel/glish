@@ -38,11 +38,11 @@ MKHIER = $(top)/config/mkhier
 INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) \
+GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) \
 		$(LIBDIR_P)/librivet$(LIB_SUFFIX)
-LIBS = malloc.o $(CLIENT_LIBS) @LIBS@
+LIBS = $(CLIENT_LIBS) @LIBS@
 
-OBJS = main.o tkAgent.o tkCanvas.o
+OBJS = main.o tkAgent.o tkCanvas.o malloc.o
 
 RCDIR = @RCDIR@
 TK_LIB = @TK_LIB@ 
@@ -78,7 +78,7 @@ main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
 rtk: $(OBJS) $(GLISH_LIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o rtk main.o $(OBJS) $(LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o rtk $(OBJS) $(LIBS) $(XLIB)
 
 $(BINDIR_P)/rtk: rtk
 	$(INSTALL_PROGRAM) rtk $(BINDIR_P)
@@ -124,8 +124,8 @@ $(D)tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h
 main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc
 
-malloc.o: $(SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/malloc.c
+malloc.o: $(GLISH_SRC)/malloc.c
+	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
 
 INSTALL_:
 
