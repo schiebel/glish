@@ -34,7 +34,7 @@ extern void glish_event_posted( int );
 extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
 
 //###  Function to Make Callbacks
-extern const char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data );
+extern const char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
 
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character

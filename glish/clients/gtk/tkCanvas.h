@@ -26,7 +26,7 @@ class TkCanvas : public TkAgent {
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 
-	void ButtonEvent(const char *event, Value *rec);
+	void BindEvent(const char *event, Value *rec);
 
 	void Add(TkFrame *item) {  frame_list.append(item); }
 	void Remove(TkFrame *item) { frame_list.remove(item); }

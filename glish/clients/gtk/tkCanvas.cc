@@ -308,7 +308,7 @@ char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 			EXPR_DONE( v )
 			}
 
-		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, buf, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, " {", buf, "}", 0 );
 		*buf = '\0';
 		}
 
@@ -415,7 +415,8 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	int tagstr_cnt = 0;
 	int name_cnt = 0;
 
-	tagstr[0] = '\0';
+	tagstr[0] = '{';
+	tagstr[1] = '\0';
 	EXPRINIT( event_name)
 	int elements = 0;
 	EXPRVAL(val,event_name)
@@ -548,6 +549,7 @@ else									\
 	Argv[1] = (char*) cmd;
 	Argv[2] = (char*) param;
 	Argv[argc++] = (char*) "-tag";
+	strcat( tagstr, "}" );
 	Argv[argc++] = (char*) tagstr;
 
 	tcl_ArgEval( agent->Interp(), argc, Argv );
@@ -641,84 +643,73 @@ struct glishtk_canvas_bindinfo
 		}
 	};
 
-int canvas_buttoncb(Tcl_Interp *tcl, Tk_Window canvas, XEvent *xevent, ClientData assoc, int keysym, int)
+int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	{
-	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) assoc;
+	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) data;
 	int dummy;
 	recordptr rec = create_record_dict();
+	Tk_Window self = info->canvas->Self();
+
 	if ( info->tag )
 		rec->Insert( strdup("tag"), new Value( info->tag ) );
-	static char buff[256];
+
 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-	wpt[0] = xevent->xkey.x;
-	wpt[1] = xevent->xkey.y;
+	wpt[0] = atoi(argv[1]);
+	wpt[1] = atoi(argv[2]);
 	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
+
 	int *cpt = (int*) alloc_memory( sizeof(int)*2 );
-	sprintf(buff,"%d",xevent->xkey.x);
-	Tcl_VarEval( tcl, Tk_PathName(canvas), " canvasx ", buff, 0 );
+	Tcl_VarEval( tcl, Tk_PathName(self), " canvasx ", argv[1], 0 );
 	cpt[0] = atoi(Tcl_GetStringResult(tcl));
-	sprintf(buff,"%d",xevent->xkey.y);
-	Tcl_VarEval( tcl, Tk_PathName(canvas), " canvasy ", buff, 0 );
+	Tcl_VarEval( tcl, Tk_PathName(self), " canvasy ", argv[2], 0 );
 	cpt[1] = atoi(Tcl_GetStringResult(tcl));
 	rec->Insert( strdup("cpoint"), new Value( cpt, 2 ) );
-// 	if ( xevent->type == KeyPress )
-// 		rec->Insert( strdup("key"), new Value( rivet_expand_event(canvas, "A", xevent, keysym, &dummy) ) );
-	info->canvas->ButtonEvent(info->event_name, new Value( rec ) );
+
+	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+
+	if ( argv[4][0] != '?' )
+		{
+		// KeyPress/Release event
+		rec->Insert( strdup("sym"), new Value(argv[4]) );
+		rec->Insert( strdup("key"), new Value(argv[5]) );
+		}
+
+	info->canvas->BindEvent( info->event_name, new Value( rec ) );
 	return TCL_OK;
 	}
 
 char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 	{
-// 	char *event_name = "canvas bind function";
-// 	EXPRINIT( event_name)
-// 	if ( args->Length() >= 3 )
-// 		{
-// 		EXPRSTR( tag, event_name )
-// 		EXPRSTR( button, event_name )
-// 		EXPRSTR( event, event_name )
-// 		glishtk_canvas_bindinfo *binfo = 
-// 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
+	char *event_name = "canvas bind function";
+	EXPRINIT( event_name)
+	if ( args->Length() >= 3 )
+		{
+		EXPRSTR( tag, event_name )
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_canvas_bindinfo *binfo = 
+			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
 
-// 		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
-// 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
-// 			{
-// 			global_store->Error("Error, binding not created.");
-// 			delete binfo;
-// 			}
+		Tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button, " {",
+			     glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, binfo), " %x %y %b %K %A}", 0 );
+		
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		EXPR_DONE( tag )
+		}
+	else if ( args->Length() >= 2 )
+		{
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_canvas_bindinfo *binfo = 
+			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
 
-// 		EXPR_DONE( event )
-// 		EXPR_DONE( button )
-// 		EXPR_DONE( tag )
-// 		}
-// 	else if ( args->Length() >= 2 )
-// 		{
-// 		EXPRSTR( button, event_name )
-// 		EXPRSTR( event, event_name )
-// 		glishtk_canvas_bindinfo *binfo = 
-// 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
+		Tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
+			     glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, binfo), " %x %y %b %K %A}", 0 );
 
-// 		if ( strcmp(button,"<KeyPress>") )
-// 			{
-// 			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
-// 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
-// 				{
-// 				global_store->Error("Error, binding not created.");
-// 				delete binfo;
-// 				}
-// 			}
-// 		else
-// 			{
-// 			if ( rivet_create_binding(0, "all", (char*)button, (int (*)()) canvas_buttoncb,
-// 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
-// 				{
-// 				global_store->Error("Error, binding not created.");
-// 				delete binfo;
-// 				}
-// 			}
-
-// 		EXPR_DONE( event )
-// 		EXPR_DONE( button )
-// 		}
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		}
 
 	return 0;
 	}
@@ -763,17 +754,21 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	return 0;
 	}
 
-int canvas_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int canvas_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkCanvas*)assoc)->yScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkCanvas*)data)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int canvas_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int canvas_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkCanvas*)assoc)->xScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkCanvas*)data)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
@@ -791,7 +786,7 @@ void TkCanvas::UnMap()
 	TkAgent::UnMap();
 	}
 
-void TkCanvas::ButtonEvent( const char *event, Value *rec )
+void TkCanvas::BindEvent( const char *event, Value *rec )
 	{
 	PostTkEvent( event, rec );
 	}
@@ -820,7 +815,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 		region = region_->CoerceToIntArray( region_is_copy, 4 );
 
 	if ( region )
-		sprintf(region_str ,"%d %d %d %d", region[0], region[1], region[2], region[3]);
+		sprintf(region_str ,"{%d %d %d %d}", region[0], region[1], region[2], region[3]);
 
 	int c = 0;
 	argv[c++] = "canvas";
@@ -840,10 +835,12 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
-// 	argv[c++] = "-xscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) canvas_xscrollcb, (ClientData) this, 0);
-// 	argv[c++] = "-yscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) canvas_yscrollcb, (ClientData) this, 0);
+
+	char ys[100];
+	argv[c++] = "-yscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, canvas_yscrollcb, this, ys );
+	argv[c++] = "-xscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, canvas_xscrollcb, this );
 
 	if ( region_is_copy )
 		free_memory( region );

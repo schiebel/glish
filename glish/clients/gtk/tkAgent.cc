@@ -53,13 +53,14 @@ int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 	return Tcl_Eval( interp, buf );
 	}
 
-const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data )
+const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data, char *out )
 	{
 	static int index = 0;
 	static char buf[100];
-	sprintf( buf, "gtkcb%x", ++index );
-	Tcl_CreateCommand( tcl, buf, cmd, data, 0 );
-	return buf;
+	if ( ! out ) out = buf;
+	sprintf( out, "gtkcb%x", ++index );
+	Tcl_CreateCommand( tcl, out, cmd, data, 0 );
+	return out;
 	}
 
 class glishtk_event {
@@ -846,7 +847,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 		EXPRSTR( str, event_name );
 		EXPRSTR( where, event_name )
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), SP, str, 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " \"", str, "\"", 0);
 		a->ExitEnable();
 		EXPR_DONE( where )
 		EXPR_DONE( str )
@@ -854,7 +855,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), SP, args->StringPtr(0)[0], 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " \"", args->StringPtr(0)[0], "\"", 0 );
 		a->ExitEnable();
 		}
 	else
@@ -906,11 +907,13 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	else if ( args->Type() == TYPE_STRING && param )
 		{
 		char *s = args->StringVal( ' ', 0, 1 );
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP, s, 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, " \"", s, "\"", 0 );
 		free_memory(s);
 		}
 	else
 		global_store->Error("wrong arguments");
+
+	Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see end", 0 );
 
 	return 0;
 	}
@@ -1178,7 +1181,6 @@ char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Val
 		return 0;
 
 	Tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], 0 );
-	cout << "update: " << Tk_PathName(self) << SP << val->StringPtr(0)[0] << endl;
 	return 0;
 	}
 
@@ -1598,43 +1600,44 @@ struct glishtk_bindinfo
 		}
 	};
 
-int glishtk_bindcb(Tk_Window agent, XEvent *xevent, ClientData assoc, int keysym, int)
+int glishtk_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-// 	glishtk_bindinfo *info = (glishtk_bindinfo*) assoc;
-// 	int dummy;
-// 	recordptr rec = create_record_dict();
+	glishtk_bindinfo *info = (glishtk_bindinfo*) data;
+	int dummy;
+	recordptr rec = create_record_dict();
 
-// 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-// 	wpt[0] = xevent->xkey.x;
-// 	wpt[1] = xevent->xkey.y;
-// 	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
-// 	if ( xevent->type == KeyPress )
-// 		rec->Insert( strdup("key"), new Value( rivet_expand_event(agent, "A", xevent, keysym, &dummy) ) );
-// 	info->agent->BindEvent(info->event_name, new Value( rec ) );
+	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
+	wpt[0] = atoi(argv[1]);
+	wpt[1] = atoi(argv[2]);
+	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
+	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
+	if ( argv[4][0] != '?' )
+		{
+		// KeyPress/Release event
+		rec->Insert( strdup("sym"), new Value(argv[4]) );
+		rec->Insert( strdup("key"), new Value(argv[5]) );
+		}
+
+	info->agent->BindEvent( info->event_name, new Value( rec ) );
 	return TCL_OK;
 	}
 
 char *glishtk_bind(TkAgent *agent, const char *, Value *args )
 	{
-// 	char *event_name = "agent bind function";
-// 	EXPRINIT( event_name)
-// 	if ( args->Length() >= 2 )
-// 		{
-// 		EXPRSTR( button, event_name )
-// 		EXPRSTR( event, event_name )
-// 		glishtk_bindinfo *binfo = 
-// 			new glishtk_bindinfo(agent, event, button);
+	char *event_name = "agent bind function";
+	EXPRINIT( event_name)
+	if ( args->Length() >= 2 )
+		{
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_bindinfo *binfo = new glishtk_bindinfo(agent, event, button);
 
-// 		if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) glishtk_bindcb,
-// 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
-// 			{
-// 			global_store->Error("Error, binding not created.");
-// 			delete binfo;
-// 			}
+		Tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
+			     glishtk_make_callback(agent->Interp(), glishtk_bindcb, binfo), " %x %y %b %K %A}", 0 );
 
-// 		EXPR_DONE( event )
-// 		EXPR_DONE( button )
-// 		}
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		}
 
 	return 0;
 	}
@@ -3483,12 +3486,11 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		argv[c++] = (char*) font;
 		}
 
-	// STRANGE TCL/Tk 8.0 seems to have exchanged
-	// the sense of xscroll and yscroll?????
+	char ys[100];
 	argv[c++] = "-yscrollcommand";
-	argv[c++] = glishtk_make_callback( tcl, text_xscrollcb, this );
+	argv[c++] = glishtk_make_callback( tcl, text_yscrollcb, this, ys );
 	argv[c++] = "-xscrollcommand";
-	argv[c++] = glishtk_make_callback( tcl, text_yscrollcb, this );
+	argv[c++] = glishtk_make_callback( tcl, text_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 
@@ -3603,11 +3605,16 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 			sprintf( buf, "yview %s %s %s", argv[1], argv[2], argv[3] );
 		else
 			sprintf( buf, "xview %s %s %s", argv[1], argv[2], argv[3] );
-	else
+	else if ( argc == 3 )
 		if ( vert )
 			sprintf( buf, "yview %s %s", argv[1], argv[2] );
 		else
 			sprintf( buf, "xview %s %s", argv[1], argv[2] );
+	else
+		if ( vert )
+			sprintf( buf, "yview moveto 0.001" );
+		else
+			sprintf( buf, "xview moveto 0.001" );
 
 	((TkScrollbar*)data)->Scrolled( new Value( buf ));
 	return TCL_OK;
@@ -3840,16 +3847,18 @@ void TkEntry::UnMap()
 	TkAgent::UnMap();
 	}
 
-int entry_returncb(Tk_Window, XEvent *, ClientData assoc, ClientData)
+int entry_returncb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	((TkEntry*)assoc)->ReturnHit();
+	((TkEntry*)data)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int entry_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkEntry*)assoc)->xScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkEntry*)data)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
@@ -3872,8 +3881,8 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	sprintf(width_,"%d",width);
 
 	int c = 0;
-	argv[0] = "entry";
-	argv[1] =  NewName(frame->Self());
+	argv[c++] = "entry";
+	argv[c++] =  NewName(frame->Self());
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-justify";
@@ -3902,8 +3911,8 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 		}
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
-// 	argv[c++] = "-xscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) entry_xscrollcb, (ClientData) this, 0);
+	argv[c++] = "-xscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, entry_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
@@ -3911,8 +3920,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
 
-// 	if ( rivet_create_binding(self, 0, "<Return>", (int (*)()) entry_returncb, (ClientData) this, 1, 0) == TCL_ERROR )
-// 		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkEntry::TkEntry")
+	Tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <Return> ", glishtk_make_callback( tcl, entry_returncb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -4116,23 +4124,27 @@ void TkListbox::UnMap()
 	TkAgent::UnMap();
 	}
 
-int listbox_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int listbox_yscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkListbox*)assoc)->yScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkListbox*)data)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+int listbox_xscrollcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	double *firstlast = (double*)calldata;
-	((TkListbox*)assoc)->xScrolled( firstlast );
+	double firstlast[2];
+	firstlast[0] = atof(argv[1]);
+	firstlast[1] = atof(argv[2]);
+	((TkText*)data)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_button1cb(Tk_Window, XEvent *, ClientData assoc, ClientData)
+int listbox_button1cb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	{
-	((TkListbox*)assoc)->elementSelected();
+	((TkListbox*)data)->elementSelected();
 	return TCL_OK;
 	}
 
@@ -4177,10 +4189,12 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = (char*) background;
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
-// 	argv[c++] = "-yscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) listbox_yscrollcb, (ClientData) this, 0);
-// 	argv[c++] = "-xscrollcommand";
-// 	argv[c++] = rivet_new_callback((int (*)()) listbox_xscrollcb, (ClientData) this, 0);
+
+	char ys[100];
+	argv[c++] = "-yscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, listbox_yscrollcb, this, ys );
+	argv[c++] = "-xscrollcommand";
+	argv[c++] = glishtk_make_callback( tcl, listbox_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
@@ -4188,8 +4202,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
 
-// 	if ( rivet_create_binding(self, 0, "<ButtonRelease-1>", (int (*)()) listbox_button1cb, (ClientData) this, 1, 0) == TCL_ERROR )
-// 		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkListbox::TkListbox")
+	Tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <ButtonRelease-1> ", glishtk_make_callback( tcl, listbox_button1cb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
