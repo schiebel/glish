@@ -12,6 +12,8 @@ CFLAGS = @TK_FLAGS@ @CFLAGS@
 CXXFLAGS = @TK_FLAGS@ @CXXFLAGS@
 LIB_SUFFIX = @GLISH_LIB_SUFFIX@
 
+SLIB_CFLAGS = @SLIB_CFLAGS@
+
 CC = @CC@
 CPLUS = @CXX@
 INSTALL = @INSTALL@
@@ -81,7 +83,7 @@ make-scriptdir:
 install:  make-bindir make-scriptdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
 
 tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkAgent.cc
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(SLIB_CFLAGS) -c $(SRC)/tkAgent.cc
 
 tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc

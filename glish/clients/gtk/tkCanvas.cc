@@ -751,7 +751,7 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 
 	EXPRINT2( x, event_name )
 	EXPRINT2( y, event_name )
-	TkFrame *frame = new TkFrame(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
+	TkFrame *frame = new TkFrameP(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
 	Tcl_VarEval( agent->Interp(), Tk_PathName(canvas->Self()), " create window ", x, SP, y, " -anchor nw -tag ", tag,
 		     " -window ", Tk_PathName(frame->Self()), 0 );
 	EXPR_DONE( y )

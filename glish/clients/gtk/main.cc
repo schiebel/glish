@@ -69,7 +69,7 @@ int main( int argc, char** argv )
 
 	global_store = &stor;
 
-	stor.Register( "frame", TkFrame::Create );
+	stor.Register( "frame", TkFrameP::Create );
 	stor.Register( "button", TkButton::Create );
 	stor.Register( "scale", TkScale::Create );
 	stor.Register( "text", TkText::Create );

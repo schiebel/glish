@@ -5,7 +5,6 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 #include "Glish/Proxy.h"
-#include "Reporter.h"
 
 //
 //  Generates Events:

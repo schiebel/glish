@@ -114,6 +114,7 @@ class TkAgent : public Proxy {
 
 	static void init_tk( int visible_root=1 );
 	tkprochash procs;
+	static int widget_index;
 	static int root_unmapped;
 	static Tk_Window root;
 	static Tcl_Interp *tcl;
@@ -141,105 +142,6 @@ class TkAgent : public Proxy {
 	unsigned int disable_count;
 
 	const char *agent_ID;
-	};
-
-class TkRadioContainer : public TkAgent {
-    public:
-	TkRadioContainer( ProxyStore *s ) : TkAgent(s), radio_id(0), id(++count) { }
-	unsigned long RadioID() const { return radio_id; }
-	void RadioID( unsigned long id_ ) { radio_id = id_; }
-	unsigned long Id() const { return id; }
-    private:
-	static unsigned long count;
-	unsigned long radio_id;
-	unsigned long id;
-};	
-
-class TkFrame : public TkRadioContainer {
-    public:
-	TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth,
-		  charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor, charptr title,
-		  charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ );
-	TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
-		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
-		  charptr background, charptr width, charptr height, charptr cursor,
-		  int new_cmap );
-	TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
-		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
-		  charptr background, charptr width, charptr height, const char *tag_ );
-
-	static unsigned long TopLevelCount() { return tl_count; }
-
-	// Called when the frame is killed via the window manager
-	void KillFrame( );
-	void ResizeEvent( );
-	void LeaderMoved( );
-
-	char *SetSide( Value * );
-	char *SetPadx( Value * );
-	char *SetPady( Value * );
-	char *SetExpand( Value * );
-	char *GetTag( Value * );
-
-	char *SetIcon( Value * );
-
-	char *Grab( int global_scope=0 );
-	char *Release( );
-	char *GrabCB( Value * );
-	char *ReleaseCB( Value * );
-	char *FontsCB( Value * );
-
-	char *Raise( Value * );
-	char *Title( Value * );
-
-	void Pack();
-	void PackSpecial( TkAgent * );
-	void AddElement( TkAgent *obj ) { elements.append(obj); }
-	void RemoveElement( TkAgent *obj );
-	void UnMap();
-
-	static void Create( ProxyStore *, Value * );
-	~TkFrame();
-
-	const char *Expand() const { return expand; }
-
-	const char **PackInstruction();
-	int CanExpand() const;
-
-	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
-
-	int NumChildren() const { return elements.length() - 1; }
-
-	void Disable( );
-	void Enable( int force = 1 );
-
-	Tk_Window TopLevel();
-
-    protected:
-	char *side;
-	char *padx;
-	char *pady;
-	char *expand;
-	char *tag;
-	TkCanvas *canvas;
-  	tkagent_list elements;
-	static unsigned long top_created;
-	static unsigned long tl_count;
-	static unsigned long grab;
-
-	char is_tl;
-	Tk_Window pseudo;
-
-	unsigned char reject_first_resize;
-
-	int size[2];
-
-	TkAgent *tlead;
-	char *tpos;
-	int unmapped;
-
-	char *icon;
 	};
 
 class TkProc {
@@ -308,24 +210,30 @@ class TkProc {
 	int i;
 	};
 
-class FmeProc : public TkProc {
+class TkFrame : public TkAgent {
     public:
 
-	FmeProc(TkFrame *f, char *(TkFrame::*p)(Value*), TkStrToValProc cvt = 0)
-			: TkProc(f,cvt), fproc(p) { }
+	TkFrame( ProxyStore *s ) : TkAgent(s), radio_id(0), id(++count) { }
+	unsigned long RadioID() const { return radio_id; }
+	void RadioID( unsigned long id_ ) { radio_id = id_; }
+	unsigned long Id() const { return id; }
 
-	FmeProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
-			: TkProc(c,p,cvt), fproc(0) { }
+	virtual void AddElement( TkAgent *obj );
+	virtual void RemoveElement( TkAgent *obj );
+	virtual void Pack();
+	virtual const char *Expand() const;
+	virtual int NumChildren() const;
 
-	FmeProc(TkFrame *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
-			: TkProc(a,c,p,cvt), fproc(0) { }
+	virtual const char *Side() const;
+	virtual int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
 
-	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
+    private:
 
-    protected:
-	char *(TkFrame::*fproc)(Value*);
+	static unsigned long count;
+	unsigned long radio_id;
+	unsigned long id;
 };
-
+	
 typedef void (*WidgetCtor)( ProxyStore *, Value * );
 extern void GlishTk_Register( const char *, WidgetCtor );
 

@@ -15,12 +15,13 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include "comdefs.h"
 
-extern ProxyStore *global_store;
-unsigned long TkRadioContainer::count = 0;
+extern Value *glishtk_valcast( char * );
 
-unsigned long TkFrame::top_created = 0;
-unsigned long TkFrame::tl_count = 0;
-unsigned long TkFrame::grab = 0;
+extern ProxyStore *global_store;
+
+unsigned long TkFrameP::top_created = 0;
+unsigned long TkFrameP::tl_count = 0;
+unsigned long TkFrameP::grab = 0;
 
 char *glishtk_quote_string( charptr str )
 	{
@@ -782,15 +783,6 @@ char *glishtk_listbox_nearest(TkAgent *a, const char *, Value *args )
 	return ret;
 	}
 
-char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
-	{
-	if ( val->Type() != TYPE_STRING || val->Length() != 1 )
-		return 0;
-
-	Tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], 0 );
-	return 0;
-	}
-
 char *glishtk_scrollbar_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
 	{
 	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
@@ -921,6 +913,1018 @@ char *glishtk_bind(TkAgent *agent, const char *, Value *args )
 		}
 
 	return 0;
+	}
+
+int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int, char *[] )
+	{
+	((TkFrameP*)data)->KillFrame();
+	return TCL_OK;
+	}
+
+char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *, Value * )
+	{
+	return (char*) new Value( Tk_Width(self) );
+	}
+
+char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *, Value * )
+	{
+	return (char*) new Value( Tk_Height(self) );
+	}
+
+#define GEOM_GET(WHAT)								\
+	Tcl_VarEval( tcl, "winfo ", #WHAT, SP, Tk_PathName(tlead), 0 );		\
+	int WHAT = atoi(Tcl_GetStringResult(tcl));
+
+
+//                  <-------X/WIDTH-------->
+//                                                      A  ==  'nw'
+//               ^  A           2          C            2  ==  'n'
+//               |   +--------------------+             C  ==  'ne'
+//               |   |                    |             1  ==  'w'
+//  Y/HEIGHT     |  1|          X         |3            X  ==  'c'
+//               |   |                    |             3  ==  'e'
+//               |   +--------------------+             B  ==  'sw'
+//               v  B           4          D            4  ==  's'
+//                                                      D  ==  'se'
+//
+const char *glishtk_popup_geometry( Tcl_Interp *tcl, Tk_Window tlead, charptr pos )
+	{
+	static char geometry[80];
+
+	GEOM_GET(rootx)
+	GEOM_GET(rooty)
+
+	if ( ! pos || ! *pos ) return "+0+0";
+
+	if ( pos[0] == 'n' )
+		if ( pos[1] == 'w' )
+			sprintf(geometry,"+%d+%d",rootx,rooty);					// ==> A
+		else
+			{
+			GEOM_GET(width)
+			sprintf(geometry,"+%d+%d",rootx+(pos[1]?width:width/2), rooty);		// ==> 2, C
+			}
+	else
+		{
+		GEOM_GET(height);
+		if ( pos[0] == 'w' || pos[1] == 'w' )
+			sprintf(geometry, "+%d+%d", rootx, rooty+(pos[1]?height:height/2));	// ==> 1, B
+		else
+			{
+			GEOM_GET(width)
+			switch( pos[0] )
+				{
+			    case 'c':
+				sprintf(geometry, "+%d+%d", rootx+(width/2), rooty+(height/2));	// ==> X
+				break;
+			    case 's':
+				sprintf(geometry, "+%d+%d", rootx+(pos[1]?width:width/2), 	// ==> 4, D
+					rooty+height);
+				break;
+			    case 'e':
+				sprintf(geometry, "+%d+%d", rootx+width, rooty+height/2);	// ==> 3
+				break;
+			    default:
+				strcpy( geometry, "+0+0");
+				}
+			}
+		}
+
+	return geometry;
+	}
+
+void glishtk_popup_adjust_dim_cb( ClientData clientData, XEvent *ptr)
+	{
+	// This dimension (width and height) adjustment was necessary
+	// because there were time when the geometry manager would be
+	// stuck in oscillations between satisfying the requested
+	// height and the needed height. This happened upon entering
+	// the popup. This means that the popup won't shrink in size
+	// if things are removed... probably OK... This happened
+	// with the aips++ combobox...
+	if ( ptr->xany.type == ConfigureNotify )
+		{
+		Tk_Window self = ((TkAgent*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		int req_width = atoi(Tcl_GetStringResult(tcl));
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+		int req_height = atoi(Tcl_GetStringResult(tcl));
+
+		char buf[40];
+		if ( Tk_Width(self) > req_width )
+			{
+			sprintf( buf, "%d", Tk_Width(self) );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -width ", buf, 0 );
+			}
+		if ( Tk_Height(self) > req_height )
+			{
+			sprintf( buf, "%d", Tk_Height(self) );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -height ", buf, 0 );
+			}
+		}
+	}
+
+void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
+	{
+	if ( eventPtr->xany.type == ConfigureNotify )
+		{
+
+		Tk_Window self = ((TkAgent*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+
+		TkFrameP *f = (TkFrameP*) clientData;
+		f->ResizeEvent();
+		}
+	}
+
+void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
+	{
+	if ( eventPtr->xany.type == ConfigureNotify )
+		{
+		TkFrameP *f = (TkFrameP*) clientData;
+		f->LeaderMoved();
+		}
+	}
+
+char *glishtk_agent_map(TkAgent *a, const char *cmd, Value *)
+	{
+	a->SetMap( cmd[0] == 'M' ? 1 : 0, cmd[1] == 'T' ? 1 : 0 );
+	return 0;
+	}
+
+
+void TkFrameP::Disable( )
+	{
+	loop_over_list( elements, i )
+		if ( elements[i] != this )
+			elements[i]->Disable( );
+	}
+
+void TkFrameP::Enable( int force )
+	{
+	loop_over_list( elements, i )
+		if ( elements[i] != this )
+			elements[i]->Enable( force );
+	}
+
+TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth, charptr padx_,
+		  charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
+		  charptr cursor, charptr title, charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ ) :
+		  TkFrame( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
+		  is_tl( 1 ), pseudo( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
+		  icon(0)
+
+	{
+	char *argv[17];
+
+	agent_ID = "<graphic:frame>";
+
+	if ( ! root )
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
+
+	tl_count++;
+
+	if ( tlead )
+		{
+		Ref( tlead );
+		tpos = strdup(tpos_);
+		}
+
+	if ( top_created )
+		{
+		int c = 0;
+		argv[c++] = "toplevel";
+		argv[c++] = (char*) NewName();
+		argv[c++] = "-borderwidth";
+		argv[c++] = "0";
+		argv[c++] = "-width";
+		argv[c++] = (char*) width;
+		argv[c++] = "-height";
+		argv[c++] = (char*) height;
+		argv[c++] = "-background";
+		argv[c++] = (char*) background;
+
+		tcl_ArgEval( tcl, c, argv );
+		pseudo = Tk_NameToWindow( tcl, argv[1], root );
+		if ( title && title[0] )
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " {", title, "}", 0 );
+
+		if ( tlead )
+			{
+			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(pseudo), SP,
+				     Tk_PathName(tlead->Self()), 0 );
+			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(pseudo), " true", 0 );
+
+			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo), SP, geometry, 0 );
+
+			Tk_Window top = tlead->TopLevel();
+			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
+			}
+		}
+	else
+		{
+		top_created = 1;
+		if ( title && title[0] )
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " {", title, "}", 0 );
+
+		if ( tlead )
+			{
+			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(root), Tk_PathName(tlead->Self()), 0 );
+			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(root), " true", 0 );
+
+			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(root), geometry, 0 );
+
+			Tk_Window top = tlead->TopLevel();
+			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
+			}
+		}
+
+	side = strdup(side_);
+	padx = strdup(padx_);
+	pady = strdup(pady_);
+	expand = strdup(expand_);
+
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = (char*) NewName(pseudo ? pseudo : root);
+
+	if ( new_cmap )
+		{
+		argv[c++] = "-colormap";
+		argv[c++] = "new";
+		}
+
+	argv[c++] = "-relief";
+	argv[c++] = (char*) relief_;
+	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
+	if ( cursor && *cursor )
+		{
+		argv[c++] = "-cursor";
+		argv[c++] = (char*) cursor;
+		}
+
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	if ( ! self )
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
+
+	Tcl_VarEval( tcl, "wm protocol ", Tk_PathName(pseudo ? pseudo : root), " WM_DELETE_WINDOW ",
+		     glishtk_make_callback( tcl, glishtk_delframe_cb, this ), 0 );
+
+	if ( icon && strlen( icon ) )
+		{
+		char *expanded = which_bitmap(icon);
+		if ( expanded )
+			{
+			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
+			sprintf(icon_," @%s",expanded);
+			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0);
+			free_memory( expanded );
+			free_memory( icon_ );
+			}
+		}
+
+	//
+	// Clearing the height/width of toplevel frames fixes problems
+	// with configuring the widget. When setting the cursor, for
+	// example, the frame & children go crazy resizing themselves.
+	//
+// 	rivet_clear_frame_dims( self );
+	AddElement( this );
+
+	if ( frame )
+		{
+		frame->AddElement( this );
+		frame->Pack();
+		}
+	else
+		Pack();
+
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
+	procs.Insert("disable", new FmeProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("expand", new FmeProc( this, &TkFrameP::SetExpand, glishtk_str ));
+	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
+	procs.Insert("grab", new FmeProc( this, &TkFrameP::GrabCB ));
+	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
+	procs.Insert("icon", new FmeProc( this, &TkFrameP::SetIcon, glishtk_str ));
+	procs.Insert("map", new FmeProc(this, "MT", glishtk_agent_map));
+	procs.Insert("padx", new FmeProc( this, &TkFrameP::SetPadx, glishtk_strtoint ));
+	procs.Insert("pady", new FmeProc( this, &TkFrameP::SetPady, glishtk_strtoint ));
+	procs.Insert("raise", new FmeProc( this, &TkFrameP::Raise ));
+	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
+	procs.Insert("side", new FmeProc( this, &TkFrameP::SetSide, glishtk_str ));
+	procs.Insert("title", new FmeProc( this, &TkFrameP::Title ));
+	procs.Insert("unmap", new FmeProc(this, "UT", glishtk_agent_map));
+	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
+
+	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
+	if ( ! tlead )
+		Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_resizeframe_cb, this );
+
+	size[0] = Tk_ReqWidth(self);
+	size[1] = Tk_ReqHeight(self);
+	}
+
+TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		  charptr width, charptr height, charptr cursor, int new_cmap ) : TkFrame( s ),
+		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), is_tl( 0 ),
+		  pseudo( 0 ), reject_first_resize(0), tlead(0), tpos(0), unmapped(0), icon(0)
+
+	{
+	char *argv[16];
+	frame = frame_;
+
+	agent_ID = "<graphic:frame>";
+
+	if ( ! root )
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
+
+	if ( ! frame || ! frame->Self() ) return;
+
+	side = strdup(side_);
+	padx = strdup(padx_);
+	pady = strdup(pady_);
+	expand = strdup(expand_);
+
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = (char*) NewName(frame->Self());
+
+	if ( new_cmap )
+		{
+		argv[c++] = "-colormap";
+		argv[c++] = "new";
+		}
+
+	argv[c++] = "-relief";
+	argv[c++] = (char*) relief_;
+	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
+	if ( cursor && *cursor )
+		{
+		argv[c++] = "-cursor";
+		argv[c++] = (char*) cursor;
+		}
+
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	if ( ! self )
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
+
+	AddElement( this );
+
+	if ( frame )
+		{
+		frame->AddElement( this );
+		frame->Pack();
+		}
+	else
+		Pack();
+
+	procs.Insert("padx", new FmeProc( this, &TkFrameP::SetPadx, glishtk_strtoint ));
+	procs.Insert("pady", new FmeProc( this, &TkFrameP::SetPady, glishtk_strtoint ));
+	procs.Insert("expand", new FmeProc( this, &TkFrameP::SetExpand, glishtk_str ));
+	procs.Insert("side", new FmeProc( this, &TkFrameP::SetSide, glishtk_str ));
+	procs.Insert("grab", new FmeProc( this, &TkFrameP::GrabCB ));
+	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
+	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
+	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
+	procs.Insert("map", new FmeProc(this, "MC", glishtk_agent_map));
+	procs.Insert("unmap", new FmeProc(this, "UC", glishtk_agent_map));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+
+	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
+
+	procs.Insert("disable", new FmeProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
+	}
+
+TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		  charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
+		  padx(0), pady(0), expand(0), is_tl( 0 ), pseudo( 0 ), reject_first_resize(0),
+		  tlead(0), tpos(0), unmapped(0), icon(0)
+
+	{
+	char *argv[12];
+	frame = 0;
+	canvas = canvas_;
+	tag = strdup(tag_);
+
+	agent_ID = "<graphic:frame>";
+
+	if ( ! root )
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
+
+	if ( ! canvas || ! canvas->Self() ) return;
+
+	side = strdup(side_);
+	padx = strdup(padx_);
+	pady = strdup(pady_);
+	expand = strdup(expand_);
+
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = (char*) NewName(canvas->Self());
+	argv[c++] = "-relief";
+	argv[c++] = (char*) relief_;
+	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
+
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	if ( ! self )
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
+
+	//
+	// Clearing the height/width of toplevel frames fixes problems
+	// with configuring the widget. When setting the cursor, for
+	// example, the frame & children go crazy resizing themselves.
+	//
+// 	rivet_clear_frame_dims( self );
+
+	if ( frame )
+		{
+		frame->AddElement( this );
+		frame->Pack();
+		}
+	else
+		Pack();
+
+	procs.Insert("padx", new FmeProc( this, &TkFrameP::SetPadx, glishtk_strtoint ));
+	procs.Insert("pady", new FmeProc( this, &TkFrameP::SetPady, glishtk_strtoint ));
+	procs.Insert("tag", new FmeProc( this, &TkFrameP::GetTag, glishtk_str ));
+	procs.Insert("side", new FmeProc( this, &TkFrameP::SetSide, glishtk_str ));
+	procs.Insert("grab", new FmeProc( this, &TkFrameP::GrabCB ));
+	procs.Insert("fonts", new FmeProc( this, &TkFrameP::FontsCB, glishtk_valcast ));
+	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
+	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
+	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+
+	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
+
+	procs.Insert("disable", new FmeProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("enable", new FmeProc( this, "0", glishtk_disable_cb ));
+	}
+
+void TkFrameP::UnMap()
+	{
+	if ( unmapped ) return;
+	unmapped = 1;
+
+	if ( RefCount() > 0 ) Ref(this);
+
+	Tk_DeleteEventHandler(self, StructureNotifyMask, glishtk_resizeframe_cb, this );
+
+	if ( grab && grab == Id() )
+		Release();
+
+	if ( canvas )
+		canvas->Remove( this );
+	else
+		// Remove ourselves from the list
+		// -- not done with canvas
+		elements.remove_nth( 0 );
+
+	if ( frame )
+		frame->RemoveElement( this );
+
+	while ( elements.length() )
+		{
+		TkAgent *a = elements.remove_nth( 0 );
+		a->UnMap( );
+		}
+
+	int unmap_root = self && ! pseudo && ! frame && ! canvas;
+
+	if ( canvas )
+		Tcl_VarEval( tcl, Tk_PathName(canvas->Self()), " delete ", tag, 0 );
+	else if ( self )
+		Tk_DestroyWindow( self );
+
+	canvas = 0;
+	frame = 0;
+	self = 0;
+
+	if ( pseudo )
+		{
+		Tk_DestroyWindow( pseudo );
+		pseudo = 0;
+		}
+
+	if ( unmap_root )
+		Tk_UnmapWindow( root );
+
+	if ( tlead )
+		{
+		Tk_Window top = tlead->TopLevel();
+		if ( top )
+			Tk_DeleteEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
+		Unref( tlead );
+		tlead = 0;
+		}
+
+	if ( RefCount() > 0 ) Unref(this);
+	}
+
+TkFrameP::~TkFrameP( )
+	{
+	if ( frame )
+		frame->RemoveElement( this );
+	if ( canvas )
+		canvas->Remove( this );
+
+	if ( is_tl )
+		--tl_count;
+
+	free_memory( side );
+	free_memory( padx );
+	free_memory( pady );
+	free_memory( expand );
+	if ( tpos ) free_memory( tpos );
+
+	UnMap();
+
+	if ( tag )
+		free_memory( tag );
+	}
+
+char *TkFrameP::SetIcon( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
+		{
+		const char *iconx = args->StringPtr(0)[0];
+		if ( iconx && strlen(iconx) )
+			{
+			if ( icon ) free_memory(icon);
+			icon = strdup(iconx);
+			char *icon_ = (char*) alloc_memory(strlen(icon)+3);
+			sprintf(icon_," @%s",icon);
+			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0 );
+			free_memory( icon_ );
+			}
+		}
+
+	return icon ? icon : "";
+	}
+
+char *TkFrameP::SetSide( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
+		{
+		const char *side_ = args->StringPtr(0)[0];
+		if ( side_[0] != side[0] || strcmp(side, side_) )
+			{
+			free_memory( side );
+			side = strdup( side_ );
+			Pack();
+			}
+		}
+
+	return side;
+	}
+
+char *TkFrameP::SetPadx( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING )
+		{
+		const char *padx_ = args->StringPtr(0)[0];
+		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
+			{
+			free_memory( padx );
+			padx = strdup( padx_ );
+			Pack();
+			}
+		}
+	else if ( args->IsNumeric() && args->Length() > 0 )
+		{
+		char padx_[30];
+		sprintf(padx_, "%d", args->IntVal());
+		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
+			{
+			free_memory( padx );
+			padx = strdup( padx_ );
+			Pack();
+			}
+		}
+
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget -padx", 0 );
+	return Tcl_GetStringResult(tcl);
+	}
+
+char *TkFrameP::SetPady( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING )
+		{
+		const char *pady_ = args->StringPtr(0)[0];
+		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
+			{
+			free_memory( pady );
+			pady = strdup( pady_ );
+			Pack();
+			}
+		}
+	else if ( args->Length() > 0 && args->IsNumeric() )
+		{
+		char pady_[30];
+		sprintf(pady_, "%d", args->IntVal());
+		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
+			{
+			free_memory( pady );
+			pady = strdup( pady_ );
+			Pack();
+			}
+		}
+
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget -pady", 0 );
+	return Tcl_GetStringResult(tcl);
+	}
+
+char *TkFrameP::GetTag( Value * )
+	{
+	return tag;
+	}
+
+char *TkFrameP::SetExpand( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
+		{
+		const char *expand_ = args->StringPtr(0)[0];
+		if ( expand_[0] != expand[0] || strcmp(expand, expand_) )
+			{
+			free_memory( expand );
+			expand = strdup( expand_ );
+			Pack();
+			}
+		}
+
+	return expand;
+	}
+
+char *TkFrameP::Grab( int global_scope )
+	{
+	if ( grab ) return 0;
+
+	if ( global_scope )
+		Tcl_VarEval( tcl, "grab set -global ", Tk_PathName(self), 0 );
+	else
+		Tcl_VarEval( tcl, "grab set ", Tk_PathName(self), 0 );
+
+	grab = Id();
+	return "";
+	}
+
+char *TkFrameP::GrabCB( Value *args )
+	{
+	if ( grab ) return 0;
+
+	int global_scope = 0;
+
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 && ! strcmp(args->StringPtr(0)[0],"global") )
+		global_scope = 1;
+
+	return Grab( global_scope );
+	}
+
+char *TkFrameP::Raise( Value *args )
+	{
+	TkAgent *agent = 0;
+	if ( args->IsAgentRecord( ) && (agent = (TkAgent*) store->GetProxy(args)) )
+		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), 0 );
+	else
+		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), 0 );
+
+	return "";
+	}
+
+char *TkFrameP::Title( Value *args )
+	{
+	if ( args->Type() == TYPE_STRING )
+		Tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), SP, args->StringPtr(0)[0], 0 );
+	else
+		global_store->Error("wrong type, string expected");
+
+	return "";
+	}
+
+char *TkFrameP::FontsCB( Value *args )
+	{
+	char *wild = "-*-*-*-*-*-*-*-*-*-*-*-*-*-*";
+	char **fonts = 0;
+	int len = 0;
+
+	if ( args->Type() == TYPE_STRING )
+		fonts = XListFonts(Tk_Display(self), args->StringPtr(0)[0], 32768, &len);
+	else if ( args->IsNumeric() && args->Length() > 0 )
+		fonts = XListFonts(Tk_Display(self), wild, args->IntVal(), &len);
+	else if ( args->Type() == TYPE_RECORD )
+		{
+		EXPRINIT("TkFrameP::FontsCB")
+		EXPRSTR( str, "TkFrameP::FontsCB" )
+		EXPRINT( l, "TkFrameP::FontsCB" )
+		fonts = XListFonts(Tk_Display(self), str, l, &len);
+		EXPR_DONE( str )
+		EXPR_DONE( l )
+		}
+	else
+		fonts = XListFonts(Tk_Display(self), wild, 32768, &len);
+
+	Value *ret = fonts ? new Value( (charptr*) fonts, len, COPY_ARRAY ) : new Value( glish_false );
+	XFreeFontNames(fonts);
+	return (char*) ret;
+	}
+
+char *TkFrameP::Release( )
+	{
+	if ( ! grab || grab != Id() ) return 0;
+
+	Tcl_VarEval( tcl, "grap release ", Tk_PathName(self), 0 );
+
+	grab = 0;
+	return "";
+	}
+
+char *TkFrameP::ReleaseCB( Value * )
+	{
+	return Release( );
+	}
+
+void TkFrameP::PackSpecial( TkAgent *agent )
+	{
+	const char **instr = agent->PackInstruction();
+
+	int cnt = 0;
+	while ( instr[cnt] ) cnt++;
+
+	char **argv = (char**) alloc_memory( sizeof(char*)*(cnt+8) );
+
+	int i = 0;
+	argv[i++] = "pack";
+	argv[i++] = Tk_PathName( agent->Self() );
+	argv[i++] = "-side";
+	argv[i++] = side;
+	argv[i++] = "-padx";
+	argv[i++] = padx;
+	argv[i++] = "-pady";
+	argv[i++] = pady;
+
+	cnt=0;
+	while ( instr[cnt] )
+		argv[i++] = (char*) instr[cnt++];
+
+	do_pack(i,argv);
+	free_memory( argv );
+	}
+
+int TkFrameP::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
+	{
+	unsigned int cnt = 0;
+	loop_over_list( elements, i )
+		{
+		if ( (! except || elements[i] != except) &&
+		     elements[i] != (TkAgent*) this && elements[i]->CanExpand() )
+			cnt++;
+		if ( grtOReqt && cnt >= grtOReqt )
+			break;
+		}
+	return cnt;
+	}
+
+void TkFrameP::Pack( )
+	{
+	if ( elements.length() )
+		{
+		char **argv = (char**) alloc_memory( sizeof(char*)*(elements.length()+7) );
+
+		int c = 1;
+		argv[0] = 0;
+		loop_over_list( elements, i )
+			{
+			if ( elements[i]->DontMap() ) continue;
+			if ( elements[i]->PackInstruction() )
+				PackSpecial( elements[i] );
+			else
+				argv[c++] = Tk_PathName(elements[i]->Self());
+			}
+
+		if ( c > 1 )
+			{
+			argv[c++] = "-side";
+			argv[c++] = side;
+			argv[c++] = "-padx";
+			argv[c++] = padx;
+			argv[c++] = "-pady";
+			argv[c++] = pady;
+
+			do_pack(c,argv);
+			}
+
+		if ( frame )
+			frame->Pack();
+
+		free_memory( argv );
+		}
+	}
+
+void TkFrameP::RemoveElement( TkAgent *obj )
+	{
+	if ( elements.is_member(obj) )
+		elements.remove(obj);
+	}
+
+void TkFrameP::KillFrame( )
+	{
+	PostTkEvent( "killed", new Value( glish_true ) );
+	UnMap();
+	}
+
+void TkFrameP::ResizeEvent( )
+	{
+	if ( reject_first_resize )
+		reject_first_resize = 0;
+	else
+		{
+		recordptr rec = create_record_dict();
+
+		rec->Insert( strdup("old"), new Value( size, 2, COPY_ARRAY ) );
+		size[0] = Tk_Width(self);
+		size[1] = Tk_Height(self);
+		rec->Insert( strdup("new"), new Value( size, 2, COPY_ARRAY ) );
+
+		PostTkEvent( "resize", new Value( rec ) );
+		}
+	}
+
+void TkFrameP::LeaderMoved( )
+	{
+	if ( ! tlead ) return;
+
+	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+	Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
+	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
+	}
+
+void TkFrameP::Create( ProxyStore *s, Value *args )
+	{
+	TkFrameP *ret = 0;
+
+	if ( args->Length() != 16 )
+		InvalidNumberOfArgs(16);
+
+	SETINIT
+	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
+	SETSTR( relief )
+	SETSTR( side )
+	SETDIM( borderwidth )
+	SETDIM( padx )
+	SETDIM( pady )
+	SETSTR( expand )
+	SETSTR( background )
+	SETDIM( width )
+	SETDIM( height )
+	SETSTR( cursor )
+	SETSTR( title )
+	SETSTR( icon )
+	SETINT( new_cmap )
+	SETVAL( tlead, tlead->Type() == TYPE_BOOL || tlead->IsAgentRecord() )
+	SETSTR( tpos )
+
+	if ( parent->Type() == TYPE_BOOL )
+		{
+		TkAgent *tl = (TkAgent*)(tlead->IsAgentRecord() ? global_store->GetProxy(tlead) : 0);
+
+		if ( tl && strncmp( tl->AgentID(), "<graphic:", 9 ) )
+			{
+			SETDONE
+			global_store->Error("bad transient leader");
+			return;
+			}
+
+		ret =  new TkFrameP( s, relief, side, borderwidth, padx, pady, expand, background,
+				    width, height, cursor, title, icon, new_cmap, (TkAgent*) tl, tpos );
+		}
+	else
+		{
+		TkAgent *agent = (TkAgent*)global_store->GetProxy(parent);
+		if ( agent && ! strcmp("<graphic:frame>", agent->AgentID()) )
+			ret =  new TkFrameP( s, (TkFrame*)agent, relief,
+					    side, borderwidth, padx, pady, expand, background,
+					    width, height, cursor, new_cmap );
+		else
+			{
+			SETDONE
+			global_store->Error("bad parent type");
+			return;
+			}
+		}
+
+	CREATE_RETURN
+	}
+
+const char *TkFrameP::Side() const
+	{
+	return side;
+	}
+
+const char **TkFrameP::PackInstruction()
+	{
+	static char *ret[5];
+	int c = 0;
+
+	if ( strcmp(expand,"none") )
+		{
+		ret[c++] = "-fill";
+		ret[c++] = expand;
+
+		if ( ! canvas && (! frame || ! strcmp(expand,"both") ||
+			! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") || 
+						 ! strcmp(frame->Side(),"right"))  ||
+			! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") || 
+						 ! strcmp(frame->Side(),"bottom"))) )
+			{
+			ret[c++] = "-expand";
+			ret[c++] = "true";
+			}
+		else
+			{
+			ret[c++] = "-expand";
+			ret[c++] = "false";
+			}
+		ret[c++] = 0;
+		return (const char**) ret;
+		}
+
+	return 0;
+	}
+
+int TkFrameP::CanExpand() const
+	{
+	return ! canvas && (! frame || ! strcmp(expand,"both") ||
+		! strcmp(expand,"x") && (! strcmp(frame->Side(),"left") || 
+					 !strcmp(frame->Side(),"right")) ||
+		! strcmp(expand,"y") && (! strcmp(frame->Side(),"top") || 
+					 ! strcmp(frame->Side(),"bottom")) );
+	}
+
+Tk_Window TkFrameP::TopLevel( )
+	{
+	return frame ? frame->TopLevel() : canvas ? canvas->TopLevel() :
+		pseudo ? pseudo : root;
+	}
+
+Value *FmeProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
+	{
+	char *val = 0;
+
+	if ( fproc && agent )
+		val = (((TkFrameP*)agent)->*fproc)( arg);
+	else
+		return TkProc::operator()( tcl, s, arg );
+
+	if ( val != (void*) TCL_ERROR )
+		{
+		if ( convert && val )
+			return (*convert)(val);
+		else
+			return new Value( glish_true );
+		}
+	else
+		return new Value( glish_false );
+
 	}
 
 void TkButton::UnMap()
@@ -1054,8 +2058,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr anchor,
-		    charptr fill_, charptr bitmap_, TkRadioContainer *group )
-			: TkRadioContainer( s ), value(0), state(0), menu(0), radio(group),
+		    charptr fill_, charptr bitmap_, TkFrame *group )
+			: TkFrame( s ), value(0), state(0), menu(0), radio(group),
 			  menu_base(0),  next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
 	type = PLAIN;
@@ -1233,8 +2237,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
 		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr bitmap_,
-		    TkRadioContainer *group )
-			: TkRadioContainer( s ), value(0), state(0), radio(group),
+		    TkFrame *group )
+			: TkFrame( s ), value(0), state(0), radio(group),
 			  menu_base(0), next_menu_entry(0), menu_index(0), unmapped(0)
 	{
 	type = PLAIN;
@@ -1474,11 +2478,11 @@ void TkButton::Create( ProxyStore *s, Value *args )
 				ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady,
 						     width, height, justify, font, relief, borderwidth,
 						     foreground, background, disabled, val, bitmap,
-						     (TkRadioContainer*) grp );
+						     (TkFrame*) grp );
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
-					     disabled, val, anchor, fill, bitmap, (TkRadioContainer*) grp );
+					     disabled, val, anchor, fill, bitmap, (TkFrame*) grp );
 		}
 	else
 		{
@@ -2675,41 +3679,3 @@ void TkListbox::elementSelected(  )
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)
 STD_EXPAND_CANEXPAND(TkListbox)
-
-int TkHaveGui()
-	{
-	Display *display;
-	static int ret = 0;
-	static int setup = 1;
-
-	//
-	// There are some *strange* problems with X11R5 + Solaris...
-	// after multiple (50+) calls to "have_gui()" (plus other
-	// things operations) e.g.:
-	//      GO := T
-	//      CNT := 0
-	//      while (GO) {CNT+:=1;include "tt.g";GO:=have_gui()}
-	//      print GO,CNT
-	// where "tt.g" is an empty file, "have_gui()" will start
-	// returning 'F'. Calling XOpenDisplay(NULL) once is more
-	// efficient, and solves this problem, but probably isn't
-	// as proper.
-	//
-	if ( setup )
-		{
-		if ( (display=XOpenDisplay(NULL)) != NULL )
-			{
-			ret = 1;
-			XCloseDisplay(display);
-			}
-		setup = 0;
-		}
-
-	return ret;
-	}
-
-void GlishTk_Register( const char *str, WidgetCtor ctor )
-	{
-	if ( global_store )
-		global_store->Register( str, ctor );
-	}

@@ -47,7 +47,113 @@ extern char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window, const char *cmd, V
 extern char *glishtk_bind(TkAgent *agent, const char *, Value *args );
 extern char *glishtk_disable_cb( TkAgent *a, const char *cmd, Value *args );
 
-class TkButton : public TkRadioContainer {
+class TkFrameP : public TkFrame {
+    public:
+	TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth,
+		  charptr padx_, charptr pady_, charptr expand_, charptr background,
+		  charptr width, charptr height, charptr cursor, charptr title,
+		  charptr icon, int new_cmap, TkAgent *tlead_, charptr tpos_ );
+	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
+		  charptr background, charptr width, charptr height, charptr cursor,
+		  int new_cmap );
+	TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
+		  charptr background, charptr width, charptr height, const char *tag_ );
+
+	static unsigned long TopLevelCount() { return tl_count; }
+
+	// Called when the frame is killed via the window manager
+	void KillFrame( );
+	void ResizeEvent( );
+	void LeaderMoved( );
+
+	char *SetSide( Value * );
+	char *SetPadx( Value * );
+	char *SetPady( Value * );
+	char *SetExpand( Value * );
+	char *GetTag( Value * );
+
+	char *SetIcon( Value * );
+
+	char *Grab( int global_scope=0 );
+	char *Release( );
+	char *GrabCB( Value * );
+	char *ReleaseCB( Value * );
+	char *FontsCB( Value * );
+
+	char *Raise( Value * );
+	char *Title( Value * );
+
+	void Pack();
+	void PackSpecial( TkAgent * );
+	void AddElement( TkAgent *obj ) { elements.append(obj); }
+	void RemoveElement( TkAgent *obj );
+	void UnMap();
+
+	static void Create( ProxyStore *, Value * );
+	~TkFrameP();
+
+	const char *Expand() const { return expand; }
+	const char *Side() const;
+
+	const char **PackInstruction();
+	int CanExpand() const;
+
+	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
+
+	int NumChildren() const { return elements.length() - 1; }
+
+	void Disable( );
+	void Enable( int force = 1 );
+
+	Tk_Window TopLevel();
+
+    protected:
+	char *side;
+	char *padx;
+	char *pady;
+	char *expand;
+	char *tag;
+	TkCanvas *canvas;
+  	tkagent_list elements;
+	static unsigned long top_created;
+	static unsigned long tl_count;
+	static unsigned long grab;
+
+	char is_tl;
+	Tk_Window pseudo;
+
+	unsigned char reject_first_resize;
+
+	int size[2];
+
+	TkAgent *tlead;
+	char *tpos;
+	int unmapped;
+
+	char *icon;
+	};
+
+class FmeProc : public TkProc {
+    public:
+
+	FmeProc(TkFrameP *f, char *(TkFrameP::*p)(Value*), TkStrToValProc cvt = 0)
+			: TkProc(f,cvt), fproc(p) { }
+
+	FmeProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
+			: TkProc(c,p,cvt), fproc(0) { }
+
+	FmeProc(TkFrameP *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
+			: TkProc(a,c,p,cvt), fproc(0) { }
+
+	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
+
+    protected:
+	char *(TkFrameP::*fproc)(Value*);
+};
+
+class TkButton : public TkFrame {
     public:
 	enum button_type { PLAIN, RADIO, CHECK, MENU };
 
@@ -55,12 +161,12 @@ class TkButton : public TkRadioContainer {
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const Value *val, charptr anchor,
-		  charptr fill, charptr bitmap, TkRadioContainer *group );
+		  charptr fill, charptr bitmap, TkFrame *group );
 	TkButton( ProxyStore *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const Value *val, charptr bitmap,
-		  TkRadioContainer *group );
+		  TkFrame *group );
 
 	void UnMap();
 
@@ -101,7 +207,7 @@ class TkButton : public TkRadioContainer {
 	button_type type;
 
 	TkButton *menu;
-	TkRadioContainer *radio;
+	TkFrame *radio;
 	Tk_Window menu_base;
 	unsigned long next_menu_entry;	// only used for menu buttons
 	tkagent_list entry_list;        // only used for menu buttons

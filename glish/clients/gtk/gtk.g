@@ -1,9 +1,8 @@
+pragma include once
 
 func init_gtk( ) {
     global system
 
-    #gtk := client('xgtk')
-    #gtk := client('gtk',suspend=T)
     gtk := client('gtk')
 
     system.tk := gtk->version()
@@ -76,21 +75,18 @@ func init_gtk( ) {
 				gtk->canvas( parent, width, height, region, relief,
 					     borderwidth, background, fill )
 
-    ret.pgplot := func ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2,
-			 nxsub=1, nysub=1, relief='sunken', borderwidth=2, padx=20, pady=20,
-			 foreground='white', background='black', fill='both', mincolors=2,
-			 maxcolors=100, cmapshare=F, cmapfail=F )
-				gtk->pgplot( parent, width, height, region, axis, nxsub,
-					     nysub, relief, borderwidth, padx, pady,
-					     foreground, background, fill, mincolors,
-					     maxcolors, cmapshare, cmapfail )
-
     ret.have_gui := func ( ) { return gtk->have_gui(); }
     ret.tk_hold := func ( ) { gtk->tk_hold(T); return T }
     ret.tk_release := func ( ) { gtk->tk_release(T); return T }
     ret.tk_iconpath := func ( path ) { gtk->tk_iconpath(path); return T }
 
-    ret.tk_dload := func ( module_name ) { gtk->tk_dload( module_name ); return T }
+    ret.tk_dload := func ( module_name, init_func ) {
+			if ( is_function(init_func) && is_string(module_name) ) {
+			    gtk->tk_dload( module_name )
+			    return init_func( gtk, ret )
+			}
+			fail 'bad parameter' }
+
     ret.tk_dloadpath := func ( path ) { gtk->tk_dloadpath( path ); return T }
     ret.tk_dloadpath( "." )
 
@@ -109,7 +105,6 @@ entry := dgtk.entry
 message := dgtk.message
 listbox := dgtk.listbox
 canvas := dgtk.canvas
-pgplot := dgtk.pgplot
 
 have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold

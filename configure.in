@@ -488,27 +488,6 @@ fi
 
 dnl##--------------------------------------------------------------------
 dnl##
-dnl## PGPLOT parameters
-dnl##
-dnl##--------------------------------------------------------------------
-if test -n "$option_pgplot_link_flags"; then
-    PGPLOTINCLFLAGS="$option_pgplot_incl_flags"
-    PGPLOTLINKFLAGS="$option_pgplot_link_flags"
-    if test -n "$option_pgplot_link_search"; then
-        PGPLOTLINKSEARCH="$option_pgplot_link_search"
-    else
-        PGPLOTLINKSEARCH=""
-    fi
-    TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
-else
-    PGPLOTINCLFLAGS=""
-    PGPLOTLINKFLAGS=""
-    PGPLOTLINKSEARCH=""
-fi
-
-
-dnl##--------------------------------------------------------------------
-dnl##
 dnl## Configure Tk
 dnl##
 dnl##--------------------------------------------------------------------
@@ -1009,7 +988,6 @@ case $host_os in
 
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 
 	if test -n "$TK_LD_SEARCH"; then
 	    TK_LD_SEARCH="$TK_LD_SEARCH:."
@@ -1039,7 +1017,6 @@ case $host_os in
 
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -1067,7 +1044,6 @@ case $host_os in
 
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -1163,7 +1139,6 @@ case $host_os in
 
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     riscos*)
 	SLIB_CFLAGS="-G 0"
@@ -1245,7 +1220,6 @@ case $host_os in
 
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_SEARCH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1320,9 +1294,6 @@ if test "$static_binary" = "yes"; then
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
-    if test "$do_tk" = "yes"; then
-	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
-    fi
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
@@ -1333,9 +1304,6 @@ else
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd"
-    fi
-    if test "$do_tk" = "yes"; then
-	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"

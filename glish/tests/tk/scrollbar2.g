@@ -22,9 +22,9 @@
     c->bind('stop','<Button-1>','snag')
     c->bind('stop','<B1-Motion>','drag')
     whenever c->snag do
-        state := $value.cpoint
+        state := $value.device
     whenever c->drag do
         {
-        tmp := c->move($value.tag, $value.cpoint - state)
-        state := $value.cpoint
+        tmp := c->move($value.tag, $value.device - state)
+        state := $value.device
         }
