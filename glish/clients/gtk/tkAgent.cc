@@ -690,7 +690,7 @@ char *glishtk_oneidx( TkAgent *a, const char *cmd, Value *args )
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " config ", cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -1616,10 +1616,10 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	int dummy;
 	recordptr rec = create_record_dict();
 
-	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-	wpt[0] = atoi(argv[1]);
-	wpt[1] = atoi(argv[2]);
-	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
+	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
+	dpt[0] = atoi(argv[1]);
+	dpt[1] = atoi(argv[2]);
+	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
 	if ( argv[4][0] != '?' )
 		{
@@ -1695,6 +1695,15 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 	{
 	if ( eventPtr->xany.type == ConfigureNotify )
 		{
+
+		Tk_Window self = ((TkAgent*)clientData)->Self();
+		Tcl_Interp *tcl = ((TkAgent*)clientData)->Interp();
+		
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		int req_width = atoi(Tcl_GetStringResult(tcl));
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+		int req_height = atoi(Tcl_GetStringResult(tcl));
+
 		TkFrame *f = (TkFrame*) clientData;
 		f->ResizeEvent();
 		}
@@ -1890,9 +1899,8 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	procs.Insert("raise", new TkProc( this, &TkFrame::Raise ));
 	procs.Insert("title", new TkProc( this, &TkFrame::Title ));
 
-	if ( tlead )
-		Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
-	else
+	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_popup_adjust_dim_cb, this );
+	if ( ! tlead )
 		Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	size[0] = Tk_ReqWidth(self);

@@ -127,15 +127,6 @@ public:
 
   // change cursor
   char *Cursor (Value *);
-  // KeyPress, KeyRelease
-  void CursorEvent (const char *name, const char *type, const char *key, 
-		    int *pt);
-  // ButtonPress, ButtonRelease
-  void CursorEvent (const char *name, const char *type, int button, int *pt);
-  // MotionNotify, LeaveNotify, EnterNotify
-  void CursorEvent (const char *name, const char *type, int *coord);
-  // <other> event
-  void CursorEvent (const char *name, const char *type);
 
 protected:
   int id;

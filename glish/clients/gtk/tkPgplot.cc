@@ -349,125 +349,46 @@ struct glishtk_pgplot_bindinfo
     }
 };
 
-int
-glishtk_pgplot_entercb ( Tcl_Interp *tcl, Tk_Window pgplot, XEvent *xevent, ClientData assoc,
-			int ks, int callbacktype)
-{
-  Tcl_VarEval( tcl, "focus ", Tk_PathName(pgplot), 0 );
-  return TCL_OK;
-}
+int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
+	{
+	glishtk_pgplot_bindinfo *info = (glishtk_pgplot_bindinfo*) data;
+	int dummy;
+	Tcl_Interp *tcl = info->pgplot->Interp();
+	Tk_Window self = info->pgplot->Self();
 
-int
-glishtk_pgplot_buttoncb (Tk_Window pgplot, XEvent *xevent, ClientData assoc,
-			 int ks, int callbacktype)
-{
-  static char *event_names[] =
-  {
-    "",
-    "",
-    "KeyPress",
-    "KeyRelease",
-    "ButtonPress",
-    "ButtonRelease",
-    "MotionNotify",
-    "EnterNotify",
-    "LeaveNotify",
-    "FocusIn",
-    "FocusOut",
-    "KeymapNotify",
-    "Expose",
-    "GraphicsExpose",
-    "NoExpose",
-    "VisibilityNotify",
-    "CreateNotify",
-    "DestroyNotify",
-    "UnmapNotify",
-    "MapNotify",
-    "MapRequest",
-    "ReparentNotify",
-    "ConfigureNotify",
-    "ConfigureRequest",
-    "GravityNotify",
-    "ResizeRequest",
-    "CirculateNotify",
-    "CirculateRequest",
-    "PropertyNotify",
-    "SelectionClear",
-    "SelectionRequest",
-    "SelectionNotify",
-    "ColormapNotify",
-    "ClientMessage",
-    "MappingNotify"
-  };
-  glishtk_pgplot_bindinfo *info = (glishtk_pgplot_bindinfo *)assoc;
-  int device[2];
-  char key[32];
-  KeySym keysym;		// Key code of pressed keyboard key.
-  int nret;			// Number of characters returned in buffer[].
+	recordptr rec = create_record_dict();
 
-  switch (xevent->type)
-    {
-    case KeyPress:
-    case KeyRelease:
-      device[0] = xevent->xkey.x;
-      device[1] = xevent->xkey.y;
-      nret = XLookupString (&xevent->xkey, key,
-			    (int)(sizeof (key) / sizeof (char)), &keysym, NULL);
-      if (nret) {
-	key[nret] = '\0';
-      }
-      info->pgplot->CursorEvent (info->event_name, event_names[xevent->type],
-				 nret > 0 ? key : "<UNKNOWN>", device);
-      break;
+	float *wpt = (float*) alloc_memory( sizeof(float)*2 );
+	Tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], 0 );
+	wpt[0] = (float) atof(Tcl_GetStringResult(tcl));
+	Tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], 0 );
+	wpt[1] = (float) atof(Tcl_GetStringResult(tcl));
+	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
-    case ButtonPress:
-    case ButtonRelease:
-      device[0] = xevent->xbutton.x;
-      device[1] = xevent->xbutton.y;
-      info->pgplot->CursorEvent (info->event_name, event_names[xevent->type],
-				 xevent->xbutton.button, device);
-      break;
+	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
+	dpt[0] = atoi(argv[1]);
+	dpt[1] = atoi(argv[2]);
+	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 
-    case MotionNotify:
-      device[0] = xevent->xmotion.x;
-      device[1] = xevent->xmotion.y;
-      info->pgplot->CursorEvent (info->event_name, event_names[xevent->type],
-				 device);
-      break;
+	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
 
-    case LeaveNotify:
-    case EnterNotify:
-      device[0] = xevent->xcrossing.x;
-      device[1] = xevent->xcrossing.y;
-      info->pgplot->CursorEvent (info->event_name, event_names[xevent->type],
-				 device);
-      break;
-
-    default:
-      info->pgplot->CursorEvent (info->event_name, event_names[xevent->type]);
-    }
-  return TCL_OK;
-}
+	info->pgplot->BindEvent( info->event_name, new Value( rec ) );
+	return TCL_OK;
+	}
 
 char *
 glishtk_pgplot_bind (TkAgent *agent, const char *cmd, Value *args)
 {
   char *event_name = "pgplot bind function";
-  int c = 0;
-
+  EXPRINIT(event_name)
   if (args->Length () >= 2) {
-    EXPRINIT(event_name)
     EXPRSTR (button, event_name);
     EXPRSTR (event, event_name);
-    glishtk_pgplot_bindinfo *binfo =
-      new glishtk_pgplot_bindinfo ((TkPgplot *)agent, event, button);
+    glishtk_pgplot_bindinfo *binfo = new glishtk_pgplot_bindinfo ((TkPgplot *)agent, event, button);
 
-//     if (rivet_create_binding (agent->Self (), 0, (char *)button,
-// 			      (int (*)())glishtk_pgplot_buttoncb,
-// 			      (ClientData)binfo, 1, 0) == TCL_ERROR) {
-//       global_store->Error( "binding not created." );
-//       delete binfo;
-//     }
+    Tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
+		 glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, binfo), " %x %y %b}", 0 );
+
     EXPR_DONE (event);
     EXPR_DONE (button);
   }
@@ -578,11 +499,13 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
     return;
   }
   // JAU: Make rivet-less.
-  id = tkpg_device_id (self);
+  Tcl_VarEval( tcl, Tk_PathName(self)," id", 0 );
+  id = atoi(Tcl_GetStringResult(tcl));
 
   // JAU: Make rivet-less.
   if ( id <= 0 ) {
-    id = cpgopen (tkpg_device_name (self));
+    Tcl_VarEval( tcl, Tk_PathName(self)," device", 0 );
+    id = cpgopen (Tcl_GetStringResult(tcl));
   } else {
     cpgslct (id);
   }
@@ -614,8 +537,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   // JAU: Make rivet-less.
   frame->AddElement (this);
   frame->Pack ();
-//   rivet_create_binding (self, 0, "<Enter>", (int (*)())glishtk_pgplot_entercb,
-// 			0, 1, 0);
+
   // Non-standard routines.
   procs.Insert ("bind", new TkProc (this, "", glishtk_pgplot_bind));
   procs.Insert ("cursor", new TkProc (this, &TkPgplot::Cursor, glishtk_str));
@@ -2495,68 +2417,6 @@ int TkPgplot::CanExpand () const {
     return 1;
   }
   return 0;
-}
-
-// KeyPress, KeyRelease
-void
-TkPgplot::CursorEvent (const char *name, const char *type, const char *key,
-		       int *device)
-{
-  float world[2];
-
-  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
-
-  recordptr rec = create_record_dict ();
-
-  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("key"), new Value (key));
-  rec->Insert (strdup ("type"), new Value (type));
-  PostTkEvent (name, new Value (rec));
-}
-
-// ButtonPress, ButtonRelease
-void
-TkPgplot::CursorEvent (const char *name, const char *type, int button,
-		       int *device)
-{
-  float world[2];
-
-  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
-
-  recordptr rec = create_record_dict ();
-
-  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("button"), new Value (button));
-  rec->Insert (strdup ("type"), new Value (type));
-  PostTkEvent (name, new Value (rec));
-}
-
-// MotionNotify, LeaveNotify, EnterNotify
-void
-TkPgplot::CursorEvent (const char *name, const char *type, int *device)
-{
-  float world[2];
-
-  tkpg_xwin2world (self, device[0], device[1], &world[0], &world[1]);
-
-  recordptr rec = create_record_dict ();
-
-  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("type"), new Value (type));
-  PostTkEvent (name, new Value (rec));
-}
-
-// Other XEvents
-void
-TkPgplot::CursorEvent (const char *name, const char *type)
-{
-  recordptr rec = create_record_dict ();
-
-  rec->Insert (strdup ("type"), new Value (type));
-  PostTkEvent (name, new Value (rec));
 }
 
 #endif

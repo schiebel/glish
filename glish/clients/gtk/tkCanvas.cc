@@ -839,16 +839,16 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int argc, char *arg
 		rec->Insert( strdup("tag"), new Value( info->tag ) );
 
 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-	wpt[0] = atoi(argv[1]);
-	wpt[1] = atoi(argv[2]);
-	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
-
-	int *cpt = (int*) alloc_memory( sizeof(int)*2 );
 	Tcl_VarEval( tcl, Tk_PathName(self), " canvasx ", argv[1], 0 );
-	cpt[0] = atoi(Tcl_GetStringResult(tcl));
+	wpt[0] = atoi(Tcl_GetStringResult(tcl));
 	Tcl_VarEval( tcl, Tk_PathName(self), " canvasy ", argv[2], 0 );
-	cpt[1] = atoi(Tcl_GetStringResult(tcl));
-	rec->Insert( strdup("cpoint"), new Value( cpt, 2 ) );
+	wpt[1] = atoi(Tcl_GetStringResult(tcl));
+	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
+
+	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
+	dpt[0] = atoi(argv[1]);
+	dpt[1] = atoi(argv[2]);
+	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 
 	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
 
