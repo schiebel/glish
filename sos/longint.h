@@ -57,11 +57,11 @@ class long_int {
 };
 
 #define LONGINT_OP(OP)								\
-inline long_int operator ## OP (const long_int &left, const long_int &right)	\
+inline long_int operator OP (const long_int &left, const long_int &right)	\
 	{ return long_int(left[1] OP right[1], left[0] OP right[0]); }		\
-inline long_int operator ## OP (const long_int &left, unsigned int right)	\
+inline long_int operator OP (const long_int &left, unsigned int right)	\
 	{ return long_int(left[1], left[0] OP right); }				\
-inline long_int operator ## OP (unsigned int left, const long_int &right)	\
+inline long_int operator OP (unsigned int left, const long_int &right)	\
 	{ return long_int(right[1], left OP right[0]); }
 
 LONGINT_OP(|)

@@ -50,6 +50,8 @@ class sos_status GC_FINAL_CLASS {
 	void set_remote_version( int v ) { if ( common ) common->set_remote_version( v ); }
 
     protected:
+	// In Glish, the presence of a null common indicates that
+	// sos is being used to store values to disk.
 	sos_common *common;
 };
 
@@ -59,9 +61,9 @@ class sos_sink : public sos_status {
     public:
 	enum buffer_type { FREE, HOLD, COPY };
 	sos_sink( sos_common *c ) : sos_status( c ) { }
-	virtual sos_status *write( const char *, unsigned int, buffer_type type = HOLD ) = 0;
+	virtual sos_status *write( const unsigned char *, unsigned int, buffer_type type = HOLD ) = 0;
 	sos_status *write( void *buf, unsigned int len, buffer_type type = HOLD )
-			{ return write( (const char *) buf, len, type ); }
+			{ return write( (const unsigned char *) buf, len, type ); }
 	virtual sos_status *flush( ) = 0;
 	virtual ~sos_sink();
 	Type type() { return WRITE; }
@@ -70,9 +72,7 @@ class sos_sink : public sos_status {
 class sos_source : public sos_status {
     public:
 	sos_source( sos_common *c ) : sos_status( c ) { }
-	virtual unsigned int read( char *, unsigned int ) = 0;
-	unsigned int read( unsigned char *buf, unsigned int len )
-		{ return read((char*)buf, len); }
+	virtual unsigned int read( unsigned char *, unsigned int ) = 0;
 	virtual ~sos_source();
 	Type type() { return READ; }
 };
@@ -104,14 +104,47 @@ class sos_fd_buf GC_FINAL_CLASS {
 	sos_buf_list buf;
 };
 
+
+class sos_write_buf {
+    public:
+	sos_write_buf( ) : buffer(0), buffer_off(0), buffer_len(0) { }
+
+	int length( ) const { return buffer_off; }
+
+	unsigned char *append( int size );
+	void append( const unsigned char *buf, int size )
+		{ memcpy( append(size), buf, size ); }
+
+	unsigned char *get( ) { return buffer; }
+
+	void reset( ) { buffer_off = 0; }
+
+    private:
+	unsigned char *buffer;
+	int   buffer_off;
+	int   buffer_len;
+};
+
+sos_declare(PList,sos_write_buf);
+typedef PList(sos_write_buf) sos_write_buf_list;
+
+class sos_write_buf_factory {
+    public:
+	sos_write_buf *get( );
+	void put( sos_write_buf *b ) { free_stack.append(b); }
+    private:
+	sos_write_buf_list free_stack;
+};
+
 class sos_fd_sink : public sos_sink {
     public:
 	sos_fd_sink( int fd_ = -1, sos_common *c=0 );
-	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
+	sos_status *write( const unsigned char *b, unsigned int l, buffer_type t = HOLD )
+		{ return write_buf(b,l); }
 	sos_status *flush( );
 
 	void finalize( final_func, void * );
-	sos_status *resume( ) { return flush(); }
+	sos_status *resume( );
 
 	//
 	// set fd state for blocking or nonblocking writes
@@ -128,6 +161,9 @@ class sos_fd_sink : public sos_sink {
 	unsigned int remaining() { return buf.total() - sent; }
 
     private:
+	sos_status *write_iov( const unsigned char *, unsigned int, buffer_type type = HOLD );
+	sos_status *write_buf( const unsigned char *, unsigned int );
+
 	void reset();
 	// how much have we already sent
 	unsigned int sent;
@@ -139,12 +175,21 @@ class sos_fd_sink : public sos_sink {
 	sos_fd_buf buf;
 
 	int fd_;
+
+	static sos_write_buf_factory *buf_factory;
+	sos_write_buf_list out_queue;
+
+	sos_write_buf *fill;
+	sos_write_buf *out;
+	int   buffer_written;
 };
 
 class sos_fd_source : public sos_source {
     public:
-	sos_fd_source( int fd__ = -1, sos_common *c=0 ) : sos_source(c), fd_(fd__) { }
-	unsigned int read( char *, unsigned int );
+	sos_fd_source( int fd__ = -1, sos_common *c=0 ) : sos_source(c), fd_(fd__), try_buffer_io(1),
+					buffer(0), buffer_off(0), buffer_len(0), buffer_size(0) { }
+
+	unsigned int read( unsigned char *, unsigned int );
 
 	~sos_fd_source();
 
@@ -152,6 +197,11 @@ class sos_fd_source : public sos_source {
 	int fd() { return fd_; }
     private:
 	int fd_;
+	int   try_buffer_io;
+	unsigned char *buffer;
+	int   buffer_off;
+	int   buffer_len;	// filled
+	int   buffer_size;	// allocated
 };
 
 class sos_out GC_FINAL_CLASS {
@@ -190,7 +240,7 @@ public:
 	sos_status *put_record_start( unsigned int l, sos_header &h );
 
 	sos_status *write( const char *buf, unsigned int len, sos_sink::buffer_type type = sos_sink::HOLD )
-		{ return out ? out->write( buf, len, type ) : Error( NO_SINK ); }
+		{ return out ? out->write( (const unsigned char*) buf, len, type ) : Error( NO_SINK ); }
 
 	sos_status *flush( ) { return out ? out->flush( ) : Error( NO_SINK ); }
 

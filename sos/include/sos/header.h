@@ -13,8 +13,9 @@
 
 #define SOS_HEADER_0_SIZE	24
 #define SOS_HEADER_1_SIZE	28
-#define SOS_HEADER_SIZE		SOS_HEADER_1_SIZE
-#define SOS_VERSION		1
+#define SOS_HEADER_2_SIZE	28
+#define SOS_HEADER_SIZE		SOS_HEADER_2_SIZE
+#define SOS_VERSION		2
 
 struct sos_header_kernel GC_FINAL_CLASS {
 	sos_header_kernel( void *b, unsigned int l, sos_code t, int freeit = 0,
@@ -31,7 +32,10 @@ struct sos_header_kernel GC_FINAL_CLASS {
 
 	// SOS version of the remote receiver
 	int version( ) const { return version_; }
-	void set_version( int v ) { if ( v >= 0 && v <= SOS_VERSION ) version_ = v; off_ = version_ ? 0 : -4; }
+	void set_version( unsigned char v ) { if ( v <= SOS_VERSION ) version_ = v; off_ = version_ ? 0 : -4; }
+	void set_version_override( unsigned char v ) { version_ = v; off_ = version_ ? 0 : -4; }
+
+	void set_length_override( unsigned int v ) { type_ = SOS_BYTE; length_ = v; }
 
 	// What is the differential between the remote SOS header version
 	// and the current SOS header version. This is needed for sending
@@ -44,7 +48,7 @@ struct sos_header_kernel GC_FINAL_CLASS {
 	unsigned int	length_;	// in units of type_
 	unsigned int	count_;
 	int		freeit_;
-	int		version_;
+	unsigned char	version_;
 };
 
 //==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ==== ====
@@ -79,6 +83,7 @@ struct sos_header_kernel GC_FINAL_CLASS {
 //	( should provide a way for user control info... )
 //
 class sos_header GC_FINAL_CLASS {
+friend class sos_fd_sink;
 public:
 	//
 	// information from the buffer
@@ -106,6 +111,7 @@ public:
 	// update buffer information
 	//
 	void stamp( struct timeval &initial_stamp );
+	void stamp( );
 
 	//
 	// reference count
@@ -177,16 +183,19 @@ public:
 // 		{ buf = (unsigned char*) b; type_ = type(); length_ = length(); }
 
 	static inline int size( int ver )
-		{ const int s[2] = { SOS_HEADER_0_SIZE, SOS_HEADER_1_SIZE };
+		{ const int s[3] = { SOS_HEADER_0_SIZE, SOS_HEADER_1_SIZE, SOS_HEADER_2_SIZE };
 		  return s[ ver >= 0 && ver <= SOS_VERSION ? ver : SOS_VERSION ]; }
 	int size( ) const { return size( kernel->version() ); }
 
 	// where does user data start?
 	int user_offset( ) const { return 22 + kernel->offset( ); }
 
-	void set_version( int v ) { kernel->set_version( v ); }
+	void set_version( unsigned char v ) { kernel->set_version( v ); }
 
 private:
+	void set_version_override( unsigned char v ) { kernel->set_version_override( v ); }
+	void set_length_override( unsigned int v ) { kernel->set_length_override( v ); }
+
 	friend class sos_in;
 	void adjust_version( );
 	sos_header_kernel *kernel;

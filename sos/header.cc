@@ -108,12 +108,18 @@ void sos_header::useti( unsigned int i )
 	kernel->buf_[ off   ] = i & 0xff; i >>= 8;
 	}
 
+void sos_header::stamp( )
+	{
+	struct timeval tv = { 0, 0 };
+	stamp( tv );
+	}
+
 void sos_header::stamp( struct timeval &initial )
 	{
 	int mn_ = SOS_MAGIC;
 	unsigned char *mn = (unsigned char *) &mn_;
 	unsigned char *ptr = kernel->buf_;
-	*ptr++ = SOS_VERSION;			// 0
+	*ptr++ = kernel->version_;		// 0
 	*ptr++ = SOS_ARC;			// 1
 	*ptr++ = kernel->type_;			// 2
 	*ptr++ = sos_size(kernel->type_);	// 3
