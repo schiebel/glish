@@ -950,6 +950,8 @@ void dServer::Register( Value *value, const char *user_name )
 	const char *name = value->StringPtr(0)[0];
 	const char *type = value->StringPtr(0)[1];
 
+syslog( LOG_ERR, "register %s: %s", type, name );
+
 	if ( ! strcmp( type, "WORLD" ) )
 		world_clients.Insert( strdup(name), strdup(user_name) );
 	else if ( ! strcmp( type, "GROUP" ) )
@@ -989,6 +991,7 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 
 	charptr *strs = client->StringPtr();
 	const char *name_str = strs[0];
+syslog( LOG_ERR, "client check: %s", name_str);
 	const char *prog_str = get_prog_name( name_str );
 
 	char *registering_user = 0;
@@ -1198,6 +1201,8 @@ void Interp::CreateClient( Value* argv, dUser *hub )
 		error->Report( "bad arguments for creating remote client" );
 		return;
 		}
+
+syslog( LOG_ERR, "prospective client: %s", name_str);
 
 	Client *persistent = hub->LookupClient(name_str);
 	if ( persistent )
