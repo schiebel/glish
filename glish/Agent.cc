@@ -35,7 +35,7 @@ Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame ) : stack_(0)
 
 	Ref( stmt_ );
 
-	if ( frame )
+	if ( frame_ )
 		Ref( frame_ );
 	}
 
