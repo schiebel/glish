@@ -112,7 +112,7 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 glish:
 		statement
 			{
-        		static int *lookahead = & yyclearin;
+        		static int *lookahead = & ( yyclearin );
 			static int empty = *lookahead;
 
 			current_sequencer->AddStmt( $1 );
