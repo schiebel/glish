@@ -2694,7 +2694,7 @@ fi
     #--------------------------------------------------------------------
     GLISH_FLAGS="$GLISH_FLAGS -DGLISHTK"
     TK_INCL="-I../../include/Rivet"
-    TK_LIB="$(INSTALLDIR)/rivet/rivet/librivet.a"
+    TK_LIB="$(ROOT)/rivet/rivet/librivet.a"
     GLISH_TK="GLISH_TK"
 
     #------propagate the hostname on down--------------------------------

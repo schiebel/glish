@@ -160,7 +160,7 @@ if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
     #--------------------------------------------------------------------
     GLISH_FLAGS="$GLISH_FLAGS -DGLISHTK"
     TK_INCL="-I../../include/Rivet"
-    TK_LIB="$(INSTALLDIR)/rivet/rivet/librivet.a"
+    TK_LIB="$(ROOT)/rivet/rivet/librivet.a"
     GLISH_TK="GLISH_TK"
 
     #------propagate the hostname on down--------------------------------
