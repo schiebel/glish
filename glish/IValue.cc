@@ -158,7 +158,7 @@ IValue::~IValue()
 int IValue::IsAgentRecord() const
 	{
 	if ( VecRefDeref()->Type() == TYPE_RECORD &&
-	     (*RecordPtr(0))[AGENT_MEMBER_NAME] )
+	     (*VecRefDeref()->RecordPtr(0))[AGENT_MEMBER_NAME] )
 		return 1;
 	else
 		return 0;

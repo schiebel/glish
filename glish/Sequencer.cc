@@ -345,6 +345,31 @@ void SystemInfo::DoLog( const char *buf, int len )
 		update_output( );
 	if ( log_file )
 		write(log_file, buf, len >= 0 ? len : strlen(buf));
+	else if ( log_val && log_val->Deref()->Type() == TYPE_FUNC && log_val->Length() >= 1 )
+		{
+		parameter_list param;
+		ActualParameter *p = new ActualParameter( VAL_VAL, new ConstExpr( new IValue( buf ) ) );
+		param.append( p );
+		Func *func = ((IValue*)log_val->Deref())->FuncPtr()[0];
+		IValue *ret = func->Call( &param, EVAL_COPY);
+		if ( ret && ret->Type() == TYPE_FAIL )
+			{
+			error->Report("in trace function (disconnecting):");
+			ret->DescribeSelf( cerr );
+			cerr << endl;
+			Unref(log_val);
+			log_val = 0;
+			}
+		Unref( ret );
+		Unref( p );
+		}
+	else if ( log_val && log_val->IsAgentRecord() )
+		{ 
+		Agent *agent = ((IValue*)log_val->Deref())->AgentVal();
+		IValue *val = new IValue( buf );
+		agent->SendSingleValueEvent( "append", val, 0 );
+		Unref( val );
+		}
 	}
 
 void SystemInfo::AbortOccurred()
@@ -373,65 +398,61 @@ void SystemInfo::update_output( )
 		if ( v1->HasRecordElement( "log" ) &&
 		     (v2 = (const IValue*)(v1->ExistingRecordElement("log"))) &&
 		     v2 != false_value )
-			switch( v2->Type() )
+			{
+			if ( v2->Deref()->Type() == TYPE_STRING )
 				{
-				case TYPE_STRING:
-					{
-					log = 1;
-					char *nf = v2->StringVal();
-					if ( log_name )
-						if ( strcmp(nf,log_name) )
-							{
-							delete log_name;
-							log_name = nf;
-							}
-						else
-							delete nf;
-					else
-						log_name = nf;
-
-					if ( nf == log_name )
-						{
-						if ( log_file ) close( log_file );
-						if ( access(log_name, F_OK) )
-							log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
-						else
-							{
-							log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
-							if ( log_file ) chmod(log_name, S_IRUSR | S_IWUSR);
-							}
-						}
-
-					if ( log_val )
-						{
-						Unref(log_val);
-						log_val = 0;
-						}
-					}
-					break;
-				case TYPE_AGENT:
-				case TYPE_FUNC:
-					{
-					log = 1;
-					if ( log_val != v2 )
-						{
-						Unref(log_val);
-						log_val = (IValue*) v2;
-						if (log_val) Ref(log_val);
-						}
-					if ( log_name )
+				log = 1;
+				char *nf = v2->StringVal();
+				if ( log_name )
+					if ( strcmp(nf,log_name) )
 						{
 						delete log_name;
-						log_name = 0;
+						log_name = nf;
 						}
-					if ( log_file )
+					else
+						delete nf;
+				else
+					log_name = nf;
+
+				if ( nf == log_name )
+					{
+					if ( log_file ) close( log_file );
+					if ( access(log_name, F_OK) )
+						log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
+					else
 						{
-						close(log_file);
-						log_file = 0;
+						log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
+						if ( log_file ) chmod(log_name, S_IRUSR | S_IWUSR);
 						}
 					}
-					break;
+
+				if ( log_val )
+					{
+					Unref(log_val);
+					log_val = 0;
+					}
 				}
+			else if ( v2->Deref()->Type() == TYPE_FUNC || v2->IsAgentRecord() )
+				{
+				log = 1;
+				if ( log_val != v2 )
+					{
+					Unref(log_val);
+					log_val = (IValue*) v2;
+					if (log_val) Ref(log_val);
+					}
+				if ( log_name )
+					{
+					delete log_name;
+					log_name = 0;
+					}
+				if ( log_file )
+					{
+					close(log_file);
+					log_file = 0;
+					}
+				}
+			}
 		}
 
 	update &= ~TRACE();
