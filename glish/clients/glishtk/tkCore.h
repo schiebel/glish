@@ -249,6 +249,7 @@ class TkScale : public TkProxy {
 	static unsigned int scale_count;
 	double from_, to_;
 	int discard_event;
+	double last_value;
 	};
 
 class TkText : public TkProxy {
