@@ -1226,10 +1226,7 @@ const Value* Value::ExistingRecordElement( const Value* index ) const
 const Value* Value::ExistingRecordElement( const char* field ) const
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		{
-		warn->Report( "operand to .", field, " is not a record" );
-		return false_value;
-		}
+		return Fail( "operand to .", field, " is not a record" );
 
 	Value* member = (*RecordPtr(0))[field];
 
@@ -1252,10 +1249,7 @@ Value* Value::GetOrCreateRecordElement( const Value* index )
 Value* Value::GetOrCreateRecordElement( const char* field )
 	{
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
-		{
-		warn->Report( "operand to .", field, " is not a record" );
-		return error_value();
-		}
+		return Fail( "operand to .", field, " is not a record" );
 
 	Value* member = (*RecordPtr())[field];
 

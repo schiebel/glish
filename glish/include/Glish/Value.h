@@ -325,13 +325,14 @@ public:
 	// Returns a newed value
 	Value* RecordRef( const Value* index ) const;
 
-	// Returns an (unmodifiable) existing Value, or false_value if the
-	// given field does not exist.
+	// Returns an (unmodifiable) existing Value, or a fail value
+	// if the given field does not exist.
 	const Value* ExistingRecordElement( const Value* index ) const;
 	const Value* ExistingRecordElement( const char field[] ) const;
 
 	// Returns a modifiable existing Value.  If the given field does
-	// not exist, it is added, with an initial value of F.
+	// not exist, it is added, with an initial value of F. Returns a
+	// fail value if the value is not a record.
 	Value* GetOrCreateRecordElement( const Value* index );
 	Value* GetOrCreateRecordElement( const char field[] );
 
