@@ -296,7 +296,7 @@ dnl## PGPLOT parameters
 dnl##
 dnl##--------------------------------------------------------------------
 if test -n "$option_pgplot_link_flags"; then
-    PGPLOTINCLFLAGS="$option_pgplot_incl_flags"
+    PGPLOTINCLUDES="$option_pgplot_incl_flags"
     PGPLOTLINKFLAGS="$option_pgplot_link_flags"
     if test -n "$option_pgplot_link_search"; then
         PGPLOTLINKSEARCH="$option_pgplot_link_search"
@@ -305,7 +305,7 @@ if test -n "$option_pgplot_link_flags"; then
     fi
     TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
 else
-    PGPLOTINCLFLAGS=""
+    PGPLOTINCLUDES=""
     PGPLOTLINKFLAGS=""
     PGPLOTLINKSEARCH=""
 fi
@@ -1090,6 +1090,8 @@ AC_SUBST(LOOPDECL)
 
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBSW)
+
+AC_SUBST(PGPLOTINCLUDES)
 
 AC_SUBST(BUILD_TK)
 AC_SUBST(TK_LIB)

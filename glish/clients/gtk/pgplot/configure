@@ -1571,7 +1571,7 @@ fi
 
 
 if test -n "$option_pgplot_link_flags"; then
-    PGPLOTINCLFLAGS="$option_pgplot_incl_flags"
+    PGPLOTINCLUDES="$option_pgplot_incl_flags"
     PGPLOTLINKFLAGS="$option_pgplot_link_flags"
     if test -n "$option_pgplot_link_search"; then
         PGPLOTLINKSEARCH="$option_pgplot_link_search"
@@ -1580,7 +1580,7 @@ if test -n "$option_pgplot_link_flags"; then
     fi
     TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
 else
-    PGPLOTINCLFLAGS=""
+    PGPLOTINCLUDES=""
     PGPLOTLINKFLAGS=""
     PGPLOTLINKSEARCH=""
 fi
@@ -3167,6 +3167,8 @@ echo "$ac_t""$SLIB_LD" 1>&6
 
 
 
+
+
 trap '' 1 2 15
 cat > $confcache <<\EOF
 # This file is a shell script that caches the results of configure
@@ -3316,6 +3318,7 @@ s%@CXXCPP@%$CXXCPP%g
 s%@LOOPDECL@%$LOOPDECL%g
 s%@XINCLUDES@%$XINCLUDES%g
 s%@XLIBSW@%$XLIBSW%g
+s%@PGPLOTINCLUDES@%$PGPLOTINCLUDES%g
 s%@BUILD_TK@%$BUILD_TK%g
 s%@TK_LIB@%$TK_LIB%g
 s%@TK_INCL@%$TK_INCL%g
