@@ -1165,7 +1165,7 @@ TkFrame::~TkFrame( )
 
 	if ( ! tl_count )
 		// Empty queue
-		while( Tk_DoOneEvent( TK_DONT_WAIT ) != 0 );
+		while( Tk_DoOneEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) != 0 );
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
