@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 
 #include <X11/Xlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include "Glish/Value.h"
@@ -786,6 +787,20 @@ const char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
 	char args[75];
 	sprintf( args," set %f %f", val->DoubleVal(1), val->DoubleVal(2) );
 	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), args, (char *)NULL );
+	return 0;
+	}
+
+const char *glishtk_scrollbar_ping(TkProxy *proxy, const char *, Value *val )
+	{
+	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " get", (char *)NULL );
+	const char *str = Tcl_GetStringResult(proxy->Interp( ));
+	char buf1[30];
+	char *bptr = buf1;
+	while ( *str && ! isspace(*str) ) *bptr++ = *str++;
+	*bptr = '\0';
+	char buf2[44];
+	sprintf( buf2, "yview moveto %s", buf1 );
+	proxy->PostTkEvent( "scroll", new Value( buf2 ) );
 	return 0;
 	}
 
@@ -3710,6 +3725,7 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 // 	rivet_scrollbar_set( self, 0.0, 1.0 );
 
 	procs.Insert("view", new TkProc(this, "", glishtk_scrollbar_update));
+	procs.Insert("ping", new TkProc(this, "", glishtk_scrollbar_ping));
 	procs.Insert("orient", new TkProc(this, "-orient", glishtk_onestr, glishtk_str));
 	procs.Insert("width", new TkProc(this, "-width", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
