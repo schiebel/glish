@@ -18,6 +18,7 @@ all:
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS all
 	(cd glishtk; $(MAKE) $$FLGS)
+	(cd make; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing glish clients ...
@@ -27,6 +28,7 @@ install:
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
 	(cd glishtk; $(MAKE) $$FLGS install)
+	(cd make; $(MAKE) $$FLGS install)
 
 build: all
 
