@@ -1424,6 +1424,9 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	Value *val = 0;
 
 	void *ary = sos.get( len, type, head );
+
+	if ( ! ary ) return 0;
+
 	unsigned int name_len = head.ugeti();
 
 	flags = head.ugetc(1);
@@ -1487,6 +1490,8 @@ GlishEvent* recv_event( int fd )
 	char *name = 0;
 	unsigned char flags;
 	Value *result = read_value( sos, name, flags );
+
+	if ( ! result ) return 0;
 
 	if ( ! name )
 		fatal->Report("no event name found");

@@ -118,13 +118,15 @@ unsigned int sos_fd_source::read( char *buf, unsigned int len )
 	unsigned int total = 0;
 
 	register unsigned int cur = 0;
-	while ( needed && (cur = ::read( fd, buf, needed )))
+	while ( needed && (cur = ::read( fd, buf, needed )) > 0 )
 		{
 		total += cur;
 		buf += cur;
 		needed -= cur;
 		if ( total >= len ) needed = 0;
 		}
+
+	if ( cur < 0 ) perror("sos_fd_source::read()");
 
 	return total;
 	}
@@ -346,7 +348,7 @@ sos_in::sos_in( sos_source &in_, int use_str_, int integral_header ) : in(in_), 
 void *sos_in::get( unsigned int &len, sos_code &type )
 	{
 	type = SOS_UNKNOWN;
-	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) <= 0 )
+	if ( in.read( head.iBuffer(),SOS_HEADER_SIZE ) < SOS_HEADER_SIZE )
 		return 0;
 
 	type = head.type();
