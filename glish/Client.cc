@@ -444,7 +444,7 @@ Client::~Client()
 
 	// clean up extraneous event_sources, if any...
 	// links were cleaned with RemoveInterpreter() calls
-	for ( int j = event_sources.length() ; j >= 1 ; j-- )
+	for ( int j = event_sources.length()-1 ; j >= 0 ; j-- )
 		delete event_sources[j];
 
 	if ( interpreter_tag )

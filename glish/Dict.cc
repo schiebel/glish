@@ -47,16 +47,17 @@ Dictionary::~Dictionary()
 	{
 	for ( int i = 0; i < num_buckets; ++i )
 		if ( tbl[i] )
+			{
+			while ( tbl[i]->length() )
+				delete tbl[i]->remove_nth( tbl[i]->length() - 1 );
+
 			delete tbl[i];
+			}
 
 	delete tbl;
 
 	if ( order )
-		{
-		while ( order->length() > 0 )
-			delete order->get();
 		delete order;
-		}
 	}
 
 

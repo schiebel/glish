@@ -109,13 +109,19 @@ void WheneverStmt::SetStmt( Stmt* arg_stmt )
 WheneverStmt::~WheneverStmt()
 	{
 	NodeUnref( stmt );
-	loop_over_list( *trigger, i )
-		Unref( (*trigger)[i] );
+
+	if ( trigger )
+		{
+		loop_over_list( *trigger, i )
+			Unref( (*trigger)[i] );
+
+		delete trigger;
+		}
 	}
 
 int WheneverStmt::canDelete() const
 	{
-	return 0;
+	return shutting_glish_down;
 	}
 
 IValue* WheneverStmt::DoExec( int /* value_needed */,
@@ -164,7 +170,24 @@ void WheneverStmt::Describe( ostream& s ) const
 	}
 
 
-LinkStmt::~LinkStmt() { }
+LinkStmt::~LinkStmt()
+	{
+	if ( source )
+		{
+		loop_over_list( *source, i )
+			Unref( (*source)[i] );
+
+		delete source;
+		}
+
+	if ( sink )
+		{
+		loop_over_list( *sink, i )
+			Unref( (*sink)[i] );
+
+		delete sink;
+		}
+	}
 
 LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
 			Sequencer* arg_sequencer )

@@ -63,6 +63,11 @@ int system( const char* string );
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
 
+// This is used to indicate that final cleanup is ongoing. Currently
+// this only affects the cleanup of WheneverStmts. Eventaully, these
+// will be cleaned up properly, and this can be removed.
+int shutting_glish_down = 0;
+
 // A special type of Client used for script clients.  It overrides
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
@@ -77,6 +82,8 @@ public:
 	// hasn't already been done. This can only be called after
 	// SetInterface() has been called.
 	void AddEventSources( );
+
+	~ScriptClient();
 
 protected:
 	void FD_Change( int fd, int add_flag );
@@ -192,6 +199,8 @@ public:
 		return 0;
 		}
 
+	~ScriptAgent() { delete client; }
+
 protected:
 	Client* client;
 	};
@@ -204,22 +213,28 @@ Scope::~Scope()
 	Expr* member;
 	const char* key;
 	while ( (member = NextEntry( key, c )) )
-		{
-		//delete (char*) key;    -- pointer shared with "member"
 		Unref( member );
-		}
+
+	c = global_refs.InitForIteration();
+	char * val;
+	while ( (val = global_refs.NextEntry( key, c )) )
+		delete val;
 	}
 
 
-void Scope::MarkGlobalRef(char *c)
+void Scope::MarkGlobalRef(const char *c)
 	{
 	if ( ! WasGlobalRef( c ) )
-		global_refs.Insert( c, 1 );
+		{
+		char *str = strdup(c);
+		global_refs.Insert( str, str );
+		}
 	}
 
 void Scope::ClearGlobalRef(const char *c)
 	{
 	char *v = global_refs.Remove(c);
+	delete v;
 	}
 
 void NotifyTrigger::NotifyDone() { }
@@ -542,6 +557,8 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 Sequencer::~Sequencer()
 	{
+	shutting_glish_down = 1;
+
 	Unref( last_notification );
 	NodeUnref( stmts );
 
@@ -694,12 +711,12 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
 			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
 		}
-	else if ( old )
-		{		// We still have a memory leak
-		delete id;	//  in the "if" of this "else"
-		}
 
-	Unref(old);
+	if ( old )
+		{
+		Unref(old);
+		delete id;
+		}
 
 	return result;
 	}
@@ -829,14 +846,7 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )
-				{
-				// We have a memory leak here
-				// sometimes MarkGlobalRef "owns"
-				// the pointer, and sometimes it
-				// doesn't
 				scopes[off]->MarkGlobalRef( id );
-				if ( result ) id = 0;
-				}
 
 			if ( ! result )
 				return InstallVar( id, GLOBAL_SCOPE, var );
@@ -872,7 +882,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 			fatal->Report("bad scope tag in Sequencer::LookupID()" );
 
 		}
-	if ( id ) delete id;
+
+	delete id;
 	return result;
 	}
 
@@ -2021,6 +2032,12 @@ ScriptClient::ScriptClient( int& argc, char** argv, int multi ) : Client( argc, 
 	{
 	selector = 0;
 	agent = 0;
+	}
+
+ScriptClient::~ScriptClient( )
+	{
+	loop_over_list( event_src_list, i )
+		delete event_src_list[i];
 	}
 
 void ScriptClient::SetInterface( Selector* s, Agent* a )

@@ -18,6 +18,7 @@ declare(PDict,Expr);
 
 typedef PList(Expr) expr_list;
 
+extern int shutting_glish_down;
 
 class ParseNode : public GlishObject {
     public:

@@ -75,11 +75,11 @@ public:
 	scope_type GetScopeType() const { return scope; }
 	int WasGlobalRef(const char *c) const
 		{ return global_refs.Lookup(c) ? 1 : 0; }
-	void MarkGlobalRef(char *c);
+	void MarkGlobalRef(const char *c);
 	void ClearGlobalRef(const char *c);
 private:
 	scope_type scope;
-	Dict(int) global_refs;
+	PDict(char) global_refs;
 };
 
 declare(PList,Scope);

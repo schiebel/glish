@@ -882,7 +882,15 @@ charptr TkAgent::IndexCheck( charptr c )
 	return c;
 	}
 
-TkAgent::~TkAgent( ) { }
+TkAgent::~TkAgent( )
+	{
+	IterCookie* c = procs.InitForIteration();
+
+	TkProc* member;
+	const char* key;
+	while ( (member = procs.NextEntry( key, c )) )
+		delete member;
+	}
 
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
@@ -1114,6 +1122,12 @@ TkFrame::~TkFrame( )
 
 	if ( tag )
 		delete tag;
+
+	if ( side ) delete side;
+	if ( padx ) delete padx;
+	if ( pady ) delete pady;
+	if ( expand ) delete expand;
+
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
