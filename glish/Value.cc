@@ -1139,8 +1139,8 @@ BOOL_COERCE_ACTION(TYPE_SHORT,short,,ShortPtr,j,)
 BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,j,)
 BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,j,)
 BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,j,)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr,j,)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr,j,)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r || ptr[j].i,ComplexPtr,j,)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[j].i,DcomplexPtr,j,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -1162,8 +1162,8 @@ BOOL_COERCE_BOOL_ACTION(off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr,off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r || ptr[off].i,ComplexPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERCE_ACTION_XLATE)
 		default:
 			error->Report(
 				"bad type in Value::CoerceToBoolArray()" );
@@ -3674,14 +3674,64 @@ void Value::Not()
 		}
 
 	glish_bool* result = new glish_bool[length];
-	int is_copy;
-	int* source = CoerceToIntArray( is_copy, length );
 
-	for ( int i = 0; i < length; ++i )
-		result[i] = source[i] ? glish_false : glish_true;
+	switch ( Type() )
+		{
+#define NOT_ACTION(tag,type,rhs_elm,accessor,OFFSET,XLATE)		\
+	case tag:							\
+		{							\
+		type* ptr = accessor(0);				\
+		for ( int i = 0; i < length; ++i )			\
+			{						\
+			XLATE						\
+			result[i] = (ptr[ OFFSET ] rhs_elm ? glish_false : glish_true);\
+			}						\
+		break;							\
+		}
+NOT_ACTION(TYPE_BYTE,byte,,BytePtr,i,)
+NOT_ACTION(TYPE_SHORT,short,,ShortPtr,i,)
+NOT_ACTION(TYPE_INT,int,,IntPtr,i,)
+NOT_ACTION(TYPE_FLOAT,float,,FloatPtr,i,)
+NOT_ACTION(TYPE_DOUBLE,double,,DoublePtr,i,)
+NOT_ACTION(TYPE_COMPLEX,complex,.r || ptr[i].i,ComplexPtr,i,)
+NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
 
-	if ( is_copy )
-		delete source;
+		case TYPE_SUBVEC_REF:
+			{
+			VecRef *ref = VecRefPtr();
+			switch ( ref->Type() )
+				{
+
+#define NOT_ACTION_XLATE						\
+	int err;							\
+	int off = ref->TranslateIndex( i, &err );			\
+	if ( err )							\
+		{							\
+		error->Report( "index (=",i,				\
+			") is out of range. Sub-vector reference may be invalid" );\
+		delete result;						\
+		return;							\
+		}
+
+NOT_ACTION(TYPE_INT,int,,IntPtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_FLOAT,float,,FloatPtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_COMPLEX,complex,.r || ptr[off].i,ComplexPtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XLATE)
+				default:
+					error->Report( "bad type in Value::Not()" );
+					delete result;
+					return;
+				}
+			}
+			break;
+
+
+		default:
+			error->Report( "bad type in Value::Not()" );
+			delete result;
+			return;
+		}
 
 	kernel.SetArray( result, length );
 	}
