@@ -879,7 +879,7 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, parameter_list *ar
 	return (char*) ret;
 	}
 
-char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
+char *glishtk_listbox_select(TkAgent *a, const char *cmd, const char *param,
 			      parameter_list *args, int, int )
 	{
 	char *ret = 0;
@@ -888,15 +888,21 @@ char *glishtk_oneortwoidx2str(TkAgent *a, const char *cmd, const char *param,
 	HASARG( args, > 0 )
 	int c = 0;
 	EXPRSTR( start, event_name )
+
 	if ( args->length() > 1 )
 		{
 		EXPRSTR( end, event_name )
 		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ),
 					     a->IndexCheck( end ), 0);
+		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( end ), 0 );
 		EXPR_DONE( end )
 		}
 	else
+		{
 		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ), 0);
+		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( start ), 0 );
+		}
+
 	EXPR_DONE( start )
 	return ret;
 	}
@@ -4148,8 +4154,8 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));
-	procs.Insert("select", new TkProc(this, "select", "set", glishtk_oneortwoidx2str));
-	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_oneortwoidx2str));
+	procs.Insert("select", new TkProc(this, "select", "set", glishtk_listbox_select));
+	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_listbox_select));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
