@@ -4228,28 +4228,35 @@ if test "$static_binary" = "yes"; then
     STATIC_BIN=bin_tgt
     GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    RIVET_CLIENT_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
     if test "$do_tk" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/librivet$GLISH_LIB_SUFFIX"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS \${LIBDIR_P}/librivet$GLISH_LIB_SUFFIX"
     fi
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
     GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
     CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
+    RIVET_CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS -lnpd"
     fi
     if test "$do_tk" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lrivet"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS -lrivet"
     fi
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS $DL_LIBS"
     fi
 fi
 
@@ -4280,7 +4287,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 4284 "configure"
+#line 4291 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -4288,7 +4295,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4292: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4299: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -4311,7 +4318,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 4315 "configure"
+#line 4322 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -4319,7 +4326,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4323: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:4330: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -4339,6 +4346,7 @@ echo "$ac_t""$SLIB_CXXFLAGS" 1>&6
 
 echo $ac_n "checking for shared loader""... $ac_c" 1>&6
 echo "$ac_t""$SLIB_LD" 1>&6
+
 
 
 
@@ -4708,7 +4716,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/rtk/$ARCH/Makefile:glish/clients/rtk/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -4779,6 +4787,7 @@ s%@MAKE_LIB@%$MAKE_LIB%g
 s%@MAKE_SLIB@%$MAKE_SLIB%g
 s%@GLISH_LIBS@%$GLISH_LIBS%g
 s%@CLIENT_LIBS@%$CLIENT_LIBS%g
+s%@RIVET_CLIENT_LIBS@%$RIVET_CLIENT_LIBS%g
 s%@DYNAMIC_LIB@%$DYNAMIC_LIB%g
 s%@STATIC_LIB@%$STATIC_LIB%g
 s%@DYNAMIC_BIN@%$DYNAMIC_BIN%g
@@ -4788,7 +4797,7 @@ CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in"}
+CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/rtk/$ARCH/Makefile:glish/clients/rtk/Makefile.in"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -4866,7 +4875,7 @@ ac_eB='$%\1#\2define\3'
 ac_eC=' '
 ac_eD='%g'
 
-CONFIG_HEADERS=${CONFIG_HEADERS-"glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in"}
+CONFIG_HEADERS=${CONFIG_HEADERS-"glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in"}
 for ac_file in .. $CONFIG_HEADERS; do if test "x$ac_file" != x..; then
   # Support "outfile[:infile]", defaulting infile="outfile.in".
   case "$ac_file" in

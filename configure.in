@@ -421,7 +421,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     NPD_LIB='${LIBDIR_P}/libnpd${LIB_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -433,7 +433,7 @@ else
     BUILD_NPD=""
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/rtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 fi
 
 
@@ -709,6 +709,8 @@ dnl##	MAKE_SLIB -	Command to execute to build the dynamic library
 dnl##	GLISH_LIBS -	The libraries needed to link the Glish interperter
 dnl##			indicated by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
 dnl##	CLIENT_LIBS -	The libraries needed to link a Glish client indicated
+dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
+dnl##	RIVET_CLIENT_LIBS - The libraries needed to link a Glish client indicated
 dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
 dnl##	DYNAMIC_LIB -	'lib_tgt' if dynamic libary should be built, empty otherwise
 dnl##	STATIC_LIB -	'lib_tgt' if static libary should be built, empty otherwise
@@ -1088,28 +1090,35 @@ if test "$static_binary" = "yes"; then
     STATIC_BIN=bin_tgt
     GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    RIVET_CLIENT_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
     if test "$do_tk" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/librivet$GLISH_LIB_SUFFIX"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS \${LIBDIR_P}/librivet$GLISH_LIB_SUFFIX"
     fi
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
     GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
     CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
+    RIVET_CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS -lnpd"
     fi
     if test "$do_tk" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lrivet"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS -lrivet"
     fi
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
+	RIVET_CLIENT_LIBS="$RIVET_CLIENT_LIBS $DL_LIBS"
     fi
 fi
 
@@ -1199,6 +1208,7 @@ AC_SUBST(MAKE_SLIB)
 
 AC_SUBST(GLISH_LIBS)
 AC_SUBST(CLIENT_LIBS)
+AC_SUBST(RIVET_CLIENT_LIBS)
 AC_SUBST(DYNAMIC_LIB)
 AC_SUBST(STATIC_LIB)
 AC_SUBST(DYNAMIC_BIN)
@@ -1239,5 +1249,5 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/rtk/$ARCH/Makefile:glish/clients/rtk/Makefile.in)
 
