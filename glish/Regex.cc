@@ -355,7 +355,7 @@ else if ( reg->nparens > 0 )						\
 	}
 
 #define MATCH_ACTION(OP,INDEXINIT,COUNT,COUNTINIT)			\
-if ( OP == glish_true )							\
+if ( OP > 0 )								\
 	{								\
 	if ( match_len > 0 )						\
 		{							\
