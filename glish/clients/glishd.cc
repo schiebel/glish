@@ -444,13 +444,13 @@ dUser::dUser( int sock, const char *user, const char *host ) : master(0), slave(
 		close( write_pipe[1] );
 		close( fd_pipe_[1] );
 
+		while ( suspend_user ) sleep(1);
+
 		InitInterruptPipe();
 
 		master = new Client( write_pipe[0], read_pipe[1], new_name() );
 		transition.append( new Client( sock, sock, new_name() ) );
 		fd_pipe = fd_pipe_[0];
-
-		while ( suspend_user ) sleep(1);
 
 		loop();
 
@@ -972,6 +972,7 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 
 	char *registering_user = 0;
 	const char *group = get_group_name( get_user_group( user_name ) );
+
 	str_dict *map = group_clients[group];
 	if ( map && ( (registering_user = (*map)[name_str]) ))
 		{
@@ -1176,8 +1177,10 @@ void Interp::CreateClient( Value* value, dUser *hub )
 		Client *persistent = hub->LookupClient(lookup);
 		if ( persistent )
 			{
+			charptr *name = name_val->StringPtr( );
+			free_memory( (char*) name[0] );
+			name[0] = lookup;
 			persistent->PostEvent( "client", value );
-			free_memory( lookup );
 			return;
 			}
 		}
