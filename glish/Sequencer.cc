@@ -4244,9 +4244,10 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 void EnvHolder::put( const char *var, char *string )
 	{
 	char *old = strings.Lookup( var );
+	if ( old == string ) return;
 	strings.Insert( old ? var : string_dup( var ), string );
-	if ( old ) free_memory( old );
 	putenv( string );
+	if ( old ) free_memory( old );
 	}
 
 char* which_include( const char* filename )
