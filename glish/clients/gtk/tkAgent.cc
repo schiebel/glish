@@ -1251,10 +1251,6 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{
 	char *val = 0;
 
-//** 	ProxyStore::HoldQueue();
-	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-//** 	ProxyStore::ReleaseQueue();
-
 	if ( proc )
 		val = (*proc)(tcl, s,cmdstr,arg);
 	else if ( proc1 )
@@ -1279,11 +1275,6 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 #endif
 	else
 		return error_value();
-
-
-//**	ProxyStore::HoldQueue();
-	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-//**	ProxyStore::ReleaseQueue();
 
 	if ( val != (void*) TCL_ERROR )
 		{
@@ -1642,8 +1633,7 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 
 void glishtk_moveframe_cb( ClientData clientData, XEvent *eventPtr)
 	{
-	if ( eventPtr->xany.type == ConfigureNotify &&
-	     eventPtr->xany.send_event )
+	if ( eventPtr->xany.type == ConfigureNotify )
 		{
 		TkFrame *f = (TkFrame*) clientData;
 		f->LeaderMoved();
@@ -1686,7 +1676,6 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		{
 		Ref( tlead );
 		tpos = strdup(tpos_);
-		while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
 		}
 
 	if ( top_created )
@@ -2390,9 +2379,7 @@ void TkFrame::ResizeEvent( )
 		//  because all information from the lower widgets is
 		//  "one off".
 		//
-//** 		ProxyStore::HoldQueue();
 		while ( TkAgent::DoOneTkEvent( TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-//** 		ProxyStore::ReleaseQueue();
 
 		PostTkEvent( "resize", new Value( rec ) );
 		}
@@ -2403,7 +2390,7 @@ void TkFrame::LeaderMoved( )
 	if ( ! tlead ) return;
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-	Tcl_VarEval( tcl, "geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
+	Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
 	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
 	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
 	}
