@@ -1227,7 +1227,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	inc[1] = strdup(SCRIPTDIR);
 	path->Insert( strdup("include"), new IValue( inc, 2 ) );
 
-	sys_value->SetField( "path", new IValue( path ) );
+	IValue * path_val = new IValue( path );
+	sys_value->SetField( "path", path_val );
+	Unref(path_val);
 
 	recordptr max = create_record_dict();
 	max->Insert( strdup("integer"), new IValue( (int) INT_MAX ) );
@@ -1247,7 +1249,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	limits->Insert( strdup("max"), new IValue( max ) );
 	limits->Insert( strdup("min"), new IValue( min ) );
 
-	sys_value->SetField( "limits", new IValue( limits ) );
+	IValue *limits_val = new IValue( limits );
+	sys_value->SetField( "limits", limits_val );
+	Unref(limits_val);
 
 	recordptr output = create_record_dict();
 	recordptr pager = create_record_dict();
@@ -1255,8 +1259,10 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	pager->Insert( strdup("exec"), new IValue( envpager ? envpager : "more" ) );
 	pager->Insert( strdup("limit"), new IValue( 24 ) );
 	output->Insert( strdup("pager"), new IValue( pager ) );
+	IValue *output_val = new IValue( output );
 
-	sys_value->SetField( "output", new IValue( output ) );
+	sys_value->SetField( "output", output_val );
+	Unref(output_val);
 	}
 
 int *Sequencer::NewObjId( Task *t )
