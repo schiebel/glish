@@ -32,7 +32,6 @@ const Value* false_value = 0;
 
 #define INIT_VALUE_ACTION		\
 	description = 0;		\
-	value_manager = 0;		\
 	attributes = 0;			\
 	++num_Values_created;
 
@@ -265,20 +264,6 @@ void Value::DeleteValue()
 	{
 	if ( IsRef() && ! glish_collecting_garbage )
 		Unref( RefPtr() );
-
-	if ( value_manager )
-		{
-		Unref( value_manager );
-
-		// It's important to get rid of our value_manager
-		// pointer here; a call to DeleteValue does not
-		// necessarily mean we're throwing away the entire
-		// Value object.  (For example, we may be called
-		// by SetType, called in turn by Polymorph.)  Thus
-		// as we're done with this value_manager, mark it
-		// as so.
-		value_manager = 0;
-		}
 
 	DeleteAttributes();
 	}
@@ -599,16 +584,13 @@ char* Value::StringVal( char sep, int max_elements,
 		return Deref()->StringVal( sep, max_elements, useAttributes );
 	if ( type == TYPE_RECORD )
 		return RecordStringVal( sep, max_elements, useAttributes, err );
-	if ( type == TYPE_AGENT )
-		return strdup( "<agent>" );
-	if ( type == TYPE_FUNC )
-		return strdup( "<function>" );
-	if ( type == TYPE_REGEX )
-		return strdup( "<regex>" );
 	if ( type == TYPE_FAIL )
 		return format_error_message( this, sep, max_elements, useAttributes );
 	if ( length == 0 )
 		return strdup( "" );
+
+	char *ns_desc = GetNSDesc( );
+	if ( ns_desc ) return ns_desc;
 
 	unsigned int buf_size = 0;
 
@@ -3896,6 +3878,19 @@ int Value::Grow( unsigned int new_size )
 		}
 
 	return 1;
+	}
+
+
+char *Value::GetNSDesc( ) const
+	{
+	glish_type type = Type();
+	if ( type == TYPE_AGENT )
+		return strdup( "<agent>" );
+	if ( type == TYPE_FUNC )
+		return strdup( "<function>" );
+	if ( type == TYPE_REGEX )
+		return strdup( "<regex>" );
+	return 0;
 	}
 
 

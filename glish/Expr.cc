@@ -1779,7 +1779,7 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 	}
 
 
-ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s) : BinaryExpr(op1, op2, "~"), sequencer(s)
+ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s ) : BinaryExpr(op1, op2, "~"), sequencer(s)
 	{
 	}
 

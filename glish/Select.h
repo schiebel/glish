@@ -7,6 +7,7 @@
 #include "system.h"
 
 #include <sys/time.h>
+#include <sys/types.h>
 #include "Glish/List.h"
 
 #if HAVE_SYS_SELECT_H
@@ -22,8 +23,6 @@ class SelectTimer;
 glish_declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
-
-struct fd_set;
 
 class Selectee {
 public:
@@ -119,8 +118,8 @@ protected:
 	// If true, delete selectee when notification done.
 	int nuke_current_selectee;
 
-	struct fd_set* r_fdset;
-	struct fd_set* w_fdset;
+	fd_set* r_fdset;
+	fd_set* w_fdset;
 	timer_list timers;
 
 	int await_done;

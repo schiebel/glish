@@ -648,6 +648,20 @@ int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 	return 1;
 	}
 
+
+char *IValue::GetNSDesc( ) const
+	{
+	glish_type type = Type();
+	if ( type == TYPE_AGENT )
+		return strdup( "<agent>" );
+	if ( type == TYPE_FUNC )
+		return strdup( "<function>" );
+	if ( type == TYPE_REGEX )
+		return RegexVal()->Description( );
+	return 0;
+	}
+
+
 #ifdef GGC
 void IValue::TagGC( )
 	{

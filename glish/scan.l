@@ -236,6 +236,8 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 "&&:="		RETURN_COMPOUND(TOK_AND_AND);
 "||:="		RETURN_COMPOUND(TOK_OR_OR);
 
+"~:="		RETURN_COMPOUND(yytext[0]);
+
 activate	RETURN_ACTIVATE(1);
 await		return TOK_AWAIT;
 break		statement_can_end = 1; return TOK_BREAK;
@@ -429,8 +431,16 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		if ( is_match_regex || match_regex_portion )
 			{
 			statement_can_end = 1;
-			IValue *v = new IValue( is_match_regex ? new Regex(strdup(literal())) :
-					new Regex(match_regex_portion, strdup(literal())) );
+			IValue *v = 0;
+			Regex *r = is_match_regex ? new Regex(strdup(literal())) :
+					new Regex(match_regex_portion, strdup(literal()));
+			if ( ! r->Error() )
+				v = new IValue( r );
+			else
+				{
+				v = (IValue*) generate_error(r->Error());
+				delete r;
+				}
 			DO_GC_REGISTER
 			YYLVAL(expr) = new ConstExpr( v );
 			BEGIN(INITIAL);

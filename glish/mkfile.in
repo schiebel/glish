@@ -149,7 +149,7 @@ CLIENT_OBJS_PROXY = \
 KEY_HEADERS = \
 	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h $(SRC)/Garbage.h \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
-	$(H)/glish.h
+	$(SRC)/Regex.h $(H)/glish.h
 
 
 top = @top_srcdir@@top_off@

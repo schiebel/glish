@@ -82,6 +82,7 @@ const char * const LD_PATH = "LD_LIBRARY_PATH";
 int glish_dummy_int =  0;
 
 extern int allwarn;
+extern void init_regex();
 
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
@@ -1181,6 +1182,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	agents = new agent_list;
 	init_interp_reporters(this);
 	init_values();
+	init_regex();
 
 	// Create the global scope.
 	PushScope( GLOBAL_SCOPE );

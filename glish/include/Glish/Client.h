@@ -20,7 +20,6 @@ char* strdup( const char* );
 class sos_in;
 class sos_out;
 
-struct fd_set;
 class EventContext {
 public:
 	EventContext(const char *client_name_ = 0, const char *context_ = 0 );

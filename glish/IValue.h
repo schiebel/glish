@@ -162,6 +162,9 @@ public:
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	// Get a description of a non-standard (i.e. interpreter specific) type
+	char *GetNSDesc( ) const;
+
 #ifdef GGC
 	virtual void TagGC( );
 #endif

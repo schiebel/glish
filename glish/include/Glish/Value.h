@@ -100,7 +100,7 @@ public:
 	Value( );
 	Value( const char *message, const char *file, int lineNum );
 
-	Value( const Value &v ) : value_manager(0), kernel(v.kernel),
+	Value( const Value &v ) : kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )
 		{
 		DIAG2( (void*) this, "Value( const Value& )" )
@@ -161,17 +161,6 @@ public:
 	void TakeValue( Value* new_value, Str &err = glish_errno );
 
 	virtual ~Value();
-
-
-	// A value manager is an object that is Unref()'d upon destruction
-	// of a Value in lieu of deleting the Value's "values" member
-	// variable.  Presumably the value manager knows something about
-	// "values" and when deleted performs some sort of cleanup on it
-	// (perhaps by deleting it, perhaps by changing its reference count,
-	// perhaps by leaving it alone, etc.).
-	void SetValueManager( GlishObject* manager )
-		{ value_manager = manager; }
-
 
 	glish_type Type() const			{ return kernel.Type(); }
 	int Length() const
@@ -685,7 +674,8 @@ protected:
 	// our present type, an error message is generated and false is return.
 	int Grow( unsigned int new_size );
 
-	GlishObject* value_manager;
+	// Get a description of a non-standard (i.e. interpreter specific) type
+	virtual char *GetNSDesc( ) const;
 
 	ValueKernel kernel;
 	Value* attributes;
