@@ -618,6 +618,8 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 			}							\
 										\
 		result = new IValue( ret, vecsize );				\
+		result->CopyAttributes( this );					\
+										\
 		if ( ! is_element )						\
 			{							\
 			int z = 0;						\
@@ -626,9 +628,7 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 					len[z++] = len[x];			\
 										\
 			result->AssignAttribute( "shape",			\
-						new IValue( len, z ) );	\
-			if ( op_val )						\
-				result->AssignAttribute( "op[]", op_val );	\
+						new IValue( len, z ) );		\
 			}							\
 		else								\
 			free_memory( len );					\
@@ -1480,6 +1480,8 @@ IValue* IValue::SubRef( const_value_list *args_val )
 		}
 
 	IValue* result = new IValue((IValue*) this, ret, vecsize, VAL_REF, 1 );
+	result->CopyAttributes( this );
+
 	if ( ! is_element )
 		{
 		int z = 0;
@@ -1489,9 +1491,6 @@ IValue* IValue::SubRef( const_value_list *args_val )
 
 		Value* len_v = create_value( len, z );
 		result->AssignAttribute( "shape", len_v );
-
-		if ( op_val )
-			result->AssignAttribute( "op[]", op_val );
 		}
 	else
 		free_memory( len );
