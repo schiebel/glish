@@ -1027,7 +1027,14 @@ IValue* CreateTaskBuiltIn::GetShellCmdOutput( const char* command, FILE* shell,
 
 char* CreateTaskBuiltIn::NextLocalShellCmdLine( FILE* shell, char* line_buf )
 	{
+#if defined(__alpha) || defined(__alpha__)
+	char *ret = fgets( line_buf, MAX_SHELL_LINE_LEN, shell );
+	while ( ! ret && ! feof(shell) )
+		ret = fgets( line_buf, MAX_SHELL_LINE_LEN, shell );
+	return ret;
+#else
 	return fgets( line_buf, MAX_SHELL_LINE_LEN, shell );
+#endif
 	}
 
 char* CreateTaskBuiltIn::NextRemoteShellCmdLine( char* line_buf )
