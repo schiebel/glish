@@ -306,6 +306,7 @@ int Value::IsNumeric() const
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_REGEX:
+		case TYPE_FILE:
 		case TYPE_RECORD:
 		case TYPE_FAIL:
 			return 0;
@@ -475,7 +476,8 @@ val_type Value::name( int n, Str &err ) const				\
 									\
 		case TYPE_AGENT:					\
 		case TYPE_FUNC:						\
-		case TYPE_REGEX:						\
+		case TYPE_REGEX:					\
+		case TYPE_FILE:						\
 		case TYPE_RECORD:					\
 			err = strFail( "bad type", type_names[type],	\
 				"converted to ", type_name, ":", this );\
@@ -3478,6 +3480,7 @@ int Value::Grow( unsigned int new_size )
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_REGEX:
+		case TYPE_FILE:
 		case TYPE_RECORD:
 			error->Report( "cannot increase array of",
 					type_names[Type()], "via assignment" );
@@ -3500,6 +3503,8 @@ char *Value::GetNSDesc( ) const
 		return strdup( "<function>" );
 	if ( type == TYPE_REGEX )
 		return strdup( "<regex>" );
+	if ( type == TYPE_FILE )
+		return strdup( "<file>" );
 	return 0;
 	}
 
