@@ -1,3 +1,16 @@
+/*    common.c
+ *
+ *    $Id$
+ *    Copyright (c) 1991-1997, Larry Wall
+ *    Copyright (c) 1998,1999 Associated Universities Inc.
+ *
+ *    Scavenged from Perl distribution needed for regex closure...
+ *
+ *    You may distribute under the terms of either the GNU General Public
+ *    License or the Artistic License, as specified in the README file.
+ *
+ */
+
 #ifndef commonp_h_
 #define commonp_h_
 

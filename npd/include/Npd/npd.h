@@ -1,7 +1,15 @@
 /* $Id$
 **
 **  npd  --  network probe daemon
+**
 */
+
+/*
+ * Copyright (c) 1994
+ *      The Regents of the University of California.  All rights reserved.
+ *
+ */
+
 #ifndef npd_h
 #define npd_h
 

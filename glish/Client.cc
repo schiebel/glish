@@ -1715,54 +1715,13 @@ GlishEvent* recv_event( sos_source &in )
 	}
 
 
-void write_value( sos_out &sos, Value *val, const char *label, char *name,
-		  unsigned char flags, const ProxyId &proxy_id )
-	{
-	static value_list been_there;
-	static sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
-	static Value *empty = empty_value( );
-
-	if ( ! val )
-		{
-		write_value( sos, empty, label, name, flags, proxy_id );
-		return;
-		}
-
-	if ( val->IsVecRef() )
-		{
-		Value* copy = copy_value( val );
-		write_value( sos, copy, label, name, flags, proxy_id );
-		return;
-		}
-
-	if ( val->IsRef() )
-		{
-		Value *unrefed = val->Deref();
-		if ( ! been_there.is_member(unrefed) )
-			write_value( sos, unrefed, label, name, flags, proxy_id );
-		else
-			{
-			static Value loopback("***");
-			write_value( sos, &loopback, label, name, flags, proxy_id );
-			}
-		return;
-		}
-
-	glish_type type = val->Type();
-
-	head.useti( name ? strlen(name) : 0 );
-	head.usetc( type, 0 );
-	head.usetc( (val->AttributePtr() ? GLISH_HAS_ATTRIBUTE : 0) | flags, 1 );
-
-	switch( type )
-		{
 #define WRITE_ACTION(TAG,ACCESSOR,CAST,MUL)					\
 	case TAG:								\
 		sos.put( CAST val->ACCESSOR(0), val->Length() MUL, head );	\
 		break;
 #define WRITE_RECORD_ACTION(ACCESSOR)						\
 	{									\
-	been_there.append( val );						\
+	(*been_there).append( val );						\
 										\
 	int len = val->Length();						\
 	recordptr rec = val->ACCESSOR( 0 );					\
@@ -1783,12 +1742,52 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 	for ( i = 0; i < len; ++i )						\
 		{								\
 		member = rec->NthEntry( i, key );				\
-		write_value( sos, (Value*) member, key, proxy_id );		\
+		write_value_recur( sos, (Value*) member, key, 0, 0, proxy_id, been_there ); \
 		}								\
-	been_there.remove( val );						\
+	(*been_there).remove( val );						\
 	}
 
+static void write_value_recur( sos_out &sos, Value *val, const char *label,
+			       char *name, unsigned char flags,
+			       const ProxyId &proxy_id, value_list *been_there )
+	{
+	sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+	static Value *empty = empty_value( );
 
+	if ( ! val )
+		{
+		write_value_recur( sos, empty, label, name, flags, proxy_id, been_there );
+		return;
+		}
+
+	if ( val->IsVecRef() )
+		{
+		Value* copy = copy_value( val );
+		write_value_recur( sos, copy, label, name, flags, proxy_id, been_there );
+		return;
+		}
+
+	if ( val->IsRef() )
+		{
+		Value *unrefed = val->Deref();
+		if ( ! (*been_there).is_member(unrefed) )
+			write_value_recur( sos, unrefed, label, name, flags, proxy_id, been_there );
+		else
+			{
+			static Value loopback("***");
+			write_value_recur( sos, &loopback, label, name, flags, proxy_id, been_there );
+			}
+		return;
+		}
+
+	glish_type type = val->Type();
+
+	head.useti( name ? strlen(name) : 0 );
+	head.usetc( type, 0 );
+	head.usetc( (val->AttributePtr() ? GLISH_HAS_ATTRIBUTE : 0) | flags, 1 );
+
+	switch( type )
+		{
 		WRITE_ACTION(TYPE_BOOL,BoolPtr, (int*), )
 		WRITE_ACTION(TYPE_BYTE,BytePtr,,)
 		WRITE_ACTION(TYPE_SHORT,ShortPtr,,)
@@ -1808,12 +1807,12 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 			if ( &proxy_id == &glish_proxyid_dummy ||
 			     ! write_agent( sos, val, head, proxy_id ) )
 				{
-				write_value( sos, (Value*) false_value, label, name, proxy_id );
+				write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, been_there );
 				return;
 				}
 			break;
 		case TYPE_FUNC:
-			write_value( sos, (Value*) false_value, label, name, proxy_id );
+			write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, been_there );
 			return;
 			break;
                 default:
@@ -1823,13 +1822,21 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 	if ( name ) sos.write( name, strlen(name), sos_sink::COPY );
 
 	if ( val->AttributePtr() )
-		write_value( sos, (Value*) val->GetAttributes(), name, proxy_id );
+		write_value_recur( sos, (Value*) val->GetAttributes(), name, 0, 0, proxy_id, been_there );
+	}
+
+void write_value( sos_out &sos, Value *val, const char *label, char *name,
+		  unsigned char flags, const ProxyId &proxy_id )
+	{
+	value_list *been_there = new value_list;
+	write_value_recur( sos, val, label, name, flags, proxy_id, been_there );
+	delete been_there;
 	}
 
 sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e,
 			int can_suspend, const ProxyId &proxy_id )
 	{
-	static sos_out sos;
+	sos_out sos;
 	sos.set(&out);
 
 	write_value( sos, e->value, name, (char*) name, e->Flags(), proxy_id );

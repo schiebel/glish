@@ -4,6 +4,9 @@
 /*
  * Definitions etc. for regexp(3) routines.
  *
+ *    $Id$
+ *    Copyright (c) 1991-1997, Larry Wall
+ *
  * Caveat:  this is V8 regexp(3) [actually, a reimplementation thereof],
  * not the System V one.
  */

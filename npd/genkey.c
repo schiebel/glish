@@ -3,6 +3,11 @@
 **  Generates to stdout a key to be used for npd communication.
 */
 
+/*
+ * Copyright (c) 1997,1998 Associated Universities Inc.
+ *
+ */
+
 #include <stdio.h>
 #include "config.h"
 #include "util.h"

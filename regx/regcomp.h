@@ -2,6 +2,40 @@
  */
 
 /*
+ * regxcomp and regxexec -- regsub and regerror are not used in perl
+ *
+ *      $Id$
+ *	Copyright (c) 1986 by University of Toronto.
+ *	Written by Henry Spencer.  Not derived from licensed software.
+ *
+ *	Permission is granted to anyone to use this software for any
+ *	purpose on any computer system, and to redistribute it freely,
+ *	subject to the following restrictions:
+ *
+ *	1. The author is not responsible for the consequences of use of
+ *		this software, no matter how awful, even if they arise
+ *		from defects in it.
+ *
+ *	2. The origin of this software must not be misrepresented, either
+ *		by explicit claim or by omission.
+ *
+ *	3. Altered versions must be plainly marked as such, and must not
+ *		be misrepresented as being the original software.
+ *
+ *
+ ****    Alterations to Henry's code are...
+ ****
+ ****    Copyright (c) 1991-1997, Larry Wall
+ ****
+ ****    You may distribute under the terms of either the GNU General Public
+ ****    License or the Artistic License, as specified in the README file.
+ *
+ * Beware that some of this code is subtly aware of the way operator
+ * precedence is structured in regular expressions.  Serious changes in
+ * regular-expression syntax might require a total rethink.
+ */
+
+/*
  * The "internal use only" fields in regexp.h are present to pass info from
  * compile to execute that permits the execute phase to run lots faster on
  * simple cases.  They are:

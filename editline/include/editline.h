@@ -1,6 +1,9 @@
 /*  $Id$
 **
 **  Internal header file for editline library.
+**
+** Copyright (c) 1992,1993 Simmule Turner and Rich Salz.  All rights reserved.
+** Copyright (c) 1997 Associated Universities Inc.    All rights reserved.
 */
 #include "gcmem/alloc.h"
 #include <stdio.h>

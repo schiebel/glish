@@ -2,6 +2,12 @@
 **
 */
 
+/*
+ * Copyright (c) 1994
+ *      The Regents of the University of California.  All rights reserved.
+ *
+ */
+
 #include <stdio.h>
 #include "gcmem/alloc.h"
 

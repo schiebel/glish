@@ -1,6 +1,8 @@
 /*  $Id$
 **
 **  History and file completion functions for editline library.
+**
+** Copyright (C) 1992,1993 Simmule Turner and Rich Salz.  All rights reserved.
 */
 
 #include "config.h"

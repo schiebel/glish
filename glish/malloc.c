@@ -14,6 +14,8 @@
 #define _MALLOC_INCLUDED	1
 
 /*
+  $Id$
+
   A version of malloc/free/realloc written by Doug Lea and released to the
   public domain.  Send questions/comments/complaints/performance data
   to dl@cs.oswego.edu

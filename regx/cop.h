@@ -1,5 +1,6 @@
 /*    cop.h
  *
+ *    $Id$
  *    Copyright (c) 1991-1997, Larry Wall
  *
  *    You may distribute under the terms of either the GNU General Public

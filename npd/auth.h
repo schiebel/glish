@@ -2,6 +2,12 @@
 **
 */
 
+/*
+ * Copyright (c) 1994
+ *      The Regents of the University of California.  All rights reserved.
+ *
+ */
+
 /* Create the key file for our userid in the given directory if it
  * doesn't already exist. Returns 0 on error, non-zero on success.
  */

@@ -1,11 +1,13 @@
 /*    op.h
  *
+ *    $Id$
  *    Copyright (c) 1991-1997, Larry Wall
  *
  *    You may distribute under the terms of either the GNU General Public
  *    License or the Artistic License, as specified in the README file.
  *
  */
+
 #ifndef op_h_
 #define op_h_
 

@@ -3,6 +3,12 @@
 **  Utility routines for npd and npd_control.
 */
 
+/*
+ * Copyright (c) 1994
+ *      The Regents of the University of California.  All rights reserved.
+ *
+ */
+
 #include "config.h"
 #include <stdio.h>
 #include <string.h>
