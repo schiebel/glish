@@ -373,13 +373,6 @@ include		return TOK_INCLUDE;
 
 <PRAGMA>shared	BEGIN(PRAGMA_SHARED); break;
 
-<PRAGMA>\n	{
-		error->Report( "pragma directive not found" );
-		++line_num;
-		BEGIN(INITIAL);
-		break;
-		}
-
 <PRAGMA_SHARED>user {
 		current_sequencer->MultiClientScript( Client::USER );
 		BEGIN(INITIAL);
@@ -399,7 +392,7 @@ include		return TOK_INCLUDE;
 		}
 
 <PRAGMA_SHARED>\n {
-		error->Report( "\"pragma multi\", type not found" );
+		error->Report( "\"pragma shared\", type not found" );
 		++line_num;
 		BEGIN(INITIAL);
 		break;
@@ -440,6 +433,9 @@ include		return TOK_INCLUDE;
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>#.*		break; // comment
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,PRAGMA,PRAGMA_SHARED,ATTR>{WS}+	break; // eat whitespace
+<PRAGMA>.*	BEGIN(INITIAL); break; // eat unknown pragma
+
+
 
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,ATTR>\\\n	{
 		++line_num;
