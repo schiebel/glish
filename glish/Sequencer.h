@@ -87,6 +87,16 @@ typedef PList(Scope) scope_list;
 typedef PList(Frame) frame_list;
 typedef List(int) offset_list;
 
+struct stack_type : GlishRef {
+	stack_type(const stack_type &);
+	stack_type( );
+	~stack_type( );
+	frame_list *frames;
+	offset_list *offsets;
+};
+
+declare(PList,stack_type);
+typedef PList(stack_type) stack_list;
 
 class Sequencer {
 public:
@@ -123,9 +133,10 @@ public:
 
 	void DescribeFrames( ostream& s ) const;
 	void PushFrame( Frame* new_frame );
-	void PushFrame( frame_list &new_frame );
+	void PushFrames( stack_type *new_stack );
 	// Note that only the last frame popped is returned (are the others leaked?).
-	Frame* PopFrame( unsigned int howmany=1 );
+	Frame* PopFrame( );
+	void PopFrames( );
 
 	// This trio of functions supports keeping track of the
 	// function call stack. This is used in error reporting.
@@ -140,7 +151,7 @@ public:
 	// no frames between the current frame and the GLOBAL_SCOPE frame. If this
 	// list is to be kept, the frames must be Ref()ed. The returned list is
 	// dynamically allocated, though.
-	frame_list* LocalFrames();
+	stack_type* LocalFrames();
 
 	IValue* FrameElement( scope_type scope, int scope_offset, int frame_offset );
 	// returns error message
@@ -318,8 +329,11 @@ protected:
 	scope_list scopes;
 	offset_list global_scopes;
 
-	frame_list frames;
-	offset_list global_frames;
+	stack_list stack;
+	const frame_list &frames() const { return *(stack[stack.length()-1]->frames); }
+	frame_list &frames() { return *(stack[stack.length()-1]->frames); }
+	const offset_list &global_frames() const { return *(stack[stack.length()-1]->offsets); }
+	offset_list &global_frames() { return *(stack[stack.length()-1]->offsets); }
 
 	ivalue_list global_frame;
 

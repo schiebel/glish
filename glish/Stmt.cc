@@ -127,12 +127,12 @@ int WheneverStmt::canDelete() const
 IValue* WheneverStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
-	frame_list* frames = sequencer->LocalFrames();
+	stack_type *stack = sequencer->LocalFrames();
 
 	loop_over_list( *trigger, i )
-		(*trigger)[i]->Register( new Notifiee( this, frames ) );
+		(*trigger)[i]->Register( new Notifiee( this, stack ) );
 
-	Unref( frames );
+	Unref( stack );
 	active = 1;
 
 	sequencer->WheneverExecuted( this );

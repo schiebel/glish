@@ -10,10 +10,12 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-
+#define HAVE_SHM
+#if defined(HAVE_SHM)
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#endif
 
 #include "Channel.h"
 
@@ -1572,6 +1574,25 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 		}
 	}
 
+#if ! defined(HAVE_SHM)
+
+void send_shm_event( int write_fd, const char* event_name,
+		     const GlishEvent* e, int sds )
+	{
+	send_event(write_fd, event_name, e, sds);
+	return;
+	}
+
+GlishEvent* recv_shm_event( int shmid )
+	{
+	return 0;
+	}
+
+void clear_shared_memory()
+	{
+	}
+
+#else
 
 struct shm_handle
 	{
@@ -1697,3 +1718,4 @@ GlishEvent* recv_shm_event( int shmid )
 		}
 	}
 
+#endif

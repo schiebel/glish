@@ -154,10 +154,10 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 				    arg_sequencer, arg_subsequence_expr, err);
 	sequencer = arg_sequencer;
 	scope_established = 0;
-	local_frames = 0;
+	stack = 0;
 	}
 
-UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), local_frames(0),
+UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), stack(0),
 			scope_established(0), sequencer(f->sequencer)
 	{
 	Ref(kernel);
@@ -167,35 +167,21 @@ UserFunc::~UserFunc()
 	{
 	Unref(kernel);
 	
-	if ( local_frames )
-		{
-		loop_over_list( *local_frames, j )
-			Unref( (*local_frames)[j] );
-		delete local_frames;
-		}
+	if ( stack )
+		Unref( stack );
 	}
 
 IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	{
-	return kernel->Call(args, etype,local_frames);
+	return kernel->Call(args, etype,stack);
 	}
 
 void UserFunc::EstablishScope()
 	{
-	if ( ! scope_established && ! local_frames )
+	if ( ! scope_established && ! stack )
 		{
 		scope_established = 1;
-		local_frames = sequencer->LocalFrames();
-		if ( local_frames )
-			{
-			loop_over_list( *local_frames, i )
-				{
-				if ( (*local_frames)[i] )
-					{
-					Ref( (*local_frames)[i] );
-					}
-				}
-			}
+		stack = sequencer->LocalFrames();
 		}
 	}
 
@@ -244,7 +230,7 @@ UserFuncKernel::~UserFuncKernel()
 	Unref( body );
 	}
 
-IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames )
+IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type *stack )
 	{
 	if ( ! valid )
 		return error_ivalue( "function not valid" );
@@ -486,7 +472,7 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 		{
 		IValue* missing_val = missing_len > 0 ?
 			new IValue( missing, missing_len, PRESERVE_ARRAY ) : 0;
-		result = DoCall( &args_vals, etype, missing_val, local_frames );
+		result = DoCall( &args_vals, etype, missing_val, stack );
 		// No need to Unref() missing_val, Sequencer::PopFrame did
 		// that for us.
 		}
@@ -504,12 +490,13 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame
 	return result;
 	}
 
-IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* missing, PList(Frame)* local_frames )
+IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* missing, stack_type *stack )
 	{
 	Frame* call_frame = new Frame( frame_size, missing, FUNC_SCOPE );
+	int local_pushed = 0;
 
-	if ( local_frames )
-		sequencer->PushFrame( *local_frames );
+	if ( stack )
+		sequencer->PushFrames( stack );
 
 	sequencer->PushFrame( call_frame );
 
@@ -530,8 +517,8 @@ IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* m
 	if ( sequencer->PopFrame() != call_frame )
 		fatal->Report( "frame inconsistency in UserFunc::DoCall" );
 
-	if ( local_frames )
-		sequencer->PopFrame( local_frames->length() );
+	if ( stack )
+		sequencer->PopFrames( );
 
 	Unref( call_frame );
 

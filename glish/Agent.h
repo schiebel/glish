@@ -11,7 +11,7 @@ class Frame;
 class Task;
 class Agent;
 class NotifyTrigger;
-class PList(Frame);
+class stack_type;
 
 #define string_to_void void_ptr
 #define void_to_string string
@@ -25,13 +25,13 @@ class Notifiee {
     public:
 	Notifiee( Stmt* arg_stmt );
 	Notifiee( Stmt* arg_stmt, Frame* arg_frame );
-	Notifiee( Stmt* arg_stmt, PList(Frame)* arg_frames );
+	Notifiee( Stmt* arg_stmt, stack_type *arg_stack );
 
 	~Notifiee();
 
 	Stmt* stmt;
 	Frame* frame;
-	PList(Frame)* frames;
+	stack_type *stack;
 	};
 
 declare(PList,Notifiee);

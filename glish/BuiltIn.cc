@@ -1965,6 +1965,11 @@ IValue* type_name_built_in( const IValue* arg )
 	return new IValue( type_names[t] );
 	}
 
+IValue* is_fail_built_in( const IValue* arg )
+	{
+	return new IValue( arg->Type() == TYPE_FAIL ? glish_true : glish_false );
+	}
+
 IValue* length_built_in( const IValue* arg )
 	{
 	return new IValue( int( arg->Length() ) );
@@ -2088,6 +2093,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	add_one_arg_built_in( s, as_string_built_in, "as_string" );
 
 	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
+	add_one_arg_built_in( s, is_fail_built_in, "is_fail", 0, 1 );
 	add_one_arg_built_in( s, field_names_built_in, "field_names" );
 
 	s->AddBuiltIn( new NumericVectorBuiltIn( sqrt, sqrt, "sqrt" ) );

@@ -16,7 +16,6 @@ func is_dcomplex( const x )	type_name(x) == "dcomplex"
 func is_string( const x )	type_name(x) == "string"
 func is_record( const x )	type_name(x) == "record"
 func is_function( const x )	type_name(x) == "function"
-func is_fail( const x )		type_name(x) == "fail"
 
 func is_agent( const x )
 	type_name(x) == "agent" || (is_record(x) && has_field(x, "*agent*"))

@@ -35,8 +35,8 @@ IValue *Expr::SideEffectsEval()
 			ReadOnlyDone( v );
 			return ret;
 			}
-		else if ( t != TYPE_FUNC )
-			warn->Report( "expression value ignored:", this );
+//		else if ( t != TYPE_FUNC )
+//			warn->Report( "expression value ignored:", this );
 
 		ReadOnlyDone( v );
 		}
@@ -1747,7 +1747,7 @@ IValue *CallExpr::SideEffectsEval()
 		if ( result->Type() == TYPE_FAIL )
 			return result;
 
-		warn->Report( "function return value ignored" );
+//		warn->Report( "function return value ignored" );
 		Unref( result );
 		}
 

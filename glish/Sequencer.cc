@@ -71,6 +71,35 @@ Sequencer *Sequencer::cur_sequencer = 0;
 // will be cleaned up properly, and this can be removed.
 int shutting_glish_down = 0;
 
+stack_type::stack_type( )
+	{
+	frames = new frame_list;
+	offsets = new offset_list;
+	}
+
+stack_type::stack_type(const stack_type &other)
+	{
+	frames = new frame_list;
+	offsets = new offset_list;
+	for ( int i = 0; i < other.frames->length(); i++ )
+		{
+		Frame *n = (*other.frames)[i];
+		if (n) Ref(n);
+		frames->append(n);
+		}
+
+	for ( LOOPDECL i = 0; i < other.offsets->length(); i++ )
+		offsets->append((*other.offsets)[i]);
+	}
+
+stack_type::~stack_type( )
+	{
+	for ( int i=frames->length()-1;i >= 0; i-- )
+		Unref(frames->remove_nth(i));
+	Unref( frames );
+	Unref( offsets );
+	}
+
 // A special type of Client used for script clients.  It overrides
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
@@ -346,6 +375,8 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	// Create the global scope.
 	PushScope( GLOBAL_SCOPE );
+	// Setup stack
+	stack.append(new stack_type);
 
 	create_built_ins( this, argv[0] );
 
@@ -586,8 +617,8 @@ Sequencer::~Sequencer()
 	loop_over_list( global_frame, i )
 		Unref( global_frame[i] );
 
-	loop_over_list( frames, k )
-		Unref( frames[k] );
+	loop_over_list( frames(), k )
+		Unref( frames()[k] );
 
 	delete script_client;
 	delete interpreter_tag;
@@ -893,8 +924,11 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				{
 				scopes[off]->MarkGlobalRef( id );
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
-					return CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - goff,
-						((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
+					return CreateVarExpr( id, 
+							      ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 && 
+								((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE ) 
+							      ? GLOBAL_SCOPE : LOCAL_SCOPE, cnt+1 - goff,
+							      ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
 				}
 
 			if ( ! result )
@@ -986,29 +1020,29 @@ void Sequencer::DeleteVal( const char* id )
 
 void Sequencer::DescribeFrames( ostream& s ) const
 	{
-	if ( frames.length() )
+	if ( frames().length() )
 		{
 		s << "frames:\t\t";
-		loop_over_list(frames, i)
-			if ( frames[i] )
-				s << (void*) frames[i] << "\t";
+		loop_over_list(frames(), i)
+			if ( frames()[i] )
+				s << (void*) frames()[i] << "\t";
 			else
 			  	s << "X" << "\t\t";
 		s << endl;
 
 		s << "\t\t";
-		loop_over_list(frames, j)
-			if ( frames[j] )
-				s << frames[j]->Size() << "\t\t";
+		loop_over_list(frames(), j)
+			if ( frames()[j] )
+				s << frames()[j]->Size() << "\t\t";
 			else
 			  	s << "X" << "\t\t";
 		s << endl;
 		}
-	if ( global_frames.length() )
+	if ( global_frames().length() )
 		{
 		s << "offsets:\t";
-		loop_over_list(global_frames, i)
-			s << global_frames[i] << "\t\t";
+		loop_over_list(global_frames(), i)
+			s << global_frames()[i] << "\t\t";
 		s << endl;
 		}
 	}
@@ -1017,30 +1051,23 @@ void Sequencer::DescribeFrames( ostream& s ) const
 void Sequencer::PushFrame( Frame* new_frame )
 	{
 //	cout << "Sequencer::PushFrame( Frame* )" << endl;
-	frames.append( new_frame );
+	frames().append( new_frame );
 	if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
-		global_frames.append( frames.length() - 1 );
+		global_frames().append( frames().length() - 1 );
 //	DescribeFrames(cout);
 	}
 
-void Sequencer::PushFrame( frame_list &new_frames )
+void Sequencer::PushFrames( stack_type *new_stack )
 	{
-//	cout << "Sequencer::PushFrame(frame_list)" << endl;
-	loop_over_list( new_frames, i )
-		{
-		Frame *new_frame = new_frames[i];
-		frames.append( new_frame );
-
-		if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
-			global_frames.append( frames.length() - 1 );
-		}
-//	DescribeFrames(cout);
+	stack.append(new_stack);
 	}
 
-Frame* Sequencer::PopFrame( unsigned int howmany )
+Frame* Sequencer::PopFrame( )
 	{
+	unsigned int howmany = 1;
+
 //	cout << "Sequencer::PopFrame(" << howmany << ")" << endl;
-	int top_frame_pos = frames.length() - 1;
+	int top_frame_pos = frames().length() - 1;
 	if ( top_frame_pos < howmany - 1 )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
@@ -1048,43 +1075,35 @@ Frame* Sequencer::PopFrame( unsigned int howmany )
 	Frame *top_frame = 0;
 	for ( int i = top_frame_pos; howmany > 0; howmany--, i-- )
 		{
-		top_frame = frames.remove_nth( i );
+		top_frame = frames().remove_nth( i );
 		if ( top_frame && top_frame->GetScopeType() != LOCAL_SCOPE )
-			global_frames.remove( i );
+			global_frames().remove( i );
 		}
 
 //	DescribeFrames(cout);
 	return top_frame;
 	}
 
-Frame* Sequencer::CurrentFrame()
+void Sequencer::PopFrames( )
 	{
-	int top_frame = frames.length() - 1;
-	if ( top_frame < 0 )
-		return 0;
-
-	return frames[top_frame];
+	stack.remove_nth(stack.length()-1);
 	}
 
-frame_list* Sequencer::LocalFrames()
+Frame* Sequencer::CurrentFrame()
 	{
-	int top_frame = frames.length() - 1;
+	int top_frame = frames().length() - 1;
 	if ( top_frame < 0 )
 		return 0;
 
-	int pos = 0;
-	frame_list *ret = new frame_list;
-	int len = global_frames.length() - 1;
+	return frames()[top_frame];
+	}
 
-	if ( len >= 0 )
-		pos = global_frames[len];
-
-	while ( pos <= top_frame )
-		{
-		ret->append( frames[pos++] );
-		}
-
-	return ret;
+stack_type* Sequencer::LocalFrames()
+	{
+	if ( frames().length() )
+		return new stack_type(*stack[stack.length()-1]);
+	else
+		return 0;
 	}
 
 IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
@@ -1098,31 +1117,31 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 		case LOCAL_SCOPE:
 			{
 			int offset = scope_offset;
-			int gs_off = global_frames.length() - 1;
+			int gs_off = global_frames().length() - 1;
 
 			if ( gs_off >= 0 )
-				offset += global_frames[gs_off];
+				offset += global_frames()[gs_off];
 
-			if ( offset < 0 || offset >= frames.length() )
+			if ( offset < 0 || offset >= frames().length() )
 				fatal->Report(
 		    "local frame error in Sequencer::FrameElement (",
-		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
-		    "," , frames.length(), ")" );
+		    scope_offset, ",", gs_off ? global_frames()[gs_off] : -1,
+		    "," , frames().length(), ")" );
 
-			return frames[offset]->FrameElement( frame_offset );
+			return frames()[offset]->FrameElement( frame_offset );
 			}
 			break;
 		case FUNC_SCOPE:
 			{
-			int gs_off = global_frames.length() - 1;
-			int offset = global_frames[gs_off];
+			int gs_off = global_frames().length() - 1;
+			int offset = global_frames()[gs_off];
 
-			if ( offset < 0 || offset >= frames.length() )
+			if ( offset < 0 || offset >= frames().length() )
 				fatal->Report(
 		    "local frame error in Sequencer::FrameElement (",
-		    offset, " (", gs_off, "), ", frames.length(), ")" );
+		    offset, " (", gs_off, "), ", frames().length(), ")" );
 
-			return frames[offset]->FrameElement( frame_offset );
+			return frames()[offset]->FrameElement( frame_offset );
 			}
 			break;
 		case GLOBAL_SCOPE:
@@ -1154,19 +1173,19 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 		case LOCAL_SCOPE:
 			{
 			int offset = scope_offset;
-			int gs_off = global_frames.length() - 1;
+			int gs_off = global_frames().length() - 1;
 
 			if ( gs_off >= 0 )
-				offset += global_frames[gs_off];
+				offset += global_frames()[gs_off];
 
-			if ( offset < 0 || offset >= frames.length() )
+			if ( offset < 0 || offset >= frames().length() )
 				fatal->Report(
 		    "local frame error in Sequencer::SetFrameElement (",
-		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
-		    "," , frames.length(), ")" );
+		    scope_offset, ",", gs_off ? global_frames()[gs_off] : -1,
+		    "," , frames().length(), ")" );
 
 			IValue*& frame_value =
-				frames[offset]->FrameElement( frame_offset );
+				frames()[offset]->FrameElement( frame_offset );
 			if ( frame_value && frame_value->IsConst() )
 				ret = "'const' values cannot be modified.";
 			else
@@ -1178,16 +1197,16 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 			break;
 		case FUNC_SCOPE:
 			{
-			int gs_off = global_frames.length() - 1;
-			int offset = global_frames[gs_off];
+			int gs_off = global_frames().length() - 1;
+			int offset = global_frames()[gs_off];
 
-			if ( offset < 0 || offset >= frames.length() )
+			if ( offset < 0 || offset >= frames().length() )
 				fatal->Report(
 		    "local frame error in Sequencer::SetFrameElement (",
-		    offset, " (", gs_off, "), ", frames.length(), ")" );
+		    offset, " (", gs_off, "), ", frames().length(), ")" );
 
 			IValue*& frame_value =
-				frames[offset]->FrameElement( frame_offset );
+				frames()[offset]->FrameElement( frame_offset );
 			if ( frame_value && frame_value->IsConst() )
 				ret = "'const' values cannot be modified.";
 			else
@@ -2123,8 +2142,8 @@ void Sequencer::RunQueue()
 		if ( verbose > 1 )
 			message->Report( "doing", n );
 
-		if ( n->notifiee->frames )
-			PushFrame( *n->notifiee->frames );
+		if ( n->notifiee->stack )
+			PushFrames( n->notifiee->stack );
 		else if ( n->notifiee->frame )
 			PushFrame( n->notifiee->frame );
 
@@ -2145,8 +2164,8 @@ void Sequencer::RunQueue()
 		Ref( n );
 		n->notifiee->stmt->Notify( n->notifier );
 
-		if ( n->notifiee->frames )
-			(void) PopFrame( n->notifiee->frames->length() );
+		if ( n->notifiee->stack )
+			(void) PopFrames( );
 		else if ( n->notifiee->frame )
 			(void) PopFrame();
 

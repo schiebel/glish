@@ -1036,6 +1036,8 @@ unsigned int Value::PrintLimit( ) const
 char* Value::RecordStringVal( char sep, unsigned int max_elements, 
 			int use_attr, Str &err ) const
 	{
+	static value_list been_there;
+
 	if ( VecRefDeref()->Type() != TYPE_RECORD )
 		fatal->Report( "non-record type in Value::RecordStringVal()" );
 
@@ -1044,6 +1046,20 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 
 	if ( len == 0 )
 		return strdup( "[=]" );
+
+	if ( been_there.is_member( (Value*) VecRefDeref() ) )
+		{
+		const char *key;
+		rptr->NthEntry( 0, key );
+		char *ret = new char[strlen(key)+7];
+		strcpy(ret,"[");
+		strcat(ret,key);
+		strcat(ret,"=...]");
+		return ret;
+		}
+	else
+		been_there.append( (Value*) VecRefDeref() );
+
 
 	const char** key_strs = new const char*[len];
 	char** element_strs = new char*[len];
@@ -1082,6 +1098,7 @@ char* Value::RecordStringVal( char sep, unsigned int max_elements,
 	// ", ".
 	strcpy( &result[strlen( result ) - 2], "]" );
 
+	been_there.remove( (Value*) VecRefDeref() );
 	return result;
 	}
 
@@ -3770,6 +3787,17 @@ void Value::AddToSds( int sds, del_list* dlist, const char* name,
 		Deref()->AddToSds( sds, dlist, name, rh, level );
 		return;
 		}
+
+	// This will *have* to be handled properly at some point,
+	// but right now, I don't know how it should be handled...
+	if ( type == TYPE_FAIL ) 
+		{
+		Value *f = create_value(glish_false);
+		f->AssignAttributes(CopyAttributePtr());
+		dlist->append( new DelObj( f ) );
+		f->AddToSds( sds, dlist, name, rh, level );
+		return;
+		}		
 
 	const attributeptr attr = AttributePtr();
 	if ( type == TYPE_RECORD || attr )

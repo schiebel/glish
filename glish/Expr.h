@@ -172,6 +172,7 @@ class VarExpr : public Expr {
 
 	const char* VarID()	{ return id; }
 	int offset()		{ return frame_offset; }
+	int soffset()		{ return scope_offset; }
 	scope_type Scope()	{ return scope; }
 	void set( scope_type scope, int scope_offset, int frame_offset );
 

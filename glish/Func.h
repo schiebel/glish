@@ -7,7 +7,7 @@
 
 class Sequencer;
 class Stmt;
-class PList(Frame);
+class stack_type;
 
 typedef IValue* value_ptr;
 #define value_ptr_to_void void_ptr
@@ -121,8 +121,8 @@ class UserFuncKernel : public GlishObject {
 			Sequencer* sequencer, Expr* subsequence_expr, IValue *&err );
 	~UserFuncKernel();
 
-	IValue* Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames = 0);
-	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing, PList(Frame)* local_frames = 0 );
+	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
+	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing, stack_type *stack = 0 );
 
 	void Describe( ostream& s ) const;
 
@@ -171,7 +171,7 @@ class UserFunc : public Func {
 	Sequencer* sequencer;
 	UserFuncKernel *kernel;
 	int scope_established;
-	PList(Frame)* local_frames;
+	stack_type *stack;
 	};
 
 
