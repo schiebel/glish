@@ -432,7 +432,7 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		Unref( ret );							\
 		Unref( p );							\
 		}								\
-	else if ( VAR##_val && VAR##_val->IsAgentRecord() )			\
+	else if ( VAR##_val && ((IValue*)VAR##_val->Deref())->IsAgentRecord() )	\
 		{								\
 		Agent *agent = ((IValue*)VAR##_val->Deref())->AgentVal();	\
 		FIX_BUF								\
@@ -518,7 +518,8 @@ if ( v1->HasRecordElement( #VAR ) &&					\
 			VAR##_val = 0;					\
 			}						\
 		}							\
-	else if ( v2->Deref()->Type() == TYPE_FUNC || v2->IsAgentRecord() ) \
+	else if ( v2->Deref()->Type() == TYPE_FUNC ||			\
+		  ((IValue*)v2->Deref())->IsAgentRecord() ) 		\
 		{							\
 		VAR = 1;						\
 		if ( VAR##_val != v2 )					\

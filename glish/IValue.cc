@@ -146,7 +146,7 @@ IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT)
 
 void IValue::DeleteValue()
 	{
-	if ( Type() == TYPE_AGENT )
+	if ( Type() == TYPE_AGENT || IsAgentRecord() )
 		AgentVal()->WrapperGone();
 	}
 
@@ -157,8 +157,7 @@ IValue::~IValue()
 
 int IValue::IsAgentRecord() const
 	{
-	if ( VecRefDeref()->Type() == TYPE_RECORD &&
-	     (*VecRefDeref()->RecordPtr(0))[AGENT_MEMBER_NAME] )
+	if ( Type() == TYPE_RECORD && (*RecordPtr(0))[AGENT_MEMBER_NAME] )
 		return 1;
 	else
 		return 0;
@@ -201,7 +200,7 @@ Agent* IValue::AgentVal() const
 
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		{
-		Value* member = (*RecordPtr(0))[AGENT_MEMBER_NAME];
+		Value* member = (*VecRefDeref()->RecordPtr(0))[AGENT_MEMBER_NAME];
 
 		if ( member )
 			return ((IValue*)member)->AgentVal();

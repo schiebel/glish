@@ -878,6 +878,10 @@ BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY)
 			return (IValue*) Fail( "can't construct array of agents" );
 			break;
 
+		case TYPE_RECORD:
+			return (IValue*) Fail( "can't construct array of records" );
+			break;
+
 		case TYPE_OPAQUE:
 			return (IValue*) Fail( "can't construct array opaque values" );
 			break;
