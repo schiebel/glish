@@ -93,6 +93,7 @@ static char *rcsid = "$Id$";
 #include "dir.h"
 #include "job.h"
 #include "pathnames.h"
+#include "bmake.h"
 
 #ifndef	DEFMAXLOCAL
 #define	DEFMAXLOCAL DEFMAXJOBS
@@ -629,7 +630,7 @@ MainUnmake( gn, dummy )
 }
 
 int
-bMake( void )
+bMake( )
 {
 	Lst targs;	/* target nodes to create -- passed to Make_Init */
 
@@ -638,15 +639,7 @@ bMake( void )
 	if (DEBUG(GRAPH1))
 		Targ_PrintGraph(1);
 
-	/*
-	 * Have now read the entire graph and need to make a list of targets
-	 * to create. If none was given on the command line, we consult the
-	 * parsing module to find the main target(s) to create.
-	 */
-	if (Lst_IsEmpty(create))
-		targs = Parse_MainName();
-	else
-		targs = Targ_FindList(create, TARG_CREATE);
+	targs = Targ_FindList(create, TARG_CREATE);
 
 	Compat_Run(targs);
 
@@ -941,7 +934,7 @@ bMake_Define( var, val )
     Var_Set( var, val, VAR_GLOBAL );
 }
 
-GNode *
+void
 bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
     char *tag;
     char **cmd;
@@ -969,10 +962,9 @@ bMake_TargetDef( tag, cmd, cmd_len, depend, depend_len )
             }
 	}
     }
-    return gn;
 }
 
-GNode *
+void
 bMake_SuffixDef( tag, cmd, cmd_len )
     char *tag;
     char **cmd;
@@ -1004,8 +996,27 @@ bMake_SuffixDef( tag, cmd, cmd_len )
     if ( cmd && cmd_len > 0 )
         for ( i=0; i < cmd_len; ++i )
             Cmd_AtEnd( gn, strdup(cmd[i]) );
+}
 
-    return gn;
+void
+bMake_SetMain( tgt, len )
+    char **tgt;
+    int len;
+{
+    int i=0;
+    if (Lst_IsEmpty(create)) {
+        Lst_Destroy( create, NOFREE);
+	create = Lst_Init( FALSE );
+    }
+    if ( ! tgt || len <= 0 ) return;
+    for ( i=0; i < len; ++i )
+        Lst_AtEnd( create, strdup(tgt[i]) );
+}
+
+int
+bMake_HasMain( )
+{
+    return Lst_IsEmpty(create) ? 0 : 1;
 }
 
 int main( argc, argv )
@@ -1013,20 +1024,21 @@ int main( argc, argv )
     char **argv;
 {
     int ret = 0;
-    GNode *foo, *bar, *baz, *suff, *co;
     char *foocmd[] = { "this is FOO #1", "this is FOO #2" };
     char *foodep[] = { "BAR", "BAZ" };
     char *barcmd[] = { "this is BAR", "${FOOBAR}" };
     char *bazcmd[] = { "this is BAZ" };
     char *suffcmd[] = { "making crap from bull: $@ $? $> $< $*" };
     char *cocmd[] = { "making o from c: $@ $? $> $< $*" };
+    char *maintgts[] = { "FOO" };
     bMake_Init( argc, argv );
     bMake_Define( "FOOBAR", "foo and bar" );
-    foo = bMake_TargetDef( "FOO", foocmd, 2, foodep, 2 );
-    bar = bMake_TargetDef( "BAR", barcmd, 2, 0, 0 );
-    bar = bMake_TargetDef( "BAZ", bazcmd, 1, 0, 0 );
-    suff = bMake_SuffixDef( ".bull.crap", suffcmd, 1 );
-    suff = bMake_SuffixDef( ".c.o", cocmd, 1 );
+    bMake_TargetDef( "FOO", foocmd, 2, foodep, 2 );
+    bMake_TargetDef( "BAR", barcmd, 2, 0, 0 );
+    bMake_TargetDef( "BAZ", bazcmd, 1, 0, 0 );
+    bMake_SuffixDef( ".bull.crap", suffcmd, 1 );
+    bMake_SuffixDef( ".c.o", cocmd, 1 );
+    bMake_SetMain( maintgts, 1 );
     bMake( );
     bMake( );
     return bMake_Finish( );

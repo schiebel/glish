@@ -81,6 +81,7 @@ static GNode	    *ENDNode;
 static void CompatInterrupt __P((int));
 static int GlishRunCommand __P((ClientData, ClientData));
 static int CompatMake __P((ClientData, ClientData));
+static void (*command_handler)(char*) = 0;
 
 /*-
  *-----------------------------------------------------------------------
@@ -226,7 +227,10 @@ GlishRunCommand (cmdp, gnp)
 	return (0);
     }
 
-    printf("glish event: %s\n",cmd);
+    if ( command_handler )
+        (*command_handler)( cmd );
+    else
+        printf("%s\n",cmd);
 
     return (0);
 }
@@ -537,4 +541,11 @@ Compat_Run(targs)
     if (errors == 0) {
 	Lst_ForEach(ENDNode->commands, GlishRunCommand, (ClientData)gn);
     }
+}
+
+void
+bMake_SetHandler( func )
+    void (*func)(char*);
+{
+    command_handler = func;
 }
