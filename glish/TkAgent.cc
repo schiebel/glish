@@ -2249,9 +2249,10 @@ void TkButton::UnMap()
 
 	if ( frame ) frame->RemoveElement( this );
 
+	if ( RefCount() > 0 ) Ref(this);
+
 	if ( type == MENU )
 		{
-		if ( RefCount() > 0 ) Ref(this);
 		while ( entry_list.length() )
 			{
 			TkAgent *a = entry_list.remove_nth( 0 );
@@ -2262,13 +2263,11 @@ void TkButton::UnMap()
 			{
 			menu->Remove(this);
 			rivet_va_cmd( Menu(), "delete", Index(), 0 );
-			Done();
 			}
 		else
 			{
 			if ( self ) rivet_set( self, "-postcommand", "" );
 			rivet_destroy_window( self );
-			Done();
 			}
 		}
 
@@ -2276,20 +2275,22 @@ void TkButton::UnMap()
 		{
 		menu->Remove(this);
 		rivet_va_cmd( Menu(), "delete", Index(), 0 );
-		Done();
 		}
 
-	else
+	else if ( self )
 		{
-		if ( self ) rivet_set( self, "-command", "" );
-		TkAgent::UnMap();
+		rivet_set( self, "-command", "" );
+		rivet_destroy_window( self );
 		}
 
 	menu = 0;
 	frame = 0;
 	self = 0;
 	menu_base = 0;
-	if ( type == MENU && RefCount() > 0 ) Unref(this);
+
+	Done( );
+
+	if ( RefCount() > 0 ) Unref(this);
 	}
 
 TkButton::~TkButton( )
