@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
@@ -63,13 +63,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 	{
 	Agent* a = EventAgent( VAL_REF );
 
-	if ( a && a->IsPseudo() )
-		{
-		if ( names ) delete_name_list( names );
-		names = 0;
-		}
-
-	name_list &nl = EventNames();
+	name_list &nl = EventNames( 1 );
 
 	if ( nl.length() == 0 )
 		{
@@ -145,10 +139,19 @@ void EventDesignator::UnRegister( Stmt* s )
 	EventAgentDone();
 	}
 
-name_list &EventDesignator::EventNames()
+name_list &EventDesignator::EventNames( int force_eval )
 	{
 
-	if ( names ) return *names;
+	if ( names )
+		{
+		if ( force_eval )
+			{
+			delete_name_list( names );
+			names = 0;
+			}
+		else
+			 return *names;
+		}
 
 	names = new name_list;
 

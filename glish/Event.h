@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,1998 Associated Universities Inc.
 #ifndef event_h
 #define event_h
 
@@ -50,7 +50,7 @@ public:
 	// in error messages.
 	Expr* EventAgentExpr() const	{ return agent; }
 
-	name_list &EventNames( );
+	name_list &EventNames( int force_eval=0 );
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
