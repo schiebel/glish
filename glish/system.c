@@ -421,12 +421,16 @@ void unblock_signal( int sig )
 
 static int tcp_proto_number()
 	{
-        static struct protoent *tcp_protocol = 0;
+	static int tcp_proto = -1;
+	struct protoent *tcp_protocol = 0;
 
-        if ( ! tcp_protocol && ! (tcp_protocol = getprotobyname( "tcp" )) )
-                gripe( "can't find protocol entry for TCP" );
+	if ( tcp_proto < 0 )
+		if ( ! (tcp_protocol = getprotobyname( "tcp" )) )
+			gripe( "can't find protocol entry for TCP" );
+		else
+			tcp_proto = tcp_protocol->p_proto;
 
-	return tcp_protocol->p_proto;
+	return tcp_proto;
 	}
 
 
