@@ -155,14 +155,12 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 	sequencer = arg_sequencer;
 	scope_established = 0;
 	local_frames = 0;
-	for (int x=0; x<1000; x++) Ref((GlishObject*)this);
 	}
 
 UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), local_frames(0),
 			scope_established(0), sequencer(f->sequencer)
 	{
 	Ref(kernel);
-	for (int x=0; x<1000; x++) Ref((GlishObject*)this);
 	}
 
 UserFunc::~UserFunc()

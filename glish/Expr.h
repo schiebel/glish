@@ -250,7 +250,6 @@ class FuncExpr : public Expr {
 	void DescribeSelf( ostream& s ) const;
 
 	~FuncExpr();
-	int canDelete() const { return 0; }
 
     protected:
 	UserFunc* func;
