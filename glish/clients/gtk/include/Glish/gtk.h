@@ -50,13 +50,13 @@ glish_declare(PQueue,glishtk_event);
 
 class TkProxy : public Proxy {
     public:
-	TkProxy( ProxyStore *s );
+	TkProxy( ProxyStore *s, int init_graphic=1 );
 	~TkProxy();
 
 	virtual charptr NewName( Tk_Window parent=0 ) const;
 	virtual charptr IndexCheck( charptr );
 
-	int IsValid() { return self != 0; }
+	virtual int IsValid() const;
 	virtual void UnMap();
 	Tk_Window Self() { return self; }
 	Tcl_Interp *Interp() { return tcl; }
@@ -112,7 +112,7 @@ class TkProxy : public Proxy {
 	void do_pack( int argc, char **argv)
 		{ Tk_PackCmd( root, tcl, argc, argv ); }
 
-	static void init_tk( int visible_root=1 );
+	void init_tk( int visible_root=1 );
 	tkprochash procs;
 	static int widget_index;
 	static int root_unmapped;
@@ -142,6 +142,7 @@ class TkProxy : public Proxy {
 	unsigned int disable_count;
 
 	const char *agent_ID;
+	int is_graphic;
 	};
 
 class TkProc {

@@ -3,7 +3,8 @@ pragma include once
 if ( include 'gtk.g' ) {
     local pginit := func ( gtk, ref rec ) {
 	global pgplot
-	pgplot := func ( parent, width=200, height=150, region=[-100,100,-100,100], axis=-2,
+	pgplot := func ( parent=spaste('"/tmp/pgplot',system.pid,'.ps"/PS'), width=200, height=150,
+			region=[-100,100,-100,100], axis=-2,
 			nxsub=1, nysub=1, relief='sunken', borderwidth=2, padx=20, pady=20,
 			foreground='white', background='black', fill='both', mincolors=2,
 			maxcolors=100, cmapshare=F, cmapfail=F )

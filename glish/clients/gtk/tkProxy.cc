@@ -158,7 +158,7 @@ int glishtk_xioerror_handler(Display *d)
 
 void TkProxy::init_tk( int visible_root )
 	{
-	if ( ! root )
+	if ( ! root && is_graphic )
 		{
 		tcl = Tcl_CreateInterp();
 		Tcl_Init( tcl );
@@ -210,6 +210,7 @@ void TkProxy::ProcessEvent( const char *name, Value *val )
 
 void TkProxy::EnterEnable() { }
 void TkProxy::ExitEnable() { }
+int TkProxy::IsValid() const { return self != 0; }
 
 void TkProxy::SetError( Value *v )
 	{
@@ -472,25 +473,29 @@ void TkProxy::SetMap( int do_map, int toplevel )
 		}
 	}
 
-TkProxy::TkProxy( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
+TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 	{
 	agent_ID = "<graphic>";
 	enable_state = 0;
-
-	if ( tk_queue == 0 )
-		tk_queue = new PQueue(glishtk_event)();
+	is_graphic = init_graphic;
 
 	self = 0;
 	frame = 0;
 
-	init_tk( );
+	if ( tk_queue == 0 )
+		tk_queue = new PQueue(glishtk_event)();
 
-	procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
-	procs.Insert("foreground", new TkProc("-fg", glishtk_onestr, glishtk_str));
-	procs.Insert("relief", new TkProc("-relief", glishtk_onestr, glishtk_str));
-	procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim, glishtk_strtoint));
-	procs.Insert("pixelwidth", new TkProc("width",glishtk_winfo, glishtk_strtoint));
-	procs.Insert("pixelheight", new TkProc("height",glishtk_winfo, glishtk_strtoint));
+	if ( init_graphic )
+		{
+		init_tk( );
+
+		procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
+		procs.Insert("foreground", new TkProc("-fg", glishtk_onestr, glishtk_str));
+		procs.Insert("relief", new TkProc("-relief", glishtk_onestr, glishtk_str));
+		procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim, glishtk_strtoint));
+		procs.Insert("pixelwidth", new TkProc("width",glishtk_winfo, glishtk_strtoint));
+		procs.Insert("pixelheight", new TkProc("height",glishtk_winfo, glishtk_strtoint));
+		}
 	}
 
 
