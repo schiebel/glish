@@ -845,7 +845,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 #define REPBUILTIN_ACTION_C(tag,type,accessor,copy_func)		\
 			case tag:					\
 				{					\
-				type* val = element->accessor();	\
+				type* val = element->accessor(0);	\
 				type* vec = new type[veclen];		\
 				for ( int j = 0; j < repl; ++j )	\
 					for ( int i = 0; i < e_len; ++i )\
@@ -1815,7 +1815,7 @@ IValue* as_string_built_in( const IValue* arg )
 #define COERCE_XXX_TO_STRING(tag,type,accessor,format,INDX,rest,XLATE,FORMAT)	\
 	case tag:							\
 		{							\
-		type* vals = arg->accessor();				\
+		type* vals = arg->accessor(0);				\
 		FORMAT							\
 		for ( i = 0; i < len; ++i )				\
 			{						\
