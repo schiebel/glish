@@ -6,19 +6,30 @@
 //======================================================================
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
+#include "config.h"
 #include "sos/io.h"
 #include "sos/types.h"
 #include "convert.h"
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdio.h>
-#include <sys/uio.h>
-#include <sys/types.h>
 #include <iostream.h>
 
+#if defined(HAVE_SYS_UIO_H)
+#include <sys/uio.h>
+#endif
+#if defined(HAVE_SYS_LIMITS_H)
+#include <sys/limits.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#if defined(HAVE_WRITEV) && defined(WRITEV_NOT_DECLARED)
+extern int writev(int, const struct iovec *, int);
+#endif
 
 #if defined(IOV_MAX)
 #define MAXIOV IOV_MAX

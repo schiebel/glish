@@ -6,6 +6,7 @@
 //======================================================================
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
+#include "config.h"
 #include "longint.h"
 #include <iostream.h>
 
@@ -19,12 +20,15 @@ long_int_init::long_int_init()
 	{
 	if ( ! initialized )
 		{
-		unsigned char b[4];
-		b[0] = 0x96; b[1] = 0x3c; b[2] = 0x0; b[3] = 0xa1;
 		//
 		// are we dealing with little endian, e.g. alpha, pc, etc.
 		//
-		if ( *(unsigned int*)&b != 0x963c00a1 )
+		union { long l;
+			char c[sizeof (long)];
+		} u;
+		u.l = 1;
+
+		if ( u.c[sizeof (long) - 1] != 1 )
 			{
 			long_int::LOW = 1;
 			long_int::HIGH = 0;

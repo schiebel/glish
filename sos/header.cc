@@ -6,6 +6,7 @@
 //======================================================================
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
+#include "config.h"
 #include <sys/time.h>
 #include <stdlib.h>
 #include "sos/header.h"

@@ -6,6 +6,7 @@
 //======================================================================
 #include "sos/sos.h"
 RCSID("@(#) $Id$")
+#include "config.h"
 #include "convert.h"
 
 struct swap_ab_struct {
