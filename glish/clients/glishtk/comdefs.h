@@ -220,7 +220,7 @@
 		return 0;						\
 		}
 
-#define DEFINE_DTOR(CLASS)				\
+#define DEFINE_DTOR(CLASS,FREE)				\
 CLASS::~CLASS( )					\
 	{						\
 	if ( frame )					\
@@ -229,6 +229,7 @@ CLASS::~CLASS( )					\
 		frame->Pack();				\
 		}					\
 	UnMap();					\
+	FREE						\
 	}
 
 #define CREATE_RETURN						\

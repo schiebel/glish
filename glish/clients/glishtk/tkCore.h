@@ -212,7 +212,7 @@ class TkButton : public TkFrame {
 	unsigned long next_menu_entry;	// only used for menu buttons
 	tkagent_list entry_list;        // only used for menu buttons
 	void update_menu_index( int );
-	const char *menu_index;
+	char *menu_index;
 
 	char *fill;
 	int unmapped;

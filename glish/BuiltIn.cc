@@ -1641,8 +1641,8 @@ IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	rec->Insert(string_dup("unused"),new IValue(0));
 #else
 	struct mallinfo info = mallinfo();
-	rec->Insert(strdup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
-	rec->Insert(strdup("unused"),new IValue(info.fordblks + info.fsmblks));
+	rec->Insert(strdup("used"),new IValue((double)(info.uordblks + info.usmblks + info.hblkhd)));
+	rec->Insert(strdup("unused"),new IValue((double)(info.fordblks + info.fsmblks)));
 #endif
 	return new IValue( rec );
 	}

@@ -37,7 +37,7 @@ extern ProxyStore *global_store;
 
 int TkCanvas::count = 0;
 
-DEFINE_DTOR(TkCanvas)
+DEFINE_DTOR(TkCanvas, if ( fill ) free_memory(fill); )
 
 //
 // These variables are made file static to allow them to be shared by
@@ -686,7 +686,9 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 		rec->Insert( strdup("key"), new Value(argv[5]) );
 		}
 
-	info->canvas->BindEvent( info->event_name, new Value( rec ) );
+	Value *v = new Value( rec );
+	info->canvas->BindEvent( info->event_name, v );
+	Unref(v);
 	return TCL_OK;
 	}
 
@@ -913,12 +915,16 @@ int TkCanvas::NewItemCount(const char *name)
 
 void TkCanvas::yScrolled( const double *d )
 	{
-	PostTkEvent( "yscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "yscroll", v );
+	Unref(v);
 	}
 
 void TkCanvas::xScrolled( const double *d )
 	{
-	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "xscroll", v );
+	Unref(v);
 	}
 
 #define STD_EXPAND_PACKINSTRUCTION(CLASS)		\

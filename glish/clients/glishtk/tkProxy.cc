@@ -422,6 +422,8 @@ void TkProxy::Load( ProxyStore *s, Value *arg )
 			if ( tcl_VarEval( tcl, "load ", toload, 0 ) == TCL_ERROR )
 				s->Error( Tcl_GetStringResult(tcl) );
 			}
+
+		free_memory(toload);
 		}
 	else
 		s->Error( "Couldn't find object to load" );

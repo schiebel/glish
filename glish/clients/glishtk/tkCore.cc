@@ -895,7 +895,9 @@ int glishtk_bindcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 		rec->Insert( strdup("key"), new Value(argv[5]) );
 		}
 
-	info->agent->BindEvent( info->event_name, new Value( rec ) );
+	Value *v = new Value( rec );
+	info->agent->BindEvent( info->event_name, v );
+	Unref(v);
 	return TCL_OK;
 	}
 
@@ -1791,7 +1793,9 @@ void TkFrameP::RemoveElement( TkProxy *obj )
 
 void TkFrameP::KillFrame( )
 	{
-	PostTkEvent( "killed", new Value( glish_true ) );
+	Value *v = new Value(glish_true);
+	PostTkEvent( "killed", v );
+	Unref(v);
 	UnMap();
 	}
 
@@ -1808,7 +1812,9 @@ void TkFrameP::ResizeEvent( )
 		size[1] = Tk_Height(self);
 		rec->Insert( strdup("new"), new Value( size, 2, COPY_ARRAY ) );
 
-		PostTkEvent( "resize", new Value( rec ) );
+		Value *v = new Value( rec );
+		PostTkEvent( "resize", v );
+		Unref(v);
 		}
 	}
 
@@ -2020,6 +2026,9 @@ TkButton::~TkButton( )
 		}
 
 	UnMap();
+
+	if ( fill ) free_memory(fill);
+	if ( menu_index ) free_memory(menu_index);
 	}
 
 static unsigned char dont_invoke_button = 0;
@@ -2077,7 +2086,7 @@ void TkButton::Enable( int force )
 		tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
 	}
 
-TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_,
+TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr anchor,
@@ -2101,6 +2110,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	char var_name[256];
 	char val_name[256];
 	char *bitmap = 0;
+	char *label = 0;
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
@@ -2162,7 +2172,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		argv[c++] = "-height";
 		argv[c++] = height_;
 		argv[c++] = "-text";
-		argv[c++] = glishtk_quote_string(label);
+		label = glishtk_quote_string(label_);
+		argv[c++] = label;
 		}
 
 	argv[c++] = "-anchor";
@@ -2228,6 +2239,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		}
 
 	if ( bitmap ) free_memory(bitmap);
+	if ( label ) free_memory(label);
 	free_memory(background_);
 	free_memory(foreground_);
 
@@ -2261,13 +2273,13 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	}
 
-TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type_,
+TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr type_,
 		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
 		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr bitmap_,
 		    TkFrame *group )
 			: TkFrame( s ), value(0), state(0), radio(group),
-			  menu_base(0), next_menu_entry(0), menu_index(0), unmapped(0)
+			  menu_base(0), next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
 	type = PLAIN;
 
@@ -2287,6 +2299,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	char height_[30];
 	char var_name[256];
 	char val_name[256];
+	char *label = 0;
 	char *bitmap = 0;
 
 	char *foreground_ = glishtk_quote_string(foreground);
@@ -2357,7 +2370,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		argv[c++] = height_;
 #endif
 		argv[c++] = "-label";
-		argv[c++] = glishtk_quote_string(label);
+		label = glishtk_quote_string(label_);
+		argv[c++] = label;
 		}
 
 	if ( font[0] )
@@ -2424,6 +2438,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		}
 
 	if ( bitmap ) free_memory(bitmap);
+	if ( label ) free_memory(label);
 
 	value = val ? copy_value( val ) : 0;
 #ifdef GGC
@@ -2455,7 +2470,7 @@ void TkButton::update_menu_index( int i )
 	{
 	char buf[64];
 	sprintf(buf,"%d",i);
-	free_memory((char*)menu_index);
+	free_memory(menu_index);
 	menu_index = strdup(buf);
 	}
 
@@ -2489,6 +2504,7 @@ void TkButton::ButtonPressed( )
 							    new Value( glish_false ) ) ;
 
 		PostTkEvent( "press", v );
+		Unref(v);
 		}
 	else
 		dont_invoke_button = 0;
@@ -2631,7 +2647,7 @@ Tk_Window TkButton::TopLevel( )
 	return frame ? frame->TopLevel() : menu ? menu->TopLevel() : 0;
 	}
 
-DEFINE_DTOR(TkScale)
+DEFINE_DTOR(TkScale,)
 
 void TkScale::UnMap()
 	{
@@ -2744,7 +2760,7 @@ void CLASS::Enable( int force )					\
 DEFINE_ENABLE_FUNCS(TkScale)
 
 TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, double value, charptr len,
-		   charptr text, double resolution, charptr orient, int width, charptr font,
+		   charptr text_, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
 		   charptr fill_ )
 			: TkProxy( s ), fill(0), from_(from), to_(to), discard_event(1)
@@ -2756,6 +2772,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	char to_c[40];
 	char resolution_[40];
 	char width_[30];
+	char *text = 0;
 	id = ++scale_count;
 
 	char *foreground_ = glishtk_quote_string(foreground);
@@ -2786,10 +2803,11 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = (char*) resolution_;
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
-	if ( text && *text )
+	if ( text_ && *text_ )
 		{
 		argv[c++] = "-label";
-		argv[c++] = glishtk_quote_string(text);
+		text = glishtk_quote_string(text_);
+		argv[c++] = text;
 		}
 	argv[c++] = "-width";
 	argv[c++] = (char*) width_;
@@ -2812,6 +2830,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
+	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
 
@@ -2851,7 +2870,11 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 void TkScale::ValueSet( double d )
 	{
 	if ( ! discard_event )
-		PostTkEvent( "value", new Value( d ) );
+		{
+		Value *v = new Value( d );
+		PostTkEvent( "value", v );
+		Unref(v);
+		}
 	discard_event = 0;
 	}
 
@@ -2909,7 +2932,7 @@ void TkScale::Create( ProxyStore *s, Value *args )
 STD_EXPAND_PACKINSTRUCTION(TkScale)
 STD_EXPAND_CANEXPAND(TkScale)
 
-DEFINE_DTOR(TkText)
+DEFINE_DTOR(TkText, if ( fill ) free_memory(fill); )
 
 void TkText::UnMap()
 	{
@@ -3079,12 +3102,16 @@ void TkText::Create( ProxyStore *s, Value *args )
 
 void TkText::yScrolled( const double *d )
 	{
-	PostTkEvent( "yscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "yscroll", v );
+	Unref(v);
 	}
 
 void TkText::xScrolled( const double *d )
 	{
-	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "xscroll", v );
+	Unref(v);
 	}
 
 charptr TkText::IndexCheck( charptr s )
@@ -3097,7 +3124,7 @@ charptr TkText::IndexCheck( charptr s )
 STD_EXPAND_PACKINSTRUCTION(TkText)
 STD_EXPAND_CANEXPAND(TkText)
 
-DEFINE_DTOR(TkScrollbar)
+DEFINE_DTOR(TkScrollbar,)
 
 void TkScrollbar::UnMap()
 	{
@@ -3129,7 +3156,10 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 		else
 			sprintf( buf, "xview moveto 0.001" );
 
-	((TkScrollbar*)data)->Scrolled( new Value( buf ));
+	Value *v = new Value( buf );
+	((TkScrollbar*)data)->Scrolled( v );
+	Unref(v);
+
 	return TCL_OK;
 	}
 
@@ -3242,9 +3272,9 @@ void TkScrollbar::Scrolled( Value *data )
 	}
 
 
-DEFINE_DTOR(TkLabel)
+DEFINE_DTOR(TkLabel,)
 
-TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
+TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
 		  charptr borderwidth, charptr foreground, charptr background,
 		  charptr anchor, charptr fill_ )
@@ -3253,6 +3283,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	frame = frame_;
 	char *argv[24];
 	char width[30];
+	char *text = 0;
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
@@ -3267,7 +3298,8 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "label";
 	argv[c++] = (char*) NewName(frame->Self());
 	argv[c++] = "-text";
-	argv[c++] = glishtk_quote_string(text);
+	text = glishtk_quote_string(text_);
+	argv[c++] = text;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-padx";
@@ -3295,6 +3327,7 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
+	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
 
@@ -3359,7 +3392,7 @@ STD_EXPAND_PACKINSTRUCTION(TkLabel)
 STD_EXPAND_CANEXPAND(TkLabel)
 
 
-DEFINE_DTOR(TkEntry)
+DEFINE_DTOR(TkEntry,)
 
 void TkEntry::UnMap()
 	{
@@ -3478,12 +3511,15 @@ void TkEntry::ReturnHit( )
 		tcl_VarEval( tcl, Tk_PathName(self), " get", 0 );
 		Value *ret = new Value( Tcl_GetStringResult(tcl) );
 		PostTkEvent( "return", ret );
+		Unref(ret);
 		}
 	}
 
 void TkEntry::xScrolled( const double *d )
 	{
-	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "xscroll", v );
+	Unref(v);
 	}
 
 void TkEntry::Create( ProxyStore *s, Value *args )
@@ -3533,15 +3569,16 @@ charptr TkEntry::IndexCheck( charptr s )
 STD_EXPAND_PACKINSTRUCTION(TkEntry)
 STD_EXPAND_CANEXPAND(TkEntry)
 
-DEFINE_DTOR(TkMessage)
+DEFINE_DTOR(TkMessage,)
 
-TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr width, charptr justify,
+TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
 		      charptr foreground, charptr background, charptr anchor, charptr fill_ )
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[24];
+	char *text = 0;
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
@@ -3554,7 +3591,8 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[0] = "message";
 	argv[1] = (char*) NewName( frame->Self() );
 	argv[c++] = "-text";
-	argv[c++] = glishtk_quote_string(text);
+	text = glishtk_quote_string(text_);
+	argv[c++] = text;
 	argv[c++] = "-justify";
 	argv[c++] = (char*) justify;
 	argv[c++] = "-width";
@@ -3582,6 +3620,7 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
+	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
 
@@ -3642,7 +3681,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 STD_EXPAND_PACKINSTRUCTION(TkMessage)
 STD_EXPAND_CANEXPAND(TkMessage)
 
-DEFINE_DTOR(TkListbox)
+DEFINE_DTOR(TkListbox,)
 
 void TkListbox::UnMap()
 	{
@@ -3806,18 +3845,24 @@ charptr TkListbox::IndexCheck( charptr s )
 
 void TkListbox::yScrolled( const double *d )
 	{
-	PostTkEvent( "yscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "yscroll", v );
+	Unref(v);
 	}
 
 void TkListbox::xScrolled( const double *d )
 	{
-	PostTkEvent( "xscroll", new Value( (double*) d, 2, COPY_ARRAY ) );
+	Value *v = new Value( (double*) d, 2, COPY_ARRAY );
+	PostTkEvent( "xscroll", v );
+	Unref(v);
 	}
 
 void TkListbox::elementSelected(  )
 	{
 	tcl_VarEval( tcl, Tk_PathName(self), " curselection", 0 );
-	PostTkEvent( "select", glishtk_splitsp_int(Tcl_GetStringResult(tcl)) );
+	Value *v = glishtk_splitsp_int(Tcl_GetStringResult(tcl));
+	PostTkEvent( "select", v );
+	Unref(v);
 	}
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)

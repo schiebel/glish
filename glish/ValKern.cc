@@ -5,10 +5,10 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 
+#include "system.h"
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
 #include "Glish/List.h"
-#include "system.h"
 #include <string.h>
 #include <stdlib.h>
 
