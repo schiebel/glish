@@ -1,6 +1,9 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <stdlib.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <string.h>
 #include "Glish/Proxy.h"
 #include "tkAgent.h"
