@@ -22,11 +22,11 @@ RCSID("@(#) $Id$")
 #include "Expr.h"
 #include "system.h"
 
+unsigned long TkRadioContainer::count = 0;
 
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
-unsigned long TkFrame::frame_count = 0;
 unsigned long TkFrame::grab = 0;
 PQueue(glishtk_event) *TkAgent::tk_queue = 0;
 int TkAgent::hold_tk_events = 0;
@@ -1511,8 +1511,8 @@ void TkFrame::Enable( int force )
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr cursor, charptr title, charptr icon ) : TkAgent( s ), is_tl( 1 ),
-		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0),
+		  charptr height, charptr cursor, charptr title, charptr icon ) : TkRadioContainer( s ),
+		  is_tl( 1 ), pseudo( 0 ), tag(0), canvas(0), side(0), padx(0), pady(0), expand(0),
 		  reject_first_resize(1)
 
 	{
@@ -1525,7 +1525,6 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
-	id = ++frame_count;
 	tl_count++;
 
 	if ( top_created )
@@ -1632,8 +1631,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0),
+		  charptr width, charptr height, charptr cursor ) : TkRadioContainer( s ), is_tl( 0 ),
+		  pseudo( 0 ), tag(0), canvas(0), side(0), padx(0), pady(0), expand(0),
 		  reject_first_resize(0)
 
 	{
@@ -1642,7 +1641,6 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 	agent_ID = "<graphic:frame>";
 
-	id = ++frame_count;
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
@@ -1704,9 +1702,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
-		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0),
-		  reject_first_resize(0)
+		  charptr width, charptr height, const char *tag_ ) : TkRadioContainer( s ), is_tl( 0 ),
+		  pseudo( 0 ), side(0), padx(0), pady(0), expand(0), reject_first_resize(0)
 
 	{
 	char *argv[12];
@@ -1716,7 +1713,6 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 	agent_ID = "<graphic:frame>";
 
-	id = ++frame_count;
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
@@ -1777,7 +1773,7 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 void TkFrame::UnMap()
 	{
-	if ( grab && grab == id )
+	if ( grab && grab == Id() )
 		Release();
 
 	if ( canvas )
@@ -1941,7 +1937,7 @@ char *TkFrame::Grab( int global_scope )
 	else
 		rivet_va_func(self, (int(*)()) Tk_GrabCmd, "set", rivet_path(self), 0);
 
-	grab = id;
+	grab = Id();
 	return "";
 	}
 
@@ -1997,7 +1993,7 @@ char *TkFrame::FontsCB( parameter_list *args, int, int )
 
 char *TkFrame::Release( )
 	{
-	if ( ! grab || grab != id ) return 0;
+	if ( ! grab || grab != Id() ) return 0;
 
 	rivet_va_func(self, (int(*)()) Tk_GrabCmd, "release", rivet_path(self), 0);
 
@@ -2261,7 +2257,6 @@ TkButton::~TkButton( )
 	UnMap();
 	}
 
-unsigned long TkButton::button_count = 0;
 static unsigned char dont_invoke_button = 0;
 
 int buttoncb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData unused2)
@@ -2306,17 +2301,15 @@ void TkButton::Enable( int force )
 TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
-		    charptr background, int disabled, const IValue *val, charptr fill_ )
-			: value(0), TkAgent( s ), state(0), next_menu_entry(0), menu(0),
-			  menu_base(0), fill(0), menu_index(0), unmapped(0), radio_id(0)
+		    charptr background, int disabled, const IValue *val, charptr fill_, TkRadioContainer *group )
+			: value(0), TkRadioContainer( s ), state(0), next_menu_entry(0), menu(0),
+			  menu_base(0), fill(0), menu_index(0), unmapped(0), radio(group)
 	{
 	type = PLAIN;
 	frame = frame_;
 	char *argv[32];
 
 	agent_ID = "<graphic:button>";
-
-	id = ++button_count;
 
 	if ( ! frame || ! frame->Self() ) return;
 
@@ -2337,7 +2330,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 
 	if ( type == RADIO )
 		{
-		sprintf(var_name,"%s%x",type_,frame->Id());
+		sprintf(var_name,"%s%x",type_,radio->Id());
 		argv[c++] = "-variable";
 		argv[c++] = var_name;
 		sprintf(val_name,"BVaLuE%x",Id());
@@ -2436,9 +2429,9 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_,
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
-		    charptr background, int disabled, const IValue *val )
-			: value(0), TkAgent( s ), state(0), next_menu_entry(0),
-			  menu_base(0), menu_index(0), unmapped(0), radio_id(0)
+		    charptr background, int disabled, const IValue *val, TkRadioContainer *group )
+			: value(0), TkRadioContainer( s ), state(0), next_menu_entry(0),
+			  menu_base(0), menu_index(0), unmapped(0), radio(group)
 	{
 	type = PLAIN;
 
@@ -2453,8 +2446,6 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	if ( ! menu || ! menu->Self() ) return;
 
 	char *argv[38];
-
-	id = ++button_count;
 
 	char width_[30];
 	char height_[30];
@@ -2474,7 +2465,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	if ( type == RADIO )
 		{
-		sprintf(var_name,"%s%x",type_,menu->Id());
+		sprintf(var_name,"%s%x",type_,radio->Id());
 		argv[c++] = "-variable";
 		argv[c++] = var_name;
 		sprintf(val_name,"BVaLuE%x",Id());
@@ -2577,10 +2568,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 void TkButton::ButtonPressed( )
 	{
 	if ( type == RADIO )
-		if ( frame )
-			frame->RadioID( Id() );
-		else
-			menu->RadioID( Id() );
+		radio->RadioID( Id() );
 	else if ( type == CHECK )
 		state = state ? 0 : 1;
 
@@ -2602,8 +2590,8 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
-	if ( args_val->length() != 17 )
-		return InvalidNumberOfArgs(17);
+	if ( args_val->length() != 18 )
+		return InvalidNumberOfArgs(18);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2622,15 +2610,27 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETINT( disabled )
 	SETVAL( val, 1 )
 	SETSTR( fill )
+	SETVAL( group, group->IsAgentRecord() )
+
 
 	Agent *agent = parent->AgentVal();
-	if ( agent && ! strcmp( agent->AgentID(), "<graphic:button>") &&
-	     ((TkButton*)agent)->IsMenu() )
-		ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
-	else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val, fill );
+	Agent *grp = group->AgentVal();
+	if ( agent && grp && 
+	     ( ! strcmp( grp->AgentID(),"<graphic:button>" ) && ((TkButton*)grp)->IsMenu() ||
+	       ! strcmp( grp->AgentID(), "<graphic:frame>") ) )
+		{
+		if ( ! strcmp( agent->AgentID(), "<graphic:button>") &&
+		     ((TkButton*)agent)->IsMenu() )
+				ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady,
+						     width, height, justify, font, relief, borderwidth,
+						     foreground, background, disabled, val, (TkRadioContainer*) grp );
+		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
+					     justify, font, relief, borderwidth, foreground, background,
+					     disabled, val, fill, (TkRadioContainer*) grp );
+		}
 	else
-		return (IValue*) generate_error("bad parent type");
+		return (IValue*) generate_error("bad parent (or group) type");
 
 	CREATE_RETURN
 	}
@@ -2639,10 +2639,7 @@ unsigned char TkButton::State() const
 	{
 	unsigned char ret = 0;
 	if ( type == RADIO )
-		if ( frame )
-			ret = frame->RadioID() == Id();
-		else
-			ret = menu->RadioID() == Id();
+		ret = radio->RadioID() == Id();
 	else if ( type == CHECK )
 		ret = state;
 	return ret;
@@ -2656,18 +2653,8 @@ void TkButton::State(unsigned char s)
 	if ( type == RADIO && s == 0 )
 		{
 		char var_name[256];
-
-		if ( frame )
-			{
-			sprintf(var_name,"radio%x",frame->Id());
-			frame->RadioID( 0 );
-			}
-		else
-			{
-			sprintf(var_name,"radio%x",menu->Id());
-			menu->RadioID( 0 );
-			}
-
+		sprintf(var_name,"radio%x",radio->Id());
+		radio->RadioID( 0 );
 		Tcl_SetVar( self->interp, var_name, "", TCL_GLOBAL_ONLY );
 		}
 	else

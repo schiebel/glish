@@ -234,7 +234,19 @@ class TkAgent : public Agent {
 	unsigned int disable_count;
 	};
 
-class TkFrame : public TkAgent {
+class TkRadioContainer : public TkAgent {
+    public:
+	TkRadioContainer( Sequencer *s ) : TkAgent(s), radio_id(0), id(++count) { }
+	unsigned long RadioID() const { return radio_id; }
+	void RadioID( unsigned long id_ ) { radio_id = id_; }
+	unsigned long Id() const { return id; }
+    private:
+	static unsigned long count;
+	unsigned long radio_id;
+	unsigned long id;
+};	
+
+class TkFrame : public TkRadioContainer {
     public:
 	TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
@@ -272,9 +284,6 @@ class TkFrame : public TkAgent {
 	void RemoveElement( TkAgent *obj );
 	void UnMap();
 
-	unsigned long Count() const { return frame_count; }
-	unsigned long Id() const { return id; }
-
 	static IValue *Create( Sequencer *, const_args_list *);
 	~TkFrame();
 
@@ -282,9 +291,6 @@ class TkFrame : public TkAgent {
 
 	const char **PackInstruction();
 	int CanExpand() const;
-
-	unsigned long RadioID() const { return radio_id; }
-	void RadioID( unsigned long id_ ) { radio_id = id_; }
 
 	int ExpandNum(const TkAgent *except=0, unsigned int grtOReqt = 0) const;
 
@@ -303,44 +309,40 @@ class TkFrame : public TkAgent {
   	tkagent_list elements;
 	static unsigned long top_created;
 	static unsigned long tl_count;
-	static unsigned long frame_count;
 	static unsigned long grab;
-	unsigned long id;
+
 	char is_tl;
 	Rivetobj pseudo;
 
-	unsigned long radio_id;
 	unsigned char reject_first_resize;
 
 	int size[2];
 	};
 
-class TkButton : public TkAgent {
+class TkButton : public TkRadioContainer {
     public:
 	enum button_type { PLAIN, RADIO, CHECK, MENU };
 
 	TkButton( Sequencer *, TkFrame *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
-		  charptr background, int disabled, const IValue *val, charptr fill );
+		  charptr background, int disabled, const IValue *val, charptr fill,
+		  TkRadioContainer *group );
 	TkButton( Sequencer *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
-		  charptr background, int disabled, const IValue *val );
+		  charptr background, int disabled, const IValue *val,
+		  TkRadioContainer *group );
 
 	void UnMap();
 
-	unsigned long Count() const { return button_count; }
 	unsigned char State() const;
 	void State(unsigned char s);
-	unsigned long Id() const { return id; }
 
 	TkButton *Parent() { return menu; }
 	Rivetobj Menu() { return type == MENU ? menu_base : menu ? menu->Menu() : 0; }
 	int IsMenu() { return type == MENU; }
 	int IsMenuEntry() { return menu != 0; }
-	unsigned long RadioID() const { return radio_id; }
-	void RadioID( unsigned long id ) { radio_id = id; }
 
 	void Add(TkButton *item) {  entry_list.append(item); }
 	void Remove(TkButton *item) { entry_list.remove(item); }
@@ -358,18 +360,15 @@ class TkButton : public TkAgent {
 	void Enable( int force = 1 );
 
     protected:
-	static unsigned long button_count;
 	IValue *value;
 
 	unsigned char state;		// only used for check buttons
 	button_type type;
-	unsigned long id;
 
 	TkButton *menu;
+	TkRadioContainer *radio;
 	Rivetobj menu_base;
 	unsigned long next_menu_entry;	// only used for menu buttons
-	unsigned long radio_id;		// only used for menu buttons
-
 	tkagent_list entry_list;        // only used for menu buttons
 	const char *menu_index;
 
