@@ -268,14 +268,14 @@ Notification::Type WheneverStmt::NoteType( ) const
 	}
 
 WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
-						 active(0), stack(0), in_subsequence(0)
+						 active(0), stack(0), cycle_roots(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 	}
 
 WheneverStmt::WheneverStmt( event_dsg_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
 			    Expr *arg_in_subsequence ) : trigger(0), sequencer(arg_seq),
-						 active(0), stack(0), in_subsequence(0)
+						 active(0), stack(0), cycle_roots(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 
@@ -289,6 +289,17 @@ void WheneverStmt::Init( event_dsg_list* arg_trigger, Stmt *arg_stmt, Expr *arg_
 	in_subsequence = arg_in_subsequence;
 
 	stack = sequencer->LocalFrames();
+
+	//
+	// The reference-cycle roots (functions) were being deleted out from
+	// under whenever statements. This happens when a whenever stmt(s) is
+	// the only thing keeping a collection of functions active. There is
+	// not always a cycle list for the most recent function invocation, so
+	// we must search back through the list (of lists).
+	//
+	cycle_roots = UserFunc::GetRoots( );
+	for ( int i=1; ! cycle_roots && i < UserFunc::GetRootsLen( ); cycle_roots = UserFunc::GetRoots( i++ ) );
+	if ( cycle_roots ) Ref( cycle_roots );
 
 	Notifiee *note = new Notifiee( this, stack, sequencer );
 	loop_over_list( *trigger, i )
@@ -402,6 +413,7 @@ WheneverStmt::~WheneverStmt()
 		}
 
 	Unref( stack );
+	Unref( cycle_roots );
 	Unref( trigger );
 	}
 

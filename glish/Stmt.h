@@ -187,6 +187,7 @@ class WheneverStmt : public Stmt {
 	int active;
 	static unsigned int notify_count;
 	stack_type *stack;
+	NodeList *cycle_roots;
 	Expr *in_subsequence;
 	};
 

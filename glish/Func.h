@@ -166,6 +166,7 @@ typedef PList(NodeList) nodelist_list;
 
 class UserFunc : public Func {
     friend class UserFuncKernel;
+    friend class WheneverStmt;
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 		  back_offsets_type *back_refs, Sequencer* sequencer,
