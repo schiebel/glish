@@ -265,6 +265,9 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 			read_fd = fileno( stdin );
 			write_fd = fileno( stdout );
 
+			if ( interpreter_tag )
+				free_memory(interpreter_tag);
+
 			interpreter_tag = strdup("*stdio*");
 
 			last_context = EventContext(initial_client_name,interpreter_tag);
@@ -328,10 +331,14 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 			usingpipes = 1;
 			}
 
+		if ( interpreter_tag )
+			free_memory(interpreter_tag);
 		interpreter_tag = strdup(last_context.id());
 
 		if ( argc > 1 && streq( argv[0], "-interpreter" ) )
 			{
+			if ( interpreter_tag )
+				free_memory(interpreter_tag);
 			interpreter_tag = strdup(argv[1]);
 			argc -= 2, argv += 2;
 			}
