@@ -92,12 +92,6 @@ class sos_fd_sink : public sos_sink {
 	void block( );
 	void nonblock( );
 
-	//
-	// automatically set all fds to nonblocking at
-	// construction/set time
-	//
-	static void nonblock_all();
-
 	~sos_fd_sink();
 
 	void setFd( int fd__ );
@@ -114,8 +108,6 @@ class sos_fd_sink : public sos_sink {
 	unsigned int start;
 	// hold buffer from iovec struct
 	void *buf_holder;
-
-	static int nonblock_all_;
 
 	sos_fd_buf buf;
 

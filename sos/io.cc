@@ -144,22 +144,11 @@ sos_fd_buf_kernel *sos_fd_buf::add( )
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-int sos_fd_sink::nonblock_all_ = 0;
-
-void sos_fd_sink::nonblock_all()
-	{
-	nonblock_all_ = 1;
-	}
-
-sos_fd_sink::sos_fd_sink( int fd__ ) : fd_(fd__), start(0), buf_holder(0), sent(0)
-	{
-	if ( nonblock_all_ == 1  && fd_ >= 0 ) nonblock();
-	}
+sos_fd_sink::sos_fd_sink( int fd__ ) : fd_(fd__), start(0), buf_holder(0), sent(0) { }
 
 void sos_fd_sink::setFd( int fd__ )
 	{
 	fd_ = fd__;
-	if ( nonblock_all_ == 1  && fd_ >= 0 ) nonblock();
 	}
 
 sos_status *sos_fd_sink::write( const char *cbuf, unsigned int len, buffer_type type )
