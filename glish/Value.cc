@@ -4657,9 +4657,10 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 		// is a single array object; otherwise treat it as
 		// a record.
 
+		int num_sds_objects = (int) sds_array_size( sds, 0 ) - 1;
 		const char* object_name = sds_obind2name( sds, 1 );
 
-		if ( ! object_name || ! *object_name )
+		if ( num_sds_objects && ( ! object_name || ! *object_name ) )
 			{ // Single array object.
 			int level = sds_describe( sds, 1, &thing_list );
 			result = read_single_value_from_SDS( manager,
@@ -4668,9 +4669,6 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 
 		else
 			{
-			int num_sds_objects =
-				(int) sds_array_size( sds, 0 ) - 1;
-
 			// Initialized to zero, filled in within 
 			// "traverse_record".
 			result = 0;
@@ -4679,6 +4677,9 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 			for ( int i = 1; i <= num_sds_objects; ++i )
 				result = traverse_record( result, attr, sds,
 					i, manager, thing_list, 1, level );
+
+			if ( ! result )
+				result = create_record();
 
 			// Special backward-compatibility check.  If
 			// this record has a single "*record*" field,
