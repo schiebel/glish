@@ -67,9 +67,6 @@ make-bindir:
 
 install:  make-bindir $(INSTALLED_CLIENTS)
 
-install:
-	${INSTALL} -m755 bmake ${prefix}/bin
-
 #============================================================
 
 make_client.o: $(SRC)/make_client.cc $(GLISH_SRC)/include/Glish/Client.h
