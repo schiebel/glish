@@ -916,7 +916,8 @@ Value* PasteBuiltIn::DoCall( const_args_list* args_val )
 
 	for ( int i = 1; i < args_val->length(); ++i )
 		{
-		string_vals[i] = (*args_val)[i]->StringVal( ' ', 1 );
+		unsigned int limit = (*args_val)[i]->PrintLimit();
+		string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
 		len += strlen( string_vals[i] ) + sep_len;
 		}
 

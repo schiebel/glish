@@ -70,6 +70,10 @@ public:
 	Expr* InstallID( char* id, scope_type scope );
 	Expr* LookupID( char* id, scope_type scope, int do_install = 1 );
 
+	// This function attempts to look up a value in the current sequencer.
+	// If the value doesn't exist, null is returned.
+	static const Value *LookupVal( const char *id );
+
 	void PushFrame( Frame* new_frame );
 	Frame* PopFrame();
 
@@ -242,6 +246,10 @@ protected:
 	char* interpreter_tag;
 
 	int num_active_processes;
+
+	// Keeps track of the current sequencer...
+	// Later this may have to be a stack...
+	static Sequencer *cur_sequencer;
 	};
 
 #endif /* sequencer_h */

@@ -124,7 +124,10 @@ public:
 	Value( const char* value );
 	Value( funcptr value );
 
-	Value( agentptr value );
+	// If "storage" is set to "COPY_ARRAY", then the underlying
+	// "Agent" in value will be Ref()ed. Otherwise, if 
+	// "TAKE_OVER_ARRAY" it will simply be used.
+	Value( agentptr value, array_storage_type storage = COPY_ARRAY );
 
 	Value( recordptr value, Agent* agent = 0 );
 
@@ -226,12 +229,22 @@ public:
 	dcomplex DcomplexVal( int n = 1 ) const;
 
 	// Returns the entire value converted to a single string, with
-	// "sep" used to separate array elements.  If "use_attr" is
-	// true, then the value's attributes are used for determining
-	// its shape (as a n-D array).
+	// "sep" used to separate array elements.  "max_elements" allows
+	// one to specify the maximum number of elements to be printed. If
+	// "max_elements" is zero, all elements will be printed, but if
+	// it is greater than zero only "max_elements" will be printed.
+	// If "use_attr" is true (non-zero), then the value's attributes
+	// are used for determining its shape (as a n-D array).
 	//
 	// Returns a new string, which should be delete'd when done with.
-	char* StringVal( char sep = ' ', int use_attr = 0 ) const;
+	char* StringVal( char sep = ' ', unsigned int max_elements = 0, 
+			 int use_attr = 0 ) const;
+
+	// Returns the limit on the number elements to be printed given
+	// the state of the "system" value, and the attributes of this
+	// value. This may be useful when used with "StringVal()" as the
+	// "max_elements" parameter.
+	unsigned int PrintLimit() const;
 
 	// Returns the agent or function corresponding to the Value.
 	Agent* AgentVal() const;

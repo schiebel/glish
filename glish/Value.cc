@@ -13,6 +13,8 @@
 #include "BinOpExpr.h"
 #include "Func.h"
 #include "Reporter.h"
+#include "Sequencer.h"
+#include "Agent.h"
 
 
 int num_Values_created = 0;
@@ -102,10 +104,21 @@ DEFINE_CONSTRUCTORS(complex,complexref)
 DEFINE_CONSTRUCTORS(dcomplex,dcomplexref)
 DEFINE_CONSTRUCTORS(charptr,charptrref)
 
-DEFINE_SINGLETON_CONSTRUCTOR(agentptr)
 DEFINE_SINGLETON_CONSTRUCTOR(funcptr)
 DEFINE_ARRAY_CONSTRUCTOR(funcptr)
 
+Value::Value( agentptr value, array_storage_type storage )
+	{
+	InitValue();
+	if ( storage != COPY_ARRAY )
+		{
+		agentptr *ary = new agentptr[1];
+		copy_array(&value,ary,1,agentptr);
+		SetValue( ary, 1, storage );
+		}
+	else
+		SetValue( &value, 1, storage );
+	}
 
 Value::Value( recordptr value, Agent* agent )
 	{
@@ -216,7 +229,19 @@ DEFINE_SET_VALUE(double,doubleref,TYPE_DOUBLE)
 DEFINE_SET_VALUE(complex,complexref,TYPE_COMPLEX)
 DEFINE_SET_VALUE(dcomplex,dcomplexref,TYPE_DCOMPLEX)
 
-DEFINE_ARRAY_SET_VALUE(agentptr,TYPE_AGENT)
+void Value::SetValue( agentptr array[], int len, array_storage_type arg_storage )
+	{
+	SetType( TYPE_AGENT );
+	max_size = length = len;
+	storage = arg_storage;
+	if ( storage == COPY_ARRAY ) {
+		values = copy_values(array, agentptr);
+		for (int i = 0; i < len; i++)
+			Ref(array[i]);
+	} else
+		values = array;
+	}
+
 DEFINE_ARRAY_SET_VALUE(funcptr,TYPE_FUNC)
 DEFINE_REF_SET_VALUE(charptrref,TYPE_STRING)
 
@@ -251,7 +276,7 @@ void Value::SetValue( recordptr value, Agent* agent )
 
 	if ( agent )
 		RecordPtr()->Insert( strdup( AGENT_MEMBER_NAME ),
-					new Value( agent ) );
+					new Value( agent, TAKE_OVER_ARRAY ) );
 	}
 
 
@@ -686,10 +711,11 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 	buf_ptr += size_of_addition;
 	}
 
-char* Value::StringVal( char sep, int useAttributes ) const
+char* Value::StringVal( char sep, unsigned int max_elements,
+			int useAttributes ) const
 	{
 	if ( IsRef() )
-		return Deref()->StringVal( sep, useAttributes );
+		return Deref()->StringVal( sep, max_elements, useAttributes );
 	if ( type == TYPE_RECORD )
 		return RecordStringVal();
 	if ( type == TYPE_AGENT )
@@ -852,7 +878,8 @@ char* Value::StringVal( char sep, int useAttributes ) const
 	     ! shape_val->IsNumeric() ||
 	     (shape_len = shape_val->Length()) <= 1 )
 		{ // not an n-D array.
-		for ( int i = 0; i < length; ++i )
+		for ( int i = 0; i < length && ( ! max_elements ||
+		      i < max_elements) ; ++i )
 			{
 			const char* addition = numeric_buf;
 
@@ -864,10 +891,12 @@ char* Value::StringVal( char sep, int useAttributes ) const
 				*buf_ptr++ = sep;
 			}
 
+		if ( max_elements && length > max_elements )
+			append_buf( buf, buf_ptr, buf_size, "... " );
 		if ( type != TYPE_STRING && length > 1 )
 			{
 			// Insert []'s around value.
-			*buf_ptr++ = ']';
+			append_buf( buf, buf_ptr, buf_size, "] " );
 			*buf_ptr = '\0';
 			}
 
@@ -880,6 +909,9 @@ char* Value::StringVal( char sep, int useAttributes ) const
 	// Later the pivots for outputting by planes can be made variable
 	int r = 0;
 	int c = 1;
+
+	// How many element have we output...
+	int element_count = 0;
 
 	int shape_is_copy = 0;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
@@ -933,7 +965,7 @@ char* Value::StringVal( char sep, int useAttributes ) const
 		delete buf;
 		if ( shape_is_copy )
 			delete shape;
-		return StringVal( sep, 0 );
+		return StringVal( sep );
 		}
 
 	int max_free = shape_len-1;
@@ -943,7 +975,8 @@ char* Value::StringVal( char sep, int useAttributes ) const
 			if ( max_free != r && max_free != c )
 				break;
 
-	while ( indices[max_free] < shape[max_free] )
+	while ( indices[max_free] < shape[max_free] && ( ! max_elements ||
+			element_count < max_elements) )
 		{
 		// Output the plane label
 		for ( i = 0; i < shape_len; ++i )
@@ -978,16 +1011,17 @@ char* Value::StringVal( char sep, int useAttributes ) const
 				PLACE_ELEMENT(store,addition,offset,buf)
 
 				int add_len = strlen( addition );
-				if ( add_len > column_width[indices[c]] || 
-				     indices[r] == 0 )
+				if ( indices[r] == 0 || 
+				     add_len > column_width[indices[c]] )
 					column_width[indices[c]] = add_len;
 				}
 
 		// Output plane.
-		for ( indices[r] = 0; indices[r] < shape[r]; ++indices[r] )
+		for ( indices[r] = 0; indices[r] < shape[r] && ( !max_elements ||
+			element_count < max_elements) ; ++indices[r] )
 			{
-			for ( indices[c] = 0; indices[c] < shape[c];
-			      ++indices[c] )
+			for ( indices[c] = 0; indices[c] < shape[c] && ( !max_elements ||
+				element_count < max_elements); ++indices[c] )
 				{
 				for ( i = 0, offset = 0; i < shape_len; ++i )
 					offset += factor[i] * indices[i];
@@ -995,8 +1029,13 @@ char* Value::StringVal( char sep, int useAttributes ) const
 				const char* addition = numeric_buf;
 				PLACE_ELEMENT(numeric_buf,addition,offset,buf);
 
+				element_count++;
 				char affix[256];
-				if ( indices[c] < shape[c] - 1 )
+				if ( max_elements && element_count >= max_elements )
+
+					strcpy(affix, " ... ");
+
+				else if ( indices[c] < shape[c] - 1 )
 					{
 					int n = column_width[indices[c]] -
 						strlen( addition ) + 1;
@@ -1038,6 +1077,28 @@ char* Value::StringVal( char sep, int useAttributes ) const
 	append_buf( buf, buf_ptr, buf_size, "]" );
 
 	return buf;
+	}
+
+unsigned int Value::PrintLimit( ) const
+	{
+	unsigned int limit = 0, tmp = 0;
+	const attributeptr attr = AttributePtr();
+	const Value *val;
+	if ( attr && (val = (*attr)["print_limit"]) && val->IsNumeric() &&
+			(tmp = val->IntVal()) >= 0 )
+		limit = tmp;
+	else
+		if ( (val = Sequencer::LookupVal( "system" )) && 
+			val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "print_limit" ) )
+			{
+			const Value *limitVal = val->ExistingRecordElement( "print_limit" );
+			if ( limitVal != false_value && limitVal->IsNumeric() &&
+					(tmp = limitVal->IntVal()) >= 0 )
+				limit = tmp;
+			}
+
+	return limit;
 	}
 
 char* Value::RecordStringVal() const
@@ -4211,7 +4272,7 @@ void Value::DescribeSelf( ostream& s ) const
 
 	else
 		{
-		char* description = StringVal( ' ', 1 );
+		char* description = StringVal( ' ', PrintLimit() , 1 );
 		s << description;
 		delete description;
 		}
