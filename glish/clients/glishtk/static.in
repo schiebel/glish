@@ -44,7 +44,7 @@ MKHIER = $(top)/config/mkhier
 GLISH_LIBS = @MALLOC@ $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkCore.o tkCanvas.o @MALLOC@
+OBJS = main.o @MALLOC@
 
 HDRS = $(INCDIR)/Glish/glishtk.h
 
@@ -82,12 +82,6 @@ make-incdir:
 	$(MKHIER) $(INCDIR)
 
 install:  make-bindir make-scriptdir make-incdir $(BINDIR)/glishtk $(SCRIPTDIR)/glishtk.g $(INCDIR)/Glish $(HDRS)
-
-tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
-
-tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(H)/glishtk.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
 
 main.o: $(SRC)/main.cc $(H)/glishtk.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 

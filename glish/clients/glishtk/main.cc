@@ -1,13 +1,12 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <string.h>
+#include <dlfcn.h>
+#include "Glish/glishtk.h"
 #include "Glish/Proxy.h"
-#include "tkCore.h"
-#include "tkCanvas.h"
+#include "tkUtil.h"
 
 class TkStore : public ProxyStore {
     public:
@@ -76,33 +75,38 @@ void TkStore::Loop( )
 		TkProxy::DoOneTkEvent( );
 	}
 
-ProxyStore *global_store = 0;
 int main( int argc, char** argv )
 	{
+	void *handle = 0;
+	typedef void (*InitFunc)( ProxyStore * );
+	if ( ! (handle = dlopen( "/home/drs/dev/glish/glish/clients/glishtk/i686-unknown-linux/shared/GlishTk.so", RTLD_NOW | RTLD_GLOBAL )) )
+		{
+		const char *error = dlerror( );
+		if ( ! error )
+			perror( "Error:" );
+		else
+			fprintf( stderr, "%s\n", error );
+		fprintf( stderr, "Couldn't open shared object: \"GlishTk.so\"\t\t=>0x%x\n",handle );
+		return 1;
+		}
+
+	
+	InitFunc func = (InitFunc) dlsym( handle, "GlishTk_init" );
+	if ( ! func )
+		{
+		const char *error = dlerror( );
+		if ( ! error )
+			perror( "Error:" );
+		else
+			fprintf( stderr, "%s\n", error );
+		fprintf( stderr, "Couldn't find initialization function: \"GlishTk_init\"\n" );
+		return 1;
+		}
+
 	TkStore stor( argc, argv );
-
-	global_store = &stor;
-
-	stor.Register( "frame", TkFrameP::Create );
-	stor.Register( "button", TkButton::Create );
-	stor.Register( "scale", TkScale::Create );
-	stor.Register( "text", TkText::Create );
-	stor.Register( "scrollbar", TkScrollbar::Create );
-	stor.Register( "label", TkLabel::Create );
-	stor.Register( "entry", TkEntry::Create );
-	stor.Register( "message", TkMessage::Create );
-	stor.Register( "listbox", TkListbox::Create );
-	stor.Register( "canvas", TkCanvas::Create );
-	stor.Register( "version", TkProxy::Version );
-	stor.Register( "have_gui", TkProxy::HaveGui );
-	stor.Register( "tk_hold", TkProxy::HoldEvents );
-	stor.Register( "tk_release", TkProxy::ReleaseEvents );
-	stor.Register( "tk_iconpath", TkProxy::SetBitmapPath );
-	stor.Register( "tk_checkcolor", TkProxy::CheckColor );
-
-	stor.Register( "tk_load", TkProxy::Load );
-	stor.Register( "tk_loadpath", TkProxy::SetLoadPath );
+	(*func)( &stor );
 
 	stor.Loop();
+
         return 0;
 	}

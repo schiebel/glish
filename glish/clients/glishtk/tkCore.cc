@@ -17,8 +17,6 @@ RCSID("@(#) $Id$")
 
 extern Value *glishtk_valcast( char * );
 
-extern ProxyStore *global_store;
-
 unsigned long TkFrameP::grab = 0;
 
 Value *glishtk_splitnl( char *str )
@@ -49,11 +47,6 @@ Value *glishtk_splitnl( char *str )
 		ary[nls++] = strdup( prev );
 
 	return new Value( (const char **) ary, nls );
-	}
-
-Value *glishtk_str( char *str )
-	{
-	return new Value( str );
 	}
 
 Value *glishtk_splitsp_int( char *sel )
@@ -133,25 +126,6 @@ char *glishtk_nostr( TkProxy *proxy, const char *cmd, Value * )
 	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
-char *glishtk_onestr( TkProxy *proxy, const char *cmd, Value *args )
-	{
-	char *ret = 0;
-
-	if ( args->Type() == TYPE_STRING )
-		{
-		const char *str = args->StringPtr(0)[0];
-		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " config ", cmd, " {", str, "}", (char *)NULL );
-		ret = Tcl_GetStringResult(proxy->Interp( ));
-		}
-	else
-		{
-		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " cget ", cmd, (char *)NULL );
-		ret = Tcl_GetStringResult(proxy->Interp( ));
-		}
-
-	return ret;
-	}
-
 char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
@@ -174,27 +148,6 @@ char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 		tcl_VarEval( a, Tk_PathName(a->Self()), " cget ", cmd, (char *)NULL );
 		ret = Tcl_GetStringResult(a->Interp());
 		if ( *ret == '@' ) ++ret;
-		}
-
-	return ret;
-	}
-
-char *glishtk_onedim(TkProxy *proxy, const char *cmd, Value *args )
-	{
-	char *ret = 0;
-
-	if ( args->Type() == TYPE_STRING )
-		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " config ", cmd, SP, args->StringPtr(0)[0], (char *)NULL );
-	else if ( args->IsNumeric() && args->Length() > 0 )
-		{
-		char buf[30];
-		sprintf(buf,"%d",args->IntVal());
-		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " config ", cmd, SP, buf, (char *)NULL );
-		}
-	else
-		{
-		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " cget ", cmd, (char *)NULL );
-		ret = Tcl_GetStringResult(proxy->Interp( ));
 		}
 
 	return ret;
@@ -256,7 +209,7 @@ char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue, cons
 	if ( args->IsNumeric() && args->Length() > 0 )
 		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " config ", cmd, " ", (char*)(args->IntVal() ? ptrue : pfalse), (char *)NULL );
 	else
-		global_store->Error("wrong type, numeric expected");
+		proxy->Error("wrong type, numeric expected");
 
 	return ret;
 	}
@@ -273,7 +226,7 @@ char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), (char *)NULL );
 	else
-		global_store->Error("wrong type, string expected");
+		a->Error("wrong type, string expected");
 
 	return ret;
 	}
@@ -290,7 +243,7 @@ char *glishtk_disable_cb( TkProxy *a, const char *cmd, Value *args )
 				a->Enable( );
 			}
 		else
-			global_store->Error("wrong type, numeric expected");
+			a->Error("wrong type, numeric expected");
 		}
 	else
 		if ( *cmd == '1' )
@@ -308,12 +261,12 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 
 	if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name )
-		EXPRVAL( start, event_name );
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name )
+		EXPRVAL( a, start, event_name );
 		if ( start->Type() == TYPE_STRING )
 			{
-			EXPRSTR( end, event_name )
+			EXPRSTR( a, end, event_name )
 			a->EnterEnable();
 			tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start->StringPtr(0)[0] ), SP, a->IndexCheck( end ), (char *)NULL );
 			a->ExitEnable();
@@ -325,7 +278,7 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 			charptr cstart = a->IndexCheck( start->IntPtr(0)[0], startbuf );
 			if ( cstart )
 				{
-				EXPRINT( end, event_name )
+				EXPRINT( a, end, event_name )
 				char endbuf[20];
 				charptr cend = a->IndexCheck( end, endbuf );
 				if ( cend )
@@ -340,7 +293,7 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 		else
 			{
 			EXPR_DONE( start );
-			global_store->Error("bad value: %s", event_name);
+			a->Error("bad value: %s", event_name);
 			return 0;
 			}
 		EXPR_DONE( start );
@@ -384,19 +337,19 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 	strary_ret *ret = 0;
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		a->Error("zero length value");
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, >= 2 )
-		EXPRINIT( event_name )
+		HASARG( a, args, >= 2 )
+		EXPRINIT( a, event_name )
 
 		ret = new strary_ret;
 		ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(args->Length()/2)) );
 		ret->len = 0;
 		for ( int i=0; i+1 < args->Length(); i+=2 )
 			{
-			EXPRSTR(one, event_name)
-			EXPRSTR(two, event_name)
+			EXPRSTR(a, one, event_name)
+			EXPRSTR(a, two, event_name)
 			int r = tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP,
 					     a->IndexCheck( one ), SP, a->IndexCheck( two ), (char *)NULL );
 			if ( r == TCL_OK )
@@ -435,7 +388,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 			}
 		}
 	else
-		global_store->Error("wrong type");
+		a->Error("wrong type");
 
 	return (char*) ret;
 	}
@@ -447,13 +400,13 @@ char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 	char *event_name = "listbox select function";
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		a->Error("zero length value");
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name)
-		EXPRSTR( start, event_name )
-		EXPRSTR( end, event_name )
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name)
+		EXPRSTR( a, start, event_name )
+		EXPRSTR( a, end, event_name )
 		tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
 			     a->IndexCheck( start ), SP, a->IndexCheck( end ), (char *)NULL );
 		tcl_VarEval( a, Tk_PathName(a->Self()), " activate ", a->IndexCheck( end ), (char *)NULL );
@@ -477,13 +430,13 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	char *event_name = "string-and-index function";
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		a->Error("zero length value");
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name)
-		EXPRVAL( strv, event_name );
-		EXPRSTR( where, event_name )
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name)
+		EXPRVAL( a, strv, event_name );
+		EXPRSTR( a, where, event_name )
 		char *str = strv->StringVal( ' ', 0, 1 );
 		a->EnterEnable();
 		tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " {", str, "}", (char *)NULL);
@@ -499,7 +452,7 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 		a->ExitEnable();
 		}
 	else
-		global_store->Error("wrong type, string expected");
+		a->Error("wrong type, string expected");
 
 	return ret;
 	}
@@ -510,11 +463,11 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 	char *event_name = "text append function";
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		a->Error("zero length value");
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name)
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name)
 		char **argv = (char**) alloc_memory(sizeof(char*) * (args->Length()+3));
 		int argc = 0;
 		argv[argc++] = Tk_PathName(a->Self());
@@ -523,7 +476,7 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 		int start = argc;
 		for ( int i=0; i < args->Length(); ++i )
 			{
-			EXPRVAL( val, event_name )
+			EXPRVAL( a, val, event_name )
 			char *s = val->StringVal( ' ', 0, 1 );
 			if ( i != 1 || param )
 				argv[argc++] = glishtk_quote_string( s );
@@ -555,7 +508,7 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 		free_memory(s);
 		}
 	else
-		global_store->Error("wrong arguments");
+		a->Error("wrong arguments");
 
 	return 0;
 	}
@@ -567,12 +520,12 @@ char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
 
 	if ( args->Length() < 2 )
 		{
-		global_store->Error("wrong number of arguments");
+		proxy->Error("wrong number of arguments");
 		return 0;
 		}
 
-	EXPRINIT( event_name)
-	EXPRSTR(tag, event_name)
+	EXPRINIT( proxy, event_name )
+	EXPRSTR( proxy, tag, event_name )
 	int argc = 0;
 	char *argv[8];
 	argv[argc++] = Tk_PathName(proxy->Self( ));
@@ -582,9 +535,9 @@ char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
 	if ( args->Length() >= 3 )
 		for ( int i=0; i+1 < args->Length(); i+=2 )
 			{
-			EXPRSTR(one, event_name)
+			EXPRSTR(proxy, one, event_name)
 			argv[argc] = (char*)one;
-			EXPRSTR(two, event_name)
+			EXPRSTR(proxy, two, event_name)
 			argv[argc+1] = (char*)two;
 			tcl_ArgEval( proxy, argc+2, argv );
 			EXPR_DONE(one)
@@ -592,7 +545,7 @@ char *glishtk_text_tagfunc(TkProxy *proxy, const char *cmd, const char *param,
 			}
 	else
 		{
-		EXPRSTRVAL(str_v, event_name)
+		EXPRSTRVAL(proxy, str_v, event_name)
 		charptr *s = str_v->StringPtr(0);
 
 		if ( str_v->Length() == 1 )
@@ -620,17 +573,17 @@ char *glishtk_text_configfunc(TkProxy *proxy, const char *cmd, const char *param
 	char *event_name = "tag function";
 	if ( args->Length() < 2 )
 		{
-		global_store->Error("wrong number of arguments");
+		proxy->Error("wrong number of arguments");
 		return 0;
 		}
-	EXPRINIT( event_name)
+	EXPRINIT( proxy, event_name)
 	char buf[512];
 	int argc = 0;
 	char *argv[8];
 	argv[argc++] = Tk_PathName(proxy->Self( ));
 	argv[argc++] = (char*) cmd;
 	argv[argc++] = (char*) param;
-	EXPRSTR(tag, event_name)
+	EXPRSTR(proxy, tag, event_name)
 	argv[argc++] = (char*) tag;
 
 	for ( int i=c; i < args->Length(); i++ )
@@ -666,7 +619,7 @@ char *glishtk_text_rangesfunc( TkProxy *proxy, const char *cmd, const char *para
 		ret = Tcl_GetStringResult(proxy->Interp( ));
 		}
 	else
-		global_store->Error("wrong type, string expected");
+		proxy->Error("wrong type, string expected");
 
 	return ret;
 	}
@@ -707,10 +660,10 @@ char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 		return "";
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name)
-		EXPRSTRVAL( val, event_name )
-		EXPRSTR( where, event_name )
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name)
+		EXPRSTRVAL( a, val, event_name )
+		EXPRSTR( a, where, event_name )
 		glishtk_listbox_insert_action(a, (char*) cmd, (Value*) val, where );
 		EXPR_DONE( where )
 		EXPR_DONE( val )
@@ -718,7 +671,7 @@ char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		glishtk_listbox_insert_action(a, (char*) cmd, args );
 	else
-		global_store->Error("wrong type, string expected");
+		a->Error("wrong type, string expected");
 
 	return "";
 	}
@@ -769,13 +722,13 @@ char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 	char *event_name = "listbox get function";
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		a->Error("zero length value");
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
-		EXPRINIT( event_name)
-		EXPRSTR( start, event_name )
-		EXPRSTR( end, event_name )
+		HASARG( a, args, > 1 )
+		EXPRINIT( a, event_name)
+		EXPRSTR( a, start, event_name )
+		EXPRSTR( a, end, event_name )
 		int r = tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP,
 				     a->IndexCheck( start ), SP, a->IndexCheck( end ), (char *)NULL );
 
@@ -792,7 +745,7 @@ char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_INT )
 		ret = glishtk_listbox_get_int( a, (char*) cmd, args );
 	else
-		global_store->Error("invalid argument type");
+		a->Error("invalid argument type");
 
 	return ret;
 	}
@@ -809,7 +762,7 @@ char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
 		}
 	else
-		global_store->Error("wrong type, numeric expected");
+		a->Error("wrong type, numeric expected");
 
 	return ret;
 	}
@@ -818,7 +771,7 @@ char *glishtk_scrollbar_update(TkProxy *proxy, const char *, Value *val )
 	{
 	if ( ! val->IsNumeric() || val->Length() < 2 )
 		{
-		global_store->Error("scrollbar update function");
+		proxy->Error("scrollbar update function");
 		return 0;
 		}
 
@@ -855,7 +808,7 @@ char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 		ret = Tcl_GetStringResult(a->Interp());
 		}
 	else
-		global_store->Error("wrong type, string expected");
+		a->Error("wrong type, string expected");
 
 	return ret;
 	}
@@ -871,7 +824,7 @@ char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, con
 		tcl_VarEval( a, Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
 			     cmd, SP, (args->IntVal() ? ptrue : pfalse), (char *)NULL );
 	else
-		global_store->Error("wrong type, numeric expected");
+		a->Error("wrong type, numeric expected");
 
 	return ret;
 	}
@@ -882,11 +835,6 @@ Value *glishtk_strtobool( char *str )
 		return new Value( glish_true );
 	else
 		return new Value( glish_false );
-	}
-
-Value *glishtk_strtoint( char *str )
-	{
-	return new Value( atoi(str) );
 	}
 
 Value *glishtk_strtofloat( char *str )
@@ -983,12 +931,12 @@ static name_hash *glishtk_untable = 0;
 char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 	{
 	char *event_name = "agent bind function";
-	EXPRINIT( event_name)
+	EXPRINIT( agent, event_name)
 
 	if ( args->Length() >= 2 )
 		{
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
+		EXPRSTR( agent, button, event_name )
+		EXPRSTR( agent, event, event_name )
 
 		tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
@@ -1955,7 +1903,7 @@ char *TkFrameP::Title( Value *args )
 		tcl_VarEval( this, "wm title ", Tk_PathName(TopLevel( )), " {", args->StringPtr(0)[0], "}", (char *)NULL );
 }
 	else
-		global_store->Error("wrong type, string expected");
+		Error("wrong type, string expected");
 
 	return "";
 	}
@@ -1972,9 +1920,9 @@ char *TkFrameP::FontsCB( Value *args )
 		fonts = XListFonts(Tk_Display(self), wild, args->IntVal(), &len);
 	else if ( args->Type() == TYPE_RECORD )
 		{
-		EXPRINIT("TkFrameP::FontsCB")
-		EXPRSTR( str, "TkFrameP::FontsCB" )
-		EXPRINT( l, "TkFrameP::FontsCB" )
+		EXPRINIT( this, "TkFrameP::FontsCB")
+		EXPRSTR( this, str, "TkFrameP::FontsCB" )
+		EXPRINT( this, l, "TkFrameP::FontsCB" )
 		fonts = XListFonts(Tk_Display(self), str, l, &len);
 		EXPR_DONE( str )
 		EXPR_DONE( l )
@@ -2175,7 +2123,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 		if ( tl && strncmp( tl->AgentID(), "<graphic:", 9 ) )
 			{
 			SETDONE
-			global_store->Error("bad transient leader");
+			s->Error("bad transient leader");
 			return;
 			}
 
@@ -2194,7 +2142,7 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 		else
 			{
 			SETDONE
-			global_store->Error("bad parent type");
+			s->Error("bad parent type");
 			return;
 			}
 		}
@@ -2971,7 +2919,7 @@ void TkButton::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent (or group) type");
+		s->Error("bad parent (or group) type");
 		return;
 		}
 
@@ -3372,7 +3320,7 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -3576,7 +3524,7 @@ void TkText::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -3817,7 +3765,7 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -3967,7 +3915,7 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -4174,7 +4122,7 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -4329,7 +4277,7 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 
@@ -4527,7 +4475,7 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 	else
 		{
 		SETDONE
-		global_store->Error("bad parent type");
+		s->Error("bad parent type");
 		return;
 		}
 

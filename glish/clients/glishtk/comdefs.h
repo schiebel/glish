@@ -68,10 +68,10 @@
 				var##_v_ ->Length() > 0 )		\
 	double var = var##_v_ ->DoubleVal();
 
-#define EXPRINIT(EVENT)							\
+#define EXPRINIT(proxy,EVENT)						\
 	if ( args->Type() != TYPE_RECORD )				\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 									\
@@ -80,29 +80,29 @@
 	int c = 0;							\
 	const char *key;
 
-#define EXPRVAL(var,EVENT)						\
+#define EXPRVAL(proxy, var,EVENT)					\
 	const Value *var = rptr->NthEntry( c++, key );			\
 	if ( ! var )							\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);			\
 		return 0;						\
 		}
 
-#define EXPRSTRVALXX(var,EVENT,LINE)					\
+#define EXPRSTRVALXX(proxy,var,EVENT,LINE)				\
 	const Value *var = rptr->NthEntry( c++, key );			\
 	LINE								\
 	if ( ! var || var ->Type() != TYPE_STRING ||			\
 		var->Length() <= 0 )					\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);			\
 		return 0;						\
 		}
 
-#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,)
+#define EXPRSTRVAL(proxy,var,EVENT) EXPRSTRVALXX(proxy,var,EVENT,)
 
-#define EXPRSTR(var,EVENT)						\
+#define EXPRSTR(proxy, var,EVENT)					\
 	charptr var = 0;						\
-	EXPRSTRVALXX(var##_val_, EVENT,)				\
+	EXPRSTRVALXX(proxy, var##_val_, EVENT,)				\
 	var = ( var##_val_ ->StringPtr(0) )[0];
 
 #define EXPRDIM(var,EVENT)						\
@@ -125,29 +125,29 @@
 			var = var##_char_;				\
 			}
 
-#define EXPRINTVALXX(var,EVENT,LINE)                                    \
-        const Value *var = rptr->NthEntry( c++, key );			\
-        LINE                                                            \
-        if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )      \
-                {                                                       \
-                global_store->Error("bad value: %s", EVENT);            \
-                return 0;                                   		\
-                }
+#define EXPRINTVALXX(proxy,var,EVENT,LINE)				\
+	const Value *var = rptr->NthEntry( c++, key );			\
+	LINE								\
+	if ( ! var || ! var ->IsNumeric() || var ->Length() <= 0 )	\
+		{							\
+		proxy->Error("bad value: %s", EVENT);		\
+		return 0;						\
+		}
 
-#define EXPRINTVAL(var,EVENT)  EXPRINTVALXX(var,EVENT, const Value *var##_val_ = var;)
+#define EXPRINTVAL(proxy,var,EVENT)  EXPRINTVALXX(proxy,var,EVENT, const Value *var##_val_ = var;)
 
-#define EXPRINT(var,EVENT)                                              \
-        int var = 0;                                                    \
-	EXPRINTVALXX(var##_val_,EVENT,)                                 \
-        var = var##_val_ ->IntVal();
+#define EXPRINT(proxy,var,EVENT)					\
+	int var = 0;							\
+	EXPRINTVALXX(proxy,var##_val_,EVENT,)				\
+	var = var##_val_ ->IntVal();
 
-#define EXPRINT2(var,EVENT)						\
+#define EXPRINT2(proxy,var,EVENT)					\
 	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
         char var##_char_[30];						\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
 		{							\
-		global_store->Error("bad value: %s", EVENT);		\
+		proxy->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}							\
 	if ( var##_val_ -> IsNumeric() )				\
@@ -160,7 +160,7 @@
 		var = ( var##_val_ ->StringPtr(0) )[0];			\
 	else								\
 		{							\
-		global_store->Error("bad type: %s", EVENT);		\
+		proxy->Error("bad type: %s", EVENT);			\
 		return 0;						\
 		}
 
@@ -213,11 +213,11 @@
 
 #define EXPR_DONE(var)
 
-#define HASARG( args, cond )						\
-	if ( ! (args->Length() cond) )					\
-		{							\
-		global_store->Error("wrong number of arguments");	\
-		return 0;						\
+#define HASARG( proxy, args, cond )				\
+	if ( ! (args->Length() cond) )				\
+		{						\
+		proxy->Error("wrong number of arguments");	\
+		return 0;					\
 		}
 
 #define DEFINE_DTOR(CLASS,FREE)				\

@@ -2703,10 +2703,10 @@ extern "C" int Gpgplot_Init(Tcl_Interp *tcl)
 	// isn't available everywhere, but this seems to work...
 	//
 	putenv("PGPLOT_BUFFER=");
-	GlishTk_Register( "pgplot", TkPgplot::Create );
+	TkProxy::Register( "pgplot", TkPgplot::Create );
 	Tkpgplot_Init(tcl);
 	return TCL_OK;
 	}
 
 extern "C" int grexec_();
-void *grexec__ = grexec_;
+void *grexec__ = (void*) grexec_;

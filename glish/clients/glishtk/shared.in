@@ -15,6 +15,7 @@ LABEL = @SLIB_LABEL@libglishtk$(GSUFFIX)
 #FI
 
 TK_LIB = @TK_LIB@
+LIBS = @TK_LD_RPATH@ @TKCLIENT_LIBS@ $(TK_LIB) @LIBS@
 
 CPLUS = @CXX@
 INSTALL = @INSTALL@
@@ -51,9 +52,10 @@ XINC = @XINCLUDES@
 
 INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 
-OBJS = tkProxy.o
+OBJS = tkProxy.o tkUtil.o
+LOBJS = GlishTk.o tkCore.o tkCanvas.o
 
-all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX) $(LIBDIR_P)/GlishTk$(SUFFIX)
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -61,7 +63,7 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX)
+install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX)
 
 libglishtk$(GSUFFIX): $(OBJS)
 	rm -f libglishtk$(GSUFFIX)
@@ -75,8 +77,31 @@ $(LIBDIR)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
 	$(INSTALL_LIBRARY) libglishtk$(GSUFFIX) $(LIBDIR)
 
+GlishTk$(SUFFIX): $(LOBJS)
+	$(MK_LIB) GlishTk$(SUFFIX) $(LOBJS) $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100
+
+$(LIBDIR_P)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) GlishTk$(SUFFIX) $(LIBDIR_P)
+
+$(LIBDIR)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_LIBRARY) GlishTk$(SUFFIX) $(LIBDIR)
+
+tkUtil.o: $(SRC)/tkUtil.cc $(SRC)/tkUtil.h $(H)/glishtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkUtil.cc
+
 tkProxy.o: $(SRC)/tkProxy.cc $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkProxy.cc
+
+GlishTk.o: $(SRC)/GlishTk.cc $(SRC)/tkCore.h $(SRC)/tkCanvas.h $(H)/glishtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/GlishTk.cc
+
+tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
+
+tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(H)/glishtk.h $(SRC)/comdefs.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

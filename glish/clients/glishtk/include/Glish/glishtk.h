@@ -21,6 +21,8 @@ class TkProxy;
 class TkCanvas;
 class TkFrame;
 
+typedef void (*WidgetCtor)( ProxyStore *, Value * );
+
 glish_declare(PDict,char);
 typedef PDict(char) name_hash;
 
@@ -62,7 +64,10 @@ typedef Value *(*TkStrToValProc)( char * );
 class glishtk_event;
 glish_declare(PQueue,glishtk_event);
 
+extern "C" void GlishTk_init( ProxyStore * );
+
 class TkProxy : public Proxy {
+    friend void GlishTk_init( ProxyStore * );    
     public:
 	TkProxy( ProxyStore *s, int init_graphic=1 );
 	~TkProxy();
@@ -129,7 +134,12 @@ class TkProxy : public Proxy {
 	// locate the bitmap file
 	char *which_bitmap( const char * );
 
+	static void Register( const char *, WidgetCtor );
+
     protected:
+	static void set_global_store( ProxyStore *);
+	static ProxyStore *global_store;
+
 	void do_pack( int argc, char **argv);
 
 	static const char *init_tk( int visible_root=1 );
@@ -231,10 +241,7 @@ class TkFrame : public TkProxy {
 	unsigned long id;
 };
 	
-typedef void (*WidgetCtor)( ProxyStore *, Value * );
-extern void GlishTk_Register( const char *, WidgetCtor );
-
-extern void *glishtk_log_to_file( FILE *, const char *, ... );
+extern void glishtk_log_to_file( FILE *, const char *, ... );
 inline int tcl_VarEval( TkProxy *proxy,
 			const char *a, const char *b )
 	{

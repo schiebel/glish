@@ -14,7 +14,7 @@ RCSID("@(#) $Id$")
 #include "comdefs.h"
 
 typedef Dict(int) color_list;
-extern ProxyStore *global_store;
+ProxyStore *TkProxy::global_store = 0;
 
 int TkProxy::root_unmapped = 0;
 Tk_Window TkProxy::root = 0;
@@ -122,7 +122,7 @@ int tcl_ArgEval( TkProxy *proxy, int argc, char *argv[] )
 	return Tcl_Eval( proxy->Interp(), buf );
 	}
 
-void *glishtk_log_to_file( FILE *fle, const char *str, ... )
+void glishtk_log_to_file( FILE *fle, const char *str, ... )
 	{
 	if ( fle )
 		{
@@ -305,6 +305,11 @@ int glishtk_xerror_handler(Display *d, XErrorEvent*e)
 		(*glishtk_dflt_xerror_handler)(d,e);
 	exit(1);
 	return 1;
+	}
+
+void TkProxy::set_global_store( ProxyStore *store )
+	{
+	global_store = store;
 	}
 
 const char *TkProxy::init_tk( int visible_root )
@@ -908,7 +913,7 @@ char *glishtk_scrolled_update(TkProxy *proxy, const char *, Value *val )
 	return 0;
 	}
 
-void GlishTk_Register( const char *str, WidgetCtor ctor )
+void TkProxy::Register( const char *str, WidgetCtor ctor )
 	{
 	if ( global_store )
 		global_store->Register( str, ctor );

@@ -9,12 +9,11 @@
 #include "Glish/Queue.h"
 #include "config.h"
 #include "Glish/glishtk.h"
+#include "tkUtil.h"
 
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
 extern Value *glishtk_splitnl( char * );
-// turn the string into a value
-extern Value *glishtk_str( char * );
 // Split a string up into an array of ints with each space character
 extern Value *glishtk_splitsp_int( char * );
 // Split a string up into an array of strings with each space character
@@ -24,8 +23,6 @@ extern Value *glishtk_splitsp_str( char * );
 
 //###  Functions for Invoking Tk Commands For Callbacks
 extern char *glishtk_nostr(TkProxy *proxy, const char *cmd, Value *args);
-extern char *glishtk_onestr(TkProxy *proxy, const char *cmd, Value *args);
-extern char *glishtk_onedim(TkProxy *proxy, const char *cmd, Value *args);
 extern char *glishtk_oneint(TkProxy *proxy, const char *cmd, Value *args);
 extern char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue,
 			       const char *pfalse, Value *args);
@@ -38,8 +35,6 @@ extern char *glishtk_strwithidx(TkProxy *, const char *cmd, const char *param,
 						Value *args);
 extern char *glishtk_no2str(TkProxy *, const char *cmd, const char *param,
 						Value *args);
-
-extern Value *glishtk_strtoint( char *str );
 
 extern char *glishtk_scrollbar_update(TkProxy *, const char *cmd, Value *args);
 

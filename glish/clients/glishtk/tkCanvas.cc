@@ -14,8 +14,6 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include "comdefs.h"
 
-extern ProxyStore *global_store;
-
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%x%s%x",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
 
@@ -104,11 +102,11 @@ char *glishtk_oneintlist_query(TkProxy *proxy, const char *cmd, int howmany, Val
 			buf = (char *) realloc_memory(buf, len * sizeof(char) * 128);
 			}
 
-		EXPRINIT( event_name)
+		EXPRINIT( proxy, event_name )
 		buf[0] = '\0';
 		for ( int x=0; x < howmany; x++ )
 			{
-			EXPRINT( v, event_name )
+			EXPRINT( proxy, v, event_name )
 			sprintf(elem,"%d ",v);
 			strcat(buf,elem);
 			EXPR_DONE( v )
@@ -129,7 +127,7 @@ char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value
 
 	if ( args->Type() == TYPE_RECORD )
 		{
-		HASARG( args, > 1 )
+		HASARG( proxy, args, > 1 )
 		int len = args->Length() < howmany ? args->Length() : howmany;
 		CANVAS_FUNC_REALLOC(len+2)
 		static char buff[128];
@@ -137,10 +135,10 @@ char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value
 
 		Argv[argc++] = Tk_PathName(proxy->Self( ));
 		Argv[argc++] = (char*) cmd;
-		EXPRINIT( event_name)
+		EXPRINIT( proxy, event_name )
 		for ( int i=0; i < len; i++ )
 			{
-			EXPRINT( v, event_name )
+			EXPRINT( proxy, v, event_name )
 			sprintf(buff,"%d",v);
 			Argv[argc++] = strdup(buff);
 			EXPR_DONE( v )
@@ -166,14 +164,14 @@ char *glishtk_canvas_tagfunc(TkProxy *proxy, const char *cmd, const char *subcmd
 				int howmany, Value *args )
 	{
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		proxy->Error("zero length value");
 	if ( args->Type() == TYPE_RECORD && args->Length() >= howmany )
 		{
 		recordptr rptr = args->RecordPtr(0);
 		const Value *strv = rptr->NthEntry( 0 );
 		if ( strv->Type() != TYPE_STRING )
 			{
-			global_store->Error("wrong type, string expected for argument 1");
+			proxy->Error("wrong type, string expected for argument 1");
 			return 0;
 			}
 		const char *str = strv->StringPtr(0)[0];
@@ -218,12 +216,12 @@ if ( tagstr_cnt ) { strcat(tagstr, " "); tagstr_cnt++; }		\
 strcat(tagstr, STR);							\
 tagstr_cnt += strlen(STR);
 
-#define POINTFUNC_NAMED_ACTION				 		\
+#define POINTFUNC_NAMED_ACTION(proxy)			 		\
 									\
 if ( ! val || val ->Type() != TYPE_STRING ||				\
 	val->Length() <= 0 )						\
 	{								\
-	global_store->Error("bad value: one string + n int function");	\
+	proxy->Error("bad value: one string + n int function");		\
 	return 0;							\
 	}								\
 									\
@@ -249,7 +247,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 	int rows;
 	char *event_name = "one string + n int function";
 	TkCanvas *agent = (TkCanvas*)agent_;
-	HASARG( args, > 0 )
+	HASARG( agent_, args, > 0 )
 	static char tag[256];
 	static int tagstr_len = 512;
 	static char *tagstr = (char*) alloc_memory( sizeof(char)*tagstr_len );
@@ -258,9 +256,9 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 
 	tagstr[0] = '{';
 	tagstr[1] = '\0';
-	EXPRINIT( event_name)
+	EXPRINIT( agent_, event_name )
 	int elements = 0;
-	EXPRVAL(val,event_name)
+	EXPRVAL(agent_,val,event_name)
 	int argc = 3;
 	const Value *shape_val = val->ExistingAttribute( "shape" );
 	if ( (shape_val == false_value || shape_val->Length() == 1 || 
@@ -272,10 +270,10 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 
 		for (int i = 0; i < (*args).Length(); i++)
 			{
-			EXPRVAL(val,event_name)
+			EXPRVAL(agent_,val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
-				POINTFUNC_NAMED_ACTION
+				POINTFUNC_NAMED_ACTION(agent_)
 				}
 			else
 				{
@@ -283,7 +281,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 				charptr str = 0;
 				if ( ! val || val->Length() <= 0 )
 					{
-					global_store->Error("bad value: one string + n int function");
+					agent_->Error("bad value: one string + n int function");
 					return 0;
 					}
 
@@ -297,7 +295,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 					str = ( val->StringPtr(0) )[0];
 				else
 					{
-					global_store->Error("bad value: one string + n int function");
+					agent_->Error("bad value: one string + n int function");
 					return 0;
 					}
 				Argv[argc++] = strdup(str);
@@ -325,10 +323,10 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
-			EXPRVAL(val,event_name)
+			EXPRVAL(agent_,val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
-				POINTFUNC_NAMED_ACTION
+				POINTFUNC_NAMED_ACTION(agent_)
 				}
 			else
 				c++;
@@ -350,10 +348,10 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
 			{
-			EXPRVAL(val,event_name)
+			EXPRVAL(agent_,val,event_name)
 			if ( strncmp( key, "arg", 3 ) )
 				{
-				POINTFUNC_NAMED_ACTION
+				POINTFUNC_NAMED_ACTION(agent_)
 				}
 			else
 				c++;
@@ -606,12 +604,12 @@ char *glishtk_canvas_delete(TkProxy *proxy, const char *, Value *args )
 char *glishtk_canvas_move(TkProxy *proxy, const char *, Value *args )
 	{
 	char *event_name = "canvas move function";
-	EXPRINIT( event_name)
+	EXPRINIT( proxy, event_name )
 	if ( args->Length() >= 3 )
 		{
-		EXPRSTR( tag, event_name )
-		EXPRINT2( xshift, event_name )
-		EXPRINT2( yshift, event_name )
+		EXPRSTR( proxy, tag, event_name )
+		EXPRINT2( proxy, xshift, event_name )
+		EXPRINT2( proxy, yshift, event_name )
 		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " move ", tag, SP, xshift, SP, yshift, (char *)NULL );
 		EXPR_DONE( yshift )
 		EXPR_DONE( xshift )
@@ -619,8 +617,8 @@ char *glishtk_canvas_move(TkProxy *proxy, const char *, Value *args )
 		}
 	else if ( args->Length() >= 2 )
 		{
-		EXPRSTR( tag, event_name )
-		EXPRVAL( off,event_name)
+		EXPRSTR( proxy, tag, event_name )
+		EXPRVAL( proxy, off, event_name )
 		char xshift[128];
 		char yshift[128];
 		if ( off->IsNumeric() && off->Length() >= 2 )
@@ -743,14 +741,14 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	{
 	static glishtk_canvas_bindtable table;
 	char *event_name = "canvas bind function";
-	EXPRINIT( event_name)
+	EXPRINIT( agent, event_name )
 
 	if ( args->Length() >= 3 )
 		{
 		glishtk_canvas_bindlist *list = 0;
-		EXPRSTR( tag, event_name )
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
+		EXPRSTR( agent, tag, event_name )
+		EXPRSTR( agent, button, event_name )
+		EXPRSTR( agent, event, event_name )
 
 		tcl_VarEval( agent, Tk_PathName(agent->Self()), " bind ", tag, SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
@@ -796,8 +794,8 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 	else if ( args->Length() >= 2 )
 		{
 		glishtk_canvas_bindlist *list = 0;
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
+		EXPRSTR( agent, button, event_name )
+		EXPRSTR( agent, event, event_name )
 
 		tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
@@ -921,9 +919,9 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 
 	else if ( args->Type() == TYPE_RECORD && args->Length() >= 2 ) 
 		{
-		EXPRINIT( event_name)
-		EXPRSTR( tag, event_name )
-		EXPRSTR( name, event_name )
+		EXPRINIT( agent, event_name )
+		EXPRSTR( agent, tag, event_name )
+		EXPRSTR( agent, name, event_name )
 
 		tcl_VarEval( agent, Tk_PathName(agent->Self()),
 			     " bind ", tag, SP, name, (char *)NULL );
@@ -977,13 +975,13 @@ char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
 	char *event_name = "canvas bind function";
 	TkCanvas *canvas = (TkCanvas*)agent;
 	static char tag[256];
-	EXPRINIT( event_name)
-	HASARG( args, >= 2 )
+	EXPRINIT( agent, event_name )
+	HASARG( agent, args, >= 2 )
 
 	GENERATE_TAG(tag,canvas,"frame")
 
-	EXPRINT2( x, event_name )
-	EXPRINT2( y, event_name )
+	EXPRINT2( agent, x, event_name )
+	EXPRINT2( agent, y, event_name )
 	TkFrame *frame = new TkFrameP(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
 	tcl_VarEval( agent, Tk_PathName(canvas->Self()), " create window ", x, SP, y, " -anchor nw -tag ", tag,
 		     " -window ", Tk_PathName(frame->Self()), (char *)NULL );
