@@ -411,6 +411,30 @@ int ConstExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	}
 
 
+RegExpr::~RegExpr()
+	{
+	if ( match ) free_memory(match);
+	if ( subst ) free_memory(subst);
+	}
+
+RegExpr::RegExpr( char *match_, char *subst_ = 0 ) : Expr("regex"), 
+					match(match_), subst(subst_) { }
+
+IValue* RegExpr::Eval( eval_type )
+	{
+	charptr *ret = (charptr*) alloc_memory( sizeof(charptr) * 2 );
+	ret[0] = strdup(match ? match : "");
+	ret[1] = strdup(subst ? subst : "");
+	return new IValue( ret, 2 );
+	}
+
+int RegExpr::DescribeSelf( OStream &s, charptr prefix ) const
+	{
+	s << prefix << "regex: " << (match ? match : "X") << " : " << (subst ? subst : "X") << endl;
+	return 1;
+	}
+
+
 FuncExpr::~FuncExpr()
 	{
 	Unref(func);

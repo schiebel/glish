@@ -153,9 +153,11 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX
 
-	static int is_double_quote;
+	static int is_double_quote = 0;
+	static int is_match_regex = 0;
+	static char *match_regex_portion = 0;
 
 
 ID	[A-Za-z_][A-Za-z0-9_]*
@@ -333,6 +335,27 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
+[ms]!		{
+		clear_literal();
+		is_match_regex = yytext[0] == 'm';
+		match_regex_portion = 0;
+		BEGIN(REGEX);
+		break;
+		}
+		
+<REGEX>[^\n\\!]+			literal( yytext ); break;
+<QUOTE,ATTR_QUOTE>[^'"\n\\]+		literal( yytext ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\f"		literal( "\f" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\v"		literal( "\v" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\e"		{ char escape[2] = { '\x01b', '\0' };
+					  literal( escape ); break; }
+<QUOTE,REGEX,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
+<QUOTE,REGEX,ATTR_QUOTE>"\\".		literal( &yytext[1] ); break;
+
 <ATTR>"["	{
 		BEGIN(INITIAL);
 		return yytext[0];
@@ -344,18 +367,6 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		BEGIN(ATTR_QUOTE);
 		break;
 		}
-
-<QUOTE,ATTR_QUOTE>[^'"\n\\]+	literal( yytext ); break;
-<QUOTE,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
-<QUOTE,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
-<QUOTE,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
-<QUOTE,ATTR_QUOTE>"\\f"		literal( "\f" ); break;
-<QUOTE,ATTR_QUOTE>"\\v"		literal( "\v" ); break;
-<QUOTE,ATTR_QUOTE>"\\e"		{ char escape[2] = { '\x01b', '\0' };
-				  literal( escape ); break; }
-<QUOTE,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
-<QUOTE,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
-<QUOTE,ATTR_QUOTE>"\\".		literal( &yytext[1] ); break;
 
 <QUOTE>\"	|
 <QUOTE>\'	{
@@ -403,7 +414,25 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<QUOTE,ATTR_QUOTE>\n	{
+<REGEX>!	{
+		if ( is_match_regex || match_regex_portion )
+			{
+			statement_can_end = 1;
+			YYLVAL(expr) = is_match_regex ? new RegExpr( strdup(literal()) ) :
+					new RegExpr( match_regex_portion, strdup(literal()) );
+			BEGIN(INITIAL);
+			return TOK_REGEX;
+			}
+		else
+			{
+			match_regex_portion = strdup(literal());
+			clear_literal();
+			break;
+			}
+		}
+
+
+<QUOTE,REGEX,ATTR_QUOTE>\n	{
 		error->Report( "unmatched quote (",
 				is_double_quote ? "\"" : "'", ")" );
 		++line_num;

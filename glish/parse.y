@@ -8,7 +8,7 @@
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
 %token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
 %token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
-%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
+%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE TOK_REGEX
 %token TOK_FLEX_ERROR
 %token NULL_TOK
 
@@ -29,7 +29,7 @@
 %type <ival> TOK_ACTIVATE TOK_ASSIGN
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
-%type <expr> TOK_CONSTANT expression var function formal_param_default
+%type <expr> TOK_CONSTANT expression var function formal_param_default TOK_REGEX
 %type <expr> scoped_expr opt_scoped_expr stand_alone_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
@@ -411,6 +411,8 @@ expression:
 	|	var
 
 	|	TOK_CONSTANT
+
+	|	TOK_REGEX
 
 	|	TOK_FLEX_ERROR
 			{
