@@ -11,8 +11,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Glish/Complex.h"
 
-extern void glish_fpe_enter( );
-extern int glish_fpe_exit( );
+#include "glishlib.h"
 
 static char *add_fpe_errmsg = "addition FPE occurred";
 static char *sub_fpe_errmsg = "subtraction FPE occurred";

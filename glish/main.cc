@@ -187,8 +187,8 @@ DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL,DUMP_CORE)
 #ifdef SIGEMT
 DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT,DUMP_CORE)
-DEFINE_SIG_FWD(glish_sigfpe_die,"floating point exception",SIGFPE,DUMP_CORE)
 #endif
+DEFINE_SIG_FWD(glish_sigfpe_die,"floating point exception",SIGFPE,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP,DUMP_CORE)
 #ifdef SIGSYS
 DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS,DUMP_CORE)
@@ -490,9 +490,27 @@ static void glish_dump_core( const char *file )
 
 
 static int sigfpe_trap = 0;
+static union { void (*f)(float*,float*); void (*d)(double*,double*); } sigfpe_func;
+static union { byte *b; short *s; int *i;
+	       float *f; double *d; } sigfpe_array[2];
+static enum { FLOAT, DOUBLE, SITONHANDS } sigfpe_type;
+
+#define FPE_SETVAL							\
+	switch ( sigfpe_type )						\
+		{							\
+	    case SITONHANDS: break;					\
+	    case DOUBLE:						\
+		(*sigfpe_func.d)(sigfpe_array[0].d, sigfpe_array[1].d);	\
+		break;							\
+	    case FLOAT:							\
+		(*sigfpe_func.f)(sigfpe_array[0].f, sigfpe_array[1].f);	\
+		break;							\
+		}
+
 void glish_sigfpe_recover( )
 	{
 	sigfpe_trap = 1;
+	FPE_SETVAL
 	(void) install_signal_handler( SIGFPE, (signal_handler) SIG_IGN );
 	unblock_signal(SIGFPE);
 	}
@@ -501,6 +519,7 @@ void glish_sigfpe_recover( )
 void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
 	{
 	sigfpe_trap = 1;
+	FPE_SETVAL
 	/*
 	**  Increment program counter; ieee_handler does this by
 	**  default, but here we have to use sigfpe() to set up the
@@ -511,9 +530,37 @@ void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
 #endif
 
 
+#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+#define DEFINE_FPE_ENTER( type, item, T )				\
+void glish_fpe_enter( type *lhs, type *rhs, void (*func)(type*,type*) )	\
+	{								\
+	sigfpe_trap = 0;						\
+	sigfpe_array[0].item = lhs;					\
+	sigfpe_array[1].item = rhs;					\
+	sigfpe_func.item = func;					\
+	sigfpe_type = T;						\
+	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);			\
+	}
+#else
+#define DEFINE_FPE_ENTER( type, item, T )				\
+void glish_fpe_enter( type *lhs, type *rhs, void (*func)(type*,type*) )	\
+	{								\
+	sigfpe_trap = 0;						\
+	sigfpe_array[0].item = lhs;					\
+	sigfpe_array[1].item = rhs;					\
+	sigfpe_func.item = func;					\
+	sigfpe_type = T;						\
+	(void) install_signal_handler( SIGFPE, glish_sigfpe_recover );	\
+	}
+#endif
+
+DEFINE_FPE_ENTER( float, f, FLOAT )
+DEFINE_FPE_ENTER( double, d, DOUBLE )
+
 void glish_fpe_enter( )
 	{
 	sigfpe_trap = 0;
+	sigfpe_type = SITONHANDS;
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);
 #else

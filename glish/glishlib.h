@@ -3,6 +3,7 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef glishlib_h
 #define glishlib_h
+#include "Glish/glish.h"
 
 #define DEFINE_CREATE_VALUE(type)						\
 	Value *create_value( )							\
@@ -80,5 +81,10 @@
 		{ return new type( value_ref ); }				\
 	Value *create_value( charptrref& value_ref )				\
 		{ return new type( value_ref ); }
+
+void glish_fpe_enter( float *lhs, float *rhs, void (*)(float*,float*) );
+void glish_fpe_enter( double *lhs, double *rhs, void (*)(double*,double*) );
+void glish_fpe_enter( );
+int glish_fpe_exit( );
 
 #endif	/* glishlib_h */
