@@ -1238,6 +1238,57 @@ Value* as_string_built_in( const Value* arg )
 	int i;
 	char buf[256];
 
+#define COMMA_SEPARATED_SERIES(x,y) x,y
+#define COERCE_XXX_TO_STRING_FP_FORMAT(DFLT)			\
+	const char *fmt = print_decimal_prec( arg->AttributePtr(), DFLT);
+#define COERCE_XXX_TO_STRING_CPX_FORMAT(DFLT)			\
+	char fmt_plus[40];					\
+	char fmt_minus[40];					\
+	const char *fmt = print_decimal_prec( arg->AttributePtr(), DFLT); \
+	strcpy(fmt_plus,fmt);					\
+	strcat(fmt_plus,"+");					\
+	strcat(fmt_plus,fmt);					\
+	strcpy(fmt_minus,fmt);					\
+	strcat(fmt_minus,fmt);
+#define COERCE_XXX_TO_STRING_SUBVECREF_XLATE			\
+	int err;						\
+	int index = ref->TranslateIndex( i, &err );		\
+	if ( err )						\
+		{						\
+		error->Report( "invalid sub-vector" );		\
+		delete result;					\
+		return error_value();			\
+		}
+#define COERCE_XXX_TO_STRING(tag,type,accessor,format,INDX,rest,XLATE,FORMAT)	\
+	case tag:							\
+		{							\
+		type* vals = arg->accessor();				\
+		FORMAT							\
+		for ( i = 0; i < len; ++i )				\
+			{						\
+			XLATE						\
+			sprintf( buf, format, vals[INDX] rest );	\
+			result[i] = strdup( buf );			\
+			}						\
+		}							\
+		break;
+
+#define AS_STRING_ACTION(INDEX,XLATE)						\
+	COERCE_XXX_TO_STRING(TYPE_SHORT,short,ShortPtr,"%d",INDEX,,XLATE,)	\
+	COERCE_XXX_TO_STRING(TYPE_INT,int,IntPtr,"%d",INDEX,,XLATE,)		\
+	COERCE_XXX_TO_STRING(TYPE_FLOAT,float,FloatPtr,fmt,INDEX,,XLATE,	\
+			COERCE_XXX_TO_STRING_FP_FORMAT("%.6g"))			\
+	COERCE_XXX_TO_STRING(TYPE_DOUBLE,double,DoublePtr,fmt,INDEX,,XLATE,	\
+			COERCE_XXX_TO_STRING_FP_FORMAT("%.12g"))		\
+	COERCE_XXX_TO_STRING(TYPE_COMPLEX,complex,ComplexPtr,		  	\
+		(vals[i].i>=0.0?fmt_plus:fmt_minus),INDEX,			\
+		COMMA_SEPARATED_SERIES(.r,vals[i].i),XLATE,			\
+			COERCE_XXX_TO_STRING_CPX_FORMAT("%.6g"))		\
+	COERCE_XXX_TO_STRING(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,		\
+		(vals[i].i>=0.0?fmt_plus:fmt_minus),INDEX,			\
+		COMMA_SEPARATED_SERIES(.r,vals[i].i),XLATE,			\
+			COERCE_XXX_TO_STRING_CPX_FORMAT("%.12g"))
+
 	switch ( arg->Type() )
 		{
 		case TYPE_BOOL:
@@ -1248,25 +1299,34 @@ Value* as_string_built_in( const Value* arg )
 			}
 			break;
 
-#define COMMA_SEPARATED_SERIES(x,y) x,y
-#define COERCE_XXX_TO_STRING(tag,type,accessor,format,rest)		\
-	case tag:							\
-		{							\
-		type* vals = arg->accessor();				\
-		for ( i = 0; i < len; ++i )				\
-			{						\
-			sprintf( buf, format, vals[i] rest );		\
-			result[i] = strdup( buf );			\
-			}						\
-		}							\
-		break;
 
-		COERCE_XXX_TO_STRING(TYPE_SHORT,short,ShortPtr,"%d",)
-		COERCE_XXX_TO_STRING(TYPE_INT,int,IntPtr,"%d",)
-		COERCE_XXX_TO_STRING(TYPE_FLOAT,float,FloatPtr,"%.6g",)
-		COERCE_XXX_TO_STRING(TYPE_DOUBLE,double,DoublePtr,"%.12g",)
-		COERCE_XXX_TO_STRING(TYPE_COMPLEX,complex,ComplexPtr,(vals[i].i>=0.0?"%.6g+%.6g":"%.6g%.6g"),COMMA_SEPARATED_SERIES(.r,vals[i].i))
-		COERCE_XXX_TO_STRING(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,(vals[i].i>=0.0?"%.12g+%.12g":"%.12g%.12g"),COMMA_SEPARATED_SERIES(.r,vals[i].i))
+		AS_STRING_ACTION(i,)
+
+		case TYPE_SUBVEC_REF:
+		case TYPE_SUBVEC_CONST:
+			{
+			VecRef* ref = arg->VecRefPtr();
+			switch ( ref->Type() )
+				{
+				case TYPE_BOOL:
+					{
+					glish_bool* vals = arg->BoolPtr();
+					for ( i = 0; i < len; ++i )
+						{
+						COERCE_XXX_TO_STRING_SUBVECREF_XLATE
+						result[i] = strdup( vals[index] ? "T" : "F" );
+						}
+					}
+					break;
+
+
+				AS_STRING_ACTION(index,COERCE_XXX_TO_STRING_SUBVECREF_XLATE)
+
+				default:
+					fatal->Report( "bad type tag in as_string()" );
+				}
+			}
+			break;
 
 		default:
 			fatal->Report( "bad type tag in as_string()" );

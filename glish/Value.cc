@@ -711,7 +711,7 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 	buf_ptr += size_of_addition;
 	}
 
-static const char *print_decimal_prec( const attributeptr attr )
+const char *print_decimal_prec( const attributeptr attr, const char *default_fmt )
 	{
 	unsigned int limit = 0, tmp = 0;
 	const Value *val;
@@ -732,7 +732,7 @@ static const char *print_decimal_prec( const attributeptr attr )
 	if ( limit )
 		sprintf(prec,"%%.%df",limit);
 
-	return limit ? prec : "%g";
+	return limit ? prec : default_fmt;
 	}
 
 char* Value::StringVal( char sep, unsigned int max_elements,
@@ -846,10 +846,11 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		{							\
 		char t[64];						\
 		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].r );	\
-		strcat( buffer, t);					\
+		strcpy( buffer, t);					\
 		if ( complex_ptr[indx].i >= 0.0 ) 			\
 			strcat( buffer, "+" );				\
 		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].i );	\
+		strcat( t, "i");					\
 		strcat( buffer, t);					\
 		}							\
 		break;							\
@@ -858,10 +859,11 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		{							\
 		char t[64];						\
 		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].r );	\
-		strcat( buffer, t);					\
+		strcpy( buffer, t);					\
 		if ( dcomplex_ptr[indx].i >= 0.0 ) 			\
 			strcat( buffer, "+" );				\
 		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].i );	\
+		strcat( t, "i");					\
 		strcat( buffer, t);					\
 		}							\
 		break;							\
