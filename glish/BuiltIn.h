@@ -150,6 +150,7 @@ DERIVE_SEQUENCER_BUILTIN(SymbolDeleteBuiltIn,1,"symbol_delete")
 
 DERIVE_SEQUENCER_BUILTIN(LastWheneverExecutedBuiltIn,0,"last_whenever_executed")
 DERIVE_SEQUENCER_BUILTIN(CurrentWheneverBuiltIn,0,"current_whenever")
+DERIVE_SEQUENCER_BUILTIN(EvalBuiltIn,NUM_ARGS_VARIES,"eval")
 
 
 extern char* paste( parameter_list* args );

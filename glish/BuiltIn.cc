@@ -1309,6 +1309,7 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 XBINDBUILTIN(CbindBuiltIn,0,1,1,1,off,off)
 XBINDBUILTIN(RbindBuiltIn,1,0,cols,shape[0],offset+shape[0],offset+1)
 
+
 IValue* IsConstBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
@@ -1790,6 +1791,30 @@ IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return new IValue( n->notifiee->stmt->Index() );
 	}
 
+IValue* EvalBuiltIn::DoCall( const_args_list* args_val )
+	{
+	int len = args_val->length();
+	IValue *result = 0;
+	if ( len )
+		{
+		char **lines = new char*[len+1];
+
+		loop_over_list( *args_val, i )
+			lines[i] = (*args_val)[i]->StringVal();
+		
+		lines[len] = 0;
+
+		result = sequencer->Eval( (const char **) lines );
+
+		for ( int j = 0; j < len; j++ )
+			delete lines[j];
+
+		delete lines;
+		}
+
+	return result ? result : error_ivalue();
+	}
+
 IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Stmt* s = sequencer->LastWheneverExecuted();
@@ -2247,6 +2272,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
+	s->AddBuiltIn( new EvalBuiltIn( s ) );
 
 	sds_init();
 

@@ -13,7 +13,14 @@
 #include "input.h"
 #include "y.tab.h"
 
+#if ! defined(YY_PURE_PARSER)
 extern YYSTYPE yylval;
+#define YYLVAL(x) yylval.x
+#else
+#define YYLVAL(x) yylval->x
+#define YY_DECL int yylex YY_PROTO(( YYSTYPE *yylval ))
+#endif
+
 extern Sequencer* current_sequencer;
 
 extern char* input_file_name;
@@ -64,27 +71,27 @@ static void new_file();
 #define RETURN_CONSTANT(value)					\
 	{							\
 	statement_can_end = 1;					\
-	yylval.expr = new ConstExpr( new IValue( value ) );	\
+	YYLVAL(expr) = new ConstExpr( new IValue( value ) );	\
 	return TOK_CONSTANT;					\
 	}
 
 #define RETURN_LAST_EVENT(type)					\
 	{							\
 	statement_can_end = 1;					\
-	yylval.event_type = type;				\
+	YYLVAL(event_type) = type;				\
 	return TOK_LAST_EVENT;					\
 	}
 
 #define RETURN_COMPOUND(type)					\
 	{							\
-	yylval.ival = type;					\
+	YYLVAL(ival) = type;					\
 	return TOK_ASSIGN;					\
 	}
 
 #define RETURN_ACTIVATE(is_activate)				\
 	{							\
 	statement_can_end = 1;					\
-	yylval.ival = is_activate;				\
+	YYLVAL(ival) = is_activate;				\
 	return TOK_ACTIVATE;					\
 	}
 
@@ -216,7 +223,7 @@ include		BEGIN(INCL); break;
 
 {ID}		{
 		statement_can_end = 1;
-		yylval.id = strdup( yytext );
+		YYLVAL(id) = strdup( yytext );
 		return TOK_ID;
 		}
 
@@ -226,7 +233,7 @@ include		BEGIN(INCL); break;
 
 		BEGIN(INITIAL);
 		statement_can_end = 1;
-		yylval.id = strdup( yytext );
+		YYLVAL(id) = strdup( yytext );
 		return TOK_ID;
 		}
 
@@ -282,7 +289,7 @@ include		BEGIN(INCL); break;
 			if ( is_double_quote )
 				{
 				statement_can_end = 1;
-				yylval.expr = new ConstExpr( isplit( literal ) );
+				YYLVAL(expr) = new ConstExpr( isplit( literal ) );
 				return TOK_CONSTANT;
 				}
 
@@ -303,7 +310,7 @@ include		BEGIN(INCL); break;
 			{
 			BEGIN(INITIAL);
 			statement_can_end = 1;
-			yylval.id = strdup( literal );
+			YYLVAL(id) = strdup( literal );
 			return TOK_ID;
 			}
 
@@ -530,4 +537,24 @@ void new_file()
 	first_line = 1;
 	bump_line_num = 0;
 	statement_can_end = 0;
+	}
+
+void *current_flex_buffer()
+	{
+	return YY_CURRENT_BUFFER;
+	}
+
+void *new_flex_buffer()
+	{
+	return yy_create_buffer(0,YY_BUF_SIZE);
+	}
+
+void set_flex_buffer(void *new_buf)
+	{
+	yy_switch_to_buffer((YY_BUFFER_STATE) new_buf);
+	}
+
+void delete_flex_buffer(void *old_buf)
+	{
+	yy_delete_buffer((YY_BUFFER_STATE) old_buf);
 	}

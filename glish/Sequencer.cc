@@ -537,8 +537,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 			}
 
 		// Prevent re-executing the .glishrc statements
-		NodeUnref( stmts );
-		stmts = null_stmt;
+		ClearStmt();
 
 		loop_over_list( *load_list, j )
 			Parse( (*load_list)[j] );
@@ -555,8 +554,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		Exec( 1 );
 
 		// Prevent re-executing the .glishrc statements
-		NodeUnref( stmts );
-		stmts = null_stmt;
+		ClearStmt();
 
 		Parse( argv[0] );
 		do_interactive = 0;
@@ -1233,6 +1231,16 @@ void Sequencer::AddStmt( Stmt* addl_stmt )
 	stmts = merge_stmts( stmts, addl_stmt );
 	}
 
+void Sequencer::ClearStmt( )
+	{
+	NodeUnref( stmts );
+	stmts = null_stmt;
+	}
+
+Stmt *Sequencer::GetStmt( )
+	{
+	return stmts;
+	}
 
 int Sequencer::RegisterStmt( Stmt* stmt )
 	{
@@ -1283,22 +1291,34 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 	}
 
 
-void Sequencer::Exec( int startup_script )
+IValue *Sequencer::Exec( int startup_script, int value_needed )
 	{
 	if ( interactive )
-		return;
+		return 0;
 
 	if ( error->Count() > 0 )
 		{
 		message->Report( "execution aborted" );
-		return;
+		return 0;
 		}
 
+	IValue *ret = 0;
+
 	stmt_flow_type flow;
-	Unref( stmts->Exec( 0, flow ) );
+	Stmt *cur_stmts = stmts;		// do this dance with stmts to
+	Ref(cur_stmts);				// prevent stmts from being freed
+						// or reassigned as part of an eval()
+	if ( value_needed )
+		ret = cur_stmts->Exec( 1, flow );
+	else
+		Unref( cur_stmts->Exec( 0, flow ) );
+
+	Unref(cur_stmts);
 
 	if ( ! startup_script )
 		EventLoop();
+
+	return ret;
 	}
 
 
@@ -1738,8 +1758,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// first execute any statements we've seen so far due
 		// to .glishrc files.
 		Exec( 1 );
-		NodeUnref( stmts );
-		stmts = null_stmt;
+		ClearStmt();
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -1750,8 +1769,9 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// Handle the .glishrc startup so that we can use any include
 		// path which might be specified in there.
 		Exec( 1 );
-		NodeUnref( stmts );
-		stmts = null_stmt;
+
+		ClearStmt();
+
 		interactive = 0;
 		}
 
@@ -1782,6 +1802,25 @@ void Sequencer::Parse( const char* strings[] )
 	Parse( 0, "glish internal initialization" );
 	}
 
+extern void *current_flex_buffer();
+extern void *new_flex_buffer();
+extern void delete_flex_buffer(void*);
+extern void set_flex_buffer(void*);
+IValue *Sequencer::Eval( const char* strings[] )
+	{
+	void *old_buf = current_flex_buffer();
+	void *new_buf = new_flex_buffer();
+	int is_interactive = interactive;
+	set_flex_buffer(new_buf);
+	ClearStmt();
+	scan_strings( strings );
+	Parse( 0, "glish eval" );
+	IValue *ret = Exec( 1, 1 );
+	set_flex_buffer(old_buf);
+	delete_flex_buffer(new_buf);
+	interactive = is_interactive;
+	return ret;
+	}
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	{

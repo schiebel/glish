@@ -49,13 +49,6 @@
 #pragma alloca
 #endif
 
-extern "C" {
-	int yyparse();
-	void yyerror( char msg[] );
-}
-
-extern int yylex();
-
 #include <string.h>
 #include <stdlib.h>
 #include <setjmp.h>
@@ -68,16 +61,6 @@ extern int yylex();
 #include "Sequencer.h"
 #include "Task.h"
 #include "input.h"
-
-/* Used for recovery after a ^C */
-extern jmp_buf glish_top_level;
-extern int glish_jmpbuf_set;
-
-Sequencer* current_sequencer = 0;
-int in_func_decl = 0;
-int current_whenever_index = -1;
-
-Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
 
 %union	{
@@ -94,62 +77,59 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 	value_type val_type;
 	int ival;
 	}
+
+%{
+extern "C" {
+	int yyparse();
+	void yyerror( char msg[] );
+}
+
+#if ! defined(YY_PURE_PARSER)
+extern int yylex();
+#else
+extern int yylex( YYSTYPE * );
+#endif
+
+/* Used for recovery after a ^C */
+extern jmp_buf glish_top_level;
+extern int glish_jmpbuf_set;
+
+Sequencer* current_sequencer = 0;
+int in_func_decl = 0;
+int current_whenever_index = -1;
+
+/* Communication of status between glish_parser() and yyparse() */
+static int status;
+
+Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
+%}
+
 %%
 
 
 glish:
-		glish statement
+		statement
 			{
-			if ( interactive )
-				{
-				const IValue *sys = Sequencer::LookupVal( "system" );
-				const IValue *dbgv;
-				const IValue *echov;
-				if ( sys && sys->Type() == TYPE_RECORD &&
-					sys->HasRecordElement( "debug" ) &&
-					(dbgv = (const IValue*)(sys->ExistingRecordElement( "debug" ))) &&
-					dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
-					dbgv->HasRecordElement( "echo" ) &&
-					(echov = (const IValue*)(dbgv->ExistingRecordElement("echo"))) &&
-					echov != false_value && echov->Type() == TYPE_BOOL &&
-					echov->BoolVal() == glish_true )
-					message->Report( "\te> ", $2 );
-
-				IValue *val = 0;
-				if ( setjmp(glish_top_level) == 0 )
-					{
-					glish_jmpbuf_set = 1;
-					stmt_flow_type flow;
-					val = $2->Exec( 1, flow );
-					if ( flow != FLOW_NEXT )
-						warn->Report("control flow (loop/break/return) ignored" );
-					}
-
-				glish_jmpbuf_set = 0;
-				NodeUnref( $2 );
-
-				if ( val )
-					{
-					message->Report( val );
-					Unref( val );
-					}
-
-				first_line = 1;
-				}
-			else
-				current_sequencer->AddStmt( $2 );
+			current_sequencer->AddStmt( $1 );
+			YYACCEPT;
 			}
 
-	|	glish error
+	|	error
 			{
+			status = 1;
 			if ( interactive )
 				{
 				// Try to throw away the rest of the line.
 				statement_can_end = 1;
 				first_line = 1;
 				}
+			YYACCEPT;
 			}
 	|
+			{
+			YYABORT;
+			}
+
 	;
 
 
@@ -841,7 +821,56 @@ void yyerror( char msg[] )
 
 int glish_parser()
 	{
-	return yyparse();
+	int ret;
+
+	status = 0;
+	while ( ! (ret = yyparse()) )
+		{
+		if ( interactive )
+			{
+			const IValue *sys = Sequencer::LookupVal( "system" );
+			const IValue *dbgv;
+			const IValue *echov;
+			Stmt *stmt = current_sequencer->GetStmt();
+			Ref(stmt);
+
+			if ( sys && sys->Type() == TYPE_RECORD &&
+			     sys->HasRecordElement( "debug" ) &&
+			     (dbgv = (const IValue*)(sys->ExistingRecordElement( "debug" ))) &&
+			     dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
+			     dbgv->HasRecordElement( "echo" ) &&
+			     (echov = (const IValue*)(dbgv->ExistingRecordElement("echo"))) &&
+			     echov != false_value && echov->Type() == TYPE_BOOL &&
+			     echov->BoolVal() == glish_true )
+				{
+				message->Report( "\te> ", stmt );
+				}
+
+			IValue *val = 0;
+			if ( setjmp(glish_top_level) == 0 )
+				{
+				glish_jmpbuf_set = 1;
+				stmt_flow_type flow;
+				val = stmt->Exec( 1, flow );
+				if ( flow != FLOW_NEXT )
+					warn->Report("control flow (loop/break/return) ignored" );
+				}
+
+			glish_jmpbuf_set = 0;
+			current_sequencer->ClearStmt();
+
+			if ( val )
+				{
+				message->Report( val );
+				Unref( val );
+				}
+
+			Unref(stmt);
+			first_line = 1;
+			}
+		}
+
+	return status;
 	}
 
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )

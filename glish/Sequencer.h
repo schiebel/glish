@@ -158,6 +158,8 @@ public:
 	void DeleteTask( Task* task );
 
 	void AddStmt( Stmt* addl_stmt );
+	void ClearStmt( );
+	Stmt *GetStmt( );
 
 	// Register a statement; this assigns it a unique index that
 	// can be used to retrieve the statement using LookupStmt().
@@ -175,7 +177,8 @@ public:
 	// sets "err" to a non-zero value if an error occurs
 	Channel* GetHostDaemon( const char* host, int &err );
 
-	void Exec( int startup_script = 0 );
+	IValue *Exec( int startup_script = 0, int value_needed = 0 );
+	IValue *Eval( const char* strings[] );
 
 	// Wait for an event in which await_stmt has expressed interest,
 	// though while waiting process any of the events in which
@@ -280,6 +283,7 @@ protected:
 	void Parse( FILE* file, const char* filename = 0 );
 	void Parse( const char file[] );
 	void Parse( const char* strings[] );
+
 	RemoteDaemon* CreateDaemon( const char* host );
 	// Sets err to a non-zero value if an error occurred
 	RemoteDaemon* OpenDaemonConnection( const char* host, int &err );
