@@ -567,6 +567,18 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, parameter_list *args,
 	return ret;
 	}
 
+char *glishtk_width(Rivetobj self, const char *cmd, parameter_list *args,
+				int, int )
+	{
+	return (char*) new IValue( Tk_Width(self->tkwin) );
+	}
+
+char *glishtk_height(Rivetobj self, const char *cmd, parameter_list *args,
+				int, int )
+	{
+	return (char*) new IValue( Tk_Height(self->tkwin) );
+	}
+
 char *glishtk_onedouble(Rivetobj self, const char *cmd, parameter_list *args,
 				int, int )
 	{
@@ -1637,6 +1649,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon ));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
+	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("height", new TkProc("", glishtk_height, glishtk_valcast));
+
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 
@@ -1713,6 +1728,9 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("unmap", new TkProc(this, "U", glishtk_agent_map));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
+	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("height", new TkProc("", glishtk_height, glishtk_valcast));
+
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
@@ -1783,6 +1801,9 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+
+	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
+	procs.Insert("height", new TkProc("", glishtk_height, glishtk_valcast));
 
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
