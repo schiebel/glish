@@ -73,8 +73,8 @@ static int physical_memory;
 void Sysinfo::machine_finalize( ) { }
 
 void Sysinfo::machine_initialize( ) {
-    register int i = 0;
-    register int pagesize;
+    int i = 0;
+    int pagesize;
     struct tbl_sysinfo sibuf;
 
     kern_return_t ret;
