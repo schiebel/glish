@@ -1,6 +1,15 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(glish)
-AC_CONFIG_HEADER(glish/config.h)
+AC_CONFIG_HEADER(glish/config.h npd/config.h)
+
+if test -z "$KEYDIR"; then
+   if test "x$prefix" = xNONE; then
+       KEYDIR="`pwd`/keys"
+    else
+       KEYDIR="$prefix/keys"
+    fi
+fi
+AC_SUBST(KEYDIR)
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -11,6 +20,7 @@ AC_PROG_YACC
 AC_CHECK_PROG(RSH,remsh,remsh,rsh)
 
 dnl Checks for header files.
+AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h)
 AC_CHECK_HEADERS(sys/signal.h vfork.h)
@@ -24,9 +34,12 @@ AC_CHECK_LIB(bsd, main)
 AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
+AC_CHECK_LIB(ucb, random, AC_DEFINE(HAVE_RANDOM) LIBS="$LIBS -lucb",
+	AC_CHECK_FUNC(random,AC_DEFINE(HAVE_RANDOM)))
 AC_TYPE_SIGNAL
+AC_FUNC_VPRINTF
 AC_FUNC_VFORK
 AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt)
 AC_CHECK_FUNCS(sigprocmask uname)
 
-AC_OUTPUT(sds/Makefile editline/Makefile glish/Makefile glish/clients/Makefile)
+AC_OUTPUT(npd/Makefile sds/Makefile editline/Makefile glish/Makefile glish/clients/Makefile)
