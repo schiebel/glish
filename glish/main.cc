@@ -154,6 +154,10 @@ void glish_sigint( )
 		char answ = 0;
 		struct termio tbuf, tbufsave;
 		int did_ioctl = 0;
+
+		fprintf(stdout,"\nexit glish (y/n)? ");
+		fflush(stdout);
+
 		if ( ioctl( fileno(stdin), TCGETA, &tbuf) != -1 )
 			{
 			tbufsave = tbuf;
@@ -162,18 +166,16 @@ void glish_sigint( )
 			tbuf.c_cc[5] = 9;		/* TIME */
 			if ( ioctl( fileno(stdin), TCSETAF, &tbuf ) != -1 )
 				did_ioctl = 1;
-
-			/*** for some reason under AIX this needs to be  ***/
-			/*** here rather than before the first ioctl()   ***/
-			fprintf(stdout,"\nexit glish (y/n)? ");
 			}
+
 		read( fileno(stdin), &answ, 1 );
+
 		if ( did_ioctl )
 			ioctl( fileno(stdin), TCSETAF, &tbufsave );
 
-		/*** for some reason under AIX this needs to be  ***/
-		/*** here rather than just after the read()      ***/
 		fputc('\n',stdout);
+		fflush(stdout);
+
 		if ( answ == 'y' || answ == 'Y' )
 			{
 			glish_cleanup( );
