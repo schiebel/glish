@@ -196,12 +196,17 @@ class Client GC_FINAL_CLASS {
 	//  WORLD => one client is shared by all users
 	//
 	enum ShareType { NONSHARED=0, USER, GROUP, WORLD };
+	//
+	//  Describes how the shared client should be have when there are
+	//  no more interpreters attached to it.
+	//
+	enum PersistType { TRANSIENT=0, PERSIST };
 
 	// Client's are constructed by giving them the program's
 	// argc and argv.  Any client-specific arguments are read
 	// and stripped off.
-	Client( int& argc, char** argv, ShareType arg_multithreaded = NONSHARED )
-		{ Init( argc, argv, arg_multithreaded, 0 ); }
+	Client( int& argc, char** argv, ShareType arg_multithreaded = NONSHARED, PersistType arg_persist = TRANSIENT )
+		{ Init( argc, argv, arg_multithreaded, arg_persist, 0 ); }
 
 	// Alternatively, a Client can be constructed from fd's for
 	// reading and writing events and a client name.  This version
@@ -332,13 +337,13 @@ class Client GC_FINAL_CLASS {
 
     protected:
 
-	void Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file );
+	void Init( int& argc, char** argv, ShareType arg_multithreaded, PersistType arg_persist, const char *script_file );
 	void Init( int client_read_fd, int client_write_fd, const char* name, const char *script_file );
 	void Init( int client_read_fd, int client_write_fd, const char* name,
 		   const EventContext &arg_context, ShareType arg_multithreaded, const char *script_file );
 
-	Client( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
-		{ Init( argc, argv, arg_multithreaded, script_file ); }
+	Client( int& argc, char** argv, ShareType arg_multithreaded, PersistType arg_persist, const char *script_file )
+		{ Init( argc, argv, arg_multithreaded, arg_persist, script_file ); }
 
 	// Register with glishd if multithreaded, adding event_source
 	// that corresponds to the glishd.  Returns nonzero if connection
@@ -453,6 +458,8 @@ class Client GC_FINAL_CLASS {
 
 	// Multithreaded or not?
 	ShareType multithreaded;
+	// Persist after all connections are broken?
+	PersistType persistent;
 
 	// Use shared memory
 	int useshm;

@@ -324,7 +324,7 @@ stack_type::~stack_type( )
 class ScriptClient : public Client {
 public:
 	ScriptClient( int& argc, char** argv, Client::ShareType multi = Client::NONSHARED,
-		      const char *script_file = 0 );
+		      PersistType persist = Client::TRANSIENT, const char *script_file = 0 );
 
 	// Inform the ScriptClient as to which selector and agent
 	// it should use for getting and propagating events.
@@ -1176,7 +1176,7 @@ void Sequencer::toplevelreset()
 void Sequencer::InitScriptClient( )
 	{
 	// Create "script" global.
-	script_client = new ScriptClient( argc_, argv_, MultiClientScript(), run_file );
+	script_client = new ScriptClient( argc_, argv_, MultiClientScript(), Client::TRANSIENT, run_file );
 
 	if ( script_client->HasInterpreterConnection() )
 		{
@@ -4184,8 +4184,8 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi,
-			    const char *script_file ) : Client( argc, argv, multi, script_file )
+ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi, Client::PersistType persist,
+			    const char *script_file ) : Client( argc, argv, multi, persist, script_file )
 	{
 	selector = 0;
 	agent = 0;

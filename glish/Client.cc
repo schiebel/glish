@@ -267,7 +267,7 @@ int glish_timedoutdummy = 0;
 EventContext glish_ec_dummy;
 ProxyId glish_proxyid_dummy;
 
-void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
+void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistType arg_persist, const char *script_file )
 	{
 	do_quiet = 0;
 	int usingpipes = 0;
@@ -276,6 +276,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 	useshm = 0;
 	script_client = script_file;
 	multithreaded = arg_multithreaded;
+	persistent = arg_persist;
 	int useshm_ = 0;
 
 	if ( ! initial_name && argv[0] )
@@ -983,7 +984,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		if ( ! fgets( buf, sizeof( buf ), stdin ) )
 			{
 			// stdio context exited
-			if ( multithreaded == NONSHARED )
+			if ( multithreaded == NONSHARED || persistent == TRANSIENT )
 				return 0;
 			else
 				{
@@ -1165,8 +1166,12 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		FD_Change( fd_src.fd(), 0 );
 		RemoveInterpreter( source );
 
-		last_event = new GlishEvent( (const char *) "*end-context*",
-			create_value( last_context.id() ) );		
+		//
+		// One event context (for multithreaded clients) is glishd
+		//
+		if ( persistent != TRANSIENT || event_sources.length() > 1 )
+			last_event = new GlishEvent( (const char *) "*end-context*",
+						     create_value( last_context.id() ) );		
 		}
 
 	return last_event;
@@ -1266,7 +1271,7 @@ void Client::BuildLink( Value* v )
 	// this rendezvous event reflected back to us.
 	v->SetField( "accept_fd", accept_socket->FD() );
 
-	PostEvent( "*rendezvous*", v );
+	PostEvent( "*rendezvous*", v, last_context );
 	}
 
 EventLink* Client::AddOutputLink( Value* v, int want_active, int& is_new )

@@ -38,9 +38,7 @@ void EndContext(char* progname, char* context)
 	loop_over_list( my_contexts, j )
 		{
 		if ( ! strcmp( my_contexts[j], context ) )
-			{
 			delete my_contexts.remove_nth( j-- );
-			}
 		}
 
 	// Should clean up event forwarding lists too
@@ -50,13 +48,17 @@ void EndContext(char* progname, char* context)
 
 	while ( l = (name_list*)event_context_list.NextEntry( name, icook ) )
 		{
-		delete l->remove( context );
+		loop_over_list( (*l), i )
+			{
+			if ( ! strcmp( (*l)[i], context ) )
+				delete l->remove_nth( i-- );
+			}
 
 		if ( l->length() == 0 ) // last one; remove event registry
 			{
-				delete l;
-				delete event_context_list.Remove( name );
-				icook = event_context_list.InitForIteration();
+			delete l;
+			delete event_context_list.Remove( name );
+			icook = event_context_list.InitForIteration();
 			}
 		}
 	}
