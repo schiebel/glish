@@ -11,7 +11,32 @@ RCSID("@(#) $Id$")
 #include "Glish/Stream.h"
 #include "Glish/Reporter.h"
 
-static char regx_buffer[2048];
+
+// **NOTE** we'll have serious problems if the OFFSET is ever switched
+//          out from under our feet to memory allocated independent of
+//          regx_buffer
+static char *regx_buffer = 0;
+static int regx_buffer_size = 0;
+#define RESIZE_REGX_BUFFER(COUNT, OFFSET, INCREMENT)						\
+    if ( regx_buffer_size == 0 )								\
+	{											\
+	register int size = (OFFSET ? OFFSET : regx_buffer) - regx_buffer + INCREMENT;		\
+	for ( regx_buffer_size = 1024; size >= regx_buffer_size; regx_buffer_size *= 2 );	\
+	regx_buffer = alloc_char(regx_buffer_size);						\
+	OFFSET = regx_buffer;									\
+	}											\
+    else											\
+	{											\
+	register int size = (OFFSET ? OFFSET : regx_buffer) - regx_buffer + INCREMENT;		\
+	if ( size >= regx_buffer_size )								\
+	    {											\
+	    int DIFF = OFFSET - regx_buffer;							\
+	    for ( regx_buffer_size *= 2; size >= regx_buffer_size; regx_buffer_size *= 2 );	\
+	    regx_buffer = realloc_char( regx_buffer, regx_buffer_size );			\
+	    OFFSET = regx_buffer + DIFF;							\
+	    }											\
+	}
+
 static jmp_buf regx_jmpbuf;
 
 void glish_regx_error_handler( const char *pat, va_list va )
@@ -198,12 +223,14 @@ char *regxsubst::apply( char *dest )
 		else if ( refs[x] )
 			{
 			int len = reg->endp[refs[x]] - reg->startp[refs[x]];
+			RESIZE_REGX_BUFFER(1,dest,len + 1)
 			memcpy_killbs( dest, reg->startp[refs[x]], len );
 			dest += len;
 			}
 		else
 			{
 			int len = endp[off] - startp[off];
+			RESIZE_REGX_BUFFER(2,dest,len + 1)
 			memcpy_killbs( dest, startp[off], len );
 			dest += len;
 			++off;
@@ -325,6 +352,7 @@ Regex::Regex( const Regex *o )
 		if ( reg->startp[0] != s )				\
 			{						\
 			int len = reg->startp[0] - s;			\
+			RESIZE_REGX_BUFFER(3,dest,len + 1)		\
 			memcpy( dest, s, len );				\
 			dest += len;					\
 			}						\
@@ -435,6 +463,7 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 				{
 				if ( s < s_end )
 					{
+					RESIZE_REGX_BUFFER(4,dest,s_end - s + 1)
 					memcpy( dest, s, s_end - s );
 					dest += s_end - s;
 					}
