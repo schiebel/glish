@@ -206,7 +206,7 @@ IValue *glishtk_splitsp_str( char *s )
 	{
 	int len=0;
 	char **str = glishtk_splitsp_str_(s, len);
-	return new IValue( str, len, COPY_ARRAY );
+	return new IValue( (charptr*) str, len, COPY_ARRAY );
 	}
 
 inline void glishtk_pack( Rivetobj root, int argc, char **argv)
@@ -522,7 +522,7 @@ struct strary_ret {
 IValue *glishtk_strary_to_value( char *s )
 	{
 	strary_ret *r = (strary_ret*) s;
-	IValue *ret = new IValue(r->ary,r->len);
+	IValue *ret = new IValue((charptr*) r->ary,r->len);
 	delete r;
 	return ret;
 	}
