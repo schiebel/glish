@@ -352,6 +352,13 @@ expression:
 	|	expression TOK_NE expression
 			{ $$ = new NE_Expr( $1, $3 ); }
 
+	|	TOK_LT expression TOK_GT
+			{
+			Expr* id = current_sequencer->LookupID( strdup("_"), LOCAL_SCOPE, 1, 0, 0 );
+			Ref(id);
+			$$ = compound_assignment( id, 0, new GenerateExpr($2) );
+			}
+
 	|	expression '+' expression
 			{ $$ = new AddExpr( $1, $3 ); }
 	|	expression '-' expression
@@ -371,6 +378,18 @@ expression:
 				$$ = new NotExpr( new ApplyRegExpr( $1, $3, current_sequencer, $2 ) );
 			else
 				$$ = new ApplyRegExpr( $1, $3, current_sequencer, $2 );
+			}
+
+	|	TOK_APPLYRX expression  %prec '!'
+			{
+			Expr* id = current_sequencer->LookupID( strdup("_"), ANY_SCOPE, 0, 0 );
+			if ( ! id ) id = current_sequencer->InstallID( strdup("_"), LOCAL_SCOPE, 0 );
+			Ref(id);
+
+			if ( $1 == '!' )
+				$$ = new NotExpr( new ApplyRegExpr( id, $2, current_sequencer, $1 ) );
+			else
+				$$ = new ApplyRegExpr( id, $2, current_sequencer, $1 );
 			}
 
 	|	'-' expression	%prec '!'

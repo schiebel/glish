@@ -372,6 +372,15 @@ class NotExpr : public UnaryExpr {
 	const char *Description() const;
 	};
 
+class GenerateExpr : public UnaryExpr {
+    public:
+	GenerateExpr( Expr* operand );
+
+	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
+	};
+
 
 class AssignExpr : public BinaryExpr {
     public:

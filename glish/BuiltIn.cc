@@ -1697,14 +1697,43 @@ IValue* SReadBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot read from this file" );
 
-	return empty_ivalue();
+	char *string = file->read();
+	IValue *result = 0;
+
+	if ( string )
+		result = new IValue( string );
+	else
+		{
+		result = empty_ivalue();
+		result->Polymorph( TYPE_STRING );
+		}
+
+	return result;
 	}
 
 IValue* SWriteBuiltIn::DoCall( const_args_list* args_val )
 	{
-	return empty_ivalue();
-	}
+	const IValue *file_val = (*args_val)[0];
 
+	if ( file_val->Type() != TYPE_FILE )
+		return (IValue*) Fail( "argument 1 to sread is not a file" );
+
+	fileptr file = file_val->FileVal();
+
+	if ( file->type() != File::OUT &&
+	     file->type() != File::POUT &&
+	     file->type() != File::PBOTH )
+		return (IValue*) Fail( "cannot write to this file" );
+
+	for ( int i=1; i < args_val->length(); ++i )
+		{
+		char *string = (*args_val)[i]->StringVal();
+		file->write( string );
+		free_memory(string);
+		}
+
+	return new IValue( glish_true );
+	}
 
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
@@ -2562,6 +2591,9 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new IsNaNBuiltIn );
 
 	s->AddBuiltIn( new OpenBuiltIn );
+	s->AddBuiltIn( new SReadBuiltIn );
+	s->AddBuiltIn( new SWriteBuiltIn );
+
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );
 

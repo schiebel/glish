@@ -17,6 +17,7 @@ RCSID("@(#) $Id$")
 #include "Func.h"
 #include "Frame.h"
 #include "Regex.h"
+#include "File.h"
 
 int ParseNode::canDelete() const
 	{
@@ -579,6 +580,50 @@ IValue* NotExpr::Eval( eval_type /* etype */ )
 const char *NotExpr::Description() const
 	{
 	return "!";
+	}
+
+GenerateExpr::GenerateExpr( Expr* operand ) : UnaryExpr( operand )
+	{
+	}
+
+IValue* GenerateExpr::Eval( eval_type /* etype */ )
+	{
+	const IValue* file_val = op->ReadOnlyEval();
+
+	if ( file_val->Type() != TYPE_FILE )
+		{
+		op->ReadOnlyDone( file_val );
+		return (IValue*) Fail( "argument not a file" );
+		}
+
+	fileptr file = file_val->FileVal();
+
+	if ( file->type() != File::IN &&
+	     file->type() != File::PIN &&
+	     file->type() != File::PBOTH )
+		{
+		op->ReadOnlyDone( file_val );
+		return (IValue*) Fail( "cannot read from this file" );
+		}
+
+	char *string = file->read();
+	IValue *result = 0;
+
+	if ( string )
+		result = new IValue( string );
+	else
+		{
+		result = empty_ivalue();
+		result->Polymorph( TYPE_STRING );
+		}
+
+	op->ReadOnlyDone( file_val );
+	return result;
+	}
+
+const char *GenerateExpr::Description() const
+	{
+	return "<>";
 	}
 
 const char *AssignExpr::Description() const
