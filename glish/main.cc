@@ -503,7 +503,14 @@ int glish_sigfpe_trap = 0;
 int glish_alpha_sigfpe_init = 0;
 #endif
 
+//
+// ONLY SOLARIS 2.*, I believe...
+//
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
+//
+//  Catch integer division exception to prevent "1 % 0" from
+//  crashing glish...
+//
 void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 	{
 	glish_sigfpe_trap = 1;
@@ -523,7 +530,14 @@ void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 		}
 	}
 
-static void install_sigfpe() { sigfpe(FPE_INTDIV, (signal_handler) glish_sigfpe ); }
+//
+//  Currently for solaris "as_short(1/0)" et al. doesn't give the right
+//  result. To fix this, one must link with libsunmath.a, and use
+//  "ieee_handler()" to catch division by zero and plug in the
+//  right type based on the operation which caused the exception,
+//  as with the alpha...
+//
+static void install_sigfpe() { sigfpe(FPE_INTDIV, glish_sigfpe ); }
 #elif defined(__alpha) || defined(__alpha__)
 //
 // for the alpha, this should be defined in "alpha.c"

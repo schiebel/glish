@@ -34,7 +34,7 @@ RCSID("@(#) $Id$")
 #include "TkAgent.h"
 #include "TkCanvas.h"
 #ifdef TKPGPLOT
-#include "TkPGPLOT.h"
+#include "TkPgplot.h"
 #endif
 #endif
 
@@ -1552,7 +1552,7 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		agent = TkCanvas::Create( sequencer, args_val );
 #ifdef TKPGPLOT
 	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
-		agent = TkPGPLOT::Create( sequencer, args_val );
+		agent = TkPgplot::Create( sequencer, args_val );
 #else
 	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
 		return (IValue*) Fail("This Glish was not configured for PGPLOT");

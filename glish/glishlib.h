@@ -84,7 +84,7 @@
 
 extern int glish_abort_on_fpe;
 extern int glish_sigfpe_trap;
-#if defined(__alpha) || defined(__alpha__)
+#if defined(__alpha) || defined(__alpha__) || 1
 #define glish_fpe_enter()	glish_abort_on_fpe = glish_sigfpe_trap = 0;
 #define glish_fpe_exit()	((glish_abort_on_fpe = 1) && glish_sigfpe_trap)
 #else

@@ -9,7 +9,7 @@ RCSID("@(#) $Id$")
 #include "TkCanvas.h"
 
 #if defined(TKPGPLOT)
-#include "TkPGPLOT.h"
+#include "TkPgplot.h"
 #endif
 
 #include <X11/Xlib.h>
@@ -1358,17 +1358,6 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 	if ( eventPtr->xany.type == ConfigureNotify )
 		{
 		TkFrame *f = (TkFrame*) clientData;
-
-		//
-		//  This is needed to let the lower widgets repack, and
-		//  resize; otherwise, this resize event isn't too useful
-		//  because all information from the lower widgets is
-		//  "one off".
-		//
-		Sequencer::HoldQueue();
-		while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-		Sequencer::ReleaseQueue();
-
 		f->ResizeEvent();
 		}
 	}
@@ -1954,6 +1943,16 @@ void TkFrame::ResizeEvent( )
 		size[0] = self->tkwin->changes.width;
 		size[1] = self->tkwin->changes.height;
 		rec->Insert( strdup("new"), new IValue( size, 2, COPY_ARRAY ) );
+
+		//
+		//  This is needed to let the lower widgets repack, and
+		//  resize; otherwise, this resize event isn't too useful
+		//  because all information from the lower widgets is
+		//  "one off".
+		//
+		Sequencer::HoldQueue();
+		while ( TkAgent::DoOneTkEvent( TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
+		Sequencer::ReleaseQueue();
 
 		PostTkEvent( "resize", new IValue( rec ) );
 		}

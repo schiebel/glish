@@ -18,7 +18,7 @@ class TkAgent;
 class TkCanvas;
 class TkFrame;
 #if defined(TKPGPLOT)
-class TkPGPLOT;
+class TkPgplot;
 #endif
 declare(PList,TkAgent);
 typedef PList(TkAgent) tkagent_list;
@@ -112,7 +112,7 @@ class TkProc {
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
 #if defined(TKPGPLOT)
-	TkProc(TkPGPLOT *f, char *(TkPGPLOT::*p)(parameter_list*,int,int), TkStrToValProc cvt = 0)
+	TkProc(TkPgplot *f, char *(TkPgplot::*p)(parameter_list*,int,int), TkStrToValProc cvt = 0)
 			: cmdstr(0), proc(0), proc1(0), proc2(0), TKPGI(p) fproc(0), pgplot(f),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
@@ -144,8 +144,8 @@ class TkProc {
 	TkFrame *frame;
 	char *(TkFrame::*fproc)(parameter_list*, int, int);
 #if defined(TKPGPLOT)
-	TkPGPLOT *pgplot;
-	char *(TkPGPLOT::*pgproc)(parameter_list*, int, int);
+	TkPgplot *pgplot;
+	char *(TkPgplot::*pgproc)(parameter_list*, int, int);
 #endif
 
 	TkAgent *agent;
