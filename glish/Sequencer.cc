@@ -3530,11 +3530,11 @@ int Sequencer::NewEvent( LoadedAgent* task, GlishEvent* event, int complain_if_n
 					// will have already been delivered to those looking for
 					// events from the proxy...
 					//
-					if ( strcmp( event_name, "done" ) )
-						{
-						// BAD PROXY IDENTIFIER
-						fprintf( stderr, "\t\t\t===> Sequencer::NewEvent( ): bad proxy identifier!\n" );
-						}
+// 					if ( strcmp( event_name, "done" ) )
+// 						{
+// 						// BAD PROXY IDENTIFIER
+// 						fprintf( stderr, "\t\t\t===> Sequencer::NewEvent( ): bad proxy identifier!\n" );
+// 						}
 					Unref( event );
 					return 0;
 					}
