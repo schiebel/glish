@@ -141,7 +141,9 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 	if ( ! interest_list )
 		{
 		interest_list = new notifiee_list;
-		interested_parties.Insert( field, interest_list );
+		interested_parties.Insert( field == INTERESTED_IN_ALL ?
+					   string_dup(field) : field,
+					   interest_list );
 		}
 	else if ( is_copy )
 		{
