@@ -45,23 +45,28 @@ class regxsubst {
 class Regex : public GlishObject {
      public:
 
+	static unsigned int GLOBAL( unsigned int mask=~((unsigned int) 0) ) { return mask & 1<<0; }
+	static unsigned int FOLD( unsigned int mask=~((unsigned int) 0) ) { return mask & 1<<1; }
+
 	enum regex_type { MATCH, SUBST };
 
 	regex_type Type() const { return subst.str() ? SUBST : MATCH; }
 
-	Regex( char *match_, char divider_ = '!', char *subst_ = 0 );
+	Regex( char *match_, char divider_ = '!', unsigned int flags_ = 0, char *subst_ = 0 );
 	Regex( const Regex &oth );
 	Regex( const Regex *oth );
 
-	IValue *Eval( char *string );
-	IValue *Eval( char **strs, int len );
+	//
+	// latter two parameters are ONLY used when doing a substitution, i.e. for
+	// matches the number of matches is always returned.
+	//
+	IValue *Eval( char **strs, int len, int in_place = 0, int return_matches = 1 );
 
 	//
 	// Lower level routines to allow a series of REs to be applied to
 	// each string. The latter allocates memory which must be freed.
 	//
-	glish_bool mEval( char *string );
-	char *sEval( char *string );
+	glish_bool Eval( char *&string, int in_place = 0 );
 
 	//
 	// returns non-null string if an error occurred
@@ -96,6 +101,9 @@ class Regex : public GlishObject {
 	int    alloc_len;
 
 	char divider;
+	unsigned int flags;
 };
+
+extern void copy_regexs( void *to_, void *from_, unsigned int len );
 
 #endif

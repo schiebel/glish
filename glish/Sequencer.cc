@@ -1167,7 +1167,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change_count(1),
 				system(this), script_client(0), script_client_active(0),
-				expanded_name(0), run_file(0), doing_pager(0)
+				expanded_name(0), run_file(0), doing_pager(0),
+				last_regex_executed(0)
 	{
 	cur_sequencer = this;
 

@@ -127,6 +127,12 @@ static char *literal( const char *s = 0, int clear = 0 );
 	return TOK_ASSIGN;					\
 	}
 
+#define RETURN_APPLYRX(type)					\
+	{							\
+	YYLVAL(ival) = type;					\
+	return TOK_APPLYRX;					\
+	}
+
 #define RETURN_ACTIVATE(is_activate)				\
 	{							\
 	statement_can_end = 1;					\
@@ -161,13 +167,14 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define yywrap() 1
 %}
 
-%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX
+%x QUOTE RECORD_FIELD SCAN_EVENT_NAME INCL UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX END_REGEX
 
 	static int is_double_quote = 0;
 	int glish_regex_matched = 0;
 	static char *match_regex_portion = 0;
 	static char regex_delimit = '\0';
 	static char regex_start = '\0';
+	static unsigned int regex_flags = 0;
 
 
 ID	[A-Za-z_][A-Za-z0-9_]*
@@ -190,7 +197,7 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 	statement_can_end = 0;
 
 
-[~!:;,|&({[+*/%^=-]	return yytext[0];
+[!:;,|&({[+*/%^=-]	return yytext[0];
 
 [)\]]		statement_can_end = 1; return yytext[0];
 
@@ -241,6 +248,8 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 "||:="		RETURN_COMPOUND(TOK_OR_OR);
 
 "~:="		RETURN_COMPOUND(yytext[0]);
+"=~"		RETURN_APPLYRX(yytext[0]);
+"~"		RETURN_APPLYRX(0);
 
 activate	RETURN_ACTIVATE(1);
 await		return TOK_AWAIT;
@@ -441,22 +450,9 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			}
 		else if ( regex_start == 'm' || match_regex_portion )
 			{
-			statement_can_end = 1;
-			IValue *v = 0;
-			Regex *r = regex_start == 'm' ? new Regex(strdup(literal()),regex_delimit) :
-					new Regex(match_regex_portion, regex_delimit, strdup(literal()));
-			if ( ! r->Error() )
-				v = new IValue( r );
-			else
-				{
-				v = (IValue*) generate_error(r->Error());
-				delete r;
-				}
-			DO_GC_REGISTER
-			YYLVAL(expr) = new ConstExpr( v );
-			glish_regex_matched = 1;
-			BEGIN(INITIAL);
-			return TOK_REGEX;
+			regex_flags = 0;
+			BEGIN(END_REGEX);
+			break;
 			}
 		else
 			{
@@ -466,12 +462,30 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			}
 		}
 
-<QUOTE,ATTR_QUOTE>\n	{
-		error->Report( "unmatched quote (",
-				is_double_quote ? "\"" : "'", ")" );
-		++line_num;
+<END_REGEX>[gi] {
+		regex_flags |= yytext[0] == 'g' ?  Regex::GLOBAL() : yytext[0] == 'i' ? Regex::FOLD() : 0;
+		break;
+		}
+
+<END_REGEX>\n	|
+<END_REGEX>. {
+		statement_can_end = 1;
+		unput(yytext[0]);
+		IValue *v = 0;
+		Regex *r = regex_start == 'm' ? new Regex( strdup(literal()), regex_delimit, regex_flags ) :
+				new Regex(match_regex_portion, regex_delimit, regex_flags, strdup(literal()));
+		if ( ! r->Error() )
+			v = new IValue( r );
+		else
+			{
+			v = (IValue*) generate_error(r->Error());
+			delete r;
+			}
+		DO_GC_REGISTER
+		YYLVAL(expr) = new ConstExpr( v );
+		glish_regex_matched = 1;
 		BEGIN(INITIAL);
-		return TOK_FLEX_ERROR;
+		return TOK_REGEX;
 		}
 
 <REGEX>\n	{
@@ -496,6 +510,16 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		BEGIN(NO_REGEX);
 		break;
 		}
+
+
+<QUOTE,ATTR_QUOTE>\n	{
+		error->Report( "unmatched quote (",
+				is_double_quote ? "\"" : "'", ")" );
+		++line_num;
+		BEGIN(INITIAL);
+		return TOK_FLEX_ERROR;
+		}
+
 
 <INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote

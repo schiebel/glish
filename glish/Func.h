@@ -188,5 +188,6 @@ class UserFunc : public Func {
 
 
 extern void describe_parameter_list( parameter_list* params, OStream& s );
+extern void copy_funcs( void *to_, void *from_, unsigned int len );
 
 #endif /* func_h */

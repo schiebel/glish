@@ -217,17 +217,20 @@ void Regex::compile( )
 		}
 	}
 
-Regex::Regex( char *match_, char divider_, char *subst_ ) : subst( subst_ ), reg(0), match(match_),
+Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
+				subst( subst_ ), reg(0), match(match_),
 				match_end(0) ,match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider(divider_)
+				error_string(0), divider(divider_), flags(flags_)
 	{
+	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
 	}
 
 Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
 				match_end(0), match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider( o.divider )
+				error_string(0), divider( o.divider ), flags( o.flags )
 	{
+	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
 	}
 
@@ -246,6 +249,7 @@ Regex::Regex( const Regex *o )
 		alloc_len = 0;
 		error_string = 0;
 		divider = o-> divider;
+		flags = o-> flags;
 		}
 	else
 		{
@@ -257,8 +261,10 @@ Regex::Regex( const Regex *o )
 		alloc_len = 0;
 		error_string = 0;
 		divider = '!';
+		flags = 0;
 		}
 
+	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
 	}
 
@@ -317,31 +323,8 @@ else									\
 	SUBSTF								\
 	}
 
-IValue *Regex::Eval( char *string )
-	{
 
-	if ( ! reg || ! match )
-		return (IValue*) Fail( "bad regular expression" );
-
-	ADJUST_MATCH(,)
-
-	match_len = reg->nparens;
-	glish_bool ret = regxexec( reg, string, string+strlen(string), string, 1,0,1 ) ? glish_true : glish_false;
-
-	if ( subst.str() )
-		{
-		char **outs = (char**) alloc_memory(sizeof(char*));
-		EVAL_ACTION( ret , cnt-1 , cnt , , outs[0] = subst.apply( string );, outs[0] = strdup(string);)
-		return new IValue( (charptr*) outs, 1 );
-		}
-	else
-		{
-		EVAL_ACTION( ret , cnt-1 , cnt , , , )
-		return new IValue(  ret );
-		}
-	}
-
-IValue *Regex::Eval( char **strs, int len )
+IValue *Regex::Eval( char **strs, int len, int in_place, int return_matches )
 	{
 
 	if ( ! reg || ! match )
@@ -355,15 +338,28 @@ IValue *Regex::Eval( char **strs, int len )
 
 	if ( subst.str() )
 		{
-		char **outs = (char**) alloc_memory(sizeof(char*)*len);
+		char **outs = strs;
+		glish_bool *mret = 0;
+
+		if ( ! in_place )
+			outs = (char**) alloc_memory(sizeof(char*)*len);
+		else if ( return_matches )
+			mret = (glish_bool*) alloc_memory(sizeof(glish_bool)*len);
+
 		for ( int i=0; i < len; ++i )
 			{
 			glish_bool ret = regxexec( reg, strs[i], strs[i]+strlen(strs[i]), strs[i], 1,0,1 ) ? glish_true : glish_false;
+			if ( return_matches ) mret[i] = ret;
+
 			EVAL_ACTION( ret , i+(cnt-1)%reg->nparens*len , index ,		\
 				     register int index = i+cnt%reg->nparens*len,	\
-				     outs[i] = subst.apply(strs[i]);, outs[i] = strdup(strs[i]); )
+				     register char *tmp = outs[i]; 			\
+				     outs[i] = subst.apply(strs[i]);			\
+				     if ( in_place ) free_memory( tmp );,		\
+				     if ( ! in_place ) outs[i] = strdup(strs[i]); )
 			}
-		return new IValue(  (charptr*) outs, len );
+
+		return in_place ? return_matches ? new IValue( mret, len ) : 0 : new IValue(  (charptr*) outs, len );
 		}
 	else
 		{
@@ -374,39 +370,32 @@ IValue *Regex::Eval( char **strs, int len )
 			EVAL_ACTION( r[i] , i+(cnt-1)%reg->nparens*len , index ,	\
 				     register int index = i+cnt%reg->nparens*len,,)
 			}
+
 		return new IValue( r, len );
 		}
 	}
 
 
-char *Regex::sEval( char *string )
+glish_bool Regex::Eval( char *&string, int in_place = 0 )
 	{
-
-	if ( ! reg || ! match || ! subst.str() )
-		return 0;
-
-	ADJUST_MATCH(,)
-
-	char *ret = 0;
-	match_len = reg->nparens;
-	glish_bool ok = regxexec( reg, string, string+strlen(string), string, 1,0,1 ) ? glish_true : glish_false;
-
-	EVAL_ACTION( ok , cnt-1 , cnt , , ret = subst.apply( string );, ret = strdup(string);)
-	return ret;
-	}
-
-glish_bool Regex::mEval( char *string )
-	{
-
-	if ( ! reg || ! match || subst.str() )
-		return glish_false;
 
 	ADJUST_MATCH(,)
 
 	match_len = reg->nparens;
 	glish_bool ret = regxexec( reg, string, string+strlen(string), string, 1,0,1 ) ? glish_true : glish_false;
 
-	EVAL_ACTION( ret , cnt-1 , cnt , , , )
+	if ( subst.str() && in_place )
+		{
+		EVAL_ACTION( ret , cnt-1 , cnt , ,				\
+			     register char *tmp = string; 			\
+			     string = subst.apply(string);			\
+			     free_memory( tmp );, )
+		}
+	else
+		{
+		EVAL_ACTION( ret , cnt-1 , cnt , , , )
+		}
+
 	return ret;
 	}
 

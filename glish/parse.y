@@ -8,7 +8,8 @@
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LINK
 %token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
 %token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
-%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE TOK_REGEX
+%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
+%token TOK_REGEX TOK_APPLYRX
 %token TOK_FLEX_ERROR
 %token NULL_TOK
 %token TOK_LAST_EVENT TOK_LAST_REGEX
@@ -23,12 +24,12 @@
 %left '+' '-'
 %left '*' '/' '%'
 %right '^'
-%nonassoc '~'
+%nonassoc TOK_APPLYRX
 %nonassoc ':'
 %right '!'
 %left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST
 
-%type <ival> TOK_ACTIVATE TOK_ASSIGN
+%type <ival> TOK_ACTIVATE TOK_ASSIGN TOK_APPLYRX
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
 %type <regex_type> TOK_LAST_REGEX
@@ -363,8 +364,8 @@ expression:
 			{ $$ = new ModuloExpr( $1, $3 ); }
 	|	expression '^' expression
 			{ $$ = new PowerExpr( $1, $3 ); }
-	|	expression '~' expression
-			{ $$ = new ApplyRegExpr( $1, $3, current_sequencer ); }
+	|	expression TOK_APPLYRX expression
+			{ $$ = new ApplyRegExpr( $1, $3, current_sequencer, $2 ); }
 
 	|	'-' expression	%prec '!'
 			{ $$ = new NegExpr( $2 ); }

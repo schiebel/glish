@@ -497,11 +497,12 @@ class RangeExpr : public BinaryExpr {
 
 class ApplyRegExpr : public BinaryExpr {
     public:
-	ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s );
+	ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ = 0 );
 
 	IValue* Eval( eval_type etype );
     protected:
 	Sequencer *sequencer;
+	int in_place;
 	};
 
 
