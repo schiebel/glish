@@ -398,7 +398,7 @@ Value *generate_error( const RMessage& m0,
 		    )
 	{
 	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(),5), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
 	if ( allwarn )
 		{
@@ -422,7 +422,7 @@ Value *generate_error( const char *file, int line,
 		    )
 	{
 	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(),5), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	srpt->report( ioOpt( ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
 	if ( allwarn )
 		{
@@ -445,7 +445,7 @@ const Str generate_error_str( const RMessage& m0,
 		    )
 	{
 	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(),5), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	if ( allwarn )
 		error->Stream() << "E[" << ++error_count << "]: " <<
 		  ((SOStream&)srpt->Stream()).str() << endl;
@@ -469,7 +469,7 @@ void report_error( const RMessage& m0,
 		    )
 	{
 	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(),5), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
 	if ( allwarn )
 		{
@@ -493,7 +493,7 @@ void report_error( const char *file, int line,
 		    )
 	{
 	srpt->Stream().reset();
-	srpt->report( ioOpt(ioOpt::NO_NEWLINE(),5), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
+	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
 	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
 	if ( allwarn )
 		{

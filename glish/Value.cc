@@ -1216,10 +1216,7 @@ const Value* Value::ExistingRecordElement( const char* field ) const
 	Value* member = (*RecordPtr(0))[field];
 
 	if ( ! member )
-		{
-		warn->Report( ".", field, " is not a field in", this );
-		return false_value;
-		}
+		return Fail( field, " is not a field in", this );
 	else
 		return member;
 	}
