@@ -20,9 +20,10 @@
  */
 
 /*
- * top - a top users display for Unix
  *
  * LIBS: -lkvm -lkstat
+ *
+ *          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
  *
  * ORIGINAL AUTHORS:      Torsten Kasch     <torsten@techfak.uni-bielefeld.de>
  *                        Robert Boucher    <boucher@sofkin.ca>
