@@ -398,16 +398,15 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	glishtk_pgplot_bindinfo *info = (*list)[0];
 	if ( ! info ) return TCL_ERROR;
 
-	Tcl_Interp *tcl = info->pgplot->Interp();
-	Tk_Window self = info->pgplot->Self();
+	TkPgplot *pgp = info->pgplot;
 
 	recordptr rec = create_record_dict();
 
 	float *wpt = (float*) alloc_memory( sizeof(float)*2 );
-	tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], (char *)NULL );
-	wpt[0] = (float) atof(Tcl_GetStringResult(tcl));
-	tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], (char *)NULL );
-	wpt[1] = (float) atof(Tcl_GetStringResult(tcl));
+	tcl_VarEval( pgp, Tk_PathName(pgp->Self( )), " world x ", argv[1], (char *)NULL );
+	wpt[0] = (float) atof(Tcl_GetStringResult(pgp->Interp( )));
+	tcl_VarEval( pgp, Tk_PathName(pgp->Self( )), " world y ", argv[2], (char *)NULL );
+	wpt[1] = (float) atof(Tcl_GetStringResult(pgp->Interp( )));
 	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
@@ -454,8 +453,8 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 		EXPRSTR(button, event_name);
 		EXPRSTR(event, event_name);
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
-		const char *current = Tcl_GetStringResult(agent->Interp());
+		tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
+		const char *current = Tcl_GetStringResult(agent->Interp( ));
 		char last_buffer[50];
 		char *last = 0;
 		if ( current && *current )
@@ -477,7 +476,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 			list = new glishtk_pgplot_bindlist;
 			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, list);
 			(*glishtk_pgplot_table).Insert( strdup(cback), list );
-			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
+			tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button,
 				     " {", cback, " %x %y %b %T %K %A }", (char *)NULL );
 
 			}
@@ -525,7 +524,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 					if ( ! (*list).length() )
 						{
 						free_memory( (*glishtk_pgplot_table).Remove(cback) );
-						tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+						tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP,
 							     info->tk_event_name, " {}", (char *)NULL );
 						Unref(list);
 						}
@@ -537,7 +536,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 
 		else if ( glishtk_pgplot_table )
 			{
-			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, (char *)NULL );
+			tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, name, (char *)NULL );
 
 			const char *current = Tcl_GetStringResult(agent->Interp());
 			char last_buffer[50];
@@ -557,7 +556,7 @@ char *glishtk_pgplot_unbind(TkProxy *agent, const char *, Value *args )
 				free_memory( (*glishtk_pgplot_table).Remove(last) );
 				glishtk_pgplot_bindinfo *info = (*list)[0];
 				if ( info )
-					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+					tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP,
 						     info->tk_event_name, " {}", (char *)NULL );
 				loop_over_list( (*list), x )
 					delete (*list)[x];
@@ -576,7 +575,7 @@ Value *glishtk_int( char *sel ) {
 	return new Value(atoi(sel));
 }
 
-char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args ) {
+char *glishtk_oneornodim( TkProxy *proxy, const char *cmd, Value *args ) {
 	char *event_name = "one or zero dim function";
 
 	if (args->Length() > 0)
@@ -584,7 +583,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		EXPRINIT(event_name)
 		EXPRDIM(dim, event_name);
 
-		tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " configure ", cmd, SP, dim, (char *)NULL );
 
 		EXPR_DONE(dim);
 
@@ -592,8 +591,8 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		}
 	else
 		{
-		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, (char *)NULL );
-		return Tcl_GetStringResult(tcl);
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " cget ", cmd, (char *)NULL );
+		return Tcl_GetStringResult(proxy->Interp( ));
 		}
 }
 
@@ -665,7 +664,7 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	argv[c++] = "-takefocus";
 	argv[c++] = "1";
 
-	tcl_ArgEval( tcl, c, argv );
+	tcl_ArgEval( this, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
@@ -678,12 +677,12 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 		return;
 		}
 
-	tcl_VarEval( tcl, Tk_PathName(self)," id", (char *)NULL );
+	tcl_VarEval( this, Tk_PathName(self)," id", (char *)NULL );
 	id = atoi(Tcl_GetStringResult(tcl));
 
 	if ( id <= 0 )
 		{
-		tcl_VarEval( tcl, Tk_PathName(self)," device", (char *)NULL );
+		tcl_VarEval( this, Tk_PathName(self)," device", (char *)NULL );
 		id = cpgopen(Tcl_GetStringResult(tcl));
 		}
 	else
@@ -721,14 +720,14 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	procs.Insert("bind", new PgProc(this, "", glishtk_pgplot_bind, glishtk_str));
 	procs.Insert("unbind", new PgProc(this, "", glishtk_pgplot_unbind));
 	procs.Insert("cursor", new PgProc(this, &TkPgplot::Cursor, glishtk_str));
-	procs.Insert("height", new PgProc("-height", glishtk_oneornodim,
+	procs.Insert("height", new PgProc(this, "-height", glishtk_oneornodim,
 					    glishtk_int));
-	procs.Insert("view", new PgProc("", glishtk_scrolled_update));
-	procs.Insert("width", new PgProc("-width", glishtk_oneornodim,
+	procs.Insert("view", new PgProc(this, "", glishtk_scrolled_update));
+	procs.Insert("width", new PgProc(this, "-width", glishtk_oneornodim,
 					   glishtk_int));
 
-	procs.Insert("padx", new PgProc("-padx", glishtk_oneornodim, glishtk_int));
-	procs.Insert("pady", new PgProc("-pady", glishtk_oneornodim, glishtk_int));
+	procs.Insert("padx", new PgProc(this, "-padx", glishtk_oneornodim, glishtk_int));
+	procs.Insert("pady", new PgProc(this, "-pady", glishtk_oneornodim, glishtk_int));
 
 	// Standard PGPLOT routines.
 	procs.Insert("arro", new PgProc(this, &TkPgplot::Pgarro));
@@ -1028,7 +1027,7 @@ char *TkPgplot::Cursor( Value *args ) {
 		else
 			item[0] = args->StringVal();
 
-		tcl_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
+		tcl_VarEval( this, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
 			    item[2], SP, item[3], (char *)NULL );
 		return (char *)item[0];
 		}

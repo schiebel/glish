@@ -64,29 +64,29 @@ Value *glishtk_StrToInt( char *str )
 	return new Value( i );
 	}
 
-char *glishtk_heightwidth_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
+char *glishtk_heightwidth_query(TkProxy *proxy, const char *cmd, Value *args )
 	{
 	static char buf[256];
 
 	if ( args->Type() == TYPE_STRING )
-		tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, args->StringPtr(0)[0], (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, args->StringPtr(0)[0], (char *)NULL );
 	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char buf[30];
 		sprintf(buf," %d",args->IntVal());
-		tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, buf, (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, buf, (char *)NULL );
 		}
 
-	tcl_VarEval( tcl, "winfo ", &cmd[1], SP, Tk_PathName(self), (char *)NULL );
-	int width = atoi(Tcl_GetStringResult(tcl));
-	tcl_VarEval( tcl, Tk_PathName(self), " cget -borderwidth", (char *)NULL );
-	int bdwidth = atoi(Tcl_GetStringResult(tcl));
+	tcl_VarEval( proxy, "winfo ", &cmd[1], SP, Tk_PathName(proxy->Self( )), (char *)NULL );
+	int width = atoi(Tcl_GetStringResult(proxy->Interp( )));
+	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " cget -borderwidth", (char *)NULL );
+	int bdwidth = atoi(Tcl_GetStringResult(proxy->Interp( )));
 	sprintf( buf, "%d", width - 2*bdwidth - 4 );
 	
 	return buf;
 	}
 
-char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, int howmany, Value *args )
+char *glishtk_oneintlist_query(TkProxy *proxy, const char *cmd, int howmany, Value *args )
 	{
 	char *event_name = "one int list function";
 	if ( args->Length() >= howmany )
@@ -114,15 +114,15 @@ char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 			EXPR_DONE( v )
 			}
 
-		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", buf, "}", (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " config ", cmd, " {", buf, "}", (char *)NULL );
 		}
 
-	tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, (char *)NULL );
-	return Tcl_GetStringResult(tcl);
+	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " cget ", cmd, (char *)NULL );
+	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
 
-char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, int howmany, Value *args )
+char *glishtk_canvas_1toNint(TkProxy *proxy, const char *cmd, int howmany, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -135,7 +135,7 @@ char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, i
 		static char buff[128];
 		int argc = 0;
 
-		Argv[argc++] = Tk_PathName(self);
+		Argv[argc++] = Tk_PathName(proxy->Self( ));
 		Argv[argc++] = (char*) cmd;
 		EXPRINIT( event_name)
 		for ( int i=0; i < len; i++ )
@@ -146,8 +146,8 @@ char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, i
 			EXPR_DONE( v )
 			}
 
-		tcl_ArgEval( tcl, argc, Argv );
-		ret = Tcl_GetStringResult(tcl);
+		tcl_ArgEval( proxy, argc, Argv );
+		ret = Tcl_GetStringResult(proxy->Interp( ));
 
 		for ( int x=0; x < len; x++ )
 			free_memory( Argv[x + 2] );
@@ -156,13 +156,13 @@ char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, i
 		{
 		char buf[30];
 		sprintf(buf," %d",args->IntVal());
-		tcl_VarEval( tcl, Tk_PathName(self), SP, buf, (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, buf, (char *)NULL );
 		}
 
 	return ret;
 	}
 
-char *glishtk_canvas_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *subcmd,
+char *glishtk_canvas_tagfunc(TkProxy *proxy, const char *cmd, const char *subcmd,
 				int howmany, Value *args )
 	{
 	if ( args->Length() <= 0 )
@@ -182,10 +182,10 @@ char *glishtk_canvas_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, c
 			const Value *val = rptr->NthEntry( i );
 			if ( val->Type() == TYPE_STRING )
 				if ( subcmd )
-					tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, str, SP,
+					tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, str, SP,
 						     subcmd, SP, val->StringPtr(0)[0], (char *)NULL );
 				else
-					tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, str, SP,
+					tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, str, SP,
 						     val->StringPtr(0)[0], (char *)NULL );
 			}
 		}
@@ -193,14 +193,14 @@ char *glishtk_canvas_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, c
 		{
 		charptr *ary = args->StringPtr(0);
 		if ( args->Length() == 1 )
-			tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0], (char *)NULL );
+			tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, ary[0], (char *)NULL );
 		else
 			for ( int i=1; i < args->Length(); ++i )
 				if ( subcmd )
-					tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0],
+					tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, ary[0],
 						     SP, subcmd, SP, ary[i], (char *)NULL );
 				else
-					tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0],
+					tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, cmd, SP, ary[0],
 						     SP, ary[i], (char *)NULL );
 		}
 
@@ -383,7 +383,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 	strcat( tagstr, "}" );
 	Argv[argc++] = (char*) tagstr;
 
-	tcl_ArgEval( agent->Interp(), argc, Argv );
+	tcl_ArgEval( agent, argc, Argv );
 
 	for (int j=3; j < argc - 2; j++)
 		free_memory( Argv[j] );
@@ -487,7 +487,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 			strcat( tagstr, "}" );
 			Argv[argc++] = (char*) tagstr;
 
-			tcl_ArgEval( agent->Interp(), argc, Argv );
+			tcl_ArgEval( agent, argc, Argv );
 
 			for (LOOPDECL j=3; j < argc - 2; j++)
 				free_memory( Argv[j] );
@@ -567,7 +567,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 			strcat( tagstr, "}" );
 			Argv[argc++] = (char*) tagstr;
 
-			tcl_ArgEval( agent->Interp(), argc, Argv );
+			tcl_ArgEval( agent, argc, Argv );
 
 			for (LOOPDECL j=3; j < argc - 2; j++)
 				free_memory( Argv[j] );
@@ -576,7 +576,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 	return tag;
 	}
 
-char *glishtk_canvas_delete(Tcl_Interp *tcl, Tk_Window self, const char *, Value *args )
+char *glishtk_canvas_delete(TkProxy *proxy, const char *, Value *args )
 	{
 	if ( args->Type() == TYPE_RECORD )
 		{
@@ -585,25 +585,25 @@ char *glishtk_canvas_delete(Tcl_Interp *tcl, Tk_Window self, const char *, Value
 			{
 			const Value *val = rptr->NthEntry( i );
 			if ( val->Type() == TYPE_STRING )
-				tcl_VarEval( tcl, Tk_PathName(self), " delete ", val->StringPtr(0)[0], (char *)NULL );
+				tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " delete ", val->StringPtr(0)[0], (char *)NULL );
 			}
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
 		charptr *ary = args->StringPtr(0);
 		for ( int i=0; i < (*args).Length(); ++i )
-			tcl_VarEval( tcl, Tk_PathName(self), " delete ", ary[i], (char *)NULL );
+			tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " delete ", ary[i], (char *)NULL );
 		}
 	else
 		{
-		tcl_VarEval( tcl, Tk_PathName(self), " addtag nukemallll all", (char *)NULL );
-		tcl_VarEval( tcl, Tk_PathName(self), " delete nukemallll", (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " addtag nukemallll all", (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " delete nukemallll", (char *)NULL );
 		}
 
 	return 0;
 	}
 
-char *glishtk_canvas_move(Tcl_Interp *tcl, Tk_Window self, const char *, Value *args )
+char *glishtk_canvas_move(TkProxy *proxy, const char *, Value *args )
 	{
 	char *event_name = "canvas move function";
 	EXPRINIT( event_name)
@@ -612,7 +612,7 @@ char *glishtk_canvas_move(Tcl_Interp *tcl, Tk_Window self, const char *, Value *
 		EXPRSTR( tag, event_name )
 		EXPRINT2( xshift, event_name )
 		EXPRINT2( yshift, event_name )
-		tcl_VarEval( tcl, Tk_PathName(self), " move ", tag, SP, xshift, SP, yshift, (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " move ", tag, SP, xshift, SP, yshift, (char *)NULL );
 		EXPR_DONE( yshift )
 		EXPR_DONE( xshift )
 		EXPR_DONE( tag )
@@ -632,7 +632,7 @@ char *glishtk_canvas_move(Tcl_Interp *tcl, Tk_Window self, const char *, Value *
 			if (is_copy)
 				free_memory( delta );
 			}
-		tcl_VarEval( tcl, Tk_PathName(self), " move ", tag, SP, xshift, SP, yshift, (char *)NULL );
+		tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), " move ", tag, SP, xshift, SP, yshift, (char *)NULL );
 		EXPR_DONE( off )
 		EXPR_DONE( tag )
 		}
@@ -692,15 +692,16 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	if ( ! info ) return TCL_ERROR;
 
 	recordptr rec = create_record_dict();
-	Tk_Window self = info->canvas->Self();
+	TkCanvas *canv = info->canvas;
+	Tk_Window self = canv->Self();
 
 	if ( info->tag )
 		rec->Insert( strdup("tag"), new Value( info->tag ) );
 
 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-	tcl_VarEval( tcl, Tk_PathName(self), " canvasx ", argv[1], (char *)NULL );
+	tcl_VarEval( canv, Tk_PathName(self), " canvasx ", argv[1], (char *)NULL );
 	wpt[0] = atoi(Tcl_GetStringResult(tcl));
-	tcl_VarEval( tcl, Tk_PathName(self), " canvasy ", argv[2], (char *)NULL );
+	tcl_VarEval( canv, Tk_PathName(self), " canvasy ", argv[2], (char *)NULL );
 	wpt[1] = atoi(Tcl_GetStringResult(tcl));
 	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
@@ -751,7 +752,7 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 		EXPRSTR( button, event_name )
 		EXPRSTR( event, event_name )
 
-		tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button, (char *)NULL );
+		tcl_VarEval( agent, Tk_PathName(agent->Self()), " bind ", tag, SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
 		char last_buffer[50];
 		char *last = 0;
@@ -773,8 +774,11 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 			{
 			list = new glishtk_canvas_bindlist;
 			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, list);
+			FILE *fle = agent->Logfile();
+			if ( fle )
+				fprintf( fle, "proc %s { x y b T K A } { puts \"(canvas bind:%s) %s $x $y $b $T $K $A\" }\n", cback, cback, Tk_PathName(agent->Self()) );
 			(*glishtk_canvas_table).Insert( strdup(cback), list );
-			tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()), " bind ", tag, SP, button,
+			tcl_VarEval( agent, Tk_PathName(agent->Self()), " bind ", tag, SP, button,
 				     " {", cback, " %x %y %b %T %K %A}", (char *)NULL );
 			}
 
@@ -795,7 +799,7 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 		EXPRSTR( button, event_name )
 		EXPRSTR( event, event_name )
 
-		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
+		tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button, (char *)NULL );
 		const char *current = Tcl_GetStringResult(agent->Interp());
 		char last_buffer[50];
 		char *last = 0;
@@ -817,8 +821,11 @@ char *glishtk_canvas_bind(TkProxy *agent, const char *, Value *args )
 			{
 			list = new glishtk_canvas_bindlist;
 			char *cback = last = glishtk_make_callback(agent->Interp(), glishtk_canvas_bindcb, list);
+			FILE *fle = agent->Logfile();
+			if ( fle )
+				fprintf( fle, "proc %s { x y b T K A } { puts \"(canvas bind:%s) %s $x $y $b $T $K $A\" }\n", cback, cback, Tk_PathName(agent->Self()) );
 			(*glishtk_canvas_table).Insert( strdup(cback), list );
-			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button,
+			tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, button,
 				     " {", cback, " %x %y %b %T %K %A}", (char *)NULL );
 			}
 
@@ -866,10 +873,10 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 						{
 						free_memory( (*glishtk_canvas_table).Remove(cback) );
 						if ( info->tag )
-							tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+							tcl_VarEval( agent, Tk_PathName(agent->Self()),
 								     " bind ", info->tag, SP, info->tk_event_name, " {}", (char *)NULL );
 						else
-							tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()),
+							tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()),
 								     SP, info->tk_event_name, " {}", (char *)NULL );
 						Unref(list);
 						}
@@ -881,7 +888,7 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 
 		else if ( glishtk_canvas_table )
 			{
-			tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, name, (char *)NULL );
+			tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP, name, (char *)NULL );
 
 			const char *current = Tcl_GetStringResult(agent->Interp());
 			char last_buffer[50];
@@ -901,7 +908,7 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 				free_memory( (*glishtk_canvas_table).Remove(last) );
 				glishtk_canvas_bindinfo *info = (*list)[0];
 				if ( info )
-					tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP,
+					tcl_VarEval( agent, "bind ", Tk_PathName(agent->Self()), SP,
 						     info->tk_event_name, " {}", (char *)NULL );
 				loop_over_list( (*list), x )
 					delete (*list)[x];
@@ -918,7 +925,7 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 		EXPRSTR( tag, event_name )
 		EXPRSTR( name, event_name )
 
-		tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+		tcl_VarEval( agent, Tk_PathName(agent->Self()),
 			     " bind ", tag, SP, name, (char *)NULL );
 
 		const char *current = Tcl_GetStringResult(agent->Interp());
@@ -939,7 +946,7 @@ char *glishtk_canvas_unbind(TkProxy *agent, const char *, Value *args )
 			free_memory( (*glishtk_canvas_table).Remove(last) );
 			glishtk_canvas_bindinfo *info = (*list)[0];
 			if ( info )
-				tcl_VarEval( agent->Interp(), Tk_PathName(agent->Self()),
+				tcl_VarEval( agent, Tk_PathName(agent->Self()),
 					     " bind ", info->tag, SP, info->tk_event_name, " {}", (char *)NULL );
 			loop_over_list( (*list), x )
 				delete (*list)[x];
@@ -978,7 +985,7 @@ char *glishtk_canvas_frame(TkProxy *agent, const char *, Value *args )
 	EXPRINT2( x, event_name )
 	EXPRINT2( y, event_name )
 	TkFrame *frame = new TkFrameP(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
-	tcl_VarEval( agent->Interp(), Tk_PathName(canvas->Self()), " create window ", x, SP, y, " -anchor nw -tag ", tag,
+	tcl_VarEval( agent, Tk_PathName(canvas->Self()), " create window ", x, SP, y, " -anchor nw -tag ", tag,
 		     " -window ", Tk_PathName(frame->Self()), (char *)NULL );
 	EXPR_DONE( y )
 	EXPR_DONE( x )
@@ -1019,7 +1026,7 @@ void TkCanvas::UnMap()
 		}
 
 	if ( self )
-		tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", (char *)NULL );
+		tcl_VarEval( this, Tk_PathName(self), " config -xscrollcommand \"\"", (char *)NULL );
 
 	TkProxy::UnMap();
 	}
@@ -1098,14 +1105,20 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 
 	char ys[100];
 	argv[c++] = "-yscrollcommand";
-	argv[c++] = glishtk_make_callback( tcl, canvas_yscrollcb, this, ys );
+	char *cback = glishtk_make_callback( tcl, canvas_yscrollcb, this, ys );
+	argv[c++] = cback;
+	FILE *fle = Logfile();
+	if ( fle )
+		fprintf( fle, "proc %s { } { puts \"(canvas yscroll:%s) %s\" }\n", cback, cback, argv[1] );
 	argv[c++] = "-xscrollcommand";
-	argv[c++] = glishtk_make_callback( tcl, canvas_xscrollcb, this );
+	argv[c++] = cback = glishtk_make_callback( tcl, canvas_xscrollcb, this );
+	if ( fle )
+		fprintf( fle, "proc %s { } { puts \"(canvas xscroll:%s) %s\" }\n", cback, cback, argv[1] );
 
 	if ( region_is_copy )
 		free_memory( region );
 
-	tcl_ArgEval( tcl, c, argv );
+	tcl_ArgEval( this, c, argv );
 	char *ctor_error = Tcl_GetStringResult(tcl);
 	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 
@@ -1124,27 +1137,27 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
+	procs.Insert("addtag", new TkProc(this, "addtag","withtag", 2, glishtk_canvas_tagfunc));
 	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind, glishtk_str));
 	procs.Insert("unbind", new TkProc(this, "", glishtk_canvas_unbind));
-	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
-	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
-	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));
-	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
+	procs.Insert("canvasx", new TkProc(this, "canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
+	procs.Insert("canvasy", new TkProc(this, "canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
+	procs.Insert("delete", new TkProc(this, "", glishtk_canvas_delete));
+	procs.Insert("deltag", new TkProc(this, "dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
 	procs.Insert("frame", new TkProc(this, "", glishtk_canvas_frame, glishtk_tkcast));
-	procs.Insert("height", new TkProc("-height", glishtk_heightwidth_query, glishtk_StrToInt));
+	procs.Insert("height", new TkProc(this, "-height", glishtk_heightwidth_query, glishtk_StrToInt));
 	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("move", new TkProc("", glishtk_canvas_move));
+	procs.Insert("move", new TkProc(this, "", glishtk_canvas_move));
 	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("rectangle", new TkProc(this, "create", "rectangle", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist_query, glishtk_splitsp_int));
-	procs.Insert("tagabove", new TkProc("addtag","above", 2, glishtk_canvas_tagfunc));
-	procs.Insert("tagbelow", new TkProc("addtag","below", 2, glishtk_canvas_tagfunc));
+	procs.Insert("region", new TkProc(this, "-scrollregion", 4, glishtk_oneintlist_query, glishtk_splitsp_int));
+	procs.Insert("tagabove", new TkProc(this, "addtag","above", 2, glishtk_canvas_tagfunc));
+	procs.Insert("tagbelow", new TkProc(this, "addtag","below", 2, glishtk_canvas_tagfunc));
 	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_textfunc,glishtk_str));
-	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
-	procs.Insert("width", new TkProc("-width", glishtk_heightwidth_query, glishtk_StrToInt));
+	procs.Insert("view", new TkProc(this, "", glishtk_scrolled_update));
+	procs.Insert("width", new TkProc(this, "-width", glishtk_heightwidth_query, glishtk_StrToInt));
 	}
 
 int TkCanvas::ItemCount(const char *name) const

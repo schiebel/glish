@@ -4,6 +4,7 @@ func init_glishtk( ) {
     global system
 
     gtk := client('glishtk')
+#   gtk := client('glishtk', suspend=T)
 
     system.tk := gtk->version()
 
@@ -12,13 +13,14 @@ func init_glishtk( ) {
     ret.frame := func ( parent=F, relief='flat', borderwidth=2, side='top', padx=0,
 			pady=0, expand='both', background='lightgrey', width=70,
 			height=50, cursor='', title='glish/tk', icon='', newcmap=F,
-			tlead=F, tpos='sw', hlcolor='', hlbackground='', hlthickness='', visual='', visualdepth=0 )
+			tlead=F, tpos='sw', hlcolor='', hlbackground='', hlthickness='',
+			visual='', visualdepth=0, logfile='' )
 				{
 				if ( system.nogui ) fail "GUI disabled"
 				return gtk->frame( parent, relief, side, borderwidth, padx,
 						pady, expand, background, width, height,
 						cursor, title, icon, newcmap, tlead, tpos,
-						hlcolor, hlbackground, hlthickness, visual, visualdepth )
+						hlcolor, hlbackground, hlthickness, visual, visualdepth, logfile )
 				}
 
     ret.button := func ( parent, text='button', type='plain', padx=7, pady=3, width=0,

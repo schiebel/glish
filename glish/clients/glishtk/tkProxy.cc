@@ -77,7 +77,7 @@ char *glishtk_quote_string( charptr *str, int slen, int quote_empty_string )
 	return ret;
 	}
 
-int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
+int tcl_ArgEval( TkProxy *proxy, int argc, char *argv[] )
 	{
 	if ( argc < 1 ) return TCL_ERROR;
 
@@ -114,43 +114,31 @@ int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 		}
 
 	ARGEVAL_ZERO
-#ifdef DEBUGTK
-	cerr << buf << endl;
-#endif
-	return Tcl_Eval( interp, buf );
+
+	FILE *fle=0;
+	if ( (fle=proxy->Logfile()) )
+		fprintf( fle, "%s\n", buf );
+
+	return Tcl_Eval( proxy->Interp(), buf );
 	}
 
-#ifdef DEBUGTK
-int tcl_VarEval( Tcl_Interp *interp, ... )
+void *glishtk_log_to_file( FILE *fle, const char *str, ... )
 	{
-	static char **ary = 0;
-	static int ary_len = 0;
-
-	if ( ! ary_len )
+	if ( fle )
 		{
-		ary_len = 15;
-		ary = (char**) alloc_memory(sizeof(char*)*ary_len);
-		}
-
-	int len=0;
-	va_list ap;
-	va_start(ap, interp);
-	char *str = va_arg(ap,char*);
-	while ( str )
-		{
-		if ( len >= ary_len )
+		va_list ap;
+		fprintf( fle, "%s", str );
+		va_start(ap, str);
+		str = va_arg(ap,const char*);
+		while ( str )
 			{
-			ary_len *= 2;
-			ary = (char**) realloc_memory(ary, sizeof(char*)*ary_len);
+			fprintf( fle, "%s", str );
+			str = va_arg(ap,const char*);
 			}
-		ary[len++] = str;
-		str = va_arg(ap,char*);
+		fprintf( fle, "\n" );
+		va_end(ap);
 		}
-	va_end(ap);
-
-	return tcl_ArgEval( interp, len, ary );
 	}
-#endif
 
 char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data, char *out )
 	{
@@ -162,16 +150,16 @@ char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data,
 	return out;
 	}
 
-char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
+char *glishtk_winfo(TkProxy *proxy, const char *cmd, Value * )
 	{
-	tcl_VarEval( tcl, "winfo ", cmd, SP, Tk_PathName(self), (char *)NULL );
-	return Tcl_GetStringResult(tcl);
+	tcl_VarEval( proxy, "winfo ", cmd, SP, Tk_PathName(proxy->Self( )), (char *)NULL );
+	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
-char *glishtk_focus(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
+char *glishtk_focus(TkProxy *proxy, const char *cmd, Value * )
 	{
-	tcl_VarEval( tcl, "focus ", Tk_PathName(self), (char *)NULL );
-	return Tcl_GetStringResult(tcl);
+	tcl_VarEval( proxy, "focus ", Tk_PathName(proxy->Self( )), (char *)NULL );
+	return Tcl_GetStringResult(proxy->Interp( ));
 	}
 
 class glishtk_event {
@@ -200,49 +188,59 @@ glishtk_event::~glishtk_event()
 	free_memory( nme );
 	}
 
-TkProc::TkProc( TkProxy *a, TkStrToValProc cvt ) : cmdstr(0), proc(0), proc1(0),
-			proc2(0), agent(a), aproc(0), aproc2(0), aproc3(0), iproc(0),
-			iproc1(0), param(0), param2(0), convert(cvt), i(0) { }
+TkProc::TkProc( TkProxy *a, TkStrToValProc cvt ) : cmdstr(0), proc(0), proc1(0), proc2(0),
+			agent(a), aproc(0), aproc2(0), aproc3(0), aproc4(0), aproc5(0),
+			iproc(0), iproc1(0), param(0), param2(0), convert(cvt), i(0) { }
 
 TkProc::TkProc(const char *c, TkEventProc p, TkStrToValProc cvt) : cmdstr(c),
 			proc(p), proc1(0), proc2(0), agent(0), aproc(0), aproc2(0),
-			aproc3(0), iproc(0), iproc1(0), param(0), param2(0),
-			convert(cvt), i(0) { }
+			aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(0), param(0),
+			param2(0), convert(cvt), i(0) { }
 
 TkProc::TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt)
 			: cmdstr(c), proc(0), proc1(0), proc2(p), agent(0), aproc(0),
-			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x), param2(y),
-			convert(cvt), i(0) { }
+			aproc2(0), aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(0),
+			param(x), param2(y), convert(cvt), i(0) { }
 
 TkProc::TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(0), aproc(0),
-			aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x), param2(0),
-			convert(cvt), i(y) { }
+			aproc2(0), aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(p),
+			param(x), param2(0), convert(cvt), i(y) { }
 
 TkProc::TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(p), proc2(0), agent(0), aproc(0),
-			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x), param2(0),
-			convert(cvt), i(0) { }
+			aproc2(0), aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(0),
+			param(x), param2(0), convert(cvt), i(0) { }
 
 TkProc::TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(0), aproc(0),
-			aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0), param2(0),
-			convert(cvt), i(x) { }
+			aproc2(0), aproc3(0), aproc4(0), aproc5(0), iproc(p), iproc1(0),
+			param(0), param2(0), convert(cvt), i(x) { }
 
 TkProc::TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(p),
-			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0), param2(0),
-			convert(cvt), i(0) { }
+			aproc2(0), aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(0),
+			param(0), param2(0), convert(cvt), i(0) { }
 
 TkProc::TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
-			aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x), param2(0),
-			convert(cvt), i(0) { }
+			aproc2(p), aproc3(0), aproc4(0), aproc5(0), iproc(0), iproc1(0),
+			param(x), param2(0), convert(cvt), i(0) { }
 
 TkProc::TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt )
 			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
-			aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x), param2(y),
-			convert(cvt), i(0) { }
+			aproc2(0), aproc3(p), aproc4(0), aproc5(0), iproc(0), iproc1(0),
+			param(x), param2(y), convert(cvt), i(0) { }
+
+TkProc::TkProc(TkProxy *a, const char *c, int y, TkEventAgentProc4 p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
+			aproc2(0), aproc3(0), aproc4(p), aproc5(0), iproc(0), iproc1(0),
+			param(0), param2(0), convert(cvt), i(y) { }
+
+TkProc::TkProc(TkProxy *a, const char *c, const char *x, int y, TkEventAgentProc5 p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
+			aproc2(0), aproc3(0), aproc4(0), aproc5(p), iproc(0), iproc1(0),
+			param(x), param2(0), convert(cvt), i(y) { }
 
 Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{
@@ -260,6 +258,10 @@ Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 		val = (*aproc2)(agent, cmdstr, param, arg);
 	else if ( aproc3 != 0 && agent != 0 )
 		val = (*aproc3)(agent, cmdstr, param, param2, arg);
+	else if ( aproc4 != 0 && agent != 0 )
+		val = (*aproc4)(agent, cmdstr, i, arg);
+	else if ( aproc5 != 0 && agent != 0 )
+		val = (*aproc5)(agent, cmdstr, param, i, arg);
 	else if ( iproc )
 		val = (*iproc)(tcl, s, cmdstr, i, arg);
 	else if ( iproc1 )
@@ -738,7 +740,7 @@ void TkProxy::SetMap( int do_map, int toplevel )
 		if ( ! toplevel )
 			{
 			if ( dont_map )
-				tcl_VarEval( tcl, "pack forget ", Tk_PathName(self), (char *)NULL );
+				tcl_VarEval( this, "pack forget ", Tk_PathName(self), (char *)NULL );
 			if ( frame ) frame->Pack();
 			}
 		else
@@ -752,14 +754,14 @@ void TkProxy::SetMap( int do_map, int toplevel )
 						{
 						withdrawn = 1;
 						if ( ! leader_unmapped )
-							tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), (char *)NULL );
+							tcl_VarEval( this, "wm withdraw ", Tk_PathName(win), (char *)NULL );
 						}
 					}
 				else
 					{
 					withdrawn = 0;
 					if ( ! leader_unmapped )
-						tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), (char *)NULL );
+						tcl_VarEval( this, "wm deiconify ", Tk_PathName(win), (char *)NULL );
 					}
 				}
 			}
@@ -784,16 +786,16 @@ TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ),
 		const char *err = init_tk(0);
 		if ( err ) SetError( new Value(err) );
 
-		procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
-		procs.Insert("foreground", new TkProc("-fg", glishtk_onestr, glishtk_str));
-		procs.Insert("relief", new TkProc("-relief", glishtk_onestr, glishtk_str));
-		procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim, glishtk_strtoint));
-		procs.Insert("pixelwidth", new TkProc("width",glishtk_winfo, glishtk_strtoint));
-		procs.Insert("pixelheight", new TkProc("height",glishtk_winfo, glishtk_strtoint));
-		procs.Insert("hlcolor", new TkProc("-highlightcolor", glishtk_onestr, glishtk_str));
-		procs.Insert("hlbackground", new TkProc("-highlightbackground", glishtk_onestr, glishtk_str));
-		procs.Insert("hlthickness", new TkProc("-highlightthickness", glishtk_onedim, glishtk_strtoint));
-		procs.Insert("focus", new TkProc("focus", glishtk_focus, glishtk_str));
+		procs.Insert("background", new TkProc(this, "-bg", glishtk_onestr, glishtk_str));
+		procs.Insert("foreground", new TkProc(this, "-fg", glishtk_onestr, glishtk_str));
+		procs.Insert("relief", new TkProc(this, "-relief", glishtk_onestr, glishtk_str));
+		procs.Insert("borderwidth", new TkProc(this, "-borderwidth", glishtk_onedim, glishtk_strtoint));
+		procs.Insert("pixelwidth", new TkProc(this, "width",glishtk_winfo, glishtk_strtoint));
+		procs.Insert("pixelheight", new TkProc(this, "height",glishtk_winfo, glishtk_strtoint));
+		procs.Insert("hlcolor", new TkProc(this, "-highlightcolor", glishtk_onestr, glishtk_str));
+		procs.Insert("hlbackground", new TkProc(this, "-highlightbackground", glishtk_onestr, glishtk_str));
+		procs.Insert("hlthickness", new TkProc(this, "-highlightthickness", glishtk_onedim, glishtk_strtoint));
+		procs.Insert("focus", new TkProc(this, "focus", glishtk_focus, glishtk_str));
 		}
 	}
 
@@ -830,7 +832,7 @@ void TkProxy::do_pack( int argc, char **argv)
 		argv[0] = "pack";
 		set_cmd = 1;
 		}
-	tcl_ArgEval( Interp(), argc, argv );
+	tcl_ArgEval( this, argc, argv );
 	if ( set_cmd ) argv[0] = 0;
 	}
 
@@ -859,9 +861,14 @@ void TkProxy::BindEvent(const char *event, Value *rec)
 	PostTkEvent( event, rec );
 	}
 
-Tk_Window TkProxy::TopLevel()
+Tk_Window TkProxy::TopLevel( )
 	{
 	return frame ? frame->TopLevel() : 0;
+	}
+
+FILE *TkProxy::Logfile( )
+	{
+	return frame ? frame->Logfile() : 0;
 	}
 
 int TkProxy::IsPseudo( )
@@ -869,12 +876,12 @@ int TkProxy::IsPseudo( )
 	return 1;
 	}
 
-char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *val )
+char *glishtk_scrolled_update(TkProxy *proxy, const char *, Value *val )
 	{
 	if ( val->Type() != TYPE_STRING || val->Length() != 1 )
 		return 0;
 
-	tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], (char *)NULL );
+	tcl_VarEval( proxy, Tk_PathName(proxy->Self( )), SP, val->StringPtr(0)[0], (char *)NULL );
 	return 0;
 	}
 

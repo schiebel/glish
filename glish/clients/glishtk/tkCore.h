@@ -23,14 +23,14 @@ extern char **glishtk_splitsp_str_( char *, int & );
 extern Value *glishtk_splitsp_str( char * );
 
 //###  Functions for Invoking Tk Commands For Callbacks
-extern char *glishtk_nostr(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
-extern char *glishtk_onestr(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
-extern char *glishtk_onedim(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
-extern char *glishtk_oneint(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
-extern char *glishtk_onebinary(Tcl_Interp*, Tk_Window, const char *cmd, const char *ptrue, const char *pfalse,
-						Value *args);
-extern char *glishtk_onebool(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
-extern char *glishtk_oneintlist(Tcl_Interp*, Tk_Window, const char *cmd, int howmany, Value *args);
+extern char *glishtk_nostr(TkProxy *proxy, const char *cmd, Value *args);
+extern char *glishtk_onestr(TkProxy *proxy, const char *cmd, Value *args);
+extern char *glishtk_onedim(TkProxy *proxy, const char *cmd, Value *args);
+extern char *glishtk_oneint(TkProxy *proxy, const char *cmd, Value *args);
+extern char *glishtk_onebinary(TkProxy *proxy, const char *cmd, const char *ptrue,
+			       const char *pfalse, Value *args);
+extern char *glishtk_onebool(TkProxy *proxy, const char *cmd, Value *args);
+extern char *glishtk_oneintlist(TkProxy *proxy, const char *cmd, int howmany, Value *args);
 extern char *glishtk_oneidx(TkProxy *, const char *cmd, Value *args);
 extern char *glishtk_oneortwoidx(TkProxy *, const char *cmd, Value *args);
 extern char *glishtk_strandidx(TkProxy *, const char *cmd, Value *args);
@@ -41,7 +41,7 @@ extern char *glishtk_no2str(TkProxy *, const char *cmd, const char *param,
 
 extern Value *glishtk_strtoint( char *str );
 
-extern char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_scrollbar_update(TkProxy *, const char *cmd, Value *args);
 
 //### Event handlers common to Frame and tkCore widgets
 extern char *glishtk_bind(TkProxy *agent, const char *, Value *args );
@@ -54,7 +54,7 @@ class TkFrameP : public TkFrame {
 		  charptr width, charptr height, charptr cursor, charptr title,
 		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
 		  charptr hlcolor, charptr hlbackground, charptr hlthickness,
-		  charptr visual, int visualdepth );
+		  charptr visual, int visualdepth, charptr logf );
 	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,
@@ -113,6 +113,7 @@ class TkFrameP : public TkFrame {
 	void Enable( int force = 1 );
 
 	Tk_Window TopLevel();
+	FILE *Logfile();
 
     protected:
 	char *side;
@@ -133,6 +134,8 @@ class TkFrameP : public TkFrame {
 	TkProxy *tlead;
 	char *tpos;
 	int unmapped;
+
+	FILE *logfile;
 
 	char *icon;
 	};
@@ -197,6 +200,7 @@ class TkButton : public TkFrame {
 	void Enable( int force = 1 );
 
 	Tk_Window TopLevel();
+	FILE *Logfile();
 
 	// Enable modification, used to allow glish commands to modify
 	// a widget even if it has been disabled for the user.

@@ -7,13 +7,9 @@
 #include "tk.h"
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
-#ifdef DEBUGTK
+
 #include <stdarg.h>
-//###  Function wrapper for debugging
-extern int tcl_VarEval( Tcl_Interp *interp, ... );
-#else
-#define tcl_VarEval Tcl_VarEval
-#endif
+#include <stdio.h>
 
 #if ! defined(HAVE_TCL_GETSTRINGRESULT)
 #define Tcl_GetStringResult(tcl) (tcl)->result
@@ -38,7 +34,7 @@ typedef PDict(TkProc) tkprochash;
 #define NULL_TkProc ((TkProc*) -1)
 
 //###  Function to do Argv Eval
-extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
+extern int tcl_ArgEval( TkProxy *proxy, int argc, char *argv[] );
 
 //###  Quote the string and return an alloc'ed string
 extern char *glishtk_quote_string( charptr, int quote_empty_string=1 );
@@ -48,7 +44,7 @@ extern char *glishtk_quote_string( charptr*, int, int quote_empty_string=1 );
 extern char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
 
 //###  scrollbar callback
-extern char *glishtk_scrolled_update(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_scrolled_update(TkProxy *proxy, const char *cmd, Value *args);
 
 //###  Callback Procs
 typedef char *(*TkEventProc)(Tcl_Interp*, Tk_Window, const char *, Value*);
@@ -59,6 +55,8 @@ typedef char *(*TkTwoIntProc)(Tcl_Interp*, Tk_Window, const char *, const char *
 typedef char *(*TkEventAgentProc)(TkProxy*, const char *, Value*);
 typedef char *(*TkEventAgentProc2)(TkProxy*, const char *, const char *, Value*);
 typedef char *(*TkEventAgentProc3)(TkProxy*, const char *, const char *, const char *, Value*);
+typedef char *(*TkEventAgentProc4)(TkProxy*, const char *, int, Value *);
+typedef char *(*TkEventAgentProc5)(TkProxy*, const char *, const char *, int, Value *);
 typedef Value *(*TkStrToValProc)( char * );
 
 class glishtk_event;
@@ -119,6 +117,7 @@ class TkProxy : public Proxy {
 	void BindEvent(const char *event, Value *rec);
 
 	virtual Tk_Window TopLevel( );
+	virtual FILE *Logfile( );
 
 	int IsPseudo();
 
@@ -177,6 +176,8 @@ class TkProc {
 	TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0);
 	TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0);
 	TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0);
+	TkProc(TkProxy *a, const char *c, int y, TkEventAgentProc4 p, TkStrToValProc cvt = 0);
+	TkProc(TkProxy *a, const char *c, const char *x, int y, TkEventAgentProc5 p, TkStrToValProc cvt = 0);
 
 	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
 
@@ -191,6 +192,8 @@ class TkProc {
 	TkEventAgentProc aproc;
 	TkEventAgentProc2 aproc2;
 	TkEventAgentProc3 aproc3;
+	TkEventAgentProc4 aproc4;
+	TkEventAgentProc5 aproc5;
 
 	TkOneIntProc iproc;
 	TkTwoIntProc iproc1;
@@ -229,5 +232,99 @@ class TkFrame : public TkProxy {
 	
 typedef void (*WidgetCtor)( ProxyStore *, Value * );
 extern void GlishTk_Register( const char *, WidgetCtor );
+
+extern void *glishtk_log_to_file( FILE *, const char *, ... );
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b )
+	{
+	FILE *fle;
+	if ( (fle = proxy->Logfile()) ) glishtk_log_to_file( fle, a, b );
+	return Tcl_VarEval( proxy->Interp(), a, b );
+	}
+inline int tcl_VarEval( Tcl_Interp *tcl, const char *a, const char *b )
+	{ return Tcl_VarEval( tcl, a, b ); }
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c )
+	{
+	FILE *fle;
+	if ( (fle = proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c );
+	return Tcl_VarEval( proxy->Interp(), a, b, c );
+	}
+inline int tcl_VarEval( Tcl_Interp *tcl, const char *a, const char *b, const char *c )
+	{ return Tcl_VarEval( tcl, a, b, c ); }
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d )
+	{
+	FILE *fle;
+	if ( (fle = proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d );
+	}
+inline int tcl_VarEval( Tcl_Interp *tcl, const char *a, const char *b, const char *c,
+			const char *d )
+	{ return Tcl_VarEval( tcl, a, b, c, d ); }
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e )
+	{
+	FILE *fle;
+	if ( (fle = proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e );
+	}
+inline int tcl_VarEval( Tcl_Interp *tcl, const char *a, const char *b, const char *c,
+			const char *d, const char *e )
+	{ return Tcl_VarEval( tcl, a, b, c, d, e ); }
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e, const char *f )
+	{
+	FILE *fle;
+	if ( (fle = proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e, f );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e, f );
+	}
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e, const char *f,
+			const char *g )
+	{
+	FILE *fle;
+	if ( (fle=proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e, f, g );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e, f, g );
+	}
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e, const char *f,
+			const char *g, const char *h )
+	{
+	FILE *fle;
+	if ( (fle=proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e, f, g, h );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e, f, g, h );
+	}
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e, const char *f,
+			const char *g, const char *h, const char *i )
+	{
+	FILE *fle;
+	if ( (fle=proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e, f, g, h, i );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e, f, g, h, i );
+	}
+
+inline int tcl_VarEval( TkProxy *proxy,
+			const char *a, const char *b, const char *c,
+			const char *d, const char *e, const char *f,
+			const char *g, const char *h, const char *i,
+			const char *j )
+	{
+	FILE *fle;
+	if ( (fle=proxy->Logfile()) ) glishtk_log_to_file( fle, a, b, c, d, e, f, g, h, i, j );
+	return Tcl_VarEval( proxy->Interp(), a, b, c, d, e, f, g, h, i, j );
+	}
 
 #endif
