@@ -257,7 +257,7 @@ include		return TOK_INCLUDE;
 		RETURN_CONSTANT( atof( yytext ) );
 		}
 
-({FLOAT}[-+])?{FLOAT}i {
+{FLOAT}i	{
 		RETURN_CONSTANT( atodcpx( yytext ) );
 		}
 
