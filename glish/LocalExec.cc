@@ -63,6 +63,11 @@ void LocalExec::MakeExecutable( const char** argv )
 	if ( access( executable, X_OK ) < 0 )
 		return;
 
+	/*
+	** Ignore ^C coming from parent because ^C is used in the
+	** interpreter interface, and it gets delievered to all children.
+	*/
+	signal_handler old_sigint = install_signal_handler( SIGINT, (signal_handler) SIG_IGN );
 
 	pid = vfork();
 
@@ -83,6 +88,12 @@ void LocalExec::MakeExecutable( const char** argv )
 
 	if ( pid > 0 )
 		exec_error = 0;
+
+	/*
+	** Restore ^C
+	*/
+	install_signal_handler( SIGINT, (signal_handler) old_sigint );
+
 	}
 
 
