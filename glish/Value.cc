@@ -1773,7 +1773,7 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		}
 
 	int max_index, min_index;
-	const char *err = IndexRange( indices, num_indices, max_index );
+	const char *err = IndexRange( indices, num_indices, max_index, min_index );
 	if ( err )
 		{
 		error->Report( err );
