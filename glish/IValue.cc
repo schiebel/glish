@@ -7,7 +7,6 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include "input.h"
 #include <string.h>
-#include <iostream.h>
 #include <stdlib.h>
 
 #include "IValue.h"

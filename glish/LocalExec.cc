@@ -5,12 +5,12 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include <iostream.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <iostream>
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -88,7 +88,7 @@ void LocalExec::MakeExecutable( const char** argv )
 		execve( executable, (char *const*)argv, env );
 #endif
 
-		cerr << "LocalExec::MakeExecutable: couldn't exec ";
+		std::cerr << "LocalExec::MakeExecutable: couldn't exec ";
 		perror( executable );
 		_exit( -1 );
 		}
@@ -121,7 +121,7 @@ void LocalExec::SetStatus( int s )
 	if ( ! WIFEXITED(s) )
 		{
 		AbnormalExit( s );
-		cerr << "LocalExec::SetStatus: abnormal child termination for "
+		std::cerr << "LocalExec::SetStatus: abnormal child termination for "
 		     << executable << "\n";
 		}
 	}
@@ -137,7 +137,7 @@ void LocalExec::Ping()
 	{
 	if ( kill( pid_, SIGIO ) < 0 )
 		{
-		cerr << "LocalExec::Ping: problem pinging executable ";
+		std::cerr << "LocalExec::Ping: problem pinging executable ";
 		perror( executable );
 		}
 	}

@@ -7,7 +7,7 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
@@ -96,8 +96,8 @@ void ExecMinder::sigchld( )
 						(*active_list).remove_nth(i);
 						}
 					else if ( WIFSTOPPED(status) )
-						cerr << "ExecMinder::sigchld: process " <<
-							pid_ << " stopped" << endl;
+						std::cerr << "ExecMinder::sigchld: process " <<
+						  pid_ << " stopped" << std::endl;
 					break;
 					}
 

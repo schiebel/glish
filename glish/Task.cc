@@ -5,7 +5,6 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include <iostream.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

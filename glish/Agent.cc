@@ -5,7 +5,6 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
-#include <iostream.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -14,7 +13,6 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 #include "Glish/Reporter.h"
 #include "Sequencer.h"
-
 
 #define INTERESTED_IN_ALL "*"
 

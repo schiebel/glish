@@ -6,7 +6,6 @@
 
 #include "system.h"
 #include <string.h>
-#include <iostream.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>

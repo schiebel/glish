@@ -153,6 +153,9 @@
 /* Define ifyou have the <crt_externs.h> header file. */
 #undef HAVE_CRT_EXTERNS_H
 
+/* Define if you can include <iostream.h> without the compiler whining. */
+#undef HAVE_IOSTREAM_H
+
 /* If your version of TCL defines Tcl_GetSetringResult().  */
 #undef HAVE_TCL_GETSTRINGRESULT
 

@@ -7,7 +7,7 @@ RCSID("@(#) $Id$")
 #include "system.h"
 #include <stdlib.h>
 #include <string.h>
-#include <iostream.h>
+#include <iostream>
 #include <unistd.h>
 #include <setjmp.h>
 #include <sys/param.h>
@@ -687,7 +687,7 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		done = 1;							\
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
-			glish_error->Report("in trace function (disconnecting):");	\
+			glish_error->Report("in trace function (disconnecting):"); \
 			ret->Describe( glish_error->Stream(), ioOpt(ioOpt::SHORT()) );\
 			glish_error->Stream() << endl;				\
 			Unref(VAR##_val);					\
@@ -1635,7 +1635,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		     (glish_rc_file = fopen( glish_rc_filename, "r")) )
 			{
 			if ( VERB_INCL(verbose_mask) )
-				cerr << "vi " << glish_rc_filename << endl;
+				std::cerr << "vi " << glish_rc_filename << std::endl;
 			Parse( opt, glish_rc_file, glish_rc_filename );
 			}
 		}
@@ -1654,7 +1654,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
 				if ( VERB_INCL(verbose_mask) )
-					cerr << "vi " << glish_rc_filename << endl;
+					std::cerr << "vi " << glish_rc_filename << std::endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
 				loaded_system_glishrc = 1;
 				}
@@ -1673,7 +1673,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
 				if ( VERB_INCL(verbose_mask) )
-					cerr << "vi " << glish_rc_filename << endl;
+					std::cerr << "vi " << glish_rc_filename << std::endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
 				}
 		}
@@ -1686,7 +1686,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	     (glish_rc_file = fopen( glish_rc_dir, "r")) )
 		{
 		if ( VERB_INCL(verbose_mask) )
-			cerr << "vi " << glish_rc_dir << endl;
+			std::cerr << "vi " << glish_rc_dir << std::endl;
 		Parse( opt, glish_rc_file, glish_rc_dir );
 		}
 	else
@@ -1698,7 +1698,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		     (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
 			{
 			if ( VERB_INCL(verbose_mask) )
-				cerr << "vi " << GLISH_RC_FILE << endl;
+				std::cerr << "vi " << GLISH_RC_FILE << std::endl;
 			Parse( opt, glish_rc_file, GLISH_RC_FILE );
 			}
 
@@ -1711,7 +1711,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			     (glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
 				if ( VERB_INCL(verbose_mask) )
-					cerr << "vi " << glish_rc_filename << endl;
+					std::cerr << "vi " << glish_rc_filename << std::endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
 				}
 			}
@@ -1729,7 +1729,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		     (glish_rc_file = fopen( glish_rc_filename, "r")) )
 			{
 			if ( VERB_INCL(verbose_mask) )
-				cerr << "vi " << glish_rc_filename << endl;
+				std::cerr << "vi " << glish_rc_filename << std::endl;
 			Parse( opt, glish_rc_file, glish_rc_filename );
 			}
 		}
@@ -1760,7 +1760,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				{
 				expanded_name = (*load_list)[j];
 				if ( VERB_INCL(verbose_mask) )
-					cerr << "vi " << expanded_name << endl;
+					std::cerr << "vi " << expanded_name << std::endl;
 				Parse( opt, (*load_list)[j] );
 				}
 
@@ -1778,7 +1778,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		if ( ! include_once.Lookup( run_file ) )
 			{
 			if ( VERB_INCL(verbose_mask) )
-				cerr << "vi " << run_file << endl;
+				std::cerr << "vi " << run_file << std::endl;
 			Parse( opt, run_file );
 			}
 		}
@@ -2794,7 +2794,7 @@ void Sequencer::UnhandledFail( const IValue *val )
 	if ( cur_sequencer->VERB_FAIL(cur_sequencer->verbose_mask) && val->Type() == TYPE_FAIL )
 		{
 		char *str = val->StringVal(' ',0,0,0,"vf ");
-		cerr << str << endl;
+		std::cerr << str << std::endl;
 		free_memory(str);
 		}
 	}
@@ -4138,7 +4138,7 @@ IValue *Sequencer::Include( evalOpt &opt, const char *file )
 		}
 
 	if ( VERB_INCL(verbose_mask) )
-		cerr << "vi " << expanded_name << endl;
+		std::cerr << "vi " << expanded_name << std::endl;
 
 	unsigned short old_file_name = file_name;
 	glish_files->append(string_dup(file));

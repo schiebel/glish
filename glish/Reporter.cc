@@ -6,8 +6,8 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include <stdlib.h>
-#include <iostream.h>
 #include <string.h>
+#include <iostream>
 
 #include "Glish/Reporter.h"
 #include "Glish/Client.h"
@@ -22,7 +22,7 @@ SOStream *Reporter::sout = 0;
 
 class ProxyStream : public OStream {
     public:
-	ProxyStream( ostream &s_ ) : s(s_) { }
+	ProxyStream( std::ostream &s_ ) : s(s_) { }
 
 	OStream &operator<<(float);
 	OStream &operator<<(double);
@@ -43,7 +43,7 @@ class ProxyStream : public OStream {
 	OStream &flush( );
 
     private:
-	ostream &s;
+	std::ostream &s;
 };
 
 #define PROXYSTREAM_PUT(TYPE)			\
@@ -63,21 +63,21 @@ OStream &ProxyStream::flush( )
 
 class WarningReporter : public Reporter {
     public:
-	WarningReporter() : Reporter( new ProxyStream(cerr) )	{ }
+	WarningReporter() : Reporter( new ProxyStream(std::cerr) )	{ }
 	virtual void Prolog( const ioOpt & );
 	};
 
 
 class ErrorReporter : public Reporter {
     public:
-	ErrorReporter() : Reporter( new ProxyStream(cerr) )	{ }
+	ErrorReporter() : Reporter( new ProxyStream(std::cerr) )	{ }
 	virtual void Prolog( const ioOpt & );
 	};
 
 
 class FatalReporter : public Reporter {
     public:
-	FatalReporter() : Reporter( new ProxyStream(cerr) )	{ }
+	FatalReporter() : Reporter( new ProxyStream(std::cerr) )	{ }
 	virtual void Prolog( const ioOpt & );
 	virtual void Epilog( const ioOpt & );
 	};
@@ -85,7 +85,7 @@ class FatalReporter : public Reporter {
 
 class MessageReporter : public Reporter {
     public:
-	MessageReporter() : Reporter( new ProxyStream(cout) )	{ }
+	MessageReporter() : Reporter( new ProxyStream(std::cout) )	{ }
 	virtual void Prolog( const ioOpt & );
 	};
 
