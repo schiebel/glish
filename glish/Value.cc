@@ -188,7 +188,7 @@ DEFINE_REF_SET_VALUE(charptrref)
 
 void Value::SetValue( SDS_Index& value )
 	{
-	kernel.SetOpaque( (void*) value.Index() );
+	kernel.SetOpaque( int_to_void(value.Index()) );
 	}
 
 
@@ -1047,7 +1047,7 @@ int Value::SDS_IndexVal() const
 		return SDS_NO_SUCH_SDS;
 		}
 
-	return int( kernel.GetOpaque() );
+	return void_to_int( kernel.GetOpaque() );
 	}
 
 Value* Value::Deref()

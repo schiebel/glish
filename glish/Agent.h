@@ -13,6 +13,8 @@ class Agent;
 class NotifyTrigger;
 class PList(Frame);
 
+#define string_to_void void_ptr
+#define void_to_string string
 declare(List,string);
 typedef List(string) string_list;
 

@@ -154,6 +154,8 @@ protected:
 	};
 
 typedef const IValue* const_ivalue;
+#define const_ivalue_to_void void_ptr
+#define void_to_const_ivalue const_ivalue
 declare(List,const_ivalue);
 typedef List(const_ivalue) const_ivalue_list;
 

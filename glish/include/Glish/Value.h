@@ -37,6 +37,8 @@ declare(PList,Value);
 typedef PList(Value) value_list;
 
 typedef const Value* const_value;
+#define const_value_to_void void_ptr
+#define void_to_const_value const_value
 declare(List,const_value);
 typedef List(const_value) const_value_list;
 

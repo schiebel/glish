@@ -94,17 +94,17 @@ class Dict(type) : public Dictionary {					\
 			int initial_size = DEFAULT_DICT_SIZE ) :	\
 		Dictionary( ordering, initial_size ) {}			\
 	void* Insert( const char* key, type value )			\
-		{ return Dictionary::Insert( key, (void*) value ); }	\
+		{ return Dictionary::Insert( key, PASTE(type,_to_void)(value) ); } \
 	type Lookup( const char* key ) const				\
-		{ return (type) Dictionary::Lookup( key ); }		\
+		{ return PASTE(void_to_,type)(Dictionary::Lookup( key )); } \
 	type operator[]( const char* key ) const			\
 		{ return Lookup( key ); }				\
 	type NthEntry( int n ) const					\
-		{ return (type) Dictionary::NthEntry( n ); }		\
+		{ return PASTE(void_to_,type)(Dictionary::NthEntry( n )); } \
 	type NthEntry( int n, const char*& key ) const			\
-		{ return (type) Dictionary::NthEntry( n, key ); }	\
+		{ return PASTE(void_to_,type)(Dictionary::NthEntry( n, key )); } \
 	type NextEntry( const char*& key, IterCookie*& cookie )		\
-		{ return (type) Dictionary::NextEntry( key, cookie ); }	\
+		{ return PASTE(void_to_,type)(Dictionary::NextEntry( key, cookie )); } \
 	}
 
 #define PDictdeclare(type)						\

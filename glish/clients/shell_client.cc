@@ -24,10 +24,6 @@ RCSID("@(#) $Id$")
 #define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
 
-#ifdef HAVE_VFORK_H
-#include <vfork.h>
-#endif
-
 #include "Glish/Client.h"
 
 #include "Channel.h"
@@ -197,7 +193,7 @@ Channel* CreateChild( char** argv, int& pid )
 	int input_fd = from_pipe[0];
 	int output_fd = to_pipe[1];
 
-	pid = vfork();
+	pid = fork_process();
 
 	if ( pid == 0 )
 		{ // child

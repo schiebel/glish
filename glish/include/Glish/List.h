@@ -25,7 +25,20 @@
 #include <generic.h>
 #include <stdarg.h>
 
-typedef void* ent;
+inline void *int_to_void(int i)
+	{
+	void *ret = 0;
+	*((int*)&ret) = i;
+	return ret;
+	}
+
+inline int void_to_int(void *v)
+	{
+	return *(int*)&v;
+	}
+
+typedef void* void_ptr;
+typedef void_ptr ent;
 typedef void (*PFC)(char*);	// mostly for error handling
      
 class BaseList {
@@ -111,21 +124,21 @@ struct List(type) : BaseList						\
 									\
 	void operator=(List(type)& l)					\
 		{ BaseList::operator=((BaseList&)l); }			\
-	void insert(type a)	{ BaseList::insert(ent(a)); }		\
-	void append(type a)	{ BaseList::append(ent(a)); }		\
+	void insert(type a)	{ BaseList::insert(PASTE(type,_to_void)(a)); } \
+	void append(type a)	{ BaseList::append(PASTE(type,_to_void)(a)); } \
 	type remove(type a)						\
-			{ return type(BaseList::remove(ent(a))); }	\
-	type remove_nth(int n)	{ return type(BaseList::remove_nth(n)); }\
-	type get()		{ return type(BaseList::get()); }	\
+			{ return PASTE(void_to_,type)(BaseList::remove(PASTE(type,_to_void)(a))); } \
+	type remove_nth(int n)	{ return PASTE(void_to_,type)(BaseList::remove_nth(n)); } \
+	type get()		{ return PASTE(void_to_,type)(BaseList::get()); } \
 	type replace(int i, type new_type)				\
-		{ return type(BaseList::replace(i,ent(new_type))); }	\
+		{ return PASTE(void_to_,type)(BaseList::replace(i,PASTE(type,_to_void)(new_type))); } \
 	type is_member(type e)						\
-		{ return type(BaseList::is_member(ent(e))); }		\
+		{ return PASTE(void_to_,type)(BaseList::is_member(PASTE(type,_to_void)(e))); } \
 	PFC set_error_handler(PFC eh =0)				\
 		{ return BaseList::set_error_handler(eh); }		\
 									\
 	type operator[](int i) const					\
-		{ return type(BaseList::operator[](i)); }		\
+		{ return PASTE(void_to_,type)(BaseList::operator[](i)); } \
 	};								\
 									\
 struct ListIterator(type) : BaseListIterator				\
@@ -134,7 +147,7 @@ struct ListIterator(type) : BaseListIterator				\
 		: BaseListIterator((BaseList&)l) {}			\
 	void reset()		{ BaseListIterator::reset(); }		\
 	type operator()()						\
-		{ return type(BaseListIterator::operator()()); }	\
+		{ return PASTE(void_to_,type)(BaseListIterator::operator()()); } \
 	}
 
 #define Listimplement(type)						\
