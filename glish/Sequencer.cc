@@ -45,6 +45,12 @@ int system( const char* string );
 #include "ports.h"
 #include "version.h"
 
+#if defined(GLISHTK)
+#include "Rivet/tcl.h"
+#include "Rivet/rivet.h"
+#include "TkSelect.h"
+#endif
+
 #define GLISH_RC_FILE ".glishrc"
 #define GLISH_HOME_VAR "GLISH_HOME"
 
@@ -306,7 +312,11 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	connection_socket = new AcceptSocket( 0, INTERPRETER_DEFAULT_PORT );
 	mark_close_on_exec( connection_socket->FD() );
 
+#if defined( GLISHTK )
+	selector = new TkSelector( this );
+#else
 	selector = new Selector;
+#endif
 	selector->AddSelectee( new AcceptSelectee( this, connection_socket ) );
 	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
@@ -337,6 +347,15 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	sys_val->SetField( "version", new IValue( GLISH_VERSION ) );
 
+#if defined( GLISHTK )
+	IValue *tkversion = new IValue( TK_VERSION );
+	sys_val->SetField( "tk", tkversion );
+	attributeptr tkattr = tkversion->ModAttributePtr();
+	tkattr->Insert( "rivet", new IValue(RIVET_VERSION) );
+	tkattr->Insert( "tcl", new IValue(TCL_VERSION) );
+#else
+	sys_val->SetField( "tk", new IValue( glish_false ) );
+#endif
 
 	// Create place for the script variable to be filled in later
 	script_expr = InstallID( strdup( "script" ), GLOBAL_SCOPE );

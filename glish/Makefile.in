@@ -19,9 +19,12 @@ SRC = ..
 
 H = $(SRC)/include/Glish
 
-INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include $(PLUSINC)
-CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include
-CFLAGS = @GLISH_FLAGS@ @CFLAGS@
+XLIB = @XLIBSW@
+XINC = @XINCLUDES@
+
+INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC)
+CFLAGS = @GLISH_FLAGS@  @CFLAGS@
 
 INTERP_OBJS = \
 	IValue.o \
@@ -36,6 +39,8 @@ INTERP_OBJS = \
 	Select.o \
 	Stmt.o \
 	Task.o \
+	TkAgent.o \
+	TkSelect.o \
 	glish_init.o \
 	parse.o \
 	scan.o
@@ -90,7 +95,8 @@ install-all:
 	@cd clients; $(MAKE) $(MFLAGS) install-all
 
 glish: main.o libinterp.a libglish.a $(LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a $(LIBS) $(XLIB) -lm @LIBS@
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
+		$(LIBS) @GLISH_LIB@ $(XLIB) -lm @LIBS@
 
 libglish.a: $(CLIENT_OBJS)
 	rm -f libglish.a
@@ -113,7 +119,7 @@ Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc
 BinOpExpr.o: $(SRC)/BinOpExpr.cc $(SRC)/BinOpExpr.h $(KEY_HEADERS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/BinOpExpr.cc
-BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(KEY_HEADERS)
+BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(SRC)/TkAgent.h $(KEY_HEADERS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/BuiltIn.cc
 Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 		$(SRC)/Reporter.h $(SRC)/ports.h
@@ -162,6 +168,10 @@ Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
 Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
     $(SRC)/BuiltIn.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Task.cc
+TkAgent.o: $(SRC)/Agent.h $(SRC)/TkAgent.cc $(SRC)/TkAgent.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -w -c $(SRC)/TkAgent.cc
+TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc
 Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Value.cc
 IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \

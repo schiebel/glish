@@ -134,6 +134,7 @@ class name : public BuiltIn {						\
 
 
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
+DERIVE_SEQUENCER_BUILTIN(CreateGraphicBuiltIn,NUM_ARGS_VARIES,"create_graphic")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
 
 DERIVE_SEQUENCER_BUILTIN(SymbolNamesBuiltIn,NUM_ARGS_VARIES,"symbol_names")

@@ -1,6 +1,6 @@
 # $Header$
 
-SUBDIRS = sds editline glish npd
+SUBDIRS = sds editline glish npd rivet
 
 TAR = glish.tar
 
@@ -9,16 +9,16 @@ all:
 	@echo $${ARCH?"You must setenv \$$ARCH"}
 	@echo "Creating directories (\"File exists\" errors are okay) ..."
 	-@mkdir lib bin include
-	-@mkdir lib/$(ARCH) bin/$(ARCH) include/Glish include/Sds include/Npd
-	-@mkdir sds/$(ARCH) editline/$(ARCH) npd/$(ARCH) glish/$(ARCH) glish/clients/$(ARCH)
+	-@mkdir lib/$(ARCH) bin/$(ARCH) include/Glish include/Sds
+	-@mkdir sds/$(ARCH) editline/$(ARCH) glish/$(ARCH) glish/clients/$(ARCH)
 	-@cp install-sh sds
-	-@cp install-sh npd
 	-@cp install-sh editline
 	-@cp install-sh glish
 	-@cp install-sh glish/clients
 	@$(MAKE) $(MFLAGS) build.sds
 	@$(MAKE) $(MFLAGS) build.editline
 	@$(MAKE) $(MFLAGS) build.npd
+	@$(MAKE) $(MFLAGS) build.rivet
 	@$(MAKE) $(MFLAGS) build.glish
 
 build.sds:
@@ -30,7 +30,16 @@ build.editline:
 build.npd: @GLISH_NPD@
 
 GLISH_NPD:
+	-@mkdir include/Npd npd/$(ARCH)
+	-@cp install-sh npd
 	@cd npd; make $(MFLAGS) install-all
+
+
+build.rivet: @GLISH_TK@
+
+GLISH_TK:
+	-@mkdir include/Rivet
+	@cd rivet; make $(MFLAGS) install-all
 
 build.glish:
 	@cd glish; make $(MFLAGS) install-all
@@ -51,13 +60,17 @@ dist2:
 tar-list:
 	@ls -d Makefile README NEWS configure.in configure install-sh contrib
 	@for i in $(SUBDIRS); do \
-		(cd $$i; $(MAKE) $(MFLAGS) tar-list | sed "s,^,$$i/,"); done
+		if test -d $$i; then \
+			(cd $$i; $(MAKE) $(MFLAGS) rcsinfo); fi done
+		
 
 rcsinfo:
 	@rlog -L -S RCS/*,v
 	@for i in $(SUBDIRS); do \
-		(cd $$i; $(MAKE) $(MFLAGS) rcsinfo); done
+		if test -d $$i; then \
+			(cd $$i; $(MAKE) $(MFLAGS) rcsinfo); fi done
 
 clean-all:
 	@for i in $(SUBDIRS); do \
-		(cd $$i; $(MAKE) $(MFLAGS) clean-all); done
+		if test -d $$i; then \
+			(cd $$i; $(MAKE) $(MFLAGS) clean-all); fi done

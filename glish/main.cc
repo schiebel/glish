@@ -140,7 +140,11 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 #endif
 
 	char* ret;
+#if defined( GLISHTK )
+	if ( current_sequencer->ActiveClients() || tk_NumMainWindows > 0 )
+#else
 	if ( current_sequencer->ActiveClients() )
+#endif
 		{
 		ret = nb_readline( prompt );
 

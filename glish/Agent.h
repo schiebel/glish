@@ -37,7 +37,7 @@ typedef PDict(notification_list) notification_dict;
 class Agent : public GlishObject {
     public:
 	Agent( Sequencer* s );
-	~Agent();
+	virtual ~Agent();
 
 	// Send the given event/value list or pair to the event agent.
 	// If is_request is true then this is a request/response event,

@@ -90,6 +90,38 @@ function shell( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
 function client( ..., id=F, host=F, async=F, ping=F, suspend=F, input=F )
  	create_task( id, host, T, async, ping, suspend, input, ... )
 
+function frame ( parent=F, relief='flat',
+		 borderwidth=2, side='top',
+		 padx=0, pady=0, 
+		 background='lightgrey',
+		 width=70, height=50, title='glish/tk' )
+	create_graphic( 'frame', parent, relief, side, borderwidth, padx, pady, background, width, height, title )
+
+function button ( parent, text='button', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F )
+	create_graphic( 'button', parent, text, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled )
+
+function scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
+		 relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
+	create_graphic( 'scale', parent, start, end, length, text, orient, relief, borderwidth, foreground, background )
+
+function text ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
+	create_graphic( 'text', parent, width, height, wrap, font, disabled, text, relief, borderwidth, foreground, background, fill )
+
+function scrollbar ( parent, orient='vertical', foreground='black', background='lightgrey' )
+	create_graphic( 'scrollbar', parent, orient, foreground, background )
+
+function label ( parent, text='label', justify='left', padx=4, pady=2, font='', relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
+	create_graphic( 'label', parent, text, justify, padx, pady, font, relief, borderwidth, foreground, background )
+
+function entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=T )
+	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection )
+
+function message ( parent, text='message', width=180, justify='left', font='', padx=4, pady=2, relief='flat', borderwidth=3, foreground='black', background='lightgrey' )
+	create_graphic( 'message', parent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background )
+
+function listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=T )
+	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection )
+
 function full_type_name( const x )
 	{
 	if ( type_name(x) == "record" )

@@ -20,6 +20,9 @@ RCSID("@(#) $Id$")
 #include "Task.h"
 #include "Sequencer.h"
 #include "Frame.h"
+#ifdef GLISHTK
+#include "TkAgent.h"
+#endif
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
 #if defined(HUGE_VAL)
@@ -1443,6 +1446,55 @@ IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	}
 
 
+IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
+	{
+#ifdef GLISHTK
+	int len = args_val->length();
+
+	const IValue* arg = (*args_val)[0];
+
+	if ( len < 1 )
+		{
+		error->Report( this, " requires at least one argument");
+		return error_ivalue();
+		}
+
+	if ( arg->Type() != TYPE_STRING )
+		{
+		error->Report( this, " requires a string as the first argument");
+		return error_ivalue();
+		}
+
+	char *type = arg->StringVal();
+	TkAgent *agent = 0;
+
+	if ( type[0] == 'f' && ! strcmp( type, "frame" ) )
+		agent = TkFrame::Create( sequencer, args_val );
+	else if ( type[0] == 'b' && ! strcmp( type, "button" ) )
+		agent = TkButton::Create( sequencer, args_val );
+	else if ( type[0] == 's' && ! strcmp( type, "scrollbar" ) )
+		agent = TkScrollbar::Create( sequencer, args_val );
+	else if ( type[0] == 's' && ! strcmp( type, "scale" ) )
+		agent = TkScale::Create( sequencer, args_val );
+	else if ( type[0] == 't' && ! strcmp( type, "text" ) )
+		agent = TkText::Create( sequencer, args_val );
+	else if ( type[0] == 'l' && ! strcmp( type, "label" ) )
+		agent = TkLabel::Create( sequencer, args_val );
+	else if ( type[0] == 'e' && ! strcmp( type, "entry" ) )
+		agent = TkEntry::Create( sequencer, args_val );
+	else if ( type[0] == 'm' && ! strcmp( type, "message" ) )
+		agent = TkMessage::Create( sequencer, args_val );
+	else if ( type[0] == 'l' && ! strcmp( type, "listbox" ) )
+		agent = TkListbox::Create( sequencer, args_val );
+
+	return agent ? agent->AgentRecord() : error_ivalue();
+#else
+	error->Report("This Glish was not configured for graphic clients");
+	return error_ivalue();
+#endif
+	}
+
+
 IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
@@ -2026,6 +2078,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new ActiveAgentsBuiltIn );
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );
+	s->AddBuiltIn( new CreateGraphicBuiltIn( s ) );
 	s->AddBuiltIn( new CreateTaskBuiltIn( s ) );
 
 	s->AddBuiltIn( new SymbolNamesBuiltIn( s ) );

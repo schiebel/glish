@@ -72,10 +72,10 @@ protected:
 class Selector {
 public:
 	Selector();
-	~Selector();
+	virtual ~Selector();
 
-	void AddSelectee( Selectee* s );
-	void DeleteSelectee( int selectee_fd );
+	virtual void AddSelectee( Selectee* s );
+	virtual void DeleteSelectee( int selectee_fd );
 
 	// Returns the Selectee associated with the given fd, or, if
 	// none, returns 0.
@@ -83,16 +83,25 @@ public:
 
 	void AddTimer( SelectTimer* t );
 
+	// For any file descriptors this Selector might read events from,
+	// sets the corresponding bits in the passed fd_set.  The caller
+	// may then use the fd_set in a call to select().  Returns the
+	// number of fd's added to the mask.
+	int AddInputMask( fd_set* mask );
+
 	// If selection stops early due to non-zero return from Selectee's
 	// NotifyOfSelection(), returns that non-zero value.  Otherwise
 	// returns 0.
-	int DoSelection();
+	virtual int DoSelection( int CanBlock=1 );
 
 protected:
 	int max_num_fds;
 	Selectee** selectees;	// array indexed by fd
 
+	void FindTimerDelta( struct timeval *timeout, struct timeval &min_t );
+
 	Selectee* current_selectee;	// current selectee being notified
+	int selectee_count;
 
 	// If true, delete selectee when notification done.
 	int nuke_current_selectee;

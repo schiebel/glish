@@ -145,6 +145,7 @@ Selector::Selector()
 
 	current_selectee = 0;
 	nuke_current_selectee = 0;
+	selectee_count = 0;
 
 	fdset = new fd_set;
 	FD_ZERO( fdset );
@@ -163,6 +164,7 @@ void Selector::AddSelectee( Selectee* s )
 	{
 	selectees[s->FD()] = s;
 	FD_SET( s->FD(), fdset );
+	++selectee_count;
 	}
 
 void Selector::DeleteSelectee( int selectee_fd )
@@ -182,6 +184,8 @@ void Selector::DeleteSelectee( int selectee_fd )
 
 	selectees[selectee_fd] = 0;
 	FD_CLR( selectee_fd, fdset );
+
+	--selectee_count;
 	}
 
 Selectee* Selector::FindSelectee( int selectee_fd ) const
@@ -197,12 +201,27 @@ void Selector::AddTimer( SelectTimer* t )
 	timers.append( t );
 	}
 
-int Selector::DoSelection()
+int Selector::AddInputMask( fd_set* mask )
 	{
-	struct timeval* timeout = 0;
-	struct timeval timeout_buf;
-	struct timeval min_t;
+	int num = selectee_count;
+	int num_added = 0;
 
+	for ( int cnt=0; num && cnt < FD_SETSIZE; ++cnt )
+		if ( FD_ISSET(cnt, fdset ) )
+			{
+			if ( ! FD_ISSET( cnt, mask ) )
+				{
+				FD_SET( cnt, mask );
+				++num_added;
+				}
+			--num;
+			}
+
+	return num_added;
+	}
+
+void Selector::FindTimerDelta( struct timeval *timeout, struct timeval &min_t )
+	{
 	if ( timers.length() > 0 )
 		{
 		int have_min = 0;
@@ -235,7 +254,6 @@ int Selector::DoSelection()
 #endif
 			gripe( "gettimeofday failed" );
 
-		timeout = &timeout_buf;
 		*timeout = min_t;
 
 		// Convert the timeout to a delta from the current time.
@@ -247,6 +265,25 @@ int Selector::DoSelection()
 
 		else
 			decrement_time( *timeout, t );
+		}
+	else
+		timeout = 0;
+	}
+
+int Selector::DoSelection( int CanBlock )
+	{
+	struct timeval min_t;
+	struct timeval timeout_buf;
+	struct timeval *timeout = &timeout_buf;
+	struct timeval noblock;
+	struct timeval curtime;
+
+	FindTimerDelta( timeout, min_t );
+
+	if ( ! CanBlock )
+		{
+		noblock.tv_sec = noblock.tv_usec = 0;
+		timeout = &noblock;
 		}
 
 	fd_set read_mask = *fdset;
@@ -261,6 +298,7 @@ int Selector::DoSelection()
 
 		return 0;
 		}
+
 
 	if ( status == 0 )
 		{ // Timeout expired.  Assume current time is min_t.
