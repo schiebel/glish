@@ -140,14 +140,15 @@ int main( int argc, char** argv )
 	int child_fd = child_pipes[0];
 	int child_err = child_pipes[2];
 	int child_exit_fd = child_exit_pipe[0];
+	int do_out = 1, do_err = 1;
 
 	fd_set selection_mask;
-	FD_ZERO( &selection_mask );
 
 	for ( ; ; )
 		{
-		FD_SET( child_fd, &selection_mask );
-		FD_SET( child_err, &selection_mask );
+		FD_ZERO( &selection_mask );
+		if ( do_out ) FD_SET( child_fd, &selection_mask );
+		if ( do_err ) FD_SET( child_err, &selection_mask );
 		FD_SET( child_exit_fd, &selection_mask );
 		c.AddInputMask( &selection_mask );
 
@@ -173,15 +174,13 @@ int main( int argc, char** argv )
 		if ( FD_ISSET( child_err, &selection_mask ) )
 			{
 			int status;
-			if ( ReceiveChildOutput( c, child_err, status, "stderr" ) )
-				return status;
+			if ( ReceiveChildOutput( c, child_err, status, "stderr" ) ) do_err = 0;
 			}
 
 		if ( FD_ISSET( child_fd, &selection_mask ) )
 			{
 			int status;
-			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) )
-				return status;
+			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) ) do_out = 0;
 			}
 
 		if ( FD_ISSET( child_exit_fd, &selection_mask ) )
