@@ -21,7 +21,7 @@ H = $(SRC)/include/Glish
 
 INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include $(PLUSINC)
 CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include
-CFLAGS = @CFLAGS@
+CFLAGS = -DAUTHENTICATE @CFLAGS@
 
 GLISH_OBJS = \
 	Agent.o \
@@ -29,6 +29,7 @@ GLISH_OBJS = \
 	BuiltIn.o \
 	Client.o \
 	Complex.o \
+	Daemon.o \
 	Dict.o \
 	Event.o \
 	Executable.o \
@@ -63,7 +64,7 @@ ISTKPLACE = $(SRC)/..
 ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
 ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
 
-LIBS = $(ISTKLIBS)/libsds.a $(ISTKLIBS)/libedit.a
+LIBS = $(ISTKLIBS)/libsds.a $(ISTKLIBS)/libedit.a $(ISTKLIBS)/libnpd.a
 
 TAR_FILE = glish.tar
 
@@ -110,6 +111,8 @@ Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Client.cc
 Complex.o: $(SRC)/Complex.cc $(H)/Complex.h $(H)/glish.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Complex.cc
+Daemon.o: $(SRC)/Daemon.cc $(SRC)/Daemon.h $(H)/Client.h
+	$(CPLUS) '-DRSH="@RSH@"' $(CFLAGS) $(INCLUDE) -c $(SRC)/Daemon.cc
 Dict.o: $(SRC)/Dict.cc $(H)/Dict.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Dict.cc
 Event.o: $(SRC)/Event.cc $(KEY_HEADERS) $(SRC)/Event.h $(SRC)/Reporter.h \
@@ -141,7 +144,7 @@ Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
-	$(CPLUS) '-DRSH="@RSH@"' $(CFLAGS) $(INCLUDE) -c $(SRC)/Sequencer.cc
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Sequencer.cc
 Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc
 Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
