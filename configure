@@ -5621,21 +5621,6 @@ $mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
 $mkhier "glish/clients/glishtk/$ARCH/shared"
 
-if test ! -d include; then
-    echo "$ac_t""creating include symbolic links" 1>&6
-    mkdir include
-fi
-
-if test ! -d include/sos; then
-    (cd include; ln -s ../sos/include/sos sos)
-fi
-if test ! -d include/Npd; then 
-    (cd include; ln -s ../npd/include/Npd Npd)
-fi
-if test ! -d include/regx; then
-    (cd include; ln -s ../regx/include/regx regx)
-fi
-
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
