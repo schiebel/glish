@@ -541,12 +541,18 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, parameter_list *args,
 	if ( args->length() > 1 )
 		{
 		EXPRSTR( end, event_name )
+		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( start ),
 					     a->IndexCheck( end ), 0);
+		a->ExitEnable();
 		EXPR_DONE( end )
 		}
 	else
+		{
+		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( start ), 0);
+		a->ExitEnable();
+		}
 	EXPR_DONE( start )
 	return ret;
 	}
@@ -664,11 +670,17 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, parameter_list *args,
 	if ( args->length() > 1 )
 		{
 		EXPRSTR( where, event_name )
+		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( where ), str, 0);
+		a->ExitEnable();
 		EXPR_DONE( where )
 		}
 	else
+		{
+		a->EnterEnable();
 		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( "end" ), str, 0);
+		a->ExitEnable();
+		}
 	delete str;
 	EXPR_DONE( val )
 	return ret;
@@ -684,7 +696,9 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 	int c = 0;
 	EXPRVAL( val, event_name );
 	char *str = val->StringVal( ' ', 0, 1 );
+	a->EnterEnable();
 	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
+	a->ExitEnable();
 	delete str;
 	EXPR_DONE( val )
 	return ret;
@@ -700,8 +714,10 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	int c = 0;
 	EXPRVAL( val, event_name );
 	char *str = val->StringVal( ' ', 0, 1 );
+	a->EnterEnable();
 	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
 	rivet_va_cmd(a->Self(), "see", a->IndexCheck("end"), 0);
+	a->ExitEnable();
 	delete str;
 	EXPR_DONE( val )
 	return ret;
@@ -1083,6 +1099,9 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		return new IValue( glish_true );
 	}
 
+void TkAgent::EnterEnable() { }
+void TkAgent::ExitEnable() { }
+
 void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest,
 			   NotifyTrigger *t )
 	{
@@ -1116,6 +1135,7 @@ void TkAgent::ReleaseEvents()
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
+	enable_state = 0;
 
 	if ( tk_queue == 0 )
 		tk_queue = new PQueue(glishtk_event)();
@@ -2354,6 +2374,23 @@ int text_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientDat
 	return TCL_OK;
 	}
 
+#define DEFINE_ENABLE_FUNCS(CLASS)				\
+void CLASS::EnterEnable()					\
+	{							\
+	if ( ! enable_state && ! strcmp("disabled", rivet_va_cmd(self, "cget", "-state", 0)) ) \
+		{						\
+		enable_state++;					\
+		rivet_set( self, "-state", "normal" );		\
+		}						\
+	}							\
+void CLASS::ExitEnable()					\
+	{							\
+	if ( enable_state && --enable_state == 0 )		\
+		rivet_set( self, "-state", "disabled" );	\
+	}
+
+DEFINE_ENABLE_FUNCS(TkText)
+
 TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wrap,
 		charptr font, int disabled, charptr text, charptr relief,
 		charptr borderwidth, charptr foreground, charptr background,
@@ -2690,6 +2727,8 @@ int entry_xscrollcb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientDat
 	((TkEntry*)assoc)->xScrolled( firstlast );
 	return TCL_OK;
 	}
+
+DEFINE_ENABLE_FUNCS(TkEntry)
 
 TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 		 charptr justify, charptr font, charptr relief, 

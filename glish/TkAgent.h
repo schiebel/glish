@@ -192,6 +192,12 @@ class TkAgent : public Agent {
 	static void HoldEvents() { hold_events++; }
 	static void ReleaseEvents();
 
+	// For some widgets, they must be enabled before an action is performed
+	// otherwise widgets which are disabled will not even accept changes
+	// from a script.
+	virtual void EnterEnable();
+	virtual void ExitEnable();
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;
@@ -201,6 +207,8 @@ class TkAgent : public Agent {
 	static int hold_events;
 	static int initial_hold;
 	static PQueue(glishtk_event) *tk_queue;
+
+	unsigned int enable_state;
 	};
 
 class TkFrame : public TkAgent {
@@ -360,6 +368,10 @@ class TkText : public TkAgent {
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
+
+	void EnterEnable();
+	void ExitEnable();
+
     protected:
 	char *fill;
 	};
@@ -412,6 +424,10 @@ class TkEntry : public TkAgent {
 	int CanExpand() const;
 
 	~TkEntry();
+
+	void EnterEnable();
+	void ExitEnable();
+
     protected:
 	char *fill;
 
