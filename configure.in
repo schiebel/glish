@@ -197,6 +197,18 @@ if test "$AIX"; then
     CXXFLAGS="$CXXFLAGS -D_ALL_SOURCE"
 fi
 
+##
+## Check on a few C++ issues
+##
+AC_MSG_CHECKING(c++ 'for' scope)
+AC_LANG_CPLUSPLUS
+AC_TRY_COMPILE(,[
+for ( int i=0; i < 1; i++ ) { ; }
+for ( int i=0; i < 1; i++ ) { ; }
+],[AC_MSG_RESULT(local); AC_DEFINE(LOOPDECL,int)],
+AC_MSG_RESULT(non-local))
+AC_LANG_C
+
 AC_SUBST(XINCLUDES)
 AC_SUBST(XLIBSW)
 AC_SUBST(GLISH_FLAGS)
@@ -204,5 +216,6 @@ AC_SUBST(GLISH_INCL)
 AC_SUBST(GLISH_LIB)
 AC_SUBST(GLISH_TK)
 AC_SUBST(GLISH_NPD)
+AC_SUBST(LOOPDECL)
 
 AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/Makefile:npd/Makefile.in sds/$ARCH/Makefile:sds/Makefile.in editline/$ARCH/Makefile:editline/Makefile.in glish/$ARCH/Makefile:glish/Makefile.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
