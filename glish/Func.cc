@@ -213,6 +213,13 @@ int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 
 unsigned int UserFunc::CountRefs( recordptr r ) const
 	{
+	static func_list been_there;
+
+	if ( been_there.is_member( (UserFunc*) this ) )
+		return 0;
+
+	been_there.append( (UserFunc*) this );
+
 	unsigned int count = 0;
 	if ( stack )
 		{
@@ -226,6 +233,9 @@ unsigned int UserFunc::CountRefs( recordptr r ) const
 				}
 			}
 		}
+
+	been_there.remove( (UserFunc*) this );
+
 	return count;
 	}
 
