@@ -1,6 +1,6 @@
 # $Header$
 #
-# Makefile for sds C libraries.
+# Makefile for npd C libraries.
 
 CC = @CC@
 CFLAGS = @CFLAGS@
