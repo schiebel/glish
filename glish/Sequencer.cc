@@ -1553,7 +1553,7 @@ Sequencer::~Sequencer()
 	{
 	IValue exit_val(glish_true);
 
-	SystemEvent( "exiting", &exit_val );
+	SystemEvent( "exit", &exit_val );
 	RunQueue( );
 
 	shutting_glish_down = 1;
