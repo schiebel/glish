@@ -84,7 +84,6 @@ void *sos_source::get( sos_code &type, unsigned int &len )
 		    	swap_abcdefgh_hgfedcba(result,len);
 			break;
 		    case FOREIGN_DOUBLE:
-			fprintf(stderr,"here\n");
 			swap_abcd_dcba(result,len*2);   /***!!! verified for VAX=>(sun)IEEE         !!!***/
 			                                /***!!! doesn't yet work for VAX=>(dec)IEEE !!!***/
 			break;
