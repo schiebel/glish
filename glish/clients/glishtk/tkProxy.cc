@@ -578,7 +578,11 @@ char *TkProxy::which_bitmap( const char* filename )
 
 charptr TkProxy::NewName( Tk_Window parent ) const
 	{
-	static char buf[50];
+	static char *buf = 0;
+	static int len = 100;
+
+	if ( ! buf )
+		buf = (char*) alloc_memory( sizeof(char) * len );
 
 	if ( parent )
 		{
@@ -586,7 +590,15 @@ charptr TkProxy::NewName( Tk_Window parent ) const
 		if ( ! pp || pp[0] == '.' && pp[1] == '\0' )
 			sprintf( buf, ".g%x", ++widget_index );
 		else
+			{
+			int ppl = strlen(pp) + 15;
+			if ( ppl > len )
+				{
+				while ( ppl > len ) len *= 2;
+				buf = (char*) realloc_memory( buf, len );
+				}
 			sprintf( buf, "%s.g%x", pp, ++widget_index );
+			}
 		}
 	else
 		sprintf( buf, ".g%x", ++widget_index );
