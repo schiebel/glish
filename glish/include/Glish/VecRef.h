@@ -3,6 +3,7 @@
 //
 #ifndef subvecref_h
 #define subvecref_h
+#include "Glish/glish.h"
 
 class VecRef : public GlishObject {
     public:
@@ -70,7 +71,7 @@ class SubVecRef(type) : public VecRef {					\
 type* SubVecRef(type)::DupVec( type *ret ) const			\
 	{								\
 	if ( ! ret )							\
-		ret = new type[Length()];				\
+		ret = alloc_memory( sizeof(type)*Length() );		\
 									\
 	for ( int i = 0; i < Length(); ++i )				\
 		{							\

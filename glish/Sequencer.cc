@@ -1970,11 +1970,13 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		name_list *nl = (*el)[X]->EventNames();
 		if ( ! nl ) continue;
 		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
+
 		if ( ! await_agent )
 			{
 			delete_name_list( nl );
 			continue;
 			}
+
 		loop_over_list( *nl, Y )
 			{
 			char *nme = (*nl)[Y];
@@ -1989,6 +1991,8 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 			al->append(await_agent);
 			}
+
+		delete nl;
 
 		(*el)[X]->EventAgentDone();
 		}

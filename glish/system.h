@@ -11,15 +11,6 @@
 #include <stdio.h>
 #include <math.h>
 
-/*
-** use the allocation routines declared here
-*/
-#include "sos/alloc.h"
-#define alloc_memory		sos_alloc_memory
-#define alloc_zero_memory	sos_alloc_zero_memory
-#define realloc_memory		sos_realloc_memory
-#define free_memory		sos_free_memory
-
 #define is_a_nan(x) isnan(x)
 
 #ifdef HAVE_LIBC_H

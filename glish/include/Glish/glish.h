@@ -5,6 +5,15 @@
 #ifndef glish_h
 #define glish_h
 
+/*
+** use the allocation routines declared here
+*/
+#include "sos/alloc.h"
+#define alloc_memory		sos_alloc_memory
+#define alloc_zero_memory	sos_alloc_zero_memory
+#define realloc_memory		sos_realloc_memory
+#define free_memory		sos_free_memory
+
 typedef enum { glish_false, glish_true } glish_bool;
 
 typedef const char* string;
