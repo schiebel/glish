@@ -832,6 +832,9 @@ case $host_os in
 		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
 	    fi
 	fi
+	if test -n "$LD_SEARCH_FLAGS"; then
+	    LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS\$(EXTRA_LDSEARCH)"
+	fi
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
