@@ -239,7 +239,6 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 
-		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
@@ -414,7 +413,7 @@ void IValue::Polymorph( glish_type new_type )
 	if ( type == new_type )
 		return;
 
-	if ( type == TYPE_SUBVEC_REF || type == TYPE_SUBVEC_CONST )
+	if ( IsVecRef() )
 		{
 		// ### hmmm, seems polymorphing a const subvec should be an
 		// error ...
@@ -533,7 +532,6 @@ IValue *copy_value( const IValue *value )
 			break;
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			switch ( value->VecRefPtr()->Type() )
 				{
 #define COPY_REF(tag,accessor)						\
@@ -628,7 +626,6 @@ COPY_VALUE(TYPE_FUNC,FuncPtr())
 			break;
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			switch ( value->VecRefPtr()->Type() )
 				{
 #define COPY_REF(tag,accessor)						\

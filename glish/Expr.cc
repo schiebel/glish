@@ -847,8 +847,7 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 			else
 				{
 				IValue* tmp = (IValue*)(result->Deref());
-				if ( tmp->Type() == TYPE_SUBVEC_REF ||
-				     tmp->Type() == TYPE_SUBVEC_CONST )
+				if ( tmp->IsVecRef() )
 					{
 					tmp->VecRefPolymorph(
 						tmp->VecRefPtr()->Type() );

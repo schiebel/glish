@@ -270,7 +270,6 @@ RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,)
 RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = v->VecRefPtr();
 			IValue* theVal = (IValue*) ref->Val();
@@ -324,7 +323,6 @@ RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.i,)
 RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = v->VecRefPtr();
 			IValue* theVal = (IValue*) ref->Val();
@@ -1215,7 +1213,6 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 			{						\
 	XBIND_ACTIONS(vecoff,,stride,COLS,OFF,ADV1,ADV2)		\
 			case TYPE_SUBVEC_REF:				\
-			case TYPE_SUBVEC_CONST:				\
 				{					\
 				const VecRef* ref = arg->VecRefPtr();	\
 				int err;				\
@@ -1856,7 +1853,6 @@ IValue* as_string_built_in( const IValue* arg )
 		AS_STRING_ACTION(i,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = arg->VecRefPtr();
 			switch ( ref->Type() )
@@ -1893,7 +1889,7 @@ IValue* type_name_built_in( const IValue* arg )
 	{
 	glish_type t = arg->Type();
 
-	if ( t == TYPE_REF || t == TYPE_CONST )
+	if ( arg->IsRef() )
 		{
 		IValue* deref_val = type_name_built_in( (const IValue*)(arg->RefPtr()) );
 		char* deref_name = deref_val->StringVal();

@@ -185,15 +185,13 @@ public:
 
 	// True if the value is a reference.
 	int IsRef() const 
-		{ return kernel.Type() == TYPE_REF || kernel.Type() == TYPE_CONST; }
+		{ return kernel.Type() == TYPE_REF; }
 
 	// True if the value is a constant reference.
-	int IsConst() const
-		{ return kernel.Type() == TYPE_CONST; }
+	int IsConst() const { return kernel.IsConst(); }
 
 	// True if the value is a sub-vector reference.
-	int IsVecRef() const
-		{ return kernel.Type() == TYPE_SUBVEC_REF || kernel.Type() == TYPE_SUBVEC_CONST; }
+	int IsVecRef() const { return kernel.Type() == TYPE_SUBVEC_REF; }
 
 	// True if the value makes sense as a numeric type (i.e.,
 	// bool, integer, or floating-point).

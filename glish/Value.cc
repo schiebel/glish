@@ -19,7 +19,7 @@ int num_Values_deleted = 0;
 
 const char* type_names[NUM_GLISH_TYPES] =
 	{
-	"error", "ref", "const", "subref", "subconst",
+	"error", "ref", "subref",
 	"boolean", "byte", "short", "integer",
 	"float", "double", "string", "agent", "function", "record",
 	"complex", "dcomplex", "opaque",
@@ -227,7 +227,6 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 		case TYPE_DCOMPLEX:
 		case TYPE_STRING:
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			kernel.SetVecRef( new VecRef( ref_value, index,
 						num_elements, max_index ) );
 			break;
@@ -253,7 +252,7 @@ void Value::InitValue()
 
 void Value::DeleteValue()
 	{
-	if ( Type() == TYPE_CONST || Type() == TYPE_REF )
+	if ( IsRef() )
 		Unref( RefPtr() );
 
 	if ( value_manager )
@@ -308,7 +307,6 @@ int Value::IsNumeric() const
 		case TYPE_DCOMPLEX:
 			return 1;
 
-		case TYPE_CONST:
 		case TYPE_REF:
 		case TYPE_STRING:
 		case TYPE_AGENT:
@@ -317,7 +315,6 @@ int Value::IsNumeric() const
 		case TYPE_OPAQUE:
 			return 0;
 
-		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
 			return VecRefPtr()->Val()->IsNumeric();
 
@@ -479,7 +476,6 @@ val_type Value::name( int n ) const					\
 				"converted to ", type_name, ":", this );\
 			return zero;					\
 									\
-		case TYPE_SUBVEC_CONST:					\
 		case TYPE_SUBVEC_REF:					\
 			{						\
 			VecRef* ref = VecRefPtr();			\
@@ -721,7 +717,6 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		PLACE_ELEMENT_ACTION(buffer,str_buffer,indx,flt_prec)	\
 									\
 		case TYPE_SUBVEC_REF:					\
-		case TYPE_SUBVEC_CONST:					\
 			{						\
 			VecRef* ref = VecRefPtr();			\
 			int err;					\
@@ -1152,7 +1147,6 @@ BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r,ComplexPtr,j,)
 BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,DcomplexPtr,j,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef *ref = VecRefPtr();
 			switch ( ref->Type() )
@@ -1217,7 +1211,6 @@ COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr,j,)	\
 COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)	\
 								\
 		case TYPE_SUBVEC_REF:				\
-		case TYPE_SUBVEC_CONST:				\
 			{					\
 			VecRef *ref = VecRefPtr();		\
 			switch ( ref->Type() )			\
@@ -1365,7 +1358,6 @@ COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,j,)	\
 COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,j,)	\
 									\
 		case TYPE_SUBVEC_REF:					\
-		case TYPE_SUBVEC_CONST:					\
 			{						\
 			VecRef *ref = VecRefPtr();			\
 			switch ( ref->Type() )				\
@@ -1736,7 +1728,6 @@ SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
@@ -1935,7 +1926,6 @@ Value* Value::Pick( const Value *index ) const
 			PICK_ACTION_CLEANUP)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
@@ -2088,7 +2078,6 @@ PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,)
 PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
@@ -2742,7 +2731,6 @@ ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,indices[i]-1,)
 ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef *ref = VecRefPtr();
 			switch ( ref->Type() )
@@ -3129,7 +3117,6 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, strdup, delete (char*) (lhs[indices[i]-1]);)
 
-		case TYPE_SUBVEC_CONST:
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
 				{
@@ -3389,7 +3376,6 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING,charptr,StringPtr,StringVal,offset,)
 
 			case TYPE_SUBVEC_REF:
-			case TYPE_SUBVEC_CONST:
 				{
 				VecRef* ref = VecRefPtr();
 				switch ( ref->Val()->Type() )
@@ -3539,7 +3525,6 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexAr
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,strdup,)
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
@@ -3895,7 +3880,7 @@ void Value::Polymorph( glish_type new_type )
 	if ( type == new_type )
 		return;
 
-	if ( type == TYPE_SUBVEC_REF || type == TYPE_SUBVEC_CONST )
+	if ( IsVecRef() )
 		{
 		// ### hmmm, seems polymorphing a const subvec should be an
 		// error ...
@@ -3957,7 +3942,7 @@ void Value::VecRefPolymorph( glish_type new_type )
 	glish_type type = Type();
 	unsigned long length = kernel.Length();
 
-	if ( type != TYPE_SUBVEC_REF && type != TYPE_SUBVEC_CONST )
+	if ( IsVecRef() )
 		{
 		Polymorph( new_type );
 		return;
@@ -4025,7 +4010,6 @@ int Value::Grow( unsigned int new_size )
 			kernel.Grow( new_size );
 			break;
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
@@ -4111,7 +4095,6 @@ Value *copy_value( const Value *value )
 			break;
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			switch ( value->VecRefPtr()->Type() )
 				{
 #define COPY_REF(tag,accessor)						\
@@ -4194,7 +4177,6 @@ COPY_VALUE(TYPE_STRING,StringPtr())
 			break;
 
 		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
 			switch ( value->VecRefPtr()->Type() )
 				{
 #define COPY_REF(tag,accessor)						\

@@ -60,9 +60,9 @@ void ValueKernel::SetOpaque( void *v )
 glish_type ValueKernel::otherType() const
 	{
 	if ( VALUE(mode) )
-		return IsConst() ? TYPE_CONST : TYPE_REF;
+		return TYPE_REF;
 	else if ( REF(mode) )
-		return IsConst() ? TYPE_SUBVEC_CONST : TYPE_SUBVEC_REF;
+		return TYPE_SUBVEC_REF;
 	else if ( OPAQUE(mode) )
 		return TYPE_OPAQUE;
 	else
