@@ -460,7 +460,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   sprintf(mincolors_str,"%d",mincolors);
 
   argv[c++] = "pgplot";
-  argv[c++] = NewName(frameSelf);
+  argv[c++] = (char*) NewName(frameSelf);
   argv[c++] = "-width";
   argv[c++] = (char *)width;
   argv[c++] = "-height";
