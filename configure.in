@@ -321,6 +321,21 @@ AC_DEFUN(ADD_LD_SEARCH,[
     fi]
 )
 
+dnl LIB_VERSION_NUM( BASE_VERSION, LIBRARIES [, SUFFIX_SED_PREPROCESS])
+AC_DEFUN(SLIB_FIND_SUFFIX,[
+    for tmp_index in $2; do
+	tmp_id=`echo ${tmp_index}_SLIB_SUFFIX | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+        if test -f "$tmp_index/change.h"; then
+            eval ${tmp_id}=$1.`cat $tmp_index/change.h | head -1 | sed ['s/^[^0-9]*\([0-9][0-9]*\).*/\1/']`
+            ifelse([$3], , , eval ${tmp_id}=`echo ${tmp_index}_version | sed $1`)
+	else
+            eval ${tmp_id}=$1.0
+            ifelse([$3], , , eval ${tmp_id}=`echo ${tmp_index}_version | sed $1`)
+        fi
+    done
+])
+
+
 dnl##--------------------------------------------------------------------
 dnl##
 dnl## Initialize basic variables
@@ -368,17 +383,6 @@ else
     RCDIR="$option_rc_dir"
 fi
 AC_SUBST(RCDIR)
-
-dnl##
-dnl## defeat use of Lea's malloc
-dnl##
-if test "$enable_os_malloc" = "yes"; then
-	MALLOC=""
-	AC_CHECK_LIB(malloc, main)
-else
-	MALLOC="malloc.o"
-fi
-AC_SUBST(MALLOC)
 
 dnl##
 dnl## Fully qualified library path needed for
@@ -457,6 +461,17 @@ AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_YACC
 AC_CHECK_PROG(RSH,remsh,remsh,rsh)
+
+dnl##
+dnl## defeat use of Lea's malloc
+dnl##
+if test "$enable_os_malloc" = "yes"; then
+	MALLOC=""
+	AC_CHECK_LIB(malloc, main)
+else
+	MALLOC="malloc.o"
+fi
+AC_SUBST(MALLOC)
 
 dnl##
 dnl## Checks for header files.
@@ -595,9 +610,9 @@ dnl##--------------------------------------------------------------------
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
     if test "$enable_gc" = "yes"; then
-        NPD_LIB='${LIBDIR_P}/libnpdgc${GSUFFIX}'
+        NPD_LIB='${LIBDIR_P}/libnpdgc${NPD_SUFFIX}'
     else
-        NPD_LIB='${LIBDIR_P}/libnpd${GSUFFIX}'
+        NPD_LIB='${LIBDIR_P}/libnpd${NPD_SUFFIX}'
     fi
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
@@ -1603,13 +1618,9 @@ fi
 dnl##
 dnl## Set up shared suffix
 dnl##
-GLISH_LIB_SUFFIX=".a"
-if test "$GLISH_SLIB_SUFFIX" = "" ; then
-if test "$LIB_VERSIONS_OK" = "ok"; then
-    GLISH_SLIB_SUFFIX="$SLIB_SUFFIX.$_cv_version"
-fi
-fi
+SLIB_FIND_SUFFIX( "$SLIB_SUFFIX.$_cv_version", glish sos npd editline regx)
 
+GLISH_LIB_SUFFIX=".a"
 if test "$GLISH_LIB_SUFFIX" = "" ; then
 if test "$LIB_VERSIONS_OK" = "ok"; then
     GLISH_LIB_SUFFIX="$VERSION.a"
@@ -1743,10 +1754,14 @@ AC_SUBST(SLIB_CFLAGS)
 AC_SUBST(SLIB_LABEL)
 AC_SUBST(SLIB_CXXFLAGS)
 AC_SUBST(SLIB_LD_LIBS)
-AC_SUBST(GLISH_SLIB_SUFFIX)
 AC_SUBST(SLIB_SUFFIX)
 AC_SUBST(LIB_SUFFIX)
 AC_SUBST(GLISH_LIB_SUFFIX)
+AC_SUBST(GLISH_SLIB_SUFFIX)
+AC_SUBST(SOS_SLIB_SUFFIX)
+AC_SUBST(NPD_SLIB_SUFFIX)
+AC_SUBST(EDITLINE_SLIB_SUFFIX)
+AC_SUBST(REGX_SLIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
 AC_SUBST(MAKE_SLIB_expanded)
