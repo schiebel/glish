@@ -2189,6 +2189,16 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	return ret ? ret : empty_ivalue();
 	}
 
+
+static int valid_symbol_name( const char *s )
+	{
+	if ( ! s || ( *s != '_' && ! isalpha(*s) ) ) return 0;
+
+	for ( ++s; *s && (*s == '_' || isalnum(*s)); ++s );
+
+	return ! *s;
+	}
+
 IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 	{
 	int len = args_val->length();
@@ -2205,9 +2215,15 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 			return (IValue*) Fail( "wrong type for argument 1, record expected" );
 
 		recordptr rptr = arg1->RecordPtr(0);
-		IterCookie *c = rptr->InitForIteration();
 		IValue *member;
 		const char *key;
+
+		IterCookie *c = rptr->InitForIteration();
+		while ( (member = (IValue*)(rptr->NextEntry( key, c ))) )
+			if ( ! valid_symbol_name(key) )
+				return (IValue*) Fail( "invalid symbol name, \"", key, "\"" );
+
+		c = rptr->InitForIteration();
 		while ( (member = (IValue*)(rptr->NextEntry( key, c ))) )
 			{
 			Expr *id = sequencer->LookupID( strdup(key), GLOBAL_SCOPE, 1, 0 );
@@ -2220,8 +2236,13 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 			return (IValue*) Fail( "wrong type for argument 1, string expected" );
 
 		charptr *strs = arg1->StringPtr(0);
-		Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
-		id->Assign( copy_value( arg2 ) );
+		if ( valid_symbol_name(strs[0]) )
+			{
+			Expr *id = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 1, 0 );
+			id->Assign( copy_value( arg2 ) );
+			}
+		else
+			return (IValue*) Fail( "invalid symbol name, \"", strs[0], "\"" );
 		}
 
 	return new IValue( glish_true );
