@@ -371,8 +371,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 				int, int )
 	{
 	char buf[50];
-	char *ret = 0;
-	int rows, cols;
+	int rows;
 	char *event_name = "one string + n int function";
 	TkCanvas *agent = (TkCanvas*)agent_;
 	HASARG( args, > 0 )
@@ -437,7 +436,7 @@ else									\
 				}
 		}
 	else if ( shape_val != false_value && shape_val->IsNumeric() &&
-		  shape_val->Length() == 2 && (cols = shape_val->IntVal(2)) == 2 &&
+		  shape_val->Length() == 2 && shape_val->IntVal(2) == 2 &&
 		  val->IsNumeric() )
 		{
 		rows = shape_val->IntVal();
@@ -508,7 +507,7 @@ else									\
 	Argv[argc++] = (char*) "-tag";
 	Argv[argc++] = (char*) tagstr;
 
-	ret = (char*) rivet_cmd( agent->Self(), argc, Argv );
+	rivet_cmd( agent->Self(), argc, Argv );
 
 	for (int j=3; j < argc - 2; j++)
 		free_memory( Argv[j] );

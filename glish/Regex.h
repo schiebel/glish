@@ -89,7 +89,7 @@ class Regex : public GlishObject {
 	void Describe( OStream& s ) const;
 
 	// returns an allocated string
-	char *Description( char *ret = 0 ) const;
+	const char *Description( ) const;
 
 	IValue *GetMatch( );
 
@@ -123,6 +123,8 @@ class Regex : public GlishObject {
 	char divider;
 	unsigned int flags;
 	int match_count;
+
+	char *desc;
 };
 
 extern void copy_regexs( void *to_, void *from_, unsigned int len );

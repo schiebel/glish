@@ -276,7 +276,8 @@ void Regex::compile( )
 Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 				subst( subst_ ), reg(0), match(match_),
 				match_end(0) ,match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider(divider_), flags(flags_), match_count(0)
+				error_string(0), divider(divider_), flags(flags_), match_count(0),
+				desc(0)
 	{
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
@@ -284,7 +285,8 @@ Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 
 Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
 				match_end(0), match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider( o.divider ), flags( o.flags ), match_count(0)
+				error_string(0), divider( o.divider ), flags( o.flags ), match_count(0),
+				desc(0)
 	{
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
@@ -292,6 +294,7 @@ Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strd
 
 Regex::Regex( const Regex *o )
 	{
+	desc = 0;
 
 	if ( o )
 		{
@@ -415,7 +418,6 @@ else									\
 		}
 
 #define EVAL_ACTION( STR, SUBST_ACTION )				\
-	char *dest = regx_buffer;					\
 	char *orig = STR;						\
 	char *s = orig;							\
 	char *s_end = s + strlen(s);					\
@@ -444,10 +446,7 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 		else
 			return 0;
 
-	int inlen = len;
 	ADJUST_MATCH(*len,)
-
-	IValue *ret = 0;
 
 	match_count = 0;
 	match_len = reg->nparens * len;
@@ -480,6 +479,7 @@ IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
 			{
 			char *free_str = 0;
 			subst.splitReset();
+			char *dest = regx_buffer;
 			EVAL_ACTION( strs[ in_place && ! swap_io ? i : mc ], SUBST_PLACE_ACTION )
 
 			if ( return_matches ) mret[mc] = count;
@@ -562,6 +562,7 @@ int Regex::Eval( char *&string, int in_place )
 		{
 		if ( in_place )
 			{
+			char *dest = regx_buffer;
 			EVAL_ACTION( string, SUBST_PLACE_ACTION )
 
 			if ( count )
@@ -623,16 +624,22 @@ void Regex::Describe( OStream& s ) const
 	}
 
 
-char *Regex::Description( char *ret ) const
+const char *Regex::Description( ) const
 	{
-	if ( ! match || ! reg ) return strdup( "bad <regex>" );
+	if ( desc ) return desc;
+
+	if ( ! match || ! reg )
+		{
+		((Regex*)this)->desc = strdup( "bad <regex>" );
+		return desc;
+		}
 
 	int mlen = match_end - match;
 	if ( subst.str() )
 		{
 		int slen = strlen(subst.str());
-		if ( ! ret ) ret = (char*) alloc_memory( mlen + slen + 5 );
-		char *ptr = ret;
+		((Regex*)this)->desc = (char*) alloc_memory( mlen + slen + 5 );
+		char *ptr = desc;
 		*ptr++ = 's'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
 		ptr += mlen; *ptr++ = divider;
@@ -641,14 +648,14 @@ char *Regex::Description( char *ret ) const
 		}
 	else
 		{
-		if ( ! ret ) ret = (char*) alloc_memory( mlen + 4 );
-		char *ptr = ret;
+		((Regex*)this)->desc = (char*) alloc_memory( mlen + 4 );
+		char *ptr = desc;
 		*ptr++ = 'm'; *ptr++ = divider;
 		memcpy( ptr, match, mlen );
 		ptr += mlen; *ptr++ = divider; *ptr = '\0';
 		}
 
-	return ret;
+	return desc;
 	}
 
 

@@ -2168,7 +2168,7 @@ IValue* as_string_built_in( const IValue* arg )
 
 		int i = 0;
 		for ( ; i < len; ++i )
-			s[i] = regs[i]->Description( );;
+			s[i] = strdup(regs[i]->Description( ));
 
 		IValue* result = new IValue( (charptr*) s, len );
 		return result;

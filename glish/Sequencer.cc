@@ -2776,26 +2776,11 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		return 0;
 	}
 
-#define CHECK_AWAIT							\
-	int ignore_event = 0;						\
-	int await_finished = 0;						\
-									\
-	if ( await_stmt )						\
-		{							\
-		await_finished =					\
-			agent->HasRegisteredInterest( await_stmt,	\
-						      event_name );	\
-									\
-		if ( ! await_finished && await_only_flag &&		\
-		     ! agent->HasRegisteredInterest( except_stmt,	\
-						     event_name ) )	\
-			ignore_event = 1;				\
-		}
 
 void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	{
-	CHECK_AWAIT
-	if ( await_finished ) selector->AwaitDone();
+	if ( await_stmt && agent->HasRegisteredInterest( await_stmt, event_name ) )
+		selector->AwaitDone();
 	}
 
 #define NEWEVENT_BODY							\

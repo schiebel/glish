@@ -213,7 +213,7 @@ char* CLASS::StringVal( char sep, int max_elements,
 
 #define PLACE_REGEX(indx, str_buffer)					\
 	case TYPE_REGEX:						\
-		regex_ptr[ indx ]->Description( (char*) str_buffer );	\
+		str_buffer = regex_ptr[ indx ]->Description( );		\
 		break;
 #else
 #define PLACE_REGEX(x,y)
