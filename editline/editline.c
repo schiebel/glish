@@ -3,6 +3,7 @@
 **  Main editing routines for editline library.
 */
 
+#include "config.h"
 #include "editline.h"
 RCSID("@(#) $Id$")
 #include <signal.h>
@@ -30,7 +31,7 @@ RCSID("@(#) $Id$")
 #define HIST_SIZE	150
 #endif	/* !defined(HIST_SIZE) */
 
-typedef CONST CHAR	*STRING;
+typedef const CHAR	*STRING;
 
 /*
 **  Command status codes.
@@ -82,7 +83,7 @@ STATIC int	rl_nodata = 0x100;
 STATIC CHAR		NIL[] = "";
 STATIC STRING		Input = NIL;
 STATIC CHAR		*Line;
-STATIC CONST char	*Prompt;
+STATIC const char	*Prompt;
 STATIC CHAR		*Yanked;
 STATIC char		*Screen;
 STATIC char		NEWLINE[]= CRLF;
@@ -97,9 +98,9 @@ STATIC int		Pushed;
 STATIC int		Signal;
 FORWARD KEYMAP		Map[33];
 FORWARD KEYMAP		MetaMap[17];
-STATIC SIZE_T		Length;
-STATIC SIZE_T		ScreenCount;
-STATIC SIZE_T		ScreenSize;
+STATIC size_t		Length;
+STATIC size_t		ScreenCount;
+STATIC size_t		ScreenSize;
 STATIC char		*backspace;
 STATIC int		TTYwidth;
 STATIC int		TTYrows;
@@ -138,7 +139,7 @@ TTYflush()
 
 STATIC void
 TTYput(c)
-    CONST CHAR	c;
+    const CHAR	c;
 {
     Screen[ScreenCount] = c;
     if (++ScreenCount >= ScreenSize - 1) {
@@ -196,7 +197,7 @@ TTYget()
     }
     if (*Input)
 	return *Input++;
-    return read(0, &c, (SIZE_T)1) == 1 ? c : EOF;
+    return read(0, &c, (size_t)1) == 1 ? c : EOF;
 }
 
 STATIC unsigned int
@@ -221,7 +222,7 @@ TTYnbget()
 	return *Input++;
 
     if ( select(0+1,&fdset,0,0,&timeout) && FD_ISSET(0,&fdset) )
-	return read(0, &c, (SIZE_T)1) == 1 ? c : EOF;
+	return read(0, &c, (size_t)1) == 1 ? c : EOF;
     else
 	return rl_nodata;
 }
@@ -498,7 +499,7 @@ STATIC STATUS
 insert_string(p)
     CHAR	*p;
 {
-    SIZE_T	len;
+    size_t	len;
     int		i;
     CHAR	*new;
     CHAR	*q;
@@ -671,7 +672,7 @@ STATIC STATUS
 h_search()
 {
     static int	Searching;
-    CONST char	*old_prompt;
+    const char	*old_prompt;
     CHAR	*(*move)();
     CHAR	*p;
 
@@ -729,7 +730,7 @@ save_yank(begin, i)
     if (i < 1)
 	return;
 
-    if ((Yanked = NEW(CHAR, (SIZE_T)i + 1)) != NULL) {
+    if ((Yanked = NEW(CHAR, (size_t)i + 1)) != NULL) {
 	COPYFROMTO(Yanked, &Line[begin], i);
 	Yanked[i] = '\0';
     }
@@ -1114,7 +1115,7 @@ readline_cleanup()
 
 char *
 readline(prompt)
-    CONST char	*prompt;
+    const char	*prompt;
 {
     CHAR	*line;
     int		s;
@@ -1166,7 +1167,7 @@ nb_readline_cleanup()
 
 char *
 nb_readline(prompt)
-    CONST char	*prompt;
+    const char	*prompt;
 {
     CHAR	*line;
     int		s;
@@ -1256,7 +1257,7 @@ find_word()
     static char	SEPS[] = "#;&|^$=`'{}()<>\n\t ";
     CHAR	*p;
     CHAR	*new;
-    SIZE_T	len;
+    size_t	len;
 
     for (p = &Line[Point]; p > Line && strchr(SEPS, (char)p[-1]) == NULL; p--)
 	continue;

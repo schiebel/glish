@@ -3,11 +3,14 @@
 **  Unix system-dependant routines for editline library.
 */
 
+#include "config.h"
 #include "editline.h"
 RCSID("@(#) $Id$")
 
 #if	defined(HAVE_TCGETATTR)
+#if	defined(HAVE_TERMIO_H)
 #include <termios.h>
+#endif
 
 void
 rl_ttyset(Reset)
@@ -39,7 +42,7 @@ rl_ttyset(Reset)
 }
 
 #else
-#if	defined(HAVE_TERMIO)
+#if	defined(HAVE_TERMIO_H)
 #include <termio.h>
 
 void
@@ -119,7 +122,7 @@ rl_ttyset(Reset)
 	(void)ioctl(0, TIOCSETC, &old_tchars);
     }
 }
-#endif	/* defined(HAVE_TERMIO) */
+#endif	/* defined(HAVE_TERMIO_H) */
 #endif	/* defined(HAVE_TCGETATTR) */
 
 void

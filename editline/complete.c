@@ -3,6 +3,7 @@
 **  History and file completion functions for editline library.
 */
 
+#include "config.h"
 #include "editline.h"
 RCSID("@(#) $Id$")
 
@@ -27,14 +28,14 @@ strdup(p)
 */
 STATIC int
 compare(p1, p2)
-    CONST void	*p1;
-    CONST void	*p2;
+    const void	*p1;
+    const void	*p2;
 {
-    CONST char	**v1;
-    CONST char	**v2;
+    const char	**v1;
+    const char	**v2;
 
-    v1 = (CONST char **)p1;
-    v2 = (CONST char **)p2;
+    v1 = (const char **)p1;
+    v2 = (const char **)p2;
     return strcmp(*v1, *v2);
 }
 
@@ -53,8 +54,8 @@ FindMatches(dir, file, avp)
     char	*p;
     DIR		*dp;
     DIRENTRY	*ep;
-    SIZE_T	ac;
-    SIZE_T	len;
+    size_t	ac;
+    size_t	len;
 
     if ((dp = opendir(dir)) == NULL)
 	return 0;
@@ -143,11 +144,11 @@ rl_complete(pathname, unique)
     char	*file;
     char	*new;
     char	*p;
-    SIZE_T	ac;
-    SIZE_T	end;
-    SIZE_T	i;
-    SIZE_T	j;
-    SIZE_T	len;
+    size_t	ac;
+    size_t	end;
+    size_t	i;
+    size_t	j;
+    size_t	len;
 
     if (SplitPath(pathname, &dir, &file) < 0)
 	return NULL;
