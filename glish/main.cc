@@ -101,6 +101,7 @@ void glish_sigint( )
 		longjmp( glish_top_level, 1 );
 		}
 
+	glish_cleanup( );
 	install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
 	kill(getpid(), SIGINT);
 	}
