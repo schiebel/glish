@@ -98,13 +98,13 @@ class ValueKernel {
 
     protected:
 
-	inline vkmode_t ARRAY( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<0; }
-	inline vkmode_t RECORD( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<1; }
-	inline vkmode_t VALUE( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<2; }
-	inline vkmode_t REF( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<3; }
-	inline vkmode_t CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<4; }
-	inline vkmode_t MOD_CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<5; }
-	inline vkmode_t FAIL( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<6; }
+	inline vkmode_t mARRAY( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<0; }
+	inline vkmode_t mRECORD( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<1; }
+	inline vkmode_t mVALUE( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<2; }
+	inline vkmode_t mREF( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<3; }
+	inline vkmode_t mCONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<4; }
+	inline vkmode_t mMOD_CONST( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<5; }
+	inline vkmode_t mFAIL( vkmode_t mask=~((vkmode_t) 0) ) const { return mask & 1<<6; }
 
 	vkmode_t mode;
 
@@ -125,8 +125,8 @@ class ValueKernel {
 	void unrefOthers();
 	void unref( int del=0 )
 		{
-		if ( ARRAY(mode) ) unrefArray(del);
-		else if ( RECORD(mode) || FAIL(mode) ) unrefRecord(del);
+		if ( mARRAY(mode) ) unrefArray(del);
+		else if ( mRECORD(mode) || mFAIL(mode) ) unrefRecord(del);
 		else unrefOthers();
 		}
 
@@ -135,8 +135,8 @@ class ValueKernel {
 	void refOthers();
 	void ref()
 		{ 
-		if ( ARRAY(mode) ) refArray();
-		else if ( RECORD(mode) || FAIL(mode) ) refRecord();
+		if ( mARRAY(mode) ) refArray();
+		else if ( mRECORD(mode) || mFAIL(mode) ) refRecord();
 		else refOthers();
 		}
 
@@ -148,13 +148,13 @@ class ValueKernel {
 		char 		have_attr;
 	};
 
-	void MakeConst() { mode |= CONST(); }
-	void MakeModConst() { mode |= MOD_CONST(); }
-	int IsConst() const { return CONST(mode); }
-	int IsModConst() const { return MOD_CONST(mode); }
+	void MakeConst() { mode |= mCONST(); }
+	void MakeModConst() { mode |= mMOD_CONST(); }
+	int IsConst() const { return mCONST(mode); }
+	int IsModConst() const { return mMOD_CONST(mode); }
 
 	ValueKernel() : array(0), mode(0) { }
-	ValueKernel( const ValueKernel &v ) : mode( v.mode & ~ CONST() ),
+	ValueKernel( const ValueKernel &v ) : mode( v.mode & ~ mCONST() ),
 					      array(v.array) { ref(); }
 
 	ValueKernel &operator=( const ValueKernel &v );
@@ -204,14 +204,14 @@ class ValueKernel {
 
 	glish_type Type() const
 		{
-		return ARRAY(mode) ? array->type :
-		       RECORD(mode) ? TYPE_RECORD :
+		return mARRAY(mode) ? array->type :
+		       mRECORD(mode) ? TYPE_RECORD :
 		       otherType();
 		}
 	int Length() const
 		{
-		return ARRAY(mode) ? (int) array->length :
-		       RECORD(mode) || FAIL(mode) ? record->record->Length() :
+		return mARRAY(mode) ? (int) array->length :
+		       mRECORD(mode) || mFAIL(mode) ? record->record->Length() :
 		       otherLength();
 		}
 

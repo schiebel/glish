@@ -97,7 +97,7 @@ void ValueKernel::array_t::clear()
 void ValueKernel::SetValue( Value *v )
 	{
 	unref(1);
-	mode = VALUE();
+	mode = mVALUE();
 	value = v;
 	refOthers();
 	}
@@ -105,8 +105,8 @@ void ValueKernel::SetValue( Value *v )
 void ValueKernel::SetFail( recordptr r )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetFail recordptr")
-	unref( RECORD(mode) || FAIL(mode) ? 0 : 1 );
-	mode = FAIL();
+	unref( mRECORD(mode) || mFAIL(mode) ? 0 : 1 );
+	mode = mFAIL();
 	if ( ! record ) record = new record_t();
 	record->record = r;
 	}
@@ -114,18 +114,18 @@ void ValueKernel::SetFail( recordptr r )
 void ValueKernel::SetVecRef( VecRef *v )
 	{
 	unref(1);
-	mode = REF();
+	mode = mREF();
 	vecref = v;
 	refOthers();
 	}
 
 glish_type ValueKernel::otherType() const
 	{
-	if ( VALUE(mode) )
+	if ( mVALUE(mode) )
 		return TYPE_REF;
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		return TYPE_SUBVEC_REF;
-	else if ( FAIL(mode) )
+	else if ( mFAIL(mode) )
 		return TYPE_FAIL;
 	else
 		return TYPE_ERROR;
@@ -133,9 +133,9 @@ glish_type ValueKernel::otherType() const
 
 unsigned int ValueKernel::otherLength() const
 	{
-	if ( VALUE(mode) )
+	if ( mVALUE(mode) )
 		return value->Length();
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		return vecref->Length();
 	else
 		return 0;
@@ -143,9 +143,9 @@ unsigned int ValueKernel::otherLength() const
 
 int ValueKernel::otherSizeof( ) const
 	{
-	if ( VALUE(mode) )
+	if ( mVALUE(mode) )
 		return sizeof(ValueKernel) + value->Sizeof( );
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		return sizeof(ValueKernel) + vecref->Sizeof( );
 	else
 		return 0;
@@ -154,9 +154,9 @@ int ValueKernel::otherSizeof( ) const
 
 unsigned int ValueKernel::otherBytes(int addPerValue) const
 	{
-	if ( VALUE(mode) )
+	if ( mVALUE(mode) )
 		return value->Bytes(addPerValue);
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		return vecref->Bytes() + addPerValue;
 	else
 		return 0;
@@ -165,8 +165,8 @@ unsigned int ValueKernel::otherBytes(int addPerValue) const
 void ValueKernel::SetRecord( recordptr r )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetRecord recordptr")
-	unref( RECORD(mode) || FAIL(mode) ? 0 : 1 );
-	mode = RECORD();
+	unref( mRECORD(mode) || mFAIL(mode) ? 0 : 1 );
+	mode = mRECORD();
 	if ( ! record ) record = new record_t();
 	record->record = r;
 	}
@@ -245,7 +245,7 @@ void ValueKernel::unrefRecord(int del)
 			record = new record_t();
 	}
 
-ValueKernel::ValueKernel( glish_type t, unsigned int len ) : mode(ARRAY()), array(new array_t())
+ValueKernel::ValueKernel( glish_type t, unsigned int len ) : mode(mARRAY()), array(new array_t())
 	{
 	array->SetType( t );
 	array->Grow( len );
@@ -253,8 +253,8 @@ ValueKernel::ValueKernel( glish_type t, unsigned int len ) : mode(ARRAY()), arra
 
 void ValueKernel::SetType( glish_type t, unsigned int l )
 	{
-	unref( ARRAY(mode) ? 0 : 1 );
-	mode = ARRAY();
+	unref( mARRAY(mode) ? 0 : 1 );
+	mode = mARRAY();
 	if ( ! array ) array = new array_t();
 	array->SetType( t );
 	array->Grow( l );
@@ -278,8 +278,8 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 
 
 #define ARRAY_SET_BODY(GLISH_TYPE)						\
-	unref( ARRAY(mode) && copy ? 0 : 1 );					\
-	mode = ARRAY();								\
+	unref( mARRAY(mode) && copy ? 0 : 1 );					\
+	mode = mARRAY();								\
 	if ( ! array ) array = new array_t();					\
 	array->SetType( GLISH_TYPE );						\
 	if ( copy )								\
@@ -323,7 +323,7 @@ void ValueKernel::SetArray( voidptr vec[], unsigned int len, glish_type t, int c
 
 void ValueKernel::Grow( unsigned int len )
 	{
-	if ( ! ARRAY(mode) || ! array || len == array->length || array->ref_count < 1 )
+	if ( ! mARRAY(mode) || ! array || len == array->length || array->ref_count < 1 )
 		return;
 	if ( array->ref_count == 1 )
 		array->Grow( len );
@@ -355,7 +355,7 @@ void ValueKernel::Grow( unsigned int len )
 
 void *ValueKernel::modArray( )
 	{
-	if ( ! ARRAY(mode) || ! array || array->ref_count < 1 )
+	if ( ! mARRAY(mode) || ! array || array->ref_count < 1 )
 		return 0;
 	if ( array->ref_count == 1 )
 		return array->values;
@@ -379,7 +379,7 @@ void *ValueKernel::modArray( )
 
 recordptr ValueKernel::modRecord( )
 	{
-	if ( ! RECORD(mode) && ! FAIL(mode) || ! record || record->ref_count < 1 )
+	if ( ! mRECORD(mode) && ! mFAIL(mode) || ! record || record->ref_count < 1 )
 		return 0;
 	if ( record->ref_count == 1 )
 		return record->record;
@@ -397,27 +397,27 @@ recordptr ValueKernel::modRecord( )
 
 void ValueKernel::refOthers()
 	{
-	if ( VALUE(mode) )
+	if ( mVALUE(mode) )
 		Ref( value );
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		Ref( vecref );
 	}
 
 void ValueKernel::unrefOthers()
 	{
-	if ( VALUE(mode) 
+	if ( mVALUE(mode) 
 #ifdef GGC
 	     && ! glish_collecting_garbage
 #endif
 	     )
 		Unref( value );
-	else if ( REF(mode) )
+	else if ( mREF(mode) )
 		Unref( vecref );
 	}
 
 int ValueKernel::Sizeof( ) const
 	{
-	if ( ARRAY(mode) )
+	if ( mARRAY(mode) )
 		{
 		if ( Type() != TYPE_STRING )
 			return (int) array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
@@ -429,7 +429,7 @@ int ValueKernel::Sizeof( ) const
 			return cnt + array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
 			}
 		}
-	else if ( RECORD(mode) || FAIL(mode) )
+	else if ( mRECORD(mode) || mFAIL(mode) )
 		return sizeof(record_t) + record->Sizeof( );
 	else
 		return otherSizeof();
@@ -438,7 +438,7 @@ int ValueKernel::Sizeof( ) const
 
 int ValueKernel::Bytes( int addPerValue ) const
 	{
-	if ( ARRAY(mode) )
+	if ( mARRAY(mode) )
 		{
 		if ( Type() != TYPE_STRING )
 			return (int) array->bytes() + addPerValue;
@@ -450,7 +450,7 @@ int ValueKernel::Bytes( int addPerValue ) const
 			return cnt;
 			}
 		}
-	else if ( RECORD(mode) || FAIL(mode) )
+	else if ( mRECORD(mode) || mFAIL(mode) )
 		return record->bytes( addPerValue );
 	else
 		return otherBytes();
@@ -461,7 +461,7 @@ int ValueKernel::ToMemBlock(char *memory, int offset, int have_attributes) const
 	{
 	header h;
 	glish_type type = Type();
-	if ( ARRAY(mode) )
+	if ( mARRAY(mode) )
 		{
 		h.type = type;
 		h.have_attr = have_attributes ? 1 : 0;
@@ -489,7 +489,7 @@ int ValueKernel::ToMemBlock(char *memory, int offset, int have_attributes) const
 				}
 			}
 		}
-	else if ( RECORD(mode) || FAIL(mode) )
+	else if ( mRECORD(mode) || mFAIL(mode) )
 		{
 		h.type = type;
 		h.len = record->record->Length();
