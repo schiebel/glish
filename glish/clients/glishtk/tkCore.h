@@ -225,7 +225,8 @@ class TkScale : public TkProxy {
 	TkScale ( ProxyStore *, TkFrame *, double from, double to, double value, charptr len,
 		  charptr text, double resolution, charptr orient, int width, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground, charptr background,
-		  charptr fill, charptr hlcolor, charptr hlbackground, charptr hlthickness );
+		  charptr fill, charptr hlcolor, charptr hlbackground, charptr hlthickness,
+		  int showvalue );
 
 	// value was set, so generate an event
 	void ValueSet( double );

@@ -46,12 +46,12 @@ func init_glishtk( load=F ) {
     ret.scale := func ( parent, start=0.0, end=100.0, value=start, length=110, text='',
 			resolution=1.0,	orient='horizontal', width=15, font='', relief='flat',
 			borderwidth=2, foreground='black', background='lightgrey', fill='',
-			hlcolor='', hlbackground='', hlthickness='' )
+			hlcolor='', hlbackground='', hlthickness='', showvalue=T )
 				{
 				if ( system.nogui ) fail "GUI disabled"
 				return gtk->scale( parent, start, end, value, length, text, resolution,
 						orient, width, font, relief, borderwidth, foreground,
-						background, fill, hlcolor, hlbackground, hlthickness )
+						background, fill, hlcolor, hlbackground, hlthickness, showvalue )
 				}
 
     ret.text := func ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='',
