@@ -295,6 +295,7 @@ class TkFrame : public TkRadioContainer {
 	char *FontsCB( parameter_list *, int, int );
 
 	char *Raise( parameter_list *, int, int );
+	char *Title( parameter_list *, int, int );
 
 	void Pack();
 	void PackSpecial( TkAgent * );
