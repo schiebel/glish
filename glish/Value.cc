@@ -4246,6 +4246,10 @@ static charptr* make_string_array( char* heap, int len, int& result_len )
 	return result;
 	}
 
+
+#define SDS_COPY_MODE COPY_ARRAY
+#define SDS_DO_MGR_INIT 0
+
 static Value* read_single_value_from_SDS( GlishObject* manager,
 						struct sds_odesc* odesc )
 	{
@@ -4253,38 +4257,38 @@ static Value* read_single_value_from_SDS( GlishObject* manager,
 	int length = (int) odesc->nelems;
 	int sds_type = (int) odesc->elemcod;
 
-	int do_value_manager = 1;
+	int do_value_manager = SDS_DO_MGR_INIT;
 
 	Value* result;
 
 	switch ( sds_type )
 		{
 		case SDS_BYTE:
-			result = create_value( (byte *) addr, length );
+			result = create_value( (byte *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_SHORT:
-			result = create_value( (short *) addr, length );
+			result = create_value( (short *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_INT:
-			result = create_value( (int *) addr, length );
+			result = create_value( (int *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_FLOAT:
-			result = create_value( (float *) addr, length );
+			result = create_value( (float *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_DOUBLE:
-			result = create_value( (double *) addr, length );
+			result = create_value( (double *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_COMPLEX:
-			result = create_value( (complex *) addr, length );
+			result = create_value( (complex *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_DOUBLE_COMPLEX:
-			result = create_value( (dcomplex *) addr, length );
+			result = create_value( (dcomplex *) addr, length, SDS_COPY_MODE );
 			break;
 
 		case SDS_STRING:
