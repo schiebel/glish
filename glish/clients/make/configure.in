@@ -285,7 +285,12 @@ dnl## defeat use of Lea's malloc
 dnl##
 if test "$enable_os_malloc" = "yes"; then
 	MALLOC=""
-	AC_CHECK_LIB(malloc, main)
+	AC_CHECK_LIB(malloc, main, [changequote(, )dnl
+	  ac_tr_lib=HAVE_LIB`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+	  changequote([, ])dnl
+	  AC_DEFINE_UNQUOTED($ac_tr_lib)
+	  BIN_LIBS="-lmalloc"
+	])
 else
 	MALLOC="malloc.o"
 fi
@@ -574,6 +579,7 @@ else
 fi
 
 AC_SUBST(top_off)
+AC_SUBST(BIN_LIBS)
 AC_SUBST(CLIENT_LIBS)
 AC_SUBST(EXTRA_LIBS)
 

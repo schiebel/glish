@@ -2690,13 +2690,13 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-    ac_tr_lib=HAVE_LIB`echo malloc | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
-  cat >> $confdefs.h <<EOF
+  	  ac_tr_lib=HAVE_LIB`echo $1 | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+	  	  cat >> $confdefs.h <<EOF
 #define $ac_tr_lib 1
 EOF
 
-  LIBS="-lmalloc $LIBS"
-
+	  BIN_LIBS="-lmalloc"
+	
 else
   echo "$ac_t""no" 1>&6
 fi
@@ -3183,6 +3183,7 @@ fi
 
 
 
+
 trap '' 1 2 15
 cat > $confcache <<\EOF
 # This file is a shell script that caches the results of configure
@@ -3317,6 +3318,7 @@ s%@LIBOBJS@%$LIBOBJS%g
 s%@MALLOC@%$MALLOC%g
 s%@CXXCPP@%$CXXCPP%g
 s%@top_off@%$top_off%g
+s%@BIN_LIBS@%$BIN_LIBS%g
 s%@CLIENT_LIBS@%$CLIENT_LIBS%g
 s%@EXTRA_LIBS@%$EXTRA_LIBS%g
 
