@@ -1952,8 +1952,8 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr));
-// 	procs.Insert("background", new TkProc(this, "-bg", glishtk_menu_onestr));
-// 	procs.Insert("foreground", new TkProc(this, "-fg", glishtk_menu_onestr));
+	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr));
+	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr));
 	procs.Insert("disabled", new TkProc(this, "-state", "disabled", "normal", glishtk_menu_onebinary));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
 	}
