@@ -15,10 +15,6 @@ extern Sequencer* current_sequencer;
 // Whether to use the editline library.
 #define USE_EDITLINE 1
 
-// Line number and file name to associate with the current expression/statement.
-extern int line_num;
-extern Str *file_name;
-
 extern FILE* yyin;
 extern int interactive;
 extern int statement_can_end;

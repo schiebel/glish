@@ -20,8 +20,8 @@ static char *div_fpe_errmsg = "division FPE occurred";
 static char *mod_fpe_errmsg = "modulo FPE occurred";
 static char *pow_fpe_errmsg = "power FPE occurred";
 
-BinOpExpr::BinOpExpr( binop bin_op, Expr* op1, Expr* op2, const char* desc )
-    : BinaryExpr(op1, op2, desc)
+BinOpExpr::BinOpExpr( binop bin_op, Expr* op1, Expr* op2 )
+    : BinaryExpr(op1, op2)
 	{
 	op = bin_op;
 	}
@@ -435,7 +435,7 @@ IValue *RelExpr::TypeCheck( const IValue* lhs, const IValue* rhs,
 			}
 
 		else
-			return (IValue*) Fail("bad types for ", description);
+			return (IValue*) Fail("bad types for ", Description() );
 		}
 	}
 

@@ -47,11 +47,14 @@ class BuiltIn : public Func {
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	const char *Description() const;
+
     protected:
 	// returns 0 if everything is OK
 	IValue *AllNumeric( const_args_list* args_vals, glish_type& max_type,
 			int strings_okay = 0 );
 
+	const char *description;
 	int num_args;
 	int do_deref;
 	// true if side-effects-only call is okay

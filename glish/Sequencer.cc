@@ -1181,6 +1181,10 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	error_result = 0;
 
 	agents = new agent_list;
+
+	glish_files = new name_list;
+	glish_files->append(0);
+
 	init_interp_reporters(this);
 	init_ivalues();
 	init_regex();
@@ -3022,9 +3026,12 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 	else
 		interactive = 0;
 
-	Str *old_file_name = file_name;
-	Str new_file_name(filename);
-	file_name = &new_file_name;
+	unsigned short old_file_name = file_name;
+	if ( filename )
+		{
+		glish_files->append(strdup(filename));
+		file_name = glish_files->length()-1;
+		}
 
 	NodeUnref( stmts );
 	IValue *ret = glish_parser( stmts );
@@ -3123,14 +3130,15 @@ IValue *Sequencer::Include( const char *file )
 	if ( VERB_INCL(verbose_mask) )
 		cerr << "vi " << expanded_name << endl;
 
-	Str *old_file_name = file_name;
-	Str new_file_name(file);
-	file_name = &new_file_name;
+	unsigned short old_file_name = file_name;
+	glish_files->append(strdup(file));
+	file_name = glish_files->length()-1;
+
 	void *old_buf = current_flex_buffer();
 	void *new_buf = new_flex_buffer( fptr );
 	int is_interactive = interactive;
 	set_flex_buffer(new_buf);
-	int old_line_num = line_num;
+	unsigned short old_line_num = line_num;
 	line_num = 1;
 
 
@@ -3175,6 +3183,7 @@ IValue *Sequencer::Include( const char *file )
 
 	line_num = old_line_num;
 	file_name = old_file_name;
+
 	clear_error();
 	error->SetCount(0);
 	set_flex_buffer(old_buf);

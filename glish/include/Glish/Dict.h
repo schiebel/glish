@@ -14,7 +14,7 @@ glish_declare(PList,DictEntry);
 
 // Default number of hash buckets in dictionary.  The dictionary will
 // increase the size of the hash table as needed.
-#define DEFAULT_DICT_SIZE 7
+#define DEFAULT_DICT_SIZE 5
 
 // Type indicating whether the dictionary should keep track of the order
 // of insertions.

@@ -5,7 +5,6 @@
 #define glish_list_h_
 
 #include <Glish/glish.h>
-#include <Glish/Object.h>
 
 //
 // List.h was moved to the sos library to prserve library
@@ -30,5 +29,7 @@ inline int void_to_int(void *v)
 // Popular type of list: list of strings.
 glish_declare(PList,char);
 typedef PList(char) name_list;
+
+#include <Glish/Object.h>
 
 #endif /* glish_list_h_ */

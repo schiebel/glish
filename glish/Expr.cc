@@ -133,6 +133,10 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 void Expr::SetChangeNotice(change_var_notice) { }
 void Expr::ClearChangeNotice( ) { }
 
+const char *VarExpr::Description() const
+	{
+	return id;
+	}
 
 void VarExpr::PopFrame( )
 	{
@@ -167,8 +171,7 @@ void VarExpr::change_id( char *newid )
 	}
 
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
-			int var_frame_offset,
-			Sequencer* var_sequencer ) : Expr(var_id), access(PARSE_ACCESS)
+			int var_frame_offset, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
 	{
 	id = var_id;
 	scope = var_scope;
@@ -179,8 +182,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	hold_frames = 0;
 	}
 
-VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
-			Expr(var_id), access(PARSE_ACCESS)
+VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : access(PARSE_ACCESS)
 	{
 	id = strdup(var_id);
 	sequencer = var_sequencer;
@@ -372,6 +374,11 @@ VarExpr *CreateVarExpr( char *id, scope_type sc, int soff, int foff,
 	}
 
 
+const char *ValExpr::Description() const
+	{
+	return "value";
+	}
+
 ValExpr::~ValExpr()
 	{
 	Unref(val);
@@ -396,7 +403,12 @@ ConstExpr::~ConstExpr()
 		Unref((GlishObject*)const_value);
 	}
 
-ConstExpr::ConstExpr( const IValue* value ) : Expr("constant")
+const char *ConstExpr::Description() const
+	{
+	return "constant";
+	}
+
+ConstExpr::ConstExpr( const IValue* value )
 	{
 	const_value = value;
 	}
@@ -417,7 +429,12 @@ FuncExpr::~FuncExpr()
 	Unref(func);
 	}
 
-FuncExpr::FuncExpr( UserFunc* f ) : Expr("function")
+const char *FuncExpr::Description() const
+	{
+	return "function";
+	}
+
+FuncExpr::FuncExpr( UserFunc* f )
 	{
 	func = f;
 	}
@@ -441,7 +458,7 @@ UnaryExpr::~UnaryExpr()
 	NodeUnref( op );
 	}
 
-UnaryExpr::UnaryExpr( Expr* operand, const char* desc ) : Expr(desc)
+UnaryExpr::UnaryExpr( Expr* operand )
 	{
 	op = operand;
 	}
@@ -471,8 +488,7 @@ BinaryExpr::~BinaryExpr()
 	NodeUnref( right );
 	}
 
-BinaryExpr::BinaryExpr( Expr* op1, Expr* op2, const char* desc )
-    : Expr(desc)
+BinaryExpr::BinaryExpr( Expr* op1, Expr* op2 )
 	{
 	left = op1;
 	right = op2;
@@ -500,7 +516,7 @@ Expr *BinaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	}
 
 
-NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand, "-" )
+NegExpr::NegExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
@@ -511,7 +527,12 @@ IValue* NegExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
-NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand, "!" )
+const char *NegExpr::Description() const
+	{
+	return "-";
+	}
+
+NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand )
 	{
 	}
 
@@ -522,8 +543,17 @@ IValue* NotExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
+const char *NotExpr::Description() const
+	{
+	return "!";
+	}
 
-AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, ":=")
+const char *AssignExpr::Description() const
+	{
+	return ":=";
+	}
+
+AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
@@ -592,8 +622,12 @@ Expr *AssignExpr::DoBuildFrameInfo( scope_modifier, expr_list &dl )
 	return this;
 	}
 
+const char *OrExpr::Description() const
+	{
+	return "||";
+	}
 
-OrExpr::OrExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "||")
+OrExpr::OrExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
@@ -630,8 +664,12 @@ IValue* OrExpr::Eval( eval_type etype )
 		}
 	}
 
+const char *AndExpr::Description() const
+	{
+	return "&&";
+	}
 
-AndExpr::AndExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "&&")
+AndExpr::AndExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
@@ -672,7 +710,12 @@ ConstructExpr::~ConstructExpr()
 		}
 	}
 
-ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
+const char *ConstructExpr::Description() const
+	{
+	return "[construct]";
+	}
+
+ConstructExpr::ConstructExpr( parameter_list* arg_args )
 	{
 	const char *msg = "mixed array/record constructor: ";
 	is_array_constructor = 1;
@@ -986,7 +1029,11 @@ ArrayRefExpr::~ArrayRefExpr()
 		}
 	}
 
-ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1, "[]")
+const char *ArrayRefExpr::Description() const
+	{
+	return "[]";
+	}
+ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1)
 	{
 	args = a;
 	}
@@ -1398,8 +1445,13 @@ RecordRefExpr::~RecordRefExpr()
 		free_memory( field );
 	}
 
+const char *RecordRefExpr::Description() const
+	{
+	return ".";
+	}
+
 RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
-    : UnaryExpr(op_, ".")
+    : UnaryExpr(op_)
 	{
 	field = record_field;
 	}
@@ -1485,19 +1537,24 @@ AttributeRefExpr::~AttributeRefExpr()
 		free_memory( field );
 	} 
 
-AttributeRefExpr::AttributeRefExpr( Expr *op1 ) : BinaryExpr(op1, 0, "::")
+const char *AttributeRefExpr::Description() const
+	{
+	return right ? "::[]" : "::";
+	}
+
+AttributeRefExpr::AttributeRefExpr( Expr *op1 ) : BinaryExpr(op1, 0)
 	{
 	field = 0;
 	}
 
 AttributeRefExpr::AttributeRefExpr( Expr* op1, char* attribute ) :
-		BinaryExpr(op1, 0, "::")
+		BinaryExpr(op1, 0)
 	{
 	field = attribute;
 	}
 
 AttributeRefExpr::AttributeRefExpr( Expr* op1, Expr* op2 ) :
-		BinaryExpr(op1, op2, "::[]")
+		BinaryExpr(op1, op2)
 	{
 	field = 0;
 	}
@@ -1668,7 +1725,7 @@ Expr *AttributeRefExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return this;
 	}
 
-RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_, "ref")
+RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_)
 	{
 	type = arg_type;
 	}
@@ -1732,8 +1789,17 @@ int RefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	return 1;
 	}
 
+const char *RefExpr::Description() const
+	{
+	return "ref";
+	}
 
-RangeExpr::RangeExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, ":")
+const char *RangeExpr::Description() const
+	{
+	return ":";
+	}
+
+RangeExpr::RangeExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 	{
 	}
 
@@ -1785,8 +1851,13 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 	}
 
 
+const char *ApplyRegExpr::Description() const
+	{
+	return "~";
+	}
+
 ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) :
-			BinaryExpr(op1, op2, "~"), sequencer(s), in_place(in_place_)
+			BinaryExpr(op1, op2), sequencer(s), in_place(in_place_)
 	{
 	}
 
@@ -1940,8 +2011,13 @@ CallExpr::~CallExpr()
 		}
 	}
 
+const char *CallExpr::Description() const
+	{
+	return "func()";
+	}
+
 CallExpr::CallExpr( Expr* func, parameter_list* args_args, Sequencer* seq_arg )
-    : UnaryExpr(func, "func()"), sequencer(seq_arg)
+    : UnaryExpr(func), sequencer(seq_arg)
 	{
 	args = args_args;
 	}
@@ -2011,8 +2087,13 @@ int CallExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	}
 
 
+const char *IncludeExpr::Description() const
+	{
+	return "include ";
+	}
+
 IncludeExpr::IncludeExpr( Expr* fle, Sequencer* seq_arg )
-    : UnaryExpr(fle, "include "), sequencer(seq_arg) { }
+    : UnaryExpr(fle), sequencer(seq_arg) { }
 
 IValue* IncludeExpr::Eval( eval_type etype )
 	{
@@ -2050,8 +2131,13 @@ SendEventExpr::~SendEventExpr()
 		Unref( sender );
 	} 
 
+const char *SendEventExpr::Description() const
+	{
+	return "->";
+	}
+
 SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
-				parameter_list* arg_args ) : Expr("->")
+				parameter_list* arg_args )
 	{
 	sender = arg_sender;
 	args = arg_args;
@@ -2101,7 +2187,7 @@ int SendEventExpr::DescribeSelf( OStream &s, charptr ) const
 
 
 LastEventExpr::LastEventExpr( Sequencer* arg_sequencer,
-				last_event_type arg_type ) : Expr("$last_event")
+				last_event_type arg_type )
 	{
 	sequencer = arg_sequencer;
 	type = arg_type;
@@ -2189,8 +2275,13 @@ int LastEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	}
 
 
+const char *LastEventExpr::Description() const
+	{
+	return "$last_event";
+	}
+
 LastRegexExpr::LastRegexExpr( Sequencer* arg_sequencer,
-				last_regex_type arg_type ) : Expr("$last_event")
+				last_regex_type arg_type )
 	{
 	sequencer = arg_sequencer;
 	type = arg_type;
@@ -2247,6 +2338,11 @@ int LastRegexExpr::DescribeSelf( OStream &s, charptr prefix ) const
 		s << "$strange";
 
 	return 1;
+	}
+
+const char *LastRegexExpr::Description() const
+	{
+	return "$m";
 	}
 
 

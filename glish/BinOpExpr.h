@@ -23,7 +23,7 @@ typedef enum {
 
 class BinOpExpr : public BinaryExpr {
     public:
-	BinOpExpr( binop op, Expr* op1, Expr* op2, const char* desc );
+	BinOpExpr( binop op, Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype ) = 0;
 
@@ -62,8 +62,7 @@ class BinOpExpr : public BinaryExpr {
 // type as the operands.
 class ArithExpr : public BinOpExpr {
     public:
-	ArithExpr( binop op_, Expr* op1, Expr* op2,
-			const char* desc ) : BinOpExpr(op_, op1, op2, desc)
+	ArithExpr( binop op_, Expr* op1, Expr* op2 ) : BinOpExpr(op_, op1, op2)
 		{ }
 
 	IValue* Eval( eval_type etype );
@@ -95,8 +94,10 @@ class ArithExpr : public BinOpExpr {
 class name : public ArithExpr {							\
     public:									\
 	name( Expr* op1, Expr* op2 )						\
-		: ArithExpr(op, op1, op2, op_name)	{ }			\
+		: ArithExpr(op, op1, op2)	{ }				\
 	overloads								\
+										\
+	const char *Description() const { return op_name; }			\
 										\
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }	\
@@ -132,8 +133,8 @@ DECLARE_ARITH_EXPR(PowerExpr, OP_POWER, "^",
 // a boolean result value.
 class RelExpr : public BinOpExpr {
     public:
-	RelExpr( binop op_, Expr* op1, Expr* op2, const char* desc )
-			: BinOpExpr(op_, op1, op2, desc) { }
+	RelExpr( binop op_, Expr* op1, Expr* op2 )
+			: BinOpExpr(op_, op1, op2) { }
 
 	IValue* Eval( eval_type etype );
 
@@ -173,7 +174,9 @@ class RelExpr : public BinOpExpr {
 class name : public RelExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
-		: RelExpr(op, op1, op2, op_name)	{ }		\
+		: RelExpr(op, op1, op2)	{ }				\
+									\
+	const char *Description() const { return op_name; }		\
 									\
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); } \
@@ -211,8 +214,8 @@ DECLARE_REL_EXPR(GT_Expr, OP_GT, ">")
 // a boolean result value.
 class LogExpr : public RelExpr {
     public:
-	LogExpr( binop op_, Expr* op1, Expr* op2, const char* desc )
-			: RelExpr(op_, op1, op2, desc)	{ }
+	LogExpr( binop op_, Expr* op1, Expr* op2 )
+			: RelExpr(op_, op1, op2)	{ }
 
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); }
@@ -247,7 +250,9 @@ class LogExpr : public RelExpr {
 class name : public LogExpr {						\
     public:								\
 	name( Expr* op1, Expr* op2 )					\
-		: LogExpr(op, op1, op2, op_name)	{ }		\
+		: LogExpr(op, op1, op2)	{ }				\
+									\
+	const char *Description() const { return op_name; }		\
 									\
 	IValue *Compute( const IValue* lhs, const IValue* rhs, int& lhs_len ) const \
 			{ return BinOpExpr::Compute( lhs, rhs, lhs_len ); } \

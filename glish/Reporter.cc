@@ -14,7 +14,6 @@ RCSID("@(#) $Id$")
 #include "system.h"
 
 int interactive = 0;
-extern Str *file_name;
 SOStream *Reporter::sout = 0;
 
 extern void show_glish_stack( OStream& );
@@ -259,11 +258,11 @@ void Reporter::Prolog()
 	{
 	if ( ! interactive )
 		{
-		if ( file_name && file_name->chars() )
+		if ( file_name && glish_files )
 			{
-			stream << "\"" << file_name->Chars() << "\", ";
+			stream << "\"" << (*glish_files)[file_name] << "\", ";
 			if ( do_log )
-				*sout << "\"" << file_name->Chars() << "\", ";
+				*sout << "\"" << (*glish_files)[file_name] << "\", ";
 			}
 
 		if ( line_num > 0 )

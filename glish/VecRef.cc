@@ -26,6 +26,11 @@ glish_implement(SubVecRef,complex)
 glish_implement(SubVecRef,dcomplex)
 glish_implement2(SubVecRef,charptr,strdup)
 
+const char *VecRef::Description() const
+	{
+	return "vecref";
+	}
+
 int VecRef::TranslateIndex( int index, int* error ) const 
 	{
 	if ( error )
@@ -49,7 +54,6 @@ VecRef::VecRef( Value* value, int arg_indices[], int num, int arg_max_index,
 	ref = 0;
 	vec = 0;
 	is_subvec_ref = 0;
-	description = "vecref";
 
 	Value* v = value->VecRefDeref();
 
@@ -80,7 +84,6 @@ VecRef::VecRef( Value* ref_value, int* index, int num, int arg_max_index,
 	vec = values;
 	subtype = t;
 	ref = 0;
-	description = "vecref";
 	}
 
 VecRef::~VecRef()

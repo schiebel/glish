@@ -104,7 +104,6 @@ public:
 				attributes( v.CopyAttributePtr() )
 		{
 		DIAG2( (void*) this, "Value( const Value& )" )
-		description = 0;
 		++num_Values_created;
 		}
 

@@ -27,7 +27,6 @@ extern int shutting_glish_down;
 class ParseNode : public GlishObject {
     public:
 	ParseNode() { }
-	ParseNode( const char *desc ) : GlishObject(desc) { }
 	virtual int canDelete() const;
 	};
 
@@ -70,7 +69,7 @@ typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS } eval_type;
 typedef void (*change_var_notice)(IValue*,IValue*);
 class Expr : public ParseNode {
     public:
-	Expr( const char* desc ) : ParseNode( desc ) { }
+	Expr( ) { }
 
 	// Returns a copy of the present value of the event expression.
 	// The caller is responsible for deleting the copy when done
@@ -174,6 +173,8 @@ class VarExpr : public Expr {
 
 	~VarExpr();
 
+	const char *Description() const;
+
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 
@@ -265,9 +266,11 @@ VarExpr *CreateVarExpr( char *id, scope_type scope, int scope_offset,
 
 class ValExpr : public Expr {
     public:
-	ValExpr( IValue *v ) : Expr("value"), val(v) { Ref(val); }
+	ValExpr( IValue *v ) : val(v) { Ref(val); }
 
 	~ValExpr();
+
+	const char *Description() const;
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
@@ -285,6 +288,8 @@ class ConstExpr : public Expr {
 
 	~ConstExpr();
 
+	const char *Description() const;
+
     protected:
 	const IValue* const_value;
 	};
@@ -299,6 +304,8 @@ class FuncExpr : public Expr {
 
 	~FuncExpr();
 
+	const char *Description() const;
+
     protected:
 	UserFunc* func;
 	};
@@ -306,7 +313,7 @@ class FuncExpr : public Expr {
 
 class UnaryExpr : public Expr {
     public:
-	UnaryExpr( Expr* operand, const char* desc );
+	UnaryExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype ) = 0;
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
@@ -322,7 +329,7 @@ class UnaryExpr : public Expr {
 
 class BinaryExpr : public Expr {
     public:
-	BinaryExpr( Expr* op1, Expr* op2, const char* desc );
+	BinaryExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype ) = 0;
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
@@ -343,6 +350,8 @@ class NegExpr : public UnaryExpr {
 	NegExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
 	};
 
 
@@ -351,6 +360,8 @@ class NotExpr : public UnaryExpr {
 	NotExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
 	};
 
 
@@ -363,6 +374,8 @@ class AssignExpr : public BinaryExpr {
 	int Invisible() const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
+
+	const char *Description() const;
 	};
 
 
@@ -371,6 +384,8 @@ class OrExpr : public BinaryExpr {
 	OrExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
 	};
 
 
@@ -379,6 +394,8 @@ class AndExpr : public BinaryExpr {
 	AndExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
 	};
 
 
@@ -390,6 +407,8 @@ class ConstructExpr : public Expr {
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ConstructExpr();
+
+	const char *Description() const;
 
     protected:
 	IValue* BuildArray();
@@ -427,6 +446,8 @@ class ArrayRefExpr : public UnaryExpr {
 
 	~ArrayRefExpr();
 
+	const char *Description() const;
+
     protected:
 	IValue *CallFunc(Func *fv, eval_type etype, ParameterPList *);
 	expr_list* args;
@@ -445,6 +466,8 @@ class RecordRefExpr : public UnaryExpr {
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~RecordRefExpr();
+
+	const char *Description() const;
 
     protected:
 	char* field;
@@ -468,6 +491,8 @@ class AttributeRefExpr : public BinaryExpr {
 
 	~AttributeRefExpr();
 
+	const char *Description() const;
+
     protected:
 	char* field;
 	};
@@ -482,6 +507,8 @@ class RefExpr : public UnaryExpr {
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	const char *Description() const;
+
     protected:
 	value_type type;
 	};
@@ -492,6 +519,8 @@ class RangeExpr : public BinaryExpr {
 	RangeExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
 	};
 
 
@@ -500,6 +529,8 @@ class ApplyRegExpr : public BinaryExpr {
 	ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ = 0 );
 
 	IValue* Eval( eval_type etype );
+
+	const char *Description() const;
     protected:
 	Sequencer *sequencer;
 	int in_place;
@@ -518,6 +549,8 @@ class CallExpr : public UnaryExpr {
 
 	~CallExpr();
 
+	const char *Description() const;
+
     protected:
 	ParameterPList* args;
 	Sequencer* sequencer;
@@ -527,6 +560,7 @@ class IncludeExpr : public UnaryExpr {
     public:
 	IncludeExpr( Expr* file, Sequencer *seq_arg );
 	IValue* Eval( eval_type etype );
+	const char *Description() const;
     protected:
 	Sequencer* sequencer;
 	};
@@ -545,6 +579,8 @@ class SendEventExpr : public Expr {
 
 	~SendEventExpr();
 
+	const char *Description() const;
+
     protected:
 	EventDesignator* sender;
 	ParameterPList* args;
@@ -562,6 +598,8 @@ class LastEventExpr : public Expr {
 	IValue* RefEval( value_type val_type );
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
+	const char *Description() const;
+
     protected:
 	Sequencer* sequencer;
 	last_event_type type;
@@ -576,6 +614,8 @@ class LastRegexExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+
+	const char *Description() const;
 
     protected:
 	Sequencer* sequencer;

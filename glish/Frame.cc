@@ -10,6 +10,10 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "system.h"
 
+const char *Frame::Description() const
+	{
+	return "<frame>";
+	}
 
 Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 	{
@@ -20,8 +24,6 @@ Frame::Frame( int frame_size, IValue* param_info, scope_type s )
 
 	for ( int i = 0; i < size; ++i )
 		values[i] = 0;
-
-	description = "<frame>";
 	}
 
 

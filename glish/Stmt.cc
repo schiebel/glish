@@ -34,7 +34,7 @@ void Stmt::CollectUnref( stmt_list &del_list )
 
 IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	{
-	int prev_line_num = line_num;
+	unsigned short prev_line_num = line_num;
 
 	line_num = Line();
 	flow = FLOW_NEXT;
@@ -80,6 +80,11 @@ void Stmt::TagGC( )
 	}
 #endif
 
+const char *SeqStmt::Description() const
+	{
+	return "sequence";
+	}
+
 SeqStmt::~SeqStmt()
 	{
 	NodeUnref( lhs );
@@ -90,7 +95,6 @@ SeqStmt::SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs )
 	{
 	lhs = arg_lhs;
 	rhs = arg_rhs;
-	description = "sequence";
 	}
 
 IValue* SeqStmt::DoExec( int value_needed, stmt_flow_type& flow )
@@ -134,6 +138,10 @@ int SeqStmt::DescribeSelf( OStream &, charptr ) const
 	}
 
 
+const char *WheneverStmtCtor::Description() const
+	{
+	return "whenever";
+	}
 
 WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer )
 	{
@@ -143,7 +151,6 @@ WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequ
 	cur = 0;
 	sequencer = arg_sequencer;
 	sequencer->RegisterWhenever(this);
-	description = "whenever";
 	}
 
 int WheneverStmtCtor::Index( )
@@ -210,6 +217,11 @@ void WheneverStmtCtor::Describe( OStream& s ) const
 	}
 
 
+const char *WheneverStmt::Description() const
+	{
+	return "whenever";
+	}
+
 unsigned int WheneverStmt::NotifyCount()
 	{
 	return notify_count;
@@ -219,7 +231,6 @@ WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
 						 active(0), stack(0), misc(0)
 	{
 	index = sequencer->RegisterStmt( this );
-	description = "whenever";
 	}
 
 WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
@@ -229,7 +240,6 @@ WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* 
 	index = sequencer->RegisterStmt( this );
 
 	Init( arg_trigger, arg_stmt, arg_misc );
-	description = "whenever";
 	}
 
 void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *arg_misc )
@@ -344,6 +354,10 @@ WheneverStmt::~WheneverStmt()
 	}
 
 
+const char *LinkStmt::Description() const
+	{
+	return "link";
+	}
 
 LinkStmt::~LinkStmt()
 	{
@@ -370,8 +384,6 @@ LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
 	source = arg_source;
 	sink = arg_sink;
 	sequencer = arg_sequencer;
-
-	description = "link";
 	}
 
 IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
@@ -491,13 +503,17 @@ void LinkStmt::LinkAction( Task* src, IValue* v )
 	}
 
 
+const char *UnLinkStmt::Description() const
+	{
+	return "unlink";
+	}
+
 UnLinkStmt::~UnLinkStmt() { }
 
 UnLinkStmt::UnLinkStmt( event_list* arg_source, event_list* arg_sink,
 			Sequencer* arg_sequencer )
 : LinkStmt( arg_source, arg_sink, arg_sequencer )
 	{
-	description = "unlink";
 	}
 
 void UnLinkStmt::LinkAction( Task* src, IValue* v )
@@ -505,6 +521,11 @@ void UnLinkStmt::LinkAction( Task* src, IValue* v )
 	src->SendSingleValueEvent( "*unlink-sink*", v, 1 );
 	}
 
+
+const char *AwaitStmt::Description() const
+	{
+	return "await";
+	}
 
 AwaitStmt::~AwaitStmt()
 	{
@@ -548,8 +569,6 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 	sequencer = arg_sequencer;
 //	except_stmt = null_stmt;
 	except_stmt = this;
-
-	description = "await";
 	}
 
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
@@ -579,8 +598,8 @@ const char *AwaitStmt::TerminateInfo() const
 	static SOStream sos;
 	sos.reset();
 	sos << "await terminated";
-	if ( file && file->chars() )
-		sos << " (file \"" << file->chars() << "\", line " << line << ")";
+	if ( file && glish_files )
+		sos << " (file \"" << (*glish_files)[file] << "\", line " << line << ")";
 	sos << ":" << endl;
 	Describe(sos);
 	sos << "" << endl;
@@ -609,6 +628,10 @@ void AwaitStmt::Describe( OStream& s ) const
 		}
 	}
 
+const char *ActivateStmt::Description() const
+	{
+	return "activate";
+	}
 
 ActivateStmt::~ActivateStmt()
 	{
@@ -621,8 +644,6 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 	activate = arg_activate;
 	expr = e;
 	sequencer = arg_sequencer;
-
-	description = "activate";
 
 	whenever_index = sequencer->CurWheneverIndex();
 	}
@@ -692,6 +713,10 @@ void ActivateStmt::Describe( OStream& s ) const
 		}
 	}
 
+const char *IfStmt::Description() const
+	{
+	return "if";
+	}
 
 IfStmt::~IfStmt()
 	{
@@ -719,7 +744,6 @@ IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 	expr = arg_expr;
 	true_branch = arg_true_branch;
 	false_branch = arg_false_branch;
-	description = "if";
 	}
 
 IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
@@ -772,6 +796,10 @@ int IfStmt::DescribeSelf( OStream &s, charptr prefix ) const
 	return 1;
 	}
 
+const char *ForStmt::Description() const
+	{
+	return "for";
+	}
 
 ForStmt::~ForStmt()
 	{
@@ -798,7 +826,6 @@ ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
 	index = index_expr;
 	range = range_expr;
 	body = body_stmt;
-	description = "for";
 	}
 
 IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
@@ -871,6 +898,11 @@ int ForStmt::DescribeSelf( OStream& s, charptr prefix ) const
 	return 1;
 	}
 
+const char *WhileStmt::Description() const
+	{
+	return "while";
+	}
+
 WhileStmt::~WhileStmt()
 	{
 	NodeUnref( test );
@@ -893,7 +925,6 @@ WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
 	{
 	test = test_expr;
 	body = body_stmt;
-	description = "while";
 	}
 
 IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
@@ -939,6 +970,11 @@ void WhileStmt::Describe( OStream& s ) const
 	body->Describe( s );
 	}
 
+const char *PrintStmt::Description() const
+	{
+	return "print";
+	}
+
 PrintStmt::~PrintStmt()
 	{
 	if ( args )
@@ -979,6 +1015,11 @@ int PrintStmt::DescribeSelf( OStream &s, charptr prefix ) const
 	if ( prefix ) s << prefix;
 	Describe(s);
 	return 1;
+	}
+
+const char *FailStmt::Description() const
+	{
+	return "fail";
 	}
 
 FailStmt::~FailStmt()
@@ -1042,6 +1083,11 @@ void FailStmt::SetFail( IValue *err )
 	}
 
 
+const char *IncludeStmt::Description() const
+	{
+	return "include";
+	}
+
 IncludeStmt::~IncludeStmt()
 	{
 	if ( arg ) NodeUnref( arg );
@@ -1069,6 +1115,11 @@ void IncludeStmt::Describe( OStream& s ) const
 	s << ";";
 	}
 
+
+const char *ExprStmt::Description() const
+	{
+	return "expression";
+	}
 
 ExprStmt::~ExprStmt()
 	{
@@ -1099,6 +1150,11 @@ int ExprStmt::DescribeSelf( OStream& s, charptr prefix ) const
 	if ( prefix ) s << prefix;
 	expr->DescribeSelf( s );
 	return 1;
+	}
+
+const char *ExitStmt::Description() const
+	{
+	return "exit";
 	}
 
 ExitStmt::~ExitStmt() { }
@@ -1134,6 +1190,11 @@ void ExitStmt::Describe( OStream& s ) const
 		}
 	}
 
+const char *LoopStmt::Description() const
+	{
+	return "next";
+	}
+
 LoopStmt::~LoopStmt() { }
 
 IValue* LoopStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
@@ -1143,6 +1204,11 @@ IValue* LoopStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	}
 
 
+const char *BreakStmt::Description() const
+	{
+	return "break";
+	}
+
 BreakStmt::~BreakStmt() { }
 
 IValue* BreakStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
@@ -1151,6 +1217,10 @@ IValue* BreakStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return 0;
 	}
 
+const char *ReturnStmt::Description() const
+	{
+	return "return";
+	}
 
 ReturnStmt::~ReturnStmt()
 	{
@@ -1251,6 +1321,10 @@ int StmtBlock::DescribeSelf( OStream &, charptr ) const
 	return 0;
 	}
 
+const char *NullStmt::Description() const
+	{
+	return ";";
+	}
 
 NullStmt::~NullStmt() { }
 

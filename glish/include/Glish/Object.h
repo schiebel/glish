@@ -4,6 +4,7 @@
 #ifndef object_h
 #define object_h
 #include "Glish/Str.h"
+#include "Glish/List.h"
 #include "sos/ref.h"
 
 // GlishObject is the root of the class hierarchy.  GlishObjects know how to
@@ -12,8 +13,10 @@
 //
 // Line number and file to associate with newly created objects..
 //
-extern int line_num;
-extern Str *file_name;
+extern name_list *glish_files;
+extern unsigned short file_name;
+extern unsigned short line_num;
+
 class OStream;
 class Value;
 class RMessage;
@@ -25,15 +28,11 @@ typedef SosRef GlishRef;
 
 class GlishObject : public GlishRef {
     public:
-	GlishObject() : description(0), line(line_num),
-			file( file_name && file_name->chars() ?
-			      new Str(*file_name) : 0 )	{ }
-	GlishObject(const char *d) : description(d), line(line_num),
-			file( file_name && file_name->chars() ?
-			      new Str(*file_name) : 0 ) { }
-	virtual ~GlishObject()	{ if ( file ) delete file; }
+	GlishObject() : line(line_num), file( file_name )	{ }
 
-	int Line()		{ return line; }
+	virtual ~GlishObject()	{ }
+
+	unsigned short Line()		{ return line; }
 
 	// Generate a long description of the object to the
 	// given stream.  This typically includes descriptions of
@@ -57,7 +56,7 @@ class GlishObject : public GlishRef {
 	// Get a quick (minimal) description of the object. This is
 	// used in CallExpr::Eval() to get the name of the function.
 	// Getting it via a stream is just too much overhead.
-	const char *Description() const { return description; }
+	virtual const char *Description() const;
 
 	const Str strFail( const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -85,9 +84,8 @@ class GlishObject : public GlishRef {
 	Value *Fail( ) const;
 
     protected:
-	const char* description;
-	int line;
-	Str *file;
+	unsigned short file;
+	unsigned short line;
 	};
 
 #endif	/* object_h */

@@ -82,11 +82,11 @@ IValue::IValue( ) : Value( ) GGCTOR
 	else
 		{
 
-		if ( file_name && file_name->chars() && ! interactive )
+		if ( file_name && ! interactive )
 			{
-			AssignAttribute( "file", new IValue( file_name->Chars() ) );
-			if ( line_num > 0 && ! interactive )
-				AssignAttribute( "line", new IValue( line_num ));
+			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
+			if ( line_num > 0 )
+				AssignAttribute( "line", new IValue( (int) line_num ));
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();
@@ -108,11 +108,11 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 		}
 	else
 		{
-		if ( ! fle && file_name && file_name->chars() && ! interactive )
+		if ( ! fle && file_name && ! interactive )
 			{
-			AssignAttribute( "file", new IValue( file_name->Chars() ) );
-			if ( lne <= 0 && line_num > 0 && ! interactive )
-				AssignAttribute( "line", new IValue( line_num ));
+			AssignAttribute( "file", new IValue( (*glish_files)[file_name] ) );
+			if ( lne <= 0 && line_num > 0 )
+				AssignAttribute( "line", new IValue( (int) line_num ));
 			}
 
 		IValue *stack = Sequencer::FuncNameStack();

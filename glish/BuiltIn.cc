@@ -54,6 +54,10 @@ RCSID("@(#) $Id$")
 #endif
 #endif
 
+const char *BuiltIn::Description() const
+	{
+	return description;
+	}
 
 IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 	{

@@ -34,6 +34,8 @@ class Frame : public GlishObject {
 
 	scope_type GetScopeType() const { return scope; }
 
+	const char *Description() const;
+
 #ifdef GGC
 	void TagGC( );
 #endif

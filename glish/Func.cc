@@ -559,7 +559,7 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	//
 	// need to set "file_name" for errors during execution
 	//
-	Str *old_file_name = file_name;
+	unsigned short old_file_name = file_name;
 	file_name = file;
 	IValue* result = body->Exec( value_needed, flow );
 	file_name = old_file_name;

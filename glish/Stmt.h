@@ -109,6 +109,8 @@ class SeqStmt : public Stmt {
 
 	void CollectUnref( stmt_list & );
 
+	const char *Description() const;
+
     protected:
 	Stmt* lhs;
 	Stmt* rhs;
@@ -139,6 +141,8 @@ class WheneverStmt : public Stmt {
 	void Describe( OStream& s ) const;
 
 	int canDelete() const;
+
+	const char *Description() const;
 
 #ifdef GGC
 	void TagGC( );
@@ -176,6 +180,8 @@ class WheneverStmtCtor : public Stmt {
 
 	int Index( );
 
+	const char *Description() const;
+
     protected:
 	event_list* trigger;
 	Stmt* stmt;
@@ -193,6 +199,8 @@ class LinkStmt : public Stmt {
 	void Describe( OStream& s ) const;
 
 	~LinkStmt();
+
+	const char *Description() const;
 
     protected:
 	void MakeLink( Task* src, const char* source_event,
@@ -212,6 +220,8 @@ class UnLinkStmt : public LinkStmt {
 			Sequencer* sequencer );
 
 	~UnLinkStmt();
+
+	const char *Description() const;
 
     protected:
 	void LinkAction( Task* src, IValue* v );
@@ -233,6 +243,8 @@ class AwaitStmt : public Stmt {
 
 	void CollectUnref( stmt_list & );
 
+	const char *Description() const;
+
     protected:
 	event_list* await_list;
 	int only_flag;
@@ -250,6 +262,8 @@ class ActivateStmt : public Stmt {
 	void Describe( OStream& s ) const;
 
 	~ActivateStmt();
+
+	const char *Description() const;
 
     protected:
 	int activate;
@@ -271,6 +285,8 @@ class IfStmt : public Stmt {
 
 	~IfStmt();
 
+	const char *Description() const;
+
 	void CollectUnref( stmt_list & );
 
     protected:
@@ -291,6 +307,8 @@ class ForStmt : public Stmt {
 
 	~ForStmt();
 
+	const char *Description() const;
+
 	void CollectUnref( stmt_list & );
 
     protected:
@@ -309,6 +327,8 @@ class WhileStmt : public Stmt {
 
 	~WhileStmt();
 
+	const char *Description() const;
+
 	void CollectUnref( stmt_list & );
 
     protected:
@@ -319,17 +339,15 @@ class WhileStmt : public Stmt {
 
 class PrintStmt : public Stmt {
     public:
-	PrintStmt( parameter_list* arg_args )
-		{
-		args = arg_args;
-		description = "print";
-		}
+	PrintStmt( parameter_list* arg_args ) {	args = arg_args; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
 	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~PrintStmt();
+
+	const char *Description() const;
 
     protected:
 	parameter_list* args;
@@ -338,11 +356,7 @@ class PrintStmt : public Stmt {
 
 class FailStmt : public Stmt {
     public:
-	FailStmt( Expr* arg_arg )
-		{
-		arg = arg_arg;
-		description = "fail";
-		}
+	FailStmt( Expr* arg_arg ) { arg = arg_arg; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
@@ -354,6 +368,8 @@ class FailStmt : public Stmt {
 	static IValue *SwapFail( IValue *err );
 	static const IValue *GetFail();
 
+	const char *Description() const;
+
     protected:
 	static IValue *last_fail;
 	Expr* arg;
@@ -364,15 +380,14 @@ class IncludeStmt : public Stmt {
     public:
 	IncludeStmt( Expr* arg_arg, Sequencer* arg_sequencer ) :
 			sequencer( arg_sequencer )
-		{
-		arg = arg_arg;
-		description = "include";
-		}
+		{ arg = arg_arg; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
 
 	~IncludeStmt();
+
+	const char *Description() const;
 
     protected:
 	Expr* arg;
@@ -382,8 +397,7 @@ class IncludeStmt : public Stmt {
 
 class ExprStmt : public Stmt {
     public:
-	ExprStmt( Expr* arg_expr )
-		{ expr = arg_expr; description = "expression"; }
+	ExprStmt( Expr* arg_expr ) { expr = arg_expr; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	int DoesTrace( ) const;
@@ -392,6 +406,8 @@ class ExprStmt : public Stmt {
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	~ExprStmt();
+
+	const char *Description() const;
 
     protected:
 	Expr* expr;
@@ -402,7 +418,6 @@ class ExitStmt : public Stmt {
     public:
 	ExitStmt( Expr* arg_status, Sequencer* arg_sequencer )
 		{
-		description = "exit";
 		status = arg_status;
 		sequencer = arg_sequencer;
 		can_delete = 1;
@@ -415,6 +430,8 @@ class ExitStmt : public Stmt {
 
 	int canDelete() const;
 
+	const char *Description() const;
+
     protected:
 	Expr* status;
 	Sequencer* sequencer;
@@ -424,34 +441,40 @@ class ExitStmt : public Stmt {
 
 class LoopStmt : public Stmt {
     public:
-	LoopStmt()	{ description = "next"; }
+	LoopStmt()	{ }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 
 	~LoopStmt();
+
+	const char *Description() const;
 	};
 
 
 class BreakStmt : public Stmt {
     public:
-	BreakStmt()	{ description = "break"; }
+	BreakStmt()	{ }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 
 	~BreakStmt();
+
+	const char *Description() const;
 	};
 
 
 class ReturnStmt : public Stmt {
     public:
 	ReturnStmt( Expr* arg_retval )
-		{ description = "return"; retval = arg_retval; }
+		{ retval = arg_retval; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
 	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
 
 	~ReturnStmt();
+
+	const char *Description() const;
 
     protected:
 	Expr* retval;
@@ -479,13 +502,15 @@ class StmtBlock : public Stmt {
 
 class NullStmt : public Stmt {
     public:
-	NullStmt()	{ description = ";"; }
+	NullStmt()	{ }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 
 	~NullStmt();
 
 	int canDelete() const;
+
+	const char *Description() const;
 	};
 
 

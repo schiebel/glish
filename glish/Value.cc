@@ -31,7 +31,6 @@ const char* type_names[NUM_GLISH_TYPES] =
 const Value* false_value = 0;
 
 #define INIT_VALUE_ACTION		\
-	description = 0;		\
 	attributes = 0;			\
 	++num_Values_created;
 

@@ -71,7 +71,7 @@ public:
 protected:
 	YY_BUFFER_STATE buf;
 	char* filename;
-	int line;
+	unsigned short line;
 	int save_first_line;
 	int save_bump_line_num;
 	int save_statement_can_end;
