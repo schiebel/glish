@@ -211,6 +211,7 @@ public:
 class DaemonSelectee : public Selectee {
 public:
 	DaemonSelectee( RemoteDaemon* daemon, Selector* sel, Sequencer* s );
+	~DaemonSelectee();
 
 	int NotifyOfSelection();
 
@@ -733,7 +734,7 @@ Sequencer::~Sequencer()
 	while ( (*agents).length() )
 		Unref( (*agents).remove_nth( (*agents).length() - 1 ) );
 
-	delete selector;
+	Unref( selector );
 
 	finalize_values();
 	finalize_reporters();
@@ -1777,7 +1778,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		return 0;
 	}
 
-#define NEWEVENT_BODY							\
+#define CHECK_AWAIT							\
 	int ignore_event = 0;						\
 	int await_finished = 0;						\
 									\
@@ -1791,7 +1792,17 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		     ! agent->HasRegisteredInterest( except_stmt,	\
 						     event_name ) )	\
 			ignore_event = 1;				\
-		}							\
+		}
+
+void Sequencer::CheckAwait( Agent* agent, const char* event_name )
+	{
+	CHECK_AWAIT
+	if ( await_finished ) selector->AwaitDone();
+	}
+
+#define NEWEVENT_BODY							\
+									\
+	CHECK_AWAIT							\
 									\
 	if ( ignore_event )						\
 		warn->Report( "event ", agent->Name(), ".", event_name,	\
@@ -2432,7 +2443,14 @@ DaemonSelectee::DaemonSelectee( RemoteDaemon* arg_daemon, Selector* sel,
 	{
 	daemon = arg_daemon;
 	selector = sel;
+	if ( selector )
+		Ref( selector );
 	sequencer = s;
+	}
+
+DaemonSelectee::~DaemonSelectee()
+	{
+	Unref( selector );
 	}
 
 int DaemonSelectee::NotifyOfSelection()
@@ -2532,11 +2550,14 @@ ScriptClient::~ScriptClient( )
 	{
 	loop_over_list( event_src_list, i )
 		delete event_src_list[i];
+	Unref( selector );
 	}
 
 void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
+	if ( selector )
+		Ref( selector );
 	agent = a;
 	AddEventSources();
 	}

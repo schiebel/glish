@@ -169,6 +169,7 @@ class TkAgent : public Agent {
 	void PostTkEvent( const char *, IValue *,
 			  int complain_if_no_interest = 0, NotifyTrigger *t=0 );
 	static int QueuedEvents() { return hold_events; }
+	static int InitialHold() { return initial_hold; }
 	static void HoldEvents() { hold_events++; }
 	static void ReleaseEvents();
 
@@ -179,6 +180,7 @@ class TkAgent : public Agent {
 	TkFrame *frame;
 
 	static int hold_events;
+	static int initial_hold;
 	static PQueue(glishtk_event) *tk_queue;
 	};
 

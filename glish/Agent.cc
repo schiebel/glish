@@ -355,6 +355,8 @@ IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 		sequencer->LogEvent( "<agent>", "<agent>",
 					event_name, event_val, 0 );
 
+	sequencer->CheckAwait( this, event_name );
+
 	CreateEvent( event_name, event_val );
 
 	return 0;

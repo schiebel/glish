@@ -299,6 +299,10 @@ public:
 	void LogEvent( const char* gid, const char* id, const GlishEvent* e,
 			int is_inbound );
 
+	// With UserAgents, the event handling never goes through
+	// Sequencer::NewEvent(), so Agent need to be able
+	void CheckAwait( Agent* agent, const char* event_name );
+
 	// Report a "system" event; one that's reflected by the "system"
 	// global variable.
 	void SystemEvent( const char* name, const IValue* val );

@@ -73,13 +73,15 @@ protected:
 	struct timeval interval_t;
 	};
 
-class Selector {
+class Selector : public GlishRef {
 public:
 	Selector();
 	virtual ~Selector();
 
 	virtual void AddSelectee( Selectee* s );
 	virtual void DeleteSelectee( int selectee_fd );
+
+	void AwaitDone() { await_done = 1; }
 
 	// Returns the Selectee associated with the given fd, or, if
 	// none, returns 0.
@@ -112,6 +114,8 @@ protected:
 
 	struct fd_set* fdset;
 	timer_list timers;
+
+	int await_done;
 	};
 
 #endif	/* select_h */

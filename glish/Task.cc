@@ -69,6 +69,8 @@ Task::~Task()
 
 	delete read_pipe_str;
 	delete write_pipe_str;
+
+	Unref( selector );
 	}
 
 IValue* Task::SendEvent( const char* event_name, parameter_list* args,
@@ -156,6 +158,8 @@ void Task::SetChannel( Channel* c, Selector* s )
 	{
 	channel = c;
 	selector = s;
+	if ( selector )
+		Ref( selector );
 
 	if ( pending_events )
 		{

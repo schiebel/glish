@@ -47,9 +47,14 @@ void TkSelector::DeleteSelectee( int selectee_fd )
 
 int TkSelector::DoSelection( int )
 	{
-
-	if ( TkAgent::QueuedEvents() )
+	if ( TkAgent::InitialHold() && TkAgent::QueuedEvents() )
 		TkAgent::ReleaseEvents();
+
+	if ( await_done )
+		{
+		await_done = 0;
+		return 1;
+		}
 
 	struct timeval min_t;
 	struct timeval timeout_buf;

@@ -23,6 +23,7 @@ unsigned long TkFrame::frame_count = 0;
 unsigned long TkFrame::grab = 0;
 PQueue(glishtk_event) *TkAgent::tk_queue = 0;
 int TkAgent::hold_events = 0;
+int TkAgent::initial_hold = 0;
 
 extern IValue *glishtk_valcast( char * );
 
@@ -1072,6 +1073,14 @@ void TkAgent::ReleaseEvents()
 	{
 	glishtk_event* e;
 
+	if ( initial_hold )
+		{
+		hold_events -= initial_hold - 1;
+		if ( hold_events <= 0 )
+			hold_events = 1;
+		initial_hold = 0;
+		}
+
 	if ( hold_events && ! --hold_events )
 		while ( (e = tk_queue->DeQueue()) )
 			{
@@ -1180,6 +1189,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	agent_ID = "<graphic:frame>";
 
 	HoldEvents();
+	initial_hold += 1;
 
 	if ( ! root )
 		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
