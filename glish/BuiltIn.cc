@@ -1670,6 +1670,23 @@ case tag:						\
 	return new IValue( glish_false );
 	}
 
+IValue* PreserveEventsBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* val = (const IValue*) (*args_val)[0];
+	glish_type type;
+
+	if ( ! val || ! val->IsAgentRecord() )
+		return new IValue( glish_false );
+
+	Agent *agent = val->AgentVal();
+
+	agent->MarkPreserveEvents( );
+
+	return new IValue( glish_true );
+	}
+
+
+
 IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
@@ -2743,6 +2760,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new AllocInfoBuiltIn );
 
 	s->AddBuiltIn( new IsNaNBuiltIn );
+	s->AddBuiltIn( new PreserveEventsBuiltIn );
 
 	s->AddBuiltIn( new OpenBuiltIn );
 	s->AddBuiltIn( new ReadBuiltIn );

@@ -134,6 +134,7 @@ DERIVE_BUILTIN(SizeofBuiltIn,1,"sizeof",)
 DERIVE_BUILTIN(AllocInfoBuiltIn,0,"alloc_info",)
 
 DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
+DERIVE_BUILTIN(PreserveEventsBuiltIn,1,"preserve_events",)
 
 DERIVE_BUILTIN(OpenBuiltIn,NUM_ARGS_VARIES,"open",)
 DERIVE_BUILTIN(WriteBuiltIn,NUM_ARGS_VARIES,"internal_write",)
