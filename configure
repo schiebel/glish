@@ -4976,11 +4976,6 @@ fi
 
 if test $ac_cv_prog_gxx = yes; then
     SLIB_CXXFLAGS='-fPIC'
-    SLIB_LD="$CXX -shared"
-else
-if test $ac_cv_prog_gcc = yes; then
-    SLIB_LD="$CC -shared"
-fi
 fi
 
 if test $ac_cv_prog_gcc = yes; then
@@ -5063,7 +5058,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5067 "configure"
+#line 5062 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5071,7 +5066,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5075: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5070: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5094,7 +5089,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5098 "configure"
+#line 5093 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5102,7 +5097,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5106: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5101: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*

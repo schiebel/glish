@@ -1134,16 +1134,8 @@ if test -z "$SLIB_$CXXFLAGS"; then
     SLIB_CXXFLAGS="$SLIB_CFLAGS"
 fi
 
-dnl##
-dnl## Override C/CXXFLAGS if we are using GNU compilers
-dnl##
 if test $ac_cv_prog_gxx = yes; then
     SLIB_CXXFLAGS='-fPIC'
-    SLIB_LD="$CXX -shared"
-else
-if test $ac_cv_prog_gcc = yes; then
-    SLIB_LD="$CC -shared"
-fi
 fi
 
 if test $ac_cv_prog_gcc = yes; then
