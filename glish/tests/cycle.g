@@ -1,18 +1,18 @@
 #####
 ##### OK
 #####
-func one() {
-    public := [=]
-    public.frame := func() {
-        xxx := frame()
-        public := [=]
-        public.f := frame()
-        public.t := [=]
-        public.t.fun := func() { print 'hello' }
-        return public
-    }
-    return public
-}
+#func one() {
+#    public := [=]
+#    public.frame := func() {
+#        xxx := frame()
+#        public := [=]
+#        public.f := frame()
+#        public.t := [=]
+#        public.t.fun := func() { print 'hello' }
+#        return public
+#    }
+#    return public
+#}
 #x := one()
 #a := x.frame()
 # a := F
@@ -72,7 +72,6 @@ func one() {
 #    return [=]
 #}
 ##x := four()
-##x := F
 #
 #####
 ##### OK
@@ -109,7 +108,10 @@ func one() {
 #x := six()
 #x
 ##<RESIZE FIRST FRAME>
-##x
+##x := F
+##x := six()
+##x := F
+##<RESIZE FIRST FRAME>
 
 #####
 ##### OK
@@ -148,10 +150,22 @@ func one() {
 #f := F
 
 #####
+#####  OK *** leave eight() uncommented when using this ***
+#####
+#func nine( EF, ref Z ) {
+#    EF.frame(Z)
+#}
+#x := eight()
+#f := [=]
+#nine(x,f)
+#f.f()
+#f := F
+
+#####
 ##### OK
 #####
 #foobar := [=]
-#func nine( ) {
+#func ten( ) {
 #    private := [=]
 #    public := [=]
 #    private.xxx := frame()
@@ -167,30 +181,64 @@ func one() {
 #    }
 #    return public
 #}
-#x := nine()
+#x := ten()
 #f := x.frame()
 #f := F
 #x := F
 #foobar := F
 
 #####
-##### OK *** leave nine() uncommented when using this ***
+##### OK *** leave ten() uncommented when using this ***
 #####
-#func ten( ) {
+#func eleven( ) {
 #    private := [=]
 #    public := [=]
 #    private.X := frame(background='red')
 #    public.frame := func ( ) {
 #        yyy := frame(background='blue')
-#        xxx := nine( )
+#        xxx := ten( )
 #        func f( ) { xxx.frame( ) }
 #        return f
 #    }
 #    return public
 #}
-#x := ten()
+#x := eleven()
 #f := x.frame()
 #f()
 #x := F
 #f := F
 #foobar := F
+
+#func twelve( ) {
+#    public := [=]
+#    private := [=]
+#    private.frame := frame()
+#    public.foo := func( ) { print "hello world!" }
+#    return public
+#}
+#twelve().foo()
+
+#func thirteen( ) {
+#    public := [=]
+#    private := [=]
+#    private.frame := frame()
+#    public.foo := func( ) { print "hello world!" }
+#    return ref public
+#}
+#tref := thirteen( )
+#tref.foo()
+#const tref := tref
+#tref.foo()
+
+#func fourteenA( ) {
+#    public := [=]
+#    public.f := frame()
+#    return ref public
+#}
+#func fourteenB( ) {
+#    return ref fourteenA( )
+#}
+#func fourteen( ) {
+#    global fubar := fourteenB( )
+#    return [=]
+#}

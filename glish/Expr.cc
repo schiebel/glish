@@ -2199,7 +2199,7 @@ CallExpr::CallExpr( Expr* func, parameter_list* args_args, Sequencer* seq_arg )
 IValue* CallExpr::Eval( evalOpt &opt )
 	{
 	evalOpt lopt(opt);
-	const IValue* func = op->ReadOnlyEval(opt);
+	IValue* func = op->CopyEval(opt);
 	Func* func_val = func->FuncVal();
 
 	if ( Sequencer::CurSeq()->System().Trace() )
@@ -2217,7 +2217,7 @@ IValue* CallExpr::Eval( evalOpt &opt )
 			result = false_ivalue();
 		}
 
-	op->ReadOnlyDone( func );
+	Unref( func );
 	sequencer->PopFuncName( );
 
 	return result;
@@ -2278,7 +2278,11 @@ IValue* IncludeExpr::Eval( evalOpt &opt )
 	char *fle = file_val->StringVal();
 	op->ReadOnlyDone( file_val );
 
+	extern NodeList *glish_func_cycle_roots;
+	NodeList *old_cycle_roots = glish_func_cycle_roots;
+	glish_func_cycle_roots = 0;
 	IValue *ret = sequencer->Include( opt, fle );
+	glish_func_cycle_roots = old_cycle_roots;
 
 	if ( lopt.side_effects() )
 		{

@@ -82,8 +82,8 @@ public:
 	IValue( recordptr v, Agent* agent );
 
 	// Reference constructor.
-	IValue( Value* ref_value, value_type val_type ) :
-			Value( ref_value, val_type ) { }
+	IValue( Value* ref_value, value_type val_type ) : Value( ref_value, val_type )
+		{ if ( ref_value->doPropagate( ) ) SetUnref( ((IValue *)ref_value)->unref ); }
 
 	// Subref constructor.
 	IValue( Value* ref_value, int index[], int num_elements,
@@ -255,7 +255,7 @@ public:
 	// *before* this value is actually deleted.
 	void PreDelete( );
 
-	void SetUnref( NodeList *r, int propagate_only=0 );
+	int SetUnref( NodeList *r, int propagate_only=0 );
 	void ClearUnref( );
 
 	void TakeValue( Value* new_value, Str &err = glish_errno );

@@ -1949,8 +1949,7 @@ int IValue::PropagateCycles( NodeList *cyc, int prune )
 
 	if ( type == TYPE_FUNC && cyc->is_member( FuncVal() ) )
 		{
-		++ret;
-		SetUnref( cyc, 1 );
+		ret += SetUnref( cyc, 1 );
 		if ( prune )
 			{
 			cyc->prune( FuncVal() );
@@ -2010,11 +2009,13 @@ void IValue::PreDelete( )
 	}
 
 
-void IValue::SetUnref( NodeList *r, int propagate_only )
+int IValue::SetUnref( NodeList *r, int propagate_only )
 	{
+	int not_same = 0;
 	if ( r )
 		{
-		if ( unref.ptr() && r != unref )
+		not_same = r != unref;
+		if ( unref.ptr() && not_same )
 			{
 			// There may be residual problems here, previously before
 			// the transition to "reflexive pointers" we handled (well
@@ -2024,7 +2025,7 @@ void IValue::SetUnref( NodeList *r, int propagate_only )
 			if ( ! propagate_only && ! mUNREF(mask) )
 				mask |=  mUNREF();
 			unref->append( r );
-			return;
+			return not_same;
 			}
 
 		unref = r;
@@ -2037,6 +2038,8 @@ void IValue::SetUnref( NodeList *r, int propagate_only )
 			Ref( unref );
 			}
 		}
+
+	return not_same;
 	}
 
 void IValue::ClearUnref( )
@@ -2061,7 +2064,10 @@ void IValue::TakeValue( Value* new_value, Str &err )
 
 	if ( unref ) ClearUnref( );
 
-	mask = nv->mask;
+	// We've taking the new_value (which may be encumbered
+	// by unref info, but we are still bound by the other
+	// mask flags, e.g. revert the reference count.
+ 	mask |= (mPROPAGATE() | mUNREF()) & nv->mask;
 	nv->mask = 0;
 	unref = nv->unref;
 	nv->unref = 0;

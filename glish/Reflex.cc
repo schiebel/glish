@@ -128,7 +128,7 @@ NodeList::~NodeList( )
 		if ( ! list[i]->isNull( ) && (*list[i])->isList( ) )
 			list[i]->unref( );
 
-	loop_over_list( pruned, i )
-		if ( ! pruned[i]->isNull( ) && (*pruned[i])->isList( ) )
-			pruned[i]->unref( );
+	loop_over_list( pruned, j )
+		if ( ! pruned[j]->isNull( ) && (*pruned[j])->isList( ) )
+			pruned[j]->unref( );
 	}

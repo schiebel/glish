@@ -17,12 +17,12 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
-static NodeList *cycle_roots;
+NodeList *glish_func_cycle_roots;
 static void AddCycleRoot( UserFunc *root )
 	{
 	if ( ! root ) return;
-	if ( ! cycle_roots ) cycle_roots = new NodeList;
-	cycle_roots->append( root );
+	if ( ! glish_func_cycle_roots ) glish_func_cycle_roots = new NodeList;
+	glish_func_cycle_roots->append( root );
 	}
 
 Parameter::~Parameter()
@@ -203,7 +203,7 @@ IValue* UserFunc::Call( evalOpt &opt, parameter_list* args )
 	{
 	IValue *last = FailStmt::SwapFail(0);
 
-	IValue *ret = kernel->Call( opt, args, stack);
+	IValue *ret = kernel ? kernel->Call( opt, args, stack) : 0;
 
 	if ( ret && ret->Type() != TYPE_FAIL )
 		FailStmt::SetFail(last);
@@ -606,62 +606,94 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	unsigned short old_file_name = file_name;
 	file_name = file;
 
-	NodeList *old_cycle_roots = cycle_roots;
-	cycle_roots = 0;
+	NodeList *old_cycle_roots = glish_func_cycle_roots;
+	glish_func_cycle_roots = 0;
 
 	IValue* result = body->Exec( flow );
 
-	if ( cycle_roots && cycle_roots->length() > 0 )
+	if ( subsequence_expr )
 		{
-		cycle_roots->set_finalize_handler( list_element_unref );
+		Str err;
+		if ( result && result->Type() != TYPE_FAIL )
+			{
+			if ( result->Type() != TYPE_BOOL || result->BoolVal(1,err) )
+				{
+				if ( err.chars() )
+					{
+					Unref( result );
+					result = (IValue*) Fail(err.chars());
+					}
+				else
+					{
+					warn->Report( "value (",result,") returned from subsequence replaced by ref self" );
+					Unref( result );
+					result = 0;
+					}
+				}
+			else
+				{
+				Unref( result );
+				result = 0;
+				}
+			}
+
+		if ( ! result )
+			{
+			result = subsequence_expr->RefEval( opt, VAL_REF );
+			if ( opt.side_effects() )
+				warn->Report( "agent returned by subsequence ignored" );
+			}
+		}
+
+	file_name = old_file_name;
+
+	if ( glish_func_cycle_roots && glish_func_cycle_roots->length() > 0 )
+		{
+		glish_func_cycle_roots->set_finalize_handler( list_element_unref );
 
 		if ( opt.getfc() > 1 )
 			{
 			if ( ! old_cycle_roots )
 				{
-				old_cycle_roots = cycle_roots;
-				Ref( cycle_roots );
+				old_cycle_roots = glish_func_cycle_roots;
+				Ref( glish_func_cycle_roots );
 				}
 			else
 				{
-				old_cycle_roots->append( cycle_roots );
-				cycle_roots->MarkSoftDel();
+				old_cycle_roots->append( glish_func_cycle_roots );
+				glish_func_cycle_roots->MarkSoftDel();
 				}
 			}
-		else if ( result && result->PropagateCycles( cycle_roots ) > 0 )
+		else if ( subsequence_expr || (result && result->PropagateCycles( glish_func_cycle_roots ) > 0) )
 			{
-			result->SetUnref( cycle_roots );
+			result->SetUnref( glish_func_cycle_roots );
 			Frame *frame = sequencer->GetLocalFrame();
-			if ( frame ) frame->SetCycleRoots( cycle_roots );
+			if ( frame ) frame->SetCycleRoots( glish_func_cycle_roots );
 			}
 
 		// Check "ref" parameters
-		if ( stack )
+		if ( formals && formals->length() > 0 )
 			{
-			frame_list &frames = *stack->frames();
-			int frame_len = frames.length();
-			if ( formals )
-				{
-				loop_over_list( *formals, i )
-					if ( (*formals)[i]->ParamType( ) == VAL_REF )
+			Frame *frame = sequencer->GetLocalFrame();
+			loop_over_list( *formals, i )
+				if ( (*formals)[i]->ParamType( ) == VAL_REF )
+					{
+					IValue *&v = frame->FrameElement(((VarExpr*)(*formals)[i]->Arg())->offset( ));
+					if ( v->PropagateCycles( glish_func_cycle_roots ) > 0 )
 						{
-						Frame *frame = frames[frame_len-1];
-						IValue *&v = frame->FrameElement(((VarExpr*)(*formals)[i]->Arg())->offset( ));
-						if ( v->PropagateCycles( cycle_roots ) > 0 )
-							{
-							// Now this is a pain, the argument to the function was Ref()ed as part
-							// of creating the "ref" parameter, but now the stack is tied up by the
-							// argument. We mark it as a frame value (because it now is one) thus
-							// preventing it from being nuked out from under the call frame, and we
-							// Unref() it to undo the effect of the initial Ref()ing. This might
-							// come back to bite us when we're not paying attention, though...
-							IValue *X = (IValue*) v->Deref();
-							X->SetUnref( cycle_roots );
-							X->MarkSoftDel();
-							Unref(X);
-							}
+						// Now this is a pain, the argument to the function was Ref()ed as part
+						// of creating the "ref" parameter, but now the stack is tied up by the
+						// argument. We mark it as a frame value (because it now is one) thus
+						// preventing it from being nuked out from under the call frame, and we
+						// Unref() it to undo the effect of the initial Ref()ing. This might
+						// come back to bite us when we're not paying attention, though...
+						IValue *X = (IValue*) v->Deref();
+						X->SetUnref( glish_func_cycle_roots );
+						X->MarkSoftDel();
+						fprintf( stderr, "====>>\twould have Unref(0x%x)ed\n", X );
+// 						Unref(X);
 						}
-				}
+					}
 			}
 
 		// Check "wider" and "global" variables
@@ -675,65 +707,28 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				if ( back_refs->type(X) == GLOBAL_SCOPE )
 					{
 					IValue *v = sequencer->GetGlobal( back_refs->offset(X) );
-					if ( v && v->PropagateCycles( cycle_roots, 1 ) > 0 )
-						v->SetUnref( cycle_roots );
+					if ( v && v->PropagateCycles( glish_func_cycle_roots, 1 ) > 0 )
+						v->SetUnref( glish_func_cycle_roots );
 					}
 				else
 					{
 					IValue *v = sequencer->GetFunc( off, back_refs->offset(X));
-					if ( v && v->PropagateCycles( cycle_roots ) > 0 )
+					if ( v && v->PropagateCycles( glish_func_cycle_roots ) > 0 )
 						{
 						Frame *frame = sequencer->FindCycleFrame( off );
 						NodeList *cyc = frame->GetCycleRoots( );
 						if ( cyc ) 
-							cyc->append( cycle_roots );
+							cyc->append( glish_func_cycle_roots );
 						else
-							v->SetUnref( cycle_roots );
+							v->SetUnref( glish_func_cycle_roots );
 						}
 					}
 				}
 			}
-
 		}
 
-	Unref( cycle_roots );
-	cycle_roots = old_cycle_roots;
-	file_name = old_file_name;
-
-	if ( subsequence_expr )
-		{
-		Str err;
-		if ( result )
-			{
-			if ( result->Type() == TYPE_FAIL )
-				{
-				opt.decfc();
-				return result;
-				}
-
-			if ( result->Type() != TYPE_BOOL || result->BoolVal(1,err) )
-				{
-				if ( err.chars() )
-					{
-					Unref( result );
-					opt.decfc();
-					return (IValue*) Fail(err.chars());
-					}
-
-				warn->Report( "value (", result,
-					      ") returned from subsequence replaced by ref self" );
-				}
-
-			Unref( result );
-			}
-
-		file_name = file;
-		result = subsequence_expr->RefEval( opt, VAL_REF );
-		file_name = old_file_name;
-
-		if ( opt.side_effects() )
-			warn->Report( "agent returned by subsequence ignored" );
-		}
+	Unref( glish_func_cycle_roots );
+	glish_func_cycle_roots = old_cycle_roots;
 
 	opt.decfc();
 	return result;

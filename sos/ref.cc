@@ -10,7 +10,7 @@ void GcRef::unref_revert( )
 	{
 	if ( doPropagate() && ! doUnref() )
 		{
-		if ( ref_count-1 > 0xFFFF >> 4 )
+		if ( ref_count-1 > 0xFFFF >> 5 )
 			{
 			// Here we just can't revert to the no-unref status
 			// because the reference count we need to save is

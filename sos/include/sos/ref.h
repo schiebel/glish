@@ -60,14 +60,18 @@ class GcRef GC_FINAL_CLASS {
 	void MarkSoftDel( ) { mask |= mSOFTDELETE(); }
 	void ClearSoftDel( ) { mask &= ~ mSOFTDELETE(); }
 
+	void MarkLocalValue( ) { mask |= mLOCALVALUE(); }
+	void ClearLocalValue( ) { mask &= ~ mLOCALVALUE(); }
+
     protected:
 	inline refmode_t mUNREF( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<0; }
 	inline refmode_t mUNREF_REVERT( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<1; }
 	inline refmode_t mPROPAGATE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<2; }
 	inline refmode_t mSOFTDELETE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<3; }
+	inline refmode_t mLOCALVALUE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<4; }
 
-	inline refmode_t get_revert_count( ) const { return mask>>4; }
-	inline void set_revert_count( unsigned short value ) { mask = mask & 0xF | value<<4; }
+	inline refmode_t get_revert_count( ) const { return mask>>5; }
+	inline void set_revert_count( unsigned short value ) { mask = mask & 0x1F | value<<5; }
 
 	friend inline void Ref( GcRef* object );
 	friend inline void Unref( GcRef* object );
