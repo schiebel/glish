@@ -536,7 +536,18 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	// Check to see if the vector length and the shape jive.
 	if ( size > length ) 
 		{
-		warn->Report( "\"::shape\"/length mismatch" );
+//
+//		There are some problems here:
+//
+//		- k := array('test',4,3)
+//		- s := 'my'
+//		- t := spaste(s,k[1,1])
+//		warning, "::shape"/length mismatch
+//
+//		the subvecref is not handled properly, and this warning is of no help!
+//
+//		warn->Report( "\"::shape\"/length mismatch" );
+
 		free_memory( buf );
 		if ( shape_is_copy )
 			free_memory( shape );
