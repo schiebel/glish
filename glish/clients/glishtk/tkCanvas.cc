@@ -810,6 +810,10 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	char *argv[18];
 	static char region_str[512];
 
+	char *background_ = glishtk_quote_string(background);
+
+	agent_ID = "<graphic:canvas>";
+
 	int region_is_copy = 0;
 	int *region = 0;
 
@@ -846,7 +850,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-background";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 
 	char ys[100];
 	argv[c++] = "-yscrollcommand";
@@ -860,7 +864,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
-	agent_ID = "<graphic:canvas>";
+	free_memory(background_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkCanvas::TkCanvas")

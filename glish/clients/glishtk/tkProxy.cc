@@ -29,6 +29,14 @@ int TkProxy::widget_index = 0;
 
 unsigned long TkFrame::count = 0;
 
+char *glishtk_quote_string( charptr str )
+	{
+	if ( ! str ) return 0;
+	char *ret = (char*) alloc_memory(strlen(str)+3);
+	sprintf(ret,"{%s}", str);
+	return ret;
+	}
+
 int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
 	{
 	if ( argc < 1 ) return TCL_ERROR;
@@ -145,6 +153,50 @@ glishtk_event::~glishtk_event()
 	Unref(agent);
 	free_memory( nme );
 	}
+
+TkProc::TkProc( TkProxy *a, TkStrToValProc cvt ) : cmdstr(0), proc(0), proc1(0),
+			proc2(0), agent(a), aproc(0), aproc2(0), aproc3(0), iproc(0),
+			iproc1(0), param(0), param2(0), convert(cvt), i(0) { }
+
+TkProc::TkProc(const char *c, TkEventProc p, TkStrToValProc cvt) : cmdstr(c),
+			proc(p), proc1(0), proc2(0), agent(0), aproc(0), aproc2(0),
+			aproc3(0), iproc(0), iproc1(0), param(0), param2(0),
+			convert(cvt), i(0) { }
+
+TkProc::TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt)
+			: cmdstr(c), proc(0), proc1(0), proc2(p), agent(0), aproc(0),
+			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x), param2(y),
+			convert(cvt), i(0) { }
+
+TkProc::TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(0), aproc(0),
+			aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x), param2(0),
+			convert(cvt), i(y) { }
+
+TkProc::TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(p), proc2(0), agent(0), aproc(0),
+			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x), param2(0),
+			convert(cvt), i(0) { }
+
+TkProc::TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(0), aproc(0),
+			aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0), param2(0),
+			convert(cvt), i(x) { }
+
+TkProc::TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(p),
+			aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0), param2(0),
+			convert(cvt), i(0) { }
+
+TkProc::TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
+			aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x), param2(0),
+			convert(cvt), i(0) { }
+
+TkProc::TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt )
+			: cmdstr(c), proc(0), proc1(0), proc2(0), agent(a), aproc(0),
+			aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x), param2(y),
+			convert(cvt), i(0) { }
 
 Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{

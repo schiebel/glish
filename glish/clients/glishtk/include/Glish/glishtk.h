@@ -35,6 +35,9 @@ typedef PDict(TkProc) tkprochash;
 //###  Function to do Argv Eval
 extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
 
+//###  Quote the string and return an alloc'ed string
+extern char *glishtk_quote_string( charptr );
+
 //###  Function to Make Callbacks
 extern char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
 
@@ -156,43 +159,15 @@ class TkProxy : public Proxy {
 class TkProc {
     public:
 
-	TkProc( TkProxy *a, TkStrToValProc cvt = 0 )
-			: cmdstr(0), proc(0), proc1(0), proc2(0),
-				agent(a), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-
-	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(p), proc1(0), proc2(0),
-				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(p),
-				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(y), convert(cvt), i(0) { }
-	TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0),
-				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x),
-				param2(0), convert(cvt), i(y) { }
-	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(p), proc2(0),
-				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0),
-				agent(0), aproc(0), aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0),
-				param2(0), convert(cvt), i(x) { }
-	TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0),
-				agent(a), aproc(p), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0),
-				agent(a), aproc(0), aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x),
-				param2(0), convert(cvt), i(0) { }
-	TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0),
-				agent(a), aproc(0), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
-				param2(y), convert(cvt), i(0) { }
+	TkProc( TkProxy *a, TkStrToValProc cvt = 0 );
+	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0);
+	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0);
+	TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt = 0);
+	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0);
+	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0);
+	TkProc(TkProxy *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0);
+	TkProc(TkProxy *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0);
+	TkProc(TkProxy *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0);
 
 	virtual Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
 

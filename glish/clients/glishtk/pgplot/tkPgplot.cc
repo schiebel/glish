@@ -451,6 +451,9 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	char maxcolors_str[20];
 	char mincolors_str[20];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:pgplot>";
 
 	if (!frame || ! (frameSelf = frame->Self()))
@@ -487,9 +490,9 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 	argv[c++] = "-pady";
 	argv[c++] = (char *)pady;
 	argv[c++] = "-foreground";
-	argv[c++] = (char *)foreground;
+	argv[c++] = (char *)foreground_;
 	argv[c++] = "-background";
-	argv[c++] = (char *)background;
+	argv[c++] = (char *)background_;
 	argv[c++] = "-mincolors";
 	argv[c++] = (char *)mincolors_str;
 	argv[c++] = "-maxcolors";
@@ -507,6 +510,9 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if (!self)
 		{

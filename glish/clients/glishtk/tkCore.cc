@@ -22,13 +22,6 @@ unsigned long TkFrameP::top_created = 0;
 unsigned long TkFrameP::tl_count = 0;
 unsigned long TkFrameP::grab = 0;
 
-char *glishtk_quote_string( charptr str )
-	{
-	char *ret = (char*) alloc_memory(strlen(str)+3);
-	sprintf(ret,"{%s}", str);
-	return ret;
-	}
-
 Value *glishtk_splitnl( char *str )
 	{
 	char *prev = str;
@@ -1087,6 +1080,8 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	{
 	char *argv[17];
 
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
@@ -1117,7 +1112,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		argv[c++] = "-height";
 		argv[c++] = (char*) height;
 		argv[c++] = "-background";
-		argv[c++] = (char*) background;
+		argv[c++] = (char*) background_;
 
 		tcl_ArgEval( tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
@@ -1180,7 +1175,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	argv[c++] = "-height";
 	argv[c++] = (char*) height;
 	argv[c++] = "-background";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	if ( cursor && *cursor )
 		{
 		argv[c++] = "-cursor";
@@ -1189,6 +1184,8 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
@@ -1262,6 +1259,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	char *argv[16];
 	frame = frame_;
 
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:frame>";
 
 	if ( ! root )
@@ -1293,7 +1292,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	argv[c++] = "-height";
 	argv[c++] = (char*) height;
 	argv[c++] = "-background";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	if ( cursor && *cursor )
 		{
 		argv[c++] = "-cursor";
@@ -1302,6 +1301,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
@@ -1343,6 +1344,9 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 
 	{
 	char *argv[12];
+
+	char *background_ = glishtk_quote_string(background);
+
 	frame = 0;
 	canvas = canvas_;
 	tag = strdup(tag_);
@@ -1371,10 +1375,12 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	argv[c++] = "-height";
 	argv[c++] = (char*) height;
 	argv[c++] = "-background";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
@@ -2077,6 +2083,9 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	frame = frame_;
 	char *argv[34];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:button>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -2164,9 +2173,9 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
@@ -2213,6 +2222,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 		}
 
 	if ( bitmap ) free_memory(bitmap);
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2271,6 +2282,9 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	char var_name[256];
 	char val_name[256];
 	char *bitmap = 0;
+
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
@@ -2353,9 +2367,9 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	argv[c++] = (char*) borderwidth;
 #endif
 	argv[c++] = "-foreground";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-background";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
@@ -2412,6 +2426,9 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 
 	tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
 	menu_index = strdup( Tcl_GetStringResult(tcl) );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
         menu->Add(this);
 
@@ -2648,6 +2665,9 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	char width_[30];
 	id = ++scale_count;
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:scale>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -2690,14 +2710,17 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-variable";
 	argv[c++] = var_name;
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	// Can't set command as part of initialization...
 	tcl_VarEval( tcl, Tk_PathName(self), " config -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
@@ -2874,6 +2897,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	frame = frame_;
 	char *argv[24];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:text>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -2904,9 +2930,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
@@ -2924,6 +2950,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	argv[c++] = glishtk_make_callback( tcl, text_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( text[0] )
 		tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
@@ -3081,8 +3110,8 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 
 	// Setting foreground and background colors at creation
 	// time kills the goose
-	tcl_VarEval( tcl, Tk_PathName(self), " -bg ", background, 0 );
-	tcl_VarEval( tcl, Tk_PathName(self), " -fg ", foreground, 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " -bg {", background, "}", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " -fg {", foreground, "}", 0 );
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3170,6 +3199,9 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	char *argv[24];
 	char width[30];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:label>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -3197,9 +3229,9 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-width";
 	argv[c++] = width;
 	argv[c++] = "-anchor";
@@ -3207,6 +3239,9 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkLabel::TkLabel")
@@ -3304,6 +3339,9 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	char *argv[24];
 	char width_[30];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:entry>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -3327,9 +3365,9 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-state";
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
@@ -3346,6 +3384,9 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
@@ -3447,6 +3488,9 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	frame = frame_;
 	char *argv[24];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:message>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -3474,14 +3518,17 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkMessage::TkMessage")
@@ -3587,6 +3634,9 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	char width_[40];
 	char height_[40];
 
+	char *foreground_ = glishtk_quote_string(foreground);
+	char *background_ = glishtk_quote_string(background);
+
 	agent_ID = "<graphic:listbox>";
 
 	if ( ! frame || ! frame->Self() ) return;
@@ -3613,9 +3663,9 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = "-borderwidth";
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-fg";
-	argv[c++] = (char*) foreground;
+	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
-	argv[c++] = (char*) background;
+	argv[c++] = (char*) background_;
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
 
@@ -3627,6 +3677,9 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(background_);
+	free_memory(foreground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
