@@ -19,6 +19,9 @@ class GlishObject {
 
 	int Line()		{ return line; }
 
+	// Return the ref count so other classes can do intelligent copying.
+	int RefCount() const	{ return ref_count; }
+
 	// Generate a long description of the object to the
 	// given stream.  This typically includes descriptions of
 	// subobjects as well as this object.

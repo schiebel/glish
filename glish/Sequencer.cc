@@ -1,39 +1,32 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stream.h>
 #include <osfcn.h>
-
-#include "version.h"
-
-#define GLISH_INIT_FILE "glish.init"
-#define GLISH_RC_FILE ".glishrc"
-
-// Time to wait until probing a remote daemon, in seconds.
-#define PROBE_DELAY 5
-
-// Interval between subsequent probes, in seconds.
-#define PROBE_INTERVAL 5
-
-
-// used for MAXHOSTNAMELEN
 #include <sys/param.h>
+#include <sys/types.h>
+
+#ifdef HAVE_SIGPROCMASK
+#include <signal.h>
+#endif
+
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN 64
 #endif
 
 extern "C" {
-int gethostname( char* name, int namelen );
-char* getcwd( char* buf, int size );
 char* getenv( const char* );
 int isatty( int fd );
 int system( const char* string );
 }
 
-
-#include "Glish/Client.h"
 
 #include "Reporter.h"
 #include "Sequencer.h"
@@ -45,7 +38,15 @@ int system( const char* string );
 #include "Select.h"
 #include "Socket.h"
 #include "ports.h"
-#include "system.h"
+#include "version.h"
+
+#define GLISH_RC_FILE ".glishrc"
+
+// Time to wait until probing a remote daemon, in seconds.
+#define PROBE_DELAY 5
+
+// Interval between subsequent probes, in seconds.
+#define PROBE_INTERVAL 5
 
 
 // A Selectee corresponding to input for a Glish client.
@@ -66,13 +67,12 @@ class ClientSelectee : public Selectee {
 // (see below) to recognize when they're connecting.
 class LocalClientSelectee : public Selectee {
     public:
-	LocalClientSelectee( Sequencer* s, Channel* c, Selector* sel );
+	LocalClientSelectee( Sequencer* s, Channel* c );
 	int NotifyOfSelection();
 
     protected:
 	Sequencer* sequencer;
 	Channel* chan;
-	Selector* selector;
 	};
 
 
@@ -151,7 +151,7 @@ public:
 	void SetInterface( Selector* selector, Agent* agent );
 
 protected:
-	void FD_Change( int fd, bool add_flag );
+	void FD_Change( int fd, int add_flag );
 
 	Selector* selector;
 	Agent* agent;
@@ -165,9 +165,9 @@ public:
 	ScriptAgent( Sequencer* s, Client* c ) : Agent(s)	{ client = c; }
 
 	Value* SendEvent( const char* event_name, parameter_list* args,
-			bool /* is_request */, bool /* log */ )
+			int /* is_request */, int /* log */ )
 		{
-		Value* event_val = BuildEventValue( args, true );
+		Value* event_val = BuildEventValue( args, 1 );
 		client->PostEvent( event_name, event_val );
 		Unref( event_val );
 		return 0;
@@ -188,7 +188,7 @@ typedef enum
 	{
 	DAEMON_OK,	// all is okay
 	DAEMON_REPLY_PENDING,	// we're waiting for reply to last probe
-	DAEMON_LOST,	// we've lost connectivity
+	DAEMON_LOST	// we've lost connectivity
 	} daemon_states;
 
 class RemoteDaemon {
@@ -256,14 +256,21 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	last_task_id = my_id = 1;
 
 	await_stmt = except_stmt = 0;
-	await_only_flag = false;
+	await_only_flag = 0;
 	pending_task = 0;
 
 	maximize_num_fds();
 
 	// avoid SIGPIPE's - they can occur if a client's termination
 	// is not detected prior to sending an event to the client
+#ifdef HAVE_SIGPROCMASK
+	sigset_t sig_mask;
+	sigemptyset( &sig_mask );
+	sigaddset( &sig_mask, SIGPIPE );
+	sigprocmask( SIG_BLOCK, &sig_mask, 0 );
+#else
 	sigblock( sigmask( SIGPIPE ) );
+#endif
 
 	connection_socket = new AcceptSocket( 0, INTERPRETER_DEFAULT_PORT );
 	mark_close_on_exec( connection_socket->FD() );
@@ -272,12 +279,15 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	selector->AddSelectee( new AcceptSelectee( this, connection_socket ) );
 	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
-	connection_host = new char[MAXHOSTNAMELEN];
-	if ( gethostname( connection_host, MAXHOSTNAMELEN ) < 0 )
-		fatal->Report( "couldn't get local host name" );
-
+	connection_host = local_host_name();
 	connection_port = new char[32];
 	sprintf( connection_port, "%d", connection_socket->Port() );
+
+	static const char tag_fmt[] = "*tag-%s.%d*";
+	int n = strlen( tag_fmt ) + strlen( connection_host ) + /* slop */ 32;
+
+	interpreter_tag = new char[n];
+	sprintf( interpreter_tag, tag_fmt, connection_host, int( getpid() ) );
 
 	monitor_task = 0;
 	last_notification = 0;
@@ -311,7 +321,8 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		script_client->SetInterface( selector, script_agent );
 		script_expr->Assign( script_agent->AgentRecord() );
 
-		system_val->SetField( "is_script_client", new Value( true ) );
+		system_val->SetField( "is_script_client",
+					new Value( glish_true ) );
 
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
@@ -320,8 +331,9 @@ Sequencer::Sequencer( int& argc, char**& argv )
 
 	else
 		{
-		script_expr->Assign( new Value( false ) );
-		system_val->SetField( "is_script_client", new Value( false ) );
+		script_expr->Assign( new Value( glish_false ) );
+		system_val->SetField( "is_script_client",
+					new Value( glish_false ) );
 		}
 
 	name = argv[0];
@@ -345,19 +357,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	if ( monitor_client_name )
 		ActivateMonitor( monitor_client_name );
 
-	char glish_init_file[256];
-	char* glish_init_env = getenv( "glish_init" );
-
-	if ( glish_init_env )
-		strcpy( glish_init_file, glish_init_env );
-	else
-#ifdef GLISH_DIR
-		sprintf( glish_init_file, "%s/%s", GLISH_DIR, GLISH_INIT_FILE );
-#else
-		strcpy( glish_init_file, GLISH_INIT_FILE );
-#endif
-
-	Parse( glish_init_file );
+	Parse( glish_init );
 
 	const char* glish_rc;
 	if ( (glish_rc = getenv( "GLISHRC" )) )
@@ -388,12 +388,12 @@ Sequencer::Sequencer( int& argc, char**& argv )
 			}
 		}
 
-	bool do_interactive = true;
+	int do_interactive = 1;
 
 	if ( argc > 0 && strcmp( argv[0], "--" ) )
 		{ // We have a file to parse.
 		Parse( argv[0] );
-		do_interactive = false;
+		do_interactive = 0;
 		++argv, --argc;
 		}
 
@@ -409,8 +409,8 @@ Sequencer::~Sequencer()
 	delete script_client;
 	delete selector;
 	delete connection_socket;
-	delete connection_host;
 	delete connection_port;
+	delete interpreter_tag;
 	}
 
 
@@ -472,7 +472,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope )
 	return result;
 	}
 
-Expr* Sequencer::LookupID( char* id, scope_type scope, bool do_install )
+Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 	{
 	int scope_index;
 
@@ -638,17 +638,17 @@ void Sequencer::Exec()
 		}
 
 	stmt_flow_type flow;
-	Unref( stmts->Exec( false, flow ) );
+	Unref( stmts->Exec( 0, flow ) );
 
 	EventLoop();
 	}
 
 
-void Sequencer::Await( Stmt* arg_await_stmt, bool only_flag,
+void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
 	Stmt* hold_await_stmt = await_stmt;
-	bool hold_only_flag = await_only_flag;
+	int hold_only_flag = await_only_flag;
 	Stmt* hold_except_stmt = except_stmt;
 
 	await_stmt = arg_await_stmt;
@@ -673,7 +673,7 @@ Value* Sequencer::AwaitReply( Task* task, const char* event_name,
 		{
 		warn->Report( task, " terminated without replying to ",
 				event_name, " request" );
-		result = new Value( false );
+		result = error_value();
 		}
 
 	else if ( ! strcmp( reply->name, reply_name ) )
@@ -704,7 +704,7 @@ Value* Sequencer::AwaitReply( Task* task, const char* event_name,
 Channel* Sequencer::AddLocalClient( int read_fd, int write_fd )
 	{
 	Channel* c = new Channel( read_fd, write_fd );
-	Selectee* s = new LocalClientSelectee( this, c, selector );
+	Selectee* s = new LocalClientSelectee( this, c );
 
 	selector->AddSelectee( s );
 
@@ -739,6 +739,11 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 	{
 	GlishEvent* establish_event =
 		recv_event( connection_channel->ReadFD() );
+
+	// It's possible there's already a Selectee for this channel,
+	// due to using a LocalClientSelectee.  If so, remove it, so
+	// it doesn't trigger additional activity.
+	RemoveSelectee( connection_channel );
 
 	if ( ! establish_event )
 		{
@@ -787,7 +792,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 	}
 
 
-void Sequencer::AssociateTaskWithChannel( Task* task, Channel *chan )
+void Sequencer::AssociateTaskWithChannel( Task* task, Channel* chan )
 	{
 	task->SetChannel( chan, selector );
 	task->SetActive();
@@ -797,6 +802,12 @@ void Sequencer::AssociateTaskWithChannel( Task* task, Channel *chan )
 	// empty out buffer so subsequent select()'s will work
 	if ( chan->DataInBuffer() )
 		EmptyTaskChannel( task );
+	}
+
+void Sequencer::RemoveSelectee( Channel* chan )
+	{
+	if ( selector->FindSelectee( chan->ReadFD() ) )
+		selector->DeleteSelectee( chan->ReadFD() );
 	}
 
 
@@ -822,10 +833,10 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 				 task->Name(), ".", event_name, " ", value );
 
 	if ( monitor_task && task != monitor_task )
-		LogEvent( task->Name(), event_name, value, true );
+		LogEvent( task->TaskID(), task->Name(), event_name, value, 1 );
 
 	// If true, generate message if no interest in event.
-	bool complain_if_no_interest = false;
+	int complain_if_no_interest = 0;
 
 	if ( ! strcmp( event_name, "established" ) )
 		{
@@ -839,7 +850,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 	else if ( ! strcmp( event_name, "fail" ) )
 		{
 		task->SetDone();
-		complain_if_no_interest = true;
+		complain_if_no_interest = 1;
 		}
 
 	else if ( ! strcmp( event_name, "*rendezvous*" ) )
@@ -849,10 +860,10 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 		ForwardEvent( event_name, value );
 
 	else
-		complain_if_no_interest = true;
+		complain_if_no_interest = 1;
 
-	bool ignore_event = false;
-	bool await_finished = false;
+	int ignore_event = 0;
+	int await_finished = 0;
 
 	if ( await_stmt )
 		{
@@ -861,7 +872,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 
 		if ( ! await_finished && await_only_flag &&
 		     ! task->HasRegisteredInterest( except_stmt, event_name ) )
-			ignore_event = true;
+			ignore_event = 1;
 		}
 
 	if ( ignore_event )
@@ -874,7 +885,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 		// in the task's AgentRecord.
 		Ref( value );
 
-		bool was_interest = task->CreateEvent( event_name, value );
+		int was_interest = task->CreateEvent( event_name, value );
 
 		if ( ! was_interest && complain_if_no_interest )
 			warn->Report( "event ", task->Name(), ".", event_name,
@@ -908,13 +919,13 @@ void Sequencer::NewClientStarted()
 	}
 
 
-bool Sequencer::ShouldSuspend( const char* task_var_ID )
+int Sequencer::ShouldSuspend( const char* task_var_ID )
 	{
 	if ( task_var_ID )
 		return suspend_list[task_var_ID];
 	else
 		// This is an anonymous client - don't suspend.
-		return false;
+		return 0;
 	}
 
 int Sequencer::EmptyTaskChannel( Task* task, int force_read )
@@ -975,7 +986,7 @@ void Sequencer::MakeEnvGlobal()
 			}
 		else
 			env_value->AssignRecordElement( *env_ptr,
-							new Value( false ) );
+						new Value( glish_false ) );
 		}
 
 	Expr* env_expr = LookupID( strdup( "environ" ), GLOBAL_SCOPE );
@@ -991,7 +1002,7 @@ void Sequencer::MakeArgvGlobal( char** argv, int argc )
 	if ( argc > 0 && ! strcmp( argv[0], "--" ) )
 		++argv, --argc;
 
-	Value* argv_value = new Value( argv, argc, COPY_ARRAY );
+	Value* argv_value = new Value( (charptr*) argv, argc, COPY_ARRAY );
 	Expr* argv_expr = LookupID( strdup( "argv" ), GLOBAL_SCOPE );
 	argv_expr->Assign( argv_value );
 	}
@@ -1008,7 +1019,7 @@ void Sequencer::BuildSuspendList()
 
 	while ( suspendee )
 		{
-		suspend_list.Insert( suspendee, true );
+		suspend_list.Insert( suspendee, 1 );
 		suspendee = strtok( 0, " " );
 		}
 	}
@@ -1023,8 +1034,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 	line_num = 1;
 	input_file_name = filename ? strdup( filename ) : 0;
 
-	int user_fd = fileno( yyin );
-	if ( isatty( user_fd ) )
+	if ( yyin && isatty( fileno( yyin ) ) )
 		{
 		message->Report( "Glish version ", GLISH_VERSION, "." );
 
@@ -1034,13 +1044,11 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		Exec();
 
 		// And add a special Selectee for detecting user input.
-		selector->AddSelectee( new UserInputSelectee( user_fd ) );
-
-		interactive = true;
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+		interactive = 1;
 		}
-
 	else
-		interactive = false;
+		interactive = 0;
 
 	if ( yyparse() )
 		error->Report( "syntax errors parsing input" );
@@ -1063,6 +1071,12 @@ void Sequencer::Parse( const char file[] )
 		Parse( f, file );
 	}
 
+void Sequencer::Parse( const char* strings[] )
+	{
+	scan_strings( strings );
+	Parse( 0, "glish internal initialization" );
+	}
+
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	{
@@ -1076,21 +1090,14 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	message->Report( "activating Glish daemon on ", host );
 
 	char daemon_cmd[1024];
-
-#ifdef hpux
-#define RSH_CMD "remsh"
-#else
-#define RSH_CMD "rsh"
-#endif
-
-	sprintf( daemon_cmd, "%s %s -n glishd &", RSH_CMD, host );
+	sprintf( daemon_cmd, "%s %s -n glishd &", RSH, host );
 	system( daemon_cmd );
 
 	rd = OpenDaemonConnection( host );
 	while ( ! rd )
 		{
 		message->Report( "waiting for daemon ..." );
-		usleep( 1000000 );
+		sleep( 1 );
 		rd = OpenDaemonConnection( host );
 		}
 
@@ -1142,8 +1149,7 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host )
 void Sequencer::ActivateMonitor( char* monitor_client_name )
 	{
 	TaskAttr* monitor_attrs =
-		new TaskAttr( "*monitor*", "localhost",
-				0, false, false, false );
+		new TaskAttr( "*monitor*", "localhost", 0, 0, 0, 0 );
 
 	const_args_list monitor_args;
 	monitor_args.append( new Value( monitor_client_name ) );
@@ -1158,37 +1164,42 @@ void Sequencer::ActivateMonitor( char* monitor_client_name )
 	}
 
 
-void Sequencer::LogEvent( const char* id, const char* event_name,
-			const Value* event_value, bool is_inbound )
+void Sequencer::LogEvent( const char *gid, const char* id,
+			const char* event_name, const Value* event_value,
+			int is_inbound )
 	{
 	if ( ! monitor_task )
 		return;
 
+	Value gid_value( gid );
 	Value id_value( id );
 	Value name_value( event_name );
 
 	parameter_list args;
 
+	ConstExpr gid_expr( &gid_value );
 	ConstExpr id_expr( &id_value );
 	ConstExpr name_expr( &name_value );
 	ConstExpr value_expr( event_value );
 
-	Parameter id_param( "id", VAL_VAL, &id_expr, false );
-	Parameter name_param( "name", VAL_VAL, &name_expr, false );
-	Parameter value_param( "value", VAL_VAL, &value_expr, false );
+	Parameter gid_param( "glish_id", VAL_VAL, &gid_expr, 0 );
+	Parameter id_param( "id", VAL_VAL, &id_expr, 0 );
+	Parameter name_param( "name", VAL_VAL, &name_expr, 0 );
+	Parameter value_param( "value", VAL_VAL, &value_expr, 0 );
 
 	args.insert( &name_param );
 	args.insert( &id_param );
+	args.insert( &gid_param );
 	args.insert( &value_param );
 
 	const char* monitor_event_name = is_inbound ? "event_in" : "event_out";
-	monitor_task->SendEvent( monitor_event_name, &args, false, false );
+	monitor_task->SendEvent( monitor_event_name, &args, 0, 0 );
 	}
 
 
 void Sequencer::SystemEvent( const char* name, const Value* val )
 	{
-	system_agent->SendSingleValueEvent( name, val, true );
+	system_agent->SendSingleValueEvent( name, val, 1 );
 	}
 
 
@@ -1220,8 +1231,8 @@ void Sequencer::Rendezvous( const char* event_name, Value* value )
 	// because it was a lot of work getting it right and we don't want
 	// to have to figure it out again if for some reason we don't
 	// always use sockets.
-	src->SendSingleValueEvent( "*rendezvous-orig*", value, true );
-	snk->SendSingleValueEvent( "*rendezvous-resp*", value, true );
+	src->SendSingleValueEvent( "*rendezvous-orig*", value, 1 );
+	snk->SendSingleValueEvent( "*rendezvous-resp*", value, 1 );
 
 	delete source_id;
 	delete sink_id;
@@ -1243,7 +1254,7 @@ void Sequencer::ForwardEvent( const char* event_name, Value* value )
 		fatal->Report( "no such receipient ID in ", event_name,
 				"internal event:", receipient_id );
 
-	task->SendSingleValueEvent( new_event_name, value, true );
+	task->SendSingleValueEvent( new_event_name, value, 1 );
 
 	delete receipient_id;
 	delete new_event_name;
@@ -1266,7 +1277,7 @@ void Sequencer::EventLoop()
 		pending_task = 0;
 		}
 
-	while ( num_active_processes > 0 && ! selector->DoSelection() )
+	while ( ActiveClients() && ! selector->DoSelection() )
 		RunQueue();
 	}
 
@@ -1320,24 +1331,16 @@ int ClientSelectee::NotifyOfSelection()
 	}
 
 
-LocalClientSelectee::LocalClientSelectee( Sequencer* s, Channel* c,
-					Selector* sel )
+LocalClientSelectee::LocalClientSelectee( Sequencer* s, Channel* c )
     : Selectee( c->ReadFD() )
 	{
 	sequencer = s;
 	chan = c;
-	selector = sel;
 	}
 
 int LocalClientSelectee::NotifyOfSelection()
 	{
-	// Remove ourselves from the selection, since our mission is done.
-	// We do this *before* calling Sequencer::NewConnection, because
-	// it's going to add another selectee for the same fd.
-	selector->DeleteSelectee( chan->ReadFD() );
-
 	(void) sequencer->NewConnection( chan );
-
 	return 0;
 	}
 
@@ -1504,7 +1507,7 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
 	}
 
-void ScriptClient::FD_Change( int fd, bool add_flag )
+void ScriptClient::FD_Change( int fd, int add_flag )
 	{
 	if ( ! agent )
 		return;

@@ -1,6 +1,6 @@
 /* $Header$ */
 
-%token TOK_ACTIVATE TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
+%token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
 %token TOK_LOCAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF TOK_REQUEST
@@ -19,24 +19,31 @@
 %right '^'
 %nonassoc ':'
 %right '!'
-%left '.' '[' ']' '(' ')' TOK_ARROW TOK_REQUEST
+%left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST
 
-%type <bval> TOK_ACTIVATE
-%type <ival> TOK_ASSIGN
+%type <ival> TOK_ACTIVATE TOK_ASSIGN
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
 %type <expr> TOK_CONSTANT expression var function formal_param_default
-%type <expr> function_head
+%type <expr> function_head subscript
+%type <exprlist> subscript_list
 %type <event> event
 %type <stmt> statement_list statement local_list local_item func_body
-%type <event_list> event_list
+%type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
-%type <param> formal_param actual_param
+%type <param_list> opt_actual_param_list opt_actual_params
+%type <param> formal_param actual_param opt_actual_param
 %type <val_type> value_type formal_param_class
 
 
 %{
+#if defined(_AIX)
+/* Must occur before the first line of C++ code - barf! */
+/* Actually only required when using bison. */
+#pragma alloca
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -49,14 +56,18 @@
 #include "Task.h"
 #include "input.h"
 
-// This is a real drag, but Sun's yacc++ declares an 'extern "C"' version
+#if !defined(AIX_YACC)
+// This is a real drag, but Sun yacc++ declares an 'extern "C"' version
 // of yyerror() whose argument is a non-const char pointer.  We want our
 // version to be const-char, so we can use literal strings as error
 // messages.
 void yyerror( char msg[] );
+#else
+extern "C" void yyerror( char msg[] );
+#endif
 
 Sequencer* current_sequencer = 0;
-bool in_func_decl = false;
+int in_func_decl = 0;
 
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
@@ -65,16 +76,15 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 	char* id;
 	last_event_type event_type;
 	Expr* expr;
+	expr_list* exprlist;
 	EventDesignator* event;
 	Stmt* stmt;
-	expr_list* expr_list;
-	event_list* event_list;
+	event_list* ev_list;
 	PDict(Expr)* record;
 	parameter_list* param_list;
 	Parameter* param;
 	value_type val_type;
 	int ival;
-	bool bval;
 	}
 %%
 
@@ -85,7 +95,7 @@ glish:
 			if ( interactive )
 				{
 				stmt_flow_type flow;
-				Value* val = $2->Exec( true, flow );
+				Value* val = $2->Exec( 1, flow );
 
 				if ( flow != FLOW_NEXT )
 					warn->Report(
@@ -97,7 +107,7 @@ glish:
 					Unref( val );
 					}
 
-				first_line = true;
+				first_line = 1;
 				}
 			else
 				current_sequencer->AddStmt( $2 );
@@ -108,8 +118,8 @@ glish:
 			if ( interactive )
 				{
 				// Try to throw away the rest of the line.
-				statement_can_end = true;
-				first_line = true;
+				statement_can_end = 1;
+				first_line = 1;
 				}
 			}
 	|
@@ -142,15 +152,15 @@ statement:
 
 	|	TOK_AWAIT event_list ';'
 			{
-			$$ = new AwaitStmt( $2, false, 0, current_sequencer );
+			$$ = new AwaitStmt( $2, 0, 0, current_sequencer );
 			}
 	|	TOK_AWAIT TOK_ONLY event_list ';'
 			{
-			$$ = new AwaitStmt( $3, true, 0, current_sequencer );
+			$$ = new AwaitStmt( $3, 1, 0, current_sequencer );
 			}
 	|	TOK_AWAIT TOK_ONLY event_list TOK_EXCEPT event_list ';'
 			{
-			$$ = new AwaitStmt( $3, true, $5, current_sequencer );
+			$$ = new AwaitStmt( $3, 1, $5, current_sequencer );
 			}
 
 	|	TOK_ACTIVATE ';'
@@ -161,12 +171,12 @@ statement:
 
 	|	TOK_SEND event '(' actual_param_list ')' ';'
 			{
-			$$ = new ExprStmt( new SendEventExpr( $2, $4, false ) );
+			$$ = new ExprStmt( new SendEventExpr( $2, $4, 0 ) );
 			}
 
 	|	event '(' actual_param_list ')' ';'
 			{
-			$$ = new ExprStmt( new SendEventExpr( $1, $3, false ) );
+			$$ = new ExprStmt( new SendEventExpr( $1, $3, 0 ) );
 			}
 
 	|	TOK_IF '(' expression ')' cont statement
@@ -259,11 +269,20 @@ expression:
 	|	'!' expression
 			{ $$ = new NotExpr( $2 ); }
 
-	|	expression '[' expression ']'
+	|	expression '[' subscript_list ']'
 			{ $$ = new ArrayRefExpr( $1, $3 ); }
 
 	|	expression '.' TOK_ID
 			{ $$ = new RecordRefExpr( $1, $3 ); }
+
+	|	expression TOK_ATTR
+			{ $$ = new AttributeRefExpr( $1 ); }
+
+	|	expression TOK_ATTR '[' expression ']'
+			{ $$ = new AttributeRefExpr( $1, $4 ); }
+
+	|	expression TOK_ATTR TOK_ID
+			{ $$ = new AttributeRefExpr( $1, $3 ); }
 
 	|	'[' '=' ']'
 			{ $$ = new ConstructExpr( 0 ); }
@@ -274,14 +293,14 @@ expression:
 	|	expression ':' expression
 			{ $$ = new RangeExpr( $1, $3 ); }
 
-	|	expression '(' actual_param_list ')'
+	|	expression '(' opt_actual_param_list ')'
 			{ $$ = new CallExpr( $1, $3 ); }
 
-	|	value_type expression	%prec ','
+	|	value_type expression	%prec '!'
 			{ $$ = new RefExpr( $2, $1 ); }
 
 	|	TOK_REQUEST event '(' actual_param_list ')'
-			{ $$ = new SendEventExpr( $2, $4, true ); }
+			{ $$ = new SendEventExpr( $2, $4, 1 ); }
 
 	|	TOK_LAST_EVENT
 			{ $$ = new LastEventExpr( current_sequencer, $1 ); }
@@ -363,10 +382,7 @@ formal_param_list:
 	;
 
 formal_params:	formal_params ',' formal_param
-			{
-			$1->append( $3 );
-			$$ = $1;
-			}
+			{ $1->append( $3 ); }
 
 	|	formal_param
 			{
@@ -379,16 +395,17 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 			{
 			Expr* param =
 				current_sequencer->InstallID( $2, LOCAL_SCOPE );
-			$$ = new FormalParameter( $2, $1, param, false, $3 );
+			$$ = new FormalParameter( $2, $1, param, 0, $3 );
 			}
 
-	|	TOK_ELLIPSIS
+	|	TOK_ELLIPSIS formal_param_default
 			{
 			Expr* ellipsis =
 				current_sequencer->InstallID(
 					strdup( "..." ), LOCAL_SCOPE );
 
-			$$ = new FormalParameter( 0, VAL_CONST, ellipsis, true );
+			$$ = new FormalParameter( 0, VAL_CONST,
+							ellipsis, 1, $2 );
 			}
 	;
 
@@ -412,10 +429,7 @@ actual_param_list:
 	;
 
 actual_params:	actual_params ',' actual_param
-			{
-			$1->append( $3 );
-			$$ = $1;
-			}
+			{ $1->append( $3 ); }
 
 	|	actual_param
 			{
@@ -430,26 +444,116 @@ actual_param:	expression
 	|	TOK_ID '=' expression
 			{
 			Ref( $3 );
-			$$ = new ActualParameter( $1, VAL_VAL, $3, false, $3 );
+			$$ = new ActualParameter( $1, VAL_VAL, $3, 0, $3 );
 			}
 
 	|	TOK_ELLIPSIS
 			{
 			Expr* ellipsis =
 				current_sequencer->LookupID(
-					strdup( "..." ), LOCAL_SCOPE, false );
+					strdup( "..." ), LOCAL_SCOPE, 0 );
 
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
 				$$ = new ActualParameter( 0, VAL_VAL,
-					new ConstExpr( new Value( false ) ) );
+					new ConstExpr( error_value() ) );
 				}
 
 			else
 				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
-							true );
+							1 );
 			}
+	;
+
+opt_actual_param_list:
+		opt_actual_params
+	|
+			{ $$ = new parameter_list; }
+	;
+
+opt_actual_params:	opt_actual_params ',' opt_actual_param
+			{ $1->append( $3 ); }
+	|	opt_actual_params ','
+			{
+			$1->append( new ActualParameter() );
+			}
+
+	|	','
+			{ // Something like "foo(,)" - two missing parameters.
+			$$ = new parameter_list;
+			$$->append( new ActualParameter() );
+			$$->append( new ActualParameter() );
+       			}
+
+	|	',' opt_actual_param
+			{
+			$$ = new parameter_list;
+			$$->append( new ActualParameter() );
+			$$->append( $2 );
+       			}
+
+	|	opt_actual_param
+			{
+			$$ = new parameter_list;
+			$$->append( $1 );
+       			}
+	;
+
+opt_actual_param:	expression
+			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+
+	|	TOK_ID '=' expression
+			{
+			Ref( $3 );
+			$$ = new ActualParameter( $1, VAL_VAL, $3, 0, $3 );
+			}
+
+	|	TOK_ELLIPSIS
+			{
+			Expr* ellipsis =
+				current_sequencer->LookupID(
+					strdup( "..." ), LOCAL_SCOPE, 0 );
+
+			if ( ! ellipsis )
+				{
+				error->Report( "\"...\" not available" ); 
+				$$ = new ActualParameter( 0, VAL_VAL,
+					new ConstExpr( error_value() ) );
+				}
+
+			else
+				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
+							1 );
+			}
+	;
+
+
+subscript_list: subscript_list ',' subscript
+			{ $1->append( $3 ); }
+	|	subscript_list ','
+			{ $1->append( 0 ); }
+	|	','
+			{
+			$$ = new expr_list;
+			$$->append( 0 );
+			$$->append( 0 );
+			}
+	|	',' subscript
+			{
+			$$ = new expr_list;
+			$$->append( 0 );
+			$$->append( $2 );
+			}
+	|	subscript
+			{
+			$$ = new expr_list;
+			$$->append( $1 );
+			}
+	;
+
+
+subscript:	expression
 	;
 
 
@@ -475,10 +579,7 @@ opt_id:		TOK_ID
 
 
 event_list:	event_list ',' event
-			{
-			$$ = $1;
-			$$->append( $3 );
-			}
+			{ $$->append( $3 ); }
 	|	event
 			{
 			$$ = new event_list;
@@ -504,10 +605,10 @@ value_type:	TOK_REF
 	;
 
 
-cont:			{ statement_can_end = false; }
+cont:			{ statement_can_end = 0; }
 	;
 
-no_cont:		{ statement_can_end = true; }
+no_cont:		{ statement_can_end = 1; }
 	;
 
 %%

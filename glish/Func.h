@@ -22,18 +22,26 @@ typedef PList(Parameter) parameter_list;
 class Func : public GlishObject {
     public:
 	virtual Value* Call( parameter_list* args, eval_type etype ) = 0;
+
+	int Mark() const	{ return mark; }
+	void Mark( int m )	{ mark = m; }
+
+    protected:
+	int mark;
 	};
 
 
 class Parameter : public GlishObject {
     public:
 	Parameter( const char* name, value_type parm_type, Expr* arg,
-			bool is_ellipsis = false, Expr* default_value = 0 );
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 );
 
 	const char* Name() const		{ return name; }
 	value_type ParamType() const		{ return parm_type; }
 	Expr* Arg() const			{ return arg; }
-	bool IsEllipsis() const			{ return is_ellipsis; }
+	int IsEllipsis() const			{ return is_ellipsis; }
+	int IsEmpty() const			{ return is_empty; }
 	Expr* DefaultValue() const		{ return default_value; }
 
 	// Number of values represented by "..." argument.
@@ -49,7 +57,8 @@ class Parameter : public GlishObject {
 	const char* name;
 	value_type parm_type;
 	Expr* arg;
-	bool is_ellipsis;
+	int is_ellipsis;
+	int is_empty;
 	Expr* default_value;
 	};
 
@@ -57,7 +66,7 @@ class Parameter : public GlishObject {
 class FormalParameter : public Parameter {
     public:
 	FormalParameter( const char* name, value_type parm_type, Expr* arg,
-			bool is_ellipsis = false, Expr* default_value = 0 );
+			int is_ellipsis = 0, Expr* default_value = 0 );
 
 	void Describe( ostream& s ) const;
 	};
@@ -65,7 +74,17 @@ class FormalParameter : public Parameter {
 class ActualParameter : public Parameter {
     public:
 	ActualParameter( const char* name, value_type parm_type, Expr* arg,
-			bool is_ellipsis = false, Expr* default_value = 0 );
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 )
+		: Parameter( name, parm_type, arg, is_ellipsis,
+				default_value, is_empty )
+		{
+		}
+
+	// A missing parameter.
+	ActualParameter() : Parameter( 0, VAL_VAL, 0, 0, 0, 1 )
+		{
+		}
 	};
 
 
@@ -75,7 +94,7 @@ class UserFunc : public Func {
 			Sequencer* sequencer, Expr* subsequence_expr );
 
 	Value* Call( parameter_list* args, eval_type etype );
-	Value* DoCall( args_list* args_vals, eval_type etype );
+	Value* DoCall( args_list* args_vals, eval_type etype, Value* missing );
 
 	void Describe( ostream& s ) const;
 
@@ -85,21 +104,21 @@ class UserFunc : public Func {
 	// Decode an actual "..." argument.
 	void AddEllipsisArgs( args_list* args_vals, Parameter* actual_ellipsis,
 				int& num_args, int num_formals,
-				Value* formal_ellipsis_value, bool& do_call );
+				Value* formal_ellipsis_value, int& do_call );
 
 	// Add to a formal "..." parameter.
 	void AddEllipsisValue( Value* ellipsis_value, Expr* arg );
 
 	void ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				Value* ellipsis_value, bool& do_call );
+				Value* ellipsis_value, int& do_call );
 
 	parameter_list* formals;
 	Stmt* body;
 	int frame_size;
 	Sequencer* sequencer;
 	Expr* subsequence_expr;
-	bool valid;
-	bool has_ellipsis;
+	int valid;
+	int has_ellipsis;
 	int ellipsis_position;
 	};
 

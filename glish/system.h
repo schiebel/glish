@@ -1,6 +1,14 @@
 /* $Header$ */
 
+#include "config.h"
+
 #include <stdio.h>
+
+#ifdef HAVE_LIBC_H
+#include <libc.h>
+#endif
+
+typedef void (*signal_handler)();
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,6 +83,34 @@ extern "C" {
 	 * available to the process.
 	 */
 	void maximize_num_fds();
+
+	/* Install the given signal handler, returning the previous one. */
+	signal_handler install_signal_handler( int signal,
+						signal_handler handler );
+
+	/* Sets the terminal to character mode, thus select returns
+	 * as each character is typed. Needed for command line editing.
+	 */
+	void set_term_char_mode();
+
+	/* Resets the terminal to line mode, after "set_term_char_mode()"
+	 * is called.
+	 */
+	void set_term_unchar_mode();
+
+	/* A wrapper for gethostname(); returns a pointer to a static region. */
+	const char* local_host_name();
+
+	/* malloc/realloc/free wrappers, so we don't have to worry about
+	 * correctly declaring their argument type.
+	 */
+	void* alloc_memory( unsigned int size );
+	void* realloc_memory( void* ptr, unsigned int new_size );
+	void free_memory( void* ptr );
+
+#ifndef HAVE_STRDUP
+	char *strdup( const char *str );
+#endif
 
 #ifdef __cplusplus
 	}

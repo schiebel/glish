@@ -6,12 +6,11 @@
 #include "Reporter.h"
 
 
-Frame::Frame( int frame_size )
+Frame::Frame( int frame_size, Value* param_info )
 	{
 	size = frame_size;
-
-	typedef Value* value_ptr;
-	values = new value_ptr[size];
+	missing = param_info ? param_info : empty_value();
+	values = new Value*[size];
 
 	for ( int i = 0; i < size; ++i )
 		values[i] = 0;
@@ -22,9 +21,10 @@ Frame::Frame( int frame_size )
 
 Frame::~Frame()
 	{
+	Unref( missing );
+
 	for ( int i = 0; i < size; ++i )
 		Unref( values[i] );
-
 	delete values;
 	}
 

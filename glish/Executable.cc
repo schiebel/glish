@@ -1,12 +1,14 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <osfcn.h>
 #include <sys/file.h>
 #include "Executable.h"
 
-#if defined(mips)
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 

@@ -47,14 +47,14 @@ void EventDesignator::EventAgentDone()
 	Unref( event_agent_ref );
 	}
 
-Value* EventDesignator::SendEvent( parameter_list* arguments, bool is_request )
+Value* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 	{
 	name_list* nl = EventNames();
 
 	if ( ! nl )
 		{
 		error->Report( "->* illegal for sending an event" );
-		return is_request ? new Value( false ) : 0;
+		return is_request ? error_value() : 0;
 		}
 
 	Agent* a = EventAgent( VAL_REF );
@@ -66,7 +66,7 @@ Value* EventDesignator::SendEvent( parameter_list* arguments, bool is_request )
 			error->Report( this,
 					"must designate exactly one event" );
 
-		result = a->SendEvent( (*nl)[0], arguments, is_request, true );
+		result = a->SendEvent( (*nl)[0], arguments, is_request, 1 );
 		}
 
 	else
@@ -93,7 +93,7 @@ void EventDesignator::Register( Notifiee* notifiee )
 
 		else
 			loop_over_list( *nl, i )
-				a->RegisterInterest( notifiee, (*nl)[i], true );
+				a->RegisterInterest( notifiee, (*nl)[i], 1 );
 
 		// We don't delete the elements of nl because they've
 		// been given over to the agent.
@@ -128,8 +128,10 @@ name_list* EventDesignator::EventNames()
 
 	if ( index_val->Type() == TYPE_STRING )
 		{
-		for ( int i = 0; i < index_val->Length(); ++i )
-			result->append( index_val->StringVal( i + 1 ) );
+		int n = index_val->Length();
+		const char** s = index_val->StringPtr();
+		for ( int i = 0; i < n; ++i )
+			result->append( strdup( s[i] ) );
 		}
 
 	else

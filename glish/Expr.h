@@ -90,7 +90,7 @@ class Expr : public GlishObject {
 	// Returns true if, when evaluated as a statement, this expression's
 	// value should be "invisible" - i.e., the statement's value is "no
 	// value" (false).
-	virtual bool Invisible() const;
+	virtual int Invisible() const;
 
     protected:
 	// Return either a copy of the given value, or a reference to
@@ -121,6 +121,19 @@ class VarExpr : public Expr {
 	Sequencer* sequencer;
 	};
 
+
+class ValExpr : public Expr {
+    public:
+	ValExpr( Value *v ) : Expr("value"), val(v) { Ref(val); }
+
+	~ValExpr() { Unref(val); }
+
+	Value* Eval( eval_type etype );
+	Value* RefEval( value_type val_type );
+
+    protected:
+	Value *val;
+	};
 
 class ConstExpr : public Expr {
     public:
@@ -178,11 +191,11 @@ class NotExpr : public UnaryExpr {
 
 class AssignExpr : public BinaryExpr {
     public:
-	AssignExpr( Expr* op1, Expr* op1 );
+	AssignExpr( Expr* op1, Expr* op2 );
 
 	Value* Eval( eval_type etype );
 	void SideEffectsEval();
-	bool Invisible() const;
+	int Invisible() const;
 	};
 
 
@@ -213,24 +226,24 @@ class ConstructExpr : public Expr {
 	Value* BuildArray();
 	Value* BuildRecord();
 
-	bool TypeCheck( const Value* values[], int num_values,
+	int TypeCheck( const Value* values[], int num_values,
 			glish_type& max_type );
-	bool MaxNumeric( const Value* values[], int num_values,
+	int MaxNumeric( const Value* values[], int num_values,
 				glish_type& max_type );
-	bool AllEquivalent( const Value* values[], int num_values,
+	int AllEquivalent( const Value* values[], int num_values,
 				glish_type& max_type );
 
 	Value* ConstructArray( const Value* values[], int num_values,
 				int total_length, glish_type max_type );
 
-	bool is_array_constructor;
+	int is_array_constructor;
 	ParameterPList* args;
 	};
 
 
-class ArrayRefExpr : public BinaryExpr {
+class ArrayRefExpr : public UnaryExpr {
     public:
-	ArrayRefExpr( Expr* op1, Expr* op2 );
+	ArrayRefExpr( Expr* op1, expr_list* a );
 
 	Value* Eval( eval_type etype );
 	Value* RefEval( value_type val_type );
@@ -238,12 +251,34 @@ class ArrayRefExpr : public BinaryExpr {
 	void Assign( Value* new_value );
 
 	void Describe( ostream& s ) const;
+
+    protected:
+	Value *CallFunc(Func *fv, eval_type etype, ParameterPList *);
+	expr_list* args;
 	};
 
 
 class RecordRefExpr : public UnaryExpr {
     public:
 	RecordRefExpr( Expr* op, char* record_field );
+
+	Value* Eval( eval_type etype );
+	Value* RefEval( value_type val_type );
+
+	void Assign( Value* new_value );
+
+	void Describe( ostream& s ) const;
+
+    protected:
+	char* field;
+	};
+
+
+class AttributeRefExpr : public BinaryExpr {
+    public:
+	AttributeRefExpr( Expr* op1 );
+	AttributeRefExpr( Expr* op1, Expr* op2 );
+	AttributeRefExpr( Expr* op, char* attribute );
 
 	Value* Eval( eval_type etype );
 	Value* RefEval( value_type val_type );
@@ -296,7 +331,7 @@ class CallExpr : public UnaryExpr {
 class SendEventExpr : public Expr {
     public:
 	SendEventExpr( EventDesignator* sender, ParameterPList* args,
-			bool is_request_reply );
+			int is_request_reply );
 
 	Value* Eval( eval_type etype );
 	void SideEffectsEval();
@@ -306,7 +341,7 @@ class SendEventExpr : public Expr {
     protected:
 	EventDesignator* sender;
 	ParameterPList* args;
-	bool is_request_reply;
+	int is_request_reply;
 	};
 
 

@@ -3,8 +3,14 @@
 #ifndef select_h
 #define select_h
 
-#include "Glish/List.h"
+#include "system.h"
+
 #include <sys/time.h>
+#include "Glish/List.h"
+
+#if HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
 class SelectTimer;
 
@@ -70,6 +76,10 @@ public:
 
 	void AddSelectee( Selectee* s );
 	void DeleteSelectee( int selectee_fd );
+
+	// Returns the Selectee associated with the given fd, or, if
+	// none, returns 0.
+	Selectee* FindSelectee( int selectee_fd ) const;
 
 	void AddTimer( SelectTimer* t );
 

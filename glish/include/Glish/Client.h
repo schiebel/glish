@@ -3,18 +3,12 @@
 #ifndef client_h
 #define client_h
 
-#include <signal.h>
 #include <generic.h>
 #include <sys/types.h>
 
 #include "Glish/Value.h"
 
-#ifdef __GNUG__
-typedef SignalHandler SigHandler;
-#else
-typedef SIG_PF SigHandler;
-#endif
-
+struct fd_set;
 
 class GlishEvent : public GlishObject {
     public:
@@ -65,7 +59,7 @@ class Client {
 	// NextEvent(), so if the caller wishes to keep the GlishEvent
 	// (or its Value) they must Ref() the GlishEvent (or its Value).
 	//
-	// If the sequencer connection has been broken then 0 is returned
+	// If the interpreter connection has been broken then 0 is returned
 	// (and the caller should terminate).
 	GlishEvent* NextEvent();
 
@@ -77,6 +71,10 @@ class Client {
 	// Called by the main program (or whoever called NextEvent()) when
 	// the current event is unrecognized.
 	void Unrecognized();
+
+	// Called to report that the current event has an error.
+	void Error( const char* msg );
+	void Error( const char* fmt, const char* arg );
 
 
 	// Sends an event with the given name and value.
@@ -93,6 +91,8 @@ class Client {
 	//
 	void PostEvent( const char* event_name, const char* event_fmt,
 				const char* event_arg );
+	void PostEvent( const char* event_name, const char* event_fmt,
+				const char* arg1, const char* arg2 );
 
 	// Reply to the last received event.
 	void Reply( const Value* event_value );
@@ -111,13 +111,16 @@ class Client {
 	// is available for the client.
 	int HasClientInput( fd_set* mask );
 
-	// Returns true if the client was invoked by a Glish sequencer,
+	// Returns true if the client was invoked by a Glish interpreter,
 	// false if the client is running standalone.
-	int HasSequencerConnection()
-		{ return int(have_sequencer_connection); }
+	int HasInterpreterConnection()
+		{ return int(have_interpreter_connection); }
+
+	int HasSequencerConnection()	// deprecated
+		{ return HasInterpreterConnection(); }
 
 	// Returns true if the client has *some* event source, either
-	// the sequencer or stdin; false if not.
+	// the interpreter or stdin; false if not.
 	int HasEventSource()	{ return ! int(no_glish); }
 
     protected:
@@ -137,15 +140,15 @@ class Client {
 	// Returns the next event from the given fd.
 	GlishEvent* GetEvent( int fd );
 
-	// Called whenever a new fd is added (add_flag=true) or deleted
-	// (add_flag=false) from those that the client listens to.  By
+	// Called whenever a new fd is added (add_flag=1) or deleted
+	// (add_flag=0) from those that the client listens to.  By
 	// redefining this function, a Client subclass can keep track of
 	// the same information that otherwise must be computed by calling
 	// AddInputMask() prior to each call to select().
-	virtual void FD_Change( int fd, bool add_flag );
+	virtual void FD_Change( int fd, int add_flag );
 
 	// Called asynchronously whenever a ping is received; the
-	// sequencer sends a ping whenever a new event is ready and
+	// interpreter sends a ping whenever a new event is ready and
 	// the client was created with the <ping> attribute.
 	virtual void HandlePing();
 
@@ -186,8 +189,8 @@ class Client {
 	const char* client_name;
 	int read_fd;
 	int write_fd;
-	bool have_sequencer_connection;
-	bool no_glish;	// if true, don't have any event source whatsoever
+	int have_interpreter_connection;
+	int no_glish;	// if true, no event source whatsoever
 
 	char* pending_reply;	// the name of the pending reply, if any
 
@@ -205,9 +208,10 @@ class Client {
 	GlishEvent* last_event;
 
 	// Previous signal handler; used for <ping>'s.
-	SigHandler former_handler;
+	glish_signal_handler former_handler;
 
-	char local_host[64];
+	const char* local_host;
+	const char* interpreter_tag;
 	};
 
 

@@ -38,19 +38,7 @@ int main( int argc, char** argv )
 	if ( argc > 1 )
 		usage();
 
-	char host[64];
-
-	if ( argc == 1 )
-		strcpy( host, argv[0] );
-	else
-		{
-		if ( gethostname( host, sizeof( host ) ) < 0 )
-			{
-			fprintf( stderr, "%s: unknown local host\n",
-					prog_name );
-			exit( 1 );
-			}
-		}
+	const char* host = (argc == 1) ? argv[0] : local_host_name();
 
 	sds_init();
 	init_reporters();

@@ -1,20 +1,22 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <osfcn.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+
 #include "Glish/Client.h"
 
 #include "Channel.h"
-
-
-#ifdef SABER
-#include <libc.h>
-#endif
 
 
 inline int streq( const char* a, const char* b )

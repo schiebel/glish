@@ -1,13 +1,11 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdlib.h>
 #include <stream.h>
 
 #include "Glish/List.h"
-
-#if defined(__GNUG__) || defined(SABER)
-typedef void* malloc_t;	// needed for cfront compatibility
-#endif
 
 
 // Print message on stderr and exit.
@@ -167,9 +165,6 @@ ent BaseList::operator[](int i) const
 	{
 	if ( i < 0 || i > num_entries-1 )
 		{
-		error_handler(
-			form("index %d out of range for BaseList, max = %d",
-				i,num_entries-1));
 		return 0;
 		}
 	else
@@ -180,9 +175,6 @@ ent BaseList::replace(int ent_index,ent new_ent)
 	{
 	if ( ent_index < 0 || ent_index > num_entries-1 )
 		{
-		error_handler(
-			form("index %d out of range for BaseList, max = %d",
-				ent_index,num_entries-1));
 		return 0;
 		}
 	else
@@ -200,13 +192,10 @@ int BaseList::resize(int new_size)
 
 	if ( new_size != num_entries )
 		{
-		entry = (ent*) realloc( (malloc_t) entry,
-					sizeof( ent * ) * new_size );
+		entry = (ent*) realloc_memory( (void*) entry,
+					sizeof( ent ) * new_size );
 		if ( entry == 0 )
 			{
-			error_handler(
-			form("BaseList::resize(%d) failed! num_entries = %d",
-					new_size, num_entries) );
 			}
 
 		if ( new_size > max_entries )

@@ -1,5 +1,7 @@
 // $Header$
 
+#include "system.h"
+
 #include <stdio.h>
 #include <osfcn.h>
 #include <errno.h>
@@ -7,12 +9,14 @@
 #include <sys/socket.h>
 #include <sys/resource.h>
 
-#ifdef masscomp
+#ifdef HAVE_X11_FD_H
 #include <X11/fd.h>
 #endif
 
-#ifdef SABER
-#include <libc.h>
+#ifdef SOLARIS
+#include <sys/time.h>
+#include <string.h>
+extern "C" int gettimeofday( struct timeval *, struct timezone * );
 #endif
 
 #include "Select.h"
@@ -117,20 +121,15 @@ int SelectTimer::DoExpiration()
 
 Selector::Selector()
 	{
-	// You want to do the following - ideally but g++ does not have
-	// sysconf - so for now...
-	// if ((max_num_fds = sysconf( _SC_OPEN_MAX )) < 0)
-	//	gripe( "sysconf() failed" );
-
-#ifdef NOTDEF
+#ifdef HAVE_SETRLIMIT
 	struct rlimit rl;
 	if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
 		gripe( "getrlimit() failed" );
 
-	max_num_fds = rl.rlim_max;
-#endif
+	max_num_fds = int( rl.rlim_max );
+#else
 	max_num_fds = 32;
-
+#endif
 
 	selectees = new Selectee* [max_num_fds];
 
@@ -140,7 +139,7 @@ Selector::Selector()
 	current_selectee = 0;
 	nuke_current_selectee = 0;
 
-	fdset = new struct fd_set;
+	fdset = new fd_set;
 	FD_ZERO( fdset );
 	}
 
@@ -176,6 +175,14 @@ void Selector::DeleteSelectee( int selectee_fd )
 
 	selectees[selectee_fd] = 0;
 	FD_CLR( selectee_fd, fdset );
+	}
+
+Selectee* Selector::FindSelectee( int selectee_fd ) const
+	{
+	if ( ! FD_ISSET( selectee_fd, fdset ) )
+		return 0;
+
+	return selectees[selectee_fd];
 	}
 
 void Selector::AddTimer( SelectTimer* t )

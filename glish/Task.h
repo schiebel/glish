@@ -14,16 +14,16 @@ class Selector;
 class TaskAttr {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
-		  bool async_flag, bool ping_flag, bool suspend_flag );
+		  int async_flag, int ping_flag, int suspend_flag );
 
 	~TaskAttr();
 
 	char* task_var_ID;
 	char* hostname;
 	Channel* daemon_channel;		// null for local invocation
-	bool async_flag;
-	bool ping_flag;
-	bool suspend_flag;
+	int async_flag;
+	int ping_flag;
+	int suspend_flag;
 	};
 
 
@@ -36,23 +36,23 @@ class Task : public Agent {
 	const char* Name() const	{ return name; }
 	const char* TaskID() const	{ return id; }
 	const char* Host() const	{ return attrs->hostname; }
-	bool NoSuchProgram() const	{ return no_such_program; }
+	int NoSuchProgram() const	{ return no_such_program; }
 	Executable* Exec() const	{ return executable; }
-	bool TaskError() const		{ return task_error; }
+	int TaskError() const		{ return task_error; }
 
-	// true if a .established has been seen; different from
+	// True if a .established has been seen; different from
 	// Exec()->Active(), which is true if the executable has
 	// be fired up and hasn't terminated yet
-	bool Active() const		{ return active; }
+	int Active() const		{ return active; }
 
 
 	// Send an event with the given name and associated values
 	// to the associated task.
 	Value* SendEvent( const char* event_name, parameter_list* args,
-			bool is_request, bool log );
+			int is_request, int log );
 
-	void SetActive()	{ SetActivity( true ); }
-	void SetDone()		{ SetActivity( false ); }
+	void SetActive()	{ SetActivity( 1 ); }
+	void SetDone()		{ SetActivity( 0 ); }
 
 	void SetChannel( Channel* c, Selector* s );
 	void CloseChannel();
@@ -73,14 +73,14 @@ class Task : public Agent {
 	const char** CreateArgs( const char* prog, int num_args, int& argc );
 
 	void Exec( const char** argv );
-	void SetActivity( bool is_active );
+	void SetActivity( int is_active );
 
 	char* name;
 	char* id;
 	TaskAttr* attrs;
 	Channel* channel;
 	Channel* local_channel;	// used for local tasks
-	bool no_such_program;
+	int no_such_program;
 	Selector* selector;
 
 	// Parallel lists holding event name/value pairs that we haven't
@@ -90,11 +90,11 @@ class Task : public Agent {
 	value_list* pending_event_values;
 
 	Executable* executable;
-	bool task_error;	// true if any problems occurred
-	bool active;
+	int task_error;	// true if any problems occurred
+	int active;
 
 	// Pipes used for local connections.
-	bool pipes_used;
+	int pipes_used;
 	int read_pipe[2], write_pipe[2];
 	char* read_pipe_str;
 	char* write_pipe_str;
@@ -123,7 +123,7 @@ class CreateTaskBuiltIn : public BuiltIn {
 
 	Value* DoCall( const_args_list* args_val );
 	void DoSideEffectsCall( const_args_list* args_val,
-				bool& side_effects_okay );
+				int& side_effects_okay );
 
     protected:
 	// Extract a string from the given value, or if it indicates
@@ -144,7 +144,7 @@ class CreateTaskBuiltIn : public BuiltIn {
 	// is a flag that if true indicates that the shell is executing
 	// remotely.
 	Value* GetShellCmdOutput( const char* command, FILE* shell,
-					bool is_remote );
+					int is_remote );
 
 	// Read the next line from a local or remote (respectively)
 	// synchronous shell command.
@@ -165,6 +165,6 @@ class CreateTaskBuiltIn : public BuiltIn {
 
 
 // True if both tasks are executing on the same host.
-extern bool same_host( Task* t1, Task* t2 );
+extern int same_host( Task* t1, Task* t2 );
 
 #endif	/* task_h */

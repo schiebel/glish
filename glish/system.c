@@ -1,5 +1,6 @@
 /* $Header$ */
 
+#include "system.h"
 
 #include <stdio.h>
 #include <netdb.h>
@@ -7,6 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/types.h>
@@ -18,6 +20,18 @@
 #include <sys/un.h>
 #include <sys/resource.h>
 #include <string.h>
+#include <termio.h>
+
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>
+#endif
+
+#ifndef HAVE_GETHOSTNAME
+#include <sys/utsname.h>
+#endif
+
+typedef RETSIGTYPE (*correct_sig_handler)();
+
 
 static int tcp_proto_number();
 static void set_tcp_nodelay( int socket );
@@ -304,7 +318,7 @@ char* make_named_pipe()
 
 void maximize_num_fds()
 	{
-#ifdef NOTDEF
+#ifdef HAVE_SETRLIMIT
 	struct rlimit rl;
 
 	if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
@@ -317,6 +331,10 @@ void maximize_num_fds()
 #endif
 	}
 
+signal_handler install_signal_handler( int sig, signal_handler handler )
+	{
+	return (signal_handler) signal( sig, (correct_sig_handler) handler );
+	}
 
 static int tcp_proto_number()
 	{
@@ -333,10 +351,96 @@ void set_tcp_nodelay( int socket )
 	{
 	int enable_option = 1;
 
+#if defined(HAVE_SETSOCKOPT) && defined(TCP_NODELAY)
 	if ( setsockopt( socket, tcp_proto_number(), TCP_NODELAY,
 			 (char *) &enable_option, sizeof( int ) ) < 0 )
                 pgripe( "can't set TCP_NODELAY on socket" );
+#endif
 	}
+
+static struct termio tbufsave;
+static char char_mode = 0;
+
+void set_term_char_mode()
+	{
+	struct termio tbuf;
+	
+	if ( ! char_mode )
+		{
+		if ( ioctl( 0, TCGETA, &tbuf ) == -1 )
+			pgripe( "set_term_char_mode ioctl(TCGETA)" );
+
+		tbufsave = tbuf;
+		tbuf.c_lflag &= ~ICANON;
+		tbuf.c_cc[VMIN] = 1;
+		tbuf.c_cc[VTIME] = 0;
+
+		if ( ioctl( 0, TCSETAF, &tbuf ) == -1 )
+			pgripe("set_term_char_mode ioctl(TCSETAF)");
+
+		char_mode = 1;
+		}
+	}
+
+void set_term_unchar_mode()
+	{
+	if ( char_mode )
+		{
+		if ( ioctl( 0, TCSETAF, &tbufsave ) == -1 )
+			pgripe("set_term_unchar_mode ioctl(TCSETAF)");
+
+		char_mode = 0;
+		}
+	}
+
+#ifndef HAVE_GETHOSTNAME
+int gethostname( char *name, int namelen )
+	{
+	struct utsname name_struct;
+
+	if ( uname( &name_struct ) < 0 )
+		return -1;
+
+	strncpy( name, name_struct.nodename, namelen );
+
+	return 0;
+	}
+#endif
+
+const char* local_host_name()
+	{
+	static char local_host[64];
+
+	if ( gethostname( local_host, sizeof( local_host ) ) < 0 )
+		strcpy( local_host, "<unknown>" );
+
+	return local_host;
+	}
+
+void* alloc_memory( unsigned int size )
+	{
+	return (void*) malloc( size );
+	}
+
+void* realloc_memory( void* ptr, unsigned int new_size )
+	{
+	return (void*) realloc( (malloc_t) ptr, new_size );
+	}
+
+void free_memory( void* ptr )
+	{
+	free( (malloc_t) ptr );
+	}
+
+#ifndef HAVE_STRDUP
+char *strdup( const char *str )
+	{
+	int str_length = strlen( str );
+	char *tmp_str = new char [str_length + 1];
+
+	return strcpy( tmp_str, str );
+	}
+#endif
 
 
 void gripe( char msg[] )

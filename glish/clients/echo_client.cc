@@ -11,7 +11,7 @@ int main( int argc, char** argv )
 	if ( argc > 1 )
 		{
 		// First echo our arguments.
-		Value v( argv, argc, PRESERVE_ARRAY );
+		Value v( (charptr*) argv, argc, PRESERVE_ARRAY );
 
 		c.PostEvent( "echo_args", &v );
 		}

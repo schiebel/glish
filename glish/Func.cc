@@ -1,8 +1,12 @@
 // $Header$
 
+#include "system.h"
+
 #include <string.h>
 #include <stream.h>
 #include <math.h>
+#include <stdlib.h>
+
 #include "Agent.h"
 #include "Func.h"
 #include "Stmt.h"
@@ -12,14 +16,15 @@
 
 
 Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
-			Expr* arg_arg, bool arg_is_ellipsis,
-			Expr* arg_default_value )
+			Expr* arg_arg, int arg_is_ellipsis,
+			Expr* arg_default_value, int arg_is_empty )
 	{
 	name = arg_name;
 	parm_type = arg_parm_type;
 	arg = arg_arg;
 	is_ellipsis = arg_is_ellipsis;
 	default_value = arg_default_value;
+	is_empty = arg_is_empty;
 	}
 
 int Parameter::NumEllipsisVals() const
@@ -74,8 +79,8 @@ void Parameter::Describe( ostream& s ) const
 
 
 FormalParameter::FormalParameter( const char* name, value_type parm_type,
-			Expr* arg, bool is_ellipsis, Expr* default_value )
-    : Parameter(name, parm_type, arg, is_ellipsis, default_value)
+			Expr* arg, int is_ellipsis, Expr* default_value )
+    : Parameter(name, parm_type, arg, is_ellipsis, default_value, 0)
 	{
 	}
 
@@ -94,13 +99,6 @@ void FormalParameter::Describe( ostream& s ) const
 	}
 
 
-ActualParameter::ActualParameter( const char* name, value_type parm_type,
-			Expr* arg, bool is_ellipsis, Expr* default_value )
-    : Parameter(name, parm_type, arg, is_ellipsis, default_value)
-	{
-	}
-
-
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			Sequencer* arg_sequencer, Expr* arg_subsequence_expr )
 	{
@@ -110,9 +108,9 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 	sequencer = arg_sequencer;
 	subsequence_expr = arg_subsequence_expr;
 
-	valid = true;
+	valid = 1;
 
-	has_ellipsis = false;
+	has_ellipsis = 0;
 	loop_over_list( *formals, i )
 		if ( (*formals)[i]->IsEllipsis() )
 			{
@@ -120,11 +118,11 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 				{
 				error->Report(
 			"\"...\" appears more than once in parameter list" );
-				valid = false;
+				valid = 0;
 				break;
 				}
 
-			has_ellipsis = true;
+			has_ellipsis = 1;
 			ellipsis_position = i;
 			}
 	}
@@ -132,10 +130,10 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 Value* UserFunc::Call( parameter_list* args, eval_type etype )
 	{
 	if ( ! valid )
-		return new Value( false );
+		return error_value();
 
 	args_list args_vals;
-	bool do_call = true;
+	int do_call = 1;
 	Parameter* f;
 
 	int num_args = 0;
@@ -143,7 +141,6 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 	int num_formals;
 
 	Value* ellipsis_value;
-
 	if ( has_ellipsis )
 		{
 		ellipsis_value = create_record();
@@ -156,6 +153,29 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 		num_formals = formals->length();
 		}
 
+	int missing_size = num_supplied_args + formals->length();
+	int missing_len = 0;
+	glish_bool* missing =
+		(glish_bool*) alloc_memory( missing_size * sizeof(glish_bool) );
+	if ( ! missing )
+		fatal->Report( "out of memory in UserFunc::Call" );
+
+// Macro to note which arguments were missing and which were present.  Use
+// is: spin through the arguments sequentially and call the macro with either
+// "true" or "false" to indicate that the next argument was missing/present.
+#define ADD_MISSING_INFO(value)						\
+	{								\
+	if ( missing_len >= missing_size )				\
+		{							\
+		missing_size *= 2;					\
+		missing = (glish_bool*) realloc_memory( (void*) missing,\
+				missing_size * sizeof(glish_bool) );	\
+		if ( ! missing )					\
+			fatal->Report( "out of memory in UserFunc::Call" );\
+		}							\
+	missing[missing_len++] = value;					\
+	}
+
 	// Match until a named argument is encountered.
 	loop_over_list( *args, i )
 		{
@@ -165,21 +185,76 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 			break;
 
 		if ( arg->IsEllipsis() )
+			{
 			AddEllipsisArgs( &args_vals, arg, num_args, num_formals,
 					ellipsis_value, do_call );
+			for ( int j = 0; j < arg->NumEllipsisVals(); ++j )
+				ADD_MISSING_INFO(glish_false)
+			}
 
 		else
 			{
 			if ( num_args >= num_formals )
-				ArgOverFlow( (*args)[i]->Arg(),
-						num_args, num_formals,
-						ellipsis_value, do_call );
+				{
+				Parameter* p = (*args)[i];
+				if ( p->IsEmpty() )
+					{
+					f = (*formals)[ellipsis_position];
+					Expr* dflt = f ? f->DefaultValue() : 0;
+					if ( dflt )
+						{
+						ArgOverFlow( dflt, num_args,
+							num_formals,
+							ellipsis_value,
+							do_call );
+						ADD_MISSING_INFO(glish_true)
+						}
+					else
+						{
+						error->Report(
+						"Missing parameter ", i+1,
+						", no default available" );
+						do_call = 0;
+						}
+					}
+				else
+					{
+					ArgOverFlow( p->Arg(), num_args,
+							num_formals,
+							ellipsis_value,
+							do_call );
+					ADD_MISSING_INFO(glish_false)
+					}
+				}
 
 			else
 				{
 				f = (*formals)[num_args];
-				args_vals.append(
-					EvalParam( f, (*args)[i]->Arg() ) );
+				Parameter* p = (*args)[i];
+				if ( p->IsEmpty() )
+					{
+					Expr* dflt = f ? f->DefaultValue() : 0;
+					if ( dflt )
+						{
+						args_vals.append(
+							EvalParam( f, dflt ) );
+						ADD_MISSING_INFO(glish_true)
+						}
+					else
+					  	{
+						error->Report(
+						"Missing parameter ", i+1, 
+						", no default available." );
+						do_call = 0;
+						}
+					}
+				else
+					{
+					args_vals.append( EvalParam( f,
+							(*args)[i]->Arg() ) );
+					ADD_MISSING_INFO(glish_false)
+					}
+
 				++num_args;
 				}
 			}
@@ -201,7 +276,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 						named_arg,
 					") given after named arg in call to",
 						this );
-				do_call = false;
+				do_call = 0;
 				}
 			}
 
@@ -221,7 +296,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 				error->Report( "named arg \"", arg_name,
 				    "\" does not match any formal in call to",
 						this );
-				do_call = false;
+				do_call = 0;
 				}
 
 			else if ( j < args_vals.length() )
@@ -229,7 +304,7 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 				error->Report( "formal \"", arg_name,
 		    "\" matched by both positional and named arg in call to",
 						this );
-				do_call = false;
+				do_call = 0;
 				}
 			}
 		}
@@ -265,9 +340,11 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 				}
 
 			if ( match < num_supplied_args )
-				args_vals.append(
-					EvalParam( f, (*args)[match]->Arg() ) );
-
+				{
+				args_vals.append( EvalParam( f,
+						(*args)[match]->Arg() ) );
+				ADD_MISSING_INFO(glish_false)
+				}
 			else
 				{
 				Expr* default_value = f->DefaultValue();
@@ -278,12 +355,15 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 							f->Name(),
 							"\" missing in call to",
 							this );
-					do_call = false;
+					do_call = 0;
 					}
 
 				else
-					args_vals.append(
-						EvalParam( f, default_value ) );
+					{
+					args_vals.append( EvalParam( f,
+							default_value ) );
+					ADD_MISSING_INFO(glish_true)
+					}
 				}
 			}
 		}
@@ -291,22 +371,30 @@ Value* UserFunc::Call( parameter_list* args, eval_type etype )
 	Value* result;
 
 	if ( do_call )
-		result = DoCall( &args_vals, etype );
+		{
+		Value* missing_val = missing_len > 0 ?
+			new Value( missing, missing_len, PRESERVE_ARRAY ) : 0;
+		result = DoCall( &args_vals, etype, missing_val );
+		// No need to Unref() missing_val, Sequencer::PopFrame did
+		// that for us.
+		}
 
 	else
 		{
 		loop_over_list( args_vals, k )
 			Unref( args_vals[k] );
 
-		result = new Value( false );
+		result = error_value();
 		}
+
+	free_memory( (void*) missing );
 
 	return result;
 	}
 
-Value* UserFunc::DoCall( args_list* args_vals, eval_type etype )
+Value* UserFunc::DoCall( args_list* args_vals, eval_type etype, Value* missing )
 	{
-	Frame* call_frame = new Frame( frame_size );
+	Frame* call_frame = new Frame( frame_size, missing );
 	sequencer->PushFrame( call_frame );
 
 	if ( subsequence_expr )
@@ -319,7 +407,7 @@ Value* UserFunc::DoCall( args_list* args_vals, eval_type etype )
 	loop_over_list( (*formals), i )
 		(*formals)[i]->Arg()->Assign( (*args_vals)[i] );
 
-	bool value_needed = bool(etype != EVAL_SIDE_EFFECTS);
+	int value_needed = etype != EVAL_SIDE_EFFECTS;
 	stmt_flow_type flow;
 	Value* result = body->Exec( value_needed, flow );
 
@@ -371,7 +459,7 @@ Value* UserFunc::EvalParam( Parameter* p, Expr* actual )
 void UserFunc::AddEllipsisArgs( args_list* args_vals,
 				Parameter* actual_ellipsis, int& num_args,
 				int num_formals, Value* formal_ellipsis_value,
-				bool& do_call )
+				int& do_call )
 	{
 	int len = actual_ellipsis->NumEllipsisVals();
 
@@ -386,7 +474,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 				error->Report( "too many arguments (> ",
 						num_formals,
 						") supplied in call to", this );
-				do_call = false;
+				do_call = 0;
 				return;
 				}
 
@@ -413,7 +501,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 			error->Report(
 				"\"...\" is a \"const\" reference, formal",
 					f->Name(), " is \"ref\"" );
-			do_call = false;
+			do_call = 0;
 			return;
 			}
 
@@ -447,7 +535,7 @@ void UserFunc::AddEllipsisValue( Value* ellipsis_value, Expr* arg )
 
 
 void UserFunc::ArgOverFlow( Expr* arg, int num_args, int num_formals,
-				Value* ellipsis_value, bool& do_call )
+				Value* ellipsis_value, int& do_call )
 	{
 	if ( ellipsis_value )
 		AddEllipsisValue( ellipsis_value, arg );
@@ -461,7 +549,7 @@ void UserFunc::ArgOverFlow( Expr* arg, int num_args, int num_formals,
 				this );
 			}
 
-		do_call = false;
+		do_call = 0;
 		}
 	}
 
