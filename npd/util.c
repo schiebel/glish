@@ -128,7 +128,6 @@ static void seed_random_number_generator()
 
 #if defined(HAVE_LRAND48)
 		static unsigned short state[3];
-		unsigned short int *seed48(unsigned short int seed16v[3]);
 
 		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
 			abort();
