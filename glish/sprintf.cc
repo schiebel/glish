@@ -306,7 +306,7 @@ static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap,
 	s = cbuf;
 
 	// verify number of arguments
-	if (index >= ap->length()) {
+	if (index + ndyn >= ap->length()) {
 		sprintf( ebuf, "not enough args for format `%s'", s );
 		return strdup(ebuf);
 	}
