@@ -679,11 +679,18 @@ dnl##			applications in order for the "load" command to work.
 dnl##	LD_FLAGS -	Flags to pass to the compiler when linking object
 dnl##			files into an executable application binary such
 dnl##			as tclsh.
-dnl##   TK_LD_SEARCH
+dnl##   TK_LD_RPATH
+dnl##   TK_CXX_RPATH
 dnl##	GLISH_LD_SEARCH - Flags to pass to ld, such as "-R /usr/local/tcl/lib",
 dnl##			that tell the run-time dynamic linker where to look
 dnl##			for shared libraries such as libtcl.so.  Depends on
 dnl##			the variable LIB_INSTALL_DIR in the Makefile.
+dnl##                   The Tk runtime path is broken off with flags for
+dnl##                   CXX and LD treated separately because the client
+dnl##			(glishtk) is built with C++ using an RPATH and
+dnl##			any loadable objects (gPgplot.so) are built with
+dnl##			LD using an RPATH, on some systems C++ and LD
+dnl##			take different flags...
 dnl##	SLIB_LD -	Base command to use for combining object files
 dnl##			into a shared library.
 dnl##	SLIB_SUFFIX -	Suffix to use for the names of dynamically loadable
@@ -706,7 +713,8 @@ GLISH_SLIB_SUFFIX=""
 LIB_VERSIONS_OK=ok
 SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
-TK_LD_SEARCH=""
+TK_LD_RPATH=""
+TK_CXX_RPATH=""
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
@@ -718,12 +726,12 @@ case $host_os in
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
-	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
         if test -n "$tcl_library"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
+	    TK_LD_RPATH="$TK_LD_RPATH -L$tcl_library"
 	fi
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
@@ -740,13 +748,13 @@ case $host_os in
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
 	fi
 
-	TK_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-Wl,+b,$full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
-	if test -n "$TK_LD_SEARCH"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH:."
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
 	;;
     irix4.*)
@@ -757,7 +765,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     irix5.*)
 	SLIB_CFLAGS=""
@@ -770,10 +778,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -791,10 +799,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
@@ -843,10 +851,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -856,7 +864,7 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     MP-RAS-*)
 	SLIB_CFLAGS="-K PIC"
@@ -866,7 +874,7 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     netbsd*|freebsd*)
 	# Not available on all versions:  check for include file.
@@ -884,7 +892,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 
 	# FreeBSD doesn't handle version numbers with dots.  Also, have to
 	# append a dummy version number to .so file names.
@@ -900,7 +908,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     osf1.[[012]])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
@@ -912,7 +920,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
@@ -923,7 +931,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     osf3.*)
         # Digital OSF/1
@@ -938,10 +946,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	;;
     osf4.*)
         # Digital OSF/1
@@ -956,10 +964,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_SEARCH)
-        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_RPATH)
+        ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	;;
     riscos*)
 	SLIB_CFLAGS="-G 0"
@@ -969,7 +977,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     sco_sv3.2*)
         # Note, dlopen is available only on SCO 3.2.5 and greater.  However,
@@ -982,7 +990,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS="-belf -Wl,-Bexport"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
      sinix*5.4*)
 	SLIB_CFLAGS="-K PIC"
@@ -992,7 +1000,7 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     sunos4*)
 	SLIB_CFLAGS="-PIC"
@@ -1004,12 +1012,12 @@ case $host_os in
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
 	fi
-	TK_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
         if test -n "$x_libraries"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$x_libraries"
+	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
         if test -n "$tcl_library"; then
-	    TK_LD_SEARCH="$TK_LD_SEARCH -L$tcl_library"
+	    TK_LD_RPATH="$TK_LD_RPATH -L$tcl_library"
 	fi
 
 	# SunOS can't handle version numbers with dots in them in library
@@ -1040,10 +1048,10 @@ case $host_os in
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
 	fi
 
-	TK_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_SEARCH)
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_SEARCH)
-        ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_SEARCH)
+	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1053,7 +1061,7 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS="-Wl,-D,08000000"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
     unix_sv*)
 	SLIB_CFLAGS="-K PIC"
@@ -1063,9 +1071,16 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS="-Wl,-Bexport"
 	GLISH_LD_SEARCH=""
-	TK_LD_SEARCH=""
+	TK_LD_RPATH=""
 	;;
 esac
+
+dnl##
+dnl## These will typically be the same
+dnl##
+if test -z "$TK_CXX_RPATH"; then
+    TK_CXX_RPATH="$TK_LD_RPATH"
+fi
 
 dnl##
 dnl## If SLIB_CXXFLAGS is not set, set it to the same as SLIB_CFLAGS.
@@ -1099,12 +1114,12 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
@@ -1184,6 +1199,8 @@ AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(GLISH_SLIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
+AC_SUBST(TK_LD_RPATH)
+AC_SUBST(TK_CXX_RPATH)
 
 AC_SUBST(TKCLIENT_LIBS)
 
