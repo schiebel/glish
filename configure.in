@@ -1193,7 +1193,7 @@ case $host_os in
 	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g" -e "s/$/$SLIB_SUFFIX/" )
 	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g", SLIB_VERSION )
 	;;
-    hpux10.*)
+    hpux10.*|hpux11.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"

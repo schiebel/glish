@@ -2961,7 +2961,7 @@ case $host_os in
 	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
 	;;
-    hpux8.*|hpux9.*|hpux10.*)
+    hpux8.*|hpux9.*|hpux10.*|hpux11.*)
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
 	fi
