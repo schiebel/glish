@@ -7,6 +7,13 @@
 #include "tk.h"
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
+#ifdef DEBUGTK
+#include <stdarg.h>
+//###  Function wrapper for debugging
+extern int tcl_VarEval( Tcl_Interp *interp, ... );
+#else
+#define tcl_VarEval Tcl_VarEval
+#endif
 
 #if ! defined(HAVE_TCL_GETSTRINGRESULT)
 #define Tcl_GetStringResult(tcl) (tcl)->result

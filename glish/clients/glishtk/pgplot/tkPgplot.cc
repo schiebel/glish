@@ -371,9 +371,9 @@ int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *ar
 	recordptr rec = create_record_dict();
 
 	float *wpt = (float*) alloc_memory( sizeof(float)*2 );
-	Tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " world x ", argv[1], 0 );
 	wpt[0] = (float) atof(Tcl_GetStringResult(tcl));
-	Tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " world y ", argv[2], 0 );
 	wpt[1] = (float) atof(Tcl_GetStringResult(tcl));
 	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
@@ -399,7 +399,7 @@ char *glishtk_pgplot_bind( TkProxy *agent, const char*, Value *args ) {
 
 		glishtk_pgplot_bindinfo *binfo = new glishtk_pgplot_bindinfo((TkPgplot *)agent, event, button);
 
-		Tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
 			     glishtk_make_callback(agent->Interp(), glishtk_pgplot_bindcb, binfo), " %x %y %b}", 0 );
 
 		EXPR_DONE(event);
@@ -421,7 +421,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		EXPRINIT(event_name)
 		EXPRDIM(dim, event_name);
 
-		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, 0 );
 
 		EXPR_DONE(dim);
 
@@ -429,7 +429,7 @@ char *glishtk_oneornodim( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Valu
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		return Tcl_GetStringResult(tcl);
 		}
 }
@@ -513,12 +513,12 @@ TkPgplot::TkPgplot(ProxyStore *s, TkFrame *frame_, charptr width,
 		return;
 		}
 
-	Tcl_VarEval( tcl, Tk_PathName(self)," id", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self)," id", 0 );
 	id = atoi(Tcl_GetStringResult(tcl));
 
 	if ( id <= 0 )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self)," device", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self)," device", 0 );
 		id = cpgopen(Tcl_GetStringResult(tcl));
 		}
 	else
@@ -862,7 +862,7 @@ char *TkPgplot::Cursor( Value *args ) {
 		else
 			item[0] = args->StringVal();
 
-		Tcl_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
+		tcl_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
 			    item[2], SP, item[3], 0 );
 		return (char *)item[0];
 		}

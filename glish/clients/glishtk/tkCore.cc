@@ -137,7 +137,7 @@ Value *glishtk_splitsp_str( char *s )
 
 char *glishtk_nostr( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	{
-	Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, 0 );
 	return Tcl_GetStringResult(tcl);
 	}
 
@@ -148,12 +148,12 @@ char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	if ( args->Type() == TYPE_STRING )
 		{
 		const char *str = args->StringPtr(0)[0];
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", str, "}", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", str, "}", 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 
@@ -172,14 +172,14 @@ char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 			{
 			char *bitmap = (char*) alloc_memory(strlen(expanded)+2);
 			sprintf(bitmap," @%s",expanded);
-			Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " config ", cmd, bitmap, 0 );
+			tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " config ", cmd, bitmap, 0 );
 			free_memory( expanded );
 			free_memory( bitmap );
 			}
 		}
 	else
 		{
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " cget ", cmd, 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " cget ", cmd, 0 );
 		ret = Tcl_GetStringResult(a->Interp());
 		if ( *ret == '@' ) ++ret;
 		}
@@ -192,16 +192,16 @@ char *glishtk_onedim(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING )
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, SP, args->StringPtr(0)[0], 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, SP, args->StringPtr(0)[0], 0 );
 	else if ( args->IsNumeric() && args->Length() > 0 )
 		{
 		char buf[30];
 		sprintf(buf,"%d",args->IntVal());
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, SP, buf, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, SP, buf, 0 );
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 
@@ -218,14 +218,14 @@ char *glishtk_oneint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 			{
 			char buf[30];
 			sprintf(buf," %d",args->IntVal());
-			Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, buf, 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, buf, 0 );
 			}
 		else if ( args->Type() == TYPE_STRING )
-			Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, args->StringPtr(0)[0], 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, args->StringPtr(0)[0], 0 );
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 
@@ -242,14 +242,14 @@ char *glishtk_onedouble(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value 
 			{
 			char buf[30];
 			sprintf(buf," %f",args->DoubleVal());
-			Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, buf, 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, buf, 0 );
 			}
 		else if ( args->Type() == TYPE_STRING )
-			Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, args->StringPtr(0)[0], 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, args->StringPtr(0)[0], 0 );
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 
@@ -262,7 +262,7 @@ char *glishtk_onebinary(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const 
 	char *ret = 0;
 
 	if ( args->IsNumeric() && args->Length() > 0 )
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
 	else
 		global_store->Error("wrong type, numeric expected");
 	
@@ -279,7 +279,7 @@ char *glishtk_oneidx( TkProxy *a, const char *cmd, Value *args )
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -321,7 +321,7 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
 		a->ExitEnable();
 		EXPR_DONE( end )
 		EXPR_DONE( start )
@@ -329,7 +329,7 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 		a->ExitEnable();
 		}
 	return ret;
@@ -367,7 +367,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 			{
 			EXPRSTR(one, event_name)
 			EXPRSTR(two, event_name)
-			int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+			int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 					     a->IndexCheck( one ), SP, a->IndexCheck( two ), 0 );
 			if ( r == TCL_OK )
 				ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
@@ -385,7 +385,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 			charptr *idx = args->StringPtr(0);
 			for ( int i = 0; i+1 < args->Length(); i+=2 )
 				{
-				int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+				int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 						     a->IndexCheck( idx[i] ), SP, a->IndexCheck( idx[i+1] ), 0 );
 				if ( r == TCL_OK )
 					ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
@@ -393,7 +393,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 			}
 		else
 			{
-			int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+			int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 					     a->IndexCheck( (args->StringPtr(0))[0] ), 0);
 			if ( r == TCL_OK )
 				{
@@ -424,18 +424,18 @@ char *glishtk_listbox_select(TkProxy *a, const char *cmd, const char *param,
 		EXPRINIT( event_name)
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
 			     a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( end ), 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( end ), 0 );
 		EXPR_DONE( end )
 		EXPR_DONE( start )
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
 		const char *start = args->StringPtr(0)[0];
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
 			     a->IndexCheck( start ), 0 );
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( start ), 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( start ), 0 );
 		}
 
 	return ret;
@@ -456,7 +456,7 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 		EXPRSTR( where, event_name )
 		char *str = strv->StringVal( ' ', 0, 1 );
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " {", str, "}", 0);
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), " {", str, "}", 0);
 		a->ExitEnable();
 		free_memory( str );
 		EXPR_DONE( where )
@@ -465,7 +465,7 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " {", args->StringPtr(0)[0], "}", 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " {", args->StringPtr(0)[0], "}", 0 );
 		a->ExitEnable();
 		}
 	else
@@ -514,7 +514,7 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 			argv[2] = tmp;
 			}
 		tcl_ArgEval( a->Interp(), argc, argv );
-		if ( param ) Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see ", a->IndexCheck(param), 0 );
+		if ( param ) tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see ", a->IndexCheck(param), 0 );
 		a->ExitEnable();
 		for ( LOOPDECL i = start; i < argc; ++i )
 			free_memory(argv[i]);
@@ -523,13 +523,13 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 	else if ( args->Type() == TYPE_STRING && param )
 		{
 		char *s = args->StringVal( ' ', 0, 1 );
-		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, " {", s, "}", 0 );
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, " {", s, "}", 0 );
 		free_memory(s);
 		}
 	else
 		global_store->Error("wrong arguments");
 
-	Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see end", 0 );
+	tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see end", 0 );
 
 	return 0;
 	}
@@ -636,7 +636,7 @@ char *glishtk_text_rangesfunc( Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, param, SP, args->StringPtr(0)[0], 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, param, SP, args->StringPtr(0)[0], 0 );
 		ret = Tcl_GetStringResult(tcl);
 		}
 	else
@@ -647,7 +647,7 @@ char *glishtk_text_rangesfunc( Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 
 char *glishtk_no2str(TkProxy *a, const char *cmd, const char *param, Value * )
 	{
-	Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, 0 );
+	tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, 0 );
 	return Tcl_GetStringResult(a->Interp());
 	}
 
@@ -715,7 +715,7 @@ char *glishtk_listbox_get_int(TkProxy *a, const char *cmd, Value *val )
 		{
 		sprintf(buf,"%d",index[i]);
 		
-		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( buf ), 0 );
+		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( buf ), 0 );
 
 		if ( r == TCL_OK )
 			{
@@ -750,7 +750,7 @@ char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 		EXPRINIT( event_name)
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
-		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
 				     a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
 
 		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
@@ -760,7 +760,7 @@ char *glishtk_listbox_get(TkProxy *a, const char *cmd, Value *args )
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
-		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
 		}
 	else if ( args->Type() == TYPE_INT )
@@ -779,7 +779,7 @@ char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 		{
 		char ycoord[30];
 		sprintf(ycoord,"%d", args->IntVal());
-		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " nearest ", ycoord, 0 );
+		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " nearest ", ycoord, 0 );
 		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
 		}
 	else
@@ -800,7 +800,7 @@ char *glishtk_scrollbar_update(Tcl_Interp *tcl, Tk_Window self, const char *, Va
 
 	char args[75];
 	sprintf( args," set %f %f", firstlast[0], firstlast[1] );
-	Tcl_VarEval( tcl, Tk_PathName(self), args, 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), args, 0 );
 	return 0;
 	}
 
@@ -822,7 +822,7 @@ char *glishtk_menu_onestr(TkProxy *a, const char *cmd, Value *args )
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
-		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
+		tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
 			     cmd, " {", args->StringPtr(0)[0], "}", 0 );
 	else
 		global_store->Error("wrong type, string expected");
@@ -838,7 +838,7 @@ char *glishtk_menu_onebinary(TkProxy *a, const char *cmd, const char *ptrue, con
 	char *ret = 0;
 
 	if ( args->IsNumeric() && args->Length() > 0 )
-		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
+		tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
 			     cmd, SP, (args->IntVal() ? ptrue : pfalse), 0 );
 	else
 		global_store->Error("wrong type, numeric expected");
@@ -910,7 +910,7 @@ char *glishtk_bind(TkProxy *agent, const char *, Value *args )
 		EXPRSTR( event, event_name )
 		glishtk_bindinfo *binfo = new glishtk_bindinfo(agent, event, button);
 
-		Tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
+		tcl_VarEval( agent->Interp(), "bind ", Tk_PathName(agent->Self()), SP, button, " {",
 			     glishtk_make_callback(agent->Interp(), glishtk_bindcb, binfo), " %x %y %b %K %A}", 0 );
 
 		EXPR_DONE( event )
@@ -937,7 +937,7 @@ char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *, Value * )
 	}
 
 #define GEOM_GET(WHAT)								\
-	Tcl_VarEval( tcl, "winfo ", #WHAT, SP, Tk_PathName(tlead), 0 );		\
+	tcl_VarEval( tcl, "winfo ", #WHAT, SP, Tk_PathName(tlead), 0 );		\
 	int WHAT = atoi(Tcl_GetStringResult(tcl));
 
 
@@ -1012,21 +1012,21 @@ void glishtk_popup_adjust_dim_cb( ClientData clientData, XEvent *ptr)
 		Tk_Window self = ((TkProxy*)clientData)->Self();
 		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
 		
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
 		int req_width = atoi(Tcl_GetStringResult(tcl));
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
 		int req_height = atoi(Tcl_GetStringResult(tcl));
 
 		char buf[40];
 		if ( Tk_Width(self) > req_width )
 			{
 			sprintf( buf, "%d", Tk_Width(self) );
-			Tcl_VarEval( tcl, Tk_PathName(self), " configure -width ", buf, 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " configure -width ", buf, 0 );
 			}
 		if ( Tk_Height(self) > req_height )
 			{
 			sprintf( buf, "%d", Tk_Height(self) );
-			Tcl_VarEval( tcl, Tk_PathName(self), " configure -height ", buf, 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " configure -height ", buf, 0 );
 			}
 		}
 	}
@@ -1039,8 +1039,8 @@ void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
 		Tk_Window self = ((TkProxy*)clientData)->Self();
 		Tcl_Interp *tcl = ((TkProxy*)clientData)->Interp();
 		
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -width", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -height", 0 );
 
 		TkFrameP *f = (TkFrameP*) clientData;
 		f->ResizeEvent();
@@ -1122,16 +1122,16 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		tcl_ArgEval( tcl, c, argv );
 		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " {", title, "}", 0 );
+			tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), " {", title, "}", 0 );
 
 		if ( tlead )
 			{
-			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(pseudo), SP,
+			tcl_VarEval( tcl, "wm transient ", Tk_PathName(pseudo), SP,
 				     Tk_PathName(tlead->Self()), 0 );
-			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(pseudo), " true", 0 );
+			tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(pseudo), " true", 0 );
 
 			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo), SP, geometry, 0 );
+			tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo), SP, geometry, 0 );
 
 			Tk_Window top = tlead->TopLevel();
 			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
@@ -1141,15 +1141,15 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		{
 		top_created = 1;
 		if ( title && title[0] )
-			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " {", title, "}", 0 );
+			tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), " {", title, "}", 0 );
 
 		if ( tlead )
 			{
-			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(root), Tk_PathName(tlead->Self()), 0 );
-			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(root), " true", 0 );
+			tcl_VarEval( tcl, "wm transient ", Tk_PathName(root), Tk_PathName(tlead->Self()), 0 );
+			tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(root), " true", 0 );
 
 			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(root), geometry, 0 );
+			tcl_VarEval( tcl, "wm geometry ", Tk_PathName(root), geometry, 0 );
 
 			Tk_Window top = tlead->TopLevel();
 			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
@@ -1193,7 +1193,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
 
-	Tcl_VarEval( tcl, "wm protocol ", Tk_PathName(pseudo ? pseudo : root), " WM_DELETE_WINDOW ",
+	tcl_VarEval( tcl, "wm protocol ", Tk_PathName(pseudo ? pseudo : root), " WM_DELETE_WINDOW ",
 		     glishtk_make_callback( tcl, glishtk_delframe_cb, this ), 0 );
 
 	if ( icon && strlen( icon ) )
@@ -1203,7 +1203,7 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 			{
 			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
 			sprintf(icon_," @%s",expanded);
-			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0);
+			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0);
 			free_memory( expanded );
 			free_memory( icon_ );
 			}
@@ -1443,7 +1443,7 @@ void TkFrameP::UnMap()
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 
 	if ( canvas )
-		Tcl_VarEval( tcl, Tk_PathName(canvas->Self()), " delete ", tag, 0 );
+		tcl_VarEval( tcl, Tk_PathName(canvas->Self()), " delete ", tag, 0 );
 	else if ( self )
 		Tk_DestroyWindow( self );
 
@@ -1505,7 +1505,7 @@ char *TkFrameP::SetIcon( Value *args )
 			icon = strdup(iconx);
 			char *icon_ = (char*) alloc_memory(strlen(icon)+3);
 			sprintf(icon_," @%s",icon);
-			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0 );
+			tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0 );
 			free_memory( icon_ );
 			}
 		}
@@ -1553,7 +1553,7 @@ char *TkFrameP::SetPadx( Value *args )
 			}
 		}
 
-	Tcl_VarEval( tcl, Tk_PathName(self), " cget -padx", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " cget -padx", 0 );
 	return Tcl_GetStringResult(tcl);
 	}
 
@@ -1581,7 +1581,7 @@ char *TkFrameP::SetPady( Value *args )
 			}
 		}
 
-	Tcl_VarEval( tcl, Tk_PathName(self), " cget -pady", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " cget -pady", 0 );
 	return Tcl_GetStringResult(tcl);
 	}
 
@@ -1611,9 +1611,9 @@ char *TkFrameP::Grab( int global_scope )
 	if ( grab ) return 0;
 
 	if ( global_scope )
-		Tcl_VarEval( tcl, "grab set -global ", Tk_PathName(self), 0 );
+		tcl_VarEval( tcl, "grab set -global ", Tk_PathName(self), 0 );
 	else
-		Tcl_VarEval( tcl, "grab set ", Tk_PathName(self), 0 );
+		tcl_VarEval( tcl, "grab set ", Tk_PathName(self), 0 );
 
 	grab = Id();
 	return "";
@@ -1635,9 +1635,9 @@ char *TkFrameP::Raise( Value *args )
 	{
 	TkProxy *agent = 0;
 	if ( args->IsAgentRecord( ) && (agent = (TkProxy*) store->GetProxy(args)) )
-		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), 0 );
+		tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), 0 );
 	else
-		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), 0 );
+		tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), 0 );
 
 	return "";
 	}
@@ -1645,7 +1645,7 @@ char *TkFrameP::Raise( Value *args )
 char *TkFrameP::Title( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
-		Tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), SP, args->StringPtr(0)[0], 0 );
+		tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), SP, args->StringPtr(0)[0], 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -1683,7 +1683,7 @@ char *TkFrameP::Release( )
 	{
 	if ( ! grab || grab != Id() ) return 0;
 
-	Tcl_VarEval( tcl, "grap release ", Tk_PathName(self), 0 );
+	tcl_VarEval( tcl, "grap release ", Tk_PathName(self), 0 );
 
 	grab = 0;
 	return "";
@@ -1805,8 +1805,8 @@ void TkFrameP::LeaderMoved( )
 	if ( ! tlead ) return;
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
-	Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
-	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
+	tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
+	tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
 	}
 
 void TkFrameP::Create( ProxyStore *s, Value *args )
@@ -1963,7 +1963,7 @@ void TkButton::UnMap()
 		if ( menu )
 			{
 			menu->Remove(this);
-			Tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
+			tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
 			}
 		else
 			{
@@ -1974,12 +1974,12 @@ void TkButton::UnMap()
 	else if ( menu )
 		{
 		menu->Remove(this);
-		Tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
+		tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
 		}
 
 	else if ( self )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -command \"\"", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -command \"\"", 0 );
 		Tk_DestroyWindow( self );
 		}
 
@@ -2024,9 +2024,9 @@ void TkButton::EnterEnable()
 		{
 		enable_state++;
 		if ( frame )
-			Tcl_VarEval( tcl, Tk_PathName(self), " config -state normal", 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config -state normal", 0 );
 		else
-			Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
+			tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
 		}
 	}
 
@@ -2034,18 +2034,18 @@ void TkButton::ExitEnable()
 	{
 	if ( enable_state && --enable_state == 0 )
 		if ( frame )
-			Tcl_VarEval( tcl, Tk_PathName(self), " config -state disabled", 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config -state disabled", 0 );
 		else
-			Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
+			tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
 	}
 
 void TkButton::Disable( )
 	{
 	disable_count++;
 	if ( frame )
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -state disabled", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -state disabled", 0 );
 	else
-		Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
+		tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
 	}
 
 void TkButton::Enable( int force )
@@ -2060,9 +2060,9 @@ void TkButton::Enable( int force )
 	if ( disable_count ) return;
 
 	if ( frame )
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -state normal", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -state normal", 0 );
 	else
-		Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
+		tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
 	}
 
 TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_,
@@ -2203,7 +2203,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 			menu_base = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
-			Tcl_VarEval( tcl, Tk_PathName(self), " config -menu ", Tk_PathName(menu_base), 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " config -menu ", Tk_PathName(menu_base), 0 );
 			break;
 		default:
 			argv[0] = "button";
@@ -2410,7 +2410,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	if ( value ) sequencer->RegisterValue( value );
 #endif
 
-	Tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
+	tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
 	menu_index = strdup( Tcl_GetStringResult(tcl) );
 
         menu->Add(this);
@@ -2554,9 +2554,9 @@ void TkButton::State(unsigned char s)
 		EnterEnable();
 		dont_invoke_button = 1;
 		if ( frame )
-			Tcl_VarEval( tcl, Tk_PathName(self), " invoke", 0 );
+			tcl_VarEval( tcl, Tk_PathName(self), " invoke", 0 );
 		else if ( menu )
-			Tcl_VarEval( tcl, Tk_PathName(Menu()), " invoke ", Index(), 0 );
+			tcl_VarEval( tcl, Tk_PathName(Menu()), " invoke ", Index(), 0 );
 		dont_invoke_button = 0;
 		ExitEnable();
 		}
@@ -2612,7 +2612,7 @@ DEFINE_DTOR(TkScale)
 
 void TkScale::UnMap()
 	{
-	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
+	if ( self ) tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
 	TkProxy::UnMap();
 	}
 
@@ -2629,7 +2629,7 @@ char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	if ( args->IsNumeric() && args->Length() > 0 )
 		s->SetValue( args->DoubleVal() );
 
-	Tcl_VarEval( s->Interp(), Tk_PathName(s->Self()), " get", 0 );
+	tcl_VarEval( s->Interp(), Tk_PathName(s->Self()), " get", 0 );
 	return Tcl_GetStringResult(s->Interp());
 	}
 
@@ -2700,7 +2700,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	// Can't set command as part of initialization...
-	Tcl_VarEval( tcl, Tk_PathName(self), " config -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " config -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScale::TkScale")
@@ -2743,7 +2743,7 @@ void TkScale::SetValue( double d )
 		{
 		char val[256];
 		sprintf(val,"%g",d);
-		Tcl_VarEval( tcl, Tk_PathName(self), " set ", val, 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " set ", val, 0 );
 		}
 	}
 
@@ -2793,8 +2793,8 @@ void TkText::UnMap()
 	{
 	if ( self )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
 		}
 
 	TkProxy::UnMap();
@@ -2823,12 +2823,12 @@ void CLASS::EnterEnable()					\
 	{							\
 	if ( ! enable_state ) 					\
 		{						\
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 ); \
+		tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 ); \
 		const char *curstate = Tcl_GetStringResult(tcl); \
 		if ( ! strcmp("disabled", curstate ) )		\
 			{					\
 			enable_state++;				\
-			Tcl_VarEval( tcl, Tk_PathName(self),	\
+			tcl_VarEval( tcl, Tk_PathName(self),	\
 				     " config -state normal", 0 ); \
 			}					\
 		}						\
@@ -2837,14 +2837,14 @@ void CLASS::EnterEnable()					\
 void CLASS::ExitEnable()					\
 	{							\
 	if ( enable_state && --enable_state == 0 )		\
-		Tcl_VarEval( tcl, Tk_PathName(self),		\
+		tcl_VarEval( tcl, Tk_PathName(self),		\
 			     " config -state disabled", 0 );	\
 	}							\
 								\
 void CLASS::Disable( )						\
 	{							\
 	disable_count++;					\
-	Tcl_VarEval( tcl, Tk_PathName(self),			\
+	tcl_VarEval( tcl, Tk_PathName(self),			\
 		     " config -state disabled", 0 );		\
 	}							\
 								\
@@ -2859,7 +2859,7 @@ void CLASS::Enable( int force )					\
 								\
 	if ( disable_count ) return;				\
 								\
-	Tcl_VarEval( tcl, Tk_PathName(self),			\
+	tcl_VarEval( tcl, Tk_PathName(self),			\
 		     " config -state normal", 0 );		\
 	}
 
@@ -2879,7 +2879,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	if ( ! frame || ! frame->Self() ) return;
 
 	const char *nme = NewName(frame->Self());
-	Tcl_VarEval( tcl, "text ", nme, 0 );
+	tcl_VarEval( tcl, "text ", nme, 0 );
 	self = Tk_NameToWindow( tcl, (char*) nme, root );
 
 	if ( ! self )
@@ -2926,7 +2926,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	tcl_ArgEval( tcl, c, argv );
 
 	if ( text[0] )
-		Tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3017,7 +3017,7 @@ DEFINE_DTOR(TkScrollbar)
 
 void TkScrollbar::UnMap()
 	{
-	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
+	if ( self ) tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
 	TkProxy::UnMap();
 	}
 
@@ -3025,7 +3025,7 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	{
 	char buf[256];
 	int vert = 0;
-	Tcl_VarEval( tcl, Tk_PathName(((TkScrollbar*)data)->Self()), " cget -orient", 0 );
+	tcl_VarEval( tcl, Tk_PathName(((TkScrollbar*)data)->Self()), " cget -orient", 0 );
 	charptr res = Tcl_GetStringResult(tcl);
 	if ( *res == 'v' ) vert = 1;
 
@@ -3081,8 +3081,8 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 
 	// Setting foreground and background colors at creation
 	// time kills the goose
-	Tcl_VarEval( tcl, Tk_PathName(self), " -bg ", background, 0 );
-	Tcl_VarEval( tcl, Tk_PathName(self), " -fg ", foreground, 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " -bg ", background, 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " -fg ", foreground, 0 );
 
 	frame->AddElement( this );
 	frame->Pack();
@@ -3099,7 +3099,7 @@ const char **TkScrollbar::PackInstruction()
 	{
 	static char *ret[7];
 	ret[0] = "-fill";
-	Tcl_VarEval( tcl, Tk_PathName(self), " cget -orient", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " cget -orient", 0 );
 	char *orient = Tcl_GetStringResult(tcl);
 	if ( orient[0] == 'v' && ! strcmp(orient,"vertical") )
 		ret[1] = "y";
@@ -3273,7 +3273,7 @@ DEFINE_DTOR(TkEntry)
 
 void TkEntry::UnMap()
 	{
-	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
+	if ( self ) tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
 	TkProxy::UnMap();
 	}
 
@@ -3350,7 +3350,7 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
 
-	Tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <Return> ", glishtk_make_callback( tcl, entry_returncb, this ), 0 );
+	tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <Return> ", glishtk_make_callback( tcl, entry_returncb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3375,11 +3375,11 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 void TkEntry::ReturnHit( )
 	{
-	Tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 );
 	const char *curstate = Tcl_GetStringResult(tcl);
 	if ( strcmp("disabled", curstate) )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " get", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " get", 0 );
 		Value *ret = new Value( Tcl_GetStringResult(tcl) );
 		PostTkEvent( "return", ret );
 		}
@@ -3546,8 +3546,8 @@ void TkListbox::UnMap()
 	{
 	if ( self )
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
-		Tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
+		tcl_VarEval( tcl, Tk_PathName(self), " config -yscrollcommand \"\"", 0 );
 		}
 
 	TkProxy::UnMap();
@@ -3631,7 +3631,7 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
 
-	Tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <ButtonRelease-1> ", glishtk_make_callback( tcl, listbox_button1cb, this ), 0 );
+	tcl_VarEval( tcl, "bind ", Tk_PathName(self), " <ButtonRelease-1> ", glishtk_make_callback( tcl, listbox_button1cb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3708,7 +3708,7 @@ void TkListbox::xScrolled( const double *d )
 
 void TkListbox::elementSelected(  )
 	{
-	Tcl_VarEval( tcl, Tk_PathName(self), " curselection", 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), " curselection", 0 );
 	PostTkEvent( "select", glishtk_splitsp_int(Tcl_GetStringResult(tcl)) );
 	}
 
