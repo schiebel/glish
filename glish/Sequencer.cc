@@ -256,21 +256,6 @@ static char *join_path( const char **path, int len, const char *var_name = 0 )
 	return ret;
 	}
 
-
-back_offsets_type::back_offsets_type( int size )
-	{
-	len = size;
-	scope = (int*) alloc_memory_atomic( sizeof(int) * len );
-	frame = (int*) alloc_memory_atomic( sizeof(int) * len );
-	s = (scope_type*) alloc_memory_atomic( sizeof(scope_type) * len );
-	}
-
-back_offsets_type::~back_offsets_type( )
-	{
-	if ( scope ) free_memory( scope );
-	if ( frame ) free_memory( frame );
-	}
-
 stack_type::stack_type( )
 	{
 	frames_ = new frame_list;
@@ -1858,11 +1843,9 @@ int Sequencer::PopScope( back_offsets_type **back_ref_ptr )
 				{
 				*back_ref_ptr = new back_offsets_type( back->length() );
 				loop_over_list( *back, X )
-					{
-					(**back_ref_ptr).offset(X) = ((VarExpr*)(*back)[X])->offset();
-					(**back_ref_ptr).soffset(X) = ((VarExpr*)(*back)[X])->soffset();
-					(**back_ref_ptr).type(X) = ((VarExpr*)(*back)[X])->Scope();
-					}
+				  (**back_ref_ptr).set( X, ((VarExpr*)(*back)[X])->offset(),
+							((VarExpr*)(*back)[X])->soffset(),
+							((VarExpr*)(*back)[X])->Scope() );
 				}
 			Unref( back );
 			}

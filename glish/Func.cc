@@ -746,6 +746,38 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 					}
 				}
 			}
+
+		// Check varibles made global as a result of evaluation, e.g. with symbol_set()
+		if ( flow.HaveBackRefs() )
+			{
+			back_offsets_type *eval_backrefs = flow.TakeBackrefs( );
+			for ( int X=0; X < eval_backrefs->length(); ++X )
+				{
+				int flen = sequencer->FrameLen();
+				int off =  flen - 1 + eval_backrefs->soffset(X);
+
+				if ( eval_backrefs->type(X) == GLOBAL_SCOPE )
+					{
+					IValue *v = sequencer->GetGlobal( eval_backrefs->offset(X) );
+					if ( v && v->PropagateCycles( glish_func_cycle_roots, 1 ) > 0 )
+						v->SetUnref( glish_func_cycle_roots );
+					}
+				else
+					{
+					IValue *v = sequencer->GetFunc( off, eval_backrefs->offset(X));
+					if ( v && v->PropagateCycles( glish_func_cycle_roots ) > 0 )
+						{
+						Frame *frame = sequencer->FindCycleFrame( off );
+						NodeList *cyc = frame->GetCycleRoots( );
+						if ( cyc ) 
+							cyc->append( glish_func_cycle_roots );
+						else
+							v->SetUnref( glish_func_cycle_roots );
+						}
+					}
+				}
+			Unref( eval_backrefs );
+			}
 		}
 
 	Unref( glish_func_cycle_roots );

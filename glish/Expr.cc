@@ -25,6 +25,37 @@ int ParseNode::canDelete() const
 	return 1;
 	}
 
+void back_offsets_type::set( int index, int off, int soff, scope_type type )
+	{
+	int len = length();
+	if ( index < len )
+		{
+		frame.replace( index, off );
+		scope.replace( index, soff );
+		s.replace( index, type );
+		}
+	else if ( index == len )
+		{
+		frame.append( off );
+		scope.append( soff );
+		s.append( type );
+		}
+	else
+		fatal->Report( "offset added past end of list in back_offsets_type::set()" );
+
+	}
+
+back_offsets_type &evalOpt::Backrefs( )
+	{
+	if ( ! backrefs ) backrefs = new back_offsets_type;
+	return *backrefs;
+	}
+
+evalOpt::~evalOpt( )
+	{
+	Unref( backrefs );
+	}
+
 Expr::~Expr() { }
 
 IValue *Expr::SideEffectsEval( evalOpt &opt )

@@ -64,22 +64,8 @@ private:
 
 glish_declare(PList,Scope);
 typedef PList(Scope) scope_list;
-typedef List(int) offset_list;
 
-class back_offsets_type {
-    public:
-	back_offsets_type( int size );
-	int length( ) const { return len; }
-	int &offset( int i ) { return frame[i]; }
-	int &soffset( int i ) { return scope[i]; }
-	scope_type &type( int i ) { return  s[i]; }
-	~back_offsets_type( );
-    private:
-	int *scope;
-	int *frame;
-	scope_type *s;
-	int len;
-};
+class back_offsets_type;
 
 class stack_type : public GlishRef {
     public:

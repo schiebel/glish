@@ -59,6 +59,35 @@ typedef enum { PARSE_ACCESS, USE_ACCESS } access_type;
 //
 typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 
+inline void *scope_type_to_void(scope_type i)
+	{
+	void *ret = 0;
+	*((int*)&ret) = i;
+	return ret;
+	}
+
+inline scope_type void_to_scope_type(void *v)
+	{
+	return (scope_type) *(int*)&v;
+	}
+
+glish_declare(List,scope_type);
+typedef List(scope_type) scope_type_list;
+
+class back_offsets_type : public GlishRef {
+    public:
+	back_offsets_type( int size=3 ) : scope(size), frame(size), s(size) { }
+	int length( ) const { return s.length(); }
+	void set( int index, int off, int soff, scope_type type );
+	int offset( int i ) { return frame[i]; }
+	int soffset( int i ) { return scope[i]; }
+	scope_type type( int i ) { return  s[i]; }
+    private:
+	offset_list scope;
+	offset_list frame;
+	scope_type_list s;
+};
+
 class evalOpt {
     public:
 	// Different types of expression evaluation: evaluate and return a
@@ -75,17 +104,17 @@ class evalOpt {
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
 	enum returnType { VALUE_NEEDED=9 };
 
-	evalOpt( ) : mask(0), fcount(0) { }
-	evalOpt( exprType t ) : mask(1<<t), fcount(0) { }
-	evalOpt( flowType t ) : mask(1<<t), fcount(0) { }
-	evalOpt( returnType t ) : mask(1<<t), fcount(0) { }
+	evalOpt( ) : mask(0), fcount(0), backrefs(0) { }
+	evalOpt( exprType t ) : mask(1<<t), fcount(0), backrefs(0) { }
+	evalOpt( flowType t ) : mask(1<<t), fcount(0), backrefs(0) { }
+	evalOpt( returnType t ) : mask(1<<t), fcount(0), backrefs(0) { }
 
 	// This is sort of messed up... the copy ctor preserves all flags
 	// but the assignment operator doesn't fiddle with the flow flags.
 	// This is due to the semantics of Expr and Stmt flags, Stmt functions
 	// were built using reference semantics while Expr functions used
 	// value semantics... need to work on this...
-	evalOpt( const evalOpt &o ) : mask(o.mask), fcount(o.fcount) { }
+	evalOpt( const evalOpt &o ) : mask(o.mask), fcount(o.fcount), backrefs(o.backrefs) { if ( backrefs ) Ref(backrefs); }
 	evalOpt &operator=( const evalOpt &o ) { mask = o.mask & ~0x1e0 | mask & 0x1e0; fcount = o.fcount; return *this; }
 
 	void set( flowType t ) { mask = mask & ~0x1e0 | 1<<t; }
@@ -130,10 +159,18 @@ class evalOpt {
 	// statement return mode
 	int value_needed() const { return mVALUE_NEEDED(mask); }
 
+	// References to global or wider values discovered while evaluating
+	back_offsets_type &Backrefs( );
+	int HaveBackRefs( ) const { return backrefs ? 1 : 0; }
+	back_offsets_type *TakeBackrefs( ) { back_offsets_type *t = backrefs; backrefs = 0; return t; }
+
+	~evalOpt( );
+
     protected:
 	unsigned short mask;
 	// count of function depth
 	unsigned int fcount;
+	back_offsets_type *backrefs;
 };
 
 typedef void (*change_var_notice)(IValue*,IValue*);

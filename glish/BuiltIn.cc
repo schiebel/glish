@@ -2287,6 +2287,12 @@ IValue* SymbolSetBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 			{
 			Expr *id = sequencer->LookupID( string_dup(key), GLOBAL_SCOPE, 1, 0 );
 			id->Assign( opt, copy_value(member) );
+			if ( ! arg1->IsGlobalValue( ) && opt.getfc( ) >= 1 )
+				{
+				VarExpr *var = (VarExpr*) id;
+				back_offsets_type &backrefs = opt.Backrefs();
+				backrefs.set( backrefs.length(), var->offset(), var->soffset(), var->Scope() );
+				}
 			}
 		}
 	else
@@ -2299,6 +2305,12 @@ IValue* SymbolSetBuiltIn::DoCall( evalOpt &opt, const_args_list *args_val )
 			{
 			Expr *id = sequencer->LookupID( string_dup(strs[0]), GLOBAL_SCOPE, 1, 0 );
 			id->Assign( opt, copy_value( arg2 ) );
+			if ( ! arg2->IsGlobalValue( ) && opt.getfc( ) >= 1 )
+				{
+				VarExpr *var = (VarExpr*) id;
+				back_offsets_type &backrefs = opt.Backrefs();
+				backrefs.set( backrefs.length(), var->offset(), var->soffset(), var->Scope() );
+				}
 			}
 		else
 			return (IValue*) Fail( "invalid symbol name, \"", strs[0], "\"" );

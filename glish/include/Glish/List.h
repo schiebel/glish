@@ -29,6 +29,8 @@ inline int void_to_int(void *v)
 // Popular type of list: list of strings.
 glish_declare(PList,char);
 typedef PList(char) name_list;
+glish_declare(List,int);
+typedef List(int) offset_list;
 
 #include <Glish/Object.h>
 
