@@ -1344,6 +1344,11 @@ IValue *glishtk_strtoint( char *str )
 	return new IValue( atoi(str) );
 	}
 
+IValue *glishtk_strtofloat( char *str )
+	{
+	return new IValue( atof(str) );
+	}
+
 IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	{
 	char *val = 0;
@@ -3210,11 +3215,11 @@ char *glishtk_scale_value(TkAgent *a, const char *, parameter_list *args,
 	return 0;
 	}
 
-TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charptr len,
+TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, double value, charptr len,
 		   charptr text, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
 		   charptr fill_ )
-			: TkAgent( s ), fill(0), from_(from), to_(to)
+			: TkAgent( s ), fill(0), from_(from), to_(to), discard_event(1)
 	{
 	char var_name[256];
 	frame = frame_;
@@ -3286,11 +3291,18 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charpt
 	frame->AddElement( this );
 	frame->Pack();
 
+	if ( value > from && value <= to )
+		{
+		char val[256];
+		sprintf(val,"%g",value);
+		Tcl_SetVar( self->interp, var_name, val, TCL_GLOBAL_ONLY );
+		}
+
 	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
 	procs.Insert("text", new TkProc("-label", glishtk_onestr, glishtk_str));
-	procs.Insert("end", new TkProc("-to", glishtk_oneint, glishtk_strtoint));
-	procs.Insert("start", new TkProc("-from", glishtk_oneint, glishtk_strtoint));
+	procs.Insert("end", new TkProc("-to", glishtk_onedouble, glishtk_strtofloat));
+	procs.Insert("start", new TkProc("-from", glishtk_onedouble, glishtk_strtofloat));
 	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
@@ -3300,7 +3312,9 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charpt
 
 void TkScale::ValueSet( double d )
 	{
-	PostTkEvent( "value", new IValue( d ) );
+	if ( ! discard_event )
+		PostTkEvent( "value", new IValue( d ) );
+	discard_event = 0;
 	}
 
 void TkScale::SetValue( double d )
@@ -3319,13 +3333,14 @@ IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkScale *ret;
 
-	if ( args_val->length() != 15 )
-		return InvalidNumberOfArgs(15);
+	if ( args_val->length() != 16 )
+		return InvalidNumberOfArgs(16);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
 	SETDOUBLE( start )
 	SETDOUBLE( end )
+	SETDOUBLE( value )
 	SETDIM( len )
 	SETSTR( text )
 	SETDOUBLE( resolution )
@@ -3340,7 +3355,7 @@ IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
 
 	Agent *agent = parent->AgentVal();
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkScale( s, (TkFrame*)agent, start, end, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
+		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
 	else
 		return (IValue*) generate_error("bad parent type");
 

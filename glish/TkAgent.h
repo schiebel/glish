@@ -405,9 +405,10 @@ class TkButton : public TkRadioContainer {
 
 class TkScale : public TkAgent {
     public:
-	TkScale ( Sequencer *, TkFrame *, double from, double to, charptr len, charptr text,
-		  double resolution, charptr orient, int width, charptr font, charptr relief,
-		  charptr borderwidth, charptr foreground, charptr background, charptr fill );
+	TkScale ( Sequencer *, TkFrame *, double from, double to, double value, charptr len,
+		  charptr text, double resolution, charptr orient, int width, charptr font,
+		  charptr relief, charptr borderwidth, charptr foreground, charptr background,
+		  charptr fill );
 
 	// value was set, so generate an event
 	void ValueSet( double );
@@ -426,6 +427,7 @@ class TkScale : public TkAgent {
 	unsigned int id;
 	static unsigned int scale_count;
 	double from_, to_;
+	int discard_event;
 	};
 
 class TkText : public TkAgent {
