@@ -23,10 +23,10 @@
 %nonassoc TOK_LT TOK_GT TOK_LE TOK_GE TOK_EQ TOK_NE
 %left '+' '-'
 %left '*' '/' '%'
-%right '^'
-%left TOK_APPLYRX
 %left ':'
+%right '^'
 %right '!'
+%left TOK_APPLYRX
 %left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST
 
 %type <ival> TOK_ACTIVATE TOK_ASSIGN TOK_APPLYRX
@@ -390,7 +390,7 @@ expression:
 				$$ = new ApplyRegExpr( $1, $3, current_sequencer, $2 );
 			}
 
-	|	TOK_APPLYRX expression  %prec '!'
+	|	TOK_APPLYRX expression
 			{
 			Expr* id = current_sequencer->LookupID( string_dup("_"), ANY_SCOPE, 0, 0 );
 			if ( ! id ) id = current_sequencer->InstallID( string_dup("_"), LOCAL_SCOPE, 0 );
@@ -402,9 +402,9 @@ expression:
 				$$ = new ApplyRegExpr( id, $2, current_sequencer, $1 );
 			}
 
-	|	'-' expression	%prec '!'
+	|	'-' expression			%prec '^'
 			{ $$ = new NegExpr( $2 ); }
-	|	'+' expression	%prec '!'
+	|	'+' expression			%prec '^'
 			{ $$ = $2; }
 	|	'!' expression
 			{ $$ = new NotExpr( $2 ); }
@@ -430,13 +430,13 @@ expression:
 	|	'[' array_record_ctor_list ']'
 			{ $$ = new ConstructExpr( $2 ); }
 
-	|	expression ':' expression
+	|	expression ':' expression	%prec '^'
 			{ $$ = new RangeExpr( $1, $3 ); }
 
 	|	expression '(' opt_actual_param_list ')'
 			{ $$ = new CallExpr( $1, $3, current_sequencer ); }
 
-	|	value_type expression	%prec '^'
+	|	value_type expression		%prec '!'
 			{ $$ = new RefExpr( $2, $1 ); }
 
 	|	event '(' actual_param_list ')'
@@ -450,7 +450,7 @@ expression:
 	|	TOK_LAST_REGEX
 			{ $$ = new LastRegexExpr( current_sequencer, $1 ); }
 
-	|	TOK_INCLUDE expression	%prec '!'
+	|	TOK_INCLUDE expression		%prec '!'
 			{ $$ = new IncludeExpr( $2, current_sequencer ); }
 
 	|	function
@@ -948,7 +948,7 @@ subscript:	scoped_expr
 func_body:	'{' statement_list '}'
 			{ $$ = $2; }
 
-	|	expression	%prec ','
+	|	expression			%prec ','
 			{ $$ = new ExprStmt( $1->BuildFrameInfo( SCOPE_UNKNOWN ) ); }
 	;
 
