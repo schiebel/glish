@@ -25,6 +25,14 @@ AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR         tcl and tk lib
 AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags   PGPLOT include flags])
 AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags   PGPLOT link flags])
 AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags  PGPLOT search flags])
+AC_ARG_ASSIGN(extra-link-libs,     [  --extra-libs=libs           libraries to add to link line])
+
+dnl##
+dnl## add extra libraries
+dnl##
+if test -n "$option_extra_link_libs"; then
+    EXTRA_LIBS="$option_extra_link_libs"
+fi
 
 dnl##
 dnl## Attempt to strip off the automounter mount point
@@ -551,5 +559,6 @@ fi
 
 AC_SUBST(top_off)
 AC_SUBST(CLIENT_LIBS)
+AC_SUBST(EXTRA_LIBS)
 
 AC_OUTPUT($ARCH/Makefile:Makefile.in)
