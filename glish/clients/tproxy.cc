@@ -39,4 +39,5 @@ int main( int argc, char** argv )
         ProxyStore stor( argc, argv );
 	stor.Register( "make", ProxyA::Create );
 	stor.Loop();
+        return 0;
 	}
