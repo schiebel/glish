@@ -84,6 +84,7 @@ INTERP_OBJS = \
 	TkSelect.o \
 	glish_init.o \
 	parse.o \
+	printf.o \
 	scan.o
 
 CLIENT_OBJS = \
@@ -128,6 +129,7 @@ INTERP_OBJS_PROXY = \
 	$(D)TkSelect.o \
 	$(D)glish_init.o \
 	$(D)parse.o \
+	$(D)printf.o \
 	$(D)scan.o
 
 CLIENT_OBJS_PROXY = \
@@ -408,6 +410,10 @@ $(D)parse.o: parse.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/BinOpExpr.h
 	@sed -f $(SRC)/fix_yyparse.sed < parse.cc > parse.cc.fixed
 	@mv parse.cc.fixed parse.cc
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -I. -DYYDEBUG -c parse.cc $(T)
+
+
+$(D)printf.o: $(SRC)/printf.cc $(KEY_HEADERS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -I. -DYYDEBUG -c $(SRC)/printf.cc $(T)
 
 
 $(D)scan.o: $(SRC)/scan.l y.tab.h $(KEY_HEADERS)

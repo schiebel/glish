@@ -27,6 +27,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Frame.h"
 #include "File.h"
+#include "printf.h"
 
 #include "Glish/Stream.h"
 #include "glishlib.h"
@@ -1779,42 +1780,47 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( glish_true );
 	}
 
-IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
+IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
 	if ( len < 1 )
 		return (IValue*) Fail( "too few arguments for \"sprintf\"" );
 
-	int maxlen = 0;
-	for ( int i=0; i < len; ++i )
-		if ( (*args_val)[i]->Length() > maxlen )
-			maxlen = (*args_val)[i]->Length();
-
-	if ( maxlen == 0 )
-		{
-		IValue *ret = empty_ivalue();
-		ret->Polymorph( TYPE_STRING );
-		return ret;
-		}
-
 	const IValue *pat_val = (*args_val)[0];
 
 	if ( pat_val->Type() != TYPE_STRING || len == 1 )
 		{
-		charptr *rstrs = (charptr*) alloc_memory( sizeof(charptr)*len );
 		for ( int j=0; j < len; ++j )
-			rstrs[j] = (*args_val)[j]->StringVal();
-		return new IValue( rstrs, len );
+			{
+			char *str = (*args_val)[j]->StringVal();
+			printf("%s",str);
+			free_memory( str );
+			}
+		return new IValue( glish_true );
 		}
+
+
+	int minlen = (*args_val)[1]->Length();
+	for ( int i=2; i < len; ++i )
+		if ( (*args_val)[i]->Length() < minlen )
+			minlen = (*args_val)[i]->Length();
+
+	if ( minlen <= 0 )
+		{
+		for ( int j=0; j < len; ++j )
+			{
+			char *str = (*args_val)[j]->StringVal();
+			printf("%s",str);
+			free_memory( str );
+			}
+		return new IValue( glish_true );
+		}
+
 
 	char *pat = pat_val->StringVal();
 
-	charptr *rstrs = (charptr*) alloc_memory( sizeof(charptr)*maxlen );
-	for ( int k=0; k < maxlen; ++k )
-		{
-		}
+	gprintf( pat, args_val );
 
-	if ( pat ) free_memory(pat);
 	return new IValue( glish_true );
 	}
 
@@ -2678,6 +2684,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new OpenBuiltIn );
 	s->AddBuiltIn( new ReadBuiltIn );
 	s->AddBuiltIn( new WriteBuiltIn );
+	s->AddBuiltIn( new PrintfBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

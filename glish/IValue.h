@@ -8,7 +8,7 @@
 #include "Garbage.h"
 #endif
 
-extern const char *glish_charptrdummy;
+extern char *glish_charptrdummy;
 
 class Agent;
 class Func;
@@ -252,6 +252,7 @@ typedef const IValue* const_ivalue;
 #define void_to_const_ivalue const_ivalue
 glish_declare(List,const_ivalue);
 typedef List(const_ivalue) const_ivalue_list;
+typedef List(const_ivalue) const_args_list;
 
 glish_declare(PList,IValue);
 typedef PList(IValue) ivalue_list;

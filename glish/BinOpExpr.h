@@ -8,8 +8,6 @@
 
 #include "Expr.h"
 
-extern const char *glish_charptrdummy;
-
 // Arithmetic operations supported on values.
 typedef enum {
 	OP_ADD, OP_SUBTRACT, OP_MULTIPLY, OP_DIVIDE, OP_MODULO, OP_POWER,
