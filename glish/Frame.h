@@ -10,6 +10,10 @@
 class IValue;
 class observed_list;
 
+class Parameter;
+glish_declare(PList,Parameter);
+typedef PList(Parameter) parameter_list;
+
 // Different scopes to use when resolving identifiers; used by the VarExpr
 // and Sequencer classes.
 //	LOCAL_SCOPE  --  local to the narrowest block
@@ -22,7 +26,7 @@ typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE, ANY_SCOPE } scope_type;
 class Frame : public GlishObject {
 friend class stack_type;
     public:
-	Frame( int frame_size, IValue* param_info, scope_type s );
+	Frame( int frame_size, IValue* param_info, parameter_list *formal_parms, scope_type s );
 	~Frame();
 
 	IValue*& FrameElement( int offset );
@@ -30,7 +34,8 @@ friend class stack_type;
 	// Functionality necessary to implement the "missing()" 
 	// function; in the future this may need to be extended 
 	// with a "ParameterInfo" object.
-	const IValue *Missing() const	{ return missing; }
+	const IValue *Missing( ) const	{ return missing; }
+	const IValue *Parameters( ) const;
 
 	int Size() const	{ return size; }
 
@@ -48,6 +53,8 @@ friend class stack_type;
 	IValue* missing;
 	scope_type scope;
 	NodeList *roots;
+	parameter_list *formals;
+	IValue *parameters;
 	};
 
 glish_declare(PList,Frame);
