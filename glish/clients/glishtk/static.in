@@ -41,10 +41,10 @@ SCRIPTDIR = @SCRIPTDIR@
 MKHIER = $(top)/config/mkhier
 
 
-GLISH_LIBS = malloc.o $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
+GLISH_LIBS = @MALLOC@ $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
-OBJS = main.o tkCore.o tkCanvas.o malloc.o
+OBJS = main.o tkCore.o tkCanvas.o @MALLOC@
 
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@

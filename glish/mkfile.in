@@ -56,7 +56,7 @@ PLIB_P = $(LIBDIR_P)/libglishp$(SUFFIX)
 PLIB = $(LIBDIR)/libglishp$(SUFFIX)
 GLIBS = $(LIBDIR_P)/libsos$(GSUFFIX) $(LIBDIR_P)/libedit$(GSUFFIX) $(LIBDIR_P)/libregx$(GSUFFIX) @NPD_LIB@
 GCFLAG =
-MALLIB = malloc.o
+MALLIB = @MALLOC@
 #FI
 
 CC = @CC@
