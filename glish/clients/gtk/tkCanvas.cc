@@ -592,7 +592,10 @@ char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *para
 			return 0;
 
 		int max = val1->Length();
-		if ( val2->Length() < max ) max = val2->Length();
+		if ( max == 1 )
+			max = val2->Length();
+		else if ( val2->Length() > 1 && val2->Length() < max )
+			max = val2->Length();
 		if ( text->Length() < max ) max = text->Length();
 		if ( max > 1 && rptr->Length() > 2 )
 			{
