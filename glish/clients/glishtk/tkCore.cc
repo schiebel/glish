@@ -514,9 +514,9 @@ char *glishtk_text_append(TkProxy *a, const char *cmd, const char *param,
 		}
 	else if ( args->Type() == TYPE_STRING && param )
 		{
-		char *s = args->StringVal( ' ', 0, 1 );
 		const char *p = a->IndexCheck(param);
-		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, p, " {", s, "}", (char *)NULL );
+		char *s = glishtk_quote_string(args->StringPtr(0),args->Length());
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, p, SP, s, (char *)NULL );
 		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see ", p, (char *)NULL );
 		free_memory(s);
 		}

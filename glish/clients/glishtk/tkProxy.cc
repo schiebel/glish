@@ -32,8 +32,47 @@ unsigned long TkFrame::count = 0;
 char *glishtk_quote_string( charptr str, int quote_empty_string )
 	{
 	if ( ! str || ! quote_empty_string && ! *str ) return 0;
-	char *ret = (char*) alloc_memory(strlen(str)+3);
-	sprintf(ret,"{%s}", str);
+	int len = 0;
+	
+	register char x;
+	charptr in = str;
+	while ( (x = *in++) )
+		len += (x == '"' || x == '$' || x == '[' || x == '\\' ? 2 : 1);
+	char *ret = (char*) alloc_memory(len+3);
+	char *out = ret;
+	*out++ = '"';
+	for ( in = str; (x = *in++); *out++ = x )
+		if ( x == '"' || x == '$' || x == '[' || x == '\\' ) *out++ = '\\';
+	*out++ = '"';
+	*out++ = '\0';
+	return ret;
+	}
+
+char *glishtk_quote_string( charptr *str, int slen, int quote_empty_string )
+	{
+	if ( ! str || ! quote_empty_string && slen <= 0 ) return 0;
+	int len = 0;
+	
+	for ( int i=0; i < slen; ++i )
+		{
+		charptr in = str[i];
+		register char x;
+		while ( (x = *in++) )
+			len += (x == '"' || x == '$' || x == '[' || x == '\\' ? 2 : 1);
+		}
+
+	char *ret = (char*) alloc_memory(len+slen+3);
+	char *out = ret;
+	*out++ = '"';
+	for ( int i=0; i < slen; ++i )
+		{
+		register char x;
+		for ( charptr in = str[i]; (x = *in++); *out++ = x )
+			if ( x == '"' || x == '$' || x == '[' || x == '\\' ) *out++ = '\\';
+		*out++ = ' ';
+		}
+	*out++ = '"';
+	*out++ = '\0';
 	return ret;
 	}
 
