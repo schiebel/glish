@@ -475,6 +475,5 @@ class NullStmt : public Stmt {
 
 extern Stmt* null_stmt;
 extern Stmt* merge_stmts( Stmt* stmt1, Stmt* stmt2 );
-extern void glish_cleanup();
 
 #endif /* stmt_h */

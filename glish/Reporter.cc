@@ -12,8 +12,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Stream.h"
 #include <iostream.h>
 #include "input.h"
-
-extern void glish_cleanup();
+#include "system.h"
 
 int interactive = 0;
 extern Str *file_name;

@@ -138,14 +138,19 @@ extern "C" {
 	 */
 	long random_long();
 
+	/*
+	 * Clean up after a crash.
+	 */
+	void glish_cleanup( );
+
 #ifndef HAVE_STRDUP
 	char *strdup( const char *str );
 #endif
 
 #if defined(__alpha) || defined(__alpha__)
-void glish_fdiv( float *, float *, int, int );
-void glish_ddiv( double *, double *, int, int );
-void glish_func_loop( double (*)( double ), double*, double*, int );
+	void glish_fdiv( float *, float *, int, int );
+	void glish_ddiv( double *, double *, int, int );
+	void glish_func_loop( double (*)( double ), double*, double*, int );
 #endif
 
 #ifdef __cplusplus

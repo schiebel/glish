@@ -220,7 +220,7 @@ class VarExpr : public Expr {
 	// This Assignment forces VarExpr to use 'f' instead of going
 	// to the 'sequencer'. This result in a 'PushFrame(f)' too.
 	IValue *Assign( IValue* new_value, Frame *f )
-		{ PushFrame( f ); Assign( new_value ); }
+		{ PushFrame( f ); return Assign( new_value ); }
 
     protected:
 	char* id;

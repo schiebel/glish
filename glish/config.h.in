@@ -99,6 +99,9 @@
 /* Define if you have the <float.h> header file.  */
 #undef HAVE_FLOAT_H
 
+/* Define if you have the <machine/fpu.h> header file.  */
+#undef HAVE_MACHINE_FPU_H
+
 /* Define if you have the <siginfo.h> header file.  */
 #undef HAVE_SIGINFO_H
 

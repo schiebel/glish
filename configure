@@ -1524,7 +1524,7 @@ else
 fi
 done
 
-for ac_hdr in limits.h float.h
+for ac_hdr in limits.h float.h machine/fpu.h
 do
 ac_safe=`echo "$ac_hdr" | tr './\055' '___'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6

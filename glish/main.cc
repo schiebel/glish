@@ -60,6 +60,9 @@ RCSID("@(#) $Id$")
 #ifdef HAVE_FLOATINGPOINT_H
 #include <floatingpoint.h>
 #endif
+#ifdef HAVE_MACHINE_FPU_H
+#include <machine/fpu.h>
+#endif
 
 #include "input.h"
 #include "glishlib.h"
@@ -512,12 +515,22 @@ void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 		{
 		glish_cleanup( );
 		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
-		sigfpe(FPE_INTDIV, (void(*)()) SIGFPE_DEFAULT);
+		sigfpe(FPE_INTDIV, (signal_handler) SIGFPE_DEFAULT);
 		kill( getpid(), SIGFPE );
 		}
 	}
 
-static void install_sigfpe() { sigfpe(FPE_INTDIV, (void(*)()) glish_sigfpe ); }
+static void install_sigfpe() { sigfpe(FPE_INTDIV, (signal_handler) glish_sigfpe ); }
+#elif defined(__alpha) || defined(__alpha__)
+//
+// for the alpha, this should be defined in "alpha.c"
+//
+extern "C" void glish_sigfpe();
+static void install_sigfpe()
+	{
+	install_signal_handler( SIGFPE, glish_sigfpe );
+	ieee_set_fp_control(IEEE_TRAP_ENABLE_INV);
+	}
 #else
 void glish_sigfpe( )
 	{
