@@ -1199,7 +1199,7 @@ readline(prompt)
     if (Signal > 0) {
 	s = Signal;
 	Signal = 0;
-	(void)kill(getpid(), s);
+	(void)kill( 0, s);
     }
     return (char *)line;
 }
@@ -1302,7 +1302,7 @@ nb_readline(prompt)
     if (Signal > 0) {
 	s = Signal;
 	Signal = 0;
-	(void)kill(getpid(), s);
+	(void)kill( 0, s);
     }
     return (char *)line;
 }
