@@ -1,0 +1,10 @@
+/* $Id$
+** Copyright (c) 2002 Associated Universities Inc.
+*/
+
+/***************************************************************/
+/* custom config.h template - do not recreate using autoheader */
+/***************************************************************/
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H

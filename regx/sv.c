@@ -12,12 +12,15 @@
  * "I wonder what the Entish is for 'yes' and 'no'," he thought.
  */
 
+#include "config.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
 #include <string.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #define I_STDARG

@@ -52,6 +52,7 @@
  * precedence is structured in regular expressions.  Serious changes in
  * regular-expression syntax might require a total rethink.
  */
+#include "config.h"
 #include <assert.h>
 #include "regcomp.h"
 #include "regx/regexp.h"

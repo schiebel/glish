@@ -2,7 +2,7 @@
  *
  *    $Id$
  *    Copyright (c) 1991-1997, Larry Wall
- *    Copyright (c) 1998,1999 Associated Universities Inc.
+ *    Copyright (c) 1998,1999,2002 Associated Universities Inc.
  *
  *    Scavanged from Perl distribution needed for regex closure...
  *
@@ -11,10 +11,13 @@
  *
  */
 
+#include "config.h"
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <unistd.h>
 #include "commonp.h"
