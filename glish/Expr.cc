@@ -703,14 +703,18 @@ IValue* AssignExpr::Eval( evalOpt &opt )
 		r_err = copy_value(r);
 
 	opt = lopt;
-	IValue *l_err = left->Assign( opt, r );
+
+	if ( lopt.Return() )
+		lopt.set( evalOpt::RESULT_PERISHABLE );
+
+	IValue *l_err = left->Assign( lopt, r );
 
 	//
 	// In this case we had an expression like:
 	//
 	//	print [a=1,b=2,c=3]:::=[print=[precision=10]]
 	//
-	if ( l_err && opt.result_perishable( ) )
+	if ( l_err && lopt.result_perishable( ) )
 		return l_err;
 	else if ( r_err )
 		return r_err;
@@ -1604,8 +1608,13 @@ IValue *ArrayRefExpr::Assign( evalOpt &opt, IValue* new_value )
 
 	(*args)[0]->ReadOnlyDone( index );
 
+	IValue *ret = 0;
+
+	if ( opt.result_perishable( ) )
+		ret = copy_value( lhs_value );
+
 	Unref( lhs_value_ref );
-	return 0;
+	return ret;
 	}
 
 IValue *ArrayRefExpr::ApplyRegx( regexptr* /* ptr */, int /*len*/, RegexMatch & /* match */ )
