@@ -392,7 +392,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 		{							\
 		head.set(l,SOSTYPE);					\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
-		head.stamp();						\
+		head.stamp( initial_stamp );				\
 		out->write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
 		return out->write( a, l * sos_size(SOSTYPE), type ); 	\
 		}							\
@@ -400,7 +400,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 		{							\
 		head.set(a,l PARAM);					\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
-		head.stamp();						\
+		head.stamp( initial_stamp );				\
 		return out->write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   SOS_HEADER_SIZE, type );			\
 		}							\
@@ -455,7 +455,7 @@ PUTCHAR(unsigned char)
 									\
 	head.set(buf,total,SOS_STRING);					\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
-	head.stamp();							\
+	head.stamp( initial_stamp );					\
 									\
 	char *cptr = (char*)(&lptr[len]);				\
 									\
@@ -499,7 +499,7 @@ PUTCHAR(unsigned char)
 									\
 	head.set(buf,total,SOS_STRING);					\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
-	head.stamp();							\
+	head.stamp( initial_stamp );					\
 									\
 	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
 	*lptr++ = len;							\
@@ -553,7 +553,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 		head.set(buf,l,SOS_RECORD);				\
 									\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
-	head.stamp();							\
+	head.stamp( initial_stamp );					\
 									\
 	return out->write( head.iBuffer(), SOS_HEADER_SIZE,		\
 			  sos_sink::COPY );				\
@@ -587,7 +587,8 @@ sos_out::~sos_out() { if ( not_integral ) free_memory(not_integral); }
 
 sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : 
 			head(alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1),
-			use_str(use_str_), not_integral(integral_header ? 0 : 1), in(in_)
+			use_str(use_str_), not_integral(integral_header ? 0 : 1), in(in_),
+			buffer(0), buffer_length(0), buffer_contents(0)
 	{
 	}
 
@@ -771,6 +772,38 @@ void *sos_in::get_chars( unsigned int &len )
 
 	free_memory( buf );
 	return ary;
+	}
+
+void sos_in::unread( char *buf, unsigned int len )
+	{
+	if ( ! buffer )
+		buffer = (char*) alloc_memory( buffer_length = len * 2 );
+
+	if ( buffer_length < buffer_contents + len )
+		{
+		while ( buffer_length < buffer_contents + len ) buffer_length *= 2;
+		buffer = (char*) realloc_memory( buffer, buffer_length );
+		}
+
+	memcpy( &buffer[buffer_contents], buf, len );
+	buffer_contents += len;
+	}
+
+void sos_in::readback( char *buf, unsigned int len )
+	{
+	if ( buffer_contents >= len )
+		{
+		memcpy( buf, buffer, len );
+		char *to = buffer;
+		for ( char *from = buffer + len; from < buffer + buffer_contents; *to++ = *from++ );
+		buffer_contents -= len;
+		}
+	else
+		{
+		memcpy( buf, buffer, buffer_contents );
+		if ( in ) in->read( buf + buffer_contents, len - buffer_contents );
+		buffer_contents = 0;
+		}
 	}
 
 sos_in::~sos_in() { }

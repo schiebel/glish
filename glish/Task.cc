@@ -372,6 +372,9 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	if ( attrs->useshm )
 		++argc;		// room for -useshm flag
 
+	if ( attrs->transcript )
+		argc += 2;	// room for transcript file
+
 	argc += 1;		// room for the end of client args
 
 				// + 1 for final nil
@@ -426,6 +429,12 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	if ( ! use_socket && attrs->useshm )
 		argv[argp++] = "-useshm";
 
+	if ( attrs->transcript )
+		{
+		argv[argp++] = "-transcript";
+		argv[argp++] = attrs->transcript;
+		}
+	
 	argv[argp++] = "-+-";
 
 	if ( argp != argc - num_args )
@@ -654,10 +663,11 @@ void ClientTask::CreateAsyncClient( const char** argv )
 
 TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channel,
 		    int arg_async_flag, int arg_ping_flag, int arg_suspend_flag,
-		    int arg_force_sockets, const char *name_ )
+		    int arg_force_sockets, const char *name_, char *transcript_ )
 	{
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
+	transcript = transcript_;
 	daemon_channel = arg_daemon_channel;
 	async_flag = arg_async_flag;
 	ping_flag = arg_ping_flag;
@@ -672,6 +682,7 @@ TaskAttr::~TaskAttr()
 	free_memory( task_var_ID );
 	free_memory( hostname );
 	free_memory( name );
+	free_memory( transcript );
 	}
 
 
@@ -679,14 +690,14 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	{
 	// Arguments are:
 	//
-	//	var-ID hostname client async ping suspend input noshm args...
+	//	var-ID hostname client async ping suspend input noshm transcript args...
 	//
-	// where "var-ID" and "hostname" are string values, and
-	// client/async/ping/suspend are boolean flags.
+	// where "var-ID", "hostname", and transcript are string values,
+	// and client/async/ping/suspend are boolean flags.
 
 	const_args_list& args = *args_val;
 
-	int task_args_start = 9;
+	int task_args_start = 10;
 
 	if ( args.length() <= task_args_start )
 		return (IValue*) Fail( "too few arguments given to create_task" );
@@ -707,6 +718,7 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	int ping_flag = args[4]->IntVal();
 	int suspend_flag = args[5]->IntVal();
 	int force_sockets = args[8]->IntVal();
+	char* transcript_file = GetString( args[9] );
 
 	int shm_flag = 1;
 	const char *script_name = 0;
@@ -776,7 +788,7 @@ IValue* CreateTaskBuiltIn::DoCall( evalOpt &, const_args_list* args_val )
 	shm_flag = shm_flag && args[7]->IntVal();
 
 	attrs = new TaskAttr( var_ID, hostname, channel, async_flag,
-			      ping_flag, suspend_flag, force_sockets, script_name );
+			      ping_flag, suspend_flag, force_sockets, script_name, transcript_file );
 
 	// Collect the arguments to the task.
 	const_args_list task_args;

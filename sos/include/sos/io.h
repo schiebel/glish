@@ -177,12 +177,16 @@ public:
 
 	~sos_out( );
 
+	const struct timeval &get_stamp( ) { return initial_stamp; }
+	void clear_stamp( ) { initial_stamp.tv_sec = 0; }
+
 private:
 	enum error_mode { NO_SINK };
 	sos_status *Error( error_mode );
 	char *not_integral;
 	sos_header head;
 	sos_sink *out;
+	struct timeval initial_stamp;
 };
 
 class sos_in GC_FINAL_CLASS {
@@ -193,7 +197,9 @@ public:
 	void *get( unsigned int &length, sos_code &type );
 	void *get( unsigned int &length, sos_code &type, sos_header &h );
 
-	void read( char *buf, unsigned int len ) { if ( in ) in->read( buf, len ); }
+	void read( char *buf, unsigned int len )
+		{ if ( buffer_contents > 0 ) readback( buf, len ); else if ( in ) in->read( buf, len ); }
+	void unread( char *buf, unsigned int len );
 
 	~sos_in( );
 
@@ -203,10 +209,19 @@ private:
 	void *get_numeric( sos_code &, unsigned int & );
 	void *get_string( unsigned int & );
 	void *get_chars( unsigned int & );
+	void readback( char *buf, unsigned int len );
 	sos_header head;
 	int use_str;
 	int not_integral;
 	sos_source *in;
+
+	// Buffer used to "unread" bytes, needed for backward
+	// compatibility after the header was enlarged (could
+	// perhaps be removed when support for support for the
+	// old version of SOS is no longer required).
+	char *buffer;
+	int buffer_length;
+	int buffer_contents;
 };
 
 #endif

@@ -111,7 +111,7 @@ void sos_header::useti( unsigned int i )
 	kernel->buf_[23] = i & 0xff; i >>= 8;
 	}
 
-void sos_header::stamp()
+void sos_header::stamp( struct timeval &initial )
 	{
 	int mn_ = SOS_MAGIC;
 	unsigned char *mn = (unsigned char *) &mn_;
@@ -136,6 +136,13 @@ void sos_header::stamp()
 	struct timezone tz;
 	gettimeofday(&tp, &tz);
 	int t = tp.tv_sec;
+
+	if ( ! initial.tv_sec )
+		{
+		initial.tv_sec = tp.tv_sec;
+		initial.tv_usec = tp.tv_usec;
+		}
+
 	*ptr++ = t & 0xff; t >>= 8;		// 12
 	*ptr++ = t & 0xff; t >>= 8;		// 13
 	*ptr++ = t & 0xff; t >>= 8;		// 14

@@ -12,6 +12,7 @@ RCSID("@(#) $Id$")
 #include <errno.h>
 #include <signal.h>
 #include <iostream.h>
+#include <time.h>
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -278,6 +279,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 	multithreaded = arg_multithreaded;
 	persistent = arg_persist;
 	int useshm_ = 0;
+	transcript_file = 0;
 
 	if ( ! initial_name && argv[0] )
 		initial_name = string_dup(strip_path(argv[0]));
@@ -406,6 +408,17 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, PersistT
 			{
 			if ( usingpipes ) useshm_ = 1;
 			--argc, ++argv;
+			}
+
+		if ( argc > 1 && streq( argv[0], "-transcript" ) )
+			{
+			const char *filename = argv[1];
+			argc -= 2, argv += 2;
+			char *file = alloc_char( strlen(filename)+34 );
+			sprintf( file, "%s.%0.5u.gts", filename, getpid() );
+			if ( ! (transcript_file = fopen( file, "w" )) )
+				perror( "couldn't open transcript file" );
+			free_memory( file );
 			}
 
 		last_context = EventContext(initial_client_name,interpreter_tag);
@@ -909,7 +922,7 @@ int Client::ReRegister( char* registration_name )
 			     multithreaded == WORLD ? "WORLD" : "USER" );
 
 	GlishEvent e((const char*) "*register-persistent*", create_value((charptr*)reg_val,2) );
-	send_event( es->Sink(), &e );
+	send_event( es->Sink(), &e, (FILE*) transcript_file );
 
 	//
 	//  This should be removed when LocalExec::~LocalExec no longer sends a
@@ -1023,7 +1036,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		{
 		last_context = context;
 
-		last_event = recv_event( fd_src );
+		last_event = recv_event( fd_src, (FILE*) transcript_file );
 
 		if ( last_event && multithreaded != NONSHARED && type == GLISHD )
 			{
@@ -1521,7 +1534,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 				GlishEvent e( el->Name(), value );
 				e.SetFlags(flags);
 				if ( do_quiet ) e.SetIsQuiet();
-				send_event( sink, &e );
+				send_event( sink, &e, (FILE*) transcript_file );
 				did_send = 1;
 				}
 			}
@@ -1542,7 +1555,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 			GlishEvent e( name, value );
 			e.SetFlags(flags);
 			if ( do_quiet ) e.SetIsQuiet();
-			send_event( event_sources[j]->Sink(), &e );
+			send_event( event_sources[j]->Sink(), &e, (FILE*) transcript_file );
 			return; // should only be one match
 			}
 		}
@@ -1598,7 +1611,7 @@ void Client::RemoveInterpreter( EventSource* source )
 	delete event_sources.remove( source );
 	}
 
-static Value *read_value( sos_in &, char *&, unsigned char & );
+static Value *read_value( sos_in &, char *&, unsigned char &, FILE *transcript = 0 );
 static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	{
 	sos_code type;
@@ -1636,7 +1649,8 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	}
 
 
-static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
+static Value *read_value( sos_in &sos, char *&name, unsigned char &flags,
+			  FILE *transcript )
 	{
 	sos_code type;
 	unsigned int len;
@@ -1685,6 +1699,28 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 		name = alloc_char( name_len + 1 );
 		sos.read(name,name_len);
 		name[name_len] = '\0';
+
+		if ( transcript )
+			{
+			struct timeval sent;
+			sent.tv_sec = head.time();
+			sent.tv_usec = 0;
+
+			struct timeval cur;
+			struct timezone tz;
+			gettimeofday(&cur, &tz);
+
+			char buf[1034];
+			struct tm *ltime = localtime( &sent.tv_sec );
+			int len = strftime( buf, 1034, "%Y/%m/%d.%H:%M:%S.%z ", ltime );
+			if ( len > 0 )
+				{
+				ltime = localtime( &cur.tv_sec );
+				len += (int) strftime( &buf[len], 1034-len, "%Y/%m/%d.%H:%M:%S.%z", ltime );
+				fprintf( transcript, "%s %s %s\n", buf, name, type_names[val->Type()] );
+				}
+			}
+
 		}
 	else
 		name = 0;
@@ -1700,14 +1736,14 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	return val;
 	}
 
-GlishEvent* recv_event( sos_source &in )
+GlishEvent* recv_event( sos_source &in, FILE *transcript )
 	{
 	static sos_in sos;
 	sos.set(&in);
 
 	char *name = 0;
 	unsigned char flags;
-	Value *result = read_value( sos, name, flags );
+	Value *result = read_value( sos, name, flags, transcript );
 
 	if ( ! result ) return 0;
 
@@ -1747,28 +1783,28 @@ GlishEvent* recv_event( sos_source &in )
 	for ( i = 0; i < len; ++i )						\
 		{								\
 		member = rec->NthEntry( i, key );				\
-		write_value_recur( sos, (Value*) member, key, 0, 0, proxy_id, been_there ); \
+		write_value_recur( sos, (Value*) member, key, 0, 0, proxy_id, transcript, been_there ); \
 		}								\
 	been_there.remove( val );						\
 	}
 
 static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			       char *name, unsigned char flags,
-			       const ProxyId &proxy_id, value_list &been_there )
+			       const ProxyId &proxy_id, FILE *transcript, value_list &been_there )
 	{
 	sos_header head( alloc_char(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	static Value *empty = empty_value( );
 
 	if ( ! val )
 		{
-		write_value_recur( sos, empty, label, name, flags, proxy_id, been_there );
+		write_value_recur( sos, empty, label, name, flags, proxy_id, transcript, been_there );
 		return;
 		}
 
 	if ( val->IsVecRef() )
 		{
 		Value* copy = copy_value( val );
-		write_value_recur( sos, copy, label, name, flags, proxy_id, been_there );
+		write_value_recur( sos, copy, label, name, flags, proxy_id, transcript, been_there );
 		return;
 		}
 
@@ -1776,11 +1812,11 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 		{
 		Value *unrefed = val->Deref();
 		if ( ! been_there.is_member(unrefed) )
-			write_value_recur( sos, unrefed, label, name, flags, proxy_id, been_there );
+			write_value_recur( sos, unrefed, label, name, flags, proxy_id, transcript, been_there );
 		else
 			{
 			static Value loopback("***");
-			write_value_recur( sos, &loopback, label, name, flags, proxy_id, been_there );
+			write_value_recur( sos, &loopback, label, name, flags, proxy_id, transcript, been_there );
 			}
 		return;
 		}
@@ -1812,12 +1848,12 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 			if ( &proxy_id == &glish_proxyid_dummy ||
 			     ! write_agent( sos, val, head, proxy_id ) )
 				{
-				write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, been_there );
+				write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, transcript, been_there );
 				return;
 				}
 			break;
 		case TYPE_FUNC:
-			write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, been_there );
+			write_value_recur( sos, (Value*) false_value, label, name, 0, proxy_id, transcript, been_there );
 			return;
 			break;
                 default:
@@ -1827,23 +1863,35 @@ static void write_value_recur( sos_out &sos, Value *val, const char *label,
 	if ( name ) sos.write( name, strlen(name), sos_sink::COPY );
 
 	if ( val->AttributePtr() )
-		write_value_recur( sos, (Value*) val->GetAttributes(), name, 0, 0, proxy_id, been_there );
+		write_value_recur( sos, (Value*) val->GetAttributes(), name, 0, 0, proxy_id, transcript, been_there );
 	}
 
 void write_value( sos_out &sos, Value *val, const char *label, char *name,
-		  unsigned char flags, const ProxyId &proxy_id )
+		  unsigned char flags, const ProxyId &proxy_id, FILE *transcript )
 	{
 	value_list been_there;
-	write_value_recur( sos, val, label, name, flags, proxy_id, been_there );
+	sos.clear_stamp( );
+
+	write_value_recur( sos, val, label, name, flags, proxy_id, transcript, been_there );
+
+	if ( transcript )
+		{
+		struct timeval sent = sos.get_stamp( );
+		char buf[1034];
+		struct tm *ltime = localtime( &sent.tv_sec );
+		int len = strftime( buf, 1034, "%Y/%m/%d.%H:%M:%S.%z", ltime );
+		fprintf( transcript, "%s                           %s %s\n",
+			 buf, name ? name : "", type_names[val->Type()] );
+		}
 	}
 
 sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e,
-			int can_suspend, const ProxyId &proxy_id )
+			int can_suspend, const ProxyId &proxy_id, FILE *transcript )
 	{
 	sos_out sos;
 	sos.set(&out);
 
-	write_value( sos, e->value, name, (char*) name, e->Flags(), proxy_id );
+	write_value( sos, e->value, name, (char*) name, e->Flags(), proxy_id, transcript );
 	sos_status *ss = sos.flush();
 	if ( ! ss || can_suspend ) return ss;
 	while ( (ss = ss->resume( )) );

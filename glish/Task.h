@@ -21,7 +21,7 @@ class TaskAttr GC_FINAL_CLASS {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
 		  int async_flag=0, int ping_flag=0, int suspend_flag=0, int force_sockets=0,
-		  const char *name_ = 0 );
+		  const char *name_ = 0, char *transcript_=0 );
 
 	~TaskAttr();
 
@@ -34,6 +34,7 @@ class TaskAttr GC_FINAL_CLASS {
 	int useshm;
 	char *name;
 	int force_sockets;
+	char *transcript;
 	};
 
 

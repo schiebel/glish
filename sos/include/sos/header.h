@@ -75,7 +75,7 @@ public:
 	//
 	// update buffer information
 	//
-	void stamp();
+	void stamp( struct timeval &initial_stamp );
 
 	//
 	// reference count

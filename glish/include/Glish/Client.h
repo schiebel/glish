@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "Glish/Value.h"
 #include "sos/io.h"
@@ -466,40 +467,47 @@ class Client GC_FINAL_CLASS {
 	const char *script_client;
 
 	int do_quiet;
+
+	void *transcript_file;
 	};
 
 Value *read_value( sos_in & );
 void write_value( sos_out &, const Value *, const ProxyId &proxy_id=glish_proxyid_dummy );
-void write_value( sos_out &, Value *, const char *, char *name,
-		  unsigned char flags, const ProxyId &proxy_id=glish_proxyid_dummy );
+void write_value( sos_out &, Value *, const char *, char *name, unsigned char flags,
+		  const ProxyId &proxy_id=glish_proxyid_dummy, FILE *transcript=0 );
 inline void write_value( sos_out &s, Value *v, const char *k, char *name, 
-			 const ProxyId &proxy_id=glish_proxyid_dummy )
-		{ write_value( s, v, k, name, 0, proxy_id ); }
+			 const ProxyId &proxy_id=glish_proxyid_dummy, FILE *transcript=0 )
+		{ write_value( s, v, k, name, 0, proxy_id, transcript ); }
 inline void write_value( sos_out &s, Value *v, const char *k,
-			 const ProxyId &proxy_id=glish_proxyid_dummy )
-		{ write_value( s, v, k, 0, 0, proxy_id ); }
+			 const ProxyId &proxy_id=glish_proxyid_dummy, FILE *transcript=0 )
+		{ write_value( s, v, k, 0, 0, proxy_id, transcript ); }
 
 // returns zero on failure...
 int write_agent( sos_out &, Value *, sos_header &, const ProxyId & );
 
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-extern GlishEvent* recv_event( sos_source &in );
+GlishEvent* recv_event( sos_source &in, FILE *transcript=0 );
 
 extern sos_status *send_event( sos_sink &out, const char* event_name,
 			       const GlishEvent* e, int can_suspend = 0,
-			       const ProxyId &proxy_id=glish_proxyid_dummy );
+			       const ProxyId &proxy_id=glish_proxyid_dummy, FILE *transcript=0 );
 
 inline sos_status *send_event( sos_sink &out, const GlishEvent* e, int can_suspend = 0,
-			       const ProxyId &proxy_id=glish_proxyid_dummy )
+			       const ProxyId &proxy_id=glish_proxyid_dummy, FILE *transcript=0 )
 	{
-	return send_event( out, e->name, e, can_suspend, proxy_id );
+	return send_event( out, e->name, e, can_suspend, proxy_id, transcript );
+	}
+inline sos_status *send_event( sos_sink &out, const GlishEvent* e, FILE *transcript )
+	{
+	return send_event( out, e->name, e, 0, glish_proxyid_dummy, transcript );
 	}
 
 inline sos_status *send_event( sos_sink &out, const char* name, const Value* value,
-			       int can_suspend = 0, const ProxyId &proxy_id=glish_proxyid_dummy )
+			       int can_suspend = 0, const ProxyId &proxy_id=glish_proxyid_dummy,
+			       FILE *transcript=0 )
 	{
 	GlishEvent e( name, value );
-	return send_event( out, name, &e, can_suspend, proxy_id );
+	return send_event( out, name, &e, can_suspend, proxy_id, transcript );
 	}
 
 #endif	/* client_h */
