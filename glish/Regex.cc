@@ -358,11 +358,16 @@ if ( OP == glish_true )							\
 		{							\
 		for ( register int cnt=1; cnt <= reg->nparens; cnt++ )	\
 			{						\
-			register int index = INDEXINIT;			\
-			register int slen = reg->endp[cnt]-reg->startp[cnt]; \
-			match_res[index] = (char*) alloc_memory( slen+1 ); \
-			if ( slen > 0 ) memcpy(match_res[index], reg->startp[cnt], slen); \
-			match_res[index][slen] = '\0';			\
+			if ( reg->endp[cnt] > reg->startp[cnt] )	\
+				{					\
+				register int index = INDEXINIT;		\
+				register int slen = reg->endp[cnt]-reg->startp[cnt]; \
+				match_res[index] = (char*) alloc_memory( slen+1 ); \
+				if ( slen > 0 ) memcpy(match_res[index], reg->startp[cnt], slen); \
+				match_res[index][slen] = '\0';		\
+				}					\
+			else						\
+				match_res[INDEXINIT] = strdup("");	\
 			}						\
 		}							\
 	}								\

@@ -164,6 +164,9 @@ PMOP* pm;
     if (exp == NULL)
 	croak("NULL regexp argument");
 
+    if ( ! savestack )
+	INIT_SAVESTACK;
+
     regprecomp = savepvn(exp, xend - exp);
     regflags = pm->op_pmflags;
     regsawback = 0;

@@ -1,12 +1,13 @@
 #ifndef _MALLOC_H
-#define _MALLOC_H	1
-#define __MALLOC_H	1
-#define _MALLOC_H_	1
-#define __MALLOC_H__	1
-#define _malloc_h	1
-#define __malloc_h	1
-#define _malloc_h_	1
-#define __malloc_h__	1
+#define _MALLOC_H		1
+#define __MALLOC_H		1
+#define _MALLOC_H_		1
+#define __MALLOC_H__		1
+#define _malloc_h		1
+#define __malloc_h		1
+#define _malloc_h_		1
+#define __malloc_h__		1
+#define _MALLOC_INCLUDED	1
 
 /* 
   A version of malloc/free/realloc written by Doug Lea and released to the 

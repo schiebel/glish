@@ -98,6 +98,8 @@ typedef union {
 
 EXT I32 savestack_max;
 any_value *savestack;	/* to save non-local values on */
+#define INIT_SAVESTACK	{ savestack_max = 8;					\
+			  New(4077, savestack, savestack_max, any_value); }
 #define SAVEt_REGCONTEXT 21
 #define SSPUSHINT(i) (savestack[savestack_ix++].any_i32 = (I32)(i))
 #define SSPUSHPTR(p) (savestack[savestack_ix++].any_ptr = (void*)(p))
