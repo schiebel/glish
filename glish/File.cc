@@ -104,6 +104,28 @@ char *File::read_chars( int num )
 		}
 	}
 
+byte *File::read_bytes( int &num )
+	{
+	if ( type_ != IN && type_ != PIN && type_ != PBOTH ||
+	     ! in || feof(in) ) return 0;
+
+
+	byte *ret = (byte*) alloc_memory( num );
+	int len = 0;
+
+	if ( (len = read( fileno(in), ret, num )) > 0 )
+		{
+		num = len;
+		return ret;
+		}
+	else
+		{
+		num = 0;
+		free_memory( ret );
+		return 0;
+		}
+	}
+
 void File::write( charptr buf )
 	{
 	if ( type_ != OUT && type_ != POUT && type_ != PBOTH || ! out ) return;

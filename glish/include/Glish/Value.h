@@ -82,7 +82,7 @@ typedef PList(DelObj) del_list;
 extern Value* copy_value( const Value* value );
 
 extern const Value* false_value;
-extern Value* empty_value();
+extern Value* empty_value( glish_type t = TYPE_INT );
 extern Value* empty_bool_value();
 extern Value* error_value( );
 extern Value* error_value( const char *message );

@@ -1711,31 +1711,42 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot read from this file" );
 
-	int i=1;
-	charptr *rstrs = 0;
+	IValue *result = 0;
 
 	if ( type == 'c' )
 		{
-		rstrs = (charptr*) alloc_memory(sizeof(charptr));
+		charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr));
 		rstrs[0] = file->read_chars( num );
+		if ( rstrs[0] )
+			result = new IValue( rstrs, 1 );
+		else
+			{
+			free_memory(rstrs);
+			result = empty_ivalue(TYPE_STRING);
+			}
+		}
+	else if ( type == 'b' )
+		{
+		byte *rbytes = file->read_bytes( num );
+		if ( num > 0 )
+			result = new IValue( rbytes, num );
+		else
+			result = empty_ivalue(TYPE_BYTE);
 		}
 	else
 		{
-		rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
+		int i=1;
+		charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
 		rstrs[0] = file->read_line();
 		for (; rstrs[i-1] && i < num; ++i)
 			rstrs[i] = file->read_line();
-		}
-
-	IValue *result = 0;
-
-	if ( rstrs[0] )
-		result = new IValue( rstrs, rstrs[i-1] ? i : i-1 );
-	else
-		{
-		free_memory(rstrs);
-		result = empty_ivalue();
-		result->Polymorph( TYPE_STRING );
+		if ( rstrs[0] )
+			result = new IValue( rstrs, rstrs[i-1] ? i : i-1 );
+		else
+			{
+			free_memory(rstrs);
+			result = empty_ivalue(TYPE_STRING);
+			}
 		}
 
 	return result;

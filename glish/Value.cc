@@ -2775,10 +2775,12 @@ Value *ValueFromMemBlock( char *memory )
 	}
 
 
-Value* empty_value()
+Value* empty_value(glish_type t)
 	{
 	int i = 0;
-	return create_value( &i, 0, COPY_ARRAY );
+	Value *ret = create_value( &i, 0, COPY_ARRAY );
+	if ( t != TYPE_INT ) ret->Polymorph( t );
+	return ret;
 	}
 
 Value* empty_bool_value()

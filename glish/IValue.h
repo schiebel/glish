@@ -262,7 +262,7 @@ typedef PList(IValue) ivalue_list;
 
 extern IValue* copy_value( const IValue* value );
 
-inline IValue* empty_ivalue() { return (IValue*) empty_value(); }
+inline IValue* empty_ivalue(glish_type t = TYPE_INT) { return (IValue*) empty_value(t); }
 inline IValue* empty_bool_ivalue() { return (IValue*) empty_bool_value(); }
 inline IValue* error_ivalue( ) { return (IValue*) error_value(); }
 inline IValue* error_ivalue( const char *message ) { return (IValue*) error_value(message); }

@@ -13,6 +13,7 @@ class File : public GlishObject {
 	~File( );
 	char *read_line( );
 	char *read_chars( int num );
+	byte *read_bytes( int &num );
 	void write( charptr buf );
 	void close( Type t=PBOTH );
 	int Describe( OStream& s, const ioOpt &opt ) const;
