@@ -610,6 +610,14 @@ if test -z "$select_type"; then
 fi
 AC_MSG_RESULT($select_type)
 AC_DEFINE_UNQUOTED(SELECT_MASK_TYPE,$select_type)
+
+dnl##
+dnl## Set flag for EGCS g++ compiler
+dnl##
+if test "$ac_cv_prog_egcs_gxx" = yes; then
+    CXXFLAGS="$CXXFLAGS -D__EGCS__"
+fi
+
 AC_LANG_C
 
 dnl##--------------------------------------------------------------------
