@@ -3151,12 +3151,12 @@ DEFINE_ENABLE_FUNCS(TkScale)
 TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, double value, charptr len,
 		   charptr text_, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
-		   charptr fill_, charptr hlcolor, charptr hlbackground, charptr hlthickness )
-			: TkProxy( s ), fill(0), from_(from), to_(to), last_value(value)
+		   charptr fill_, charptr hlcolor, charptr hlbackground, charptr hlthickness,
+		   int showvalue ) : TkProxy( s ), fill(0), from_(from), to_(to), last_value(value)
 	{
 	char var_name[256];
 	frame = frame_;
-	char *argv[36];
+	char *argv[38];
 	char from_c[40];
 	char to_c[40];
 	char resolution_[40];
@@ -3234,6 +3234,12 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		argv[c++] = (char*) hlthickness;
 		}
 
+	if ( ! showvalue )
+		{
+		argv[c++] = (char*) "-showvalue";
+		argv[c++] = (char*) "false";
+		}
+
 	argv[c++] = (char*) "-variable";
 	argv[c++] = var_name;
 
@@ -3285,6 +3291,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb, glishtk_strtobool));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
+	procs.Insert("showvalue", new TkProc(this, "-showvalue", glishtk_onebool));
 	}
 
 void TkScale::ValueSet( double d )
@@ -3316,8 +3323,8 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	{
 	TkScale *ret;
 
-	if ( args->Length() != 18 )
-		InvalidNumberOfArgs(18);
+	if ( args->Length() != 19 )
+		InvalidNumberOfArgs(19);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3338,10 +3345,11 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	SETSTR( hlcolor )
 	SETSTR( hlbackground )
 	SETDIM( hlthickness )
+	SETINT( showvalue )
 
 	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill, hlcolor, hlbackground, hlthickness );
+		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill, hlcolor, hlbackground, hlthickness, showvalue );
 	else
 		{
 		SETDONE
