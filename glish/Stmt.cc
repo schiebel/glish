@@ -16,6 +16,7 @@ RCSID("@(#) $Id$")
 
 
 Stmt* null_stmt;
+extern int current_whenever_index;
 
 
 Stmt::~Stmt() { }
@@ -84,17 +85,25 @@ void SeqStmt::Describe( ostream& s ) const
 	}
 
 
-WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt* arg_stmt,
-			Sequencer* arg_sequencer )
+WheneverStmt::WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer )
 	{
 	trigger = arg_trigger;
-	stmt = arg_stmt;
+	stmt = 0;
 	sequencer = arg_sequencer;
 	active = 0;
 
-	index = sequencer->RegisterStmt( this );
+	index = current_whenever_index;
+	current_whenever_index = sequencer->RegisterStmt( this );
 
 	description = "whenever";
+	}
+
+WheneverStmt::SetStmt( Stmt* arg_stmt )
+	{
+	int tmp = current_whenever_index;
+	current_whenever_index = index;
+	index = tmp;
+	stmt = arg_stmt;
 	}
 
 WheneverStmt::~WheneverStmt()
@@ -368,6 +377,8 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 	sequencer = arg_sequencer;
 
 	description = "activate";
+
+	whenever_index = current_whenever_index;
 	}
 
 IValue* ActivateStmt::DoExec( int /* value_needed */,
@@ -398,16 +409,23 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 
 	else
 		{
-		Notification* n = sequencer->LastNotification();
-
-		if ( ! n )
+		if ( whenever_index < 0 )
 			{
 			error->Report(
 	"\"activate\"/\"deactivate\" executed without previous \"whenever\"" );
 			return 0;
 			}
 
-		n->notifiee->stmt->SetActivity( activate );
+		Stmt *s = sequencer->LookupStmt( whenever_index );
+
+		if ( ! s )
+			{
+			error->Report( whenever_index,
+		"does not designate a valid \"whenever\" statement" );
+			return 0;
+			}
+
+		s->SetActivity( activate );
 		}
 
 	return 0;

@@ -72,12 +72,6 @@ IValue::IValue( recordptr value, Agent* agent )
 
 void IValue::DeleteValue()
 	{
-	if ( Type() == TYPE_AGENT )
-		{
-		// Here we rely on the fact that Agent is derived
-		// GlishObject, which has a virtual destructor.
-		Unref( (GlishObject*) AgentVal() );
-		}
 	}
 
 IValue::~IValue()

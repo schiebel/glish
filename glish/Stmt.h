@@ -100,8 +100,15 @@ class SeqStmt : public Stmt {
 
 class WheneverStmt : public Stmt {
     public:
-	WheneverStmt( event_list* arg_trigger, Stmt* arg_stmt,
-			Sequencer* arg_sequencer );
+
+	//
+	// It is assumed that these, the ctor and "SetStmt()",  will
+	// be called together. This little dance is to allow
+	// activate/deactivate statements to be constructed with the
+	// proper index.
+	//
+	WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer );
+	SetStmt( Stmt* arg_stmt );
 
 	virtual ~WheneverStmt();
 
@@ -187,6 +194,7 @@ class ActivateStmt : public Stmt {
 
     protected:
 	int activate;
+	int whenever_index;
 	Expr* expr;
 	Sequencer* sequencer;
 	};

@@ -31,6 +31,7 @@
 %type <event> event
 %type <stmt> statement_list statement func_body block
 %type <stmt> local_list local_item global_list global_item
+%type <stmt> whenever_head
 %type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
@@ -72,6 +73,7 @@ extern "C" void yyerror( char msg[] );
 
 Sequencer* current_sequencer = 0;
 int in_func_decl = 0;
+int current_whenever_index = -1;
 
 Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 %}
@@ -171,8 +173,11 @@ statement:
 	|	TOK_GLOBAL global_list ';'
 			{ $$ = $2; }
 
-	|	TOK_WHENEVER event_list TOK_DO statement
-			{ $$ = new WheneverStmt( $2, $4, current_sequencer ); }
+	|	whenever_head TOK_DO statement
+			{
+			((WheneverStmt*) $1)->SetStmt($3); 
+			$$ = $1;
+			}
 
 	|	TOK_LINK event_list TOK_TO event_list ';'
 			{ $$ = new LinkStmt( $2, $4, current_sequencer ); }
@@ -249,6 +254,9 @@ statement:
 	|	';'
 			{ $$ = null_stmt; }
 	;
+
+whenever_head: TOK_WHENEVER event_list
+			{ $$ = new WheneverStmt( $2, current_sequencer ); }
 
 expression:
 		'(' expression ')'
@@ -756,6 +764,8 @@ void yyerror( char msg[] )
 		in_func_decl = 0;
 		current_sequencer->PopScope();
 		}
+
+	current_whenever_index = -1;
 
 	error->Report( msg, " at or near '", yytext, "'" );
 	}
