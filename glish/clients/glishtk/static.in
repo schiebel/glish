@@ -119,6 +119,7 @@ $(INCDIR)/Glish:
 	$(MKHIER) $(INCDIR)/Glish
 
 $(INCDIR)/Glish/glishtk.h: $(H)/glishtk.h
+	@rm -f $@
 	cp $(H)/glishtk.h $@
 
 tar:
