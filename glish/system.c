@@ -566,6 +566,117 @@ void mark_close_on_exec( int fd )
 		pgripe( "mark_close_on_exec(): fcntl failed" );
 	}
 
+static pid_t *status_pids = 0;
+static int    status_size = 0;
+static int   *pid_status = 0;
+
+FILE* status_popen( const char *cmd, const char *mode )
+	{
+	FILE *ret;
+	pid_t pid;
+	int pfd[2],fd,i;
+
+	if ( ! mode || (*mode != 'r' && *mode != 'w') || mode[1] != 0 )
+		{
+		errno = EINVAL;
+		return 0;
+		}
+
+	if ( ! status_pids )
+		{
+		status_size = max_fds();
+		if ( ! (status_pids = (pid_t *) alloc_zero_memory( sizeof(pid_t) * status_size ) ) )
+			return 0;
+		}
+
+	if ( ! pid_status )
+		if ( ! (pid_status = (int *) alloc_zero_memory( sizeof(int) * status_size ) ) )
+			return 0;
+
+	if ( pipe(pfd) < 0 ) return 0;
+
+	if ( (pid = fork()) < 0 ) return 0;
+	
+	if ( ! pid )		/*** child process ***/
+		{
+		if ( *mode == 'r' )
+			{
+			close( pfd[0] );
+			if ( pfd[1] != STDOUT_FILENO )
+				{
+				dup2( pfd[1], STDOUT_FILENO );
+				close( pfd[1] );
+				}
+			}
+		else
+			{
+			close( pfd[1] );
+			if ( pfd[0] != STDIN_FILENO )
+				{
+				dup2( pfd[0], STDIN_FILENO );
+				close( pfd[0] );
+				}
+			}
+
+		/* close our other file descriptors */
+		for ( i=0; i < status_size; ++i )
+			if ( status_pids[i] ) close(i);
+
+		execl( SHELL, "sh", "-c", cmd, (char*) NULL );
+		_exit(127);
+		}
+
+	/*** parent process ***/
+	if ( *mode == 'r' )
+		{
+		close( pfd[1] );
+		if ( ! (ret = fdopen( pfd[0], mode )) )
+			return 0;
+		}
+	else
+		{
+		close( pfd[0] );
+		if ( ! (ret = fdopen( pfd[1], mode)) )
+			return 0;
+		}
+
+	fd = fileno(ret);
+	status_pids[fd] = pid;
+	pid_status[fd] = -1;
+	return ret;
+	}
+
+int status_pclose( FILE *fp )
+	{
+	int fd, stat, sigchld;
+	pid_t pid;
+
+	if ( ! status_pids ) return -1;
+
+	fd = fileno(fp);
+	if ( ! (pid = status_pids[fd]) ) return -1;
+
+	sigchld = pid_status[fd];
+	status_pids[fd] = 0;
+	pid_status[fd] = 0;
+
+	if ( fclose(fp) == EOF ) return -1;
+
+	while ( waitpid( pid, &stat, 0 ) < 0 )
+		if ( errno == ECHILD ) return sigchld;
+		else if ( errno != EINTR ) return -1;
+
+	return stat;
+	}
+
+void status_pupdate( int pid, int status )
+	{
+	int i;
+	if ( ! status_pids || ! pid_status ) return;
+	for ( i=0; i < status_size; ++i )
+		if ( pid == status_pids[i] ) pid_status[i] = status;
+	}
+
 static char* input_file_name = 0;
 
 FILE* popen_with_input( const char* command, const char* input )
@@ -578,7 +689,7 @@ FILE* popen_with_input( const char* command, const char* input )
 	if ( ! input )
 		{
 		input_file_name = 0;
-		return popen( command, "r" );
+		return status_popen( command, "r" );
 		}
 
 	strcpy( template, "/tmp/glish.XXXXXX" );
@@ -604,7 +715,7 @@ FILE* popen_with_input( const char* command, const char* input )
 
 	sprintf( new_command, "(%s) <%s", command, template );
 
-	result = popen( new_command, "r" );
+	result = status_popen( new_command, "r" );
 
 	if ( ! result )
 		{
@@ -618,7 +729,7 @@ FILE* popen_with_input( const char* command, const char* input )
 
 int pclose_with_input( FILE* pipe )
 	{
-	int status = pclose( pipe );
+	int status = status_pclose( pipe );
 
 	if ( input_file_name )
 		{

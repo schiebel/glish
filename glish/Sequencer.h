@@ -542,6 +542,9 @@ public:
 	// Called when the user aborts the glish session...
 	void AbortOccurred( );
 
+	// Retrieve the verbosity level
+	int Verbose( ) const { return verbose; }
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc, int append_name=0 );

@@ -884,6 +884,7 @@ const char* CreateTaskBuiltIn::ExpandScript( int start, const_args_list &argv )
 	}
 
 
+extern int allwarn;
 IValue* CreateTaskBuiltIn::SynchronousShell( const char* command,
 						const char* input )
 	{
@@ -907,7 +908,7 @@ IValue* CreateTaskBuiltIn::SynchronousShell( const char* command,
 		Unref( stat_val );
 		}
 
-	if ( status )
+	if ( status && ( allwarn || sequencer->Verbose() > 0 ))
 		{
 		char status_buf[128];
 		sprintf( status_buf, "0x%x", status >> 8 );

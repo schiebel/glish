@@ -83,10 +83,12 @@ void ExecMinder::sigchld( )
 
 	while ( pid_ > 0 )
 		{
+		int found = 0;
 		if ( active_list )
 			loop_over_list( *active_list, i )
 				if ( (*active_list)[i]->pid() == pid_ )
 					{
+					found = 1;
 					if ( WIFEXITED( status ) || WIFSIGNALED( status ) )
 						{
 						(*active_list)[i]->SetStatus( status );
@@ -97,6 +99,8 @@ void ExecMinder::sigchld( )
 							pid_ << " stopped" << endl;
 					break;
 					}
+
+		if ( ! found ) status_pupdate( pid_, status );
 		pid_ = wait_for_pid( -1, &status, WNOHANG );
 		}
 

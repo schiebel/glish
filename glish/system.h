@@ -170,6 +170,14 @@ extern "C" {
 
 	int is_regular_file( const char *filename );
 
+	/*
+	 * popen() & pclose() with hooks to update the
+	 * status from a SIGCHLD handler
+	 */
+	FILE *status_popen( const char *cmd, const char *mode );
+	int status_pclose( FILE *fp );
+	void status_pupdate( int pid, int status );
+
 #ifndef HAVE_STRDUP
 	char *strdup( const char *str );
 #endif
