@@ -13,7 +13,7 @@ class BaseQueue;
 
 class QueueElement GC_FINAL_CLASS {
     protected:
-    friend BaseQueue;
+    friend class BaseQueue;
 	QueueElement( void* element )
 		{ elem = element; next = 0; }
 	QueueElement* next;
