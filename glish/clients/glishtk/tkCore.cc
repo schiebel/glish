@@ -771,7 +771,7 @@ char *glishtk_listbox_nearest(TkProxy *a, const char *, Value *args )
 		{
 		char ycoord[30];
 		sprintf(ycoord,"%d", args->IntVal());
-		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " nearest ", ycoord, 0 );
+		int r = tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " nearest ", ycoord, (char *)NULL );
 		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
 		}
 	else

@@ -163,7 +163,7 @@ char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data,
 
 char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	{
-	tcl_VarEval( tcl, "winfo ", cmd, SP, Tk_PathName(self), 0 );
+	tcl_VarEval( tcl, "winfo ", cmd, SP, Tk_PathName(self), (char *)NULL );
 	return Tcl_GetStringResult(tcl);
 	}
 
@@ -328,7 +328,7 @@ const char *TkProxy::init_tk( int visible_root )
 				if ( ! visible_root )
 					{
 					root_unmapped = 1;
-					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), 0 );
+					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(root), (char *)NULL );
 					}
 				}
 			else
@@ -339,7 +339,7 @@ const char *TkProxy::init_tk( int visible_root )
 	else if ( root_unmapped && visible_root )
 		{
 		root_unmapped = 0;
-		tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(root), 0 );
+		tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(root), (char *)NULL );
 		}
 
 	return 0;
@@ -483,12 +483,12 @@ void TkProxy::Load( ProxyStore *s, Value *arg )
 
 		else if ( module )
 			{
-			if ( tcl_VarEval( tcl, "load ", toload, " ", module, 0 ) == TCL_ERROR )
+			if ( tcl_VarEval( tcl, "load ", toload, " ", module, (char *)NULL ) == TCL_ERROR )
 				s->Error( Tcl_GetStringResult(tcl) );
 			}
 		else
 			{
-			if ( tcl_VarEval( tcl, "load ", toload, 0 ) == TCL_ERROR )
+			if ( tcl_VarEval( tcl, "load ", toload, (char *)NULL ) == TCL_ERROR )
 				s->Error( Tcl_GetStringResult(tcl) );
 			}
 
@@ -684,7 +684,7 @@ void TkProxy::SetMap( int do_map, int toplevel )
 		if ( ! toplevel )
 			{
 			if ( dont_map )
-				tcl_VarEval( tcl, "pack forget ", Tk_PathName(self), 0 );
+				tcl_VarEval( tcl, "pack forget ", Tk_PathName(self), (char *)NULL );
 			if ( frame ) frame->Pack();
 			}
 		else
@@ -693,9 +693,9 @@ void TkProxy::SetMap( int do_map, int toplevel )
 			if ( win )
 				{
 				if ( dont_map )
-					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), 0 );
+					tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), (char *)NULL );
 				else
-					tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), 0 );
+					tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), (char *)NULL );
 				}
 			}
 		}
@@ -795,7 +795,7 @@ char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Val
 	if ( val->Type() != TYPE_STRING || val->Length() != 1 )
 		return 0;
 
-	tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], 0 );
+	tcl_VarEval( tcl, Tk_PathName(self), SP, val->StringPtr(0)[0], (char *)NULL );
 	return 0;
 	}
 
