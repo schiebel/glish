@@ -644,7 +644,7 @@ void ClientTask::CreateAsyncClient( const char** argv )
 	for ( ; argv[argc]; ++argc )
 		;
 
-	(void) CreateEvent( "activate", new IValue( argv, argc, COPY_ARRAY ) );
+	(void) CreateEvent( "activate", new IValue( argv, argc, COPY_ARRAY ), 0, 1 );
 	}
 
 
