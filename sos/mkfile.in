@@ -89,6 +89,7 @@ libsos$(LIB_SUFFIX): $(OBJS_PROXY)
 	$(RM) libsos$(LIB_SUFFIX)
 	$(MK_LIB) libsos$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
 	$(RANLIB) libsos$(LIB_SUFFIX)
+	$(MINSPACE_RM) $(OBJS)
 
 $(LIBDIR_P)/libsos$(LIB_SUFFIX): libsos$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
