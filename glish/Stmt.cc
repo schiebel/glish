@@ -447,6 +447,19 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
+const char *AwaitStmt::TerminateInfo() const
+	{
+	static SOStream sos;
+	sos.reset();
+	sos << "await terminated";
+	if ( file && file->chars() )
+		sos << " (file: " << file->chars() << ", line: " << line << ")";
+	sos << ":" << endl;
+	Describe(sos);
+	sos << "" << endl;
+	return sos.str();
+	}
+
 void AwaitStmt::Describe( OStream& s ) const
 	{
 	s << "await ";

@@ -1319,6 +1319,12 @@ Sequencer *Sequencer::CurSeq ( )
 	{
 	return cur_sequencer;
 	}
+
+const AwaitStmt *Sequencer::ActiveAwait ( )
+	{
+	return (const AwaitStmt*) cur_sequencer->await_stmt;
+	}
+
 void Sequencer::HoldQueue( )
 	{
 	hold_queue += 1;

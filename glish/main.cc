@@ -95,6 +95,8 @@ void glish_sigint( )
 	{
 	if ( glish_jmpbuf_set )
 		{
+		if ( Sequencer::ActiveAwait() )
+			message->Report( Sequencer::ActiveAwait()->TerminateInfo() );
 		Sequencer::TopLevelReset();
 		unblock_signal(SIGINT);
 		longjmp( glish_top_level, 1 );

@@ -194,6 +194,7 @@ public:
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
 	static Sequencer *CurSeq( );
+	static const AwaitStmt *ActiveAwait( );
 
 	SystemInfo &System() { return system; }
 

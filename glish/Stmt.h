@@ -188,6 +188,7 @@ class AwaitStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( OStream& s ) const;
+	const char *TerminateInfo() const;
 
 	~AwaitStmt();
 

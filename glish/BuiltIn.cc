@@ -1626,6 +1626,9 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	const char *key;
 	while ( (member = scope->NextEntry( key, c )) )
 		{
+		if ( key && key[0] == '*' && key[strlen(key)-1] == '*' )
+			continue;
+
 		if ( member && ((VarExpr*)member)->Access() == USE_ACCESS )
 			{
 			int flag = 0;
