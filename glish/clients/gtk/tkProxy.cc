@@ -158,7 +158,7 @@ int glishtk_xioerror_handler(Display *d)
 
 void TkProxy::init_tk( int visible_root )
 	{
-	if ( ! root && is_graphic )
+	if ( ! root )
 		{
 		tcl = Tcl_CreateInterp();
 		Tcl_Init( tcl );

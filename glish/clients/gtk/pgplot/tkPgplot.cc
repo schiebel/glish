@@ -1148,39 +1148,22 @@ char *TkPgplot::Pgenv( Value *args ) {
 
 	static Value xargs;
 
-	fprintf(stderr,"#1\n"); fflush(stderr);
 	GETSTART(6);
-	fprintf(stderr,"#2\n"); fflush(stderr);
 	GETFLOAT(xmin);
-	fprintf(stderr,"#3\n"); fflush(stderr);
 	GETFLOAT(xmax);
-	fprintf(stderr,"#4\n"); fflush(stderr);
 	GETFLOAT(ymin);
-	fprintf(stderr,"#5\n"); fflush(stderr);
 	GETFLOAT(ymax);
-	fprintf(stderr,"#6\n"); fflush(stderr);
 	GETINT(just);
-	fprintf(stderr,"#7\n"); fflush(stderr);
 	GETINT(axis);
-	fprintf(stderr,"#8\n"); fflush(stderr);
 	cpgslct(id);
-	fprintf(stderr,"#9\n"); fflush(stderr);
 	cpgenv(xmin, xmax, ymin, ymax, just, axis);
-	fprintf(stderr,"#10\n"); fflush(stderr);
 	Cursor(&xargs);
-	fprintf(stderr,"#11\n"); fflush(stderr);
 	GETDONESINGLE(xmin);
-	fprintf(stderr,"#12\n"); fflush(stderr);
 	GETDONESINGLE(xmax);
-	fprintf(stderr,"#13\n"); fflush(stderr);
 	GETDONESINGLE(ymin);
-	fprintf(stderr,"#14\n"); fflush(stderr);
 	GETDONESINGLE(ymax);
-	fprintf(stderr,"#15\n"); fflush(stderr);
 	GETDONESINGLE(just);
-	fprintf(stderr,"#16\n"); fflush(stderr);
 	GETDONESINGLE(axis);
-	fprintf(stderr,"#17\n"); fflush(stderr);
 
 	return "";
 }
