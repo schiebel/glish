@@ -19,7 +19,7 @@ struct sos_header_kernel {
 	unsigned int count() { return count_; }
 	unsigned int ref() { return ++count_; }
 	unsigned int unref() { return --count_; }
-	~sos_header_kernel() { if ( freeit_ ) delete buf_; }
+	~sos_header_kernel() { if ( freeit_ ) free_memory( buf_ ); }
 	void set( void *b, unsigned int l, sos_code t, int freeit = 0 );
 	void set( unsigned int l, sos_code t ) { type_ = t; length_ = l; }
 
@@ -118,8 +118,8 @@ public:
 	//
 	// access to user data
 	//
-	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[20 + (off % 4)]; }
-	unsigned short ugets( int off = 0 ) const { off = 20 + (off % 2) * 2;
+	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[18 + (off % 6)]; }
+	unsigned short ugets( int off = 0 ) const { off = 18 + (off % 3) * 2;
 			return kernel->buf_[off] + (kernel->buf_[off+1] << 8); }
 	unsigned int ugeti( ) const { return kernel->buf_[20] + (kernel->buf_[21] << 8) +
 			(kernel->buf_[22] << 16) + (kernel->buf_[23] << 24); }

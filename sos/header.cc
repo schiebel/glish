@@ -20,7 +20,7 @@ unsigned char sos_header::current_header_size = SOS_HEADER_SIZE;
 void sos_header_kernel::set( void *b, unsigned int l, sos_code t, int freeit )
 	{
 	if ( buf_ && freeit_ )
-		delete buf_;
+		free_memory( buf_ );
 	buf_ = (unsigned char*) b;
 	length_ = l;
 	type_ = t;
@@ -115,8 +115,12 @@ void sos_header::stamp()
 	*ptr++ = t & 0xff; t >>= 8;		// 13
 	*ptr++ = t & 0xff; t >>= 8;		// 14
 	*ptr++ = t & 0xff; t >>= 8;		// 15
+
 	// future use
-	ptr += 8;
+	*ptr++ = 0x0;
+	*ptr++ = 0x0;
+
+	// next 6 bytes user space
 	}
 
 ostream &operator<< (ostream &ios, const sos_header &h)

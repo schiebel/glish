@@ -93,14 +93,17 @@ public:
 	void put( const str & );
 	void put( const str &, sos_header &h );
 
-	void put_record_start( unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 );
+	void put_record_start( unsigned int l );
+	void put_record_start( unsigned int l, sos_header &h );
+
+	void write( const char *buf, unsigned int len ) { out.write( buf, len ); }
 
 	unsigned int flush( ) { return out.flush( ); }
 
 	~sos_sink( );
 
 private:
-	char *integral;
+	char *not_integral;
 	sos_header head;
 	SINK &out;
 };
@@ -112,6 +115,8 @@ public:
 	void *get( unsigned int &length, sos_code &type );
 	void *get( unsigned int &length, sos_code &type, sos_header &h );
 
+	void read( char *buf, unsigned int len ) { in.read( buf, len ); }
+
 	~sos_source( );
 
 private:
@@ -120,7 +125,7 @@ private:
 	void *get_chars( unsigned int &, sos_header & );
 	sos_header head;
 	int use_str;
-	int integral;
+	int not_integral;
 	SOURCE &in;
 };
 

@@ -14,6 +14,11 @@ RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <sys/uio.h>
 #include <sys/types.h>
+#include <iostream.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #if defined(IOV_MAX)
 #define MAXIOV IOV_MAX
@@ -36,7 +41,7 @@ FD_SINK::FD_SINK( int fd_ ) : fd(fd_)
 	status = (buffer_type*) alloc_memory( MAXIOV * sizeof( buffer_type ) );
 	iov_cnt = 0;
 
-	tmp_bufs = (void**) alloc_zero_memory( 10 * sizeof(void*) );
+	tmp_bufs = (void**) alloc_zero_memory( tmp_buf_count * sizeof(void*) );
 	tmp_buf_cur = 0;
 	}
 
@@ -74,9 +79,11 @@ unsigned int FD_SINK::flush( )
 	if ( iov_cnt == 0 ) return 0;
 	struct iovec *iov_ = (struct iovec*) iov;
 	unsigned int ret = writev( fd, iov_, iov_cnt );
+
 	for ( int x = 0; x < iov_cnt; x++ )
 		if ( status[x] == FREE )
 			free_memory( iov_[x].iov_base );
+
 	iov_cnt = tmp_buf_cur = 0;
 	return ret;
 	}
@@ -101,12 +108,12 @@ FD_SOURCE::~FD_SOURCE()
 sos_sink::sos_sink( SINK &out_, int integral_header ) : out(out_)
 	{
 	if ( integral_header )
-		{
-		integral = (char*) alloc_memory(SOS_HEADER_SIZE);
-		head.set( integral, 0, SOS_UNKNOWN );
-		}
+		not_integral = 0;
 	else
-		integral = 0;
+		{
+		not_integral = (char*) alloc_memory(SOS_HEADER_SIZE);
+		head.set( not_integral, 0, SOS_UNKNOWN );
+		}
 	}
 
 static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
@@ -114,21 +121,21 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
 #define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )		\
 	{							\
-	if ( integral )						\
+	if ( not_integral )					\
+		{						\
+		head.set(l,SOSTYPE);				\
+		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
+		head.stamp();					\
+		out.write( head.iBuffer(), SOS_HEADER_SIZE, SINK::COPY ); \
+		out.write( a, l * sos_size(SOSTYPE) );		\
+		}						\
+	else							\
 		{						\
 		head.set(a,l PARAM);				\
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
 		out.write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   SOS_HEADER_SIZE );			\
-		}						\
-	else							\
-		{						\
-		head.set(l,SOSTYPE);				\
-		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
-		head.stamp();					\
-		out.write( head.iBuffer(), SOS_HEADER_SIZE );	\
-		out.write( a, l * sos_size(SOSTYPE) );		\
 		}						\
 	}
 
@@ -170,6 +177,7 @@ PUTCHAR(unsigned char)
 		}							\
 									\
 	buf = (char*) realloc_memory( buf, total + SOS_HEADER_SIZE );	\
+	lptr = (unsigned int *) (buf + SOS_HEADER_SIZE + 4);		\
 									\
 	head.set(buf,total,SOS_STRING);					\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
@@ -188,7 +196,7 @@ PUTCHAR(unsigned char)
 		}							\
 									\
 	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
-	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );		\
+	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
 	}
 
 #define PUTSTR_BODY(SOURCE)						\
@@ -224,7 +232,7 @@ PUTCHAR(unsigned char)
 		}							\
 									\
 	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
-	if ( integral ) head.set( integral, 0, SOS_UNKNOWN );		\
+	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
 	}
 
 void sos_sink::put( charptr *s, unsigned int len )
@@ -238,22 +246,25 @@ void sos_sink::put( const str &s, sos_header &h )
 	PUTSTR_BODY(h.iBuffer() + 18)
 
 
-void sos_sink::put_record_start( unsigned int l, unsigned short U1 = 0, unsigned short U2 = 0 )
-	{
-	static char buf[SOS_HEADER_SIZE];
-
-	if ( ! integral )
-		head.set(buf,l,SOS_RECORD);
-	else
-		head.set(l,SOS_RECORD);
-
-	head.usets(U1,0);
-	head.usets(U2,1);
-	head.stamp();
-
-	out.write( buf, SOS_HEADER_SIZE, SINK::COPY );
+#define PUTREC_BODY( SOURCE )				\
+	{						\
+	static char buf[SOS_HEADER_SIZE];		\
+							\
+	if ( not_integral )				\
+		head.set(l,SOS_RECORD);			\
+	else						\
+		head.set(buf,l,SOS_RECORD);		\
+							\
+	memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
+	head.stamp();					\
+							\
+	out.write( head.iBuffer(), SOS_HEADER_SIZE, SINK::COPY ); \
 	}
 
+void sos_sink::put_record_start( unsigned int l )
+	PUTREC_BODY(zero_user_area)
+void sos_sink::put_record_start( unsigned int l, sos_header &h )
+	PUTREC_BODY(h.iBuffer() + 18)
 
 #if defined(VAXFP)
 #define FOREIGN_FLOAT   SOS_IFLOAT
@@ -274,10 +285,10 @@ void sos_sink::put_record_start( unsigned int l, unsigned short U1 = 0, unsigned
 			else swap_abcdefgh_efghabcd(result,len);
 #endif
 
-sos_sink::~sos_sink() { if ( integral ) free_memory(integral); }
+sos_sink::~sos_sink() { if ( not_integral ) free_memory(not_integral); }
 
 sos_source::sos_source( SOURCE &in_, int use_str_ = 1, int integral_header = 1 ) : in(in_), use_str(use_str_),
-			head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), integral(integral_header)
+			head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), not_integral(integral_header ? 0 : 1)
 	{
 	}
 
@@ -310,6 +321,7 @@ void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
 	type = head.type();
 	len = head.length();
 
+// 	cerr << getpid() << ": " << head << endl;
 	switch ( type )
 		{
 		case SOS_STRING:
@@ -330,14 +342,14 @@ void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
 		default:
 			{
 			char *ret = (char*) get_numeric( type, len, head );
-			if ( integral )
-				h.set(ret,len,type);
-			else
+			if ( not_integral )
 				{
 				char *b = (char*) alloc_memory(SOS_HEADER_SIZE);
 				memcpy( b, head.iBuffer(), SOS_HEADER_SIZE );
 				h.set(b,len,type,1);
 				}
+			else
+				h.set(ret,len,type);
 			return ret;
 			}
 		}
@@ -348,16 +360,16 @@ void *sos_source::get_numeric( sos_code type, unsigned int &len, sos_header &hea
 	char *result_ = 0;
 	char *result = 0;
 
-	if ( integral )
+	if ( not_integral )
+		{
+		result_ = (char*) alloc_memory( len * head.typeLen() );
+		result  = result_;
+		}
+	else
 		{
 		result_ = (char*) alloc_memory(len * head.typeLen() + SOS_HEADER_SIZE);
 		memcpy(result_, head.iBuffer(), SOS_HEADER_SIZE);
 		result  = result_ + SOS_HEADER_SIZE;
-		}
-	else
-		{
-		result_ = (char*) alloc_memory( len * head.typeLen() );
-		result  = result_;
 		}
 
 	in.read( result, len * head.typeLen());
