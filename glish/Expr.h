@@ -497,9 +497,11 @@ class RangeExpr : public BinaryExpr {
 
 class ApplyRegExpr : public BinaryExpr {
     public:
-	ApplyRegExpr( Expr* op1, Expr* op2 );
+	ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s );
 
 	IValue* Eval( eval_type etype );
+    protected:
+	Sequencer *sequencer;
 	};
 
 
@@ -562,6 +564,21 @@ class LastEventExpr : public Expr {
     protected:
 	Sequencer* sequencer;
 	last_event_type type;
+	};
+
+typedef enum { REGEX_MATCH } last_regex_type;
+
+class LastRegexExpr : public Expr {
+    public:
+	LastRegexExpr( Sequencer* sequencer, last_regex_type type );
+
+	IValue* Eval( eval_type etype );
+	IValue* RefEval( value_type val_type );
+	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+
+    protected:
+	Sequencer* sequencer;
+	last_regex_type type;
 	};
 
 

@@ -5,12 +5,13 @@
 
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
-%token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
+%token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LINK
 %token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
 %token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
 %token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE TOK_REGEX
 %token TOK_FLEX_ERROR
 %token NULL_TOK
+%token TOK_LAST_EVENT TOK_LAST_REGEX
 
 %left ','
 %right TOK_ASSIGN
@@ -30,6 +31,7 @@
 %type <ival> TOK_ACTIVATE TOK_ASSIGN
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
+%type <regex_type> TOK_LAST_REGEX
 %type <expr> TOK_CONSTANT expression var function formal_param_default TOK_REGEX
 %type <expr> scoped_expr opt_scoped_expr stand_alone_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
@@ -74,6 +76,7 @@
 %union	{
 	char* id;
 	last_event_type event_type;
+	last_regex_type regex_type;
 	Expr* expr;
 	expr_list* exprlist;
 	EventDesignator* event;
@@ -359,7 +362,7 @@ expression:
 	|	expression '^' expression
 			{ $$ = new PowerExpr( $1, $3 ); }
 	|	expression '~' expression
-			{ $$ = new ApplyRegExpr( $1, $3 ); }
+			{ $$ = new ApplyRegExpr( $1, $3, current_sequencer ); }
 
 	|	'-' expression	%prec '!'
 			{ $$ = new NegExpr( $2 ); }
@@ -405,6 +408,9 @@ expression:
 
 	|	TOK_LAST_EVENT
 			{ $$ = new LastEventExpr( current_sequencer, $1 ); }
+
+	|	TOK_LAST_REGEX
+			{ $$ = new LastRegexExpr( current_sequencer, $1 ); }
 
 	|	TOK_INCLUDE expression	%prec '!'
 			{ $$ = new IncludeExpr( $2, current_sequencer ); }
@@ -1058,7 +1064,10 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 		CMPD('/', DivideExpr);
 		CMPD('%', ModuloExpr);
 		CMPD('^', PowerExpr);
-		CMPD('~', ApplyRegExpr);
+
+		case '~':
+			Ref(lhs);
+			return new AssignExpr( lhs, new ApplyRegExpr( lhs, rhs, current_sequencer ) );
 
 		CMPD('|', LogOrExpr);
 		CMPD('&', LogAndExpr);

@@ -8,6 +8,7 @@
 #include "Stmt.h"
 #include "Queue.h"
 #include "Agent.h"
+#include "Regex.h"
 
 class UserAgent;
 class GlishEvent;
@@ -299,11 +300,14 @@ public:
 	Notification* LastNotification()	{ return last_notification; }
 
 	// The last "whenever" statement executed, or 0 if none yet.
-	Stmt* LastWheneverExecuted()	{ return last_whenever_executed; }
-
 	// Register the given statement as the most recently-executed
 	// whenever statement.
-	void WheneverExecuted( Stmt* s )	{ last_whenever_executed = s; }
+	Stmt* LastWheneverExecuted()	 { return last_whenever_executed; }
+	void WheneverExecuted( Stmt* s ) { last_whenever_executed = s; }
+
+	Regex *LastRegex( ) 		 { return last_regex_executed; }
+	void RegexExecuted( Regex *r )	 { if ( last_regex_executed ) Unref(last_regex_executed);
+					   if ((last_regex_executed = r)) Ref(last_regex_executed); }
 
 	// Registers a new task with the sequencer and returns its
 	// task ID.
@@ -545,6 +549,7 @@ protected:
 	PQueue(Notification) notification_queue;
 	Notification* last_notification;
 	Stmt* last_whenever_executed;
+	Regex *last_regex_executed;
 	Stmt* stmts;
 	PList(Stmt) registered_stmts;
 	Dict(int) include_once;

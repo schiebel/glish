@@ -1779,7 +1779,7 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 	}
 
 
-ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "~")
+ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s) : BinaryExpr(op1, op2, "~"), sequencer(s)
 	{
 	}
 
@@ -1801,6 +1801,8 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			result = reg->Eval((char*)left_val->StringPtr(0)[0]);
 		else
 			result = reg->Eval((char**)left_val->StringPtr(0),left_val->Length());
+
+		sequencer->RegexExecuted( reg );
 		}
 
 	return result;
@@ -1989,10 +1991,7 @@ IValue* LastEventExpr::Eval( eval_type etype )
 	Notification* n = sequencer->LastNotification();
 
 	if ( ! n )
-		{
-		warn->Report( this, ": no events have been received" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, ": no events have been received" );
 
 	IValue* result;
 
@@ -2032,10 +2031,7 @@ IValue* LastEventExpr::RefEval( value_type val_type )
 	Notification* n = sequencer->LastNotification();
 
 	if ( ! n )
-		{
-		warn->Report( this, ": no events have been received" );
-		return error_ivalue();
-		}
+		return (IValue*) Fail( this, ": no events have been received" );
 
 	IValue* result;
 
@@ -2068,6 +2064,67 @@ int LastEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
 			break;
 		default:          s << "$weird";
 		}
+	return 1;
+	}
+
+
+LastRegexExpr::LastRegexExpr( Sequencer* arg_sequencer,
+				last_regex_type arg_type ) : Expr("$last_event")
+	{
+	sequencer = arg_sequencer;
+	type = arg_type;
+	}
+
+IValue* LastRegexExpr::Eval( eval_type etype )
+	{
+	Regex* r = sequencer->LastRegex();
+
+	if ( ! r )
+		return (IValue*) Fail( this, ": no regular expression" );
+
+	IValue* result;
+
+	if ( type == REGEX_MATCH )
+		{
+		result = r->GetMatch( );
+		if ( etype == EVAL_COPY )
+			result = copy_value( result );
+		else
+			Ref( result );
+		}
+	else
+		fatal->Report( "bad type in LastRegexExpr::Eval" );
+
+	return result;
+	}
+
+IValue* LastRegexExpr::RefEval( value_type val_type )
+	{
+	Regex* r = sequencer->LastRegex();
+
+	if ( ! r )
+		return (IValue*) Fail( this, ": no regular expression" );
+
+	IValue* result;
+
+	if ( type == REGEX_MATCH )
+		result = new IValue( r->GetMatch(), val_type );
+
+	else
+		fatal->Report( "bad type in LastRegexExpr::RefEval" );
+
+	return result;
+	}
+
+int LastRegexExpr::DescribeSelf( OStream &s, charptr prefix ) const
+	{
+	if ( prefix ) s << prefix;
+
+	if ( type == REGEX_MATCH )
+		s << "$m";
+	else
+		s << "$strange";
+
 	return 1;
 	}
 

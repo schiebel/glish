@@ -114,6 +114,13 @@ static char *literal( const char *s = 0, int clear = 0 );
 	return TOK_LAST_EVENT;					\
 	}
 
+#define RETURN_LAST_REGEX(type)					\
+	{							\
+	statement_can_end = 1;					\
+	YYLVAL(regex_type) = type;				\
+	return TOK_LAST_REGEX;					\
+	}
+
 #define RETURN_COMPOUND(type)					\
 	{							\
 	YYLVAL(ival) = type;					\
@@ -288,6 +295,7 @@ while		return TOK_WHILE;
 "$agent"	RETURN_LAST_EVENT( EVENT_AGENT );
 "$name"		RETURN_LAST_EVENT( EVENT_NAME );
 "$value"	RETURN_LAST_EVENT( EVENT_VALUE );
+"$m"		RETURN_LAST_REGEX( REGEX_MATCH );
 
 F		RETURN_CONSTANT( glish_false );
 T		RETURN_CONSTANT( glish_true );
