@@ -16,6 +16,28 @@ RCSID("@(#) $Id$")
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
 
+#define HANDLE_CTOR_ERROR(STR)					\
+		{						\
+		SetError( (IValue*) generate_error( STR ) );	\
+		return;						\
+		}
+
+#define CREATE_RETURN						\
+	if ( ! ret || ! ret->IsValid() )			\
+		{						\
+		IValue *err = ret->GetError();			\
+		if ( err )					\
+			{					\
+			Ref(err);				\
+			return err;				\
+			}					\
+		else						\
+			return (IValue*) generate_error( "tk widget creation failed" ); \
+		}						\
+	else							\
+		return ret->AgentRecord();
+
+
 int TkCanvas::count = 0;
 
 static IValue *ScrollToValue( Scrollbar_notify_data *data )
@@ -59,17 +81,12 @@ static Scrollbar_notify_data *ValueToScroll( const IValue *data )
 	return ret;
 	}
 
-static TkAgent *InvalidArg( int num )
-	{
-	error->Report("invalid type for argument ", num);
-	return 0;
-	}
+#define InvalidArg( num )					\
+	(IValue*) generate_error("invalid type for argument ", num)
 
-static TkAgent *InvalidNumberOfArgs( int num )
-	{
-	error->Report("invalid number of arguments, ", num, " expected");
-	return 0;
-	}
+#define InvalidNumberOfArgs( num )				\
+	(IValue*) generate_error("invalid number of arguments, ", num, " expected")
+
 
 #define SETVAL(var,condition)						\
 	const IValue *var      = (*args_val)[c++];			\
@@ -797,7 +814,7 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	agent_ID = "<graphic:canvas>";
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkCanvas::TkCanvas");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkCanvas::TkCanvas")
 
 	count++;
 
@@ -903,7 +920,7 @@ int CLASS::CanExpand() const				\
 STD_EXPAND_PACKINSTRUCTION(TkCanvas)
 STD_EXPAND_CANEXPAND(TkCanvas)
 	  
-TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkCanvas *ret;
 
@@ -922,7 +939,7 @@ TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 
 	ret =  new TkCanvas( s, (TkFrame*)parent->AgentVal(), width, height, region, relief, borderwidth, background, fill );
 
-	return ret;
-	}      
+	CREATE_RETURN
+	}
 
 #endif

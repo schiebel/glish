@@ -26,6 +26,7 @@ unsigned long TkFrame::grab = 0;
 PQueue(glishtk_event) *TkAgent::tk_queue = 0;
 int TkAgent::hold_events = 0;
 int TkAgent::initial_hold = 0;
+IValue *TkAgent::last_error = 0;
 
 extern IValue *glishtk_valcast( char * );
 
@@ -255,17 +256,11 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 	}
 
 
-static TkAgent *InvalidArg( int num )
-	{
-	error->Report("invalid type for argument ", num);
-	return 0;
-	}
+#define InvalidArg( num )						\
+	(IValue*) generate_error("invalid type for argument ", num)
 
-static TkAgent *InvalidNumberOfArgs( int num )
-	{
-	error->Report("invalid number of arguments, ", num, " expected");
-	return 0;
-	}
+#define InvalidNumberOfArgs( num )					\
+	(IValue*) generate_error("invalid number of arguments, ", num, " expected")
 
 #define SETVAL(var,condition)						\
 	const IValue *var      = (*args_val)[c++];			\
@@ -416,6 +411,28 @@ CLASS::~CLASS( )					\
 		}					\
 	UnMap();					\
 	}
+
+#define HANDLE_CTOR_ERROR(STR)					\
+		{						\
+		SetError( (IValue*) generate_error( STR ) );	\
+		return;						\
+		}
+
+#define CREATE_RETURN						\
+	if ( ! ret || ! ret->IsValid() )			\
+		{						\
+		IValue *err = ret->GetError();			\
+		if ( err )					\
+			{					\
+			Ref(err);				\
+			return err;				\
+			}					\
+		else						\
+			return (IValue*) generate_error( "tk widget creation failed" ); \
+		}						\
+	else							\
+		return ret->AgentRecord();
+
 
 char *glishtk_nostr(Rivetobj self, const char *cmd, parameter_list *args,
 				int is_request, int log )
@@ -1102,6 +1119,12 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 void TkAgent::EnterEnable() { }
 void TkAgent::ExitEnable() { }
 
+void TkAgent::SetError( IValue *v )
+	{
+	if ( last_error ) Unref(last_error);
+	last_error = v;
+	}
+
 void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest,
 			   NotifyTrigger *t )
 	{
@@ -1235,7 +1258,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	initial_hold += 1;
 
 	if ( ! root )
-		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
 	id = ++frame_count;
 	tl_count++;
@@ -1291,7 +1314,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	self = rivet_create(FrameClass, pseudo ? pseudo : root, c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
 	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
 		      rivet_new_callback((int (*)()) glishtk_delframe_cb,(ClientData) this, 0), 0);
@@ -1334,7 +1357,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 
 	id = ++frame_count;
 	if ( ! root )
-		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
 	if ( ! frame || ! frame->Self() ) return;
 
@@ -1364,7 +1387,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	self = rivet_create(FrameClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
 	AddElement( this );
 
@@ -1400,7 +1423,7 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 	id = ++frame_count;
 	if ( ! root )
-		fatal->Report("Frame creation failed, check DISPLAY environment variable.");
+		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
 
 	if ( ! canvas || ! canvas->Self() ) return;
 
@@ -1425,7 +1448,7 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	self = rivet_create(FrameClass, canvas->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
 //	AddElement( this );
 
@@ -1739,7 +1762,7 @@ void TkFrame::KillFrame( )
 	UnMap();
 	}
 
-TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkFrame *ret = 0;
 
@@ -1772,7 +1795,7 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 					    width, height, cursor );
 		}
 
-	return ret;
+	CREATE_RETURN
 	}
 
 const char **TkFrame::PackInstruction()
@@ -1976,7 +1999,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		}
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkButton::TkButton");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 
 	value = val ? copy_value( val ) : 0;
 
@@ -2011,7 +2034,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	agent_ID = "<graphic:button>";
 
 	if ( ! frame_->IsMenu() )
-		fatal->Report("internal error with creation of menu entry");
+		HANDLE_CTOR_ERROR("internal error with creation of menu entry")
 
 	if ( ! menu || ! menu->Self() ) return;
 
@@ -2136,7 +2159,7 @@ void TkButton::ButtonPressed( )
 		dont_invoke_button = 0;
 	}
 
-TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkButton *ret;
 
@@ -2169,7 +2192,7 @@ TkAgent *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	else
 		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val, fill );
 
-	return ret;
+	CREATE_RETURN
 	}
 
 unsigned char TkButton::State() const
@@ -2313,7 +2336,7 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	self = rivet_create(ScaleClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkScale::TkScale");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkScale::TkScale")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2336,7 +2359,7 @@ void TkScale::ValueSet( double d )
 	PostTkEvent( "value", new IValue( d ) );
 	}
 
-TkAgent *TkScale::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkScale *ret;
 
@@ -2358,7 +2381,7 @@ TkAgent *TkScale::Create( Sequencer *s, const_args_list *args_val )
 
 	ret = new TkScale( s, (TkFrame*)parent->AgentVal(), start, end, len, text, orient, relief, borderwidth, foreground, background, fill );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 STD_EXPAND_PACKINSTRUCTION(TkScale)
@@ -2413,7 +2436,7 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	self = rivet_create(TextClass, frame->Self(), 0, 0);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkText::TkText");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkText::TkText")
 
 	char width_[30];
 	char height_[30];
@@ -2478,7 +2501,7 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	procs.Insert("ranges", new TkProc("tag", "ranges", glishtk_text_rangesfunc, glishtk_splitsp_str));
 	}
 
-TkAgent *TkText::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkText::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkText *ret;
 
@@ -2503,7 +2526,7 @@ TkAgent *TkText::Create( Sequencer *s, const_args_list *args_val )
 	ret =  new TkText( s, (TkFrame*)parent->AgentVal(), width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill );
 	delete text_str;
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 void TkText::yScrolled( const double *d )
@@ -2556,7 +2579,7 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 	self = rivet_create(ScrollbarClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkScrollbar::TkScrollbar");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkScrollbar::TkScrollbar")
 
 	// Setting foreground and background colors at creation
 	// time kills the goose
@@ -2601,7 +2624,7 @@ int TkScrollbar::CanExpand() const
 	return 1;
 	}
 
-TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkScrollbar *ret;
 
@@ -2616,7 +2639,7 @@ TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 
 	ret = new TkScrollbar( s, (TkFrame*)parent->AgentVal(), orient, foreground, background );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 void TkScrollbar::Scrolled( IValue *data )
@@ -2671,7 +2694,7 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	self = rivet_create(LabelClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkLabel::TkLabel");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkLabel::TkLabel")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2688,7 +2711,7 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	}
 
-TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkLabel *ret;
 
@@ -2712,7 +2735,7 @@ TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	ret =  new TkLabel( s, (TkFrame*)parent->AgentVal(), text, justify, padx, pady, width,
 			    font, relief, borderwidth, foreground, background, fill );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 STD_EXPAND_PACKINSTRUCTION(TkLabel)
@@ -2786,10 +2809,10 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	self = rivet_create(EntryClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkEntry::TkEntry");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
 
 	if ( rivet_create_binding(self, 0, "<Return>", (int (*)()) entry_returncb, (ClientData) this, 1, 0) == TCL_ERROR )
-		fatal->Report("Rivet binding creation failed in TkEntry::TkEntry");
+		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkEntry::TkEntry")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2823,7 +2846,7 @@ void TkEntry::xScrolled( const double *d )
 	PostTkEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
-TkAgent *TkEntry::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkEntry::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkEntry *ret;
 
@@ -2848,7 +2871,7 @@ TkAgent *TkEntry::Create( Sequencer *s, const_args_list *args_val )
 			    font, relief, borderwidth, foreground, background,
 			    disabled, show, exp, fill );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 charptr TkEntry::IndexCheck( charptr s )
@@ -2905,7 +2928,7 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	self = rivet_create(MessageClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkMessage::TkMessage");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkMessage::TkMessage")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2921,7 +2944,7 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	}
 
-TkAgent *TkMessage::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkMessage *ret;
 
@@ -2944,7 +2967,7 @@ TkAgent *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 
 	ret =  new TkMessage( s, (TkFrame*)parent->AgentVal(), text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, fill );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 STD_EXPAND_PACKINSTRUCTION(TkMessage)
@@ -3020,10 +3043,10 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	self = rivet_create(ListboxClass, frame->Self(), c, argv);
 
 	if ( ! self )
-		fatal->Report("Rivet creation failed in TkListbox::TkListbox");
+		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
 
 	if ( rivet_create_binding(self, 0, "<ButtonRelease-1>", (int (*)()) listbox_button1cb, (ClientData) this, 1, 0) == TCL_ERROR )
-		fatal->Report("Rivet binding creation failed in TkListbox::TkListbox");
+		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkListbox::TkListbox")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3046,7 +3069,7 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
 	}
 
-TkAgent *TkListbox::Create( Sequencer *s, const_args_list *args_val )
+IValue *TkListbox::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkListbox *ret;
 
@@ -3068,7 +3091,7 @@ TkAgent *TkListbox::Create( Sequencer *s, const_args_list *args_val )
 
 	ret =  new TkListbox( s, (TkFrame*)parent->AgentVal(), width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
 
-	return ret;
+	CREATE_RETURN
 	}      
 
 charptr TkListbox::IndexCheck( charptr s )

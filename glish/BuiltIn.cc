@@ -1511,7 +1511,7 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( this, " requires a string as the first argument");
 
 	const char *type = arg->StringPtr(0)[0];
-	TkAgent *agent = 0;
+	IValue *agent = 0;
 
 	if ( type[0] == 'f' && ! strcmp( type, "frame" ) )
 		agent = TkFrame::Create( sequencer, args_val );
@@ -1541,7 +1541,7 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail("This Glish was not configured for PGPLOT");
 #endif
 
-	return agent ? agent->AgentRecord() : error_ivalue();
+	return agent ? agent : error_ivalue();
 #else
 	return (IValue*) Fail("This Glish was not configured for graphic clients");
 #endif

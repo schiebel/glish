@@ -198,6 +198,9 @@ class TkAgent : public Agent {
 	virtual void EnterEnable();
 	virtual void ExitEnable();
 
+	static IValue *GetError() { return last_error; }
+	static void SetError(IValue*);
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;
@@ -207,6 +210,9 @@ class TkAgent : public Agent {
 	static int hold_events;
 	static int initial_hold;
 	static PQueue(glishtk_event) *tk_queue;
+
+	// For keeping track of last error
+	static IValue *last_error;
 
 	unsigned int enable_state;
 	};
@@ -249,7 +255,7 @@ class TkFrame : public TkAgent {
 	unsigned long Count() const { return frame_count; }
 	unsigned long Id() const { return id; }
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	~TkFrame();
 
 	const char *Expand() const { return expand; }
@@ -313,7 +319,7 @@ class TkButton : public TkAgent {
 	int Index(TkButton *) const;
 
 	void ButtonPressed( );
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 
 	const char **PackInstruction();
 	int CanExpand() const;
@@ -343,7 +349,7 @@ class TkScale : public TkAgent {
 		  charptr foreground, charptr background, charptr fill );
 
 	void ValueSet( double );
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	~TkScale();
 
 	const char **PackInstruction();
@@ -364,7 +370,7 @@ class TkText : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
@@ -384,7 +390,7 @@ class TkScrollbar : public TkAgent {
 	const char **PackInstruction();
 	int CanExpand() const;
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	void Scrolled( IValue *data );
 	~TkScrollbar();
 	};
@@ -396,7 +402,7 @@ class TkLabel : public TkAgent {
 		 charptr font, charptr relief, charptr borderwidth,
 		 charptr foreground, charptr background, charptr fill );
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	~TkLabel();
 
 	const char **PackInstruction();
@@ -413,7 +419,7 @@ class TkEntry : public TkAgent {
 		 charptr borderwidth, charptr foreground, charptr background,
 		 int disabled, int show, int exportselection, charptr fill );
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 
 	charptr IndexCheck( charptr );
 
@@ -440,7 +446,7 @@ class TkMessage : public TkAgent {
 		   charptr relief, charptr borderwidth,
 		   charptr foreground, charptr background, charptr fill );
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 
 	~TkMessage();
 
@@ -464,7 +470,7 @@ class TkListbox : public TkAgent {
 	void xScrolled( const double *firstlast );
 	void elementSelected( );
   
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 
 	const char **PackInstruction();
 	int CanExpand() const;

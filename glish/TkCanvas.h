@@ -31,7 +31,7 @@ class TkCanvas : public TkAgent {
 	void Add(TkFrame *item) {  frame_list.append(item); }
 	void Remove(TkFrame *item) { frame_list.remove(item); }
 
-	static TkAgent *Create( Sequencer *, const_args_list *);
+	static IValue *Create( Sequencer *, const_args_list *);
 	~TkCanvas();
 	int CanvasCount() const { return count; }
 	int ItemCount(const char *) const;
