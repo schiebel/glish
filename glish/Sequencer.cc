@@ -1451,55 +1451,65 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 	Parse( glish_init );
 
-	const char *glish_home = getenv( RCDIR_VAR );
-	if ( ! glish_home )
-		glish_home = RCDIR;
+	FILE* glish_rc_file;
+	char glish_rc_filename[256];
+	const char *glish_rc_dir = getenv( RCDIR_VAR );
+	int loaded_system_glishrc = 0;
 
-	if ( glish_home )
+	//
+	//  Check $GLISHROOT/.glishrc
+	//
+	if ( glish_rc_dir )
 		{
-		char glish_rc_filename[256];
 		sprintf( glish_rc_filename, "%s/%s",
-				glish_home, GLISH_RC_FILE );
+				glish_rc_dir, GLISH_RC_FILE );
 
-		if ( is_regular_file( glish_rc_filename ) )
-			{
-			FILE *glish_rc_file = fopen( glish_rc_filename, "r");
-
-			if ( glish_rc_file )
+		if ( is_regular_file( glish_rc_filename ) &&
+			(glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
 				Parse( glish_rc_file, glish_rc_filename );
-// 				fclose( glish_rc_file );
+				loaded_system_glishrc = 1;
 				}
-			}
 		}
 
-	FILE* glish_rc_file;
-	const char* glish_rc;
-	if ( (glish_rc = getenv( "GLISHRC" )) && is_regular_file( glish_rc ) &&
-	     (glish_rc_file = fopen( glish_rc, "r")) )
-		Parse( glish_rc_file, glish_rc );
+	//
+	//  Check <default-rc-location>/.glishrc, if we didn't
+	//  find one in $GLISHROOT...
+	//
+	if ( ! loaded_system_glishrc )
+		{
+		sprintf( glish_rc_filename, "%s/%s",
+				RCDIR, GLISH_RC_FILE );
 
+		if ( is_regular_file( glish_rc_filename ) &&
+			(glish_rc_file = fopen( glish_rc_filename, "r")) )
+				Parse( glish_rc_file, glish_rc_filename );
+		}
+
+	//
+	//  Load $GLISHRC if it exists and is a valid file...
+	//
+	if ( (glish_rc_dir = getenv( "GLISHRC" )) &&
+	     is_regular_file( glish_rc_dir ) &&
+	     (glish_rc_file = fopen( glish_rc_dir, "r")) )
+		Parse( glish_rc_file, glish_rc_dir );
 	else
 		{
-		const char* home;
-
-		if ( is_regular_file( GLISH_RC_FILE ) && (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
-			{
+		//
+		//  Otherwise load .glishrc from $HOME, if it exists
+		//
+		if ( is_regular_file( GLISH_RC_FILE ) &&
+		     (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
 			Parse( glish_rc_file, GLISH_RC_FILE );
-// 			fclose( glish_rc_file );
-			}
 
-		else if ( (home = getenv( "HOME" )) )
+		else if ( (glish_rc_dir = getenv( "HOME" )) )
 			{
-			char glish_rc_filename[256];
 			sprintf( glish_rc_filename, "%s/%s",
-					home, GLISH_RC_FILE );
+					glish_rc_dir, GLISH_RC_FILE );
 
-			if ( is_regular_file(glish_rc_filename) && (glish_rc_file = fopen( glish_rc_filename, "r")) )
-				{
+			if ( is_regular_file(glish_rc_filename) &&
+			     (glish_rc_file = fopen( glish_rc_filename, "r")) )
 				Parse( glish_rc_file, glish_rc_filename );
-// 				fclose( glish_rc_file );
-				}
 			}
 		}
 
