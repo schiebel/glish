@@ -63,7 +63,7 @@ dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h)
-AC_CHECK_HEADERS(sys/signal.h vfork.h)
+AC_CHECK_HEADERS(sys/signal.h vfork.h nan.h fp.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(stdlib.h)
 AC_CHECK_HEADERS(dirent.h termio.h)
@@ -81,13 +81,7 @@ AC_CHECK_LIB(nsl, main)
 AC_TYPE_SIGNAL
 AC_FUNC_VPRINTF
 AC_FUNC_VFORK
-AC_CHECK_FUNC(random,AC_DEFINE(HAVE_RANDOM))
-AC_CHECK_FUNC(lrand48,AC_DEFINE(HAVE_LRAND48))
-AC_CHECK_FUNC(flock,AC_DEFINE(HAVE_FLOCK))
-AC_CHECK_FUNC(lockf,AC_DEFINE(HAVE_LOCKF))
-AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt)
-AC_CHECK_FUNCS(sigprocmask uname)
-AC_CHECK_FUNCS(tcgetattr)
+AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr isnan)
 
 if test -z "$NO_TK" && test -d rivet && test -f rivet/configure; then
     #--------------------------------------------------------------------
@@ -197,6 +191,22 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
     AC_DEFINE(GETTOD_NOT_DECLARED)
 ])
+
+AC_MSG_CHECKING(for NaN)
+AC_EGREP_CPP(^%%%~yes~indeed~%%%$,
+[#include <nan.h>
+#ifdef NaN
+%%%~yes~indeed~%%%
+#endif
+], [AC_MSG_RESULT(yes); AC_DEFINE(HAVE_NAN)],AC_MSG_RESULT(no))
+
+AC_MSG_CHECKING(for IS_NAN)
+AC_EGREP_CPP(^%%%~yes~indeed~%%%$,
+[#include <fp.h>
+#ifdef IS_NAN
+%%%~yes~indeed~%%%
+#endif
+], [AC_MSG_RESULT(yes); AC_DEFINE(HAVE_IS_NAN)],AC_MSG_RESULT(no))
 
 ##
 ##  Add in AIX flags
