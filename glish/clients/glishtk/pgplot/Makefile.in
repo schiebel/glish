@@ -37,6 +37,7 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 INCDIR = @includedir@
 LIBDIR = @libdir@
+LOADDIR = @loaddir@
 BINDIR = @bindir@
 SCRIPTDIR = @SCRIPTDIR@
 
@@ -59,7 +60,7 @@ INSTALLED_SCRIPTS = $(SCRIPTDIR)/pgplot.g
 
 LOADABLES = $(LIBDIR_P)/gPgplot$(SUFFIX)
 
-INSTALLED_LOADABLES = $(LIBDIR)/gPgplot$(SUFFIX)
+INSTALLED_LOADABLES = $(LOADDIR)/gPgplot$(SUFFIX)
 
 all: make-libdir_p $(LOADABLES) make-scriptdir_p $(SCRIPTS)
 
@@ -105,9 +106,9 @@ $(LIBDIR_P)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(INSTALL_LIBRARY) gPgplot$(SUFFIX) $(LIBDIR_P)
 
-$(LIBDIR)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
-	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) gPgplot$(SUFFIX) $(LIBDIR)
+$(LOADDIR)/gPgplot$(SUFFIX): gPgplot$(SUFFIX)
+	$(MKHIER) $(LOADDIR)
+	$(INSTALL_LIBRARY) gPgplot$(SUFFIX) $(LOADDIR)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

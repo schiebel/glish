@@ -415,10 +415,13 @@ dnl## loadable shared objects
 dnl##
 if test -z "$option_load_dir"; then
     LOADPATH="$libdir"
+    loaddir = "$libdir"
 else
     LOADPATH="$option_load_dir:$libdir"
+    loaddir = "$option_load_dir"
 fi
 AC_SUBST(LOADPATH)
+AC_SUBST(loaddir)
 
 dnl##
 dnl## Should we *not* try to minimize space usage

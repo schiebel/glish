@@ -20,6 +20,7 @@ AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR         directory for
 AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR       directory for sitewide key files])
 AC_ARG_ASSIGN(script-dir,          [  --script-dir=SCRIPT_DIR      directory for sitewide script files])
 AC_ARG_ASSIGN(script-dir-tcl,      [  --script-dir-tcl=SCRIPT_DIR  directory for sitewide tcl files])
+AC_ARG_ASSIGN(load-dir,            [  --load-dir=LOAD_DIR          directory for loadable shared objects])
 AC_ARG_ASSIGN(tcl-includes,        [  --tcl-includes=DIR           system tcl and tk include files are in DIR])
 AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR          system tcl and tk libraries are in DIR])
 AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags    PGPLOT include flags])

@@ -41,6 +41,7 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 INCDIR = @includedir@
 LIBDIR = @libdir@
+LOADDIR = @loaddir@
 BINDIR = @bindir@
 SCRIPTDIR = @SCRIPTDIR@
 SCRIPTDIRTCL = @SCRIPTDIRTCL@
@@ -71,7 +72,7 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(AIXSYM) $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl
+install:  make-libdir $(AIXSYM) $(LIBDIR)/libglishtk$(SUFFIX) $(LOADDIR)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl
 
 libglishtk$(GSUFFIX): $(OBJS)
 	rm -f libglishtk$(GSUFFIX)
@@ -102,9 +103,9 @@ $(LIBDIR_P)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
 	$(INSTALL_LIBRARY) GlishTk$(SUFFIX) $(LIBDIR_P)
 
-$(LIBDIR)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
-	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) GlishTk$(SUFFIX) $(LIBDIR)
+$(LOADDIR)/GlishTk$(SUFFIX): GlishTk$(SUFFIX)
+	$(MKHIER) $(LOADDIR)
+	$(INSTALL_LIBRARY) GlishTk$(SUFFIX) $(LOADDIR)
 
 tkUtil.o: $(SRC)/tkUtil.cc $(SRC)/tkUtil.h $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkUtil.cc
