@@ -176,22 +176,34 @@ Proxy *Proxy::Done( Value * )
 	return this;
 	}
 
-void Proxy::SendCtor( const char *name )
+void Proxy::SendCtor( const char *name, Proxy *source )
 	{
 	recordptr rec = create_record_dict();
 	rec->Insert( strdup(PXCREATE), create_value((int*)id.array(),ProxyId::len(),COPY_ARRAY) );
-	if ( ReplyPending( ) )
+	if ( ! source )
 		{
-		char *pending = store->TakePending();
-		GlishEvent e( pending, create_value(rec) );
-		e.SetIsReply( );
-		e.SetIsProxy( );
-		PostEvent( &e );
+		if ( ReplyPending( ) )
+			{
+			char *pending = store->TakePending();
+			GlishEvent e( pending, create_value(rec) );
+			e.SetIsReply( );
+			e.SetIsProxy( );
+			PostEvent( &e );
+			}
+		else
+			{
+			GlishEvent e( name, create_value(rec) );
+			e.SetIsProxy( );
+			PostEvent( &e );
+			}
 		}
 	else
 		{
-		GlishEvent e( name, create_value(rec) );
-		e.SetIsProxy( );
-		PostEvent( &e );
+		Value *v = create_value(rec);
+		if ( ReplyPending( ) )
+			source->Reply( v );
+		else
+			source->PostEvent( name, v );
+		Unref(v);
 		}
 	}

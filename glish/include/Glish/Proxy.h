@@ -60,7 +60,7 @@ friend class ProxyStore;
 
 	const ProxyId &Id( ) const { return id; }
 
-	void SendCtor( const char *name = "new" );
+	void SendCtor( const char *name = "new", Proxy *source = 0 );
 
 	void Unrecognized( )	{ store->Unrecognized( id ); }
 

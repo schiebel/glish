@@ -751,7 +751,7 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	if ( frame )
 		{
 		canvas->Add(frame);
-		frame->SendCtor("newtk");
+		frame->SendCtor("newtk", canvas);
 		}
 
 	return 0;

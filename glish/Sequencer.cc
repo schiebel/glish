@@ -2926,7 +2926,17 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 				ProxyTask *pxy = task->GetProxy(id);
 				if ( pxy )
 					{
-					event->SetValue((Value*)copy_value(nval));
+					const IValue *pp = 0;
+					if ( nval->Type() == TYPE_RECORD &&
+					     (pp = (IValue*)nval->HasRecordElement("*proxy-create*")) &&
+					     pp->Type() == TYPE_INT && pp->Length() == ProxyId::len() )
+						{
+						ProxyTask *pxy = new ProxyTask(ProxyId(pp->IntPtr(0)), task, this);
+						event->SetValue( (Value*)(value = pxy->AgentRecord()) );
+						}
+					else
+						event->SetValue((Value*)copy_value(nval));
+
 					agent = pxy;
 					}
 				else
