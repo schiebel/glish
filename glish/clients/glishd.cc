@@ -31,9 +31,6 @@ RCSID("@(#) $Id$")
 #include "ports.h"
 
 
-#undef DAEMON_PORT
-#define DAEMON_PORT 4077
-
 inline int streq( const char* a, const char* b ) { return ! strcmp( a, b ); }
 const char* get_prog_name( const char* full_path );
 
