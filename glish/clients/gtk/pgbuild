@@ -1,9 +1,0 @@
-#!/bin/sh
-echo /opt/local/bin/g++ -I. -I.. -I../../.. -I../../../include -I../../../../include -I/loc/tcl/include -I/opt/local/X11R5/include -fPIC -g -DTKPGPLOT -I../tkpgplot -I/opt/local/pgplot -c ../tkPgplot.cc
-/opt/local/bin/g++ -I. -I.. -I../../.. -I../../../include -I../../../../include -I/loc/tcl/include -I/opt/local/X11R5/include -fPIC -g -DTKPGPLOT -I/opt/local/pgplot -I/aips++/weekly/code/aips/glish/glish/clients/gtk/tkpgplot -c ../tkPgplot.cc
-
-#echo /usr/ccs/bin/ld -G -z text -o gPgplot.so tkPgplot.o ../tkpgplot/pgplot/libtkpgdrv.a /opt/local/lib/libcpgplot.a /opt/local/lib/libpgplot.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libV77.a /opt/SUNWspro/SC4.2/lib/libM77.a /opt/SUNWspro/SC4.2/lib/libsunmath.a -lm
-#/usr/ccs/bin/ld -G -z text -o gPgplot.so tkPgplot.o ../tkpgplot/pgplot/libtkpgdrv.a /opt/local/lib/libcpgplot.a /opt/local/lib/libpgplot.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libV77.a /opt/SUNWspro/SC4.2/lib/libM77.a /opt/SUNWspro/SC4.2/lib/libsunmath.a -lm
-
-echo /usr/ccs/bin/ld -G -o gPgplot.so tkPgplot.o ../tkpgplot/pgplot/libtkpgdrv.a /opt/local/lib/libcpgplot.a /opt/local/lib/libpgplot.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libV77.a /opt/SUNWspro/SC4.2/lib/libM77.a /opt/SUNWspro/SC4.2/lib/libsunmath.a -lm
-/usr/ccs/bin/ld -G -o gPgplot.so tkPgplot.o ../tkpgplot/pgplot/libtkpgdrv.a /opt/local/lib/libcpgplot.a /opt/local/lib/libpgplot.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libF77.a /opt/SUNWspro/SC4.2/lib/libV77.a /opt/SUNWspro/SC4.2/lib/libM77.a /opt/SUNWspro/SC4.2/lib/libsunmath.a -lm
