@@ -63,6 +63,7 @@ DelObj::~DelObj()
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\
+	STAT4( (void*) this, "Value(", #constructor_type,")" )		\
 	InitValue();							\
 	kernel.SetArray( &value, 1, 1 );				\
 	}
@@ -70,6 +71,7 @@ Value::Value( constructor_type value )					\
 #define DEFINE_ARRAY_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value[], int len, array_storage_type s ) \
 	{								\
+	STAT4( (void*) this, "Value(", #constructor_type, "[] )" )	\
 	InitValue();							\
 	kernel.SetArray( value, len, s == COPY_ARRAY || s == PRESERVE_ARRAY ); \
 	}
@@ -77,6 +79,7 @@ Value::Value( constructor_type value[], int len, array_storage_type s ) \
 #define DEFINE_ARRAY_REF_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type& value_ref )				\
 	{								\
+	STAT4( (void*) this, "Value(", #constructor_type, "& )" )	\
 	InitValue();							\
 	SetValue( value_ref );						\
 	}
@@ -98,6 +101,7 @@ DEFINE_CONSTRUCTORS(charptr,charptrref)
 
 Value::Value( recordptr value )
 	{
+	STAT2( (void*) this, "Value( recordptr )" )
 	InitValue();
 	kernel.SetRecord( value );
 	}
@@ -105,6 +109,7 @@ Value::Value( recordptr value )
 
 Value::Value( SDS_Index& value )
 	{
+	STAT2( (void*) this, "Value( SDS_Index & )" )
 	InitValue();
 	SetValue( value );
 	}
@@ -112,6 +117,7 @@ Value::Value( SDS_Index& value )
 
 Value::Value( Value* ref_value, value_type val_type )
 	{
+	STAT2( (void*) this, "Value( Value*, value_type )" )
 	InitValue();
 
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
@@ -135,6 +141,7 @@ Value::Value( Value* ref_value, value_type val_type )
 Value::Value( Value* ref_value, int index[], int num_elements,
 		value_type val_type )
 	{
+	STAT2( (void*) this, "Value( Value*, int[], int, value_type )" )
 	InitValue();
 	SetValue( ref_value, index, num_elements, val_type );
 	attributes = ref_value->CopyAttributePtr();
@@ -2859,356 +2866,22 @@ void Value::AssignElements( const Value* index, Value* value )
 	Unref( value );
 	}
 
-void Value::AssignElements( const_value_list* args_val, Value* value )
-	{
-	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
-		{
-		error->Report( "invalid type in n-D assignment:", this );
-		return;
-		}
-
-	// Collect attributes.
-	int args_len = (*args_val).length();
-	const attributeptr ptr = AttributePtr();
-	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
-	if ( ! shape_val || ! shape_val->IsNumeric() )
-		{
-		warn->Report( "invalid or non-existant \"shape\" attribute" );
-
-		if ( args_len >= 1 )
-			AssignElements( (*args_val)[0], value );
-		else
-			AssignElements( value );
-		return;
-		}
-
-	int shape_len = shape_val->Length();
-	if ( shape_len != args_len )
-		{
-		error->Report( "invalid number of indexes for:", this );
-		Unref(value);
-		return;
-		}
-
-	int shape_is_copy;
-	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
-	Value* op_val = (*ptr)["op[]"];
-
-	int* factor = new int[shape_len];
-	int cur_factor = 1;
-	int offset = 0;
-	int max_len = 0;
-	for ( int i = 0; i < args_len; ++i )
-		{
-		const Value* arg = (*args_val)[i];
-
-		if ( arg )
-			{
-			if ( ! arg->IsNumeric() )
-				{
-				error->Report( "index #", i+1, "into", this,
-						"is not numeric");
-
-				SUBOP_CLEANUP_1
-				Unref(value);
-				return;
-				}
-
-			if ( arg->Length() > max_len )
-				max_len = arg->Length();
-
-			if ( max_len == 1 )
-				{
-				int ind = arg->IntVal();
-				if ( ind < 1 || ind > shape[i] )
-					{
-					error->Report( "index #", i+1, "into",
-						this, "is out of range");
-					SUBOP_CLEANUP_1
-					Unref(value);
-					return;
-					}
-
-				offset += cur_factor * (ind - 1);
-				}
-			}
-
-		else
-			{ // Missing subscript.
-			if ( shape[i] > max_len )
-				max_len = shape[i];
-
-			if ( max_len == 1 )
-				offset += cur_factor * (shape[i] - 1);
-			}
-
-		factor[i] = cur_factor;
-		cur_factor *= shape[i];
-		}
-
-	// Check to see if we're valid.
-	if ( cur_factor > Length() )
-		{
-		error->Report( "\"::shape\"/length mismatch" );
-		SUBOP_CLEANUP_1
-		Unref(value);
-		return;
-		}
-	
-	glish_type max_type;
-	if ( ! compatible_types( this, value, max_type ) )
-		{
-		error->Report( "non-compatible types for assignment" );
-		SUBOP_CLEANUP_1
-		Unref(value);
-		return;
-		}
-
-	Polymorph( max_type );
-	value->Polymorph( max_type );
-
-	if ( max_len == 1 ) 
-		{
-		SUBOP_CLEANUP_1
-		switch ( Type() )
-			{
-#define ASSIGNELEMENTS_ACTION_A(tag,type,to_accessor,from_accessor,OFFSET,XLATE)\
-	case tag:							\
-		{							\
-		type* ret = to_accessor();				\
-		XLATE							\
-		ret[ OFFSET ] = value->from_accessor();			\
-		}							\
-		break;
-
-	ASSIGNELEMENTS_ACTION_A(TYPE_BOOL,glish_bool,BoolPtr,BoolVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_BYTE,byte,BytePtr,ByteVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_SHORT,short,ShortPtr,ShortVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_INT,int,IntPtr,IntVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_FLOAT,float,FloatPtr,FloatVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_DOUBLE,double,DoublePtr,DoubleVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,ComplexVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,DcomplexVal,offset,)
-	ASSIGNELEMENTS_ACTION_A(TYPE_STRING,charptr,StringPtr,StringVal,offset,)
-
-			case TYPE_SUBVEC_REF:
-			case TYPE_SUBVEC_CONST:
-				{
-				VecRef* ref = VecRefPtr();
-				switch ( ref->Val()->Type() )
-					{
-
-
-#define ASSIGNELEMENTS_ACTION_A_XLATE					\
-	int err;							\
-	int off = ref->TranslateIndex( offset, &err );			\
-	if ( err )							\
-		{							\
-		error->Report("index ",offset,				\
-			" out of range. Sub-vector reference may be invalid" );\
-		Unref(value);						\
-		return;							\
-		}
-
-ASSIGNELEMENTS_ACTION_A(TYPE_BOOL, glish_bool, BoolPtr, BoolVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_BYTE, byte, BytePtr, ByteVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_SHORT, short, ShortPtr, ShortVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_INT, int, IntPtr, IntVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_FLOAT, float, FloatPtr, FloatVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_DOUBLE, double, DoublePtr, DoubleVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_COMPLEX, complex, ComplexPtr, ComplexVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_DCOMPLEX, dcomplex, DcomplexPtr, DcomplexVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-ASSIGNELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
-	off,ASSIGNELEMENTS_ACTION_A_XLATE)
-
-				default:
-					fatal->Report(
-				"bad subvec type in Value::AssignElements" );
-					}
-				}
-				break;
-
-			default:			
-				fatal->Report(
-					"bad type in Value::AssignElements" );
-			}
-		Unref(value);
-		return;
-		}
-
-	int* index_is_copy = new int[shape_len];
-	int** index = new int*[shape_len];
-	int* cur = new int[shape_len];
-	int* len = new int[shape_len];
-	int vecsize = 1;
-	int is_element = 1;
-	int spoof_dimension = 0;
-	for ( i = 0; i < args_len; ++i )
-		{
-		const Value* arg = (*args_val)[i];
-		if ( arg )
-			{
-			index[i] = GenerateIndices( arg, len[i],
-						index_is_copy[i], 0 );
-			spoof_dimension = 0;
-			}
-
-		else
-			{ // Spoof entire dimension.
-			len[i] = shape[i];
-			index[i] = new int[len[i]];
-			for ( int j = 0; j < len[i]; j++ )
-				index[i][j] = j+1;
-			index_is_copy[i] = 1;
-			spoof_dimension = 1;
-			}
-
-		if ( is_element && len[i] > 1 )
-			is_element = 0;
-
-		vecsize *= len[i];
-		cur[i] = 0;
-
-		if ( ! spoof_dimension )
-			{
-			for ( int j = 0; j < len[i]; ++j )
-				{
-				if ( index[i][j] >= 1 &&
-				     index[i][j] <= shape[i] )
-					continue;
-
-				if ( len[i] > 1 )
-					error->Report( "index #", i+1, ",",
-							j+1, " into ", this, 
-							"is out of range.");
-				else
-					error->Report( "index #", i+1, "into",
-						this, "is out of range.");
-
-				Unref(value);
-				SUBOP_ABORT(i,)
-				}
-			}
-		}
-
-	// Loop through filling resultant vector.
-
-	switch ( Type() )
-		{
-#define ASSIGNELEMENTS_ACTION(tag,type,to_accessor,from_accessor,OFFSET,copy_func,XLATE)	\
-	case tag:							\
-		{							\
-		int is_copy;						\
-		type* vec = value->from_accessor( is_copy, vecsize );	\
-		type* ret = to_accessor();				\
-									\
-		for ( int v = 0; v < vecsize; ++v )			\
-			{						\
-			/**** Calculate offset ****/			\
-			for ( i = 0, offset = 0; i < shape_len; ++i )	\
-				offset += factor[i] *			\
-						(index[i][cur[i]]-1);	\
-			/**** Set Value ****/				\
-			XLATE						\
-			ret[ OFFSET ] = copy_func( vec[v] );		\
-			/****  Advance counters ****/			\
-			for ( i = 0; i < shape_len; ++i )		\
-				if ( ++cur[i] < len[i] )		\
-					break;				\
-				else					\
-					cur[i] = 0;			\
-			}						\
-									\
-		if ( is_copy )						\
-			delete vec;					\
-									\
-		delete len;						\
-		}							\
-		break;
-
-ASSIGNELEMENTS_ACTION(TYPE_BOOL,glish_bool,BoolPtr,CoerceToBoolArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_BYTE,byte,BytePtr,CoerceToByteArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,offset,,)
-ASSIGNELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,strdup,)
-
-		case TYPE_SUBVEC_REF:
-		case TYPE_SUBVEC_CONST:
-			{
-			VecRef* ref = VecRefPtr();
-			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
-
-			switch ( theVal->Type() )
-				{
-
-#define ASSIGNELEMENTS_ACTION_XLATE					\
-	int err;							\
-	int off = ref->TranslateIndex( offset, &err );			\
-	if ( err )							\
-		{							\
-		if ( is_copy )						\
-			delete vec;					\
-		delete len;						\
-		SUBOP_CLEANUP_2(shape_len)				\
-		error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
-		Unref(value);						\
-		return;							\
-		}
-
-ASSIGNELEMENTS_ACTION(TYPE_BOOL, glish_bool, BoolPtr, CoerceToBoolArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_BYTE, byte, BytePtr, CoerceToByteArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_SHORT, short, ShortPtr, CoerceToShortArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_INT, int, IntPtr, CoerceToIntArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_FLOAT, float, FloatPtr, CoerceToFloatArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_DOUBLE, double, DoublePtr, CoerceToDoubleArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_COMPLEX, complex, ComplexPtr, CoerceToComplexArray,off,,
-	ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_DCOMPLEX, dcomplex, DcomplexPtr,
-	CoerceToDcomplexArray, off,, ASSIGNELEMENTS_ACTION_XLATE)
-ASSIGNELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
-	CoerceToStringArray, off, strdup, ASSIGNELEMENTS_ACTION_XLATE)
-
-				default:
-					fatal->Report(
-				"bad subref type in Value::AssignElements" );
-				}
-			}
-			break;
-
-		default:
-			fatal->Report( "bad type in Value::AssignElements" );
-		}
-
-	SUBOP_CLEANUP_2(shape_len)
-	Unref(value);
-	return;
-	}
-
 void Value::AssignElements( Value* value )
 	{
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		AssignRecordElements( value );
 	else
 		AssignArrayElements( value );
+
+	Unref( value );
+	}
+
+void Value::AssignElements( const_value_list* args_val, Value* value )
+	{
+	if ( VecRefDeref()->Type() == TYPE_RECORD )
+		error->Report("bad type in Value::AssignElements,", __LINE__);
+	else
+		AssignArrayElements( args_val, value );
 
 	Unref( value );
 	}
@@ -3582,6 +3255,342 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 		}
 	}
 
+
+void Value::AssignArrayElements( const_value_list* args_val, Value* value )
+	{
+	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
+		{
+		error->Report( "invalid type in n-D assignment:", this );
+		return;
+		}
+
+	// Collect attributes.
+	int args_len = (*args_val).length();
+	const attributeptr ptr = AttributePtr();
+	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
+	if ( ! shape_val || ! shape_val->IsNumeric() )
+		{
+		warn->Report( "invalid or non-existant \"shape\" attribute" );
+
+		Ref(value);		// Our caller && AssignElements() will unref
+
+		if ( args_len >= 1 )
+			AssignElements( (*args_val)[0], value );
+		else
+			AssignElements( value );
+		return;
+		}
+
+	int shape_len = shape_val->Length();
+	if ( shape_len != args_len )
+		{
+		error->Report( "invalid number of indexes for:", this );
+		return;
+		}
+
+	int shape_is_copy;
+	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
+	Value* op_val = (*ptr)["op[]"];
+
+	int* factor = new int[shape_len];
+	int cur_factor = 1;
+	int offset = 0;
+	int max_len = 0;
+	for ( int i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+
+		if ( arg )
+			{
+			if ( ! arg->IsNumeric() )
+				{
+				error->Report( "index #", i+1, "into", this,
+						"is not numeric");
+
+				SUBOP_CLEANUP_1
+				return;
+				}
+
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
+
+			if ( max_len == 1 )
+				{
+				int ind = arg->IntVal();
+				if ( ind < 1 || ind > shape[i] )
+					{
+					error->Report( "index #", i+1, "into",
+						this, "is out of range");
+					SUBOP_CLEANUP_1
+					return;
+					}
+
+				offset += cur_factor * (ind - 1);
+				}
+			}
+
+		else
+			{ // Missing subscript.
+			if ( shape[i] > max_len )
+				max_len = shape[i];
+
+			if ( max_len == 1 )
+				offset += cur_factor * (shape[i] - 1);
+			}
+
+		factor[i] = cur_factor;
+		cur_factor *= shape[i];
+		}
+
+	// Check to see if we're valid.
+	if ( cur_factor > Length() )
+		{
+		error->Report( "\"::shape\"/length mismatch" );
+		SUBOP_CLEANUP_1
+		return;
+		}
+	
+	glish_type max_type;
+	if ( ! compatible_types( this, value, max_type ) )
+		{
+		error->Report( "non-compatible types for assignment" );
+		SUBOP_CLEANUP_1
+		return;
+		}
+
+	Polymorph( max_type );
+	value->Polymorph( max_type );
+
+	if ( max_len == 1 ) 
+		{
+		SUBOP_CLEANUP_1
+		switch ( Type() )
+			{
+#define ASSIGN_ARY_ELEMENTS_ACTION_A(tag,type,to_accessor,from_accessor,OFFSET,XLATE)\
+	case tag:							\
+		{							\
+		type* ret = to_accessor();				\
+		XLATE							\
+		ret[ OFFSET ] = value->from_accessor();			\
+		}							\
+		break;
+
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_BOOL,glish_bool,BoolPtr,BoolVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_BYTE,byte,BytePtr,ByteVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_SHORT,short,ShortPtr,ShortVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_INT,int,IntPtr,IntVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_FLOAT,float,FloatPtr,FloatVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DOUBLE,double,DoublePtr,DoubleVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,ComplexVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,DcomplexVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING,charptr,StringPtr,StringVal,offset,)
+
+			case TYPE_SUBVEC_REF:
+			case TYPE_SUBVEC_CONST:
+				{
+				VecRef* ref = VecRefPtr();
+				switch ( ref->Val()->Type() )
+					{
+
+
+#define ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE					\
+	int err;							\
+	int off = ref->TranslateIndex( offset, &err );			\
+	if ( err )							\
+		{							\
+		error->Report("index ",offset,				\
+			" out of range. Sub-vector reference may be invalid" );\
+		return;							\
+		}
+
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_BOOL, glish_bool, BoolPtr, BoolVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_BYTE, byte, BytePtr, ByteVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_SHORT, short, ShortPtr, ShortVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_INT, int, IntPtr, IntVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_FLOAT, float, FloatPtr, FloatVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DOUBLE, double, DoublePtr, DoubleVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX, complex, ComplexPtr, ComplexVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX, dcomplex, DcomplexPtr, DcomplexVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
+	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
+
+				default:
+					fatal->Report(
+				"bad subvec type in Value::AssignArrayElements" );
+					}
+				}
+				break;
+
+			default:			
+				fatal->Report(
+					"bad type in Value::AssignArrayElements" );
+			}
+		return;
+		}
+
+	int* index_is_copy = new int[shape_len];
+	int** index = new int*[shape_len];
+	int* cur = new int[shape_len];
+	int* len = new int[shape_len];
+	int vecsize = 1;
+	int is_element = 1;
+	int spoof_dimension = 0;
+	for ( i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+		if ( arg )
+			{
+			index[i] = GenerateIndices( arg, len[i],
+						index_is_copy[i], 0 );
+			spoof_dimension = 0;
+			}
+
+		else
+			{ // Spoof entire dimension.
+			len[i] = shape[i];
+			index[i] = new int[len[i]];
+			for ( int j = 0; j < len[i]; j++ )
+				index[i][j] = j+1;
+			index_is_copy[i] = 1;
+			spoof_dimension = 1;
+			}
+
+		if ( is_element && len[i] > 1 )
+			is_element = 0;
+
+		vecsize *= len[i];
+		cur[i] = 0;
+
+		if ( ! spoof_dimension )
+			{
+			for ( int j = 0; j < len[i]; ++j )
+				{
+				if ( index[i][j] >= 1 &&
+				     index[i][j] <= shape[i] )
+					continue;
+
+				if ( len[i] > 1 )
+					error->Report( "index #", i+1, ",",
+							j+1, " into ", this, 
+							"is out of range.");
+				else
+					error->Report( "index #", i+1, "into",
+						this, "is out of range.");
+
+				SUBOP_ABORT(i,)
+				}
+			}
+		}
+
+	// Loop through filling resultant vector.
+
+	switch ( Type() )
+		{
+#define ASSIGN_ARY_ELEMENTS_ACTION(tag,type,to_accessor,from_accessor,OFFSET,copy_func,XLATE)	\
+	case tag:							\
+		{							\
+		int is_copy;						\
+		type* vec = value->from_accessor( is_copy, vecsize );	\
+		type* ret = to_accessor();				\
+									\
+		for ( int v = 0; v < vecsize; ++v )			\
+			{						\
+			/**** Calculate offset ****/			\
+			for ( i = 0, offset = 0; i < shape_len; ++i )	\
+				offset += factor[i] *			\
+						(index[i][cur[i]]-1);	\
+			/**** Set Value ****/				\
+			XLATE						\
+			ret[ OFFSET ] = copy_func( vec[v] );		\
+			/****  Advance counters ****/			\
+			for ( i = 0; i < shape_len; ++i )		\
+				if ( ++cur[i] < len[i] )		\
+					break;				\
+				else					\
+					cur[i] = 0;			\
+			}						\
+									\
+		if ( is_copy )						\
+			delete vec;					\
+									\
+		delete len;						\
+		}							\
+		break;
+
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_BOOL,glish_bool,BoolPtr,CoerceToBoolArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_BYTE,byte,BytePtr,CoerceToByteArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,strdup,)
+
+		case TYPE_SUBVEC_REF:
+		case TYPE_SUBVEC_CONST:
+			{
+			VecRef* ref = VecRefPtr();
+			Value* theVal = ref->Val();
+			int theLen = theVal->Length();
+
+			switch ( theVal->Type() )
+				{
+
+#define ASSIGN_ARY_ELEMENTS_ACTION_XLATE					\
+	int err;							\
+	int off = ref->TranslateIndex( offset, &err );			\
+	if ( err )							\
+		{							\
+		if ( is_copy )						\
+			delete vec;					\
+		delete len;						\
+		SUBOP_CLEANUP_2(shape_len)				\
+		error->Report("invalid index (=",offset+1,"), sub-vector reference may be bad");\
+		return;							\
+		}
+
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_BOOL, glish_bool, BoolPtr, CoerceToBoolArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_BYTE, byte, BytePtr, CoerceToByteArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_SHORT, short, ShortPtr, CoerceToShortArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_INT, int, IntPtr, CoerceToIntArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_FLOAT, float, FloatPtr, CoerceToFloatArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DOUBLE, double, DoublePtr, CoerceToDoubleArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX, complex, ComplexPtr, CoerceToComplexArray,off,,
+	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX, dcomplex, DcomplexPtr,
+	CoerceToDcomplexArray, off,, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
+	CoerceToStringArray, off, strdup, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
+
+				default:
+					fatal->Report(
+				"bad subref type in Value::AssignArrayElements" );
+				}
+			}
+			break;
+
+		default:
+			fatal->Report( "bad type in Value::AssignArrayElements" );
+		}
+
+	SUBOP_CLEANUP_2(shape_len)
+	return;
+	}
 
 int Value::IndexRange( int* indices, int num_indices, int& max_index ) const
 	{

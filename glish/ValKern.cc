@@ -5,9 +5,6 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Value.h"
 #include "Glish/VecRef.h"
-#if defined(DO_STAT)
-#include "Reporter.h"
-#endif
 #include "system.h"
 #include <string.h>
 #include <stdlib.h>
@@ -86,6 +83,7 @@ unsigned long ValueKernel::otherLength() const
 
 void ValueKernel::SetRecord( recordptr r )
 	{
+	STAT2( (void*) this, "\tValueKernel::SetRecord recordptr")
 	unref( RECORD(mode) ? 0 : 1 );
 	mode = RECORD();
 	if ( ! record ) record = new record_t();
@@ -172,7 +170,7 @@ void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 
 void ValueKernel::unrefArray(int del)
 	{
-	STAT9("array unref (", (void*) this, "/", (void*) array," ref ",array->ref_count,", del ",del,")");
+	STAT7((void*) this, "\t\tarray unref c:",array->ref_count,"a:",(void*)array,"d:",del)
 	if ( array && --array->ref_count == 0 )
 		if ( del )
 			{
@@ -190,7 +188,7 @@ void ValueKernel::unrefArray(int del)
 
 void ValueKernel::unrefRecord(int del)
 	{
-	STAT9("record unref (", (void*) this, "/", (void*) record," ref ",record->ref_count,", del ",del,")");
+	STAT7((void*) this, "\t\trecord unref c:",record->ref_count,"r:",(void*)record,"d:",del)
 	if ( record && --record->ref_count == 0 )
 		if ( del )
 			{
@@ -200,7 +198,10 @@ void ValueKernel::unrefRecord(int del)
 		else
 			record->clear();
 	else
-		record = 0;
+		if ( del )
+			record = 0;
+		else
+			record = new record_t();
 	}
 
 ValueKernel::ValueKernel( glish_type t, unsigned long len, KernelCopyFunc c,
@@ -269,6 +270,7 @@ ValueKernel &ValueKernel::operator=( const ValueKernel &v )
 void ValueKernel::SetArray( TYPE vec[], unsigned long len, int copy,		\
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )	\
 	{									\
+	STAT4( (void*) this, "\tValueKernel::SetArray ", #TYPE, "[]" )		\
 	ARRAY_SET_BODY(TYPE,GLISH_TYPE)						\
 	}
 
@@ -285,6 +287,7 @@ DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 void ValueKernel::SetArray( voidptr vec[], unsigned long len, glish_type t, int copy,
 		    KernelCopyFunc c, KernelZeroFunc z, KernelDeleteFunc d )
 	{
+	STAT2( (void*) this, "\tValueKernel::SetArray void*")
 	ARRAY_SET_BODY(voidptr,t)
 	}
 
@@ -326,7 +329,7 @@ void *ValueKernel::modArray( )
 		return array->values;
 	else
 		{
-		STAT7("array copy (", (void*) this, "/", (void*) array," ref ",array->ref_count,")");
+		STAT5((void*) this, "\t\tarray copy c:",array->ref_count,"a:",(void*)array)
 		array_t *k = array;
 		unrefArray();
 		array->SetType( k->type, k->copy, k->zero );
@@ -348,10 +351,9 @@ recordptr ValueKernel::modRecord( )
 		return record->record;
 	else
 		{
-		STAT7("array copy (", (void*) this, "/", (void*) array," ref ",array->ref_count,")");
+		STAT5((void*) this, "\t\trecord copy c:",record->ref_count,"r:",(void*)record)
 		record_t *a = record;
 		unrefRecord();
-		record = 0;
 		SetRecord(copy_record_dict(a->record));
 		}
 	return record->record;
