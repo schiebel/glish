@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 #include <sys/socket.h>
 #include <string.h>
 #include <stdlib.h>
+#include "Sequencer.h"
 #include "Glish/Reporter.h"
 
 #if HAVE_OSFCN_H
@@ -148,7 +149,7 @@ int SelectTimer::DoExpiration()
 	}
 
 
-Selector::Selector() : await_done(0), break_selection(0)
+Selector::Selector() : break_selection(0)
 	{
 #ifdef HAVE_SETRLIMIT
 	struct rlimit rl;
@@ -321,15 +322,11 @@ void Selector::BreakSelection()
 	break_selection = 1;
 	}
 
-int Selector::DoSelection( int CanBlock )
+int Selector::DoSelection( Sequencer *seq, int CanBlock )
 	{
 	break_selection = 0;
 
-	if ( await_done )
-		{
-		await_done = 0;
-		return 1;
-		}
+	if ( seq->AwaitDone( ) ) return 1;
 
 	struct timeval min_t;
 	struct timeval timeout_buf;

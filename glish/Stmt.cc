@@ -654,13 +654,6 @@ IValue* AwaitStmt::DoExec( evalOpt & )
 
 	sequencer->Await( this, only_flag, except_stmt );
 
-	Notification *cached_note = 0;
-	int len = cached_notes.length();
-	if ( len && (cached_note=cached_notes.remove_nth(len-1)) && cached_note != sequencer->LastNotification() )
-		sequencer->PushNote(cached_note);
-	else
-		Unref(cached_note);
-
 	loop_over_list( *await_list, k )
 		(*await_list)[k]->UnRegister( this );
 
@@ -671,38 +664,9 @@ IValue* AwaitStmt::DoExec( evalOpt & )
 	return 0;
 	}
 
-void AwaitStmt::Notify( Agent* /* agent */ )
-	{
-	Notification *note = sequencer->LastNotification();
-	// can get notifications for whenever stmts
-	if ( note->type() == Notification::AWAIT )
-		{
-		// with re-entrant whenever stmts, can get
-		// duplicate notifications
-		int curlen = cached_notes.length();
-		if ( curlen <= 0 || ! cached_notes[curlen-1] ||
-		     cached_notes[curlen-1]->value != note->value )
-			{
-			Ref(note);
-			cached_notes.append(note);
-			}
-		}
-	}
-
 Notification::Type AwaitStmt::NoteType( ) const
 	{
 	return Notification::AWAIT;
-	}
-
-void AwaitStmt::ClearCachedNote()
-	{
-	Notification *cached_note = 0;
-	int len = cached_notes.length();
-	if ( len && (cached_note=cached_notes.remove_nth(len-1)) )
-		{
-		Unref(cached_note);
-		cached_notes.append(0);
-		}
 	}
 
 const char *AwaitStmt::TerminateInfo() const

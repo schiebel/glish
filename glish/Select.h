@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #endif
 
+class Sequencer;
 class SelectTimer;
 
 glish_declare(PList,SelectTimer);
@@ -87,8 +88,6 @@ public:
 	virtual void AddSelectee( Selectee* s );
 	virtual void DeleteSelectee( int selectee_fd, Selectee *replacement=0 );
 
-	void AwaitDone() { await_done = 1; }
-
 	// Returns the Selectee associated with the given fd, or, if
 	// none, returns 0.
 	Selectee* FindSelectee( int selectee_fd ) const;
@@ -104,7 +103,7 @@ public:
 	// If selection stops early due to non-zero return from Selectee's
 	// NotifyOfSelection(), returns that non-zero value.  Otherwise
 	// returns 0.
-	virtual int DoSelection( int CanBlock=1 );
+	virtual int DoSelection( Sequencer *seq, int CanBlock=1 );
 
 	void BreakSelection();
 
@@ -124,7 +123,6 @@ protected:
 	fd_set* w_fdset;
 	timer_list timers;
 
-	int await_done;
 	int break_selection;
 	};
 

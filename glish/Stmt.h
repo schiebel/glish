@@ -273,7 +273,6 @@ class AwaitStmt : public Stmt {
 		   Sequencer* arg_sequencer );
 
 	IValue* DoExec( evalOpt &opt );
-	void Notify( Agent* agent );
 	int Describe( OStream& s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
 		{ return Describe( s, ioOpt() ); }
@@ -288,15 +287,12 @@ class AwaitStmt : public Stmt {
 
 	Notification::Type NoteType( ) const;
 
-	void ClearCachedNote( );
-
     protected:
 	event_dsg_list* await_list;
 	int only_flag;
 	event_dsg_list* except_list;
 	Sequencer* sequencer;
 	Stmt* except_stmt;
-	notification_list cached_notes;
 	};
 
 

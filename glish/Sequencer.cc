@@ -199,18 +199,18 @@ void await_type::set( Agent *a, const char *n )
 	filled_name = 0;
 	}
 
-int await_type::SetValue( Agent *agent_, const char *name_, IValue *val )
+int await_type::SetValue( Agent *agent_, const char *name_x, IValue *val, int force )
 	{
 	agent_list *al = 0;
 	if ( filled_value || filled_name || filled_agent ) return 0;
-	if ( dict() && ( !(al = (*dict())[name_]) || !al->is_member(agent_) ) )
+	if ( ! force && dict() && ( !(al = (*dict())[name_x]) || !al->is_member(agent_) ) )
 		return 0;
 
 	filled_value = val;
 	if ( filled_value ) Ref(filled_value);
 	filled_agent = agent_;
 	if ( filled_agent ) Ref(filled_agent);
-	filled_name = name_ ? string_dup(name_) : 0;
+	filled_name = name_x ? string_dup(name_x) : 0;
 	return 1;
 	}
 
@@ -1153,11 +1153,6 @@ void Sequencer::toplevelreset()
 		await_type *last = await_list.remove_nth(len-1);
 		if ( last ) delete last;
 		}
-
-	await.set( );
-	if ( last_await_info ) delete last_await_info;
-	last_await_info = 0;
-	current_await_done = 0;
 	}
 
 void Sequencer::InitScriptClient( evalOpt &opt )
@@ -1379,8 +1374,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	stmts = null_stmt;
 	last_task_id = my_id = 1;
 
-	current_await_done = 0;
-	last_await_info = 0;
 	pending_task = 0;
 	stdin_selectee_removed = 0;
 
@@ -2209,7 +2202,14 @@ Sequencer *Sequencer::CurSeq ( )
 
 const AwaitStmt *Sequencer::ActiveAwait ( )
 	{
-	return (const AwaitStmt*) cur_sequencer->await.stmt();
+	await_type *aw = cur_sequencer->await();
+	return (const AwaitStmt*) (aw ? aw->stmt() : 0);
+	}
+
+int Sequencer::AwaitDone( )
+	{
+	await_type *aw = await( );
+	return aw && aw->ResultValue( );
 	}
 
 #define DECLARE_PATHFUNC( NAME )					\
@@ -2805,53 +2805,14 @@ IValue *Sequencer::Exec( evalOpt &opt, int startup_script, int value_needed )
 	return ret;
 	}
 
-void Sequencer::CurrentAwaitDone()
-	{
-	current_await_done = 1;
-	selector->BreakSelection();
-	}
-
 void Sequencer::PushAwait( )
 	{
-	if ( await.active() )
-		{
-		if ( current_await_done && last_await_info )
-			if ( await.stmt() && last_await_info->stmt() == await.stmt() ||
-			     await.agent() && last_await_info->agent() == await.agent() )
-				{
-				await_list.append( last_await_info );
-				last_await_info = 0;
-				}
-			else
-				await_list.append( new await_type(await) );
-		else
-			await_list.append( new await_type(await) );
-		}
-
-	current_await_done = 0;
+	await_list.append( new await_type( ) );
 	}
 
-void Sequencer::PopAwait( )
+await_type *Sequencer::PopAwait( )
 	{
-	int len = 0;
-	if ( (len = await_list.length()) )
-		{
-		await_type *last = await_list.remove_nth(len-1);
-		if ( last )
-			{
-			await = *last;
-			if ( last->ResultValue( ) && last->ResultName( ) && last->ResultAgent( ) )
-				{
-				CurrentAwaitDone();
-				if ( last_await_info ) delete last_await_info;
-				last_await_info = last;
-				}
-			else
-				delete last;
-			}
-		}
-	else
-		await.set( );
+	return await_list.remove_nth(await_list.length()-1);
 	}
 
 void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
@@ -2861,7 +2822,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 	PushAwait( );
 
-	await.set( arg_await_stmt, arg_except_stmt, only_flag );
+	await( )->set( arg_await_stmt, arg_except_stmt, only_flag );
 
 	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
@@ -2877,16 +2838,10 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 	EventLoop( 1 );
 
-	if ( current_await_done && last_await_info )
-		{
-		PushNote( new Notification( last_await_info->ResultAgent(), last_await_info->ResultName(),
-				            last_await_info->ResultValue(), 0, 0, Notification::AWAIT ) );
-		delete last_await_info;
-		last_await_info = 0;
-		arg_await_stmt->ClearCachedNote();
-		}
-
-	current_await_done = 0;
+	await_type *awt = PopAwait();
+	PushNote( new Notification( awt->ResultAgent(), awt->ResultName(),
+                  awt->ResultValue(), 0, 0, Notification::AWAIT ) );
+	if ( awt ) delete awt;
 
 	if ( isatty( fileno( stdin ) ) && removed_stdin )
 		{
@@ -2896,8 +2851,6 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		nb_reset_term(0);
 #endif
 		}
-
-	PopAwait();
 	}
 
 int Sequencer::HaveStdinSelectee( ) const
@@ -3015,7 +2968,7 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 
 	PushAwait( );
 
-	await.set( agent, reply_name );
+	await( )->set( agent, reply_name );
 
 	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
@@ -3031,31 +2984,21 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 
 	EventLoop( 1 );
 
-	IValue *result = 0;
+	IValue *result = await( )->ResultValue( );
 
-	if ( current_await_done && last_await_info )
-		{
-		result = last_await_info->ResultValue( );
-		// save result from last_await_info deletion
-		Ref(result);
-		delete last_await_info;
-		last_await_info = 0;
-		}
-
-	else if ( ! last_reply )
+	if ( ! result )
 		{
 		warn->Report( agent, " terminated without replying to ",
 				event_name, " request" );
 		result = error_ivalue();
 		}
-
 	else
-		result = last_reply;
+		Ref( result );
 
-	current_await_done = 0;
 	last_reply = 0;
 
-	PopAwait();
+	await_type *awt = PopAwait();
+	if ( awt ) delete awt;
 
 	if ( isatty( fileno( stdin ) ) && removed_stdin )
 		{
@@ -3335,13 +3278,18 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		return 0;
 	}
 
-
-void Sequencer::CheckAwait( Agent* agent, const char* event_name )
+void Sequencer::CheckAwait( Agent* agent, const char* event_name, IValue *event_val )
 	{
-	if ( await.stmt() && agent->HasRegisteredInterest( await.stmt(), event_name ) )
-		selector->AwaitDone();
-	else if ( await.agent() && await.agent() == agent->AgentTask() && ! strcmp( await.name(), event_name ) )
-		selector->AwaitDone();
+	for ( int i=await_list.length()-1; i >= 0; --i )
+		{
+		await_type *aw = await_list[i];
+		if ( aw->stmt() && agent->HasRegisteredInterest( aw->stmt(), event_name ) ||
+		     aw->agent() && aw->agent() == agent->AgentTask() && ! strcmp( aw->name(), event_name ) )
+			{
+			aw->SetValue( agent, event_name, event_val, 1 );
+			break;
+			}
+		}
 	}
 
 #define NEWEVENT_BODY								\
@@ -3428,7 +3376,9 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 	int reply_event = 0;
 	int await_finished = 0;
 
-	if ( await.active() )
+	await_type *aw = await( );
+
+	if ( aw )
 		{
 		int found_match = 0;
 
@@ -3454,20 +3404,20 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 
 		if ( ! found_match )
 			{
-			if ( await.agent() && await.agent() == agent &&
-			     ! strcmp( await.name(), event_name ) )
+			if ( aw->agent() && aw->agent() == agent &&
+			     ! strcmp( aw->name(), event_name ) )
 				{
 				reply_event = 1;
 				await_finished = 1;
 				last_reply = value;
 				Ref(last_reply);
 				}
-			else if ( await.stmt() )
+			else if ( aw->stmt() )
 				{
-				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
+				await_finished = agent->HasRegisteredInterest( aw->stmt(), event_name );
 
-				if ( ! await_finished && await.only( ) &&
-				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
+				if ( ! await_finished && aw->only( ) &&
+				     ! agent->HasRegisteredInterest( aw->except(), event_name ) )
 					ignore_event = 1;
 				}
 			}
@@ -3478,7 +3428,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 		if ( ignore_event )
 			warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
-		else if ( ! await.agent() || ! await_finished )
+		else if ( ! aw || ! aw->agent() || ! await_finished )
 			{
 			/* We're going to want to keep the event value as a */
 			/* field in the agent's AgentRecord.                */
@@ -3511,7 +3461,9 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 	int reply_event = 0;
 	int await_finished = 0;
 
-	if ( await.active() )
+	await_type *aw = await( );
+
+	if ( aw )
 		{
 		int found_match = 0;
 
@@ -3530,27 +3482,27 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 				}
 			else if ( agent->HasRegisteredInterest( await_list[X]->stmt(), event_name ) )
 				{
-				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) )
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value, 0 )) )
 					break;
 				}
 			}
 
 		if ( ! found_match )
 			{
-			if ( await.agent() && await.agent() == agent &&
-			     ! strcmp( await.name(), event_name ) )
+			if ( aw->agent() && aw->agent() == agent &&
+			     ! strcmp( aw->name(), event_name ) )
 				{
 				reply_event = 1;
 				await_finished = 1;
 				last_reply = value;
 				Ref(last_reply);
 				}
-			else if ( await.stmt() )
+			else if ( aw->stmt() )
 				{
-				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name );
+				await_finished = agent->HasRegisteredInterest( aw->stmt(), event_name );
 
-				if ( ! await_finished && await.only( ) &&
-				     ! agent->HasRegisteredInterest( await.except(), event_name ) )
+				if ( ! await_finished && aw->only( ) &&
+				     ! agent->HasRegisteredInterest( aw->except(), event_name ) )
 					ignore_event = 1;
 				}
 			}
@@ -3561,7 +3513,7 @@ int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_int
 		if ( ignore_event )
 			warn->Report( "event ", agent->Name(), ".", event_name,
 				      " ignored due to \"await\"" );
-		else if ( ! await.agent() || ! await_finished )
+		else if ( ! aw || ! aw->agent() || ! await_finished )
 			{
 			/* We're going to want to keep the event value as a */
 			/* field in the agent's AgentRecord.                */
@@ -4133,14 +4085,9 @@ int Sequencer::EventLoop( int in_await )
 		pending_task = 0;
 		}
 
-	if ( in_await && current_await_done )
-		return ActiveClients();
-
-	while ( ! selector->DoSelection() )
+	while ( ! selector->DoSelection( this ) )
 		{
-		if ( in_await && current_await_done ) break;
 		RunQueue();
-		if ( in_await && current_await_done ) break;
 		}
 
 	return ActiveClients();

@@ -222,7 +222,7 @@ class await_type GC_FINAL_CLASS {
 	//
 	// values for satisfied await
 	//
-	int SetValue( Agent *agent_, const char *name_, IValue *val );
+	int SetValue( Agent *agent_, const char *name_, IValue *val, int force=0 );
 	IValue *ResultValue( ) { return filled_value; }
 	Agent *ResultAgent( ) { return filled_agent; }
 	const char *ResultName( ) const { return filled_name; }
@@ -294,6 +294,7 @@ public:
 
 	static Sequencer *CurSeq( );
 	static const AwaitStmt *ActiveAwait( );
+	int AwaitDone( );
 	static char *BinPath( const char *host, const char *var = 0 );
 	static char *LdPath( const char *host, const char *var = 0 );
 
@@ -478,7 +479,7 @@ public:
 
 	// With UserAgents, the event handling never goes through
 	// Sequencer::NewEvent(), so Agent need to be able
-	void CheckAwait( Agent* agent, const char* event_name );
+	void CheckAwait( Agent* agent, const char* event_name, IValue *event_val );
 
 	// Report a "system" event; one that's reflected by the "system"
 	// global variable.
@@ -579,8 +580,7 @@ protected:
 	void SetupSysValue( IValue * );
 
 	void PushAwait( );
-	void PopAwait();
-	void CurrentAwaitDone();
+	await_type *PopAwait();
 
 	int *NewObjId( Task *t );
 	int xpid;
@@ -636,10 +636,10 @@ protected:
 	Dict(int) include_once;
 	char *expanded_name;
 
-	await_type await;
+	await_type *await( ) { return await_list[await_list.length()-1]; }
 	awaittype_list await_list;
 	await_type *last_await_info;
-	int current_await_done;
+
 	IValue* last_reply;
 	int stdin_selectee_removed;
 
