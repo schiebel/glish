@@ -132,7 +132,8 @@ static char *rcsid = "$Id$";
 # endif
 #endif
 /* I just hate HPsUX */
-#if defined(__HPUX_VERSION) && __HPUX_VERSION > 9
+/* You said it!! */
+#if ( defined(__HPUX_VERSION) && __HPUX_VERSION > 9 ) || ( defined(__GNUC__) && defined(__hpux__) )
 # define  PAUSE_MASK_T int
 #else
 # define PAUSE_MASK_T MASK_T
