@@ -845,7 +845,7 @@ void yyerror( char msg[] )
 
 	current_whenever_index = -1;
 
-	parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
+	error->Report( msg, " at or near '", yytext, "'" );
 	}
 
 

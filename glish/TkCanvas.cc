@@ -829,6 +829,17 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	procs.Insert("tagabove", new TkProc("addtag","above", 2, glishtk_canvas_tagfunc));
 	procs.Insert("tagbelow", new TkProc("addtag","below", 2, glishtk_canvas_tagfunc));
 	procs.Insert("deltag", new TkProc("dtag", (const char*) 0, 1, glishtk_canvas_tagfunc));
+
+	//
+	// Hack to make sure row 1 column 1 is visible initially.
+	//
+	Scrollbar_notify_data data;
+	data.scrollbar_is_vertical = 1;
+	data.scroll_op = 2;
+	data.newpos = 1;
+	rivet_scrollbar_set_client_view( self, &data );
+	data.scrollbar_is_vertical = 0;
+	rivet_scrollbar_set_client_view( self, &data );
 	}
 
 int TkCanvas::ItemCount(const char *name) const

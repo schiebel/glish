@@ -21,6 +21,9 @@ RCSID("@(#) $Id$")
 #include "Task.h"
 #include "Sequencer.h"
 #include "Frame.h"
+
+#include <strstream.h>
+
 #ifdef GLISHTK
 #include "TkAgent.h"
 #include "TkCanvas.h"
@@ -1832,6 +1835,17 @@ IValue* as_string_built_in( const IValue* arg )
 		char **ptr = new char*[1];
 		ptr[0] = arg->StringVal();
 		return new IValue( (charptr*) ptr, 1 );
+		}
+
+	//
+	// Perhaps this too should be segmented.
+	//
+	if ( arg->Type() == TYPE_FUNC )
+		{
+		strstream sout;
+		arg->Describe( sout );
+		sout << '\0';
+		return new IValue( (const char *) sout.str() );
 		}
 
 	if ( ! arg->IsNumeric() )

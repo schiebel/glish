@@ -75,6 +75,15 @@ class Stmt : public ParseNode {
 
 	virtual ~Stmt();
 
+	//
+	// Sometimes, e.g. when a syntax error occurs, the stmt tree can
+	// get messed up. In particular, one node can be included more than
+	// once in the tree. This function collects those nodes in the tree
+	// which can be Unref'ed in the stmt_list. This prevents nodes from
+	// being freed more than once.
+	//
+	virtual void CollectUnref( stmt_list & );
+
     protected:
 	// DoExec() does the real work of executing the statement.
 	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
@@ -91,6 +100,8 @@ class SeqStmt : public Stmt {
 	void Describe( ostream& s ) const;
 
 	~SeqStmt();
+
+	void CollectUnref( stmt_list & );
 
     protected:
 	Stmt* lhs;
@@ -121,6 +132,8 @@ class WheneverStmt : public Stmt {
 	void Describe( ostream& s ) const;
 
 	int canDelete() const;
+
+	void CollectUnref( stmt_list & );
 
     protected:
 	event_list* trigger;
@@ -174,6 +187,8 @@ class AwaitStmt : public Stmt {
 
 	~AwaitStmt();
 
+	void CollectUnref( stmt_list & );
+
     protected:
 	event_list* await_list;
 	int only_flag;
@@ -211,6 +226,8 @@ class IfStmt : public Stmt {
 
 	~IfStmt();
 
+	void CollectUnref( stmt_list & );
+
     protected:
 	Expr* expr;
 	Stmt* true_branch;
@@ -228,6 +245,8 @@ class ForStmt : public Stmt {
 
 	~ForStmt();
 
+	void CollectUnref( stmt_list & );
+
     protected:
 	Expr* index;
 	Expr* range;
@@ -243,6 +262,8 @@ class WhileStmt : public Stmt {
 	void Describe( ostream& s ) const;
 
 	~WhileStmt();
+
+	void CollectUnref( stmt_list & );
 
     protected:
 	Expr* test;
@@ -395,6 +416,8 @@ class StmtBlock : public Stmt {
 	void Describe( ostream& s ) const;
 
 	~StmtBlock();
+
+	void CollectUnref( stmt_list & );
 
     protected:
 	Sequencer *sequencer;

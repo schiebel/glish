@@ -21,6 +21,14 @@ extern int current_whenever_index;
 
 Stmt::~Stmt() { }
 
+void Stmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		del_list.append( this );
+	}
+
 IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	{
 	int prev_line_num = line_num;
@@ -75,6 +83,20 @@ IValue* SeqStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	return result;
 	}
 
+void SeqStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( lhs ) lhs->CollectUnref( del_list );
+		if ( rhs ) rhs->CollectUnref( del_list );
+		lhs = rhs = 0;
+		del_list.append( this );
+		}
+	}
+
+static int cnt = 0;
 void SeqStmt::Describe( ostream& s ) const
 	{
 	s << "{\n";
@@ -116,6 +138,18 @@ WheneverStmt::~WheneverStmt()
 			Unref( (*trigger)[i] );
 
 		delete trigger;
+		}
+	}
+
+void WheneverStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( stmt ) stmt->CollectUnref( del_list );
+		stmt = 0;
+		del_list.append( this );
 		}
 	}
 
@@ -353,6 +387,18 @@ AwaitStmt::~AwaitStmt()
 	NodeUnref( except_stmt );
 	}
 
+void AwaitStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( except_stmt ) except_stmt->CollectUnref( del_list );
+		except_stmt = 0;
+		del_list.append( this );
+		}
+	}
+
 AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 			event_list* arg_except_list, Sequencer* arg_sequencer )
 	{
@@ -494,6 +540,19 @@ IfStmt::~IfStmt()
 	NodeUnref( false_branch );
 	}
 
+void IfStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( true_branch ) true_branch->CollectUnref( del_list );
+		if ( false_branch ) false_branch->CollectUnref( del_list );
+		true_branch = false_branch = 0;
+		del_list.append( this );
+		}
+	}
+
 IfStmt::IfStmt( Expr* arg_expr, Stmt* arg_true_branch,
 		Stmt* arg_false_branch )
 	{
@@ -551,6 +610,18 @@ ForStmt::~ForStmt()
 	NodeUnref( index );
 	NodeUnref( range );
 	NodeUnref( body );
+	}
+
+void ForStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( body ) body->CollectUnref( del_list );
+		body = 0;
+		del_list.append( this );
+		}
 	}
 
 ForStmt::ForStmt( Expr* index_expr, Expr* range_expr,
@@ -614,6 +685,18 @@ WhileStmt::~WhileStmt()
 	{
 	NodeUnref( test );
 	NodeUnref( body );
+	}
+
+void WhileStmt::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( body ) body->CollectUnref( del_list );
+		body = 0;
+		del_list.append( this );
+		}
 	}
 
 WhileStmt::WhileStmt( Expr* test_expr, Stmt* body_stmt )
@@ -883,6 +966,18 @@ void ReturnStmt::Describe( ostream& s ) const
 StmtBlock::~StmtBlock()
 	{
 	NodeUnref( stmt );
+	}
+
+void StmtBlock::CollectUnref( stmt_list &del_list )
+	{
+	if ( RefCount() > 1 )
+		NodeUnref( this );
+	else if ( ! del_list.is_member( this ) )
+		{
+		if ( stmt ) stmt->CollectUnref( del_list );
+		stmt = 0;
+		del_list.append( this );
+		}
 	}
 
 StmtBlock::StmtBlock( int fsize, Stmt *arg_stmt,

@@ -235,7 +235,7 @@ UserFuncKernel::~UserFuncKernel()
 	delete formals;	      
 
 	NodeUnref(subsequence_expr);
-	Unref( body );
+	NodeUnref( body );
 	}
 
 IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type *stack )

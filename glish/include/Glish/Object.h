@@ -34,9 +34,10 @@ class GlishRef {
 
 class GlishObject : public GlishRef {
     public:
-	GlishObject() : file( file_name ? new Str(*file_name) : 0 ),
+	GlishObject() : file( file_name && file_name->chars() ?
+			      new Str(*file_name) : 0 ),
 			line(line_num) { }
-	virtual ~GlishObject()	{ }
+	virtual ~GlishObject()	{ if ( file ) delete file; }
 
 	int Line()		{ return line; }
 
@@ -58,6 +59,10 @@ class GlishObject : public GlishRef {
 		{ ((const GlishObject*) this)->Describe( stream ); }
 	void DescribeSelf( ostream& stream )
 		{ ((const GlishObject*) this)->DescribeSelf( stream ); }
+	// Get a quick (minimal) description of the object. This is
+	// used in CallExpr::Eval() to get the name of the function.
+	// Getting it via a stream is just too much overhead.
+	const char *Description() const { return description; }
 
 	const Str strFail( const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,

@@ -753,7 +753,7 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, parameter_list *args,
 	HASARG( args, > 0 )
 	int c = 0;
 	EXPRSTR( str, event_name )
-	sprintf(index,"%d",Parent->Index(Self));
+	sprintf(index,"%d",Parent->Index(Self) - 1);
 	ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", index, (char*) cmd, (char*) str, 0 );
 	EXPR_DONE( str )
 	return ret;

@@ -1719,12 +1719,7 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	IValue* result = 0;
 
-	strstream sout;
-	op->Describe( sout );
-	sout << '\0';
-	char *str = new char[ strlen(sout.str())+1 ];
-	strcpy(str,sout.str());
-	sequencer->PushFuncName( str );
+	sequencer->PushFuncName( strdup(op->Description()) );
 
 	if ( ! func_val || ! (result = func_val->Call( args, etype )) )
 		{

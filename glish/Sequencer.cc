@@ -1929,6 +1929,14 @@ IValue *Sequencer::Include( const char *file )
 			ret = 0;
 			}
 		}
+	else if ( stmts )
+		{
+		stmt_list del;
+		stmts->CollectUnref(del);
+		loop_over_list( del, i )
+			NodeUnref( del[i] );
+		stmts = 0;
+		}
 
 	file_name = old_file_name;
 	clear_error();
