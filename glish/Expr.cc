@@ -11,6 +11,7 @@ RCSID("@(#) $Id$")
 #include "Expr.h"
 #include "Agent.h"
 #include "Func.h"
+#include "config.h"
 
 int ParseNode::canDelete() const
 	{
@@ -579,7 +580,7 @@ IValue* ConstructExpr::BuildArray()
 	const_value_ptr* values = new const_value_ptr[num_values];
 
 	int total_length = 0;
-	for ( i = 0; i < args->length(); ++i )
+	for ( LOOPDECL i = 0; i < args->length(); ++i )
 		{
 		Parameter* arg = (*args)[i];
 
@@ -607,7 +608,7 @@ IValue* ConstructExpr::BuildArray()
 	else
 		result = error_ivalue();
 
-	for ( i = 0; i < args->length(); ++i )
+	for ( LOOPDECL i = 0; i < args->length(); ++i )
 		if ( ! (*args)[i]->IsEllipsis() )
 			(*args)[i]->Arg()->ReadOnlyDone( values[i] );
 
@@ -688,7 +689,7 @@ int ConstructExpr::AllEquivalent( const IValue* values[], int num_values,
 			}
 
 	// Now check whether all non-empty arrays conform to that type.
-	for ( i = 0; i < num_values; ++i )
+	for ( LOOPDECL i = 0; i < num_values; ++i )
 		{
 		const IValue* v = (const IValue*)(values[i]->VecRefDeref());
 
@@ -887,7 +888,7 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 				}
 
 			result = (IValue*)((*array)[&val_list]);
-			for ( i = 0; i < args->length(); ++i )
+			for ( LOOPDECL i = 0; i < args->length(); ++i )
 				if ( (arg = (*args)[i]) )
 					arg->ReadOnlyDone( (const IValue*) val_list[i] );
 
@@ -1016,7 +1017,7 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 				}
 
 			result = (IValue*)(array->SubRef( &val_list ));
-			for ( i = 0; i < args->length(); ++i )
+			for ( LOOPDECL i = 0; i < args->length(); ++i )
 				if ( (arg = (*args)[i]) )
 					arg->ReadOnlyDone( (const IValue*)(val_list[i]) );
 
@@ -1161,7 +1162,7 @@ void ArrayRefExpr::Assign( IValue* new_value )
 				}
 
 			lhs_value->AssignElements( &val_list, new_value );
-			for ( i = 0; i < args->length(); ++i )
+			for ( LOOPDECL i = 0; i < args->length(); ++i )
 				if ( (arg = (*args)[i]) )
 					arg->ReadOnlyDone( (const IValue*)(val_list[i]) );
 

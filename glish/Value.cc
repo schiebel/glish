@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 
 #include "glish_event.h"
 #include "Reporter.h"
+#include "config.h"
 
 int num_Values_created = 0;
 int num_Values_deleted = 0;
@@ -851,7 +852,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			element_count < max_elements) )
 		{
 		// Output the plane label
-		for ( i = 0; i < shape_len; ++i )
+		for ( LOOPDECL i = 0; i < shape_len; ++i )
 			{
 			if ( i == r )
 				sprintf( numeric_buf, "1:%d", shape[r] );
@@ -874,7 +875,8 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			for ( indices[c] = 0; indices[c] < shape[c] - 1;
 			      ++indices[c] )
 				{
-				for ( i = 0, offset = 0; i < shape_len; ++i )
+				offset = 0;
+				for ( LOOPDECL i = 0; i < shape_len; ++i )
 					offset += factor[i] * indices[i];
 
 				char store[256];
@@ -895,7 +897,8 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			for ( indices[c] = 0; indices[c] < shape[c] && ( !max_elements ||
 				element_count < max_elements); ++indices[c] )
 				{
-				for ( i = 0, offset = 0; i < shape_len; ++i )
+				offset = 0;
+				for ( LOOPDECL i = 0; i < shape_len; ++i )
 					offset += factor[i] * indices[i];
 
 				const char* addition = numeric_buf;
@@ -912,7 +915,8 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 					int n = column_width[indices[c]] -
 						strlen( addition ) + 1;
 
-					for ( i = 0; i < n; ++i )
+					LOOPDECL i = 0;
+					for ( ; i < n; ++i )
 						affix[i] = ' ';
 					affix[i] = '\0';
 					}
@@ -932,7 +936,7 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 			}
 
 		// Increment counters.
-		for ( i = 0; i <= max_free; ++i )
+		for ( LOOPDECL i = 0; i <= max_free; ++i )
 			{
 			if ( i == r || i == c )
 				continue;
@@ -1017,7 +1021,7 @@ char* Value::RecordStringVal() const
 
 	strcpy( result, "[" );
 
-	for ( i = 0; i < len; ++i )
+	for ( LOOPDECL i = 0; i < len; ++i )
 		{
 		sprintf( &result[strlen( result )], "%s=%s, ",
 			 key_strs[i], element_strs[i] );
@@ -1622,7 +1626,7 @@ Value* Value::operator []( const_value_list* args_val ) const
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
-	for ( i = 0; i < args_len; ++i )
+	for ( LOOPDECL i = 0; i < args_len; ++i )
 		{
 		const Value* arg = (*args_val)[i];
 		if ( arg )
@@ -1673,44 +1677,46 @@ Value* Value::operator []( const_value_list* args_val ) const
 	Value* result;
 	switch ( Type() )
 		{
-#define SUBSCRIPT_OP_ACTION(tag,type,accessor,LEN,OFFSET,copy_func,ERROR)\
-	case tag:							\
-		{							\
-		type* vec = accessor;					\
-		type* ret = new type[vecsize];				\
-									\
-		for ( int v = 0; v < vecsize; ++v )			\
-			{						\
-			/**** Calculate offset ****/			\
-			for ( i = 0, offset = 0; i < shape_len; ++i )	\
-				offset += factor[i] *			\
-						(index[i][cur[i]]-1);	\
-			/**** Set Value ****/				\
-			ERROR						\
-			ret[v] = copy_func( vec[OFFSET] );		\
-			/****  Advance counters ****/			\
-			for ( i = 0; i < shape_len; ++i )		\
-				if ( ++cur[i] < len[i] )		\
-					break;				\
-				else					\
-					cur[i] = 0;			\
-			}						\
-									\
-		result = create_value( ret, vecsize );			\
-		if ( ! is_element )					\
-			{						\
-			for ( int x = 0, z = 0; x < shape_len; ++x )	\
-				if ( len[x] > 1 )			\
-					len[z++] = len[x];		\
-									\
-			result->AssignAttribute( "shape",		\
-						create_value( len, z ) );\
-			if ( op_val )					\
-				result->AssignAttribute( "op[]", op_val );\
-			}						\
-		else							\
-			delete len;					\
-		}							\
+#define SUBSCRIPT_OP_ACTION(tag,type,accessor,LEN,OFFSET,copy_func,ERROR)	\
+	case tag:								\
+		{								\
+		type* vec = accessor;						\
+		type* ret = new type[vecsize];					\
+										\
+		for ( int v = 0; v < vecsize; ++v )				\
+			{							\
+			/**** Calculate offset ****/				\
+			offset = 0;						\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )		\
+				offset += factor[i] *				\
+						(index[i][cur[i]]-1);		\
+			/**** Set Value ****/					\
+			ERROR							\
+			ret[v] = copy_func( vec[OFFSET] );			\
+			/****  Advance counters ****/				\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )		\
+				if ( ++cur[i] < len[i] )			\
+					break;					\
+				else						\
+					cur[i] = 0;				\
+			}							\
+										\
+		result = create_value( ret, vecsize );				\
+		if ( ! is_element )						\
+			{							\
+			int z = 0;						\
+			for ( int x = 0; x < shape_len; ++x )			\
+				if ( len[x] > 1 )				\
+					len[z++] = len[x];			\
+										\
+			result->AssignAttribute( "shape",			\
+						create_value( len, z ) );	\
+			if ( op_val )						\
+				result->AssignAttribute( "op[]", op_val );	\
+			}							\
+		else								\
+			delete len;						\
+		}								\
 		break;
 
 SUBSCRIPT_OP_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),length,offset,,)
@@ -1887,9 +1893,11 @@ Value* Value::Pick( const Value *index ) const
 		type* ptr = accessor();					\
 		type* ret = new type[ishape[0]];			\
 		int cur = 0;						\
-		for ( i = 0; i < ishape[0]; ++i )			\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
-			for ( int j = 0, offset = 0; j < ishape[1]; ++j )\
+			offset = 0;					\
+			int j = 0;					\
+			for ( ; j < ishape[1]; ++j )			\
 				{					\
 				cur = indx[i + j * ishape[0]];		\
 				if ( cur < 1 || cur > shape[j] )	\
@@ -1981,9 +1989,10 @@ Value* Value::PickRef( const Value *index )
 
 	int* ret = new int[ishape[0]];
 	int cur = 0;
-	for ( i = 0; i < ishape[0]; ++i )
+	for ( LOOPDECL i = 0; i < ishape[0]; ++i )
 		{
-		for ( int j = 0, offset = 0; j < ishape[1]; ++j )
+		offset = 0;
+		for ( int j = 0; j < ishape[1]; ++j )
 			{
 			cur = indx[i + j * ishape[0]];
 			if ( cur < 1 || cur > shape[j] )
@@ -2032,10 +2041,11 @@ void Value::PickAssign( const Value* index, Value* value )
 		{							\
 		int cur = 0;						\
 		int* offset_vec = new int[ishape[0]];			\
-		for ( i = 0; i < ishape[0]; ++i )			\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			{						\
 			offset_vec[i] = 0;				\
-			for ( int j = 0; j < ishape[1]; ++j )		\
+			int j = 0;					\
+			for ( ; j < ishape[1]; ++j )			\
 				{					\
 				cur = indx[i + j * ishape[0]];		\
 				if ( cur < 1 || cur > shape[j] )	\
@@ -2055,7 +2065,7 @@ void Value::PickAssign( const Value* index, Value* value )
 		int is_copy;						\
 		type* vec = value->from_accessor( is_copy, ishape[0] );	\
 		type* ret = to_accessor();				\
-		for ( i = 0; i < ishape[0]; ++i )			\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
 			ret[ offset_vec[i] ] = COPY_FUNC( vec[i] );	\
 		delete offset_vec;					\
 		if ( is_copy )						\
@@ -2275,7 +2285,7 @@ Value* Value::SubRef( const_value_list *args_val )
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
-	for ( i = 0; i < args_len; ++i )
+	for ( LOOPDECL i = 0; i < args_len; ++i )
 		{
 		const Value* arg = (*args_val)[i];
 		if ( arg )
@@ -2328,14 +2338,15 @@ Value* Value::SubRef( const_value_list *args_val )
 	for ( int v = 0; v < vecsize; ++v )
 		{
 		// Calculate offset.
-		for ( i = 0, offset = 0; i < shape_len; ++i )
+		offset = 0;
+		for ( LOOPDECL i = 0; i < shape_len; ++i )
 			offset += factor[i] * (index[i][cur[i]] - 1);
 
 		// Set value.
 		ret[v] = offset + 1;
 
 		// Advance counters.
-		for ( i = 0; i < shape_len; ++i )
+		for ( LOOPDECL i = 0; i < shape_len; ++i )
 			if ( ++cur[i] < len[i] )
 				break;
 			else
@@ -2345,7 +2356,8 @@ Value* Value::SubRef( const_value_list *args_val )
 	Value* result = create_value( (Value*) this, ret, vecsize, VAL_REF );
 	if ( ! is_element )
 		{
-		for ( int x = 0, z = 0; x < shape_len; ++x )
+		int z = 0;
+		for ( int x = 0; x < shape_len; ++x )
 			if ( len[x] > 1 )
 				len[z++] = len[x];
 
@@ -2670,7 +2682,7 @@ int* Value::GenerateIndices( const Value* index, int& num_indices,
 		indices_are_copy = 1;
 
 		num_indices = 0;
-		for ( i = 0; i < index_len; ++i )
+		for ( LOOPDECL i = 0; i < index_len; ++i )
 			if ( vals[i] )
 				indices[num_indices++] = i + 1;
 		}
@@ -2708,7 +2720,7 @@ Value* Value::ArrayRef( int* indices, int num_indices )
 		{							\
 		type* source_ptr = accessor(0);				\
 		type* new_values = new type[num_indices];		\
-		for ( i = 0; i < num_indices; ++i )			\
+		for ( LOOPDECL i = 0; i < num_indices; ++i )		\
 			{						\
 			XLATE						\
 			new_values[i] = copy_func(source_ptr[OFFSET]);	\
@@ -3440,7 +3452,7 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 	int vecsize = 1;
 	int is_element = 1;
 	int spoof_dimension = 0;
-	for ( i = 0; i < args_len; ++i )
+	for ( LOOPDECL i = 0; i < args_len; ++i )
 		{
 		const Value* arg = (*args_val)[i];
 		if ( arg )
@@ -3501,14 +3513,15 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 		for ( int v = 0; v < vecsize; ++v )			\
 			{						\
 			/**** Calculate offset ****/			\
-			for ( i = 0, offset = 0; i < shape_len; ++i )	\
+			offset = 0;					\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )	\
 				offset += factor[i] *			\
 						(index[i][cur[i]]-1);	\
 			/**** Set Value ****/				\
 			XLATE						\
 			ret[ OFFSET ] = copy_func( vec[v] );		\
 			/****  Advance counters ****/			\
-			for ( i = 0; i < shape_len; ++i )		\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )	\
 				if ( ++cur[i] < len[i] )		\
 					break;				\
 				else					\
@@ -3852,7 +3865,7 @@ ADD_TO_SDS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,SDS_DOUBLE_COMPLEX)
 			char* heap = new char[total_size];
 
 			char* heap_ptr = heap;
-			for ( i = 0; i < length; ++i )
+			for ( LOOPDECL i = 0; i < length; ++i )
 				{
 				strcpy( heap_ptr, strs[i] );
 				heap_ptr += strlen( strs[i] ) + 1;
@@ -4124,7 +4137,8 @@ Value* create_record()
 static charptr* make_string_array( char* heap, int len, int& result_len )
 	{
 	result_len = 0;
-	for ( char* heap_ptr = heap; heap_ptr < &heap[len]; ++heap_ptr )
+	char* heap_ptr = heap;
+	for ( ; heap_ptr < &heap[len]; ++heap_ptr )
 		if ( *heap_ptr == '\0' )
 			++result_len;
 

@@ -52,3 +52,6 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* Define to be "int" if C++ for loops have local scope.  */
+#undef LOOPDECL

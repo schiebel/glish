@@ -349,7 +349,8 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 
 	CreateSignalHandler();
 
-	for ( int i = 1; i <= argc; ++i )
+	int i = 1;
+	for ( ; i <= argc; ++i )
 		orig_argv[i] = *(argv++);
 
 	orig_argv[i] = 0;
@@ -638,7 +639,8 @@ int Client::ReRegister( char* registration_name )
 		message->Report( "starting local daemon ..." );
 		start_local_daemon();
 		const int tries = 15;
-		for (int count=tries; count && ! glishd_running; count--)
+		int count = tries;
+		for ( ; count && ! glishd_running; count--)
 			{
 			if ( count != tries )
 				{

@@ -823,7 +823,7 @@ IValue* RepBuiltIn::DoCall( const_args_list* args_val )
 				{						\
 				type* vec = new type[veclen];			\
 				type* elm = element->accessor(0);		\
-				for ( i=0; i < times_len; ++i )			\
+				for ( LOOPDECL i=0; i < times_len; ++i )	\
 					for ( int j=0; j < times_vec[i]; ++j )	\
 					  vec[off++] = copy_func( elm[i] );	\
 				ret = new IValue( vec, veclen );		\
@@ -1326,7 +1326,8 @@ IValue* PasteBuiltIn::DoCall( const_args_list* args_val )
 	int len = 1;	// Room for end-of-string.
 	int sep_len = strlen( separator );
 
-	for ( int i = 1; i < args_val->length(); ++i )
+	int i = 1;
+	for ( ; i < args_val->length(); ++i )
 		{
 		unsigned int limit = (*args_val)[i]->PrintLimit();
 		string_vals[i] = (*args_val)[i]->StringVal( ' ', limit, 1 );
@@ -1834,7 +1835,8 @@ IValue* as_string_built_in( const IValue* arg )
 		byte* vals = arg->BytePtr(0);
 		char* s = new char[len+1];
 
-		for ( int i = 0; i < len; ++i )
+		int i = 0;
+		for ( ; i < len; ++i )
 			s[i] = char(vals[i]);
 
 		s[i] = '\0';
@@ -1992,7 +1994,8 @@ IValue* field_names_built_in( const IValue* arg )
 	charptr* names = new charptr[len];
 	const char* key;
 
-	for ( int i = 0; i < len; ++i )
+	int i = 0;
+	for ( ; i < len; ++i )
 		{
 		IValue* nth_val = (IValue*)record_dict->NthEntry( i, key );
 		if ( ! nth_val )

@@ -237,7 +237,8 @@ IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	}
 
 	// Match until a named argument is encountered.
-	loop_over_list( *args, i )
+	int i;
+	loop_over_list_nodecl( *args, i )
 		{
 		Parameter* arg = (*args)[i];
 
@@ -342,7 +343,8 @@ IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 
 		else
 			{
-			loop_over_list( *formals, j )
+			int j;
+			loop_over_list_nodecl( *formals, j )
 				{
 				const char* formal_name = (*formals)[j]->Name();
 
@@ -390,8 +392,8 @@ IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 
 			const char* formal_name = f->Name();
 
-			for ( int match = first_named_arg;
-			      match < num_supplied_args; ++match )
+			int match = first_named_arg;
+			for ( ; match < num_supplied_args; ++match )
 				{
 				const char* actual_name =
 					(*args)[match]->Name();

@@ -748,7 +748,8 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 		case ANY_SCOPE:
 			{
 			int off = scopes.length()-1;
-			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+			int cnt = off;
+			for ( ; ! result && cnt >= 0; cnt-- )
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )
@@ -860,7 +861,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 		case ANY_SCOPE:
 			{
 			int off = scopes.length()-1;
-			for ( int cnt = off; ! result && cnt >= 0; cnt-- )
+			int cnt = off;
+			for ( ; ! result && cnt >= 0; cnt-- )
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )

@@ -450,7 +450,8 @@ void ClientTask::CreateAsyncClient( const char** argv )
 
 	sequencer->NewClientStarted();
 
-	for ( int argc = 0; argv[argc]; ++argc )
+	int argc = 0;
+	for ( ; argv[argc]; ++argc )
 		;
 
 	(void) CreateEvent( "activate", new IValue( argv, argc, COPY_ARRAY ) );

@@ -4,6 +4,7 @@
 RCSID("@(#) $Id$")
 #include <string.h>
 #include "Glish/Dict.h"
+#include "config.h"
 
 
 // If the mean bucket length exceeds the following then Insert() will
@@ -289,7 +290,7 @@ void Dictionary::ChangeSize( int new_size )
 	delete tbl;
 	Init( new_size );
 
-	for ( i = 0; i < current->length(); ++i )
+	for ( LOOPDECL i = 0; i < current->length(); ++i )
 		Insert( (*current)[i] );
 
 	if ( ! order )

@@ -111,7 +111,8 @@ void BaseList::insert(ent a)
 
 ent BaseList::remove(ent a)
 	{
-	for ( int i = 0; i < num_entries && a != entry[i]; i++ )
+	int i = 0;
+	for ( ; i < num_entries && a != entry[i]; i++ )
 		;
 
 	return remove_nth(i);
@@ -210,7 +211,8 @@ int BaseList::resize(int new_size)
 
 ent BaseList::is_member(ent e) const
 	{
-	for ( int i = 0; i < length() && e != entry[i]; i++ )
+	int i = 0;
+	for ( ; i < length() && e != entry[i]; i++ )
 		;
 
 	return (i == length()) ? 0 : e;
