@@ -1765,15 +1765,11 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 			if ( &proxy_id == &glish_proxyid_dummy ||
 			     ! write_agent( sos, val, head, proxy_id ) )
 				{
-				warn->Report( "skipping agent value \"", (label ? label : "?"),
-					      "\" in creation of dataset" );
 				write_value( sos, (Value*) false_value, label, name, proxy_id );
 				return;
 				}
 			break;
 		case TYPE_FUNC:
-			warn->Report( "skipping function value \"", (label ? label : "?"),
-					"\" in creation of dataset" );
 			write_value( sos, (Value*) false_value, label, name, proxy_id );
 			return;
 			break;

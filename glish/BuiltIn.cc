@@ -160,11 +160,6 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 			{
 			int side_effects_okay = 0;
 			DoSideEffectsCall( args_vals, side_effects_okay );
-
-			if ( ! side_effects_okay )
-				warn->Report( "function return value ignored:",
-						this );
-
 			result = 0;
 			}
 
