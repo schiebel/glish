@@ -108,7 +108,7 @@ class WheneverStmt : public Stmt {
 	// proper index.
 	//
 	WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer );
-	SetStmt( Stmt* arg_stmt );
+	void SetStmt( Stmt* arg_stmt );
 
 	virtual ~WheneverStmt();
 

@@ -98,7 +98,7 @@ WheneverStmt::WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer )
 	description = "whenever";
 	}
 
-WheneverStmt::SetStmt( Stmt* arg_stmt )
+void WheneverStmt::SetStmt( Stmt* arg_stmt )
 	{
 	int tmp = current_whenever_index;
 	current_whenever_index = index;
