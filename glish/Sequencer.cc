@@ -693,6 +693,8 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 				int goff = global_scopes[gs_index];
 				if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
 					scope_offset = scope_index - goff;
+				else
+					scope_offset = scope_index - 1;
 				}
 			break;
 		case FUNC_SCOPE:
@@ -811,6 +813,8 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 			int goff = global_scopes[gs_index];
 			if ( scopes[goff]->GetScopeType() != GLOBAL_SCOPE )
 				scope_offset = scope_index - goff;
+			else
+				scope_offset = scope_index - 1;
 			}
 			break;
 		case FUNC_SCOPE:

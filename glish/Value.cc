@@ -546,7 +546,7 @@ static void append_buf( char* &buf, char* &buf_ptr, unsigned int& buf_size,
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt )
 	{
-	unsigned int limit = 0;
+	int limit = -1;
 	int tmp = 0;
 	const Value *val;
 	const Value *precv;
@@ -556,7 +556,7 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 			val->HasRecordElement( "precision" ) &&
 			(precv=val->ExistingRecordElement( "precision" )) &&
 			precv != false_value && precv->IsNumeric() &&
-			(tmp = precv->IntVal()) > 0 )
+			(tmp = precv->IntVal()) >= 0 )
 		limit = tmp;
 	else if ( (val = lookup_sequencer_value( "system" )) && 
 			val->Type() == TYPE_RECORD &&
@@ -567,13 +567,13 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 			printv->HasRecordElement( "precision" ) &&
 			(precv = printv->ExistingRecordElement("precision")) &&
 			precv != false_value && precv->IsNumeric() &&
-			(tmp = precv->IntVal()) > 0)
+			(tmp = precv->IntVal()) >= 0)
 		limit = tmp;
 
-	if ( limit )
+	if ( limit >= 0 )
 		sprintf(prec,"%%.%df",limit);
 
-	return limit ? prec : default_fmt;
+	return limit >= 0 ? prec : default_fmt;
 	}
 
 char* Value::StringVal( char sep, unsigned int max_elements,
