@@ -397,7 +397,7 @@ IValue* RelExpr::Eval( eval_type /* etype */ )
 	const IValue* rhs = right->ReadOnlyEval();
 
 	IValue* result;
-	int lhs_len;
+	int lhs_len = lhs->Length();
 	int element_by_element;
 	IValue *err = 0;
 	if ( ! ( err = TypeCheck( lhs, rhs, element_by_element )) &&

@@ -1913,8 +1913,7 @@ void Sequencer::DeleteVal( const char* id )
 		if ( iv )
 			{
 			IValue *newval = new IValue(glish_false);
-			iv->TakeValue(newval);
-			Unref(newval);
+			iv->TakeValue(newval);		// Unref()s newval
 			}
 		// Create an impossible, non-clashing name
 		sprintf(buf,"*%lx*",filler++);

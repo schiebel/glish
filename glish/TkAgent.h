@@ -384,6 +384,8 @@ class TkButton : public TkRadioContainer {
 	void Disable( );
 	void Enable( int force = 1 );
 
+	Rivetobj TopLevel();
+
     protected:
 	IValue *value;
 

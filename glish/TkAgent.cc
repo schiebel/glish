@@ -3174,6 +3174,11 @@ int CLASS::CanExpand() const				\
 STD_EXPAND_PACKINSTRUCTION(TkButton)
 STD_EXPAND_CANEXPAND(TkButton)
 
+Rivetobj TkButton::TopLevel( )
+	{
+	return frame ? frame->TopLevel() : menu ? menu->TopLevel() : 0;
+	}
+
 DEFINE_DTOR(TkScale)
 
 void TkScale::UnMap()
