@@ -27,6 +27,7 @@ class LocalExec : public Executable {
     protected:
 	static PList(LocalExec) *doneList;
 	void MakeExecutable( const char** argv );
+	int Active( int ignore_deactivate );
 
 	int pid;
 	};

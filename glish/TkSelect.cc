@@ -39,7 +39,10 @@ TkSelector::~TkSelector() { }
 void TkSelector::AddSelectee( Selectee *s )
 	{
 	Selector::AddSelectee( s );
-	Tk_CreateFileHandler( s->FD(), TK_READABLE, TkFileProc, (ClientData) this );
+	if ( s->type() == Selectee::READ )
+		Tk_CreateFileHandler( s->FD(), TK_READABLE, TkFileProc, (ClientData) this );
+	else
+		Tk_CreateFileHandler( s->FD(), TK_WRITABLE, TkFileProc, (ClientData) this );
 	}
 
 void TkSelector::DeleteSelectee( int selectee_fd )

@@ -58,14 +58,22 @@ LocalExec::LocalExec( const char* arg_executable )
 
 LocalExec::~LocalExec()
 	{
-	if ( Active() )
+	if ( Active( 1 ) )
+		{
 		kill( pid, SIGTERM );
+		Active( 1 );
+		}
+
 	if ( doneList )
 		{
 		signal_handler old = install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
 		doneList->remove(this);
 		install_signal_handler( GLISH_SIGCHLD, (signal_handler) old );
 		}
+
+	int status;
+	wait_for_pid( pid, &status, 0 );	// NEED TO REVISIT THIS. WHY AREN'T THESE BEING
+						// WAITED ON IN NORMAL COURSE?
 	}
 
 void LocalExec::MakeExecutable( const char** argv )
@@ -111,9 +119,9 @@ void LocalExec::MakeExecutable( const char** argv )
 	}
 
 
-int LocalExec::Active()
+int LocalExec::Active( int ignore_deactivate )
 	{
-	if ( has_exited || exec_error || deactivated )
+	if ( has_exited || exec_error || ( !ignore_deactivate && deactivated ) )
 		return 0;
 
 	int status;
@@ -139,6 +147,10 @@ int LocalExec::Active()
 	return 0;
 	}
 
+int LocalExec::Active()
+	{
+	return Active( 0 );
+	}
 
 void LocalExec::Ping()
 	{

@@ -126,6 +126,8 @@ class WheneverStmt : public Stmt {
 	int IsActiveFor( Agent* agent, const char* field, IValue* value ) const;
 	void SetActivity( int activate );
 
+	static unsigned int NotifyCount();
+
 	void Describe( OStream& s ) const;
 
 	int canDelete() const;
@@ -135,6 +137,7 @@ class WheneverStmt : public Stmt {
 	Stmt* stmt;
 	Sequencer* sequencer;
 	int active;
+	static unsigned int notify_count;
 	};
 
 

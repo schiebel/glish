@@ -1956,7 +1956,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		(*el)[X]->EventAgentDone();
 		}
 
-	if ( yyin && isatty( fileno( yyin ) ) && 
+	if ( yyin && isatty( fileno( yyin ) ) && WheneverStmt::NotifyCount() == 0 &&
 			selector->FindSelectee( fileno( yyin ) ) )
 		{
 		selector->DeleteSelectee( fileno( yyin ) );

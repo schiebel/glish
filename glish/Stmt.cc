@@ -20,7 +20,7 @@ RCSID("@(#) $Id$")
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
 extern int current_whenever_index;
-
+unsigned int WheneverStmt::notify_count = 0;
 
 Stmt::~Stmt() { }
 
@@ -199,6 +199,10 @@ void WheneverStmtCtor::Describe( OStream& s ) const
 	}
 
 
+unsigned int WheneverStmt::NotifyCount()
+	{
+	return notify_count;
+	}
 
 WheneverStmt::WheneverStmt(Sequencer *arg_seq) : sequencer(arg_seq), active(0)
 	{
@@ -239,7 +243,10 @@ int WheneverStmt::canDelete() const
 void WheneverStmt::Notify( Agent* /* agent */ )
 	{
 	stmt_flow_type flow;
+
+	notify_count += 1;
 	Unref( stmt->Exec( 0, flow ) );
+	notify_count -= 1;
 
 	if ( flow != FLOW_NEXT )
 		warn->Report( "loop/break/return does not make sense inside",

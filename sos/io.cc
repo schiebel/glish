@@ -79,7 +79,7 @@ struct sos_fd_buf_kernel {
 //  SOS_HEADER_SIZE bytes).
 //
 unsigned int sos_fd_buf_kernel::tmp_cnt = 16;
-unsigned int sos_fd_buf_kernel::tmp_size = 128;
+unsigned int sos_fd_buf_kernel::tmp_size = 256;
 unsigned int sos_fd_buf_kernel::size = MAXIOV;
 
 sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), tmp_cur(0), total(0)
@@ -136,10 +136,10 @@ sos_fd_buf_kernel *sos_fd_buf::next( )
 	}
 		  
 sos_fd_buf_kernel *sos_fd_buf::add( )
-	{
-	buf.append( new sos_fd_buf_kernel ); // later reuse these
-	return last( );
-	}
+        {
+        buf.append( new sos_fd_buf_kernel ); // later reuse these
+        return last( );
+        }
 
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
@@ -177,9 +177,9 @@ sos_status *sos_fd_sink::write( const char *cbuf, unsigned int len, buffer_type 
 		}
 
 	K.total += len;
-	if ( K.cnt >= K.size || type == COPY )
-		return flush( );
-
+	if ( K.cnt >= K.size || type == COPY )		//!!! Need to pay attention to
+		return flush( );			//!!! COPY items in the case of
+							//!!! a suspended write
 	return 0;
 	}
 
@@ -210,6 +210,7 @@ sos_status *sos_fd_sink::flush( )
 	int done = 0;
 	while ( K )
 		{
+		done += 1;
 		struct iovec *iov = K->iov;
 		unsigned int needed = K->total - sent;
 		unsigned int buckets = K->cnt - start;
@@ -219,6 +220,8 @@ sos_status *sos_fd_sink::flush( )
 			{
 			if ( cur < 0 )
 				{
+				sos_fd_buf_kernel *l = buf.last();
+				if ( l->cnt >= l->size ) buf.add( );
 				// resource temporarily unavailable
 				if ( errno == EAGAIN ) return this;
 				// broken pipe
@@ -246,7 +249,9 @@ sos_status *sos_fd_sink::flush( )
 				}
 
 			sent += cur;
-			if ( K->cnt >= K->size ) buf.add( );
+
+			sos_fd_buf_kernel *l = buf.last();
+			if ( l->cnt >= l->size ) buf.add( );
 			return this;
 			}
 
