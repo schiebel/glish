@@ -957,7 +957,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
 
 	rivet_va_func(self, Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
-		      rivet_new_callback(glishtk_delframe_cb,(ClientData) this, 0), 0);
+		      rivet_new_callback((int (*)()) glishtk_delframe_cb,(ClientData) this, 0), 0);
 
 	AddElement( this );
 
