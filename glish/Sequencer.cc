@@ -3404,7 +3404,7 @@ int SendSelectee::NotifyOfSelection()
 	if ( ! ss->resume( ) )
 		{
 		selector->DeleteSelectee( ss->fd() );
-		selector->AddSelectee( old );
+		if ( old ) selector->AddSelectee( old );
 		delete val;
 		}
 
