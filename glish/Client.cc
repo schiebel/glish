@@ -17,6 +17,13 @@ RCSID("@(#) $Id$")
 #if HAVE_SYS_SHM_H
 #include <sys/shm.h>
 #endif
+#if defined(SHMGET_NOT_DECLARED)
+extern "C" {
+int shmget(key_t, size_t, int);
+int shmctl(int, int, struct shmid_ds *);
+void *shmat(int, const void *, int);
+int shmdt(const void *); }
+#endif
 #endif
 
 #include "Channel.h"
@@ -1679,7 +1686,7 @@ void send_shm_event( int write_fd, const char* event_name,
 
 	if ( ! shmptr )
 		{
-		if ( (shmid = shmget(IPC_PRIVATE, CHUNK * (index+1), (SHM_R | SHM_W))) < 0)
+		if ( (shmid = shmget(IPC_PRIVATE, CHUNK * (index+1), 0600)) < 0)
 			{
 			send_event(write_fd, event_name, e, sds);
 			return;

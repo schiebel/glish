@@ -113,6 +113,8 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 glish:
 		statement
 			{
+			if ( interactive )
+				status = 0;
         		static int *lookahead = & ( yyclearin );
 			static int empty = *lookahead;
 
@@ -833,7 +835,6 @@ void yyerror( char msg[] )
 
 	if ( ! status )
 		{
-		line_num++;
 		parse_error = (IValue*) generate_error( msg, " at or near '", yytext, "'" );
 		error->Report( msg, " at or near '", yytext, "'" );
 		}

@@ -24,8 +24,8 @@ unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
 unsigned long TkFrame::grab = 0;
 PQueue(glishtk_event) *TkAgent::tk_queue = 0;
-int TkAgent::hold_events = 0;
-int TkAgent::initial_hold = 0;
+int TkAgent::hold_tk_events = 0;
+int TkAgent::hold_glish_events = 0;
 IValue *TkAgent::last_error = 0;
 
 extern IValue *glishtk_valcast( char * );
@@ -1107,7 +1107,7 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		return error_ivalue();
 
 	Sequencer::HoldQueue();
-	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
+	while ( TkAgent::DoOneTkEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
 	Sequencer::ReleaseQueue();
 
 	if ( convert && val )
@@ -1128,32 +1128,42 @@ void TkAgent::SetError( IValue *v )
 void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest,
 			   NotifyTrigger *t )
 	{
-	if ( hold_events )
+	if ( hold_glish_events )
 		tk_queue->EnQueue( new glishtk_event( sequencer, this, s, v, complain_if_no_interest, t ) );
 	else
 		glish_event_posted( sequencer->NewEvent( this, s, v, complain_if_no_interest, t ) );
 	}
 
-void TkAgent::ReleaseEvents()
+void TkAgent::FlushGlishEvents()
 	{
-	glishtk_event* e;
-
-	if ( initial_hold )
+	if ( hold_glish_events )
 		{
-		hold_events -= initial_hold - 1;
-		if ( hold_events <= 0 )
-			hold_events = 1;
-		initial_hold = 0;
-		}
+		glishtk_event* e = 0;
 
-	if ( hold_events && ! --hold_events )
+		hold_glish_events = 0;
 		while ( (e = tk_queue->DeQueue()) )
 			{
 			e->Post();
 			delete e;
 			}
+		}
 	}
 
+int TkAgent::DoOneTkEvent( int flags, int hold_wait )
+	{
+	if ( hold_tk_events )
+		return Tk_DoOneEvent( TK_FILE_EVENTS | (hold_wait ? 0 : TK_DONT_WAIT) );
+
+	return Tk_DoOneEvent( flags );
+	}
+
+int TkAgent::DoOneTkEvent( )
+	{
+	if ( hold_tk_events )
+		return Tk_DoOneEvent( TK_FILE_EVENTS );
+
+	return Tk_DoOneEvent( 0 );
+	}
 
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
@@ -1254,8 +1264,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 	agent_ID = "<graphic:frame>";
 
-	HoldEvents();
-	initial_hold += 1;
+	hold_glish_events += 1;
 
 	if ( ! root )
 		HANDLE_CTOR_ERROR("Frame creation failed, check DISPLAY environment variable.")
@@ -1536,7 +1545,7 @@ TkFrame::~TkFrame( )
 
 	if ( ! tl_count )
 		// Empty queue
-		while( Tk_DoOneEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) != 0 );
+		while( DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) != 0 );
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )

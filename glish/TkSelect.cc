@@ -47,8 +47,8 @@ void TkSelector::DeleteSelectee( int selectee_fd )
 
 int TkSelector::DoSelection( int )
 	{
-	if ( TkAgent::InitialHold() && TkAgent::QueuedEvents() )
-		TkAgent::ReleaseEvents();
+	if ( TkAgent::GlishEventsHeld() )
+		TkAgent::FlushGlishEvents();
 
 	if ( await_done )
 		{
@@ -68,7 +68,7 @@ int TkSelector::DoSelection( int )
 				       TkTimerProc, (ClientData) this );
 
 	while ( ! glish_select && ! s->NotificationQueueLength() )
-		Tk_DoOneEvent( 0 );
+		TkAgent::DoOneTkEvent( );
 
 	return selector_status;
 	}

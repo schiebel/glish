@@ -82,3 +82,6 @@
 
 /* Define to be the mask type for select() calls.  */
 #undef SELECT_MASK_TYPE
+
+/* Define if gettimeofday is not declared */
+#undef SHMGET_NOT_DECLARED

@@ -187,10 +187,14 @@ class TkAgent : public Agent {
 	// must be queued and sent after the "whenever"s are in place.
 	void PostTkEvent( const char *, IValue *,
 			  int complain_if_no_interest = 0, NotifyTrigger *t=0 );
-	static int QueuedEvents() { return hold_events; }
-	static int InitialHold() { return initial_hold; }
-	static void HoldEvents() { hold_events++; }
-	static void ReleaseEvents();
+
+	static int GlishEventsHeld() { return hold_glish_events; }
+	static void FlushGlishEvents();
+
+	static void HoldEvents() { hold_tk_events++; }
+	static void ReleaseEvents() { hold_tk_events--; }
+	static int DoOneTkEvent( int flags, int hold_wait = 0 );
+	static int DoOneTkEvent( );
 
 	// For some widgets, they must be enabled before an action is performed
 	// otherwise widgets which are disabled will not even accept changes
@@ -207,8 +211,8 @@ class TkAgent : public Agent {
 	Rivetobj self;
 	TkFrame *frame;
 
-	static int hold_events;
-	static int initial_hold;
+	static int hold_tk_events;
+	static int hold_glish_events;
 	static PQueue(glishtk_event) *tk_queue;
 
 	// For keeping track of last error

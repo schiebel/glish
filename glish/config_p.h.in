@@ -9,3 +9,5 @@
 /* Define const to be empty of C compiler does not support it.  */
 #undef const
 
+/* Define if gettimeofday is not declared */
+#undef GETTOD_NOT_DECLARED
