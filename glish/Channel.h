@@ -3,6 +3,7 @@
 // Copyright (c) 1997 Associated Universities Inc.
 #ifndef channel_h
 #define channel_h
+#include "sos/io.h"
 
 // Channels manage a communication channel to a process.  The channel
 // consists of two file descriptors, one for reading from the process
@@ -32,12 +33,8 @@ typedef enum { CHAN_VALID, CHAN_IN_USE, CHAN_INVALID } ChanState;
 class Channel {
     public:
 	// Create a new Channel with the given input and output fd's.
-	Channel( int rfd, int wfd )
-		{
-		read_fd = rfd;
-		write_fd = wfd;
-		state = CHAN_VALID;
-		}
+	Channel( int rfd, int wfd ) : source(rfd), sink(wfd)
+		{ state = CHAN_VALID; }
 
 	// True if data pending in channel read buf.  This is a vestigial
 	// remnant from when the Channel class used to buffer its input.
@@ -50,13 +47,13 @@ class Channel {
 	// free to modify the channel state.
 	ChanState& ChannelState()	{ return state; }
 
-	int ReadFD()	{ return read_fd; }
-	int WriteFD()	{ return write_fd; }
+	sos_fd_sink &Sink()	{ return sink; }
+	sos_fd_source &Source()	{ return source; }
 
     protected:
 	ChanState state;
-	int read_fd;
-	int write_fd;
+	sos_fd_source source;
+	sos_fd_sink sink;
 	};
 
 #endif	/* channel_h */

@@ -115,7 +115,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 
 	else
 		{
-		int fd = channel->WriteFD();
+		sos_fd_sink &sink = channel->Sink();
 
 		if ( log )
 			sequencer->LogEvent( id, name, event_name, event_val, 0 );
@@ -137,7 +137,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 
 			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
-			sendEvent( fd, &e );
+			sendEvent( sink, &e );
 
 			result = sequencer->AwaitReply( this, event_name,
 							reply_name );
@@ -147,7 +147,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 		else
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
-			sendEvent( fd, &e );
+			sendEvent( sink, &e );
 			}
 		}
 
@@ -170,7 +170,7 @@ void Task::SetChannel( Channel* c, Selector* s )
 			GlishEvent* e = (*pending_events)[i];
 
 			sequencer->LogEvent( id, name, e, 0 );
-			send_event( channel->WriteFD(), e );
+			send_event( channel->Sink(), e );
 
 			Unref( e );
 			}
@@ -190,7 +190,7 @@ void Task::CloseChannel()
 
 		else
 			{
-			selector->DeleteSelectee( channel->ReadFD() );
+			selector->DeleteSelectee( channel->Source().fd() );
 			delete channel;
 			}
 
@@ -541,8 +541,8 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 		shm_flag = 0;
 		char *client = GetString( args[task_args_start] );
 		IValue val( client );
-		send_event( channel->WriteFD(), "client-up", &val );
-		GlishEvent* e = recv_event( channel->ReadFD() );
+		send_event( channel->Sink(), "client-up", &val );
+		GlishEvent* e = recv_event( channel->Source() );
 		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
 			{
 			if ( hostname )
@@ -691,7 +691,7 @@ IValue* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 							IValue* input )
 
 	{
-	int fd = attrs->daemon_channel->WriteFD();
+	sos_fd_sink &sink = attrs->daemon_channel->Sink();
 
 	IValue* r = create_irecord();
 	r->SetField( "command", command );
@@ -699,10 +699,10 @@ IValue* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 	if ( input )
 		r->SetField( "input", input );
 
-	send_event( fd, "shell", r );
+	send_event( sink, "shell", r );
 	Unref( r );
 
-	GlishEvent* e = recv_event( attrs->daemon_channel->ReadFD() );
+	GlishEvent* e = recv_event( attrs->daemon_channel->Source() );
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
@@ -722,7 +722,7 @@ IValue* CreateTaskBuiltIn::RemoteSynchronousShell( const char* command,
 
 	IValue* result = GetShellCmdOutput( command, 0, 1 );
 
-	e = recv_event( attrs->daemon_channel->ReadFD() );
+	e = recv_event( attrs->daemon_channel->Source() );
 	if ( ! e )
 		{
 		warn->Report( "remote daemon died" );
@@ -800,7 +800,7 @@ char* CreateTaskBuiltIn::NextLocalShellCmdLine( FILE* shell, char* line_buf )
 
 char* CreateTaskBuiltIn::NextRemoteShellCmdLine( char* line_buf )
 	{
-	GlishEvent* e = recv_event( attrs->daemon_channel->ReadFD() );
+	GlishEvent* e = recv_event( attrs->daemon_channel->Source() );
 
 	if ( ! e )
 		{
@@ -882,22 +882,17 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 	}
 
 
-void Task::sendEvent( int fd, const char* event_name,
+void Task::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	send_event( fd, event_name, e, sds );
+	send_event( fd, event_name, e );
 	}
 
 
-void ClientTask::sendEvent( int fd, const char* event_name,
+void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	if ( ! useshm )
-		send_event( fd, event_name, e, sds );
-	else
-		send_shm_event( fd, event_name, e, sds );
-
-	return;
+	send_event( fd, event_name, e );
 	}
 
 int same_host( Task* t1, Task* t2 )

@@ -82,7 +82,6 @@ CLIENT_OBJS = \
 	Daemon.o \
 	Dict.o \
 	Executable.o \
-	List.o \
 	LocalExec.o \
 	Object.o \
 	Queue.o \
@@ -123,7 +122,6 @@ CLIENT_OBJS_PROXY = \
 	$(D)Daemon.o \
 	$(D)Dict.o \
 	$(D)Executable.o \
-	$(D)List.o \
 	$(D)LocalExec.o \
 	$(D)Object.o \
 	$(D)Queue.o \
@@ -295,9 +293,6 @@ $(D)Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
 
 $(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Func.cc $(T)
-
-$(D)List.o: $(SRC)/List.cc $(H)/List.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/List.cc $(T)
 
 $(D)LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/LocalExec.cc $(T)

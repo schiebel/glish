@@ -15,6 +15,7 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "sos/io.h"
 
 #ifdef HAVE_SIGPROCMASK
 #include <signal.h>
@@ -992,8 +993,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	if ( ! ScriptCreated() )
 		InitScriptClient();
 
+	sos_fd_sink::nonblock_all();
+
 	if ( do_interactive )
 		Parse( stdin );
+
 	}
 
 
@@ -1028,8 +1032,6 @@ Sequencer::~Sequencer()
 	finalize_values();
 	finalize_reporters();
 	delete null_stmt;
-
-	clear_shared_memory();
 	}
 
 
@@ -1972,7 +1974,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 				const char* reply_name )
 	{
-	GlishEvent* reply = recv_event( task->GetChannel()->ReadFD() );
+	GlishEvent* reply = recv_event( task->GetChannel()->Source() );
 	IValue* result = 0;
 
 	if ( ! reply )
@@ -2044,7 +2046,7 @@ Channel* Sequencer::WaitForTaskConnection( Task* task )
 Task* Sequencer::NewConnection( Channel* connection_channel )
 	{
 	GlishEvent* establish_event =
-		recv_event( connection_channel->ReadFD() );
+		recv_event( connection_channel->Source() );
 
 	// It's possible there's already a Selectee for this channel,
 	// due to using a LocalClientSelectee.  If so, remove it, so
@@ -2127,8 +2129,8 @@ void Sequencer::AssociateTaskWithChannel( Task* task, Channel* chan )
 
 void Sequencer::RemoveSelectee( Channel* chan )
 	{
-	if ( selector->FindSelectee( chan->ReadFD() ) )
-		selector->DeleteSelectee( chan->ReadFD() );
+	if ( selector->FindSelectee( chan->Source().fd() ) )
+		selector->DeleteSelectee( chan->Source().fd() );
 	}
 
 
@@ -2317,18 +2319,18 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 		c->ChannelState() = CHAN_IN_USE;
 
 		if ( force_read )
-			status = NewEvent( task, recv_event( c->ReadFD() ) );
+			status = NewEvent( task, recv_event( c->Source() ) );
 
 		while ( status == 0 &&
 			c->ChannelState() == CHAN_IN_USE &&
 			c->DataInBuffer() )
 			{
-			status = NewEvent( task, recv_event( c->ReadFD() ) );
+			status = NewEvent( task, recv_event( c->Source() ));
 			}
 
 		if ( c->ChannelState() == CHAN_INVALID )
 			{ // This happens iff the given task has exited
-			selector->DeleteSelectee( c->ReadFD() );
+			selector->DeleteSelectee( c->Source().fd() );
 			delete c;
 
 			while ( reap_terminated_process() )
@@ -2819,7 +2821,7 @@ void Sequencer::RunQueue()
 	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
-    : Selectee( t->GetChannel()->ReadFD() )
+    : Selectee( t->GetChannel()->Source().fd() )
 	{
 	sequencer = s;
 	task = t;
@@ -2832,7 +2834,7 @@ int ClientSelectee::NotifyOfSelection()
 
 
 LocalClientSelectee::LocalClientSelectee( Sequencer* s, Channel* c )
-    : Selectee( c->ReadFD() )
+    : Selectee( c->Source().fd() )
 	{
 	sequencer = s;
 	chan = c;
@@ -2906,7 +2908,7 @@ int ScriptSelectee::NotifyOfSelection()
 
 DaemonSelectee::DaemonSelectee( RemoteDaemon* arg_daemon, Selector* sel,
 				Sequencer* s )
-: Selectee( arg_daemon->DaemonChannel()->ReadFD() )
+: Selectee( arg_daemon->DaemonChannel()->Source().fd() )
 	{
 	daemon = arg_daemon;
 	selector = sel;
@@ -2922,7 +2924,7 @@ DaemonSelectee::~DaemonSelectee()
 
 int DaemonSelectee::NotifyOfSelection()
 	{
-	int daemon_fd = daemon->DaemonChannel()->ReadFD();
+	sos_fd_source &daemon_fd = daemon->DaemonChannel()->Source();
 	GlishEvent* e = recv_event( daemon_fd );
 
 	const char* message_name = 0;
@@ -2955,7 +2957,7 @@ int DaemonSelectee::NotifyOfSelection()
 		{
 		error->Report( "Glish daemon @ ", daemon->Host(),
 				" terminated" );
-		selector->DeleteSelectee( daemon_fd );
+		selector->DeleteSelectee( daemon_fd.fd() );
 		message_name = "daemon_terminated";
 		}
 
@@ -2996,7 +2998,7 @@ int ProbeTimer::DoExpiration()
 			}
 
 		// Probe the daemon, regardless of its state.
-		send_event( r->DaemonChannel()->WriteFD(), "probe",
+		send_event( r->DaemonChannel()->Sink(), "probe",
 				false_value );
 
 		if ( r->State() == DAEMON_OK )
@@ -3043,7 +3045,7 @@ void ScriptClient::AddEventSources()
 			got_src++;
 		if ( ! event_src_list.is_member((char*)event_sources[i]->Context().id()) )
 			{
-			selector->AddSelectee( new ScriptSelectee( this, agent, event_sources[i]->Read_FD() ) );
+			selector->AddSelectee( new ScriptSelectee( this, agent, event_sources[i]->Source().fd() ) );
 			event_src_list.append(strdup(event_sources[i]->Context().id()));
 			}
 		}

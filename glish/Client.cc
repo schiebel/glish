@@ -486,7 +486,6 @@ Client::~Client()
 	if ( interpreter_tag )
 		free_memory( interpreter_tag );
 
-	clear_shared_memory();
 	}
 
 GlishEvent* Client::NextEvent()
@@ -519,7 +518,7 @@ GlishEvent* Client::NextEvent( fd_set* mask )
 
 	loop_over_list( event_sources, i )
 		{
-		int fd = event_sources[i]->Read_FD();
+		int fd = event_sources[i]->Source().fd();
 
 		if ( FD_ISSET( fd, mask ) )
 			return GetEvent( event_sources[i] );
@@ -627,7 +626,7 @@ int Client::AddInputMask( fd_set* mask )
 	// Now add in any fd's due to event sources
 	loop_over_list( event_sources, i )
 		{
-		int this_fd = event_sources[i]->Read_FD();
+		int this_fd = event_sources[i]->Source().fd();
 
 		if ( (this_fd >=0 ) && ! FD_ISSET( this_fd, mask ) )
 			{
@@ -646,7 +645,7 @@ int Client::HasClientInput( fd_set* mask )
 
 	loop_over_list( event_sources, i )
 		{
-		int this_fd = event_sources[i]->Read_FD();
+		int this_fd = event_sources[i]->Source().fd();
 		if ( (this_fd >= 0 ) && FD_ISSET( this_fd, mask ) )
 			return 1;
 		}
@@ -716,7 +715,7 @@ int Client::ReRegister( char* registration_name )
 	GlishEvent e( (const char *) "*register-persistent*",
 		create_value( ( registration_name == 0 ) ? prog_name :
 		registration_name ) );
-	send_event( socket, &e, 0 );
+	send_event( es->Sink(), &e );
 
 	return 0;
 	}
@@ -767,7 +766,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 	{
 	Unref( last_event );
 
-	int fd = source->Read_FD();
+	sos_fd_source &fd_src = source->Source();
 	EventContext context = source->Context();
 	event_src_type type = source->Type();
 
@@ -782,7 +781,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			else
 				{
 				RemoveInterpreter( source );
-				FD_Change( fd, 0 );
+				FD_Change( fd_src.fd(), 0 );
 				return new GlishEvent( (const char *) "*end-context*",
 					create_value("*stdio*") );
 				}
@@ -816,7 +815,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		{
 		last_context = context;
 
-		last_event = recv_event( fd );
+		last_event = recv_event( fd_src );
 
 		if ( last_event && multithreaded && type == GLISHD )
 			{
@@ -883,13 +882,13 @@ GlishEvent* Client::GetEvent( EventSource* source )
 
 			loop_over_list( event_sources, i )
 				{
-				if ( event_sources[i]->Read_FD() == fd &&
+				if ( event_sources[i]->Source().fd() == fd_src.fd() &&
 				    type == I_LINK )
 					{
 					RemoveIncomingLink( i );
 					last_event = new GlishEvent( (const char *) "*dummy*",
 						error_value() );
-					FD_Change( fd, 0 );
+					FD_Change( fd_src.fd(), 0 );
 					// context_sources,sinks?
 					}
 				}
@@ -956,7 +955,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 		// or restarting the glishd with a call to ReRegister().
 
 		RemoveInterpreter( source );
-		FD_Change( fd, 0 );
+		FD_Change( fd_src.fd(), 0 );
 
 		last_event = new GlishEvent( (const char *) "*end-context*",
 			create_value( last_context.id() ) );		
@@ -1301,8 +1300,10 @@ void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &contex
 
 			if ( el->Active() )
 				{
+ /**!!LOOK!!**/			static sos_fd_sink sink;
+				sink.setFd(el->FD());
 				GlishEvent e( el->Name(), value );
-				send_event( el->FD(), &e, sds );
+				send_event( sink, &e );
 				did_send = 1;
 				}
 			}
@@ -1318,14 +1319,11 @@ void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &contex
 	loop_over_list( event_sources, j )
 		{
 		if ( streq( event_sources[j]->Context().id(), context.id() ) &&
-		    event_sources[j]->Write_FD() >= 0 )
+		    event_sources[j]->Sink().fd() >= 0 )
 			{
 			GlishEvent e( name, value );
-			if ( ! useshm )
-				send_event( event_sources[j]->Write_FD(), &e, sds );
-			else
-				send_shm_event( event_sources[j]->Write_FD(), &e, sds );
 
+			send_event( event_sources[j]->Sink(), &e );
 			return; // should only be one match
 			}
 		}
@@ -1333,7 +1331,7 @@ void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &contex
 
 void Client::RemoveIncomingLink( int dead_event_source )
 	{
-	int read_fd = event_sources[dead_event_source]->Read_FD();
+	int read_fd = event_sources[dead_event_source]->Source().fd();
 	const char* context = event_sources[dead_event_source]->Context().id();
 
 	sink_id_list* remote_sources = context_sources[ context ];
@@ -1480,12 +1478,10 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	return val;
 	}
 
-GlishEvent* recv_event( int fd )
+GlishEvent* recv_event( sos_source &in )
 	{
-	static sos_fd_source FD;
-	static sos_in sos( FD, 0, 0 );
-
-	FD.setFd( fd );
+	static sos_in sos;
+	sos.set(&in);
 
 	char *name = 0;
 	unsigned char flags;
@@ -1589,12 +1585,10 @@ static void write_value( sos_out &sos, Value *val, const char *label, char *name
 		write_value( sos, (Value*) val->GetAttributes(), name );
 	}
 
-void send_event( int fd, const char* name, const GlishEvent* e, int sds )
+void send_event( sos_sink &out, const char* name, const GlishEvent* e )
 	{
-	static sos_fd_sink FD;
-	static sos_out sos( FD, 0 );
-
-	FD.setFd( fd );
+	static sos_out sos;
+	sos.set(&out);
 
 	write_value( sos, e->value, name, (char*) name, e->Flags() );
 	sos.flush();
@@ -1622,151 +1616,3 @@ void write_value( sos_out &sos, const Value *v )
 	write_value( sos, (Value*) v, 0, 0, 0 );
 	sos.flush();
 	}
-	
-#if ! defined(HAVE_SHMGET)
-
-void send_shm_event( int write_fd, const char* event_name,
-		     const GlishEvent* e, int sds )
-	{
-	send_event(write_fd, event_name, e, sds);
-	return;
-	}
-
-GlishEvent* recv_shm_event( int shmid )
-	{
-	return 0;
-	}
-
-void clear_shared_memory()
-	{
-	}
-
-#else
-
-struct shm_handle
-	{
-	shm_handle( int id_, char *ptr_ ) : id(id_), ptr(ptr_) { }
-	~shm_handle( )
-		{
-		shmdt(ptr);
-		if ( shmctl(id, IPC_RMID, 0) < 0 )
-			error->Report("couldn't detach shared memory");
-		}
-
-	char *ptr;
-	int id;
-	};
-
-declare(PList,shm_handle);
-typedef PList(shm_handle) shm_list_;
-declare(PList,shm_list_);
-typedef PList(shm_list_) shm_list;
-
-
-static shm_list *shared_memory = 0;
-
-void clear_shared_memory()
-	{
-	if ( shared_memory )
-		{
-		for (int x = shared_memory->length() - 1; x >= 0; x--)
-			{
-			shm_list_ *list = shared_memory->remove_nth(x);
-			if ( list )
-				for (int y = list->length() - 1; y >= 0; y--)
-					delete list->remove_nth(y);
-			delete list;
-			}
-		delete shared_memory;
-		shared_memory = 0;
-		}
-	}
-
-#define CHUNK (1024 * 5)
-void send_shm_event( int write_fd, const char* event_name,
-		     const GlishEvent* e, int sds )
-	{
-	int shmid = -1;
-	char *shmptr = 0;
-	int off = 1;
-
-	Value *v = e->Val();
-	glish_type t = v->Type();
-
-
-	int l = strlen(event_name);
-	int size = v->Bytes( ) + l + 2;
-	int index = (int) (size / CHUNK);
-	
-
-	if ( shared_memory && shared_memory->length() > index )
-		for (int x = index; x < shared_memory->length() && ! shmptr; x++)
-			{
-			shm_list_ *list = (*shared_memory)[x];
-			if ( list )
-				for (int y = list->length() - 1; y >= 0; y--)
-					if ( *((*list)[y]->ptr) )
-						{
-						shm_handle *ho = (*list)[y];
-						shmptr = ho->ptr;
-						shmid = ho->id;
-						break;
-						}
-			}
-
-	else
-		{
-		if ( ! shared_memory )
-			shared_memory = new shm_list;
-
-		if ( shared_memory->length() <= index )
-			for ( int x=shared_memory->length(); x <= index; x++ )
-				shared_memory->append(0);
-		}
-
-	if ( ! shmptr )
-		{
-		if ( (shmid = shmget(IPC_PRIVATE, CHUNK * (index+1), 0600)) < 0)
-			{
-			send_event(write_fd, event_name, e, sds);
-			return;
-			}
-		if ( (shmptr = (char*) shmat(shmid, 0, 0)) == (char*) -1 )
-			fatal->Report("couldn't attach to shared memory");
-		if ( ! (*shared_memory)[index] )
-			shared_memory->replace(index,new shm_list_);
-		(*shared_memory)[index]->append( new shm_handle( shmid, shmptr ) );
-		}
-
-	*shmptr = '\0';
-	memcpy(&shmptr[off],event_name,l+1);
-	off += l+1;
-	off = v->ToMemBlock(shmptr,off);
-	Value val( shmid );
-	GlishEvent newe( (const char *) "*shm-event*", (const Value*) &val );
-	send_event( write_fd, "*shm-event*", &newe, sds );
-	}
-
-GlishEvent* recv_shm_event( int shmid )
-	{
-	char *shmptr = 0;
-
-	if ( (shmptr = (char*) shmat(shmid,0,0)) == (char*) -1 )
-		{
-		error->Report("client couldn't attach to shared memory");
-		return 0;
-		}
-	else
-		{
-		int l = strlen(&shmptr[1]);
-		char *newname = (char*) alloc_memory( sizeof(char)*(l+1) );
-		memcpy(newname,&shmptr[1],l+1);
-		int off = l+2;
-		Value *newval = ValueFromMemBlock(shmptr,off);
-		*shmptr = '\1';
-		shmdt(shmptr);
-		return new GlishEvent(newname, newval);
-		}
-	}
-
-#endif

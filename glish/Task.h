@@ -74,13 +74,13 @@ class Task : public Agent {
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
-	virtual void sendEvent( int fd, const char* event_name,
+	virtual void sendEvent( sos_sink &fd, const char* event_name,
 			const GlishEvent* e, int sds = -1 );
 
-	void sendEvent( int fd, const GlishEvent* e, int sds = -1 )
+	void sendEvent( sos_sink &fd, const GlishEvent* e, int sds = -1 )
 		{ sendEvent( fd, e->name, e, sds ); }
 
-	void sendEvent( int fd, const char* name, const Value* value )
+	void sendEvent( sos_sink &fd, const char* name, const Value* value )
 		{
 		GlishEvent e( name, value );
 		sendEvent( fd, &e );
@@ -133,7 +133,7 @@ class ShellTask : public Task {
 class ClientTask : public Task {
     public:
 	ClientTask( const_args_list* args, TaskAttr* task_attrs, Sequencer* s, int shm_flag=0 );
-	void sendEvent( int fd, const char* event_name, const GlishEvent* e, int sds = -1 );
+	void sendEvent( sos_sink &fd, const char* event_name, const GlishEvent* e, int sds = -1 );
     protected:
 	int useshm;
 	void CreateAsyncClient( const char** argv );

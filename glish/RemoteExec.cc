@@ -38,7 +38,7 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel,
 		client_argv[i] = argv[i-1];
 
 	Value argv_value( client_argv, argc + 1, COPY_ARRAY );
-	send_event( daemon_channel->WriteFD(), "client", &argv_value );
+	send_event( daemon_channel->Sink(), "client", &argv_value );
 
 	free_memory( client_argv );
 	}
@@ -49,7 +49,7 @@ RemoteExec::~RemoteExec()
 	if ( Active() )
 		{
 		Value id_value( id );
-		send_event( daemon_channel->WriteFD(), "kill", &id_value );
+		send_event( daemon_channel->Sink(), "kill", &id_value );
 		}
 
 	free_memory( id );
@@ -61,7 +61,7 @@ void RemoteExec::Ping()
 	if ( Active() )
 		{
 		Value id_value( id );
-		send_event( daemon_channel->WriteFD(), "ping", &id_value );
+		send_event( daemon_channel->Sink(), "ping", &id_value );
 		}
 	}
 

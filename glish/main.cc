@@ -75,7 +75,6 @@ void glish_cleanup( )
 	nb_readline_cleanup();
 #endif
 	set_term_unchar_mode();
-	clear_shared_memory();
 	Sequencer::CurSeq()->System().AbortOccurred();
 	}
 

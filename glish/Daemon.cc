@@ -77,7 +77,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 #endif
 
 		// Read and discard daemon's "establish" event.
-		GlishEvent* e = recv_event( daemon_channel->ReadFD() );
+		GlishEvent* e = recv_event( daemon_channel->Source() );
 		Unref( e );
 
 		// Tell the daemon which directory we want to work out of.
@@ -87,7 +87,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 			fatal->Report( "problems getting cwd:", work_dir );
 
 		Value work_dir_value( work_dir );
-		send_event( daemon_channel->WriteFD(), "setwd",
+		send_event( daemon_channel->Sink(), "setwd",
 				&work_dir_value );
 
 		return r;

@@ -1414,7 +1414,7 @@ case tag:						\
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	static sos_fd_source FD;
-	static sos_in sos( FD, 0, 0 );
+	static sos_in sos( &FD );
 
 	char* filename = (*args_val)[0]->StringVal();
 	IValue* result;
@@ -1437,7 +1437,7 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	static sos_fd_sink FD;
-	static sos_out sos( FD, 0 );
+	static sos_out sos( &FD );
 
 	if ( (*args_val)[1]->Type() != TYPE_STRING )
 		return (IValue*) Fail( "bad type for filename (argument 2), string expected." );
