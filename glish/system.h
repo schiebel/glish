@@ -150,6 +150,8 @@ extern "C" {
 	 */
 	void glish_cleanup( );
 
+	int is_regular_file( const char *filename );
+
 #ifndef HAVE_STRDUP
 	char *strdup( const char *str );
 #endif

@@ -1347,27 +1347,32 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		sprintf( glish_rc_filename, "%s/%s",
 				glish_home, GLISH_RC_FILE );
 
-		FILE *glish_rc_file = fopen( glish_rc_filename, "r");
-
-		if ( glish_rc_file )
+		if ( is_regular_file( glish_rc_filename ) )
 			{
-			fclose( glish_rc_file );
-			Parse( glish_rc_filename );
+			FILE *glish_rc_file = fopen( glish_rc_filename, "r");
+
+			if ( glish_rc_file )
+				{
+				Parse( glish_rc_file, glish_rc_filename );
+				fclose( glish_rc_file );
+				}
 			}
 		}
 
+	FILE* glish_rc_file;
 	const char* glish_rc;
-	if ( (glish_rc = getenv( "GLISHRC" )) )
-		Parse( glish_rc );
+	if ( (glish_rc = getenv( "GLISHRC" )) && is_regular_file( glish_rc ) &&
+	     (glish_rc_file = fopen( glish_rc, "r")) )
+		Parse( glish_rc_file, glish_rc );
+
 	else
 		{
-		FILE* glish_rc_file = fopen( GLISH_RC_FILE, "r" );
 		const char* home;
 
-		if ( glish_rc_file )
+		if ( is_regular_file( GLISH_RC_FILE ) && (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
 			{
+			Parse( glish_rc_file, GLISH_RC_FILE );
 			fclose( glish_rc_file );
-			Parse( GLISH_RC_FILE );
 			}
 
 		else if ( (home = getenv( "HOME" )) )
@@ -1376,10 +1381,10 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			sprintf( glish_rc_filename, "%s/%s",
 					home, GLISH_RC_FILE );
 
-			if ( (glish_rc_file = fopen( glish_rc_filename, "r")) )
+			if ( is_regular_file(glish_rc_filename) && (glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
+				Parse( glish_rc_file, glish_rc_filename );
 				fclose( glish_rc_file );
-				Parse( glish_rc_filename );
 				}
 			}
 		}
@@ -1390,7 +1395,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		loop_over_list( *load_list, i )
 			{
 			char *exp_name = which_include((*load_list)[i]);
-			if ( exp_name )
+			if ( exp_name && is_regular_file( exp_name ) )
 				load_list->replace(i,exp_name);
 			else
 				fatal->Report("Can't include file \"",
@@ -3050,6 +3055,9 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 
 IValue *Sequencer::Parse( const char file[], int value_needed )
 	{
+	if ( ! is_regular_file( file ) )
+		return (IValue*) generate_error( "\"", file, "\" does not exist or is not a regular file" );
+
 	FILE* f = fopen( file, "r" );
 
 	if ( ! f )
@@ -3103,13 +3111,20 @@ IValue *Sequencer::Include( const char *file )
 		return new IValue( glish_true );
 		}
 
+	if ( ! is_regular_file( expanded_name ) )
+		{
+		free_memory( expanded_name );
+		expanded_name = 0;
+		return (IValue*) generate_error( "\"",file, "\" does not exist or is not a regular file" );
+		}
+
 	FILE *fptr = fopen( expanded_name, "r");
 
 	if ( ! fptr )
 		{
 		free_memory( expanded_name );
 		expanded_name = 0;
-		return error_ivalue();
+		return (IValue*) generate_error( file, " not found" );
 		}
 
 	if ( VERB_INCL(verbose_mask) )

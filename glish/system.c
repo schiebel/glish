@@ -256,6 +256,13 @@ int local_connection( int sock, const char* path )
 	return 1;
 	}
 
+int is_regular_file( const char *filename )
+	{
+	struct stat stat_buf;
+	int result = stat(filename, &stat_buf);
+	return result >= 0 && S_ISREG(stat_buf.st_mode);
+	}
+
 char *canonic_path( const char *path_in )
 	{
 #ifdef S_ISLNK
