@@ -102,7 +102,7 @@ extern void stamp_log( const char *msg );
  * which if not explicitly initialized prior to the first call to log(),
  * defaults to stderr.
  */
-extern int log( const char *fmt, ... );
+extern int to_log( const char *fmt, ... );
 
 /* Returns the name of the log file. */
 extern const char *npd_log_file();

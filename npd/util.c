@@ -589,7 +589,7 @@ int restart_log( FILE *peer )
 
 	if ( stat( npd_log, &stat_buf ) < 0 )
 		{
-		log( "can't stat log file %s (%s)\n", npd_log, sys_error_desc() );
+		to_log( "can't stat log file %s (%s)\n", npd_log, sys_error_desc() );
 		fprintf( peer, "fail no-log\n" );
 		return 1;
 		}
@@ -638,11 +638,11 @@ void stamp_log( const char *msg )
 	time_str[19] = '\0';	/* don't want timezone & year */
 	time_str += 4;	/* don't want day-of-week */
 
-	log( "%s %s [%d/%s]: %s",
+	to_log( "%s %s [%d/%s]: %s",
 		time_str, prog_name, getpid(), npd_log_file(), msg );
 	}
 
-int log( const char *fmt, ... )
+int to_log( const char *fmt, ... )
 	{
 #ifdef HAVE_VPRINTF
 	va_list ap;
