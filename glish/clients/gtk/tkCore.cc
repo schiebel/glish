@@ -2599,11 +2599,12 @@ int scalecb( ClientData data, Tcl_Interp *, int, char *argv[] )
 
 char *glishtk_scale_value(TkProxy *a, const char *, Value *args )
 	{
-
+	TkScale *s = (TkScale*)a;
 	if ( args->IsNumeric() && args->Length() > 0 )
-		((TkScale*)a)->SetValue( args->DoubleVal() );
+		s->SetValue( args->DoubleVal() );
 
-	return 0;
+	Tcl_VarEval( s->Interp(), Tk_PathName(s->Self()), " get", 0 );
+	return Tcl_GetStringResult(s->Interp());
 	}
 
 TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, double value, charptr len,
@@ -2698,7 +2699,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
 	procs.Insert("start", new TkProc("-from", glishtk_onedouble, glishtk_strtofloat));
 	procs.Insert("text", new TkProc("-label", glishtk_onestr, glishtk_str));
-	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
+	procs.Insert("value", new TkProc(this, "", glishtk_scale_value, glishtk_strtofloat));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim, glishtk_strtoint));
 	}
 
