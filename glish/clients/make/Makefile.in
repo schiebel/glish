@@ -41,8 +41,8 @@ MACHINE=`$(SRC)/machine.sh`
 MACHINE_ARCH=`$(SRC)/machine.sh arch`
 MDEFS="-DFORCE_MACHINE=\"${MACHINE}\"" "-DMACHINE_ARCH=\"${MACHINE_ARCH}\""
 
-CFLAGS=-g @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
-CXXFLAGS=-g @DEFS@ @CPPFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CFLAGS=-g @DEFS@ @CPPFLAGS@ @CFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
+CXXFLAGS=-g @DEFS@ @CPPFLAGS@ @CXXFLAGS@ -DMAKE_BOOTSTRAP ${XDEFS}
 
 OBJS=arch.o buf.o compat.o cond.o dir.o for.o hash.o job.o main.o make.o \
     parse.o str.o suff.o targ.o var.o util.o getopt.o sigcompat.o @LIBOBJS@
