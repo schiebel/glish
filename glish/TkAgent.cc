@@ -46,6 +46,8 @@ void ScrollbarTrigger::NotifyDone( )
 		cur = atoi(ret);
 		sprintf(buf, "%d", cur + (int)(cur / 0.5));
 		rivet_set( self, "-repeatdelay", buf );
+
+		rivet_set_scroll_timer(10);
 		}
 	}
 
