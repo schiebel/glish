@@ -493,6 +493,8 @@ public:
 	// clients) or we detect keyboard activity (when running
 	// interactively). Returns non-null value if active clients remain.
 	int EventLoop( int in_await = 0 );
+	// Loops only while there are events pending in the queue
+	int PendingEventLoop( );
 
 	const char* ConnectionHost()	{ return connection_host; }
 	const char* ConnectionPort()	{ return connection_port; }

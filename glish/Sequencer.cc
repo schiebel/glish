@@ -3840,6 +3840,14 @@ int Sequencer::EventLoop( int in_await )
 	return ActiveClients();
 	}
 
+int Sequencer::PendingEventLoop( )
+	{
+	while ( notification_queue.length() )
+		RunQueue();
+
+	return ActiveClients();
+	}
+
 void Sequencer::RunQueue( int await_ended )
 	{
 	if ( hold_queue ) return;

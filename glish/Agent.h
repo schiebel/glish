@@ -188,6 +188,9 @@ class Agent : public GlishObject {
 	int preserve_events;
 	};
 
+class uagent_await_info;
+glish_declare(PList,uagent_await_info);
+typedef PList(uagent_await_info) uagent_await_list;
 
 class UserAgent : public Agent {
     public:
@@ -205,10 +208,17 @@ class UserAgent : public Agent {
 	int SetReflect( ) { reflect_events = 1; }
 	int ClearReflect( ) { reflect_events = 0; }
 
+	IValue *AwaitReply( const char *event_name );
+
+	int CreateEvent( const char* event_name, IValue* event_value,
+			 NotifyTrigger *t=0, int preserve=0,
+			 Expr *from_subsequence=0 );
+
     protected:
 	int StickyNotes( ) const;
 	int is_subsequence;
 	int reflect_events;
+	uagent_await_list await;
 	};
 
 
