@@ -210,13 +210,15 @@ class TkAgent : public Agent {
 	static IValue *GetError() { return last_error; }
 	static void SetError(IValue*);
 
-	void SetMap( int do_map );
+	void SetMap( int do_map, int toplevel );
 	int DontMap( ) const { return dont_map; }
 
 	virtual void Disable( );
 	virtual void Enable( int force = 1 );
 
 	void BindEvent(const char *event, IValue *rec);
+
+	virtual Rivetobj TopLevel( );
 
     protected:
 	tkprochash procs;
@@ -302,6 +304,8 @@ class TkFrame : public TkRadioContainer {
 
 	void Disable( );
 	void Enable( int force = 1 );
+
+	Rivetobj TopLevel();
 
     protected:
 	char *side;

@@ -1326,20 +1326,33 @@ int glishtk_xioerror_handler(Display *d)
 
 char *glishtk_agent_map(TkAgent *a, const char *cmd, parameter_list *, int, int)
 	{
-	a->SetMap( *cmd == 'M' ? 1 : 0 );
+	a->SetMap( cmd[0] == 'M' ? 1 : 0, cmd[1] == 'T' ? 1 : 0 );
 	return 0;
 	}
 
-void TkAgent::SetMap( int do_map )
+void TkAgent::SetMap( int do_map, int toplevel )
 	{
 	int dont_map_ = do_map ? 0 : 1;
 	if ( dont_map != dont_map_ )
 		{
 		dont_map = dont_map_;
-		if ( dont_map )
-			rivet_va_func(self, (int (*)())Tk_PackCmd, "forget", rivet_path(self), 0);
-
-		if ( frame ) frame->Pack();
+		if ( ! toplevel )
+			{
+			if ( dont_map )
+				rivet_va_func(self, (int (*)())Tk_PackCmd, "forget", rivet_path(self), 0);
+			if ( frame ) frame->Pack();
+			}
+		else
+			{
+			Rivetobj win =  TopLevel();
+			if ( win )
+				{
+				if ( dont_map )
+					rivet_va_func(win, (int(*)()) Tk_WmCmd, "withdraw", rivet_path(win), 0);
+				else
+					rivet_va_func(win, (int(*)()) Tk_WmCmd, "deiconify", rivet_path(win), 0);
+				}
+			}
 		}
 	}
 
@@ -1453,6 +1466,10 @@ void TkAgent::BindEvent(const char *event, IValue *rec)
 	PostTkEvent( event, rec );
 	}
 
+Rivetobj TkAgent::TopLevel()
+	{
+	return frame ? frame->TopLevel() : 0;
+	}
 
 struct glishtk_bindinfo
 	{
@@ -1657,6 +1674,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 
+	procs.Insert("map", new TkProc(this, "MT", glishtk_agent_map));
+	procs.Insert("unmap", new TkProc(this, "UT", glishtk_agent_map));
+
 	Tk_CreateEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	size[0] = self->tkwin->reqWidth;
@@ -1726,8 +1746,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
-	procs.Insert("map", new TkProc(this, "M", glishtk_agent_map));
-	procs.Insert("unmap", new TkProc(this, "U", glishtk_agent_map));
+	procs.Insert("map", new TkProc(this, "MC", glishtk_agent_map));
+	procs.Insert("unmap", new TkProc(this, "UC", glishtk_agent_map));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
 	procs.Insert("width", new TkProc("", glishtk_width, glishtk_valcast));
@@ -2242,6 +2262,11 @@ int TkFrame::CanExpand() const
 					 ! strcmp(frame->side,"bottom")) );
 	}
 
+Rivetobj TkFrame::TopLevel( )
+	{
+	return frame ? frame : canvas ? canvas : pseudo ? pseudo : root;
+	}
+
 void TkButton::UnMap()
 	{
 	if ( unmapped ) return;
@@ -2389,7 +2414,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 
 	if ( type == RADIO && radio && frame != radio )
 		Ref( radio );
-	else
+	else if ( type != RADIO )
 		radio = 0;
 
 	int c = 2;
@@ -2533,7 +2558,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 
 	if ( type == RADIO && radio && menu != radio )
 		Ref( radio );
-	else
+	else if ( type != RADIO )
 		radio = 0;
 
 	int c = 3;
