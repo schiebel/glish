@@ -100,6 +100,8 @@ public:
 	// returns 0.
 	virtual int DoSelection( int CanBlock=1 );
 
+	void BreakSelection();
+
 protected:
 	int max_num_fds;
 	Selectee** selectees;	// array indexed by fd
@@ -116,6 +118,7 @@ protected:
 	timer_list timers;
 
 	int await_done;
+	int break_selection;
 	};
 
 #endif	/* select_h */

@@ -405,6 +405,7 @@ protected:
 
 	void PushAwait( );
 	void PopAwait();
+	void CurrentAwaitDone();
 
 	char* name;
 	int verbose;

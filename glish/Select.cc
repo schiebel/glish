@@ -126,7 +126,7 @@ int SelectTimer::DoExpiration()
 	}
 
 
-Selector::Selector() : await_done(0)
+Selector::Selector() : await_done(0), break_selection(0)
 	{
 #ifdef HAVE_SETRLIMIT
 	struct rlimit rl;
@@ -270,8 +270,14 @@ void Selector::FindTimerDelta( struct timeval *timeout, struct timeval &min_t )
 		timeout = 0;
 	}
 
+void Selector::BreakSelection()
+	{
+	break_selection = 1;
+	}
+
 int Selector::DoSelection( int CanBlock )
 	{
+	break_selection = 0;
 
 	if ( await_done )
 		{
@@ -344,6 +350,8 @@ int Selector::DoSelection( int CanBlock )
 
 			--status;
 			}
+
+		if ( break_selection ) {status = 0; break;}
 		}
 
 	if ( status != 0 )

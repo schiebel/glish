@@ -669,13 +669,28 @@ void Sequencer::TopLevelReset()
 
 void Sequencer::toplevelreset()
 	{
-	if ( await_stmt && yyin && isatty( fileno( yyin ) ) && 
+	if ( yyin && isatty( fileno( yyin ) ) && 
 			! selector->FindSelectee( fileno( yyin ) ) )
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
-	await_stmt = 0;
+	for ( int len = await_list.length(); len > 0; len-- )
+		{
+		awaitinfo *last = await_list.remove_nth(len-1);
+		if ( last )
+			{
+			if ( last->ad ) delete_agent_dict( last->ad );
+			delete last;
+			}
+		}
+
+	if ( last_await_info ) delete last_await_info;
+	if ( await_dict ) delete_agent_dict( await_dict );
+
+	await_dict = 0;
+	await_stmt = except_stmt = 0;
 	await_only_flag = 0;
-	except_stmt = 0;
+	last_await_info = 0;
+	current_await_done = 0;
 	}
 
 void Sequencer::InitScriptClient()
@@ -1820,6 +1835,11 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 	return ret;
 	}
 
+void Sequencer::CurrentAwaitDone()
+	{
+	current_await_done = 1;
+	selector->BreakSelection();
+	}
 
 void Sequencer::PushAwait( )
 	{
@@ -1854,7 +1874,7 @@ void Sequencer::PopAwait( )
 			await_only_flag = last->await_only;
 			if ( last->value && last->name && last->agent )
 				{
-				current_await_done = 1;
+				CurrentAwaitDone();
 				if ( last_await_info ) delete last_await_info;
 				last_await_info = last;
 				}
@@ -1887,7 +1907,13 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	loop_over_list ( *el, X )
 		{
 		name_list *nl = (*el)[X]->EventNames();
+		if ( ! nl ) continue;
 		Agent *await_agent = (*el)[X]->EventAgent( VAL_REF );
+		if ( ! await_agent )
+			{
+			delete_name_list( nl );
+			continue;
+			}
 		loop_over_list( *nl, Y )
 			{
 			char *name = (*nl)[Y];
@@ -2720,12 +2746,15 @@ void Sequencer::EventLoop( int in_await )
 
 #if defined( GLISHTK )
 	while ( (ActiveClients() || TkFrame::TopLevelCount() > 0) &&
-		(!in_await || !current_await_done) &&
 		! selector->DoSelection() )
 #else
-	while ( ActiveClients() && (!in_await || !current_await_done) && ! selector->DoSelection() )
+	while ( ActiveClients() && ! selector->DoSelection() )
 #endif
+		{
 		RunQueue();
+		if ( in_await && current_await_done ) break;
+		}
+
 
 	}
 
