@@ -140,19 +140,13 @@ HDRS = $(H)/Dict.h $(H)/Object.h $(H)/Reporter.h $(H)/ValKern.h $(H)/glish.h \
 	$(H)/Client.h $(H)/GlishType.h $(H)/Proxy.h $(H)/Str.h $(H)/Value.h \
 	$(H)/Complex.h $(H)/List.h $(H)/Queue.h $(H)/Stream.h $(H)/VecRef.h
 
-HDRS_P = $(INCDIR_P)/Glish/Dict.h $(INCDIR_P)/Glish/Object.h $(INCDIR_P)/Glish/Reporter.h \
-	$(INCDIR_P)/Glish/ValKern.h $(INCDIR_P)/Glish/glish.h $(INCDIR_P)/Glish/Client.h \
-	$(INCDIR_P)/Glish/GlishType.h $(INCDIR_P)/Glish/Proxy.h $(INCDIR_P)/Glish/Str.h \
-	$(INCDIR_P)/Glish/Value.h $(INCDIR_P)/Glish/Complex.h $(INCDIR_P)/Glish/List.h \
-	$(INCDIR_P)/Glish/Queue.h $(INCDIR_P)/Glish/Stream.h $(INCDIR_P)/Glish/VecRef.h
-
 TAR_FILE = glish.tar
 
 all: $(LIBTGT) $(BINTGT)
 
 install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
-lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P)
 
 bin_tgt: $(BINDIR_P)/glish
 
@@ -190,7 +184,6 @@ $(BINDIR_P)/glish: glish
 
 $(LIBDIR_P)/libglish$(GSUFFIX): libglish$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(MKHIER) $(INCDIR_P)/Glish
 	$(INSTALL_LIBRARY) libglish$(GSUFFIX) $(LIBDIR_P)
 	$(RANLIB) $(LIBDIR_P)/libglish$(GSUFFIX)
 
@@ -493,69 +486,6 @@ $(LIBDIR)/libglishgc$(SUFFIX): $(LIBDIR)/libglishgc$(GSUFFIX)
 	rm -f libglishgc$(SUFFIX);	\
 	ln -s libglishgc$(GSUFFIX) libglishgc$(SUFFIX)
 #FI
-
-##
-## Include files
-##
-$(INCDIR_P)/Glish/Dict.h: $(H)/Dict.h
-	rm -f $@
-	cp $(H)/Dict.h $@
-
-$(INCDIR_P)/Glish/Object.h: $(H)/Object.h
-	rm -f $@
-	cp $(H)/Object.h $@
-
-$(INCDIR_P)/Glish/Reporter.h: $(H)/Reporter.h
-	rm -f $@
-	cp $(H)/Reporter.h $@
-
-$(INCDIR_P)/Glish/ValKern.h: $(H)/ValKern.h
-	rm -f $@
-	cp $(H)/ValKern.h $@
-
-$(INCDIR_P)/Glish/glish.h: $(H)/glish.h
-	rm -f $@
-	cp $(H)/glish.h $@
-
-$(INCDIR_P)/Glish/Client.h: $(H)/Client.h
-	rm -f $@
-	cp $(H)/Client.h $@
-
-$(INCDIR_P)/Glish/GlishType.h: $(H)/GlishType.h
-	rm -f $@
-	cp $(H)/GlishType.h $@
-
-$(INCDIR_P)/Glish/Proxy.h: $(H)/Proxy.h
-	rm -f $@
-	cp $(H)/Proxy.h $@
-
-$(INCDIR_P)/Glish/Str.h: $(H)/Str.h
-	rm -f $@
-	cp $(H)/Str.h $@
-
-$(INCDIR_P)/Glish/Value.h: $(H)/Value.h
-	rm -f $@
-	cp $(H)/Value.h $@
-
-$(INCDIR_P)/Glish/Complex.h: $(H)/Complex.h
-	rm -f $@
-	cp $(H)/Complex.h $@
-
-$(INCDIR_P)/Glish/List.h: $(H)/List.h
-	rm -f $@
-	cp $(H)/List.h $@
-
-$(INCDIR_P)/Glish/Queue.h: $(H)/Queue.h
-	rm -f $@
-	cp $(H)/Queue.h $@
-
-$(INCDIR_P)/Glish/Stream.h: $(H)/Stream.h
-	rm -f $@
-	cp $(H)/Stream.h $@
-
-$(INCDIR_P)/Glish/VecRef.h: $(H)/VecRef.h
-	rm -f $@
-	cp $(H)/VecRef.h $@
 
 INSTALL_:
 

@@ -79,17 +79,13 @@ GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
 HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h \
 	$(H)/header.h $(H)/mdep.h $(H)/list.h $(H)/generic.h
 
-HDRS_P = $(INCDIR_P)/sos/io.h $(INCDIR_P)/sos/sos.h $(INCDIR_P)/sos/types.h \
-	$(INCDIR_P)/sos/header.h $(INCDIR_P)/sos/mdep.h \
-	$(INCDIR_P)/sos/list.h $(INCDIR_P)/sos/generic.h
-
 TAR_FILE = sos.tar
 
 all: $(LIBTGT)
 
 install: $(INSTALL_LIBTGT)
 
-lib_tgt: $(LIBDIR_P)/libsos$(SUFFIX) $(GCLIB_P) $(HDRS_P)
+lib_tgt: $(LIBDIR_P)/libsos$(SUFFIX) $(GCLIB_P)
 
 INSTALL_lib_tgt: $(LIBDIR)/libsos$(SUFFIX) $(GCLIB)
 	$(MKHIER) $(INCDIR)/sos
@@ -104,7 +100,6 @@ libsos$(GSUFFIX): $(OBJS_PROXY)
 
 $(LIBDIR_P)/libsos$(GSUFFIX): libsos$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(MKHIER) $(INCDIR_P)/sos
 	$(INSTALL_LIBRARY) libsos$(GSUFFIX) $(LIBDIR_P)
 	$(RANLIB) $(LIBDIR_P)/libsos$(GSUFFIX)
 
@@ -121,7 +116,6 @@ libsosgc$(GSUFFIX): $(GCOBJS_PROXY)
 
 $(LIBDIR_P)/libsosgc$(GSUFFIX): libsosgc$(GSUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(MKHIER) $(INCDIR_P)/sos
 	$(INSTALL_LIBRARY) libsosgc$(GSUFFIX) $(LIBDIR_P)
 	$(RANLIB) $(LIBDIR_P)/libsosgc$(GSUFFIX)
 
@@ -188,37 +182,6 @@ $(D)list.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
 
 $(D)gclist.o: $(SRC)/list.cc $(H)/list.h $(H)/sos.h $(H)/generic.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gclist.o $(SRC)/list.cc $(T)
-
-##
-## Include files
-##
-$(INCDIR_P)/sos/io.h: $(H)/io.h
-	rm -f $@ 
-	cp $(H)/io.h $@
-
-$(INCDIR_P)/sos/sos.h: $(H)/sos.h
-	rm -f $@ 
-	cp $(H)/sos.h $@
-
-$(INCDIR_P)/sos/types.h: $(H)/types.h
-	rm -f $@ 
-	cp $(H)/types.h $@
-
-$(INCDIR_P)/sos/header.h: $(H)/header.h
-	rm -f $@ 
-	cp $(H)/header.h $@
-
-$(INCDIR_P)/sos/mdep.h: $(H)/mdep.h
-	rm -f $@ 
-	cp $(H)/mdep.h $@
-
-$(INCDIR_P)/sos/list.h: $(H)/list.h
-	rm -f $@ 
-	cp $(H)/list.h $@
-
-$(INCDIR_P)/sos/generic.h: $(H)/generic.h
-	rm -f $@ 
-	cp $(H)/generic.h $@
 
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)

@@ -1797,6 +1797,7 @@ AC_SUBST(GC_LOW_OPT)
 dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
+echo "$ac_t""creating architecture directories" 1>&AC_FD_MSG
 $mkhier "gcmem/$ARCH"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/shared"
@@ -1811,10 +1812,21 @@ $mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
 $mkhier "glish/clients/glishtk/$ARCH/shared"
 
+if test ! -d include; then
+    echo "$ac_t""creating include symbolic links" 1>&AC_FD_MSG
+    (mkdir include; cd include;
+     ln -s ../glish/include/Glish Glish;
+     ln -s ../sos/include/sos sos;
+     ln -s ../npd/include/Npd Npd;
+     ln -s ../gcmem/include/gcmem gcmem;
+     ln -s ../regx/include/regx regx)
+fi
+
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
 
+echo "$ac_t""preprocessing template makefiles" 1>&AC_FD_MSG
 PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/Makefile.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"

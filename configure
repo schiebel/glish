@@ -5538,6 +5538,7 @@ fi
 #AC_MSG_WARN($subdir:$tosrc)
 #])
 
+echo "$ac_t""creating architecture directories" 1>&6
 $mkhier "gcmem/$ARCH"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/shared"
@@ -5552,10 +5553,21 @@ $mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
 $mkhier "glish/clients/glishtk/$ARCH/shared"
 
+if test ! -d include; then
+    echo "$ac_t""creating include symbolic links" 1>&6
+    (mkdir include; cd include;
+     ln -s ../glish/include/Glish Glish;
+     ln -s ../sos/include/sos sos;
+     ln -s ../npd/include/Npd Npd;
+     ln -s ../gcmem/include/gcmem gcmem;
+     ln -s ../regx/include/regx regx)
+fi
+
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
 
+echo "$ac_t""preprocessing template makefiles" 1>&6
 rm -f $ARCH/preprocess.conf
 
 cat > $ARCH/preprocess.conf <<EOF

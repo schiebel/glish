@@ -5,13 +5,13 @@ CWD=.
 SHELL = /bin/sh
 SH = $(SHELL)
 
-all:
+all: include
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;		 		\
 	$(MAKE) $$FLGS $@_r
 
-install:
+install: include
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi; 				\
@@ -28,6 +28,15 @@ distclean:
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS="";			fi; 	\
 	$(MAKE) $$FLGS $@_r
+
+include:
+	mkdir include;					\
+	cd include;					\
+	ln -s ../glish/include/Glish Glish;		\
+	ln -s ../sos/include/sos sos;			\
+	ln -s ../npd/include/Npd Npd;			\
+	ln -s ../gcmem/include/gcmem gcmem;		\
+	ln -s ../regx/include/regx regx
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
