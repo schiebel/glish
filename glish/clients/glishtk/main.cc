@@ -79,14 +79,14 @@ int main( int argc, char** argv )
 	{
 	void *handle = 0;
 	typedef void (*InitFunc)( ProxyStore * );
-	if ( ! (handle = dlopen( "/home/drs/dev/glish/glish/clients/glishtk/i686-unknown-linux/shared/GlishTk.so", RTLD_NOW | RTLD_GLOBAL )) )
+	if ( ! (handle = dlopen( "GlishTk.so", RTLD_NOW | RTLD_GLOBAL )) )
 		{
 		const char *error = dlerror( );
 		if ( ! error )
 			perror( "Error:" );
 		else
 			fprintf( stderr, "%s\n", error );
-		fprintf( stderr, "Couldn't open shared object: \"GlishTk.so\"\t\t=>0x%x\n",handle );
+		fprintf( stderr, "Couldn't open shared object: \"GlishTk.so\"\n" );
 		return 1;
 		}
 
