@@ -34,7 +34,7 @@ RCSID("@(#) $Id$")
 extern "C" int writev(int, const struct iovec *, int);
 #endif
 
-#if defined(__alpha)
+#if defined(__alpha) || defined(__linux__)
 #define MAXIOV 16
 #else
 #if defined(IOV_MAX)
