@@ -259,6 +259,41 @@ protected:
 	};
 
 
+class awaitinfo {
+public:
+	awaitinfo( Stmt *stmt_arg, Stmt *except_arg, int await_only_arg ) :
+		stmt(stmt_arg), except(except_arg), await_only(await_only_arg),
+		value(0), name(0), agent(0) {}
+	~awaitinfo();
+	void SetValue( Agent *agent_, const char *name_, IValue *val );
+
+	Stmt *stmt;
+	Stmt *except;
+	int await_only;
+	IValue *value;
+	Agent *agent;
+	char *name;
+};
+
+awaitinfo::~awaitinfo()
+	{
+	if ( value ) Unref( value );
+	if ( agent ) Unref( agent );
+	if ( name )  free_memory( name );
+	}
+
+void awaitinfo::SetValue( Agent *agent_, const char *name_, IValue *val )
+	{
+	if ( value ) Unref(value);
+	value = val;
+	Ref(value);
+	if ( agent ) Unref(agent);
+	agent = agent_;
+	Ref(agent);
+	if ( name ) free_memory( name );
+	name = strdup(name_);
+	}
+
 Scope::~Scope()
 	{
 	IterCookie* c = InitForIteration();
@@ -710,6 +745,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 
 	await_stmt = except_stmt = 0;
 	await_only_flag = 0;
+	current_await_done = 0;
+	last_await_info = 0;
 	pending_task = 0;
 
 	maximize_num_fds();
@@ -1778,14 +1815,47 @@ IValue *Sequencer::Exec( int startup_script, int value_needed )
 	}
 
 
+void Sequencer::PushAwait( )
+	{
+	if ( await_stmt )
+		await_list.append( new awaitinfo(await_stmt, except_stmt,
+						  await_only_flag) );
+	}
+
+void Sequencer::PopAwait( )
+	{
+	int len = 0;
+	if ( len = await_list.length() )
+		{
+		awaitinfo *last = await_list.remove_nth(len-1);
+		if ( last )
+			{
+			await_stmt = last->stmt;
+			except_stmt = last->except;
+			await_only_flag = last->await_only;
+			if ( last->value && last->name && last->agent )
+				{
+				current_await_done = 1;
+				if ( last_await_info ) delete last_await_info;
+				last_await_info = last;
+				}
+			else
+				delete last;
+			}
+		}
+	else
+		{
+		await_stmt = except_stmt = 0;
+		await_only_flag = 0;
+		}
+	}
+
 void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
 	int removed_yyin = 0;
 
-	Stmt* hold_await_stmt = await_stmt;
-	int hold_only_flag = await_only_flag;
-	Stmt* hold_except_stmt = except_stmt;
+	PushAwait();
 
 	await_stmt = arg_await_stmt;
 	await_only_flag = only_flag;
@@ -1798,14 +1868,22 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 		removed_yyin = 1;
 		}
 
-	EventLoop();
+	EventLoop( 1 );
+
+	if ( current_await_done && last_await_info )
+		{
+		Unref( last_notification );
+		last_notification = new Notification( last_await_info->agent, last_await_info->name, last_await_info->value, 0 );
+		delete last_await_info;
+		last_await_info = 0;
+		}
+
+	current_await_done = 0;
 
 	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
-	await_stmt = hold_await_stmt;
-	await_only_flag = only_flag;
-	except_stmt = hold_except_stmt;
+	PopAwait();
 	}
 
 
@@ -2062,6 +2140,11 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 #define NEWEVENT_BODY							\
 									\
 	CHECK_AWAIT							\
+									\
+	/* Look ahead into queued awaits for future handling */		\
+	loop_over_list( await_list, X )					\
+		if ( agent->HasRegisteredInterest( await_list[X]->stmt, event_name ) ) \
+			await_list[X]->SetValue( agent, event_name, value );	\
 									\
 	if ( ignore_event )						\
 		warn->Report( "event ", agent->Name(), ".", event_name,	\
@@ -2556,7 +2639,7 @@ void Sequencer::ForwardEvent( const char* event_name, IValue* value )
 	}
 
 
-void Sequencer::EventLoop()
+void Sequencer::EventLoop( int in_await )
 	{
 	RunQueue();
 
@@ -2573,9 +2656,11 @@ void Sequencer::EventLoop()
 		}
 
 #if defined( GLISHTK )
-	while ( (ActiveClients() || TkFrame::TopLevelCount() > 0) && ! selector->DoSelection() )
+	while ( (ActiveClients() || TkFrame::TopLevelCount() > 0) &&
+		(!in_await || !current_await_done) &&
+		! selector->DoSelection() )
 #else
-	while ( ActiveClients() && ! selector->DoSelection() )
+	while ( ActiveClients() && (!in_await || !current_await_done) && ! selector->DoSelection() )
 #endif
 		RunQueue();
 

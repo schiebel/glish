@@ -60,14 +60,17 @@ class AcceptSocket;
 class AcceptSelectee;
 class Selector;
 class RemoteDaemon;
+class awaitinfo;
 
 declare(PList,Frame);
 declare(PDict,Task);
 declare(PDict,RemoteDaemon);
 declare(PDict,char);
 declare(PQueue,Notification);
+declare(PList, awaitinfo);
 
 typedef PDict(Expr) expr_dict;
+typedef PList(awaitinfo) awaitinfo_list;
 
 class Scope : public expr_dict {
 public:
@@ -358,7 +361,7 @@ public:
 	// was encountered, or because there are no longer any active
 	// clients) or we detect keyboard activity (when running
 	// interactively).
-	void EventLoop();
+	void EventLoop( int in_await = 0 );
 
 	const char* ConnectionHost()	{ return connection_host; }
 	const char* ConnectionPort()	{ return connection_port; }
@@ -401,6 +404,9 @@ protected:
 	void RunQueue();
 	void RemoveSelectee( Channel* chan );
 
+	void PushAwait();
+	void PopAwait();
+
 	char* name;
 	int verbose;
 	int my_id;
@@ -438,6 +444,9 @@ protected:
 	Stmt* await_stmt;
 	int await_only_flag;
 	Stmt* except_stmt;
+	awaitinfo_list await_list;
+	awaitinfo *last_await_info;
+	int current_await_done;
 
 	// Task that we interrupted processing because we came across
 	// an "await"-ed upon event; if non-null, should be Empty()'d
