@@ -44,8 +44,10 @@ void TkStore::fileproc( ClientData data, int fd )
 		stor->ProcessEvent( e );
 	}
 
-TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) : ProxyStore( argc, argv, multithreaded ), done(0)
+TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
+				ProxyStore( argc, argv, multithreaded ), done(0)
 	{
+	SetQuiet();
 	fd_set fds;
 	FD_ZERO( &fds );
 	int num = AddInputMask( &fds );

@@ -1,6 +1,7 @@
 
 func init_rtk( ) {
 
+    #rtk := client('xrtk')
     #rtk := client('rtk',suspend=T)
     rtk := client('rtk')
     ret := [=]

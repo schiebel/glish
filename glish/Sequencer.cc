@@ -2912,7 +2912,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 				{
 				ProxyTask *pxy = new ProxyTask(ProxyId(nval->IntPtr(0)), task, this);
 				event->SetValue( (Value*)(value = pxy->AgentRecord()) );
-				complain_if_no_interest = 1;
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 				}
 			else if ( (nval = (IValue*)value->HasRecordElement("value")) &&
 				  (nid = (IValue*)value->HasRecordElement("id")) &&
@@ -2928,13 +2928,13 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 				else
 					error->Report( "bad proxy identifier" );
 
-				complain_if_no_interest = 1;
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 				}
 			else
-				complain_if_no_interest = 1;
+				if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 			}
 		else
-			complain_if_no_interest = 1;
+			if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 		}
 
 	else if ( ! strcmp( event_name, "established" ) )
@@ -2959,7 +2959,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		ForwardEvent( event_name, value );
 
 	else
-		complain_if_no_interest = 1;
+		if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 
 	if ( NewEvent( agent, event, complain_if_no_interest, t ) )
 		{

@@ -55,11 +55,13 @@ public:
 	int IsRequest() const;
 	int IsReply() const;
 	int IsProxy() const;
+	int IsQuiet() const;
 	unsigned char Flags() const	{ return flags; }
 
 	void SetIsRequest();
 	void SetIsReply();
 	void SetIsProxy();
+	void SetIsQuiet();
 	void SetFlags( unsigned char new_flags ) { flags = new_flags; }
 
 	void SetValue( Value *v );
@@ -286,6 +288,14 @@ class Client {
 	// True if the Client is expecting a reply, false otherwise.
 	int ReplyPending() const	{ return pending_reply != 0; }
 
+	// These functions are used to indicate if events which are dropped
+	// (in the interpreter) by should result in warning by the interpreter
+	// or not. If quiet is set, no warnings are reported. Note that Error()
+	// and Unrecognized() are never quiet...
+	void SetQuiet( ) { do_quiet = 1; }
+	void ClearQuiet( ) { do_quiet = 0; }
+	int IsQuiet( ) { return do_quiet; }
+
 	// For any file descriptors this Client might read events from,
 	// sets the corresponding bits in the passed fd_set.  The caller
 	// may then use the fd_set in a call to select().  Returns the
@@ -441,6 +451,8 @@ class Client {
 
 	// Is this a script client
 	const char *script_client;
+
+	int do_quiet;
 	};
 
 Value *read_value( sos_in & );

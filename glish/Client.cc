@@ -176,6 +176,11 @@ int GlishEvent::IsProxy() const
 	return flags & GLISH_PROXY_EVENT;
 	}
 
+int GlishEvent::IsQuiet() const
+	{
+	return flags & GLISH_QUIET_EVENT;
+	}
+
 void GlishEvent::SetIsRequest()
 	{
 	flags |= GLISH_REQUEST_EVENT;
@@ -189,6 +194,11 @@ void GlishEvent::SetIsReply()
 void GlishEvent::SetIsProxy()
 	{
 	flags |= GLISH_PROXY_EVENT;
+	}
+
+void GlishEvent::SetIsQuiet()
+	{
+	flags |= GLISH_QUIET_EVENT;
 	}
 
 void GlishEvent::SetValue( Value *v )
@@ -283,6 +293,7 @@ ProxyId glish_proxyid_dummy;
 
 void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
 	{
+	do_quiet = 0;
 	int usingpipes = 0;
 	char** orig_argv = argv;
 
@@ -644,14 +655,19 @@ void Client::Unrecognized( const ProxyId &proxy_id )
 		// Internal event - ignore.
 		return;
 
+	int tmp = do_quiet;
+	do_quiet = 0;
 	if ( ReplyPending() )
 		Reply( "unrecognized", last_event->name, proxy_id );
 	else
 		PostEvent( "unrecognized", last_event->name, proxy_id );
+	do_quiet = tmp;
 	}
 
 void Client::Error( const char* msg, const ProxyId &proxy_id )
 	{
+	int tmp = do_quiet;
+	do_quiet = 0;
 	if ( ! ReplyPending() )
 		{
 		if ( last_event )
@@ -668,6 +684,7 @@ void Client::Error( const char* msg, const ProxyId &proxy_id )
 		else
 			Reply( msg, proxy_id );
 		}
+	do_quiet = tmp;
 	}
 
 void Client::Error( const char* fmt, const char* arg, const ProxyId &proxy_id )
@@ -679,6 +696,8 @@ void Client::Error( const char* fmt, const char* arg, const ProxyId &proxy_id )
 
 void Client::Error( const Value *v, const ProxyId &proxy_id )
 	{
+	int tmp = do_quiet;
+	do_quiet = 0;
 	if ( last_event )
 		{
 		char *msg = v->StringVal();
@@ -688,6 +707,7 @@ void Client::Error( const Value *v, const ProxyId &proxy_id )
 		}
 	else
 		PostEvent( "error", v, proxy_id );
+	do_quiet = tmp;
 	}
 
 void Client::PostEvent( const GlishEvent* event, const EventContext &context )
@@ -1483,6 +1503,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 				sink.setFd(el->FD());
 				GlishEvent e( el->Name(), value );
 				e.SetFlags(flags);
+				if ( do_quiet ) e.SetIsQuiet();
 				send_event( sink, &e );
 				did_send = 1;
 				}
@@ -1503,6 +1524,7 @@ void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_ar
 			{
 			GlishEvent e( name, value );
 			e.SetFlags(flags);
+			if ( do_quiet ) e.SetIsQuiet();
 			send_event( event_sources[j]->Sink(), &e );
 			return; // should only be one match
 			}
@@ -1681,6 +1703,7 @@ GlishEvent* recv_event( sos_source &in )
 void write_value( sos_out &sos, Value *val, const char *label, char *name,
 		  unsigned char flags, const ProxyId &proxy_id )
 	{
+	static value_list been_there;
 	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	static Value *empty = empty_value( );
 
@@ -1700,7 +1723,14 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 
 	if ( val->IsRef() )
 		{
-		write_value( sos, val->Deref(), label, name, flags, proxy_id );
+		Value *unrefed = val->Deref();
+		if ( ! been_there.is_member(unrefed) )
+			write_value( sos, unrefed, label, name, flags, proxy_id );
+		else
+			{
+			static Value loopback("***");
+			write_value( sos, &loopback, label, name, flags, proxy_id );
+			}
 		return;
 		}
 
@@ -1731,6 +1761,8 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 			head.usetc( val->AttributePtr() ? 1 : 0, 1 );
 		case TYPE_RECORD:
 			{
+			been_there.append( val );
+
 			int len = val->Length();
 			recordptr rec = val->RecordPtr( 0 );
 			const Value* member;
@@ -1752,6 +1784,7 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 				member = rec->NthEntry( i, key );
 				write_value( sos, (Value*) member, key, proxy_id );
 				}
+			been_there.remove( val );
 			}
 			break;
 		case TYPE_AGENT:

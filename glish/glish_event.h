@@ -15,5 +15,6 @@
 #define GLISH_REPLY_EVENT 	0x4
 #define GLISH_STRING_EVENT 	0x8
 #define GLISH_PROXY_EVENT 	0x10
+#define GLISH_QUIET_EVENT 	0x20
 
 #endif /* glish_event_h */
