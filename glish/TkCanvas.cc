@@ -13,6 +13,9 @@ RCSID("@(#) $Id$")
 
 #include <iostream.h>
 
+#define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
+	sprintf(BUFFER,"c%lx%s%lx",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
+
 unsigned long TkCanvas::count = 0;
 
 static IValue *ScrollToValue( Scrollbar_notify_data *data )
@@ -107,7 +110,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 
 #define EXPRSTR(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
 	charptr var = 0;						\
 	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_STRING ||	\
 		var##_val_ ->Length() <= 0 )				\
@@ -221,10 +224,24 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	char *ret = 0;
 	int rows, cols;
 	char *event_name = "one string + n int function";
-	char tag[256];
 	TkCanvas *agent = (TkCanvas*)agent_;
 	HASARG( args, > 0 )
-	char **argv = 0;
+	static int argv_len = 64;
+	static char **arg_name = new char*[argv_len];
+	static char **arg_val = new char*[argv_len];
+	static char **argv = new char*[argv_len];
+	static char tag[256];
+	int name_cnt = 0;
+
+#define POINTFUNC_REALLOC(size)								\
+	if ( size >= argv_len )								\
+		{									\
+		while ( size >= argv_len ) argv_len *= 2;				\
+		arg_name = (char**) realloc( arg_name, argv_len * sizeof(char*) );	\
+		arg_val = (char**) realloc( arg_val, argv_len * sizeof(char*) );	\
+		argv = (char**) realloc( argv, argv_len * sizeof(char*) );		\
+		}
+
 	int c = 0;
 	int elements = 0;
 	EXPRVAL(val,event_name)
@@ -235,13 +252,22 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		{
 	        c = 0;
 		elements = (*args).length();
-		argv = new char*[elements+argc+2];
+		POINTFUNC_REALLOC(elements*2+argc+2)
 		for (int i = 0; i < (*args).length(); i++)
-			{
-			EXPRINT2( str, event_name )
-			argv[argc++] = strdup(str);
-			EXPR_DONE( str )
-			}
+			if ( (*args)[c]->Name() )
+				{
+				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
+				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
+				EXPRSTR( str, event_name )
+				arg_val[name_cnt++] = strdup(str);
+				EXPR_DONE( str )
+				}
+			else
+				{
+				EXPRINT2( str, event_name )
+				argv[argc++] = strdup(str);
+				EXPR_DONE( str )
+				}
 		}
 	else if ( shape_val != false_value && shape_val->IsNumeric() &&
 		  shape_val->Length() == 2 && (cols = shape_val->IntVal(2)) == 2 &&
@@ -249,11 +275,12 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		{
 		rows = shape_val->IntVal();
 		elements = rows*2;
-		argv = new char*[elements+argc+2];
+		POINTFUNC_REALLOC( elements+argc+2+(*args).length()*2 )
 		Value *newval = copy_value(val);
 		newval->Polymorph(TYPE_INT);
 		int *ip = newval->IntPtr();
-		for (int i=0; i < rows; i++)
+		int i;
+		for ( i=0; i < rows; i++)
 			{
 			sprintf(buf,"%d",ip[i]);
 			argv[argc++] = strdup(buf);
@@ -261,20 +288,43 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 			argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
+		for ( i = c; i < (*args).length(); i++)
+			if ( (*args)[c]->Name() )
+				{
+				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
+				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
+				EXPRSTR( str, event_name )
+				arg_val[name_cnt++] = strdup(str);
+				EXPR_DONE( str )
+				}
+			else
+				c++;
 		}
 	else if ( val->Length() > 1 && val->IsNumeric() )
 		{
 		Value *newval = copy_value(val);
 		elements = val->Length();
-		argv = new char*[elements+argc+2];
+		POINTFUNC_REALLOC(elements+argc+2+(*args).length()*2)
 		newval->Polymorph(TYPE_INT);
 		int *ip = newval->IntPtr();
-		for (int i=0; i < val->Length(); i++)
+		int i;
+		for (i=0; i < val->Length(); i++)
 			{
 			sprintf(buf,"%d",ip[i]);
 			argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
+		for (i = c; i < (*args).length(); i++)
+			if ( (*args)[c]->Name() )
+				{
+				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
+				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
+				EXPRSTR( str, event_name )
+				arg_val[name_cnt++] = strdup(str);
+				EXPR_DONE( str )
+				}
+			else
+				c++;
 		}
 	else
 		{
@@ -282,7 +332,13 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		return 0;
 		}
 
-	sprintf(tag,"c%lx%s%lx",agent->CanvasCount(),param,agent->NewItemCount(param));
+	GENERATE_TAG(tag,agent,param)
+
+	for ( int x=0; x < name_cnt; x++ )
+		{
+		argv[argc++] = arg_name[x];
+		argv[argc++] = arg_val[x];
+		}
 
 	argv[0] = 0;
 	argv[1] = (char*) cmd;
@@ -292,9 +348,8 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 
 	ret = (char*) rivet_cmd( agent->Self(), argc, argv );
 
-	for (int j=3; j < elements + 3; j++)
+	for (int j=3; j < argc - 2; j++)
 		delete argv[j];
-	delete argv;
 
 	return tag;
 	}
@@ -318,6 +373,165 @@ char *glishtk_canvas_delete(Rivetobj self, const char *cmd, parameter_list *args
 		}
 	}
 
+char *glishtk_canvas_move(Rivetobj self, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *event_name = "canvas move function";
+	int c = 0;
+	if ( args->length() >= 3 )
+		{
+		EXPRSTR( tag, event_name )
+		EXPRINT2( xshift, event_name )
+		EXPRINT2( yshift, event_name )
+		rivet_va_cmd( self, "move", tag, xshift, yshift, 0 );
+		EXPR_DONE( yshift )
+		EXPR_DONE( xshift )
+		EXPR_DONE( tag )
+		}
+	else if ( args->length() >= 2 )
+		{
+		EXPRSTR( tag, event_name )
+		EXPRVAL( off,event_name)
+		char xshift[128];
+		char yshift[128];
+		if ( off->IsNumeric() && off->Length() >= 2 )
+			{
+			int is_copy = 0;
+			int *delta = off->CoerceToIntArray(is_copy,2);
+			sprintf(xshift,"%d",delta[0]);
+			sprintf(yshift,"%d",delta[1]);
+			if (is_copy)
+				delete delta;
+			}
+		rivet_va_cmd( self, "move", tag, xshift, yshift, 0 );
+		EXPR_DONE( off )
+		EXPR_DONE( tag )
+		}
+
+	return 0;
+	}
+
+struct glishtk_canvas_bindinfo
+	{
+	TkCanvas *canvas;
+	char *event_name;
+	char *tk_event_name;
+	char *tag;
+	glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
+			tk_event_name(strdup(tk_event)),
+			event_name(strdup(event)),
+			canvas(c) { tag = tag_arg ? strdup(tag_arg) : 0; }
+	~glishtk_canvas_bindinfo()
+		{
+		if ( tag ) delete tag;
+		delete tk_event_name;
+		delete event_name;
+		}
+	};
+
+int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysym, int callbacktype)
+	{
+	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) assoc;
+	recordptr rec = create_record_dict();
+	if ( info->tag )
+		rec->Insert( strdup("tag"), new IValue( info->tag ) );
+	static char buff[256];
+	int *wpt = new int[2];
+	wpt[0] = xevent->xkey.x;
+	wpt[1] = xevent->xkey.y;
+	rec->Insert( strdup("wpoint"), new IValue( wpt, 2 ) );
+	int *cpt = new int[2];
+	sprintf(buff,"%d",xevent->xkey.x);
+	char *ret = (char*) rivet_va_cmd(canvas, "canvasx", buff, 0);
+	cpt[0] = atoi(ret);
+	sprintf(buff,"%d",xevent->xkey.y);
+	ret = (char*) rivet_va_cmd(canvas, "canvasy", buff, 0);
+	cpt[1] = atoi(ret);
+	rec->Insert( strdup("cpoint"), new IValue( cpt, 2 ) );
+	info->canvas->ButtonEvent(info->event_name, new IValue( rec ) );
+	return TCL_OK;
+	}
+
+char *glishtk_canvas_bind(TkAgent *agent, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *event_name = "canvas bind function";
+	int c = 0;
+	if ( args->length() >= 3 )
+		{
+		EXPRSTR( tag, event_name )
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_canvas_bindinfo *binfo = 
+			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
+		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
+					  (ClientData) binfo, 1, 0) == TCL_ERROR )
+			{
+			error->Report("Error, binding not created.");
+			delete binfo;
+			}
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		EXPR_DONE( tag )
+		}
+	else if ( args->length() >= 2 )
+		{
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_canvas_bindinfo *binfo = 
+			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
+		if ( strcmp(button,"<KeyPress>") )
+			{
+			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
+						  (ClientData) binfo, 1, 0) == TCL_ERROR )
+				{
+				error->Report("Error, binding not created.");
+				delete binfo;
+				}
+			}
+		else
+			{
+			if ( rivet_create_binding(0, agent->Self()->rivet_class->name, (char*)button, (int (*)()) canvas_buttoncb,
+						    (ClientData) binfo, 1, 0) == TCL_ERROR )
+				{
+				error->Report("Error, binding not created.");
+				delete binfo;
+				}
+			}
+
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		}
+
+	return 0;
+	}
+
+IValue *glishtk_tkcast( char *tk )
+	{
+	TkAgent *agent = (TkAgent*) tk;
+	return agent ? agent->AgentRecord() : error_ivalue();
+	}
+
+char *glishtk_canvas_frame(TkAgent *agent, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *event_name = "canvas bind function";
+	TkCanvas *canvas = (TkCanvas*)agent;
+	static char tag[256];
+	int c = 0;
+	HASARG( args, >= 2 )
+
+	GENERATE_TAG(tag,canvas,"frame")
+
+	EXPRINT2( x, event_name )
+	EXPRINT2( y, event_name )
+	TkFrame *frame = new TkFrame(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
+	rivet_va_cmd(canvas->Self(),"create","window",x,y,"-anchor","nw","-tag",tag,"-window",rivet_path(frame->Self()),0);
+	EXPR_DONE( y )
+	EXPR_DONE( x )
+	return (char*) frame;
+	}
+
 int canvas_yscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
@@ -332,8 +546,13 @@ int canvas_xscrollcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientD
 	return TCL_OK;
 	}
 
+void TkCanvas::ButtonEvent( const char *event, IValue *rec )
+	{
+	CreateEvent( event, rec );
+	}
+
 TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height, const Value *region_,
-		    charptr relief, charptr borderwidth, charptr background ) : TkAgent( s )
+		    charptr relief, charptr borderwidth, charptr background, charptr fill_ ) : TkAgent( s ), fill(0)
 	{
 	frame = frame_;
 	char *argv[18];
@@ -381,14 +600,24 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 
 	count++;
 
+	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
+		fill = strdup(fill_);
+
 	frame->AddElement( this );
 	frame->Pack();
 
 	procs.Insert("height", new TkProc("-height", glishtk_onedim));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim));
 	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("rectangle", new TkProc(this, "create", "rectangle", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
+	procs.Insert("move", new TkProc("", glishtk_canvas_move));
+	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
+	procs.Insert("frame", new TkProc(this, "", glishtk_canvas_frame, glishtk_tkcast));
 	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist));
 	}
 
@@ -414,12 +643,29 @@ void TkCanvas::xScrolled( const double *d )
 	CreateEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
 	}
 
+const char **TkCanvas::PackInstruction()
+	{
+	static char *ret[5];
+	int c = 0;
+	if ( fill )
+		{
+		ret[c++] = "-fill";
+		ret[c++] = fill;
+		ret[c++] = "-expand";
+		ret[c++] = "true";
+		ret[c++] = 0;
+		return ret;
+		}
+	else
+		return 0;
+	}
+
 TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkCanvas *ret;
 
-	if ( args_val->length() != 8 )
-		return InvalidNumberOfArgs(8);
+	if ( args_val->length() != 9 )
+		return InvalidNumberOfArgs(9);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -429,8 +675,9 @@ TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( relief )
 	SETDIM( borderwidth )
 	SETSTR( background )
+	SETSTR( fill )
 
-	ret =  new TkCanvas( s, (TkFrame*)parent->AgentVal(), width, height, region, relief, borderwidth, background );
+	ret =  new TkCanvas( s, (TkFrame*)parent->AgentVal(), width, height, region, relief, borderwidth, background, fill );
 
 	return ret;
 	}      

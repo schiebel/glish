@@ -11,6 +11,7 @@ struct _Rivetstruct;
 typedef struct _Rivetstruct *Rivetobj;
 
 class TkAgent;
+class TkCanvas;
 class TkFrame;
 declare(PList,TkAgent);
 typedef PList(TkAgent) tkagent_list;
@@ -147,11 +148,15 @@ class TkFrame : public TkAgent {
 	TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height );
+	TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
+		  charptr background, charptr width, charptr height, const char *tag_ );
 
 	char *SetSide( parameter_list *, int, int );
 	char *SetPadx( parameter_list *, int, int );
 	char *SetPady( parameter_list *, int, int );
 	char *SetExpand( parameter_list *, int, int );
+	char *GetTag( parameter_list *, int, int );
 
 	void Pack();
 	void PackSpecial( TkAgent * );
@@ -168,6 +173,7 @@ class TkFrame : public TkAgent {
 	char *padx;
 	char *pady;
 	char *expand;
+	char *tag;
   	tkagent_list elements;
 	static unsigned int tl_cnt;
 	char is_tl;

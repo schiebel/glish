@@ -2,6 +2,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "TkAgent.h"
+#include "TkCanvas.h"
 
 #ifdef GLISHTK
 #include <string.h>
@@ -749,7 +750,7 @@ TkAgent::~TkAgent( ) { }
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
-		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 )
+		  charptr height, charptr title ) : TkAgent( s ), is_tl( 1 ), pseudo( 0 ), tag(0)
 	{
 	char *argv[13];
 
@@ -823,7 +824,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 )
+		  charptr width, charptr height ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ), tag(0)
 	{
 	frame = frame_;
 
@@ -875,6 +876,61 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	}
 
+TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas, charptr relief_, charptr side_,
+		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 )
+	{
+	frame = 0;
+	tag = strdup(tag_);
+
+	char *argv[12];
+
+	if ( ! root )
+		{
+		error->Report("Frame creation failed, check DISPLAY environment variable.");
+		return;
+		}
+
+	agent_ID = "<graphic:frame>";
+	side = strdup(side_);
+	padx = strdup(padx_);
+	pady = strdup(pady_);
+	expand = strdup(expand_);
+
+	int c = 2;
+	argv[0] = argv[1] = 0;
+	argv[c++] = "-relief";
+	argv[c++] = (char*) relief_;
+	argv[c++] = "-borderwidth";
+	argv[c++] = (char*) borderwidth;
+	argv[c++] = "-width";
+	argv[c++] = (char*) width;
+	argv[c++] = "-height";
+	argv[c++] = (char*) height;
+	argv[c++] = "-background";
+	argv[c++] = (char*) background;
+
+	self = rivet_create(FrameClass, canvas->Self(), c, argv);
+
+	if ( ! self )
+		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
+
+//	AddElement( this );
+
+	if ( frame )
+		{
+		frame->AddElement( this );
+		frame->Pack();
+		}
+	else
+		Pack();
+
+	procs.Insert("padx", new TkProc( this, &TkFrame::SetPadx ));
+	procs.Insert("pady", new TkProc( this, &TkFrame::SetPady ));
+	procs.Insert("tag", new TkProc( this, &TkFrame::GetTag, glishtk_str ));
+	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
+	}
+
 void TkFrame::UnMap()
 	{
 
@@ -908,6 +964,9 @@ TkFrame::~TkFrame( )
 
 	if ( pseudo )
 		rivet_destroy_window( pseudo );
+
+	if ( tag )
+		delete tag;
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
@@ -953,6 +1012,11 @@ char *TkFrame::SetPady( parameter_list *args, int is_request, int log )
 		}
 	EXPR_DONE( pady_ )
 	return "";
+	}
+
+char *TkFrame::GetTag( parameter_list *args, int is_request, int log )
+	{
+	return tag;
 	}
 
 char *TkFrame::SetExpand( parameter_list *args, int is_request, int log )
@@ -1035,7 +1099,7 @@ void TkFrame::RemoveElement( TkAgent *obj )
 
 TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	{
-	TkFrame *ret;
+	TkFrame *ret = 0;
 
 	if ( args_val->length() != 12 )
 		return InvalidNumberOfArgs(12);
@@ -1057,9 +1121,13 @@ TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 		ret =  new TkFrame( s, relief, side, borderwidth, padx, pady, expand,
 				    background, width, height, title );
 	else
-		ret =  new TkFrame( s, (TkFrame*)parent->AgentVal(), relief,
-				    side, borderwidth, padx, pady, expand, background,
-				    width, height );
+		{
+		Agent *agent = parent->AgentVal();
+		if ( ! strcmp("<graphic:frame>", agent->AgentID()) )
+			ret =  new TkFrame( s, (TkFrame*)agent, relief,
+					    side, borderwidth, padx, pady, expand, background,
+					    width, height );
+		}
 
 	return ret;
 	}
