@@ -1805,7 +1805,13 @@ IValue* AttributeRefExpr::RefEval( evalOpt &opt, value_type val_type )
 		}
 
 	else
+		{
+		//
+		// ModAttributePtr( ) ensures that an attribute record exists
+		//
+		value->ModAttributePtr( );
 		value = (IValue*) value->AttributeRef( );
+		}
 
 	Unref( value_ref );
 
