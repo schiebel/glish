@@ -1,3 +1,16 @@
+/*
+**
+**  Copyright (c) 2002, Associated Universities Inc.
+**
+*/
+
+/*
+**          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
+**
+** $Id$
+**
+*/
+
 #include "Sysinfo.h"
 
 void Sysinfo::machine_finalize( ) { }

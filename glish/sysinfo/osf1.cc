@@ -1,36 +1,39 @@
- /*
- **  This is a greatly MODIFIED version of a "top" machine dependent file.
- **  The only resemblance it bears to the original is with respect to the
- **  mechanics of finding various system details. The copyright details
- **  follow.
- **
- **  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
- **
- **  Top users/processes display for Unix
- **  Version 3
- **
- **  This program may be freely redistributed,
- **  but this entire comment MUST remain intact.
- **
- **  Copyright (c) 1984, 1989, William LeFebvre, Rice University
- **  Copyright (c) 1989 - 1994, William LeFebvre, Northwestern University
- **  Copyright (c) 1994, 1995, William LeFebvre, Argonne National Laboratory
- **  Copyright (c) 1996, William LeFebvre, Group sys Consulting
- **  Copyright (c) 2002, Associated Universities Inc.
- */
+/*
+**  This is a greatly MODIFIED version of a "top" machine dependent file.
+**  The only resemblance it bears to the original is with respect to the
+**  mechanics of finding various system details. The copyright details
+**  follow.
+**
+**  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+**
+**  Top users/processes display for Unix
+**  Version 3
+**
+**  This program may be freely redistributed,
+**  but this entire comment MUST remain intact.
+**
+**  Copyright (c) 1984, 1989, William LeFebvre, Rice University
+**  Copyright (c) 1989 - 1994, William LeFebvre, Northwestern University
+**  Copyright (c) 1994, 1995, William LeFebvre, Argonne National Laboratory
+**  Copyright (c) 1996, William LeFebvre, Group sys Consulting
+**  Copyright (c) 2002, Associated Universities Inc.
+*/
 
 /*
- * LIBS: -lmach -lpset
- *
- *          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
- *
- * ORIGINAL AUTHOR:       Anthony Baxter    <anthony@aaii.oz.au>
- * ORIGINAL CONTRIBUTORS: David S. Comay    <dsc@seismo.css.gov>
- *                        Claus Kalle
- *                        Pat Welch         <tpw@physics.orst.edu>
- *                        William LeFebvre  <lefebvre@dis.anl.gov>
- *                        Rainer Orth       <ro@techfak.uni-bielefeld.de>
- */
+** LIBS: -lmach -lpset
+**
+**          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
+**
+** ORIGINAL AUTHOR:       Anthony Baxter    <anthony@aaii.oz.au>
+** ORIGINAL CONTRIBUTORS: David S. Comay    <dsc@seismo.css.gov>
+**                        Claus Kalle
+**                        Pat Welch         <tpw@physics.orst.edu>
+**                        William LeFebvre  <lefebvre@dis.anl.gov>
+**                        Rainer Orth       <ro@techfak.uni-bielefeld.de>
+**
+** $Id$
+**
+*/
 
 //
 //--> /usr/include/mach/mach_interface.h:297:                                                        <-

@@ -1,39 +1,42 @@
- /*
- **  This is a greatly MODIFIED version of a "top" machine dependent file.
- **  The only resemblance it bears to the original is with respect to the
- **  mechanics of finding various system details. The copyright details
- **  follow.
- **
- **  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
- **
- **  Top users/processes display for Unix
- **  Version 3
- **
- **  This program may be freely redistributed,
- **  but this entire comment MUST remain intact.
- **
- **  Copyright (c) 1984, 1989, William LeFebvre, Rice University
- **  Copyright (c) 1989 - 1994, William LeFebvre, Northwestern University
- **  Copyright (c) 1994, 1995, William LeFebvre, Argonne National Laboratory
- **  Copyright (c) 1996, William LeFebvre, Group sys Consulting
- **  Copyright (c) 2002, Associated Universities Inc.
- */
+/*
+**  This is a greatly MODIFIED version of a "top" machine dependent file.
+**  The only resemblance it bears to the original is with respect to the
+**  mechanics of finding various system details. The copyright details
+**  follow.
+**
+**  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+**
+**  Top users/processes display for Unix
+**  Version 3
+**
+**  This program may be freely redistributed,
+**  but this entire comment MUST remain intact.
+**
+**  Copyright (c) 1984, 1989, William LeFebvre, Rice University
+**  Copyright (c) 1989 - 1994, William LeFebvre, Northwestern University
+**  Copyright (c) 1994, 1995, William LeFebvre, Argonne National Laboratory
+**  Copyright (c) 1996, William LeFebvre, Group sys Consulting
+**  Copyright (c) 2002, Associated Universities Inc.
+*/
 
 /*
- *
- * LIBS: -lkvm -lkstat
- *
- *          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
- *
- * ORIGINAL AUTHORS:      Torsten Kasch     <torsten@techfak.uni-bielefeld.de>
- *                        Robert Boucher    <boucher@sofkin.ca>
- * ORIGINAL CONTRIBUTORS: Marc Cohen        <marc@aai.com>
- *                        Charles Hedrick   <hedrick@geneva.rutgers.edu>
- *	                  William L. Jones  <jones@chpc>
- *                        Petri Kutvonen    <kutvonen@cs.helsinki.fi>
- *	                  Casper Dik        <casper.dik@sun.com>
- *                        Tim Pugh          <tpugh@oce.orst.edu>
- */
+**
+** LIBS: -lkvm -lkstat
+**
+**          AUTHOR:       Darrell Schiebel  <drs@nrao.edu>
+**
+** ORIGINAL AUTHORS:      Torsten Kasch     <torsten@techfak.uni-bielefeld.de>
+**                        Robert Boucher    <boucher@sofkin.ca>
+** ORIGINAL CONTRIBUTORS: Marc Cohen        <marc@aai.com>
+**                        Charles Hedrick   <hedrick@geneva.rutgers.edu>
+**	                  William L. Jones  <jones@chpc>
+**                        Petri Kutvonen    <kutvonen@cs.helsinki.fi>
+**	                  Casper Dik        <casper.dik@sun.com>
+**                        Tim Pugh          <tpugh@oce.orst.edu>
+**
+** $Id$
+**
+*/
 
 #include <stdio.h>
 #include <unistd.h>
