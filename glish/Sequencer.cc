@@ -138,7 +138,8 @@ void stack_type::TagGC( )
 	{
 	if ( ! frames ) return;
 	loop_over_list( *frames, i )
-		(*frames)[i]->TagGC();
+		if ( (*frames)[i] )
+			(*frames)[i]->TagGC();
 	}
 
 // A special type of Client used for script clients.  It overrides
@@ -2823,6 +2824,7 @@ IValue *Sequencer::Include( const char *file )
 	error->SetCount(0);
 	set_flex_buffer(old_buf);
 	delete_flex_buffer(new_buf);
+	fclose( fptr );
 	interactive = is_interactive;
 	return ret;
 	}
@@ -3078,8 +3080,22 @@ void Sequencer::CollectGarbage( )
 	{
 	((IValue*)false_value)->TagGC();
 	loop_over_list( global_frame, i )
-		global_frame[i]->TagGC();
-	Garbage::collect();
+		if ( global_frame[i] )
+			global_frame[i]->TagGC();
+	loop_over_list( registered_stmts, j )
+		if ( registered_stmts[j] )
+			registered_stmts[j]->TagGC();
+	loop_over_list( registered_values, k )
+		if ( registered_values[k] )
+			registered_values[k]->TagGC();
+
+	if ( last_notification ) last_notification->TagGC();
+	Notification *n = 0;
+	notification_queue.InitForIteration();
+	while( n = notification_queue.Next() )
+		n->TagGC();
+
+	Garbage::collect( 1 );
 	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )

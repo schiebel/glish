@@ -11,22 +11,31 @@ garbage_list *Garbage::values = 0;
 void Garbage::init() 		{ values = new garbage_list; }
 void Garbage::finalize() 	{ delete values; }
 
-void Garbage::collect( )
+void Garbage::collect( int report )
 	{
 	value_list garbage;
 	glish_collecting_garbage = 1;
+	int len = values->length();
 	loop_over_list( *values, i )
 		if ( (*values)[i]->isTaged() )
 			(*values)[i]->clear();
 		else
-			garbage.append((*values)[i]->value);
+			{
+			if ( garbage.is_member((*values)[i]->value) )
+				cerr <<  "error: " << (void*) (*values)[i]->value << endl;
+			else
+				garbage.append((*values)[i]->value);
+			}
 
-	message->Report( "removing", garbage->length(), "values..." );
+	if ( report )
+		message->Report( "removing", garbage.length(), "of", len, "values..." );
+
 	loop_over_list( garbage, j )
 		{
 		Value *v = garbage[j];
-		for ( int c = v->RefCount(); c > 0; --c )
-			Unref( v );
+		if ( v )
+			for ( int c = v->RefCount(); c > 0; --c )
+				Unref( v );
 		}
 	glish_collecting_garbage = 0;
 	}

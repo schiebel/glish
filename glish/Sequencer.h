@@ -51,6 +51,7 @@ public:
 	IValue* value;
 	Notifiee* notifiee;
 	NotifyTrigger *trigger;
+	void TagGC( ) { if ( value ) value->TagGC(); }
 	};
 
 
@@ -418,6 +419,13 @@ public:
 	// referenced via the globals
 	//
 	void CollectGarbage( );
+	//
+	// register ivalues to be preserved
+	//
+	void RegisterValue( IValue *v )
+		{ registered_values.append(v); }
+	void UnregisterValue( IValue *v )
+		{ registered_values.remove(v); }
 
 protected:
 	void MakeEnvGlobal();
@@ -479,6 +487,8 @@ protected:
 	Stmt* last_whenever_executed;
 	Stmt* stmts;
 	PList(Stmt) registered_stmts;
+
+	ivalue_list registered_values;
 
 	Stmt* await_stmt;
 	agent_dict* await_dict;

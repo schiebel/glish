@@ -347,7 +347,6 @@ int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
 	return 0;
 	}
 
-
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 				int /* is_request */, int log )
 	{

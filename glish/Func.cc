@@ -212,7 +212,8 @@ void UserFunc::TagGC( )
 	if ( stack ) stack->TagGC( );
 	if ( misc )
 		loop_over_list( *misc, i )
-			(*misc)[i]->TagGC( );
+			if ( (*misc)[i] )
+				(*misc)[i]->TagGC( );
 	}
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,

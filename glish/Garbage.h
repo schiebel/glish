@@ -19,7 +19,7 @@ public:
 	static void init();
 	static void finalize();
 
-	static void collect( );
+	static void collect( int report = 0 );
 	void tag( ) { mark = 1; }
 	int clear( ) { mark = 0; }
 	int isTaged( ) { return (int) mark; }

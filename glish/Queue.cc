@@ -11,6 +11,7 @@ BaseQueue::BaseQueue()
 	{
 	head = tail = 0;
 	num_entries = 0;
+	cur = 0;
 	}
 
 void BaseQueue::EnQueue( void* element )
@@ -44,4 +45,12 @@ void* BaseQueue::DeQueue()
 
 	--num_entries;
 	return result;
+	}
+
+void *BaseQueue::Next()
+	{
+	if ( ! cur ) return 0;
+	QueueElement *el = cur;
+	cur = cur->next;
+	return el->elem;
 	}

@@ -12,6 +12,8 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "system.h"
 
+extern int glish_collecting_garbage;
+
 glish_implement(SubVecRef,glish_bool)
 glish_implement(SubVecRef,byte)
 glish_implement(SubVecRef,short)
@@ -86,7 +88,8 @@ VecRef::~VecRef()
 		free_memory( indices );
 
 	Unref( ref );
-	Unref( val );
+	if ( ! glish_collecting_garbage )
+		Unref( val );
 	}
 
 Value* VecRef::FindIndices( Value* value, int* Indices, int num )

@@ -17,6 +17,8 @@ RCSID("@(#) $Id$")
 #include "Func.h"
 #include "Frame.h"
 
+extern int glish_collecting_garbage;
+
 int ParseNode::canDelete() const
 	{
 	return 1;
@@ -394,7 +396,8 @@ IValue* ValExpr::RefEval( value_type val_type )
 
 ConstExpr::~ConstExpr()
 	{
-	Unref((GlishObject*)const_value);
+	if ( ! glish_collecting_garbage )
+		Unref((GlishObject*)const_value);
 	}
 
 ConstExpr::ConstExpr( const IValue* value ) : Expr("constant")

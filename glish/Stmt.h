@@ -85,6 +85,8 @@ class Stmt : public ParseNode {
 	//
 	virtual void CollectUnref( stmt_list & );
 
+	virtual void TagGC( );
+
     protected:
 	// DoExec() does the real work of executing the statement.
 	virtual IValue* DoExec( int value_needed, stmt_flow_type& flow ) = 0;
@@ -115,8 +117,8 @@ class WheneverStmt : public Stmt {
     public:
 	WheneverStmt( Sequencer *arg_seq );
 
-	void Init( event_list* arg_trigger, Stmt *arg_stmt );
-	WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq );
+	void Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *arg_misc );
+	WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq, ivalue_list *arg_misc );
 
 	virtual ~WheneverStmt();
 
@@ -132,12 +134,16 @@ class WheneverStmt : public Stmt {
 
 	int canDelete() const;
 
+	void TagGC( );
+
     protected:
 	event_list* trigger;
 	Stmt* stmt;
 	Sequencer* sequencer;
 	int active;
 	static unsigned int notify_count;
+	stack_type *stack;
+	ivalue_list *misc;
 	};
 
 
@@ -151,7 +157,7 @@ class WheneverStmtCtor : public Stmt {
 	// proper index.
 	//
 	WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer );
-	void SetStmt( Stmt* arg_stmt );
+	void SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc );
 
 	virtual ~WheneverStmtCtor();
 
@@ -166,6 +172,7 @@ class WheneverStmtCtor : public Stmt {
 	Stmt* stmt;
 	Sequencer* sequencer;
 	WheneverStmt* cur;
+	ivalue_list *misc;
 	};
 
 

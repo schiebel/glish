@@ -26,11 +26,13 @@ class BaseQueue {
 	void EnQueue( void* element );
 	void* DeQueue();
 	int length() const { return num_entries; }
-
+	void InitForIteration( ) { cur = head; }
+	void *Next( );
     protected:
 	int num_entries;
 	QueueElement* head;
 	QueueElement* tail;
+	QueueElement* cur;
 	};
 
 #define Queuedeclare(type)						\
@@ -40,6 +42,8 @@ class BaseQueue {
 			{ BaseQueue::EnQueue( (void*) element ); }	\
 		type DeQueue()						\
 			{ return (type) BaseQueue::DeQueue(); }		\
+		type Next()						\
+			{ return (type) BaseQueue::Next(); }		\
 		}
 
 #define PQueuedeclare(type)						\
@@ -49,6 +53,8 @@ class BaseQueue {
 			{ BaseQueue::EnQueue( (void*) element ); }	\
 		type* DeQueue()						\
 			{ return (type*) BaseQueue::DeQueue(); }	\
+		type* Next()						\
+			{ return (type*) BaseQueue::Next(); }		\
 		}
 
 #endif	/* queue_h */

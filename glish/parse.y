@@ -35,7 +35,7 @@
 %type <event> event
 %type <stmt> statement_list statement func_body block
 %type <stmt> local_list local_item global_list global_item wider_list wider_item
-%type <stmt> whenever_head
+%type <stmt> whenever whenever_head
 %type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
@@ -198,11 +198,7 @@ statement:
 	|	TOK_WIDER wider_list ';'
 			{ $$ = $2; }
 
-	|	whenever_head TOK_DO statement
-			{
-			((WheneverStmtCtor*) $1)->SetStmt($3); 
-			$$ = $1;
-			}
+	|	whenever
 
 	|	TOK_LINK event_list TOK_TO event_list ';'
 			{ $$ = new LinkStmt( $2, $4, current_sequencer ); }
@@ -273,8 +269,41 @@ statement:
 			{ $$ = null_stmt; }
 	;
 
+whenever: whenever_head TOK_DO statement
+			{
+			// handle values (from ConstExpr's) which must be
+			// preserved along with this function
+			ivalue_list *gc_list = 0;
+			int len = gc_registry_offset->length() - 1;
+			int off = gc_registry_offset->remove_nth(len);
+			--glish_do_gc_register;
+
+			if ( len == 0 && gc_registry->length() > 0 )
+				{
+				// we're the last function
+				gc_list = gc_registry;
+				gc_registry = new ivalue_list;
+				}
+			else if ( off < gc_registry->length() )
+				{
+				// not the last function and
+				// there are values to preserve
+				gc_list = new ivalue_list;
+				for ( int rlen = gc_registry->length(); off < rlen; ++off )
+					gc_list->append( (*gc_registry)[off] );
+				}
+			((WheneverStmtCtor*) $1)->SetStmt($3, gc_list);
+			$$ = $1;
+			}
+	;
+
 whenever_head: TOK_WHENEVER event_list
-			{ $$ = new WheneverStmtCtor( $2, current_sequencer ); }
+			{
+			gc_registry_offset->append( gc_registry->length() );
+			++glish_do_gc_register;
+		        $$ = new WheneverStmtCtor( $2, current_sequencer );
+			}
+	;
 
 expression:
 		'(' expression ')'
@@ -560,6 +589,8 @@ function_head:	TOK_FUNCTION
 			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( strdup( "self" ),
 								LOCAL_SCOPE );
+			gc_registry_offset->append( gc_registry->length() );
+			++glish_do_gc_register;
 			Ref($$);
 			}
 	;

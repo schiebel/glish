@@ -50,6 +50,8 @@ IValue*& Frame::FrameElement( int offset )
 void Frame::TagGC( )
 	{
 	for ( int i = 0; i < size; ++i )
-		values[i]->TagGC( );
-	missing->TagGC( );
+		if ( values[i] )
+			values[i]->TagGC( );
+	if ( missing)
+		missing->TagGC( );
 	}

@@ -409,7 +409,7 @@ void ValueKernel::refOthers()
 
 void ValueKernel::unrefOthers()
 	{
-	if ( VALUE(mode) )
+	if ( VALUE(mode) && ! glish_collecting_garbage )
 		Unref( value );
 	else if ( REF(mode) )
 		Unref( vecref );

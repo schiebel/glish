@@ -69,6 +69,10 @@ void Stmt::SetActivity( int /* activate */ )
 	{
 	}
 
+void Stmt::TagGC( )
+	{
+	}
+
 SeqStmt::~SeqStmt()
 	{
 	NodeUnref( lhs );
@@ -129,6 +133,7 @@ WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequ
 	{
 	trigger = arg_trigger;
 	stmt = 0;
+	misc = 0;
 	sequencer = arg_sequencer;
 
 	//
@@ -143,16 +148,18 @@ WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequ
 	description = "whenever";
 	}
 
-void WheneverStmtCtor::SetStmt( Stmt* arg_stmt )
+void WheneverStmtCtor::SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc )
 	{
 	current_whenever_index = index;
 	index = 0;
 	stmt = arg_stmt;
+	misc = arg_misc;
 	}
 
 WheneverStmtCtor::~WheneverStmtCtor()
 	{
 	NodeUnref( stmt );
+	Unref( misc );
 
 	if ( trigger && trigger->RefCount() == 1 )
 		{
@@ -179,10 +186,10 @@ IValue* WheneverStmtCtor::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
 	if ( ! cur )
-		new WheneverStmt( trigger, stmt, sequencer );
+		new WheneverStmt( trigger, stmt, sequencer, misc );
 	else
 		{
-		cur->Init( trigger, stmt );
+		cur->Init( trigger, stmt, misc );
 		cur = 0;
 		}
 
@@ -204,32 +211,34 @@ unsigned int WheneverStmt::NotifyCount()
 	return notify_count;
 	}
 
-WheneverStmt::WheneverStmt(Sequencer *arg_seq) : sequencer(arg_seq), active(0)
+WheneverStmt::WheneverStmt(Sequencer *arg_seq) : sequencer(arg_seq), active(0),
+						 trigger(0), stack(0), misc(0)
 	{
 	index = sequencer->RegisterStmt( this );
 	description = "whenever";
 	}
 
-WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt,
-			    Sequencer* arg_seq ) : sequencer(arg_seq), active(0)
+WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
+			    ivalue_list *arg_misc ) : sequencer(arg_seq), active(0),
+						      trigger(0), stack(0), misc(0)
 	{
 	index = sequencer->RegisterStmt( this );
 
-	Init( arg_trigger, arg_stmt );
+	Init( arg_trigger, arg_stmt, arg_misc );
 	description = "whenever";
 	}
 
-void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt )
+void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *arg_misc )
 	{
 	trigger = arg_trigger; Ref(trigger);
 	stmt = arg_stmt; Ref(stmt);
+	misc = arg_misc; if ( misc ) Ref(misc);
 
-	stack_type *stack = sequencer->LocalFrames();
+	stack = sequencer->LocalFrames();
 
 	loop_over_list( *trigger, i )
 		(*trigger)[i]->Register( new Notifiee( this, stack ) );
 
-	Unref( stack );
 	active = 1;
 
 	sequencer->WheneverExecuted( this );
@@ -278,6 +287,15 @@ IValue* WheneverStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	return 0;
 	}
 
+void WheneverStmt::TagGC( )
+	{
+	if ( stack ) stack->TagGC( );
+	if ( misc )
+		loop_over_list( *misc, i )
+			if ( (*misc)[i] )
+				(*misc)[i]->TagGC( );
+	}
+
 WheneverStmt::~WheneverStmt()
 	{
 	NodeUnref( stmt );
@@ -288,6 +306,7 @@ WheneverStmt::~WheneverStmt()
 			Unref( (*trigger)[i] );
 		}
 
+	Unref( stack );
 	Unref( trigger );
 	}
 

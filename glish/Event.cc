@@ -48,6 +48,7 @@ Agent* EventDesignator::EventAgent( value_type val_type )
 void EventDesignator::EventAgentDone()
 	{
 	Unref( event_agent_ref );
+	event_agent_ref = 0;
 	}
 
 IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )

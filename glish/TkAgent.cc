@@ -44,6 +44,7 @@ class glishtk_event {
 			{ Ref(agent); Ref(val); }
 	void Post();
 	~glishtk_event();
+	IValue *value() { return val; }
     protected:
 	Sequencer *s;
 	TkAgent *agent;
@@ -1233,7 +1234,10 @@ void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest
 			   NotifyTrigger *t )
 	{
 	if ( hold_glish_events )
+		{
+		sequencer->RegisterValue(v);
 		tk_queue->EnQueue( new glishtk_event( sequencer, this, s, v, complain_if_no_interest, t ) );
+		}
 	else
 		glish_event_posted( sequencer->NewEvent( this, s, v, complain_if_no_interest, t ) );
 	}
@@ -1247,6 +1251,7 @@ void TkAgent::FlushGlishEvents()
 		hold_glish_events = 0;
 		while ( (e = tk_queue->DeQueue()) )
 			{
+			Sequencer::CurSeq()->UnregisterValue(e->value());
 			e->Post();
 			delete e;
 			}
@@ -2241,7 +2246,11 @@ TkButton::~TkButton( )
 		frame->Pack();
 		}
 
-	if ( value ) Unref(value);
+	if ( value )
+		{
+		sequencer->UnregisterValue( value );
+		Unref(value);
+		}
 
 	UnMap();
 	}
@@ -2393,6 +2402,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 
 	value = val ? copy_value( val ) : 0;
+	if ( value ) sequencer->RegisterValue( value );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2536,6 +2546,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 		}
 
 	value = val ? copy_value( val ) : 0;
+	if ( value ) sequencer->RegisterValue( value );
 
 	menu_index = strdup( rivet_va_cmd(menu->Menu(), "index", "last", 0) );
 

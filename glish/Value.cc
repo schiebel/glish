@@ -15,6 +15,8 @@ RCSID("@(#) $Id$")
 #include "glish_event.h"
 #include "Reporter.h"
 
+extern int glish_collecting_garbage;
+
 int num_Values_created = 0;
 int num_Values_deleted = 0;
 
@@ -259,7 +261,7 @@ void Value::InitValue()
 
 void Value::DeleteValue()
 	{
-	if ( IsRef() )
+	if ( IsRef() && ! glish_collecting_garbage )
 		Unref( RefPtr() );
 
 	if ( value_manager )
@@ -281,7 +283,8 @@ void Value::DeleteValue()
 
 void Value::DeleteAttributes()
 	{
-	Unref( attributes );
+	if ( ! glish_collecting_garbage )
+		Unref( attributes );
 	attributes = 0;
 	}
 
