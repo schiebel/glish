@@ -1208,7 +1208,7 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERC
 
  
 #define CAST_ALPHA(from,to) glish_##from##_to_##to
-#define CAST(from,to) to
+#define CAST_(from,to) to
 
 #define COERCE_ACTION_ALPHA(tag,rhs_type,rhs_elm,lhs_type,accessor,OFFSET,XLATE)\
 	case tag:							\
@@ -1218,7 +1218,7 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERC
 		break;							\
 		}
 
-#define COERCE_ACTION(tag,rhs_type,rhs_elm,lhs_type,accessor,OFFSET,XLATE)\
+#define COERCE_ACTION_(tag,rhs_type,rhs_elm,lhs_type,accessor,OFFSET,XLATE)\
 	case tag:							\
 		{							\
 		rhs_type* rhs_ptr = accessor(0);			\
@@ -1232,14 +1232,14 @@ BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERC
 		}
 
 #define COERCE_ACTIONS(type,error_msg,MOD)			\
-COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr,j,)		\
-COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr,j,)			\
-COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr,j,)		\
-COERCE_ACTION(TYPE_INT,int,,type,IntPtr,j,)			\
+COERCE_ACTION_(TYPE_BOOL,glish_bool,,type,BoolPtr,j,)		\
+COERCE_ACTION_(TYPE_BYTE,byte,,type,BytePtr,j,)			\
+COERCE_ACTION_(TYPE_SHORT,short,,type,ShortPtr,j,)		\
+COERCE_ACTION_(TYPE_INT,int,,type,IntPtr,j,)			\
 COERCE_ACTION##MOD(TYPE_FLOAT,float,,type,FloatPtr,j,)		\
 COERCE_ACTION##MOD(TYPE_DOUBLE,double,,type,DoublePtr,j,)	\
-COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr,j,)	\
-COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)\
+COERCE_ACTION_(TYPE_COMPLEX,complex,.r,type,ComplexPtr,j,)	\
+COERCE_ACTION_(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)\
 								\
 		case TYPE_SUBVEC_REF:				\
 			{					\
@@ -1247,14 +1247,14 @@ COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)\
 			switch ( ref->Type() )			\
 				{				\
 								\
-COERCE_ACTION(TYPE_BOOL,glish_bool,,type,BoolPtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_BYTE,byte,,type,BytePtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_SHORT,short,,type,ShortPtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_INT,int,,type,IntPtr,off,COERCE_ACTION_XLATE)	\
-COERCE_ACTION(TYPE_FLOAT,float,,CAST##MOD(float,type),FloatPtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_DOUBLE,double,,CAST##MOD(double,type),DoublePtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_COMPLEX,complex,.r,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_BOOL,glish_bool,,type,BoolPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_BYTE,byte,,type,BytePtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_SHORT,short,,type,ShortPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_INT,int,,type,IntPtr,off,COERCE_ACTION_XLATE)	\
+COERCE_ACTION_(TYPE_FLOAT,float,,CAST##MOD(float,type),FloatPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_DOUBLE,double,,CAST##MOD(double,type),DoublePtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_COMPLEX,complex,.r,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
 					error->Report(			\
@@ -1274,7 +1274,7 @@ byte* Value::CoerceToByteArray( int& is_copy, int size, byte* result ) const
 #if defined(__alpha) || defined(__alpha__)
 		COERCE_ACTIONS(byte,"CoerceToByteArray()",_ALPHA)
 #else
-		COERCE_ACTIONS(byte,"CoerceToByteArray()",)
+		COERCE_ACTIONS(byte,"CoerceToByteArray()",_)
 #endif
 		default:
 			error->Report(
@@ -1294,7 +1294,7 @@ short* Value::CoerceToShortArray( int& is_copy, int size, short* result ) const
 #if defined(__alpha) || defined(__alpha__)
 		COERCE_ACTIONS(short,"CoerceToShortArray()",_ALPHA)
 #else
-		COERCE_ACTIONS(short,"CoerceToShortArray()",)
+		COERCE_ACTIONS(short,"CoerceToShortArray()",_)
 #endif
 
 		default:
@@ -1315,7 +1315,7 @@ int* Value::CoerceToIntArray( int& is_copy, int size, int* result ) const
 #if defined(__alpha) || defined(__alpha__)
 		COERCE_ACTIONS(int,"CoerceToIntArray()",_ALPHA)
 #else
-		COERCE_ACTIONS(int,"CoerceToIntArray()",)
+		COERCE_ACTIONS(int,"CoerceToIntArray()",_)
 #endif
 		default:
 			error->Report(
@@ -1333,7 +1333,7 @@ float* Value::CoerceToFloatArray( int& is_copy, int size, float* result ) const
 
 	switch ( Type() )
 		{
-		COERCE_ACTIONS(float,"CoerceToFloatArray()",)
+		COERCE_ACTIONS(float,"CoerceToFloatArray()",_)
 		default:
 			error->Report(
 				"bad type in Value::CoerceToFloatArray()" );
@@ -1350,7 +1350,7 @@ double* Value::CoerceToDoubleArray( int& is_copy, int size, double* result ) con
 
 	switch ( Type() )
 		{
-		COERCE_ACTIONS(double,"CoerceToDoubleArray()",)
+		COERCE_ACTIONS(double,"CoerceToDoubleArray()",_)
 		default:
 			error->Report(
 			    "bad type in Value::CoerceToDoubleArray()" );

@@ -800,8 +800,10 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	for ( int i=0; i < args->length(); ++i )
 		{
 		EXPRVAL( val, event_name )
+		char *s = val->StringVal( ' ', 0, 1 );
 		argv[argc++] = i != 1 || param ? val->StringVal( ' ', 0, 1 ) :
-				a->IndexCheck(val->StringVal( ' ', 0, 1 ));
+				strdup(a->IndexCheck(s));
+		free_memory(s);
 		EXPR_DONE( val )
 		}
 	a->EnterEnable();
@@ -1164,13 +1166,13 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		val = (*proc1)(s,cmdstr,param,arg,x,y);
 	else if ( proc2 )
 		val = (*proc2)(s,cmdstr,param,param2,arg,x,y);
-	else if ( fproc && frame )
+	else if ( fproc != 0 && frame != 0 )
 		val = (frame->*fproc)( arg, x, y );
-	else if ( aproc && agent )
+	else if ( aproc != 0 && agent != 0 )
 		val = (*aproc)(agent, cmdstr, arg, x, y);
-	else if ( aproc2 && agent )
+	else if ( aproc2 != 0 && agent != 0 )
 		val = (*aproc2)(agent, cmdstr, param, arg, x, y);
-	else if ( aproc3 && agent )
+	else if ( aproc3 != 0 && agent != 0 )
 		val = (*aproc3)(agent, cmdstr, param, param2, arg, x, y);
 	else if ( iproc )
 		val = (*iproc)(s, cmdstr, i, arg, x, y);
@@ -1902,7 +1904,7 @@ int TkFrame::ExpandNum(const TkAgent *except, unsigned int grtOReqt) const
 	loop_over_list( elements, i )
 		{
 		if ( (! except || elements[i] != except) &&
-		     elements[i] != this && elements[i]->CanExpand() )
+		     elements[i] != (TkAgent*) this && elements[i]->CanExpand() )
 			cnt++;
 		if ( grtOReqt && cnt >= grtOReqt )
 			break;
@@ -2049,7 +2051,7 @@ const char **TkFrame::PackInstruction()
 			ret[c++] = "false";
 			}
 		ret[c++] = 0;
-		return ret;
+		return (const char**) ret;
 		}
 
 	return 0;
@@ -2512,7 +2514,7 @@ const char **CLASS::PackInstruction()			\
 			ret[c++] = "false";		\
 			}				\
 		ret[c++] = 0;				\
-		return ret;				\
+		return (const char **) ret;		\
 		}					\
 	else						\
 		return 0;				\
@@ -2936,7 +2938,7 @@ const char **TkScrollbar::PackInstruction()
 		ret[3] = "false";
 		}
 
-	return ret;
+	return (const char **) ret;
 	}
 
 int TkScrollbar::CanExpand() const

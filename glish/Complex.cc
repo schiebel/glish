@@ -24,6 +24,12 @@ dcomplex atodcpx( const char text[] )
 
 #define sqr(x) ((x) * (x))
 
+#ifdef _AIX
+static float local_zero = 0.0;
+#define DIV_BY_ZERO (1.0/local_zero)
+#else
+#define DIV_BY_ZERO (1.0/0.0)
+#endif
 #define COMPLEX_DIV_OP(type,cast)					\
 type div( const type divd, const type dsor )				\
 	{								\
@@ -36,7 +42,7 @@ type div( const type divd, const type dsor )				\
 		double w = HUGE * y;					\
 		/*** OVERFLOW ***/					\
 		if ( fabs( p ) > w || fabs( q ) > w || y == 0.0 )	\
-			return type( cast(1.0/0.0), cast(1.0/0.0) );	\
+			return type( cast(DIV_BY_ZERO), cast(DIV_BY_ZERO) ); \
 		}							\
 	return type( cast( p / y ), cast( q / y ) );			\
 	}

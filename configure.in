@@ -526,6 +526,9 @@ dnl##
 dnl##  Add in AIX flags
 dnl##
 if test "$AIX" = yes; then
+    if test "$ac_cv_prog_gxx" != yes; then
+        CXXFLAGS="$CXXFLAGS -+"
+    fi
     CFLAGS="$CFLAGS -D_ALL_SOURCE"
     CXXFLAGS="$CXXFLAGS -D_ALL_SOURCE"
 fi
