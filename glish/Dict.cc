@@ -1,4 +1,5 @@
 // $Header$
+static char *rcsid_ = "@(#) $Id$";
 
 #include <string.h>
 #include "Glish/Dict.h"

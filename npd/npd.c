@@ -1,4 +1,5 @@
 /* $Header$ */
+static char *rcsid_ = "@(#) $Id$";
 
 /*
  * Copyright (c) 1994

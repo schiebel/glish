@@ -1,4 +1,5 @@
 /* $Header$ */
+static char *rcsid_ = "@(#) $Id$";
 
 /* Generates to stdout a key to be used for npd communication. */
 

@@ -1,3 +1,6 @@
+// $Header$
+static char *rcsid_ = "@(#) $Id$";
+
 #include "system.h"
 #include "Glish/Client.h"
 #include "Daemon.h"

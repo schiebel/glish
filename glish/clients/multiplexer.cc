@@ -1,4 +1,5 @@
 // $Header$
+static char *rcsid_ = "@(#) $Id$";
 //
 // Glish "multiplexer" client:
 //

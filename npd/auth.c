@@ -1,4 +1,5 @@
 /* $Header$ */
+static char *rcsid_ = "@(#) $Id$";
 
 /* Routines to do npd authentication. */
 

@@ -1,4 +1,5 @@
 // $Header$
+static char *rcsid_ = "@(#) $Id$";
 
 #include <stdlib.h>
 #include <stream.h>

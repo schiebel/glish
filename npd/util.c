@@ -1,4 +1,5 @@
 /* $Header$ */
+static char *rcsid_ = "@(#) $Id$";
 
 /* Utility routines for npd and npd_control. */
 

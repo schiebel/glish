@@ -2,10 +2,11 @@
 **
 **  OS-9 system-dependant routines for editline library.
 */
+static char *rcsid_ = "@(#) $Id$";
+
 #include "editline.h"
 #include <sgstat.h>
 #include <modes.h>
-
 
 void
 rl_ttyset(Reset)

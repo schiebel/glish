@@ -2,6 +2,8 @@
 **
 **  Main editing routines for editline library.
 */
+static char *rcsid_ = "@(#) $Id$";
+
 #include "editline.h"
 #include <signal.h>
 #include <ctype.h>

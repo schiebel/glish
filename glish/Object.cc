@@ -1,4 +1,5 @@
 // $Header$
+static char *rcsid_ = "@(#) $Id$";
 
 #include <stream.h>
 #include "Glish/Object.h"

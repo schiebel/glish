@@ -1,4 +1,5 @@
 // $Header$
+static char *rcsid_ = "@(#) $Id$";
 //
 // Glish "echo" client - echoes back any event sent to it.
 
