@@ -1620,6 +1620,7 @@ Value *read_value( sos_in &sos )
 void write_value( sos_out &sos, const Value *v )
 	{
 	write_value( sos, (Value*) v, 0, 0, 0 );
+	sos.flush();
 	}
 	
 #if ! defined(HAVE_SHMGET)
