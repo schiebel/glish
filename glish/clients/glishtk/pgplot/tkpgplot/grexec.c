@@ -71,27 +71,29 @@ markers; `N' otherwise.
 */
 
 /* The dispatcher for PGPLOT. */
-static int NUMDRIVERS = 5;
+static int NUMDRIVERS = 7;
 extern int psdriv_(int *ifunc, float *rbuf, int *nbuf, char *chr,
 					int *lchr, int *mode, int chr_len);
 extern int tkdriv(int *ifunc, float *rbuf, int *nbuf, char *chr, int *lchr, int len);
 
+int (*display_library_pgplot_driver)(int *, float *, int *, char *, int *, int *, int) = 0;
+
 int grexec_(int *idev, int *ifunc, float *rbuf, int *nbuf,
 		char *chr, int *lchr, int chr_len)
 {
-int one = 1;
-int num;
+char *dl_dev_name = "WCPGFILTER (WorldCanvas driver for DisplayLibrary)";
+int num,i;
+
 	switch (*idev) {
 	case 0:
 		rbuf[0] = NUMDRIVERS;
 		*nbuf = 1;
 		break;
 	case 1:
-		tkdriv(ifunc, rbuf, nbuf, chr, lchr, chr_len);
+		nudriv_(ifunc, rbuf, nbuf, chr, lchr, chr_len);
 		break;
 	case 2:
-		num = 1;
-		psdriv_(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
+		tkdriv(ifunc, rbuf, nbuf, chr, lchr, chr_len);
 		break;
 	case 3:
 		num = 2;
@@ -104,6 +106,22 @@ int num;
 	case 5:
 		num = 4;
 		psdriv_(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
+		break;
+	case 6:
+		num = 5;
+		psdriv_(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
+		break;
+	case 7:
+		num = 6;
+		if ( display_library_pgplot_driver )
+			(*display_library_pgplot_driver)(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
+		else if ( *ifunc == 1 )
+			{
+			strncpy(chr, dl_dev_name, chr_len);
+			*lchr = strlen(dl_dev_name);
+			for(i = *lchr; i < chr_len; i++)
+				chr[i] = ' ';
+			}
 		break;
 	default:
 		fprintf(stderr, "SvPGDriver::grexec: Unknown device code %d\n",
