@@ -91,7 +91,7 @@ void SendChildInput( Client& c, int write_to_child_fd );
 // The globals prog_name and child_name are used for generating error
 // messages.
 
-int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const char *event_name );
+int ReceiveChildOutput( Client& c, int read_from_child_fd, const char *event_name );
 
 
 // Wait for the child to exit and return its exit status.
@@ -172,16 +172,10 @@ int main( int argc, char** argv )
 			SendChildInput( c, child_pipes[1] );
 
 		if ( FD_ISSET( child_err, &selection_mask ) )
-			{
-			int status;
-			if ( ReceiveChildOutput( c, child_err, status, "stderr" ) ) do_err = 0;
-			}
+			if ( ReceiveChildOutput( c, child_err, "stderr" ) ) do_err = 0;
 
 		if ( FD_ISSET( child_fd, &selection_mask ) )
-			{
-			int status;
-			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) ) do_out = 0;
-			}
+			if ( ReceiveChildOutput( c, child_fd, "stdout" ) ) do_out = 0;
 
 		if ( FD_ISSET( child_exit_fd, &selection_mask ) )
 			return await_child_exit();
@@ -328,7 +322,7 @@ void SendChildInput( Client& c, int send_to_child_fd )
 
 
 
-int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const char *event_name )
+int ReceiveChildOutput( Client& c, int read_from_child_fd, const char *event_name )
 	{
 	// Exhaust child's output, until we come across a read that ends
 	// on a line ('\n') boundary.
@@ -362,7 +356,6 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const ch
 			if ( read_size <= 0 )
 				{
 				if ( size > 0 ) c.PostEvent( event_name, buf );
-				status = await_child_exit();
 				return 1;
 				}
 
