@@ -165,7 +165,10 @@ class glishtk_event {
     public:
 	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
 			agent(a_), nme(n_ ? strdup(n_) : strdup(" ")), val(v_)
-			{ Ref(agent); copy_value(val); }
+//  somehow (?!?!) copy_value() seems to result in some of the value being
+//  lost when the value is queued for later processing...
+//			{ Ref(agent); copy_value(val); }
+			{ Ref(agent); Ref(val); }
 	void Post();
 	~glishtk_event();
 	Value *value() { return val; }
@@ -908,7 +911,7 @@ int TkHaveGui()
 
 void TkFrame::AddElement( TkProxy *obj ) { exit(1); }
 void TkFrame::RemoveElement( TkProxy *obj ) { exit(1); }
-void TkFrame::Pack() { exit(1); }
+void TkFrame::Pack( int override ) { if ( ! override ) exit(1); }
 const char *TkFrame::Expand() const { exit(1); return 0; }
 int TkFrame::NumChildren() const { exit(1); return 0; }
 const char *TkFrame::Side() const { exit(1); return 0; }
