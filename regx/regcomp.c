@@ -54,6 +54,9 @@
  * regular-expression syntax might require a total rethink.
  */
 #include <string.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <unistd.h>
 #define CAN_PROTOTYPE
 #define DOINIT
 #include "regcomp.h"

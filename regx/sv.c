@@ -16,6 +16,9 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <unistd.h>
 #define I_STDARG
 #include "commonp.h"
 #include "sv.h"

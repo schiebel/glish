@@ -1,6 +1,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "commonp.h"
 #include "sv.h"
 
