@@ -47,8 +47,8 @@ void regxseterror( void (*hdlr)(const char *, va_list) );
 #endif
 
 #define ROPT_ANCH	3
-#define  ROPT_ANCH_BOL	 1
-#define  ROPT_ANCH_GPOS	 2
+#define ROPT_ANCH_BOL	1
+#define ROPT_ANCH_GPOS	2
 #define ROPT_SKIP	4
 #define ROPT_IMPLICIT	8
 

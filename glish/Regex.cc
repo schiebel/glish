@@ -331,9 +331,9 @@ Regex::Regex( const Regex *o )
 		dest = subst.apply( dest );				\
 		}
 
-#define EVAL_LOOP( KEY, SUBST_ACTION )					\
+#define EVAL_LOOP( KEY, SUBST_ACTION, COND )				\
 	{								\
-	KEY ( s < s_end && regxexec( reg, s, s_end, orig, 1,0,1 ) )	\
+	KEY ( COND regxexec( reg, s, s_end, orig, 0,0,1 ) )		\
 		{							\
 		++count;						\
 									\
@@ -350,11 +350,7 @@ Regex::Regex( const Regex *o )
 		SUBST_ACTION						\
 		s = reg->endp[0];					\
 		}							\
-									\
-	if ( count == 0 )						\
-		XMATCH->failed( orig, this );				\
 	}
-
 
 #define EVAL_ACTION( STR, SUBST_ACTION )				\
 	char *orig = STR;						\
@@ -362,16 +358,20 @@ Regex::Regex( const Regex *o )
 	char *s_end = s + strlen(s);					\
 									\
 	count = 0;							\
-	if ( GLOBAL(flags) )						\
-		EVAL_LOOP(while, SUBST_ACTION)				\
-	else								\
-		EVAL_LOOP(if, SUBST_ACTION)				\
+									\
+	EVAL_LOOP(if, SUBST_ACTION, )					\
+									\
+	if ( count > 0 && GLOBAL(flags) )				\
+		EVAL_LOOP(while, SUBST_ACTION, s < s_end && )		\
+									\
+	if ( count == 0 )						\
+		XMATCH->failed( orig, this );				\
 									\
 	match_count += count;
 
 
 IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, int free_it,
-		     int return_matches, int can_resize, char **alt_src )
+		     int can_resize, char **alt_src )
 	{
 
 	if ( ! reg || ! match )
@@ -403,8 +403,6 @@ IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, i
 			}
 		else 
 			{
-			if ( return_matches )
-				mret = (int*) alloc_memory(sizeof(int)*len);
 			if ( splits && ! can_resize )
 				{
 				splits = 0;
@@ -424,8 +422,6 @@ IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, i
 				if ( free_str ) free_memory( free_str );
 				return (IValue*) Fail( subst.err() );
 				}
-
-			if ( return_matches ) mret[mc] = count;
 
 			if ( count )
 				{
@@ -470,7 +466,7 @@ IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, i
 
 		if ( resized || swap_io ) strs = outs;
 
-		return in_place ? return_matches ? new IValue( mret, len ) : 0 : new IValue(  (charptr*) outs, len );
+		return in_place ? 0 : new IValue(  (charptr*) outs, len );
 		}
 	else
 		{

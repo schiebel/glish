@@ -1919,12 +1919,14 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	regexptr *regs = regval->RegexPtr(0);
 	Regex::regex_type type = regs[0]->Type();
 	int splits = regs[0]->Splits() ? 1 : 0;
+	int global = regs[0]->Global();
 
 	for ( int i = 1; i < rlen; ++i )
 		{
 		if ( regs[i]->Type() != type )
 			APPLYREG_BAIL( "application contains both matches and substitutions" )
 		if ( ! splits ) splits = regs[i]->Splits() ? 1 : 0;
+		if ( ! global ) global = regs[i]->Global();
 		}
 
 	charptr *strs = strval->StringPtr(0);
@@ -1933,25 +1935,58 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		{
 		if ( slen == 1 )
 			{
-			int *ret = (int*) alloc_memory( rlen * sizeof(int) );
-			for ( int i=0; i < rlen; ++i )
-				ret[i] = regs[i]->Eval( (char*&) strs[0], &match );
-			result = new IValue( ret, rlen );
+			if ( global )
+				{  // if we're deailing with a //g, we return the
+				   // number of applications
+				int *ret = (int*) alloc_memory( rlen * sizeof(int) );
+				for ( int i=0; i < rlen; ++i )
+					ret[i] = regs[i]->Eval( (char*&) strs[0], &match );
+				result = new IValue( ret, rlen );
+				}
+			else
+				{
+				glish_bool *ret = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+				for ( int i=0; i < rlen; ++i )
+					ret[i] = regs[i]->Eval( (char*&) strs[0], &match ) ? glish_true : glish_false;
+				result = new IValue( ret, rlen );
+				}
 			}
 		else
 			{
-			int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
-			for ( int row=0; row < slen; ++row )
-				for ( int col=0; col < rlen; ++col )
-					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row], &match );
-			result = new IValue( ret, slen * rlen );
-			if ( rlen > 1 )
+			if ( global )
 				{
-				int *shape = (int*) alloc_memory( 2 * sizeof(int) );
-				shape[0] = slen;
-				shape[1] = rlen;
-				result->AssignAttribute("shape", new IValue(shape,2));
+				int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
+				for ( int row=0; row < slen; ++row )
+					for ( int col=0; col < rlen; ++col )
+						ret[row + col % rlen * slen] =
+							regs[col]->Eval( (char*&) strs[row], &match );
+				result = new IValue( ret, slen * rlen );
+				if ( rlen > 1 )
+					{
+					int *shape = (int*) alloc_memory( 2 * sizeof(int) );
+					shape[0] = slen;
+					shape[1] = rlen;
+					result->AssignAttribute("shape", new IValue(shape,2));
+					}
 				}
+			else
+				{
+				glish_bool *ret = (glish_bool*) alloc_memory( slen * rlen * sizeof(glish_bool) );
+				for ( int row=0; row < slen; ++row )
+					for ( int col=0; col < rlen; ++col )
+						ret[row + col % rlen * slen] =
+							regs[col]->Eval( (char*&) strs[row], &match ) ?
+							glish_true : glish_false;
+				result = new IValue( ret, slen * rlen );
+				if ( rlen > 1 )
+					{
+					int *shape = (int*) alloc_memory( 2 * sizeof(int) );
+					shape[0] = slen;
+					shape[1] = rlen;
+					result->AssignAttribute("shape", new IValue(shape,2));
+					}
+				}
+
 			}
 		}
 
@@ -1963,7 +1998,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		//
 		// This will allocate space for "rstrs", and fill it from "strs"
 		//
-		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1, (char**) strs );
+		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1, (char**) strs );
 
 		if ( err ) return err;
 
@@ -1977,23 +2012,41 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			strval_ref = left->RefEval( VAL_REF );
 			strval = (IValue*) strval_ref->Deref();
 
-			int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
-			match_count[0] = regs[0]->matchCount();
-
-			for ( int j=1; j < rlen; ++j )
+			if ( global )
 				{
-				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1 );
-				match_count[j] = regs[j]->matchCount();
+				int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+				match_count[0] = regs[0]->matchCount();
+
+				for ( int j=1; j < rlen; ++j )
+					{
+					regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
+					match_count[j] = regs[j]->matchCount();
+					}
+
+				result = new IValue( match_count, rlen );
+				}
+			else
+				{
+				glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+				match_count[0] = regs[0]->matchCount() ? glish_true : glish_false;
+
+				for ( int j=1; j < rlen; ++j )
+					{
+					regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
+					match_count[j] = regs[j]->matchCount() ? glish_true : glish_false;
+					}
+
+				result = new IValue( match_count, rlen );
 				}
 
-			result = new IValue( match_count, rlen );
+
 			IValue *tmp_val = new IValue( rstrs, nlen );
 			strval->TakeValue( tmp_val );
 			}
 		else
 			{
 			for ( int j=1; j < rlen; ++j )
-				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 0, 1 );
+				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
 
 			result = new IValue( rstrs, nlen );
 			}
