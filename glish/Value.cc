@@ -139,6 +139,13 @@ void Value::SetFailMessage( Value *nv )
 		rptr->Insert( strdup("message"), nv );
 	}
 
+void Value::SetFail( recordptr rec )
+	{
+	if ( Type() != TYPE_FAIL )
+		fatal->Report( "Value::SetFail called for non fail value" );
+	kernel.SetFail( rec );
+	}
+	  
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\
 	{								\
@@ -411,6 +418,7 @@ DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
+DEFINE_CONST_ACCESSOR(FailPtr,TYPE_FAIL,recordptr,modRecord,constRecord)
 
 
 #define DEFINE_ACCESSOR(name,tag,type,MOD,CONST)			\
@@ -433,6 +441,7 @@ DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
 DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
 DEFINE_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
 DEFINE_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
+DEFINE_ACCESSOR(FailPtr,TYPE_FAIL,recordptr,modRecord,constRecord)
 
 #define DEFINE_CONST_REF_ACCESSOR(name,tag,type)			\
 type& Value::name() const						\

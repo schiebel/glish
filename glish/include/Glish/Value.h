@@ -103,6 +103,7 @@ public:
 	Value( const char *message, const char *file, int lineNum );
 	Value( const Value *val, const char *file, int lineNum );
 	void SetFailMessage( Value * );
+	void SetFail( recordptr );
 
 	Value( const Value &v ) : kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )
@@ -242,6 +243,7 @@ public:
 	dcomplex* DcomplexPtr( int modify=1 ) const;
 	charptr* StringPtr( int modify=1 ) const;
 	recordptr RecordPtr( int modify=1 ) const;
+	recordptr FailPtr( int modify=1 ) const;
 
 	glish_bool* BoolPtr( int modify=1 );
 	byte* BytePtr( int modify=1 );
@@ -253,6 +255,7 @@ public:
 	dcomplex* DcomplexPtr( int modify=1 );
 	charptr* StringPtr( int modify=1 );
 	recordptr RecordPtr( int modify=1 );
+	recordptr FailPtr( int modify=1 );
 
 	Value* RefPtr() const		{ return kernel.GetValue(); }
 

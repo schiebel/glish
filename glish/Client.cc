@@ -1577,14 +1577,14 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 
 	free_memory( fields );
 
-	Value *ret = create_value( nr );
-
+	Value *ret = 0;
 	if ( is_fail )
 		{
-		Value *tmp = create_value();
-		tmp->AssignAttributes( ret );
-		ret = tmp;
+		ret = create_value();
+		ret->SetFail( nr );
 		}
+	else
+		ret = create_value( nr );
 
 	return ret;
 	}
@@ -1720,6 +1720,34 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 	case TAG:								\
 		sos.put( CAST val->ACCESSOR(0), val->Length() MUL, head );	\
 		break;
+#define WRITE_RECORD_ACTION(ACCESSOR)						\
+	{									\
+	been_there.append( val );						\
+										\
+	int len = val->Length();						\
+	recordptr rec = val->ACCESSOR( 0 );					\
+	const Value* member;							\
+										\
+	sos.put_record_start( len, head );					\
+										\
+	const char **fields = (const char**) alloc_memory( sizeof(char*) * len ); \
+	int i = 0;								\
+										\
+	for ( i = 0; i < len; ++i )						\
+		member = rec->NthEntry( i, fields[i] );				\
+										\
+	sos.put( fields, len );							\
+	free_memory( fields );							\
+										\
+	const char* key;							\
+	for ( i = 0; i < len; ++i )						\
+		{								\
+		member = rec->NthEntry( i, key );				\
+		write_value( sos, (Value*) member, key, proxy_id );		\
+		}								\
+	been_there.remove( val );						\
+	}
+
 
 		WRITE_ACTION(TYPE_BOOL,BoolPtr, (int*), )
 		WRITE_ACTION(TYPE_BYTE,BytePtr,,)
@@ -1731,35 +1759,10 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name,
 		WRITE_ACTION(TYPE_DCOMPLEX,DcomplexPtr, (double*), *2 )
 		WRITE_ACTION(TYPE_STRING,StringPtr,,)
 		case TYPE_FAIL:
-			val = (Value*) val->GetAttributes();
-			head.usetc( val->AttributePtr() ? 1 : 0, 1 );
+			WRITE_RECORD_ACTION(FailPtr)
+			break;
 		case TYPE_RECORD:
-			{
-			been_there.append( val );
-
-			int len = val->Length();
-			recordptr rec = val->RecordPtr( 0 );
-			const Value* member;
-
-			sos.put_record_start( len, head );
-
-			const char **fields = (const char**) alloc_memory( sizeof(char*) * len );
-			int i = 0;
-
-			for ( i = 0; i < len; ++i )
-				member = rec->NthEntry( i, fields[i] );
-
-			sos.put( fields, len );
-			free_memory( fields );
-
-			const char* key;
-			for ( i = 0; i < len; ++i )
-				{
-				member = rec->NthEntry( i, key );
-				write_value( sos, (Value*) member, key, proxy_id );
-				}
-			been_there.remove( val );
-			}
+			WRITE_RECORD_ACTION(RecordPtr)
 			break;
 		case TYPE_AGENT:
 			if ( &proxy_id == &glish_proxyid_dummy ||
