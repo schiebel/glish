@@ -81,7 +81,8 @@ static GNode	    *ENDNode;
 static void CompatInterrupt __P((int));
 static int GlishRunCommand __P((ClientData, ClientData));
 static int CompatMake __P((ClientData, ClientData));
-static void (*command_handler)(char*) = 0;
+static void (*action_handler)(char*) = 0;
+static void (*uptodate_handler)(char*) = 0;
 
 /*-
  *-----------------------------------------------------------------------
@@ -227,8 +228,8 @@ GlishRunCommand (cmdp, gnp)
 	return (0);
     }
 
-    if ( command_handler )
-        (*command_handler)( cmd );
+    if ( action_handler )
+        (*action_handler)( cmd );
     else
         printf("%s\n",cmd);
 
@@ -528,7 +529,11 @@ Compat_Run(targs)
 	CompatMake (gn, gn);
 
 	if (gn->made == UPTODATE) {
-	    printf ("`%s' is up to date.\n", gn->name);
+	    if ( uptodate_handler ) {
+	        (*uptodate_handler)( gn->name );
+	    } else {
+	        printf ("`%s' is up to date.\n", gn->name);
+	    }
 	} else if (gn->made == ABORTED) {
 	    printf ("`%s' not remade because of errors.\n", gn->name);
 	    errors += 1;
@@ -544,8 +549,15 @@ Compat_Run(targs)
 }
 
 void
-bMake_SetHandler( func )
+bMake_SetActionHandler( func )
     void (*func)(char*);
 {
-    command_handler = func;
+    action_handler = func;
+}
+
+void
+bMake_SetUpToDateHandler( func )
+    void (*func)(char*);
+{
+    uptodate_handler = func;
 }

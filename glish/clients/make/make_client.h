@@ -40,7 +40,11 @@ extern "C" {
 	/**  set the function which is called to
 	 **  perform each make action
 	 **/
-	void bMake_SetHandler( void (*)(char*) );
+	void bMake_SetActionHandler( void (*)(char*) );
+	/**  set the function which is called
+	 **  when a target is up to date
+	 **/
+	void bMake_SetUpToDateHandler( void (*)(char*) );
 
 	void Targ_PrintGraph (int);
 #ifdef __cplusplus

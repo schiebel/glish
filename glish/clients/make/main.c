@@ -462,7 +462,7 @@ bMake_Init(argc, argv)
 	queryFlag = FALSE;		/* This is not just a check-run */
 	touchFlag = FALSE;		/* Actually update targets */
 	usePipes = TRUE;		/* Catch child output in pipes */
-	debug = 0;			/* No debug verbosity, please. */
+/*	debug = 0;*/			/* No debug verbosity, please. */
 	jobsRunning = FALSE;
 
 	maxLocal = DEFMAXLOCAL;		/* Set default local max concurrency */
@@ -972,7 +972,10 @@ bMake_TargetDef( tag, tag_len, cmd, cmd_len, depend, depend_len )
                 dep = Targ_FindNode ((char*)depend[i], TARG_CREATE);
                 if (Lst_Member (gn->children, (ClientData)dep) == NILLNODE) {
                     (void)Lst_AtEnd (gn->children, (ClientData)dep);
-                   gn->unmade += 1;
+                    gn->unmade += 1;
+                }
+                if (Lst_Member (dep->parents, (ClientData)gn) == NILLNODE) {
+		    (void)Lst_AtEnd (dep->parents, (ClientData)gn);
                 }
             }
         }

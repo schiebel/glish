@@ -40,13 +40,23 @@ static void action_handler( char *cmd ) {
     }
 }
 
-	
+static void uptodate_handler( char *tgt ) {
+    if ( client ) {
+	if ( client->ReplyPending() ) {
+	    Value r(glish_true);
+	    client->Reply(&r);
+	}
+    } else
+        printf ("`%s' is up to date.\n", tgt);
+}
+
 
 int main( int argc, char** argv ) {
     Client c( argc, argv );
     bMake_Init( argc, argv );
     client = &c;
-    bMake_SetHandler( action_handler );
+    bMake_SetActionHandler( action_handler );
+    bMake_SetUpToDateHandler( uptodate_handler );
 
     for ( GlishEvent* e; (e = c.NextEvent()); ) {
         Value *val = e->value;
@@ -111,13 +121,23 @@ int main( int argc, char** argv ) {
  	        bMake_SetMain( val->StringPtr(0), val->Length() );
 	    if ( ! bMake_HasMain( ) )
 	        c.Error( "no root target specified" );
-	    else
+	    else {
 	        bMake( );
+		if ( c.ReplyPending() ) {
+		    Value r(glish_false);
+		    c.Reply(&r);
+		}
+	    }
 	} else if ( streq(e->name, "dump" ) ) {
-	    Targ_PrintGraph (1);
+	    Targ_PrintGraph (2);
 	} else {
 	    c.Error( "unknown event ('%s') or bad value", e->name );
 	    continue;
+	}
+
+	if ( c.ReplyPending() ) {
+	    Value r(glish_true);
+	    c.Reply(&r);
 	}
     }
 
