@@ -702,7 +702,7 @@ case $host_os in
 	LD_FLAGS="-Wl,-D,08000000"
 	LD_SEARCH_FLAGS=""
 	;;
-    irix5.*)
+    irix[[56]].*)
 	SLIB_CFLAGS=""
 	SLIB_LD="ld -shared -rdata_shared"
 	SLIB_LD_LIBS=""
