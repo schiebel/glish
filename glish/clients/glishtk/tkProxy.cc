@@ -70,7 +70,7 @@ char *glishtk_quote_string( charptr *str, int slen, int quote_empty_string )
 		register char x;
 		for ( charptr in = str[i]; (x = *in++); *out++ = x )
 			if ( x == '"' || x == '$' || x == '[' || x == '\\' ) *out++ = '\\';
-		*out++ = ' ';
+		if ( i+1 < slen ) *out++ = ' ';
 		}
 	*out++ = '"';
 	*out++ = '\0';
