@@ -309,7 +309,7 @@ public:
 
 	// things which ought not to be done...
 	IValue *GetGlobal( int offset ) { return global_frame[offset]; }
-	IValue *GetFunc( int frame, int offset ) { fprintf( stderr, "---> 0x%x\n", frames().length()); return frames()[frame]->FrameElement(offset); }
+	IValue *GetFunc( int frame, int offset ) { return frames()[frame]->FrameElement(offset); }
 	Frame *GetFuncFrame( int frame ) { return frames()[frame]; }
 	Frame *GetLocalFrame( ) { frame_list &t = frames(); return t[t.length()-1]; }
 
