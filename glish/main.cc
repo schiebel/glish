@@ -51,7 +51,6 @@ RCSID("@(#) $Id$")
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 #ifdef HAVE_SIGINFO_H
 #include <siginfo.h>
 #endif
@@ -60,7 +59,6 @@ RCSID("@(#) $Id$")
 #endif
 #ifdef HAVE_FLOATINGPOINT_H
 #include <floatingpoint.h>
-#endif
 #endif
 
 #include "input.h"
@@ -185,12 +183,12 @@ DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL,DUMP_CORE)
 #ifdef SIGEMT
 DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT,DUMP_CORE)
 #endif
-DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE,DUMP_CORE)
 DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP,DUMP_CORE)
 #ifdef SIGSYS
 DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS,DUMP_CORE)
 #endif
 
+static void install_sigfpe();
 static void install_terminate_handlers()
 	{
 	(void) install_signal_handler( SIGSEGV, glish_sigsegv );
@@ -199,7 +197,7 @@ static void install_terminate_handlers()
 #ifdef SIGEMT
 	(void) install_signal_handler( SIGEMT, glish_sigemt );
 #endif
-	(void) install_signal_handler( SIGFPE, glish_sigfpe );
+	install_sigfpe();
 	(void) install_signal_handler( SIGTRAP, glish_sigtrap );
 #ifdef SIGSYS
 	(void) install_signal_handler( SIGSYS, glish_sigsys );
@@ -496,46 +494,46 @@ static void glish_dump_core( const char *file )
 //  note that these signal handlers are only used to trap integer
 //  division problems, floats should happen with IEEE NaN and Inf
 //
-static int sigfpe_trap = 0;
-void glish_sigfpe_recover( )
-	{
-	sigfpe_trap = 1;
-	}
+int glish_abort_on_fpe = 1;
+int glish_sigfpe_trap = 0;
 
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-void glish_sigfpe_intdiv( int sig, siginfo_t *sip, ucontext_t *uap )
+void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 	{
-	sigfpe_trap = 1;
+	glish_sigfpe_trap = 1;
 	/*
 	**  Increment program counter; ieee_handler does this by
 	**  default, but here we have to use sigfpe() to set up the
 	**  signal handler for integer divide by 0.
 	*/
 	uap->uc_mcontext.gregs[REG_PC] = uap->uc_mcontext.gregs[REG_nPC];
-	}
-#endif
 
-void glish_fpe_enter( )
-	{
-	sigfpe_trap = 0;
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-	sigfpe(FPE_INTDIV, (void(*)()) glish_sigfpe_intdiv);
-#else
-	(void) install_signal_handler( SIGFPE, glish_sigfpe_recover );
-#endif
+	if ( glish_abort_on_fpe )
+		{
+		glish_cleanup( );
+		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
+		sigfpe(FPE_INTDIV, (void(*)()) SIGFPE_DEFAULT);
+		kill( getpid(), SIGFPE );
+		}
 	}
 
-int glish_fpe_exit( )
-	{
-	int ret = sigfpe_trap;
-	sigfpe_trap = 0;
-#if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-	sigfpe(FPE_INTDIV, (void(*)()) SIGFPE_DEFAULT);
+static void install_sigfpe() { sigfpe(FPE_INTDIV, (void(*)()) glish_sigfpe ); }
 #else
-	(void) install_signal_handler( SIGFPE, glish_sigfpe );
-#endif
-	return ret;
+void glish_sigfpe( )
+	{
+	glish_sigfpe_trap = 1;
+
+	if ( glish_abort_on_fpe )
+		{
+		glish_cleanup( );
+		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
+		install_signal_handler( SIGFPE, (signal_handler) SIG_DFL );
+		kill( getpid(), SIGFPE );
+		}
 	}
+
+static void install_sigfpe() { install_signal_handler( SIGFPE, glish_sigfpe ); }
+#endif
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";
 static char copyright2[]  = "Copyright (c) 1997 Associated Universities Inc.";

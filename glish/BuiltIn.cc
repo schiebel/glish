@@ -28,6 +28,7 @@ RCSID("@(#) $Id$")
 #include "Frame.h"
 
 #include "Glish/Stream.h"
+#include "glishlib.h"
 
 #ifdef GLISHTK
 #include "TkAgent.h"
@@ -1784,7 +1785,7 @@ IValue* LastWheneverExecutedBuiltIn::DoCall( const_args_list* /* args_val */ )
 	}
 
 
-#define DEFINE_AS_XXX_BUILT_IN(name,type,tag,stringcvt,coercer,text,zero) \
+#define DEFINE_AS_XXX_BUILT_IN(name,type,tag,stringcvt,coercer,text,zero,ENTER,EXIT) \
 IValue* name( const IValue* arg )					\
 	{								\
 	int len = arg->Length();					\
@@ -1807,7 +1808,9 @@ IValue* name( const IValue* arg )					\
 		return copy_value( arg );				\
 									\
 	int is_copy;							\
+	ENTER								\
 	type* result = arg->coercer( is_copy, len );			\
+	EXIT								\
 									\
 	IValue* ret = new IValue( result, len );			\
 	ret->CopyAttributes( arg );					\
@@ -1832,25 +1835,25 @@ glish_bool string_to_bool( const char* string )
 	}
 
 DEFINE_AS_XXX_BUILT_IN(as_boolean_built_in, glish_bool, TYPE_BOOL,
-	string_to_bool, CoerceToBoolArray, "as_boolean", glish_false)
+	string_to_bool, CoerceToBoolArray, "as_boolean", glish_false,,)
 
 DEFINE_AS_XXX_BUILT_IN(as_short_built_in, short, TYPE_SHORT, atoi,
-	CoerceToShortArray, "as_short", 0)
+	CoerceToShortArray, "as_short", 0,glish_fpe_enter();,glish_fpe_exit();)
 
 DEFINE_AS_XXX_BUILT_IN(as_integer_built_in, int, TYPE_INT, atoi,
-	CoerceToIntArray, "as_integer", 0)
+	CoerceToIntArray, "as_integer", 0,glish_fpe_enter();,glish_fpe_exit();)
 
 DEFINE_AS_XXX_BUILT_IN(as_float_built_in, float, TYPE_FLOAT, atof,
-	CoerceToFloatArray, "as_float", 0.0)
+	CoerceToFloatArray, "as_float", 0.0,,)
 
 DEFINE_AS_XXX_BUILT_IN(as_double_built_in, double, TYPE_DOUBLE, atof,
-	CoerceToDoubleArray, "as_double", 0.0)
+	CoerceToDoubleArray, "as_double", 0.0,,)
 
 DEFINE_AS_XXX_BUILT_IN(as_complex_built_in, complex, TYPE_COMPLEX, atocpx,
-	CoerceToComplexArray, "as_complex", complex(0.0, 0.0))
+	CoerceToComplexArray, "as_complex", complex(0.0, 0.0),,)
 
 DEFINE_AS_XXX_BUILT_IN(as_dcomplex_built_in, dcomplex, TYPE_DCOMPLEX, atodcpx,
-	CoerceToDcomplexArray, "as_dcomplex", dcomplex(0.0, 0.0))
+	CoerceToDcomplexArray, "as_dcomplex", dcomplex(0.0, 0.0),,)
 
 IValue* as_byte_built_in( const IValue* arg )
 	{
@@ -1876,7 +1879,9 @@ IValue* as_byte_built_in( const IValue* arg )
 		return copy_value( arg );
 
 	int is_copy;
+	glish_fpe_enter();
 	byte* result = arg->CoerceToByteArray( is_copy, len );
+	glish_fpe_exit();
 
 	return new IValue( result, len );
 	}

@@ -82,7 +82,14 @@
 	Value *create_value( charptrref& value_ref )				\
 		{ return new type( value_ref ); }
 
-void glish_fpe_enter( );
-int glish_fpe_exit( );
+extern int glish_abort_on_fpe;
+extern int glish_sigfpe_trap;
+#if defined(__alpha) || defined(__alpha__)
+#define glish_fpe_enter()	glish_abort_on_fpe = glish_sigfpe_trap = 0;
+#define glish_fpe_exit()	((glish_abort_on_fpe = 1) && glish_sigfpe_trap)
+#else
+#define glish_fpe_enter()
+#define glish_fpe_exit()	0
+#endif
 
 #endif	/* glishlib_h */
