@@ -48,6 +48,9 @@ typedef PList(await_type) awaittype_list;
 glish_declare(PList,expr_list);
 typedef PList(expr_list) expr_list_stack;
 
+glish_declare(PList,ivalue_list);
+typedef PList(ivalue_list) fail_stack_stack;
+
 class Scope : public expr_dict {
 public:
 	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
@@ -336,6 +339,9 @@ public:
 	static IValue *FuncNameStack( );
 
 	static void UnhandledFail( const IValue * );
+	static void FailCreated( IValue * );
+	void PushFailStack( );
+	IValue *PopFailStack( );
 
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame *CurrentFrame();
@@ -606,6 +612,8 @@ protected:
 	offset_list global_scopes;
 	static Scope *stashed_scope;
 	expr_list_stack back_refs;
+
+	static fail_stack_stack *fail_stack;
 
 	stack_list stack;
 	const frame_list &frames() const { return *(stack[stack.length()-1]->frames()); }

@@ -86,6 +86,7 @@ Sequencer *Sequencer::cur_sequencer = 0;
 // Keeps track of if the queue is blocked...
 int Sequencer::hold_queue = 0;
 Scope *Sequencer::stashed_scope = 0;
+fail_stack_stack *Sequencer::fail_stack = 0;
 
 // This is used to indicate that final cleanup is ongoing. Currently
 // this only affects the cleanup of WheneverStmts. Eventaully, these
@@ -2636,6 +2637,45 @@ void Sequencer::UnhandledFail( const IValue *val )
 		cerr << str << endl;
 		free_memory(str);
 		}
+	}
+
+void Sequencer::FailCreated( IValue *val )
+	{
+	int len = 0;
+	fail_stack_stack *fs = cur_sequencer->fail_stack;
+	if (  fs && (len = fs->length( )) > 0 )
+		{
+		Ref( val );
+		(*fs)[len-1]->append( val );
+		}
+	}
+
+void Sequencer::PushFailStack( )
+	{
+	if ( ! fail_stack ) fail_stack = new fail_stack_stack;
+	fail_stack->append( new ivalue_list );
+	}
+
+IValue *Sequencer::PopFailStack( )
+	{
+	static int count = 0;
+	IValue *result = 0;
+	int len = 0;
+	if ( fail_stack && (len = fail_stack->length()) > 0 )
+		{
+		++count;
+		ivalue_list *ivl = fail_stack->remove_nth( len-1 );
+		loop_over_list( *ivl, X )
+			{
+			if ( (*ivl)[X] && ! (*ivl)[X]->FailMarked() && ! result )
+				// Copy required?
+				result = (*ivl)[X];
+			else
+				Unref( (*ivl)[X] );
+			}
+		Unref( ivl );
+		}
+	return result;
 	}
 
 char* Sequencer::RegisterTask( Task* new_task, int &idi )

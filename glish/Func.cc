@@ -656,7 +656,9 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 
 	UserFunc::PushRootList( );
 
-	IValue* result = body->Exec( flow );
+	sequencer->PushFailStack( );
+	IValue *result = body->Exec( flow );
+	IValue *unhandled_fail = sequencer->PopFailStack( );
 
 	if ( subsequence_expr )
 		{
@@ -817,6 +819,26 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	Unref( UserFunc::PopRootList( ) );
 
 	opt.decfc();
+
+	//
+	// If there was an unhandled fail (and the result isn't
+	// already a fail), replace the result with the fail.
+	//
+	if ( unhandled_fail && result->Type() != TYPE_FAIL )
+		{
+		Unref( result );
+		result = unhandled_fail;
+		}
+	else
+		Unref( unhandled_fail );
+
+	//
+	// If we're returning a <fail>, then it is a problem
+	// out parent must deal with...
+	//
+	if ( result && result->Type() == TYPE_FAIL )
+		Sequencer::FailCreated( result );
+
 	return result;
 	}
 

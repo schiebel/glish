@@ -146,6 +146,12 @@ IValue::IValue( ) : unref(0), Value( )
 
 		FailStmt::SetFail( this );
 		}
+
+	//
+	// Sequencer keeps a stack (of stacks) of fail statements
+	// in order to automatically propagate unhandled fails.
+	//
+	Sequencer::FailCreated( this );
 	}
 
 IValue::IValue( const char *message, const char *fle, int lne ) : unref(0), Value( message, fle, lne )
