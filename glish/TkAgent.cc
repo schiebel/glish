@@ -1238,6 +1238,7 @@ void TkAgent::SetError( IValue *v )
 void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest,
 			   NotifyTrigger *t )
 	{
+	Ref(this);
 	if ( hold_glish_events )
 		{
 #ifdef GGC
@@ -1247,6 +1248,7 @@ void TkAgent::PostTkEvent( const char *s, IValue *v, int complain_if_no_interest
 		}
 	else
 		glish_event_posted( sequencer->NewEvent( this, s, v, complain_if_no_interest, t ) );
+	Unref(this);
 	}
 
 void TkAgent::FlushGlishEvents()
@@ -2227,7 +2229,10 @@ void TkButton::UnMap()
 			rivet_va_cmd( Menu(), "delete", Index(), 0 );
 			}
 		else
+			{
+			if ( self ) rivet_set( self, "-postcommand", "" );
 			rivet_destroy_window( self );
+			}
 		}
 
 	else if ( menu )

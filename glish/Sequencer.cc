@@ -3393,6 +3393,8 @@ void Sequencer::RunQueue()
 
 		IValue* notifier_val = n->notifier->AgentRecord();
 
+		if ( ! notifier_val ) continue;
+
 		if ( notifier_val->Type() == TYPE_RECORD &&
 		     notifier_val->HasRecordElement( n->field ) != n->value )
 			// Need to assign the event value.
