@@ -296,13 +296,18 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 		NodeList *roots = UserFunc::GetRoots( );
 		if ( roots && arg_val && UserFunc::GetRootsLen() > 0 &&
 		     arg_val->PropagateCycles( roots ) > 0 )
+			{
+			ReflexPtrBase::new_key( );
 			arg_val->SetUnref( roots );
+			}
 
 		return arg_val;
 		}
 
 	// Build up a record.
 	IValue* event_val = create_irecord();
+
+	int did_new_key = 0;
 
 	loop_over_list( *args, i )
 		{
@@ -326,7 +331,15 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 		NodeList *roots = UserFunc::GetRoots( );
 		if ( roots && arg_val && UserFunc::GetRootsLen() > 0 &&
 		     arg_val->PropagateCycles( roots ) > 0 )
+			{
+			if ( ! did_new_key )
+				{
+				ReflexPtrBase::new_key( );
+				did_new_key = 1;
+				}
+				
 			arg_val->SetUnref( roots );
+			}
 
 		event_val->AssignRecordElement( index, arg_val );
 

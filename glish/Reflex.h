@@ -16,10 +16,14 @@ class ReflexPtrBase {
 	virtual ~ReflexPtrBase( );
 	virtual void ObjGone( );
 	int isNull( ) const { return obj == 0; }
+	static void new_key( ) { ++current_key_; }
+	static unsigned int current_key( ) { return current_key_; }
     protected:
+	static unsigned int current_key_;
 	ReflexPtrBase &operator=( ReflexObj *o );
 	ReflexPtrBase &operator=( ReflexPtrBase &p );
 	ReflexObj *obj;
+	unsigned int key_;
 };
 
 glish_declare(PList,ReflexPtrBase);
@@ -56,10 +60,7 @@ class ReflexPtr(type) : ReflexPtrBase {					\
 	int isNull( ) const { return ReflexPtrBase::isNull( ); }	\
 	type *ptr( ) { return (type*) obj; }				\
 	const type *ptr( ) const { return (type*) obj; }		\
-	int operator==( const ReflexPtr(type) &p ) const		\
-		{ return obj == p.obj; }				\
-	int operator!=( const ReflexPtr(type) &p ) const		\
-		{ return obj != p.obj; }				\
+	unsigned int key( ) const { return key_; }			\
 	void unref( ) { if (obj) {obj->PointerGone( this ); Unref(obj);} obj=0; } \
 };
 

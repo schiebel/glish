@@ -2077,9 +2077,8 @@ int IValue::SetUnref( NodeList *r, int propagate_only )
 	int not_same = 0;
 	if ( r )
 		{
-		not_same = r != unref;
-		if ( unref.ptr() && not_same )
-			{
+		if ( (not_same = r != unref.ptr()) && unref.ptr() )
+ 			{
 			// There may be residual problems here, previously before
 			// the transition to "reflexive pointers" we handled (well
 			// we actually just threw up our hands) the cases of
@@ -2088,7 +2087,15 @@ int IValue::SetUnref( NodeList *r, int propagate_only )
 			if ( ! propagate_only && ! mUNREF(mask) )
 				mask |=  mUNREF();
 			unref->append( r );
-			return not_same;
+			return 1;
+			}
+
+		if ( unref.ptr() && unref.key() != ReflexPtrBase::current_key() )
+			{
+			// OK, so the keys differ here but the pointers are the same,
+			// This means that this unref value was tagged during a
+			// previous reference cycle cleanup
+			not_same = 1;
 			}
 
 		unref = r;

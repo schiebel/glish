@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "Reflex.h"
 
+unsigned int ReflexPtrBase::current_key_ = 0;
+
 ReflexPtrBase::~ReflexPtrBase( )
 	{
 	if ( obj != 0 )
@@ -18,19 +20,35 @@ void ReflexPtrBase::ObjGone( )
 
 ReflexPtrBase::ReflexPtrBase( ReflexObj *p) : obj(p)
 	{
-	if ( obj ) obj->AddPointer( this );
+	if ( obj )
+		{
+		key_ = current_key_;
+		obj->AddPointer( this );
+		}
 	}
 
 ReflexPtrBase::ReflexPtrBase( ReflexPtrBase &p ) : obj(p.obj)
 	{
-	if ( obj ) obj->AddPointer( this );
+	if ( obj )
+		{
+		key_ = current_key_;
+		obj->AddPointer( this );
+		}
 	}
 
 ReflexPtrBase &ReflexPtrBase::operator=( ReflexObj *o )
 	{
 	ReflexObj *tobj = obj;
 	obj = o;
-	if ( obj ) obj->AddPointer( this );
+
+	if ( obj )
+		{
+		obj->AddPointer( this );
+		key_ = current_key_;
+		}
+	else
+		key_ = 0;
+
 	if ( tobj ) tobj->PointerGone( this );
 	}
 
@@ -38,7 +56,15 @@ ReflexPtrBase &ReflexPtrBase::operator=( ReflexPtrBase &p )
 	{
 	ReflexObj *tobj = obj;
 	obj = p.obj;
-	if ( obj ) obj->AddPointer( this );
+
+	if ( obj )
+		{
+		obj->AddPointer( this );
+		key_ = current_key_;
+		}
+	else
+		key_ = 0;
+
 	if ( tobj ) tobj->PointerGone( this );
 	}
 

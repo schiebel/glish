@@ -659,6 +659,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	sequencer->PushFailStack( );
 	IValue *result = body->Exec( flow );
 	IValue *unhandled_fail = sequencer->PopFailStack( );
+	ReflexPtrBase::new_key( );
 
 	if ( subsequence_expr )
 		{
