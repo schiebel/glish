@@ -2168,9 +2168,6 @@ TkFrame::~TkFrame( )
 	if ( is_tl )
 		--tl_count;
 
-	if ( tag )
-		free_memory( tag );
-
 	free_memory( side );
 	free_memory( padx );
 	free_memory( pady );
@@ -2178,6 +2175,9 @@ TkFrame::~TkFrame( )
 	if ( tpos ) free_memory( tpos );
 
 	UnMap();
+
+	if ( tag )
+		free_memory( tag );
 	}
 
 char *TkFrame::SetIcon( parameter_list *args, int, int )
