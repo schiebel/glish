@@ -10,6 +10,7 @@ RCSID("@(#) $Id$")
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 #if defined(HAVE_UNISTD_H)
 #include <unistd.h>
@@ -121,8 +122,6 @@ int		rl_meta_chars = 1;
 */
 STATIC CHAR	*editinput();
 STATIC CHAR	*nb_editinput();
-extern int	read();
-extern int	write();
 #if	defined(USE_TERMCAP)
 extern char	*getenv();
 extern char	*tgetstr();
