@@ -1233,6 +1233,16 @@ void Interp::CreateClient( Value* value, dUser *hub )
 			return;
 			}
 		}
+	else if ( name_str && is_regular_file( name_str ) )				// Script client?
+		{
+		Client *persistent = hub->LookupClient( name_str );
+		if ( persistent )
+			{
+			persistent->PostEvent( "client", value );
+			return;
+			}
+		}			
+		  
 
 	Value *argv_val = value->Field( "argv", TYPE_STRING );
 	if ( ! argv_val ) return;
@@ -1296,6 +1306,7 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 
 	if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
 	const char *name_str = client->StringPtr(0)[0];
+
 	char *name = which_executable( name_str );
 
 	if ( name && hub->LookupClient(name) )
@@ -1303,6 +1314,13 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 		Value true_value( glish_true );
 		interpreter->PostEvent( "client-up-reply", &true_value );
 		if ( name != name_str ) free_memory( name );
+		return;
+		}
+
+	else  if ( hub->LookupClient( name_str ) && is_regular_file( name_str ) )	// Script client?
+		{
+		Value true_value( glish_true );
+		interpreter->PostEvent( "client-up-reply", &true_value );
 		return;
 		}
 
