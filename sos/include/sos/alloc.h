@@ -7,8 +7,8 @@
 **
 **======================================================================
 */
-#ifndef gcmem_gcmem_h
-#define gcmem_gcmem_h
+#ifndef sos_alloc_h
+#define sos_alloc_h
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>

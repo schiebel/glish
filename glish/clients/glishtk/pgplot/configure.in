@@ -15,7 +15,6 @@ dnl##
 dnl##--------------------------------------------------------------------
 AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
 AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
-AC_ARG_ENABLE(gc,                  [  --enable-gc                 garbage collection])
 AC_ARG_ENABLE(os-malloc,           [  --enable-os-malloc          do not use Lea malloc])
 AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
 AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])

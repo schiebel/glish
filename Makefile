@@ -34,12 +34,10 @@ include:
 	cd include;					\
 	ln -s ../sos/include/sos sos;			\
 	ln -s ../npd/include/Npd Npd;			\
-	ln -s ../gcmem/include/gcmem gcmem;		\
 	ln -s ../regx/include/regx regx
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
-	@$(MAKE) build.gcmem
 	@$(MAKE) build.sos
 	@$(MAKE) build.regx
 	@$(MAKE) build.editline
@@ -48,7 +46,6 @@ all_r:
 
 install_r: 
 	@echo "Installing Glish for $(ARCH)"
-	@$(MAKE) install.gcmem
 	@$(MAKE) install.sos
 	@$(MAKE) install.regx
 	@$(MAKE) install.editline
@@ -57,7 +54,6 @@ install_r:
 
 clean_r:
 	@echo "Cleaning Glish for $(ARCH)"
-	@$(MAKE) clean.gcmem
 	@$(MAKE) clean.sos
 	@$(MAKE) clean.regx
 	@$(MAKE) clean.editline
@@ -66,40 +62,12 @@ clean_r:
 
 distclean_r:
 	@echo "Removing Everything for $(ARCH)"
-	@$(MAKE) distclean.gcmem
 	@$(MAKE) distclean.sos
 	@$(MAKE) distclean.regx
 	@$(MAKE) distclean.editline
 	@$(MAKE) distclean.npd
 	@$(MAKE) distclean.glish
 	@rm -rf $(ARCH)
-
-##
-## Building gcmem
-##
-build.gcmem:
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS="";  fi;			 	\
-	cd gcmem; $(MAKE) $$FLGS
-
-install.gcmem:
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	cd gcmem; $(MAKE) $$FLGS install
-
-clean.gcmem:
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	cd gcmem; $(MAKE) $$FLGS clean
-
-distclean.gcmem:
-	@if test -z "$(ARCH)"; then 			\
-		FLGS="ARCH=`config/architecture`";	\
-	else 	FLGS=""; fi;			 	\
-	cd gcmem; $(MAKE) $$FLGS distclean
 
 ##
 ## Building SOS

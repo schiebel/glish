@@ -21,7 +21,6 @@ dnl##
 dnl##--------------------------------------------------------------------
 AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
 AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
-AC_ARG_ENABLE(gc,                  [  --enable-gc                 garbage collection])
 AC_ARG_ENABLE(os-malloc,           [  --enable-os-malloc          do not use Lea malloc])
 AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
 AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])
@@ -618,14 +617,10 @@ dnl##--------------------------------------------------------------------
 
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
-    if test "$enable_gc" = "yes"; then
-        NPD_LIB='${LIBDIR_P}/libnpdgc${NPD_SUFFIX}'
-    else
-        NPD_LIB='${LIBDIR_P}/libnpd${NPD_SUFFIX}'
-    fi
+    NPD_LIB='${LIBDIR_P}/libnpd${NPD_SUFFIX}'
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -637,7 +632,7 @@ else
     BUILD_NPD=""
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 fi
 
 dnl##--------------------------------------------------------------------
@@ -1681,38 +1676,22 @@ dnl##
 if test "$static_binary" = "yes"; then
     SHARED_BIN=
     STATIC_BIN=bin_tgt
-    if test "$enable_gc" = "yes"; then
-        GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsosgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libeditgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregxgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
-    else
-        GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
-    fi
+    GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
-	if test "$enable_gc" = "yes"; then
-  	    GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpdgc$GLISH_LIB_SUFFIX"
-	else
-  	    GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
-	fi
+	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
 else
     SHARED_BIN=bin_tgt
     STATIC_BIN=
-    if test "$enable_gc" = "yes"; then
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc${GLISH_SLIB_VERSION} -lsosgc${SOS_SLIB_VERSION} -leditgc${EDITLINE_SLIB_VERSION} -lregxgc${REGX_SLIB_VERSION} -lgcmem"
-    else
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
-    fi
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
     CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
     TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
     if test "$do_npd" = "yes"; then
-	if test "$enable_gc" = "yes"; then
-	    GLISH_LIBS="$GLISH_LIBS -lnpdgc${NPD_SLIB_VERSION}"
-	else
-	    GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
-	fi
+	GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
     fi
@@ -1847,7 +1826,6 @@ dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
 echo "$ac_t""creating architecture directories" 1>&AC_FD_MSG
-$mkhier "gcmem/$ARCH"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/shared"
 $mkhier "npd/$ARCH/static"
@@ -1866,7 +1844,6 @@ if test ! -d include; then
     (mkdir include; cd include;
      ln -s ../sos/include/sos sos;
      ln -s ../npd/include/Npd Npd;
-     ln -s ../gcmem/include/gcmem gcmem;
      ln -s ../regx/include/regx regx)
 fi
 
@@ -1879,34 +1856,28 @@ if test -n "$SLIB_LABEL"; then
 fi
 
 echo "$ac_t""preprocessing template makefiles" 1>&AC_FD_MSG
-PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/Makefile.in,[GC="$enable_gc"])
-PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,[GC="$enable_gc"])
+PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,)
 PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"
 LABEL_SLIB="$label_slib"
-SLIB_SYM_LINKS="$make_slib_symlinks"
-GC="$enable_gc"])
+SLIB_SYM_LINKS="$make_slib_symlinks"])
 PREPROCESS(glish/clients/glishtk/shared.in,glish/clients/glishtk/$ARCH/shared.in,[SHARED="yes"
 LABEL_SLIB="$label_slib"
 SLIB_SYM_LINKS="$make_slib_symlinks"])
-PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in,[GC="$enable_gc"])
+PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in,)
 PREPROCESS(npd/mkfile.in,npd/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
-GC="$enable_gc"])
-PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in,[GC="$enable_gc"])
+LABEL_SLIB="$label_slib"])
+PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in,)
 PREPROCESS(editline/mkfile.in,editline/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
-GC="$enable_gc"])
-PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in,[GC="$enable_gc"])
+LABEL_SLIB="$label_slib"])
+PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in,)
 PREPROCESS(regx/mkfile.in,regx/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
-GC="$enable_gc"])
-PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in,[GC="$enable_gc"])
+LABEL_SLIB="$label_slib"])
+PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in,)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
-GC="$enable_gc"])
+LABEL_SLIB="$label_slib"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

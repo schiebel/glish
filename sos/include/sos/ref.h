@@ -9,15 +9,8 @@
 #ifndef sos_ref_h_
 #define sos_ref_h_
 
-#if defined(ENABLE_GC)
-#include <gcmem/gc_cpp.h>
-#endif
 #include "sos/generic.h"
-#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
-#else
-#include "gcmem/alloc.h"
-#endif
 
 class GcRef;
 class sos_name2(GcRef,PList);

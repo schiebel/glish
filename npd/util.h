@@ -9,11 +9,7 @@
  */
 
 #include <stdio.h>
-#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
-#else
-#include "gcmem/alloc.h"
-#endif
 
 /* Amount to add to size computations to be sure to avoid fencepost errors. */
 #define SLOP 10

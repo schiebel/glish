@@ -8,12 +8,7 @@
 /*
 ** use the allocation routines declared here
 */
-#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
-#else
-#include "gcmem/alloc.h"
-#endif
-
 #include "sos/generic.h"
 #define glish_name2		sos_name2
 #define glish_name3		sos_name3

@@ -9,11 +9,7 @@
 #ifndef sos_header_h
 #define sos_header_h
 #include "sos/mdep.h"
-#if ! defined(ENABLE_GC)
 #include "sos/alloc.h"
-#else
-#include "gcmem/alloc.h"
-#endif
 
 #define SOS_HEADER_SIZE		24
 #define SOS_VERSION		0
