@@ -4155,7 +4155,7 @@ MAKE_LIB="ar cru"
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgregex$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -4167,7 +4167,7 @@ if test "$static_binary" = "yes"; then
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lgregex"
+    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
     CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
@@ -4314,8 +4314,8 @@ $mkhier "npd/$ARCH/static"
 $mkhier "npd/$ARCH/dynamic"
 $mkhier "editline/$ARCH/static"
 $mkhier "editline/$ARCH/dynamic"
-$mkhier "regexp/$ARCH/static"
-$mkhier "regexp/$ARCH/dynamic"
+$mkhier "regx/$ARCH/static"
+$mkhier "regx/$ARCH/dynamic"
 $mkhier "glish/$ARCH/static"
 $mkhier "glish/$ARCH/dynamic"
 
@@ -4471,14 +4471,14 @@ cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
 else\\
 cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][A-Z]*\)/!NO!SUBS!\\
 if test -n \"\$\1\"; then\\
-cat <<'!NO!SUBS!'/" < regexp/mkfile.in >> $ARCH/preprocess.conf
+cat <<'!NO!SUBS!'/" < regx/mkfile.in >> $ARCH/preprocess.conf
 
 cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f regexp/$ARCH/static.in
-/bin/sh $ARCH/preprocess.conf > regexp/$ARCH/static.in
+rm -f regx/$ARCH/static.in
+/bin/sh $ARCH/preprocess.conf > regx/$ARCH/static.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -4494,14 +4494,14 @@ cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
 else\\
 cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][A-Z]*\)/!NO!SUBS!\\
 if test -n \"\$\1\"; then\\
-cat <<'!NO!SUBS!'/" < regexp/mkfile.in >> $ARCH/preprocess.conf
+cat <<'!NO!SUBS!'/" < regx/mkfile.in >> $ARCH/preprocess.conf
 
 cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f regexp/$ARCH/dynamic.in
-/bin/sh $ARCH/preprocess.conf > regexp/$ARCH/dynamic.in
+rm -f regx/$ARCH/dynamic.in
+/bin/sh $ARCH/preprocess.conf > regx/$ARCH/dynamic.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -4637,7 +4637,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regexp/$ARCH/static/Makefile:regexp/$ARCH/static.in regexp/$ARCH/dynamic/Makefile:regexp/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -4717,7 +4717,7 @@ CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regexp/$ARCH/static/Makefile:regexp/$ARCH/static.in regexp/$ARCH/dynamic/Makefile:regexp/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in"}
+CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then

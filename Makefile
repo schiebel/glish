@@ -32,7 +32,7 @@ distclean:
 all_r: 
 	@echo "Building Glish for $(ARCH)"
 	@$(MAKE) build.sos
-	@$(MAKE) build.regexp
+	@$(MAKE) build.regx
 	@$(MAKE) build.editline
 	@$(MAKE) build.npd
 	@$(MAKE) build.tk
@@ -41,7 +41,7 @@ all_r:
 install_r: 
 	@echo "Installing Glish for $(ARCH)"
 	@$(MAKE) install.sos
-	@$(MAKE) install.regexp
+	@$(MAKE) install.regx
 	@$(MAKE) install.editline
 	@$(MAKE) install.npd
 	@$(MAKE) install.tk
@@ -50,7 +50,7 @@ install_r:
 clean_r:
 	@echo "Cleaning Glish for $(ARCH)"
 	@$(MAKE) clean.sos
-	@$(MAKE) clean.regexp
+	@$(MAKE) clean.regx
 	@$(MAKE) clean.editline
 	@$(MAKE) clean.npd
 	@$(MAKE) clean.tk
@@ -59,7 +59,7 @@ clean_r:
 distclean_r:
 	@echo "Removing Everything for $(ARCH)"
 	@$(MAKE) distclean.sos
-	@$(MAKE) distclean.regexp
+	@$(MAKE) distclean.regx
 	@$(MAKE) distclean.editline
 	@$(MAKE) distclean.npd
 	@$(MAKE) distclean.tk
@@ -94,31 +94,31 @@ distclean.sos:
 	cd sos; $(MAKE) $$FLGS distclean
 
 ##
-## Building REGEXP
+## Building REGX
 ##
-build.regexp:
+build.regx:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS="";  fi;			 	\
-	cd regexp; $(MAKE) $$FLGS
+	cd regx; $(MAKE) $$FLGS
 
-install.regexp:
+install.regx:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd regexp; $(MAKE) $$FLGS install
+	cd regx; $(MAKE) $$FLGS install
 
-clean.regexp:
+clean.regx:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd regexp; $(MAKE) $$FLGS clean
+	cd regx; $(MAKE) $$FLGS clean
 
-distclean.regexp:
+distclean.regx:
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;			 	\
-	cd regexp; $(MAKE) $$FLGS distclean
+	cd regx; $(MAKE) $$FLGS distclean
 
 ##
 ## Building Editline

@@ -1022,7 +1022,7 @@ dnl##
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
     STATIC_BIN=bin_tgt
-    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgregex$GLISH_LIB_SUFFIX"
+    GLISH_LIBS="$LD_SEARCH_FLAGS \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -1034,7 +1034,7 @@ if test "$static_binary" = "yes"; then
 else
     DYNAMIC_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lgregex"
+    GLISH_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglishp -lglish -lsos -ledit -lregx"
     CLIENT_LIBS="$LD_SEARCH_FLAGS -L\${LIBDIR_P} -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpd"
@@ -1159,8 +1159,8 @@ $mkhier "npd/$ARCH/static"
 $mkhier "npd/$ARCH/dynamic"
 $mkhier "editline/$ARCH/static"
 $mkhier "editline/$ARCH/dynamic"
-$mkhier "regexp/$ARCH/static"
-$mkhier "regexp/$ARCH/dynamic"
+$mkhier "regx/$ARCH/static"
+$mkhier "regx/$ARCH/dynamic"
 $mkhier "glish/$ARCH/static"
 $mkhier "glish/$ARCH/dynamic"
 
@@ -1170,10 +1170,10 @@ PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in)
 PREPROCESS(npd/mkfile.in,npd/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in)
 PREPROCESS(editline/mkfile.in,editline/$ARCH/dynamic.in,[DYNAMIC="yes"])
-PREPROCESS(regexp/mkfile.in,regexp/$ARCH/static.in)
-PREPROCESS(regexp/mkfile.in,regexp/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in)
+PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regexp/$ARCH/static/Makefile:regexp/$ARCH/static.in regexp/$ARCH/dynamic/Makefile:regexp/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
 
