@@ -1,6 +1,6 @@
 pragma include once
 
-func init_glishtk( ) {
+func init_glishtk( load=F ) {
     global system
 
     if ( ! is_record(system.tk) ) system.tk := [=]
@@ -8,7 +8,7 @@ func init_glishtk( ) {
     if ( is_string( system.tk.focus ) )
         gtk := client( 'glishtk', '-focus', system.tk.focus )
     else
-	if ( is_boolean( system.tk.load ) && system.tk.load )
+	if ( is_boolean( load ) && load )
 	        gtk := dl_client( 'GlishTk.so' )
 	else
 	        gtk := client( 'glishtk' )
@@ -142,7 +142,7 @@ func init_glishtk( ) {
     return ref ret
 }
 
-dgtk := init_glishtk( )
+dgtk := init_glishtk( is_boolean( system.tk.load ) && system.tk.load )
 
 frame := dgtk.frame
 button := dgtk.button
