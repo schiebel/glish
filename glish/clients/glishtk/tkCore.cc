@@ -453,10 +453,12 @@ char *glishtk_strandidx(TkProxy *a, const char *cmd, Value *args )
 		EXPR_DONE( where )
 		EXPR_DONE( strv )
 		}
-	else if ( args->Type() == TYPE_STRING )
+	else if ( args->Type() == TYPE_STRING || args->IsNumeric() )
 		{
 		a->EnterEnable();
-		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " {", args->StringPtr(0)[0], "}", 0 );
+		char *str = args->StringVal();
+		tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), " {", str, "}", 0 );
+		free_memory(str);
 		a->ExitEnable();
 		}
 	else
@@ -1332,6 +1334,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	procs.Insert("map", new FmeProc(this, "MC", glishtk_agent_map));
 	procs.Insert("unmap", new FmeProc(this, "UC", glishtk_agent_map));
 	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("raise", NULL_TkProc);
 
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
 	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));
@@ -1413,6 +1416,7 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	procs.Insert("release", new FmeProc( this, &TkFrameP::ReleaseCB ));
 	procs.Insert("cursor", new FmeProc("-cursor", glishtk_onestr, glishtk_str));
 	procs.Insert("bind", new FmeProc(this, "", glishtk_bind));
+	procs.Insert("raise", NULL_TkProc);
 
 	procs.Insert("width", new FmeProc("", glishtk_width, glishtk_valcast));
 	procs.Insert("height", new FmeProc("", glishtk_height, glishtk_valcast));

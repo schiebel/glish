@@ -310,6 +310,8 @@ void TkProxy::ProcessEvent( const char *name, Value *val )
 
 	TkProc *proc = procs[name];
 
+	if ( proc == NULL_TkProc ) return;
+
 	if ( proc != 0 )
 		{
 		static Value *true_result = new Value( glish_true );
