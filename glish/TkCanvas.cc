@@ -108,22 +108,25 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		return 0;						\
 		}
 
-#define EXPRSTR(var,EVENT)						\
+#define EXPRSTRVAL(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
-	charptr var = 0;						\
-	if ( ! var##_val_ || var##_val_ ->Type() != TYPE_STRING ||	\
-		var##_val_ ->Length() <= 0 )				\
+	const IValue *var = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var;					\
+	if ( ! var || var ->Type() != TYPE_STRING ||			\
+		var->Length() <= 0 )					\
 		{							\
 		error->Report("bad value for ", EVENT);			\
-		var##_expr_ ->ReadOnlyDone(var##_val_);			\
+		var##_expr_ ->ReadOnlyDone(var);			\
 		return 0;						\
-		}							\
-	else								\
-		var = ( var##_val_ ->StringPtr() )[0];
+		}
+#define EXPRSTR(var,EVENT)						\
+	charptr var = 0;						\
+	EXPRSTRVAL(var##_val_, EVENT)					\
+	Expr *var##_expr_ = var##_val__expr_;				\
+	var = ( var##_val_ ->StringPtr() )[0];
 #define EXPRDIM(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
-	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();		\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
 	charptr var = 0;						\
 	char var##_char_[30];						\
 	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
@@ -231,6 +234,9 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	static char **arg_val = new char*[argv_len];
 	static char **argv = new char*[argv_len];
 	static char tag[256];
+	static int tagstr_len = 512;
+	static char *tagstr = new char[tagstr_len];
+	int tagstr_cnt = 0;
 	int name_cnt = 0;
 
 #define POINTFUNC_REALLOC(size)								\
@@ -242,6 +248,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		argv = (char**) realloc( argv, argv_len * sizeof(char*) );		\
 		}
 
+	tagstr[0] = '\0';
 	int c = 0;
 	int elements = 0;
 	EXPRVAL(val,event_name)
@@ -253,14 +260,39 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	        c = 0;
 		elements = (*args).length();
 		POINTFUNC_REALLOC(elements*2+argc+2)
+
+#define POINTFUNC_TAG_APPEND(STR)					\
+if ( tagstr_cnt+strlen(STR)+5 >= tagstr_len )				\
+	{								\
+	while ( tagstr_cnt+strlen(STR)+5 >= tagstr_len ) tagstr_len *= 2; \
+	tagstr = (char*) realloc( tagstr, tagstr_len * sizeof(char));	\
+	}								\
+if ( tagstr_cnt ) { strcat(tagstr, " "); tagstr_cnt++; }		\
+strcat(tagstr, STR);							\
+tagstr_cnt += strlen(STR);
+
+#define POINTFUNC_NAMED_ACTION				 	\
+if ( strcmp((*args)[c]->Name(),"tag") )				\
+	{							\
+	arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2]; \
+	sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());	\
+	EXPRSTR( str, event_name )				\
+	arg_val[name_cnt++] = strdup(str);			\
+	EXPR_DONE( str )					\
+	}							\
+else								\
+	{							\
+	EXPRSTRVAL(str_v,event_name)				\
+	char *str = str_v->StringVal();				\
+	POINTFUNC_TAG_APPEND(str)				\
+	delete str;						\
+	EXPR_DONE( str_v )					\
+	}
+
 		for (int i = 0; i < (*args).length(); i++)
 			if ( (*args)[c]->Name() )
 				{
-				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
-				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
-				EXPRSTR( str, event_name )
-				arg_val[name_cnt++] = strdup(str);
-				EXPR_DONE( str )
+				POINTFUNC_NAMED_ACTION
 				}
 			else
 				{
@@ -291,11 +323,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		for ( i = c; i < (*args).length(); i++)
 			if ( (*args)[c]->Name() )
 				{
-				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
-				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
-				EXPRSTR( str, event_name )
-				arg_val[name_cnt++] = strdup(str);
-				EXPR_DONE( str )
+				POINTFUNC_NAMED_ACTION
 				}
 			else
 				c++;
@@ -317,11 +345,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 		for (i = c; i < (*args).length(); i++)
 			if ( (*args)[c]->Name() )
 				{
-				arg_name[name_cnt] = new char[strlen((*args)[c]->Name())+2];
-				sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());
-				EXPRSTR( str, event_name )
-				arg_val[name_cnt++] = strdup(str);
-				EXPR_DONE( str )
+				POINTFUNC_NAMED_ACTION
 				}
 			else
 				c++;
@@ -334,6 +358,8 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 
 	GENERATE_TAG(tag,agent,param)
 
+	POINTFUNC_TAG_APPEND(tag)
+
 	for ( int x=0; x < name_cnt; x++ )
 		{
 		argv[argc++] = arg_name[x];
@@ -344,7 +370,7 @@ char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *par
 	argv[1] = (char*) cmd;
 	argv[2] = (char*) param;
 	argv[argc++] = (char*) "-tag";
-	argv[argc++] = (char*) tag;
+	argv[argc++] = (char*) tagstr;
 
 	ret = (char*) rivet_cmd( agent->Self(), argc, argv );
 
