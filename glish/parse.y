@@ -65,6 +65,7 @@
 #include "Sequencer.h"
 #include "Task.h"
 #include "input.h"
+#include "system.h"
 %}
 
 %union	{

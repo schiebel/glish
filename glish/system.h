@@ -9,8 +9,17 @@
 #include "config.h"
 
 #include <stdio.h>
-
 #include <math.h>
+
+/*
+** use the allocation routines declared here
+*/
+#include "sos/alloc.h"
+#define alloc_memory		sos_alloc_memory
+#define alloc_zero_memory	sos_alloc_zero_memory
+#define realloc_memory		sos_realloc_memory
+#define free_memory		sos_free_memory
+
 #define is_a_nan(x) isnan(x)
 
 #ifdef HAVE_LIBC_H
@@ -116,14 +125,6 @@ extern "C" {
 
 	/* A wrapper for gethostname(); returns a pointer to a static region. */
 	const char* local_host_name();
-
-	/* malloc/realloc/free wrappers, so we don't have to worry about
-	 * correctly declaring their argument type.
-	 */
-	void* alloc_memory( unsigned int size );
-	void* alloc_zero_memory( unsigned int size );
-	void* realloc_memory( void* ptr, unsigned int new_size );
-	void free_memory( void* ptr );
 
 	/* time in seconds since 1970
 	 */

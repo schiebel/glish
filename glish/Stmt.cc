@@ -15,6 +15,7 @@ RCSID("@(#) $Id$")
 #include "BuiltIn.h"
 #include "Task.h"
 #include "Frame.h"
+#include "system.h"
 
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;

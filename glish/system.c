@@ -507,32 +507,6 @@ const char* local_host_name()
 	return local_host;
 	}
 
-void* alloc_memory( unsigned int size )
-	{
-#if defined(_AIX) || defined(__alpha__)
-	if ( ! size ) size += 8;
-#endif
-	return (void*) malloc( size );
-	}
-
-void* alloc_zero_memory( unsigned int size )
-	{
-#if defined(_AIX) || defined(__alpha__)
-	if ( ! size ) size += 8;
-#endif
-	return (void*) calloc( 1, size );
-	}
-
-void* realloc_memory( void* ptr, unsigned int new_size )
-	{
-	return (void*) realloc( (malloc_t) ptr, new_size );
-	}
-
-void free_memory( void* ptr )
-	{
-	if ( ptr ) free( (malloc_t) ptr );
-	}
-
 #ifndef HAVE_STRDUP
 char *strdup( const char *str )
 	{
