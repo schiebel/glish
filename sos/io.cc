@@ -393,7 +393,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	if ( not_integral )						\
 		{							\
 		head.set(l,SOSTYPE);					\
-		memcpy( head.iBuffer() + head.start_offset( ), SOURCE, 6 ); \
+		memcpy( head.iBuffer() + head.user_offset( ), SOURCE, 6 ); \
 		head.stamp( initial_stamp );				\
 		out->write( head.iBuffer(), head.size( ), sos_sink::COPY ); \
 		return out->write( a, l * sos_size(SOSTYPE), type ); 	\
@@ -401,7 +401,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 	else								\
 		{							\
 		head.set(a,l PARAM);					\
-		memcpy( head.iBuffer() + head.start_offset( ), SOURCE, 6 ); \
+		memcpy( head.iBuffer() + head.user_offset( ), SOURCE, 6 ); \
 		head.stamp( initial_stamp );				\
 		return out->write( head.iBuffer(), l * sos_size(SOSTYPE) + \
 			   head.size( ), type );			\
@@ -415,7 +415,7 @@ sos_status *sos_out::put( TYPE *a, unsigned int l,			\
 	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)			\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_header &h,	\
 		    sos_sink::buffer_type type ) 			\
-	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + head.start_offset( ))
+	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + head.user_offset( ))
 
 PUTNUMERIC(byte,SOS_BYTE)
 PUTNUMERIC(short,SOS_SHORT)
@@ -430,7 +430,7 @@ sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
 	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)		\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
 		    sos_header &h, sos_sink::buffer_type type )		\
-	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + head.start_offset( ))
+	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + head.user_offset( ))
 
 PUTCHAR(char)
 PUTCHAR(unsigned char)
@@ -456,7 +456,7 @@ PUTCHAR(unsigned char)
 	lptr = (unsigned int *) (buf + head.size( ) + 4);		\
 									\
 	head.set(buf,total,SOS_STRING);					\
-	memcpy( head.iBuffer() + head.start_offset( ), SOURCE, 6 );	\
+	memcpy( head.iBuffer() + head.user_offset( ), SOURCE, 6 );	\
 	head.stamp( initial_stamp );					\
 									\
 	char *cptr = (char*)(&lptr[len]);				\
@@ -500,7 +500,7 @@ PUTCHAR(unsigned char)
 	char *buf = alloc_char( total + head.size( ) );			\
 									\
 	head.set(buf,total,SOS_STRING);					\
-	memcpy( head.iBuffer() + head.start_offset( ), SOURCE, 6 );	\
+	memcpy( head.iBuffer() + head.user_offset( ), SOURCE, 6 );	\
 	head.stamp( initial_stamp );					\
 									\
 	unsigned int *lptr = (unsigned int *) (buf + head.size( ) );	\
@@ -532,13 +532,13 @@ PUTCHAR(unsigned char)
 sos_status *sos_out::put( charptr *s, unsigned int len, sos_sink::buffer_type type )
 	PUTCHARPTR_BODY(zero_user_area)
 sos_status *sos_out::put( charptr *s, unsigned int len, sos_header &h, sos_sink::buffer_type type )
-	PUTCHARPTR_BODY(h.iBuffer() + head.start_offset( ))
+	PUTCHARPTR_BODY(h.iBuffer() + head.user_offset( ))
 
 #if defined(ENABLE_STR)
 sos_status *sos_out::put( const str &s )
 	PUTSTR_BODY(zero_user_area)
 sos_status *sos_out::put( const str &s, sos_header &h )
-	PUTSTR_BODY(h.iBuffer() + head.start_offset( ))
+	PUTSTR_BODY(h.iBuffer() + head.user_offset( ))
 #endif
 
 
@@ -558,7 +558,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 	else								\
 		head.set(buf,l,SOS_RECORD);				\
 									\
-	memcpy( head.iBuffer() + head.start_offset( ), SOURCE, 6 );	\
+	memcpy( head.iBuffer() + head.user_offset( ), SOURCE, 6 );	\
 	head.stamp( initial_stamp );					\
 									\
 	return out->write( head.iBuffer(), head.size( ),		\
@@ -568,7 +568,7 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 sos_status *sos_out::put_record_start( unsigned int l )
 	PUTREC_BODY(zero_user_area)
 sos_status *sos_out::put_record_start( unsigned int l, sos_header &h )
-	PUTREC_BODY(h.iBuffer() + head.start_offset( ))
+	PUTREC_BODY(h.iBuffer() + head.user_offset( ))
 
 #if defined(VAXFP)
 #define FOREIGN_FLOAT   SOS_IFLOAT

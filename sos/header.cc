@@ -102,7 +102,7 @@ void sos_header::scratch( )
 
 void sos_header::useti( unsigned int i )
 	{
-	int off = kernel->offset( );
+	int off = 2 + user_offset( );
 	kernel->buf_[24 + off ] = i & 0xff; i >>= 8;
 	kernel->buf_[25 + off ] = i & 0xff; i >>= 8;
 	kernel->buf_[26 + off ] = i & 0xff; i >>= 8;
@@ -215,7 +215,7 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 		}
 
 	ios << endl << "\tuser: ";
-	char *user = (char*) ((sos_header &)h).iBuffer() + h.start_offset( );
+	char *user = (char*) ((sos_header &)h).iBuffer() + h.user_offset( );
 	for ( int C = 0; C < 6; C++ )
 		ios << (void*) user[C] << " ";
 

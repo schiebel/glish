@@ -161,15 +161,15 @@ public:
 	//
 	// access to user data
 	//
-	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[22 + kernel->offset() + (off % 6)]; }
-	unsigned short ugets( int off = 0 ) const { off = 22 + kernel->offset() + (off % 3) * 2;
+	unsigned char ugetc( int off = 0 ) const { return kernel->buf_[user_offset() + (off % 6)]; }
+	unsigned short ugets( int off = 0 ) const { off = user_offset() + (off % 3) * 2;
 			return kernel->buf_[off] + (kernel->buf_[off+1] << 8); }
-	unsigned int ugeti( ) const { int off = 24 + kernel->offset();
+	unsigned int ugeti( ) const { int off = user_offset() + 2;
 			return kernel->buf_[off] + (kernel->buf_[off+1] << 8) +
 				(kernel->buf_[off+2] << 16) + (kernel->buf_[off+3] << 24); }
 
-	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[22 + kernel->offset() + (off % 6)] = c; }
-	void usets( unsigned short s, int off = 0 ) { off = 22 + kernel->offset() + (off % 3) * 2;
+	void usetc( unsigned char c, int off = 0 ) { kernel->buf_[user_offset() + (off % 6)] = c; }
+	void usets( unsigned short s, int off = 0 ) { off = user_offset() + (off % 3) * 2;
 			kernel->buf_[off] = s & 0xff; kernel->buf_[off+1] = (s >> 8) & 0xff; }
 	void useti( unsigned int i );
 
@@ -184,7 +184,7 @@ public:
 	int size( ) const { return size( kernel->version() ); }
 
 	// where does user data start?
-	int start_offset( ) const { return 22 + kernel->offset( ); }
+	int user_offset( ) const { return 22 + kernel->offset( ); }
 
 	void set_version( int v ) { kernel->set_version( v ); }
 
