@@ -19,6 +19,10 @@ class Notifiee;
 class ScriptClient;
 class Channel;
 
+// Searches "system.include.path" for the given file; returns a malloc()'d copy
+// of the path to the executable, which the caller should delete when
+// done with.
+char* which_include( const char* file_name );
 
 class Notification : public GlishObject {
 public:
