@@ -4292,7 +4292,7 @@ EOF
 
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	;;
-    hpux8.*|hpux9.*|hpux10.*)
+    hpux8.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LD="ld -b"
 	SLIB_LD_LIBS='${LIBS}'
@@ -4327,6 +4327,51 @@ EOF
     if test -n "$PGPLOTLINKSEARCH"; then
         if test -z "$TK_LD_SEARCH"; then
             TK_LD_SEARCH="-Wl,+b,$PGPLOTLINKSEARCH"
+        else
+            TK_LD_SEARCH="$TK_LD_SEARCH:$PGPLOTLINKSEARCH"
+        fi
+    fi
+
+
+	if test -n "$TK_LD_SEARCH"; then
+	    TK_LD_SEARCH="$TK_LD_SEARCH:."
+	fi
+	;;
+    hpux9.*|hpux10.*)
+	SLIB_CFLAGS="+z"
+	SLIB_LD="ld -b"
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".sl"
+	DL_LIBS="-ldld"
+	LD_FLAGS="-Wl,-E"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="+b $full_libdir_p:$full_libdir:."
+	fi
+
+	TK_LD_SEARCH="+b $full_libdir_p:$full_libdir"
+        
+    if test -n "$tcl_library"; then
+        if test -z "$TK_LD_SEARCH"; then
+            TK_LD_SEARCH="+b $tcl_library"
+        else
+            TK_LD_SEARCH="$TK_LD_SEARCH:$tcl_library"
+        fi
+    fi
+
+        
+    if test -n "$x_libraries"; then
+        if test -z "$TK_LD_SEARCH"; then
+            TK_LD_SEARCH="+b $x_libraries"
+        else
+            TK_LD_SEARCH="$TK_LD_SEARCH:$x_libraries"
+        fi
+    fi
+
+        
+    if test -n "$PGPLOTLINKSEARCH"; then
+        if test -z "$TK_LD_SEARCH"; then
+            TK_LD_SEARCH="+b $PGPLOTLINKSEARCH"
         else
             TK_LD_SEARCH="$TK_LD_SEARCH:$PGPLOTLINKSEARCH"
         fi
@@ -4396,7 +4441,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4400 "configure"
+#line 4445 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4467,7 +4512,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4471 "configure"
+#line 4516 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4520,12 +4565,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4524 "configure"
+#line 4569 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4529: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4574: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4609,12 +4654,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4613 "configure"
+#line 4658 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4618: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4663: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4986,7 +5031,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 4990 "configure"
+#line 5035 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -4994,7 +5039,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:4998: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5043: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5017,7 +5062,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5021 "configure"
+#line 5066 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5025,7 +5070,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5029: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5074: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
