@@ -98,6 +98,63 @@ void system_change_function(IValue *, IValue *n)
 	Sequencer::CurSeq()->System().SetVal(n);
 	}
 
+static char **split_path( char *path, int &count )
+	{
+	count = 0;
+	if ( ! path ) return 0;
+
+	int i = 1;
+	char *ptr = path;
+	while ( *ptr ) { if ( *ptr++ == ':' ) i++; }
+
+	char **ret = (char**) alloc_memory( sizeof(char*) * i );
+
+	count = 0;
+	char *cur = path;
+	while ( i-- )
+		{
+		if ( i )
+			{
+			for ( ptr=cur; *ptr && *ptr != ':'; ++ptr );
+			if ( *ptr == ':' )
+				{
+				*ptr = '\0';
+				ret[count++] = strdup(cur);
+				*ptr++ = ':';
+				cur = ptr;
+				}
+			else
+				ret[count++] = strdup(cur);
+			}
+		else
+			ret[count++] = strdup(cur);
+		}
+
+	return ret;
+	}
+
+static char *join_path( const char **path, int len, const char *var_name = 0 )
+	{
+	int count = len + 1;
+	if ( ! path ) return 0;
+
+	for ( int i = 0; i < len; ++i )
+		count += strlen(path[i]);
+
+	if ( var_name ) count += strlen(var_name) + 1;
+	char *ret = (char*) alloc_memory( sizeof(char) * count );
+	if ( var_name ) sprintf( ret, "%s=", var_name );
+	else ret[0] = '\0';
+
+	for ( LOOPDECL i=0; i < len; ++i )
+		{
+		strcat( ret, path[i] );
+		if ( i < len-1 ) strcat(ret, ":");
+		}
+
+	return ret;
+	}
+
 
 stack_type::stack_type( )
 	{
@@ -768,7 +825,7 @@ void Sequencer::SystemChanged( )
 	system_change_count += 1;
 	}
 
-void Sequencer::UpdateLocalBinPath( )
+void Sequencer::UpdateLocalPath( )
 	{
 	static unsigned int count = 0;
 	if ( count != system_change_count )
@@ -795,11 +852,36 @@ void Sequencer::UpdateLocalBinPath( )
 					set_executable_path( v1->StringPtr(0), v1->Length() );
 				}
 			}
+
+		char *string = 0;
+		path = (IValue*) system.LdPath();
+		if ( path && (path = (IValue*) path->Deref()) )
+			{
+			const IValue *v1;
+			if ( path && path->Type() == TYPE_STRING )
+				putenv( string=join_path(path->StringPtr(0),path->Length(),"LD_LIBRARY_PATH") );
+			else if ( path && path->Type() == TYPE_RECORD )
+				{
+				if ( path->HasRecordElement( "localhost" ) &&
+				     (v1 = (IValue*) path->ExistingRecordElement("localhost")) &&
+				     v1 != false_value && v1->Type() == TYPE_STRING )
+					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+				else if ( path->HasRecordElement( connection_host ) &&
+					  (v1 = (IValue*) path->ExistingRecordElement( connection_host )) &&
+					   v1 != false_value && v1->Type() == TYPE_STRING )
+					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+				else if ( path->HasRecordElement( "default" ) &&
+					  (v1 = (IValue*) path->ExistingRecordElement( "default" )) &&
+					   v1 != false_value && v1->Type() == TYPE_STRING )
+					putenv( string=join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH") );
+				}
+			}
+		if ( string ) free_memory(string);
 		}
 	count = system_change_count;
 	}
 
-void Sequencer::UpdateRemoteBinPath( )
+void Sequencer::UpdateRemotePath( )
 	{
 	static unsigned int count = 0;
 	static int oldlen = 0;
@@ -816,7 +898,7 @@ void Sequencer::UpdateRemoteBinPath( )
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
 				while ( daemon = daemons.NextEntry( key, c ) )
-					daemon->UpdatePath( path );
+					daemon->UpdateBinPath( path );
 				}
 			else if ( path && path->Type() == TYPE_RECORD )
 				{
@@ -835,10 +917,58 @@ void Sequencer::UpdateRemoteBinPath( )
 					if ( path->HasRecordElement( daemon->Host() ) &&
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
 					     v1 != false_value && v1->Type() == TYPE_STRING ) 
-						daemon->UpdatePath( v1 );
+						daemon->UpdateBinPath( v1 );
 					else if ( dflt )
-						daemon->UpdatePath( dflt );
+						daemon->UpdateBinPath( dflt );
 					}
+				}
+			}
+
+		char *string = 0;
+		path = (IValue*) system.LdPath();
+		if ( path  && (path = (IValue*) path->Deref()) )
+			{
+			if ( path && path->Type() == TYPE_STRING )
+				{
+				string = join_path(path->StringPtr(0),path->Length(),"LD_LIBRARY_PATH");
+				const char *key = 0;
+				RemoteDaemon *daemon = 0;
+				IterCookie* c = daemons.InitForIteration();
+				while ( daemon = daemons.NextEntry( key, c ) )
+					daemon->UpdateLdPath( string );
+				}
+			else if ( path && path->Type() == TYPE_RECORD )
+				{
+				const IValue *dflt = 0;
+				char *dflt_str = 0;
+				if ( path->HasRecordElement( "default" ) &&
+				     (dflt = (IValue*) path->ExistingRecordElement( "default" )) )
+					{
+					if ( dflt == false_value || dflt->Type() != TYPE_STRING )
+						dflt = 0;
+					else
+						dflt_str = join_path(dflt->StringPtr(0),dflt->Length(),"LD_LIBRARY_PATH");
+					}
+
+				const IValue *v1;
+				const char *key = 0;
+				RemoteDaemon *daemon = 0;
+				IterCookie* c = daemons.InitForIteration();
+				while ( daemon = daemons.NextEntry( key, c ) )
+					{
+					if ( path->HasRecordElement( daemon->Host() ) &&
+					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
+					     v1 != false_value && v1->Type() == TYPE_STRING )
+						{
+						string = join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH");
+						daemon->UpdateLdPath( string );
+						free_memory( string );
+						}
+					else if ( dflt )
+						daemon->UpdateLdPath( dflt_str );
+					}
+
+				if ( dflt_str ) free_memory( dflt_str );
 				}
 			}
 		}
@@ -847,23 +977,40 @@ void Sequencer::UpdateRemoteBinPath( )
 	count = system_change_count;
 	}
 
-void Sequencer::UpdateBinPath( const char *host )
+void Sequencer::UpdatePath( const char *host )
 	{
 	IValue *v1 = 0;
-	IValue *path = (IValue*) system.BinPath();
 
 	const char *daemon_host = ! host || ! strcmp(host,ConnectionHost()) ?
 				"localhost" : host;
 	host = ! host || ! strcmp("localhost",host) ? ConnectionHost() : host;
 
 	RemoteDaemon* d;
-	if ( path  && (path = (IValue*) path->Deref()) && (d = daemons[daemon_host]) )
+	if ( (d = daemons[daemon_host]) )
 		{
-		if ( path && path->Type() == TYPE_RECORD &&
-		     path->HasRecordElement( host ) &&
-		     (v1 = (IValue*) path->ExistingRecordElement( host )) &&
-		     v1 != false_value && v1->Type() == TYPE_STRING )
-			d->UpdatePath(v1);
+		IValue *path = (IValue*) system.BinPath();
+		if ( path  && (path = (IValue*) path->Deref()) )
+			{
+			if ( path && path->Type() == TYPE_RECORD &&
+			     path->HasRecordElement( host ) &&
+			     (v1 = (IValue*) path->ExistingRecordElement( host )) &&
+			     v1 != false_value && v1->Type() == TYPE_STRING )
+				d->UpdateBinPath(v1);
+			}
+
+		path = (IValue*) system.LdPath();
+		if ( path  && (path = (IValue*) path->Deref()) )
+			{
+			if ( path && path->Type() == TYPE_RECORD &&
+			     path->HasRecordElement( host ) &&
+			     (v1 = (IValue*) path->ExistingRecordElement( host )) &&
+			     v1 != false_value && v1->Type() == TYPE_STRING )
+				{
+				char *string = join_path(v1->StringPtr(0),v1->Length(),"LD_LIBRARY_PATH");
+				d->UpdateLdPath(string);
+				free_memory( string );
+				}
+			}
 		}
 	}
 
@@ -939,62 +1086,6 @@ void Sequencer::InitScriptClient( )
 		}
 
 	ScriptCreated( 1 );
-	}
-
-
-static char **split_path( char *path, int &count )
-	{
-	count = 0;
-	if ( ! path ) return 0;
-
-	int i = 1;
-	char *ptr = path;
-	while ( *ptr ) { if ( *ptr++ == ':' ) i++; }
-
-	char **ret = (char**) alloc_memory( sizeof(char*) * i );
-
-	count = 0;
-	char *cur = path;
-	while ( i-- )
-		{
-		if ( i )
-			{
-			for ( ptr=cur; *ptr && *ptr != ':'; ++ptr );
-			if ( *ptr == ':' )
-				{
-				*ptr = '\0';
-				ret[count++] = strdup(cur);
-				*ptr++ = ':';
-				cur = ptr;
-				}
-			else
-				ret[count++] = strdup(cur);
-			}
-		else
-			ret[count++] = strdup(cur);
-		}
-
-	return ret;
-	}
-
-static char *join_path( const char **path, int len )
-	{
-	int count = len + 1;
-	if ( ! path ) return 0;
-
-	for ( int i = 0; i < len; ++i )
-		count += strlen(path[i]);
-
-	char *ret = (char*) alloc_memory( sizeof(char) * count );
-	ret[0] = '\0';
-
-	for ( LOOPDECL i=0; i < len; ++i )
-		{
-		strcat( ret, path[i] );
-		if ( i < len-1 ) strcat(ret, ":");
-		}
-
-	return ret;
 	}
 
 void Sequencer::SetupSysValue( IValue *sys_value )
@@ -1738,19 +1829,13 @@ const AwaitStmt *Sequencer::ActiveAwait ( )
 	}
 
 #define DECLARE_PATHFUNC( NAME )					\
-const char *Sequencer::NAME( const char *host )				\
+char *Sequencer::NAME( const char *host, const char *var_str )		\
 	{								\
 	const IValue *pv = cur_sequencer->System().NAME();		\
 	const IValue *v = 0;						\
-	static char *string = 0;					\
+	char *string = 0;						\
 									\
 	if ( ! pv ) return 0;						\
-									\
-	if ( string )							\
-		{							\
-		free_memory(string);					\
-		string = 0;						\
-		}							\
 									\
 	if ( pv->Type() == TYPE_STRING )				\
 		string = join_path( pv->StringPtr(0), pv->Length() );	\
@@ -1758,7 +1843,7 @@ const char *Sequencer::NAME( const char *host )				\
 		  pv->HasRecordElement( host ) &&			\
 		  ( v = (const IValue*)(pv->ExistingRecordElement( host ))) && \
 		  v != false_value && v->Type() == TYPE_STRING && v->Length() ) \
-		string = join_path( v->StringPtr(0), v->Length() );	\
+		string = join_path( v->StringPtr(0), v->Length(), var_str ); \
 									\
 	return string;							\
 	}
@@ -2433,6 +2518,9 @@ void Sequencer::PagerOutput( char *string, char **argv )
 		nb_reset_term(0);
 #endif
 		}
+
+	reap_terminated_process();
+
 	}
 
 

@@ -244,8 +244,8 @@ public:
 
 	static Sequencer *CurSeq( );
 	static const AwaitStmt *ActiveAwait( );
-	static const char *BinPath( const char *host );
-	static const char *LdPath( const char *host );
+	static char *BinPath( const char *host, const char *var = 0 );
+	static char *LdPath( const char *host, const char *var = 0 );
 
 	SystemInfo &System() { return system; }
 
@@ -446,12 +446,12 @@ public:
 
 	static void TopLevelReset();
 
-	void UpdateLocalBinPath( );
-	void UpdateRemoteBinPath( );
+	void UpdateLocalPath( );
+	void UpdateRemotePath( );
 	//
 	// host=0 implies local bin path
 	//
-	void UpdateBinPath( const char *host = 0 );
+	void UpdatePath( const char *host = 0 );
 
 #ifdef GGC
 	//

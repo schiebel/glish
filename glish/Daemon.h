@@ -34,7 +34,8 @@ public:
 	daemon_states State()		{ return state; }
 	void SetState( daemon_states s )	{ state = s; }
 
-	void UpdatePath( const Value * );
+	void UpdateBinPath( const Value * );
+	void UpdateLdPath( const char * );
 
 	~RemoteDaemon() { free_memory(host); }
 

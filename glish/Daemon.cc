@@ -35,27 +35,71 @@ RCSID("@(#) $Id$")
 Channel *start_remote_daemon( const char *host )
 	{
 	char *argv[10];
-	char command_line[3072];
-	const char *binpath = Sequencer::BinPath( host );
-	const char *ldpath = Sequencer::LdPath( host );
+	char command_line[1024];
+	char *binpath = Sequencer::BinPath( host, "PATH" );
+	char *ldpath = Sequencer::LdPath( host, "LD_LIBRARY_PATH" );
 
 	AcceptSocket connection_socket( 0, INTERPRETER_DEFAULT_PORT );
 	mark_close_on_exec( connection_socket.FD() );
 
-	//
-	// intro:	"PATH=",binpath,";export PATH;","LD_LIBRARY_PATH=",ldpath,";export LD_LIBRARY_PATH;"
-	//
-	//         >>>---------vvvvvvvvvvvv
-	sprintf(command_line, "%s%s%s%s%s%s %s %s -n %s -id glish-daemon -host %s -port %d -+- &",
-		binpath ? "PATH=" : "", binpath ? binpath : "", binpath ? ";export PATH;" : "",
-		ldpath ? "LD_LIBRARY_PATH=" : "", ldpath ? ldpath : "", ldpath ? ";export LD_LIBRARY_PATH;" : "",
-		RSH, host, DAEMON_NAME, local_host_name(), connection_socket.Port() );
+	sprintf(command_line, "%s -id glish-daemon -host %s -port %d -+- &\n",
+		DAEMON_NAME, local_host_name(), connection_socket.Port() );
 
-	message->Report( "activating Glish daemon on ", host, " ..." );
-	system( command_line );
+	int input[2];
+
+	if ( pipe( input ) < 0 )
+		perror( "glish: problem creating pipe" );
+
+	int pid_ = (int) vfork();
+
+	if ( pid_ == 0 )
+		{ // child
+		char *argv[4];
+		argv[0] = RSH;
+		argv[1] = (char*) host;
+		argv[2] = "sh";
+		argv[3] = 0;
+		if ( dup2( input[0], fileno(stdin) ) < 0 )
+			{
+			perror( "glish: couldn't do dup2()" );
+			_exit( -1 );
+			}
+
+		close( input[0] );
+		close( input[1] );
+
+                execvp( argv[0], &argv[0] );
+
+                perror( "glish couldn't exec child" );
+                _exit( -1 );
+                }
+
+	close( input[0] );
+
+	if ( binpath )
+		{
+		write( input[1], binpath, strlen(binpath) );
+		write( input[1], ";\n", 2 );
+		}
+
+	if ( ldpath )
+		{
+		write( input[1], ldpath, strlen(ldpath) );
+		write( input[1], ";\n", 2 );
+		}
+
+	write( input[1], command_line, strlen(command_line) );
+	write( input[1], "exit\n", 5 );
+	
+	close( input[1] );
 
 	message->Report( "waiting for daemon ..." );
 	int new_conn = accept_connection( connection_socket.FD() );
+
+	if ( binpath ) free_memory( binpath );
+	if ( ldpath ) free_memory( ldpath );
+
+	reap_terminated_process();
 
 	return new Channel( new_conn, new_conn );
 	}
@@ -169,7 +213,13 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 		}
 	}
 
-void RemoteDaemon::UpdatePath( const Value *path )
+void RemoteDaemon::UpdateBinPath( const Value *path )
 	{
-	send_event( chan->Sink(), "setpath", path );
+	send_event( chan->Sink(), "setbinpath", path );
+	}
+
+void RemoteDaemon::UpdateLdPath( const char *path )
+	{
+	IValue p( path );
+	send_event( chan->Sink(), "setldpath", &p );
 	}

@@ -111,7 +111,7 @@ glish_declare(PDict,LocalExec);
 //
 class Interp {
     public:
-	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")), path(0) {  }
+	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")), binpath(0), ldpath(0) {  }
 	~Interp();
 
 	// Read and act on the next interpreter request.  Returns 0 to
@@ -137,7 +137,8 @@ class Interp {
     protected:
 
 	void SetWD( Value* wd );
-	void SetPath( Value* path_ );
+	void SetBinPath( Value* path );
+	void SetLdPath( Value* path );
 	void PingClient( Value* client_id );
 	void CreateClient( Value* argv, dUser *hub );
 	void ClientRunning( Value* client, dUser *hub );
@@ -149,7 +150,8 @@ class Interp {
 
 	Client* interpreter;	// Client used for connection to interpreter.
 	char* work_dir;		// working-directory for this interpreter.
-	Value *path;		// the path to use to start clients
+	Value *binpath;		// the path to use to start clients
+	Value *ldpath;		// the path to use to start clients
 
 	// Whether we've generated an error message for a bad work_dir.
 	int did_wd_msg;
@@ -1094,8 +1096,11 @@ int Interp::NextRequest( GlishEvent* e, dUser *hub, GlishEvent*& internal_event 
 	if ( streq( e->name, "setwd" ) )
 		SetWD( e->value );
 
-	else if ( streq( e->name, "setpath" ) )
-		SetPath( e->value );
+	else if ( streq( e->name, "setbinpath" ) )
+		SetBinPath( e->value );
+
+	else if ( streq( e->name, "setldpath" ) )
+		SetLdPath( e->value );
 
 	else if ( streq( e->name, "ping" ) )
 		PingClient( e->value );
@@ -1134,11 +1139,18 @@ void Interp::SetWD( Value* v )
 	ChangeDir();	// try it out to see if it's okay
 	}
 
-void Interp::SetPath( Value* path_ )
+void Interp::SetBinPath( Value* path )
 	{
-	if ( path ) Unref( path );
-	Ref( path_ );
-	path = path_;
+	if ( binpath ) Unref( binpath );
+	Ref( path );
+	binpath = path;
+	}
+
+void Interp::SetLdPath( Value* path )
+	{
+	if ( ldpath ) Unref( ldpath );
+	Ref( path );
+	ldpath = path;
 	}
 
 void Interp::PingClient( Value* client_id )
@@ -1166,7 +1178,7 @@ void Interp::CreateClient( Value* value, dUser *hub )
 		lookup = strdup(name_str);
 	else
 		{
-		if ( path ) set_executable_path( path->StringPtr(0), path->Length() );
+		if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
 		lookup = which_executable(name_str);
 		}
 
@@ -1193,7 +1205,7 @@ void Interp::CreateClient( Value* value, dUser *hub )
 		}
 
 	charptr* argv = argv_val->StringPtr(0);
-	if ( path ) set_executable_path( path->StringPtr(0), path->Length() );
+	if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
 	char *name = which_executable( argv[0] );
 
 	if ( ! name )
@@ -1201,6 +1213,8 @@ void Interp::CreateClient( Value* value, dUser *hub )
 		free_memory( lookup );
 		return;
 		}
+
+	if ( ldpath ) putenv(ldpath->StringVal());
 
 	charptr* client_argv = (charptr*) alloc_memory(sizeof(charptr) * (argc + 1));
 	client_argv[0] = name;
@@ -1239,7 +1253,7 @@ void Interp::ClientRunning( Value* client, dUser *hub )
 		return;
 		}
 
-	if ( path ) set_executable_path( path->StringPtr(0), path->Length() );
+	if ( binpath ) set_executable_path( binpath->StringPtr(0), binpath->Length() );
 	const char *name_str = client->StringPtr(0)[0];
 	char *name = *name_str == '/' ? (char*) name_str : which_executable( name_str );
 

@@ -349,13 +349,13 @@ void Task::Exec( const char** argv )
 	{
 	if ( attrs->daemon_channel )
 		{
-		sequencer->UpdateRemoteBinPath( );
+		sequencer->UpdateRemotePath( );
 		executable = new RemoteExec( attrs->daemon_channel, argv[0],
 					     attrs->name, argv );
 		}
 	else
 		{
-		sequencer->UpdateLocalBinPath( );
+		sequencer->UpdateLocalPath( );
 		char* exec_name = which_executable( argv[0] );
 
 		if ( ! exec_name )
@@ -604,7 +604,7 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( client_flag && sequencer->LocalHost( hostname ) && channel )
 		{
 		shm_flag = 0;
-		sequencer->UpdateBinPath( );
+		sequencer->UpdatePath( );
 		char *client = GetString( args[task_args_start] );
 
 		const char *ptr_base = args[task_args_start]->StringPtr(0)[0];
