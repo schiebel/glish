@@ -113,6 +113,8 @@ class name : public BuiltIn {						\
 DERIVE_BUILTIN(RealBuiltIn,1,"real",)
 DERIVE_BUILTIN(ImagBuiltIn,1,"imag",)
 DERIVE_BUILTIN(StrlenBuiltIn,1,"strlen",)
+DERIVE_BUILTIN(WhichIncludeBuiltIn,1,"which_include",)
+DERIVE_BUILTIN(WhichClientBuiltIn,1,"which_client",)
 DERIVE_BUILTIN(ReadlineBuiltIn,1,"internal_readline",)
 DERIVE_BUILTIN(ComplexBuiltIn,NUM_ARGS_VARIES,"complex",)
 DERIVE_BUILTIN(SumBuiltIn,NUM_ARGS_VARIES,"sum",)

@@ -401,6 +401,46 @@ IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
 	return new IValue( ret, len );
 	}
 
+IValue* WhichIncludeBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* v = (*args_val)[0];
+
+	if ( v->Type() != TYPE_STRING )
+		return (IValue*) Fail( this, " requires a string argument" );
+
+	int len = v->Length();
+	charptr *ret = (charptr*) alloc_memory( sizeof(charptr)*len );
+	charptr *strs = v->StringPtr(0);
+
+	for ( int i=0; i < len; ++i )
+		{
+		char *s = which_include(strs[i]);
+		ret[i] = strdup( s ? s : "" );
+		}
+
+	return new IValue( ret, len );
+	}
+
+IValue* WhichClientBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* v = (*args_val)[0];
+
+	if ( v->Type() != TYPE_STRING )
+		return (IValue*) Fail( this, " requires a string argument" );
+
+	int len = v->Length();
+	charptr *ret = (charptr*) alloc_memory( sizeof(charptr)*len );
+	charptr *strs = v->StringPtr(0);
+
+	for ( int i=0; i < len; ++i )
+		{
+		char *s = which_executable(strs[i]);
+		ret[i] = strdup( s ? s : "" );
+		}
+
+	return new IValue( ret, len );
+	}
+
 IValue* ReadlineBuiltIn::DoCall( const_args_list* args_val )
 	{
 	const IValue* v = (*args_val)[0];
@@ -2782,6 +2822,9 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new StrlenBuiltIn );
 	s->AddBuiltIn( new ReadlineBuiltIn );
+
+	s->AddBuiltIn( new WhichIncludeBuiltIn );
+	s->AddBuiltIn( new WhichClientBuiltIn );
 
 	s->AddBuiltIn( new SumBuiltIn );
 	s->AddBuiltIn( new ProdBuiltIn );
