@@ -676,23 +676,32 @@ char *literal( const char *new_str, int clear )
 	return string;
 	}
 
+struct flex_buf {
+	flex_buf( YY_BUFFER_STATE buf_, int putback_ ) : buf(buf_), putback(putback_) { }
+	YY_BUFFER_STATE buf;
+	int putback;
+};
 
 void *current_flex_buffer()
 	{
-	return YY_CURRENT_BUFFER;
+	return new flex_buf(YY_CURRENT_BUFFER, put_back_token);
 	}
 
 void *new_flex_buffer( FILE *fptr )
 	{
-	return yy_create_buffer(fptr, YY_BUF_SIZE);
+	return new flex_buf(yy_create_buffer(fptr, YY_BUF_SIZE), NULL_TOK);
 	}
 
 void set_flex_buffer(void *new_buf)
 	{
-	yy_switch_to_buffer((YY_BUFFER_STATE) new_buf);
+	flex_buf *buf = (flex_buf*) new_buf;
+	yy_switch_to_buffer(buf->buf);
+	put_back_token = buf->putback;
 	}
 
 void delete_flex_buffer(void *old_buf)
 	{
-	yy_delete_buffer((YY_BUFFER_STATE) old_buf);
+	flex_buf *buf = (flex_buf*) old_buf;
+	yy_delete_buffer(buf->buf);
+	delete buf;
 	}
