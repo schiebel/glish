@@ -123,7 +123,7 @@ public:
 	// sets "err" to a non-zero value if an error occurs
 	Channel* GetHostDaemon( const char* host, int &err );
 
-	void Exec();
+	void Exec( int startup_script = 0 );
 
 	// Wait for an event in which await_stmt has expressed interest,
 	// though while waiting process any of the events in which
