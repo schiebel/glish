@@ -1232,8 +1232,8 @@ RecordRefExpr::~RecordRefExpr()
 		delete field;
 	}
 
-RecordRefExpr::RecordRefExpr( Expr* op, char* record_field )
-    : UnaryExpr(op, ".")
+RecordRefExpr::RecordRefExpr( Expr* op_, char* record_field )
+    : UnaryExpr(op_, ".")
 	{
 	field = record_field;
 	}
@@ -1499,7 +1499,7 @@ Expr *AttributeRefExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return this;
 	}
 
-RefExpr::RefExpr( Expr* op, value_type arg_type ) : UnaryExpr(op, "ref")
+RefExpr::RefExpr( Expr* op_, value_type arg_type ) : UnaryExpr(op_, "ref")
 	{
 	type = arg_type;
 	}

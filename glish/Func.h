@@ -86,25 +86,25 @@ class FormalParameter : public Parameter {
 
 class ActualParameter : public Parameter {
     public:
-	ActualParameter( const char* name, value_type parm_type, Expr* arg,
-			int is_ellipsis = 0, Expr* default_value = 0,
-			int is_empty = 0 )
-		: Parameter( name, parm_type, arg, is_ellipsis,
-				default_value, is_empty )
+	ActualParameter( const char* name_, value_type parm_type_, Expr* arg_,
+			int is_ellipsis_ = 0, Expr* default_value_ = 0,
+			int is_empty_ = 0 )
+		: Parameter( name_, parm_type_, arg_, is_ellipsis_,
+				default_value_, is_empty_ )
 		{
 		}
-	ActualParameter( char* name, value_type parm_type, Expr* arg,
-			int is_ellipsis = 0, Expr* default_value = 0,
-			int is_empty = 0 )
-		: Parameter( name, parm_type, arg, is_ellipsis,
-				default_value, is_empty )
+	ActualParameter( char* name_, value_type parm_type_, Expr* arg_,
+			int is_ellipsis_ = 0, Expr* default_value_ = 0,
+			int is_empty_ = 0 )
+		: Parameter( name_, parm_type_, arg_, is_ellipsis_,
+				default_value_, is_empty_ )
 		{
 		}
-	ActualParameter( value_type parm_type, Expr* arg,
-			int is_ellipsis = 0, Expr* default_value = 0,
-			int is_empty = 0 )
-		: Parameter( parm_type, arg, is_ellipsis,
-				default_value, is_empty )
+	ActualParameter( value_type parm_type_, Expr* arg_,
+			int is_ellipsis_ = 0, Expr* default_value_ = 0,
+			int is_empty_ = 0 )
+		: Parameter( parm_type_, arg, is_ellipsis_,
+				default_value_, is_empty_ )
 		{
 		}
 

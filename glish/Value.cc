@@ -4112,9 +4112,9 @@ void Value::DescribeSelf( ostream& s ) const
 
 	else
 		{
-		char* description = StringVal( ' ', PrintLimit() , 1 );
-		s << description;
-		delete description;
+		char* desc = StringVal( ' ', PrintLimit() , 1 );
+		s << desc;
+		delete desc;
 		}
 	}
 
@@ -4313,7 +4313,8 @@ Value* read_value_from_SDS( int sds, int is_opaque_sds )
 
 	if ( is_opaque_sds )
 		{
-		result = create_value( (SDS_Index&) SDS_Index(sds) );
+		SDS_Index sds_index(sds);
+		result = create_value( sds_index );
 		Ref( manager );
 		result->SetValueManager( manager );
 		}

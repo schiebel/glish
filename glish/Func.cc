@@ -114,21 +114,21 @@ void Parameter::Describe( ostream& s ) const
 	}
 
 
-FormalParameter::FormalParameter( const char* name, value_type parm_type,
-			Expr* arg, int is_ellipsis, Expr* default_value )
-    : Parameter(name, parm_type, arg, is_ellipsis, default_value, 0)
+FormalParameter::FormalParameter( const char* name_, value_type parm_type_,
+			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
+    : Parameter(name_, parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
 	}
 
-FormalParameter::FormalParameter( char* name, value_type parm_type,
-			Expr* arg, int is_ellipsis, Expr* default_value )
-    : Parameter(name, parm_type, arg, is_ellipsis, default_value, 0)
+FormalParameter::FormalParameter( char* name_, value_type parm_type_,
+			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
+    : Parameter(name_, parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
 	}
 
-FormalParameter::FormalParameter( value_type parm_type,
-			Expr* arg, int is_ellipsis, Expr* default_value )
-    : Parameter(parm_type, arg, is_ellipsis, default_value, 0)
+FormalParameter::FormalParameter( value_type parm_type_,
+			Expr* arg_, int is_ellipsis_, Expr* default_value_ )
+    : Parameter(parm_type_, arg_, is_ellipsis_, default_value_, 0)
 	{
 	}
 

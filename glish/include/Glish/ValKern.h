@@ -30,19 +30,13 @@ extern void delete_strings( void *, unsigned long len );
 // Copy-on-write semantics
 //
 class ValueKernel {
-    protected:
-	inline unsigned int ARRAY( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
-	inline unsigned int RECORD( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
-	inline unsigned int VALUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
-	inline unsigned int REF( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
-	inline unsigned int OPAQUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
-	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
-	inline unsigned int FIELD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
 
-#if defined(_AIX)
     public:
-#endif
 
+	//
+	// These structures need to be public for some compilers, e.g.
+	// Sun's native compiler
+	//
 	struct array_t {
 		glish_type type;
 		unsigned short type_bytes;
@@ -85,9 +79,16 @@ class ValueKernel {
 		~record_t() { clear(); }
 	};
 
-#if defined(_AIX)
     protected:
-#endif
+
+	inline unsigned int ARRAY( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
+	inline unsigned int RECORD( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
+	inline unsigned int VALUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
+	inline unsigned int REF( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
+	inline unsigned int OPAQUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
+	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
+	inline unsigned int FIELD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
+
 	union {
 		array_t *array;
 		record_t *record;

@@ -61,8 +61,8 @@ class BinOpExpr : public BinaryExpr {
 // type as the operands.
 class ArithExpr : public BinOpExpr {
     public:
-	ArithExpr( binop op, Expr* op1, Expr* op2,
-			const char* desc ) : BinOpExpr(op, op1, op2, desc)
+	ArithExpr( binop op_, Expr* op1, Expr* op2,
+			const char* desc ) : BinOpExpr(op_, op1, op2, desc)
 		{ }
 
 	IValue* Eval( eval_type etype );
@@ -118,8 +118,8 @@ DECLARE_ARITH_EXPR(PowerExpr, OP_POWER, "^",
 // a boolean result value.
 class RelExpr : public BinOpExpr {
     public:
-	RelExpr( binop op, Expr* op1, Expr* op2, const char* desc )
-			: BinOpExpr(op, op1, op2, desc) { }
+	RelExpr( binop op_, Expr* op1, Expr* op2, const char* desc )
+			: BinOpExpr(op_, op1, op2, desc) { }
 
 	IValue* Eval( eval_type etype );
 
@@ -190,8 +190,8 @@ DECLARE_REL_EXPR(GT_Expr, OP_GT, ">")
 // a boolean result value.
 class LogExpr : public RelExpr {
     public:
-	LogExpr( binop op, Expr* op1, Expr* op2, const char* desc )
-			: RelExpr(op, op1, op2, desc)	{ }
+	LogExpr( binop op_, Expr* op1, Expr* op2, const char* desc )
+			: RelExpr(op_, op1, op2, desc)	{ }
 
 
 	void Compute( glish_bool lhs[], glish_bool rhs[], glish_bool result[],

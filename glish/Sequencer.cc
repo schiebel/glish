@@ -1793,9 +1793,9 @@ void Sequencer::LogEvent( const char* gid, const char* id, const GlishEvent* e,
 	}
 
 
-void Sequencer::SystemEvent( const char* name, const IValue* val )
+void Sequencer::SystemEvent( const char* name_, const IValue* val_ )
 	{
-	system_agent->SendSingleValueEvent( name, val, 1 );
+	system_agent->SendSingleValueEvent( name_, val_, 1 );
 	}
 
 
@@ -2023,8 +2023,8 @@ DaemonSelectee::DaemonSelectee( RemoteDaemon* arg_daemon, Selector* sel,
 
 int DaemonSelectee::NotifyOfSelection()
 	{
-	int fd = daemon->DaemonChannel()->ReadFD();
-	GlishEvent* e = recv_event( fd );
+	int daemon_fd = daemon->DaemonChannel()->ReadFD();
+	GlishEvent* e = recv_event( daemon_fd );
 
 	const char* message_name = 0;
 
@@ -2056,7 +2056,7 @@ int DaemonSelectee::NotifyOfSelection()
 		{
 		error->Report( "Glish daemon @ ", daemon->Host(),
 				" terminated" );
-		selector->DeleteSelectee( fd );
+		selector->DeleteSelectee( daemon_fd );
 		message_name = "daemon_terminated";
 		}
 

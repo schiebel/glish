@@ -426,12 +426,12 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	if ( expr )
 		{
 		IValue* index_value = expr->CopyEval();
-		int* index = index_value->IntPtr(0);
+		int* index_ = index_value->IntPtr(0);
 		int n = index_value->Length();
 
 		for ( int i = 0; i < n; ++i )
 			{
-			Stmt* s = sequencer->LookupStmt( index[i] );
+			Stmt* s = sequencer->LookupStmt( index_[i] );
 
 			if ( ! s )
 				{

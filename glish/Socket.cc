@@ -34,8 +34,8 @@ void Socket::Gripe( char* msg )
 	exit( 1 );
 	}
 
-AcceptSocket::AcceptSocket( int is_local, int port_hint, int is_a_hint )
-: Socket( is_local )
+AcceptSocket::AcceptSocket( int arg_is_local, int port_hint, int is_a_hint )
+: Socket( arg_is_local )
 	{
 	int result;
 
