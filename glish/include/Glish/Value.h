@@ -514,7 +514,7 @@ public:
 	// Retrieve the non-modifiable set of attributes, possibly nil.
 	const attributeptr AttributePtr() const
 		{
-		return attributes ? attributes->RecordPtr() : 0;
+		return attributes ? attributes->RecordPtr(0) : 0;
 		}
 
 	// Retrieve a modifiable, non-nil set of attributes.
