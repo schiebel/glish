@@ -75,7 +75,7 @@ int		rl_erase;
 int		rl_intr;
 int		rl_kill;
 int		rl_quit;
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
 int		rl_susp;
 #endif	/* defined(DO_SIGTSTP) */
 STATIC int	rl_nodata = 0x100;
@@ -949,7 +949,7 @@ TTYspecial(c)
 	Signal = SIGQUIT;
 	return CSeof;
     }
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
     if (c == rl_susp) {
 	Signal = SIGTSTP;
 	return CSsignal;
@@ -1576,7 +1576,9 @@ STATIC KEYMAP	Map[33] = {
     {	CTL('W'),	wipe		},
     {	CTL('X'),	exchange	},
     {	CTL('Y'),	yank		},
+#if	! defined(DO_SIGTSTP) || ! defined(SIGTSTP)
     {	CTL('Z'),	ring_bell	},
+#endif
     {	CTL('['),	meta		},
     {	CTL(']'),	move_to_char	},
     {	CTL('^'),	ring_bell	},

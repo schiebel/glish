@@ -6,6 +6,7 @@
 #include "config.h"
 #include "editline.h"
 RCSID("@(#) $Id$")
+#include <signal.h>
 
 #if	defined(HAVE_TCGETATTR)
 #if	defined(HAVE_TERMIO_H)
@@ -26,7 +27,7 @@ rl_ttyset(Reset)
 	rl_eof = old.c_cc[VEOF];
 	rl_intr = old.c_cc[VINTR];
 	rl_quit = old.c_cc[VQUIT];
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
 	rl_susp = old.c_cc[VSUSP];
 #endif	/* defined(DO_SIGTSTP) */
 
@@ -59,7 +60,7 @@ rl_ttyset(Reset)
 	rl_eof = old.c_cc[VEOF];
 	rl_intr = old.c_cc[VINTR];
 	rl_quit = old.c_cc[VQUIT];
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
 	rl_susp = old.c_cc[VSUSP];
 #endif	/* defined(DO_SIGTSTP) */
 
@@ -85,7 +86,7 @@ rl_ttyset(Reset)
     static struct tchars	old_tchars;
     struct sgttyb		new_sgttyb;
     struct tchars		new_tchars;
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
     struct ltchars		old_ltchars;
 #endif	/* defined(DO_SIGTSTP) */
 
@@ -99,7 +100,7 @@ rl_ttyset(Reset)
 	rl_intr = old_tchars.t_intrc;
 	rl_quit = old_tchars.t_quitc;
 
-#if	defined(DO_SIGTSTP)
+#if	defined(DO_SIGTSTP) && defined(SIGTSTP)
 	(void)ioctl(0, TIOCGLTC, &old_ltchars);
 	rl_susp = old_ltchars.t_suspc;
 #endif	/* defined(DO_SIGTSTP) */
