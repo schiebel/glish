@@ -14,4 +14,4 @@
 /* Port always used by Glish daemon; there's only ever one daemon
  * per host.
  */
-#define DAEMON_PORT 4077
+#define DAEMON_PORT 2833
