@@ -2730,7 +2730,7 @@ fi
 ##
 ## Check on a few C++ issues
 ##
-echo $ac_n "checking for c++ 'for' scope""... $ac_c" 1>&6
+echo $ac_n "checking c++ 'for' scope""... $ac_c" 1>&6
 ac_ext=C
 # CXXFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
 ac_cpp='echo $CXXCPP $CPPFLAGS 1>&5;
@@ -2760,7 +2760,10 @@ EOF
 
 else
   rm -rf $conftest*
-  echo "$ac_t""non-local" 1>&6
+  echo "$ac_t""non-local" 1>&6; cat >> $confdefs.h <<\EOF
+#define LOOPDECL 
+EOF
+
 fi
 rm -f $conftest*
 

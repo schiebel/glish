@@ -206,7 +206,7 @@ AC_TRY_COMPILE(,[
 for ( int i=0; i < 1; i++ ) { ; }
 for ( int i=0; i < 1; i++ ) { ; }
 ],[AC_MSG_RESULT(local); AC_DEFINE(LOOPDECL,int)],
-AC_MSG_RESULT(non-local))
+[AC_MSG_RESULT(non-local); AC_DEFINE(LOOPDECL,)])
 AC_LANG_C
 
 AC_SUBST(XINCLUDES)
