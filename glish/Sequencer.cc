@@ -345,12 +345,20 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	name_list *load_list = new name_list;
 
 	// Skip past client parameters
-	for ( ++argv, --argc; argc > 0; ++argv, --argc )
+	int argcnt = 0;
+	int found_sep = 0;
+	for ( ++argv, --argc; argc > 0; ++argv, --argc, ++argcnt )
 		if ( ! strcmp( argv[0], "-+-" ) )
 			{
-			--argc, ++argv;
+			--argc, ++argv, ++found_sep;
 			break;
 			}
+
+	if ( ! found_sep )
+		{
+		argc += argcnt;
+		argv -= argcnt;
+		}
 
 	// Process startup parameters
 	for ( ; argc > 0; ++argv, --argc )
