@@ -45,8 +45,7 @@ RCSID("@(#) $Id$")
 #include "IValue.h"
 
 #if defined(GLISHTK)
-#include "Rivet/tcl.h"
-#include "Rivet/tk.h"
+#include "TkAgent.h"
 #endif
 
 static Sequencer* s;
@@ -55,29 +54,54 @@ static Sequencer* s;
 extern "C" void nb_readline_cleanup();
 #endif
 
-void glish_cleanup()
+void glish_cleanup( )
 	{
 #if USE_EDITLINE
 	nb_readline_cleanup();
 #endif
 	set_term_unchar_mode();
-	exit( 0 );
+	}
+
+void glish_signal_cleanup(int sig)
+	{
+
+	glish_cleanup( );
+
+#define GLISH_CLEANUP_ACTION(SIGNAL,SIGNAL_STR)						\
+	case SIGNAL:									\
+		fprintf(stderr,"\n[received '%s' (%d), exiting]\n",SIGNAL_STR,sig);	\
+		break;
+
+	switch ( sig )
+		{
+		GLISH_CLEANUP_ACTION(SIGINT,"interrupt signal")
+		GLISH_CLEANUP_ACTION(SIGHUP,"hangup signal")
+		GLISH_CLEANUP_ACTION(SIGTERM,"terminate signal")
+		GLISH_CLEANUP_ACTION(SIGABRT,"abort signal")
+		GLISH_CLEANUP_ACTION(SIGBUS,"bus error")
+		GLISH_CLEANUP_ACTION(SIGILL,"illegal instruction")
+		GLISH_CLEANUP_ACTION(SIGSEGV,"segmentation violation")
+		default:
+			fprintf(stderr,"\n[recieved signal %d, exiting]\n",sig);
+		}
+
+	exit( sig );
 	}
 
 int main( int argc, char** argv )
 	{
-	(void) install_signal_handler( SIGINT, glish_cleanup );
-	(void) install_signal_handler( SIGHUP, glish_cleanup );
-	(void) install_signal_handler( SIGTERM, glish_cleanup );
+	(void) install_signal_handler( SIGINT, glish_signal_cleanup );
+	(void) install_signal_handler( SIGHUP, glish_signal_cleanup );
+	(void) install_signal_handler( SIGTERM, glish_signal_cleanup );
+
+	(void) install_signal_handler( SIGABRT, glish_signal_cleanup );
+	(void) install_signal_handler( SIGBUS, glish_signal_cleanup );
+	(void) install_signal_handler( SIGILL, glish_signal_cleanup );
+	(void) install_signal_handler( SIGSEGV, glish_signal_cleanup );
 
 	s = new Sequencer( argc, argv );
 
 	s->Exec();
-
-	// We don't delete s because presently the Sequencer class does
-	// not reclaim its sundry memory upon deletion, so Purify complains
-	// about zillions of memory leaks.  This is also the reason why
-	// s is a static and not a local.
 
 	glish_cleanup();
 
@@ -143,7 +167,7 @@ int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 
 	char* ret;
 #if defined( GLISHTK )
-	if ( current_sequencer->ActiveClients() || tk_NumMainWindows > 0 )
+	if ( current_sequencer->ActiveClients() || TkFrame::TopLevelCount() > 0 )
 #else
 	if ( current_sequencer->ActiveClients() )
 #endif

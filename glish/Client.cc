@@ -48,7 +48,7 @@ inline streq( const char* s1, const char* s2 )
 	}
 
 
-void Client_signal_handler()
+void Client_signal_handler(int)
 	{
 	current_client->HandlePing();
 	}

@@ -11,7 +11,7 @@ typedef unsigned char byte;
 #define loop_over_list(list, iterator)	\
 	for ( int iterator = 0; iterator < (list).length(); ++iterator )
 
-typedef void (*glish_signal_handler)();
+typedef void (*glish_signal_handler)(int);
 
 #if ! defined(DIAG) && defined(__cplusplus)
 #if defined(DO_DIAG)
@@ -59,8 +59,10 @@ typedef void (*glish_signal_handler)();
 #if ! defined(NO_RCSID)
 #if defined(__STDC__) || defined(__ANSI_CPP__) || defined(__hpux)
 #define UsE_PaStE(b) UsE__##b##_
+#define GLISH_PASTE(a,b) a##b
 #else
 #define UsE_PaStE(b) UsE__/**/b/**/_
+#define GLISH_PASTE(a,b) a/**/b
 #endif
 #if defined(__cplusplus)
 #define UsE(x) inline void UsE_PaStE(x)(char *) { UsE_PaStE(x)(x); }

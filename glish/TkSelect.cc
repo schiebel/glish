@@ -58,7 +58,7 @@ int TkSelector::DoSelection( int )
 				       TkTimerProc, (ClientData) this );
 
 	while ( ! glish_select && ! s->NotificationQueueLength() )
-		Tk_DoOneEvent( 0 );
+		Tk_DoOneEvent( TK_DONT_WAIT );
 
 	return selector_status;
 	}

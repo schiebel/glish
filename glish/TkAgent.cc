@@ -16,6 +16,7 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 
 Rivetobj TkAgent::root = 0;
+unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
 
@@ -892,6 +893,11 @@ TkAgent::~TkAgent( )
 		delete member;
 	}
 
+int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, ClientData unused2)
+	{
+	((TkFrame*)assoc)->KillFrame();
+	return TCL_OK;
+	}
 
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
@@ -909,8 +915,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		}
 
 	id = ++frame_count;
+	tl_count++;
 
-	if ( tl_count++ )
+	if ( top_created )
 		{
 		int c = 2;
 		argv[0] = argv[1] = 0;
@@ -928,9 +935,12 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 				      rivet_path(pseudo), title, 0 );
 		}
 	else
+		{
+		top_created = 1;
 		if ( title && title[0] )
 			rivet_va_func(root, (int (*)()) Tk_WmCmd, "title",
 				      rivet_path(root), title, 0 );
+		}
 
 	side = strdup(side_);
 	padx = strdup(padx_);
@@ -954,6 +964,9 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 
 	if ( ! self )
 		fatal->Report("Rivet creation failed in TkFrame::TkFrame");
+
+	rivet_va_func(self, Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
+		      rivet_new_callback(glishtk_delframe_cb,(ClientData) this, 0), 0);
 
 	AddElement( this );
 
@@ -1085,8 +1098,6 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 
 void TkFrame::UnMap()
 	{
-	if ( ! elements.length() )
-		return;
 
 	if ( canvas )
 		canvas->Remove( this );
@@ -1104,7 +1115,17 @@ void TkFrame::UnMap()
 		a->UnMap( );
 		}
 
+	int unmap_root = ! pseudo && ! frame;
 	TkAgent::UnMap();
+
+	if ( pseudo )
+		{
+		rivet_destroy_window( pseudo );
+		pseudo = 0;
+		}
+
+	if ( unmap_root )
+		rivet_unmap_window( root );
 	}
 
 TkFrame::~TkFrame( )
@@ -1118,7 +1139,10 @@ TkFrame::~TkFrame( )
 		--tl_count;
 
 	if ( pseudo )
+		{
 		rivet_destroy_window( pseudo );
+		pseudo = 0;
+		}
 
 	if ( tag )
 		delete tag;
@@ -1128,6 +1152,9 @@ TkFrame::~TkFrame( )
 	if ( pady ) delete pady;
 	if ( expand ) delete expand;
 
+	if ( ! tl_count )
+		// Empty queue
+		while( Tk_DoOneEvent( TK_DONT_WAIT ) != 0 );
 	}
 
 char *TkFrame::SetSide( parameter_list *args, int is_request, int log )
@@ -1256,6 +1283,12 @@ void TkFrame::RemoveElement( TkAgent *obj )
 	{
 	if ( elements.is_member(obj) )
 		elements.remove(obj);
+	}
+
+void TkFrame::KillFrame( )
+	{
+	CreateEvent( "killed", new IValue( glish_true ) );
+	UnMap();
 	}
 
 TkAgent *TkFrame::Create( Sequencer *s, const_args_list *args_val )

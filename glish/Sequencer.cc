@@ -49,6 +49,7 @@ int system( const char* string );
 #include "Rivet/tcl.h"
 #include "Rivet/rivet.h"
 #include "TkSelect.h"
+#include "TkAgent.h"
 #endif
 
 #define GLISH_RC_FILE ".glishrc"
@@ -1798,7 +1799,7 @@ void Sequencer::EventLoop()
 		}
 
 #if defined( GLISHTK )
-	while ( (ActiveClients() || tk_NumMainWindows > 0) && ! selector->DoSelection() )
+	while ( (ActiveClients() || TkFrame::TopLevelCount() > 0) && ! selector->DoSelection() )
 #else
 	while ( ActiveClients() && ! selector->DoSelection() )
 #endif
