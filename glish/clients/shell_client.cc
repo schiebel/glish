@@ -166,17 +166,17 @@ int main( int argc, char** argv )
 		if ( c.HasClientInput( &selection_mask ) )
 			SendChildInput( c, child_pipes[1] );
 
-		if ( FD_ISSET( child_fd, &selection_mask ) )
-			{
-			int status;
-			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) )
-				return status;
-			}
-
 		if ( FD_ISSET( child_err, &selection_mask ) )
 			{
 			int status;
 			if ( ReceiveChildOutput( c, child_err, status, "stderr" ) )
+				return status;
+			}
+
+		if ( FD_ISSET( child_fd, &selection_mask ) )
+			{
+			int status;
+			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) )
 				return status;
 			}
 
@@ -327,24 +327,16 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const ch
 	// on a line ('\n') boundary.
 	char buf[8192];
 	char* buf_ptr = buf;
-
-	*buf_ptr = '\0';
+	int size = 0;
+	char* line_end = 0;
 
 	do
 		{
-		char* line_end = strchr( buf_ptr, '\n' );
-
 		while ( ! line_end )
 			{ // Need to fill buffer.
-			int num_to_move = buf_ptr - buf;
 
-			for ( int i = 0; i < num_to_move; ++i )
-				buf[i] = buf_ptr[i];
-
-			buf_ptr = buf;
-
-			int buf_size = read( read_from_child_fd, buf,
-						sizeof( buf ) - 1 );
+			int buf_size = read( read_from_child_fd, buf_ptr,
+						sizeof( buf ) - size - 1 );
 
 			// When reading from the pty after the child has
 			// executed we can get EIO or EINVAL.
@@ -357,14 +349,17 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const ch
 
 			if ( buf_size <= 0 )
 				{
+				if ( size > 0 ) c.PostEvent( event_name, buf );
 				status = await_child_exit();
 				return 1;
 				}
 
 			// Mark the end of the buffer.
-			buf[buf_size] = '\0';
+			buf_ptr[buf_size] = '\0';
+			size += buf_size;
 
 			line_end = strchr( buf_ptr, '\n' );
+			buf_ptr += buf_size;
 			}
 
 		// Nuke trailing newline.
@@ -375,10 +370,19 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const ch
 		if ( line_end > buf && line_end[-1] == '\r' )
 			line_end[-1] = '\0';
 
-		c.PostEvent( event_name, buf_ptr );
-		buf_ptr = line_end + 1;
+		c.PostEvent( event_name, buf );
+		++line_end;
+		int num_to_move = buf_ptr - line_end;
+
+		for ( int i = 0; i < num_to_move; ++i )
+			buf[i] = *line_end++;
+
+		size = num_to_move;
+		buf_ptr = &buf[size];
+		*buf_ptr = '\0';
+		line_end = strchr( buf, '\n' );
 		}
-	while ( *buf_ptr != '\0' );
+	while ( buf_ptr > buf );
 
 	return 0;
 	}
