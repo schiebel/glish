@@ -77,7 +77,7 @@ INTERP_OBJS = \
 	TkSelect.o \
 	glish_init.o \
 	parse.o \
-	scan.o @ARCH_OBJ@
+	scan.o
 
 CLIENT_OBJS = \
 	Value.o \
@@ -97,7 +97,7 @@ CLIENT_OBJS = \
 	Stream.o \
 	VecRef.o \
 	glishlib.o \
-	system.o
+	system.o @ARCH_OBJ@
 
 INTERP_OBJS_PROXY = \
 	$(D)IValue.o \
@@ -117,7 +117,7 @@ INTERP_OBJS_PROXY = \
 	$(D)TkSelect.o \
 	$(D)glish_init.o \
 	$(D)parse.o \
-	$(D)scan.o @ARCH_OBJ@
+	$(D)scan.o
 
 CLIENT_OBJS_PROXY = \
 	$(D)Value.o \
@@ -137,7 +137,7 @@ CLIENT_OBJS_PROXY = \
 	$(D)Stream.o \
 	$(D)VecRef.o \
 	$(D)glishlib.o \
-	$(D)system.o
+	$(D)system.o @ARCH_OBJ@
 
 KEY_HEADERS = \
 	$(SRC)/Expr.h $(SRC)/Func.h $(H)/GlishType.h \

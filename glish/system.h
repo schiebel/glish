@@ -151,6 +151,21 @@ extern "C" {
 	void glish_fdiv( float *, float *, int, int );
 	void glish_ddiv( double *, double *, int, int );
 	void glish_func_loop( double (*)( double ), double*, double*, int );
+
+	int glish_float_to_int( float );
+	int glish_double_to_int( double );
+	short glish_float_to_short( float );
+	short glish_double_to_short( double );
+	byte glish_float_to_byte( float );
+	byte glish_double_to_byte( double );
+
+	void glish_ary_float_to_int( int *, float *, int, int );
+	void glish_ary_double_to_int( int *, double *, int, int );
+	void glish_ary_float_to_short( short *, float *, int, int );
+	void glish_ary_double_to_short( short *, double *, int, int );
+	void glish_ary_float_to_byte( byte *, float *, int, int );
+	void glish_ary_double_to_byte( byte *, double *, int, int );
+
 #endif
 
 #ifdef __cplusplus

@@ -404,6 +404,10 @@ signal_handler install_signal_handler( int sig, signal_handler handler )
 #endif
 		}
 
+#ifdef SA_SIGINFO
+	act.sa_flags |= SA_SIGINFO;
+#endif
+
 	if ( sigaction(sig, &act, &old) < 0 )
 		return (signal_handler) SIG_ERR;
 

@@ -499,6 +499,9 @@ static void glish_dump_core( const char *file )
 //
 int glish_abort_on_fpe = 1;
 int glish_sigfpe_trap = 0;
+#if defined(__alpha) || defined(__alpha__)
+int glish_alpha_sigfpe_init = 0;
+#endif
 
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
 void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
@@ -528,6 +531,7 @@ static void install_sigfpe() { sigfpe(FPE_INTDIV, (signal_handler) glish_sigfpe 
 extern "C" void glish_sigfpe();
 static void install_sigfpe()
 	{
+	glish_alpha_sigfpe_init = 1;
 	install_signal_handler( SIGFPE, glish_sigfpe );
 	ieee_set_fp_control(IEEE_TRAP_ENABLE_INV);
 	}

@@ -19,6 +19,9 @@ RCSID("@(#) $Id$")
 #if HAVE_SYS_SHM_H
 #include <sys/shm.h>
 #endif
+#ifdef HAVE_MACHINE_FPU_H
+#include <machine/fpu.h>
+#endif
 #if defined(SHMGET_NOT_DECLARED)
 extern "C" {
 int shmget(key_t, size_t, int);
@@ -55,6 +58,11 @@ char* strdup( const char* );
 #include "glish_event.h"
 #include "system.h"
 #include "ports.h"
+
+#if defined(__alpha) || defined(__alpha__)
+extern "C" void glish_sigfpe();
+extern int glish_alpha_sigfpe_init;
+#endif
 
 typedef RETSIGTYPE (*SigHandler)( );
 
@@ -757,15 +765,22 @@ void Client::ClientInit()
 	{
 	if ( ! did_init )
 		{
-// 		sds_init();
 		init_reporters();
 		init_values();
-
-		did_init = 1;
 
 #ifdef AUTHENTICATE
 		init_log( prog_name );
 #endif
+#if defined(__alpha) || defined(__alpha__)
+		if ( ! glish_alpha_sigfpe_init )
+			{
+			glish_alpha_sigfpe_init = 1;
+			install_signal_handler( SIGFPE, glish_sigfpe );
+			ieee_set_fp_control(IEEE_TRAP_ENABLE_INV);
+			}
+#endif
+
+		did_init = 1;
 		}
 
 	last_event = 0;

@@ -13,6 +13,12 @@ RCSID("@(#) $Id$")
 
 DEFINE_CREATE_VALUE(Value)
 
+#if defined(__alpha) || defined(__alpha__)
+int glish_abort_on_fpe = 1;
+int glish_sigfpe_trap = 0;
+int glish_alpha_sigfpe_init = 0;
+#endif
+
 int lookup_print_precision( ) { return -1; }
 int lookup_print_limit( ) { return 0; }
 

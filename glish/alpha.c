@@ -11,18 +11,58 @@ RCSID("@(#) $Id$")
 #include <ucontext.h>
 #include <machine/context.h>
 #include <machine/fpu.h>
+#include <limits.h>
 #include "system.h"
 
-#define DIV(NAME,TYPE)							\
+#define POS_INF 0x7ff0000000000000L
+#define NEG_INF 0xfff0000000000000L
+#define NAN	0x7fffffffffffffffL
+
+typedef enum { INT, SHORT, BYTE, FLOAT, DOUBLE, UNKNOWN_R } result_type;
+typedef enum { DIV, CAST, UNKNOWN_T } op_type;
+
+static op_type glish_alpha_op = UNKNOWN_T;
+static result_type glish_alpha_result = UNKNOWN_R;
+
+#define DIV(NAME,TYPE,DEF)						\
 void NAME( TYPE *lhs, TYPE *rhs, int lhs_len, int rhs_incr )		\
 	{								\
 	int i,j;							\
+	glish_alpha_op = DIV;						\
+	glish_alpha_result = DEF;					\
 	for ( i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )		\
 		lhs[i] /= rhs[j];					\
 	}
 
-DIV(glish_fdiv,float)
-DIV(glish_ddiv,double)
+DIV(glish_fdiv,float,FLOAT)
+DIV(glish_ddiv,double,DOUBLE)
+
+#define ARY_CAST(NAME,LTYPE,RTYPE,DEF)					\
+void NAME( LTYPE *lhs, RTYPE *rhs, int lhs_len, int rhs_incr )		\
+	{								\
+	int i,j;							\
+	glish_alpha_op = CAST;						\
+	glish_alpha_result = DEF;					\
+	for ( i = 0, j = 0; i < lhs_len; ++i, j += rhs_incr )		\
+		lhs[i] = (LTYPE) rhs[j];				\
+	}
+#define ONE_CAST(NAME,LTYPE,RTYPE,DEF)					\
+LTYPE NAME( RTYPE v )							\
+	{								\
+	glish_alpha_op = CAST;						\
+	glish_alpha_result = DEF;					\
+	return (LTYPE) v;						\
+	}
+
+#define DEFINE_CASTS(to,DEF)						\
+	ONE_CAST( PASTE(glish_float_to_,to), to, float, DEF )		\
+	ONE_CAST( PASTE(glish_double_to_,to), to, double, DEF )		\
+	ARY_CAST( PASTE(glish_ary_float_to_,to), to, float, DEF )	\
+	ARY_CAST( PASTE(glish_ary_double_to_,to), to, double, DEF )
+
+DEFINE_CASTS(int,INT)
+DEFINE_CASTS(short,SHORT)
+DEFINE_CASTS(byte,BYTE)
 
 void glish_func_loop( double (*fn)( double ), double *lhs, double *arg, int len )
 	{
@@ -36,7 +76,7 @@ extern int glish_abort_on_fpe;
 extern int glish_sigfpe_trap;
 void glish_sigfpe (int signal, siginfo_t *sig_code , struct sigcontext *uc_ptr)
 	{
-	unsigned long result,op1;
+	unsigned long result,op1,op2;
 
 	glish_sigfpe_trap = 1;
 
@@ -59,15 +99,35 @@ void glish_sigfpe (int signal, siginfo_t *sig_code , struct sigcontext *uc_ptr)
 		result = uc_ptr->sc_fp_trigger_inst & 0x1fL; 
 		op1 = (uc_ptr->sc_fp_trigger_inst & 0x1f0000L) >> 16; 
 
-		if ( uc_ptr->sc_fpregs[op1] == 0x7ff0000000000000L )		/* check for +infinity */
-			uc_ptr->sc_fpregs[result] = INT_MAX;
-		else if ( uc_ptr->sc_fpregs[op1] == 0xfff0000000000000L )	/* check for -infinity */
-			uc_ptr->sc_fpregs[result] = INT_MIN;
-		else
-			uc_ptr->sc_fpregs[result] = 0;
+		if ( glish_alpha_op == CAST )
+			{
+			if ( uc_ptr->sc_fpregs[op1] == POS_INF )	/* check for +infinity */
+				switch ( glish_alpha_result )
+					{
+				    case INT: uc_ptr->sc_fpregs[result] = INT_MAX; break;
+				    case SHORT: uc_ptr->sc_fpregs[result] = SHRT_MAX; break;
+				    case BYTE: uc_ptr->sc_fpregs[result] = UCHAR_MAX; break;
+				    default: uc_ptr->sc_fpregs[result] = INT_MAX; break;
+					}
+			else if ( uc_ptr->sc_fpregs[op1] == NEG_INF )	/* check for -infinity */
+				switch ( glish_alpha_result )
+					{
+				    case INT: uc_ptr->sc_fpregs[result] = INT_MIN; break;
+				    case SHORT: uc_ptr->sc_fpregs[result] = SHRT_MIN; break;
+				    case BYTE: uc_ptr->sc_fpregs[result] = 0; break;
+				    default: uc_ptr->sc_fpregs[result] = INT_MIN; break;
+					}
+			else
+				uc_ptr->sc_fpregs[result] = 0;
+			}
 
-		uc_ptr->sc_pc += 4;
+		else
+			uc_ptr->sc_fpregs[result] = NAN;		/* should only be for "0/0" */
+
+		glish_sigfpe_trap = 0;
 		}
+
+	uc_ptr->sc_pc += 4;
 	}
 
 #endif
