@@ -12,14 +12,14 @@ RCSID("@(#) $Id$")
 //
 //		o  *get-proxy-id* to get an ID for each proxy
 //
-//  Recieves Event
+//  Receives Event
 //
 //		o  *proxy* with record [ name=, value=, id= ]
 //
 
 class pxy_store_cbinfo {
     public:
-	pxy_store_cbinfo( PxyStoreCB cb__, void * data__ ) : cb_(cb__) data_(data__) { }
+	pxy_store_cbinfo( PxyStoreCB cb__, void * data__ ) : cb_(cb__), data_(data__) { }
 	PxyStoreCB cb( ) { return cb_; }
 	void *data( ) { return data_; }
     private:
@@ -27,9 +27,9 @@ class pxy_store_cbinfo {
 	void *data_;
 };
 
-ProxyStore::ProxyStore( int &argc, char **argv, char *name,
+ProxyStore::ProxyStore( int &argc, char **argv,
 			Client::ShareType multithreaded ) :
-		Client( argc, argv, name, multithreaded ) { }
+		Client( argc, argv, multithreaded ) { }
 	
 ProxyStore::~ProxyStore( )
 	{
@@ -46,10 +46,10 @@ ProxyStore::~ProxyStore( )
 		}
 	}
 
-void ProxyStore::Register( const char *string, ProxyStoreCB cb, void *data = 0 )
+void ProxyStore::Register( const char *string, PxyStoreCB cb, void *data = 0 )
 	{
 	char *s = strdup(string);
-	pxy_store_cbinfo *old = cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
+	pxy_store_cbinfo *old = (pxy_store_cbinfo*) cbdict.Insert( s, new pxy_store_cbinfo( cb, data ) );
 	if ( old )
 		{
 		free_memory( s );
@@ -102,30 +102,29 @@ void ProxyStore::Loop( )
 				}
 
 			const Value *idv = rval->HasRecordElement( "id" );
-			const Value *name = rval->HasRecordElement( "name" );
+			const Value *namev = rval->HasRecordElement( "name" );
 			const Value *val = rval->HasRecordElement( "value" );
-			if ( ! id || ! name || ! val || id->Type() != TYPE_DOUBLE ||
-			     name->Type() != TYPE_STRING )
+			if ( ! idv || ! namev || ! val || idv->Type() != TYPE_DOUBLE ||
+			     namev->Type() != TYPE_STRING )
 				{
 				Error( "bad proxy value" );
 				continue;
 				}
 
 			double id = idv->DoubleVal();
-			char *str = name->StringVal();
+			char *name = namev->StringVal();
 			int found = 0;
 			loop_over_list( pxlist, i )
 				if ( pxlist[i]->Id() == id )
 					{
 					found = 1;
-					pxlist[i]->ProcessEvent( str, val, e );
+					pxlist[i]->ProcessEvent( name, val, e );
 					break;
 					}
 
-			if ( ! found )
-				Error( "bad proxy id" );
+			if ( ! found ) Error( "bad proxy id" );
 
-			free_memory( str );
+			free_memory( name );
 			}
 		else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
 			(*cbi->cb())( this, e, cbi->data() );

@@ -18,12 +18,12 @@ typedef PDict(pxy_store_cbinfo) pxy_store_cbdict;
 class ProxyStore : public Client {
 friend class Proxy;
     public:
-	ProxyStore( int &argc, char **argv, char *name,
+	ProxyStore( int &argc, char **argv,
 		    Client::ShareType multithreaded = NONSHARED );
 
 	~ProxyStore( );
 
-	virtual void Register( const char *string, ProxyStoreCB cb, void *data = 0 );
+	virtual void Register( const char *string, PxyStoreCB cb, void *data = 0 );
 
 	virtual void Loop( );
 
