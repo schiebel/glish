@@ -17,7 +17,7 @@ RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream.h>
+#include <iostream>
 #include "Glish/Client.h"
 
 glish_declare(PDict,name_list);
@@ -31,7 +31,7 @@ void EndContext(char* progname, char* context)
 	if ( ! strcmp( context, "*glishd*" ) )
 		{
 		// glishd exited!
-		cerr<<progname<<": glishd context exited."<<endl;
+		std::cerr<<progname<<": glishd context exited."<<std::endl;
 		exit(1);
 		}
 

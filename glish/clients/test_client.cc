@@ -4,7 +4,7 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include <iostream.h>
+#include <iostream>
 
 #include "Glish/Client.h"
 
@@ -14,16 +14,16 @@ int main( int argc, char** argv )
 	{
 	Client c( argc, argv );
 
-	cout << argv[0] << " fired up, arg list is: ";
+	std::cout << argv[0] << " fired up, arg list is: ";
 
 	for ( int i = 1; i < argc; ++i )
 		{
-		cout << argv[i];
+		std::cout << argv[i];
 		if ( i < argc - 1 )
-			cout << ", ";
+			std::cout << ", ";
 		}
 
-	cout << "\n";
+	std::cout << "\n";
 
 	for ( GlishEvent* e; (e = c.NextEvent()); )
 		glish_message->Report( "received event, name = ", e->name,

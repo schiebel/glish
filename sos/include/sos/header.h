@@ -202,8 +202,8 @@ private:
 };
 
 #ifdef SOS_DEBUG
-#include <iostream.h>
-extern ostream &operator<< (ostream &, const sos_header &);
+#include <iostream>
+extern std::ostream &operator<< (std::ostream &, const sos_header &);
 #endif
 
 #endif

@@ -1,9 +1,9 @@
 // $Id$
 // Copyright (c) 1997,1998,2000 Associated Universities Inc.
-#include <iostream.h>
+#include <iostream>
 #include "Glish/Proxy.h"
 
-ostream &operator <<(ostream &o, const ProxyId &id)
+std::ostream &operator <<(std::ostream &o, const ProxyId &id)
 	{
 	o << id.interp() << ":" << id.task() << ":" << id.id();
 	return o;
@@ -18,14 +18,14 @@ class ProxyA : public Proxy {
 };
 
 ProxyA::ProxyA( ProxyStore *s ) : Proxy(s)
-	{ cerr << "Created a ProxyA: " << id << endl; }
+	{ std::cerr << "Created a ProxyA: " << id << std::endl; }
 
 ProxyA::~ProxyA( )
-	{ cerr << "Deleted a ProxyA: " << id << endl; }
+	{ std::cerr << "Deleted a ProxyA: " << id << std::endl; }
 
 void ProxyA::Create( ProxyStore *s, Value *v, GlishEvent *e, void *data )
 	{ 
-	cerr << "In ProxyA::Create" << endl;
+	std::cerr << "In ProxyA::Create" << std::endl;
 	ProxyA *np = new ProxyA( s );
 	np->SendCtor("newtp");
 	}

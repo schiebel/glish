@@ -8,7 +8,6 @@ RCSID("@(#) $Id$")
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <iostream.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/time.h>

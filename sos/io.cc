@@ -17,7 +17,6 @@ RCSID("@(#) $Id$")
 #endif
 #include <string.h>
 #include <stdio.h>
-#include <iostream.h>
 
 #if defined(HAVE_SYS_UIO_H)
 #include <sys/uio.h>

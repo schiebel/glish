@@ -6,9 +6,8 @@
 RCSID("@(#) $Id$")
 #include "sos/alloc.h"
 #include <stdio.h>
-
+#include <iostream>
 #include <stdlib.h>
-#include <iostream.h>
 
 #include "sos/list.h"
 
@@ -17,7 +16,7 @@ static const int DEFAULT_CHUNK_SIZE = 10;
 // Print message on stderr and exit.
 static void default_error_handler(char* s)
 	{
-	cerr << s << "\n";
+	std::cerr << s << "\n";
 	exit(1);
 	}
 

@@ -10,7 +10,7 @@
 RCSID("@(#) $Id$")
 #include "config.h"
 #include "longint.h"
-#include <iostream.h>
+#include <ostream>
 #include <stdio.h>
 
 int sos_big_endian = 1;
@@ -41,7 +41,7 @@ long_int_init::long_int_init()
 		}
         }
 
-ostream &operator<<(ostream &ios, const long_int &li)
+std::ostream &operator<<(std::ostream &ios, const long_int &li)
 	{
 	static char buf[32];
 	sprintf(buf,"0x%08x%08x",li[1],li[0]);

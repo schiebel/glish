@@ -8,7 +8,7 @@
 //======================================================================
 #ifndef sos_longint_h
 #define sos_longint_h
-#include <iostream.h>
+#include <ostream>
 
 //
 // Indicates if this machine is big endian
@@ -72,7 +72,7 @@ inline long_int operator<<( const long_int &left, unsigned int right )
 inline long_int operator>>( const long_int &left, unsigned int right )
 	{ return long_int(left[1] >> right, (left[1] << (32 - right)) | (left[0] >> right)); }
 
-ostream &operator<<(ostream &, const long_int &);
+std::ostream &operator<<(std::ostream &, const long_int &);
 
 static class long_int_init {
     public:
