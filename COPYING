@@ -1,0 +1,9 @@
+
+	Glish is made up of several libraries, each with a Berkeley style
+	copyright. Please see:
+
+		glish/COPYING		sos/COPYING
+		editline/COPYING	npd/COPYING
+		rivet/COPYING
+
+	for specific information about the copyright of each library.
