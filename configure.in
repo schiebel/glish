@@ -20,7 +20,7 @@ dnl## Extra command line options
 dnl##
 dnl##--------------------------------------------------------------------
 AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
-AC_ARG_ENABLE(dynamic,             [  --enable-dynamic            build dynamic libraries])
+AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
 AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
 AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])
 AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR      directory for sitewide key files])
@@ -31,7 +31,7 @@ AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags   PGPLOT include
 AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags   PGPLOT link flags])
 AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags  PGPLOT search flags])
 
-if test "$enable_static_binary" = "yes" -o "$enable_dynamic" != "yes"; then
+if test "$enable_static_binary" = "yes" -o "$enable_shared" != "yes"; then
 	static_binary="yes"
 else
 	static_binary=
@@ -118,6 +118,31 @@ fi])
 AC_MSG_RESULT($_cv_sgiabi)
 ])
 
+dnl##
+dnl## Grep on the CPP output return the first line
+dnl##
+dnl##       EGREP_CPP_STDOUT(pattern, program, variable, [action-if-found, [action-if-not-found]])
+dnl##
+AC_DEFUN(EGREP_CPP_STDOUT,
+[AC_REQUIRE_CPP()dnl
+cat > $conftest.$ac_ext <<EOF
+[#]line __oline__ "configure"
+#include "$confdefs.h"
+[$2]
+EOF
+dnl eval is necessary to expand ac_cpp.
+dnl Ultrix and Pyramid sh refuse to redirect output of eval, so use subshell.
+$3=`(eval "$ac_cpp $conftest.$ac_ext") 2>&AC_FD_CC | egrep "$1" 2>/dev/null | head -1`
+if test -n "$3"; then
+  ifelse([$4], , :, [rm -rf $conftest*
+  $4])
+ifelse([$5], , , [else
+  rm -rf $conftest*
+  $5
+])dnl
+fi
+rm -f $conftest*
+])
 
 dnl##
 dnl## Attempt to strip off the automounter mount point
@@ -164,6 +189,7 @@ if test "$prefix" != "$tmp_prefix"; then
     prefix="$tmp_prefix"
     configure_args=
     prev=
+    found_prefix=
     for arg in $ac_configure_args; do
 	if test -n "$prev"; then
 	    prev=
@@ -171,14 +197,22 @@ if test "$prefix" != "$tmp_prefix"; then
 	else
 	    case "$arg" in
 		-prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
-		    prev=prefix ;;
+		    prev=prefix
+		    found_prefix=TRUE
+		    ;;
 		-prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
-		    configure_args="$configure_args --prefix=$prefix" ;;
+		    configure_args="$configure_args --prefix=$prefix"
+		    found_prefix=TRUE
+		    ;;
 		*) configure_args="$configure_args $arg" ;;
 	    esac
 	fi
     done
-    ac_configure_args="$configure_args"
+    if test -n "$found_prefix"; then
+	ac_configure_args="$configure_args"
+    else
+	ac_configure_args="$configure_args --prefix=$prefix"
+    fi
 fi
 ])
 
@@ -244,12 +278,12 @@ dnl##
 conf_root=`echo $cache_file | sed ['s/^\([\.\/]*\).*/\1/'`]
 conf_root=`echo $conf_root | sed -e 's/\/\.\//\//' -e 's/^\.\///' -e 's/\/\.$//' -e 's/\/$//'`
 if test -z "$conf_root"; then
-    mkhier=./config/mkhier
+    conf_root=.
     top_off=""
 else
-    mkhier="${conf_root}/config/mkhier"
     top_off="/$conf_root"
 fi
+mkhier="${conf_root}/config/mkhier"
 
 dnl##
 dnl## Make sure basic values are set
@@ -286,7 +320,7 @@ dnl##
 full_libdir="$libdir"
 EXPAND_VAR(full_libdir)
 
-full_libdir_p=`pwd`
+full_libdir_p=`cd $conf_root; pwd`
 STRIP_AUTOMOUNT(full_libdir_p)
 full_libdir_p="$full_libdir_p/lib/$ARCH"
 
@@ -811,6 +845,17 @@ AC_MSG_CHECKING(C++ details)
 AC_MSG_RESULT()
 
 AC_REQUIRE_CPP()
+AC_MSG_CHECKING(C++ library path)
+EGREP_CPP_STDOUT(iostream\.h,[#include <iostream.h>],cxx_include_path)
+if `echo $cxx_include_path | sed 's/\/include\//X/' > /dev/null 2>&1`; then
+    cxx_library_path=`echo $cxx_include_path | sed -e ['s/^[^\/]*//'] -e 's/include\/.*/lib/' -e 's/\n$//'`
+fi
+AC_MSG_RESULT($cxx_library_path)
+if test -n "$cxx_library_path"; then
+    cxx_lpath="-L$cxx_library_path"
+    cxx_rpath=":$cxx_library_path"
+fi
+
 AC_MSG_CHECKING(Are we using the KAI compiler)
 AC_EGREP_CPP(yes,
 [#ifdef __KCC
@@ -919,16 +964,16 @@ dnl##			which are a part of a given Glish release.
 dnl##	GLISH_LIB_SUFFIX - the suffix to stick onto all of the static libraries
 dnl##			which are a part of a given Glish release.
 dnl##	MAKE_LIB -	Command to execute to build the static library;
-dnl##	MAKE_SLIB -	Command to execute to build the dynamic library
+dnl##	MAKE_SLIB -	Command to execute to build the shared library
 dnl##	GLISH_LIBS -	The libraries needed to link the Glish interperter
-dnl##			indicated by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
+dnl##			indicated by SHARED_BIN & STATIC_BIN (so both should not be set)
 dnl##	CLIENT_LIBS -	The libraries needed to link a Glish client indicated
-dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
+dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
 dnl##	TKCLIENT_LIBS - The libraries needed to link a Glish client indicated
-dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
-dnl##	DYNAMIC_LIB -	'lib_tgt' if dynamic libary should be built, empty otherwise
+dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
+dnl##	SHARED_LIB -	'lib_tgt' if shared libary should be built, empty otherwise
 dnl##	STATIC_LIB -	'lib_tgt' if static libary should be built, empty otherwise
-dnl##	DYNAMIC_BIN -	'bin_tgt' if dynamic binary should be built, empty otherwise
+dnl##	SHARED_BIN -	'bin_tgt' if shared binary should be built, empty otherwise
 dnl##	STATIC_BIN -	'bin_tgt' if static binary should be built, empty otherwise
 dnl##
 dnl##	---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---
@@ -986,9 +1031,9 @@ case $host_os in
 	DL_LIBS="-lld"
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
-	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
@@ -1008,10 +1053,10 @@ case $host_os in
 	LD_FLAGS="-Wl,-E"
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
+	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
 	fi
 
-	TK_LD_RPATH="-Wl,+b,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1040,10 +1085,10 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1062,10 +1107,10 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1113,10 +1158,10 @@ case $host_os in
 	dnl##
 	DL_LIBS="$DL_LIBS -lc"
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1218,10 +1263,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1238,10 +1283,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1292,10 +1337,10 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
 
-	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
@@ -1330,10 +1375,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1430,22 +1475,22 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    DYNAMIC_BIN=
+    SHARED_BIN=
     STATIC_BIN=bin_tgt
     GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsosgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libeditgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregxgc$GLISH_LIB_SUFFIX \${LIBDIR_P}/libgcmem$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpdgc$GLISH_LIB_SUFFIX"
 	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 	TKCLIENT_LIBS="$TKCLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
     fi
 else
-    DYNAMIC_BIN=bin_tgt
+    SHARED_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglishgc -lsosgc -leditgc -lregxgc -lgcmem"
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} -lglish -lsos"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos"
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc -lsosgc -leditgc -lregxgc -lgcmem"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS -lnpdgc"
 	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
@@ -1460,10 +1505,10 @@ fi
 dnl##
 dnl## Are dynamic libraries disabled?
 dnl##
-DYNAMIC_LIB=lib_tgt
+SHARED_LIB=lib_tgt
 STATIC_LIB=lib_tgt
-if test "$enable_dynamic" != "yes"; then
-    DYNAMIC_LIB=
+if test "$enable_shared" != "yes"; then
+    SHARED_LIB=
 fi
 
 dnl## Note:  in the following variable, it's important to use the absolute
@@ -1546,9 +1591,9 @@ AC_SUBST(GLISH_LIBS)
 AC_SUBST(CLIENT_LIBS)
 AC_SUBST(TKCLIENT_LIBS)
 AC_SUBST(TKCLIENT_LIBS_expanded)
-AC_SUBST(DYNAMIC_LIB)
+AC_SUBST(SHARED_LIB)
 AC_SUBST(STATIC_LIB)
-AC_SUBST(DYNAMIC_BIN)
+AC_SUBST(SHARED_BIN)
 AC_SUBST(STATIC_BIN)
 
 dnl##
@@ -1571,27 +1616,27 @@ dnl##
 dnl## Create the necessary directories ahead of time
 dnl##
 $mkhier "sos/$ARCH/static"
-$mkhier "sos/$ARCH/dynamic"
+$mkhier "sos/$ARCH/shared"
 $mkhier "npd/$ARCH/static"
-$mkhier "npd/$ARCH/dynamic"
+$mkhier "npd/$ARCH/shared"
 $mkhier "editline/$ARCH/static"
-$mkhier "editline/$ARCH/dynamic"
+$mkhier "editline/$ARCH/shared"
 $mkhier "regx/$ARCH/static"
-$mkhier "regx/$ARCH/dynamic"
+$mkhier "regx/$ARCH/shared"
 $mkhier "glish/$ARCH/static"
-$mkhier "glish/$ARCH/dynamic"
+$mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
-$mkhier "glish/clients/glishtk/$ARCH/dynamic"
+$mkhier "glish/clients/glishtk/$ARCH/shared"
 
 PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in)
-PREPROCESS(glish/mkfile.in,glish/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in)
-PREPROCESS(npd/mkfile.in,npd/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(npd/mkfile.in,npd/$ARCH/shared.in,[SHARED="yes"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in)
-PREPROCESS(editline/mkfile.in,editline/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(editline/mkfile.in,editline/$ARCH/shared.in,[SHARED="yes"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in)
-PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(regx/mkfile.in,regx/$ARCH/shared.in,[SHARED="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
-PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(sos/mkfile.in,sos/$ARCH/shared.in,[SHARED="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in gcmem/$ARCH/Makefile:gcmem/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/dynamic/Makefile:glish/clients/glishtk/dynamic.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

@@ -18,7 +18,7 @@ all:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
-	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS);		\
+	(cd $(BUILD_DIR)/shared; $(MAKE) $$FLGS);		\
 	(cd clients; $(MAKE) $$FLGS)
 
 install:
@@ -28,7 +28,7 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else 	FLGS=""; fi;					\
 	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS install);	\
-	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS install);	\
+	(cd $(BUILD_DIR)/shared; $(MAKE) $$FLGS install);	\
 	(cd clients; $(MAKE) $$FLGS install)
 
 build: all
@@ -39,7 +39,7 @@ glish:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
-	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS)
+	(cd $(BUILD_DIR)/shared; $(MAKE) $$FLGS)
 
 libglish.a:
 	@if test -z "$(ARCH)"; then 				\

@@ -1899,7 +1899,7 @@ static int tkpg_tcl_setcursor(TkPgplot *tkpg, Tcl_Interp *interp,
  * List the correspondence between cursor-mode names and pgband() mode
  * enumerators.
  */
-  struct {
+  static struct {
     TkpgCursorMode mode;
     char *name;
   } modes[] = {

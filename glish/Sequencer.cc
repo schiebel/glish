@@ -1334,6 +1334,12 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				system(this), script_client(0), script_client_active(0),
 				expanded_name(0), run_file(0), doing_pager(0)
 	{
+	/* We try to make sure that we allocate at 	*/
+	/* least N/GC_free_space_divisor bytes between	*/
+	/* collections, where N is the heap size plus	*/
+	/* a rough estimate of the root set size.	*/
+	GC_free_space_divisor = 2;
+
 	cur_sequencer = this;
 
 	multi_script = Client::NONSHARED;

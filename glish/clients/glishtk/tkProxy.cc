@@ -681,7 +681,7 @@ TkProxy::~TkProxy( )
 	TkProc* member;
 	const char* key;
 	while ( (member = procs.NextEntry( key, c )) )
-		delete member;
+		if ( member != NULL_TkProc ) delete member;
 	}
 
 void TkProxy::BindEvent(const char *event, Value *rec)

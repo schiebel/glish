@@ -7,7 +7,7 @@
 TAR_FILE = glish-clients.tar
 
 STATIC_DIR=$$ARCH/static
-DYNAMIC_DIR=$$ARCH/dynamic
+SHARED_DIR=$$ARCH/shared
 
 SHELL = /bin/sh
 SH = $(SHELL)
@@ -17,7 +17,7 @@ all:
 		ARCH=`../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	(cd $(DYNAMIC_DIR); $(MAKE) $$FLGS all);		\
+	(cd $(SHARED_DIR); $(MAKE) $$FLGS all);			\
 	(cd $(STATIC_DIR); $(MAKE) $$FLGS all);			\
 	if test -d pgplot; then					\
 		(cd pgplot; $(MAKE) $$FLGS all); fi;
@@ -28,7 +28,7 @@ install:
 		ARCH=`../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	(cd $(DYNAMIC_DIR); $(MAKE) $$FLGS install);		\
+	(cd $(SHARED_DIR); $(MAKE) $$FLGS install);		\
 	(cd $(STATIC_DIR); $(MAKE) $$FLGS install);		\
 	if test -d pgplot; then					\
 		(cd pgplot; $(MAKE) $$FLGS install); fi;
@@ -55,7 +55,7 @@ clean:
 		ARCH=`../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	(cd $(DYNAMIC_DIR); $(MAKE) $$FLGS clean);		\
+	(cd $(SHARED_DIR); $(MAKE) $$FLGS clean);		\
 	(cd $(STATIC_DIR); $(MAKE) $$FLGS clean);		\
 	if test -d pgplot; then					\
 		(cd pgplot; $(MAKE) $$FLGS clean); fi;
@@ -65,7 +65,7 @@ distclean:
 		ARCH=`../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	(cd $(DYNAMIC_DIR); $(MAKE) $$FLGS distclean);		\
+	(cd $(SHARED_DIR); $(MAKE) $$FLGS distclean);		\
 	(cd $(STATIC_DIR); $(MAKE) $$FLGS distclean);		\
 	if test -d pgplot; then					\
 		(cd pgplot; $(MAKE) $$FLGS distclean); fi;

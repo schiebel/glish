@@ -14,7 +14,7 @@ dnl## Extra command line options
 dnl##
 dnl##--------------------------------------------------------------------
 AC_ARG_ENABLE(static-binary,       [  --enable-static-binary      force binaries to be static])
-AC_ARG_ENABLE(dynamic,             [  --enable-dynamic            build dynamic libraries])
+AC_ARG_ENABLE(shared,              [  --enable-shared             build shared libraries])
 AC_ARG_ENABLE(min-space,           [  --enable-min-space          delete intermediate objects])
 AC_ARG_ASSIGN(rc-dir,              [  --rc-dir=SITE_RC_DIR        directory for sitewide .glishrc])
 AC_ARG_ASSIGN(key-dir,             [  --key-dir=SITE_KEY_DIR      directory for sitewide key files])
@@ -106,6 +106,31 @@ fi])
 AC_MSG_RESULT($_cv_sgiabi)
 ])
 
+dnl##
+dnl## Grep on the CPP output return the first line
+dnl##
+dnl##       EGREP_CPP_STDOUT(pattern, program, variable, [action-if-found, [action-if-not-found]])
+dnl##
+AC_DEFUN(EGREP_CPP_STDOUT,
+[AC_REQUIRE_CPP()dnl
+cat > $conftest.$ac_ext <<EOF
+[#]line __oline__ "configure"
+#include "$confdefs.h"
+[$2]
+EOF
+dnl eval is necessary to expand ac_cpp.
+dnl Ultrix and Pyramid sh refuse to redirect output of eval, so use subshell.
+$3=`(eval "$ac_cpp $conftest.$ac_ext") 2>&AC_FD_CC | egrep "$1" 2>/dev/null | head -1`
+if test -n "$3"; then
+  ifelse([$4], , :, [rm -rf $conftest*
+  $4])
+ifelse([$5], , , [else
+  rm -rf $conftest*
+  $5
+])dnl
+fi
+rm -f $conftest*
+])
 
 dnl##
 dnl## Attempt to strip off the automounter mount point
@@ -152,6 +177,7 @@ if test "$prefix" != "$tmp_prefix"; then
     prefix="$tmp_prefix"
     configure_args=
     prev=
+    found_prefix=
     for arg in $ac_configure_args; do
 	if test -n "$prev"; then
 	    prev=
@@ -159,14 +185,22 @@ if test "$prefix" != "$tmp_prefix"; then
 	else
 	    case "$arg" in
 		-prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
-		    prev=prefix ;;
+		    prev=prefix
+		    found_prefix=TRUE
+		    ;;
 		-prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
-		    configure_args="$configure_args --prefix=$prefix" ;;
+		    configure_args="$configure_args --prefix=$prefix"
+		    found_prefix=TRUE
+		    ;;
 		*) configure_args="$configure_args $arg" ;;
 	    esac
 	fi
     done
-    ac_configure_args="$configure_args"
+    if test -n "$found_prefix"; then
+	ac_configure_args="$configure_args"
+    else
+	ac_configure_args="$configure_args --prefix=$prefix"
+    fi
 fi
 ])
 
@@ -200,12 +234,12 @@ dnl##
 conf_root=`echo $cache_file | sed ['s/^\([\.\/]*\).*/\1/'`]
 conf_root=`echo $conf_root | sed -e 's/\/\.\//\//' -e 's/^\.\///' -e 's/\/\.$//' -e 's/\/$//'`
 if test -z "$conf_root"; then
-    mkhier=./config/mkhier
+    conf_root=.
     top_off=""
 else
-    mkhier="${conf_root}/config/mkhier"
     top_off="/$conf_root"
 fi
+mkhier="${conf_root}/config/mkhier"
 
 dnl##
 dnl## Make sure basic values are set
@@ -231,7 +265,7 @@ dnl##
 full_libdir="$libdir"
 EXPAND_VAR(full_libdir)
 
-full_libdir_p=`pwd`
+full_libdir_p=`cd $conf_root; pwd`
 STRIP_AUTOMOUNT(full_libdir_p)
 full_libdir_p="$full_libdir_p/lib/$ARCH"
 
@@ -608,6 +642,17 @@ AC_MSG_CHECKING(C++ details)
 AC_MSG_RESULT()
 
 AC_REQUIRE_CPP()
+AC_MSG_CHECKING(C++ library path)
+EGREP_CPP_STDOUT(iostream\.h,[#include <iostream.h>],cxx_include_path)
+if `echo $cxx_include_path | sed 's/\/include\//X/' > /dev/null 2>&1`; then
+    cxx_library_path=`echo $cxx_include_path | sed -e ['s/^[^\/]*//'] -e 's/include\/.*/lib/' -e 's/\n$//'`
+fi
+AC_MSG_RESULT($cxx_library_path)
+if test -n "$cxx_library_path"; then
+    cxx_lpath="-L$cxx_library_path"
+    cxx_rpath=":$cxx_library_path"
+fi
+
 AC_MSG_CHECKING(Are we using the KAI compiler)
 AC_EGREP_CPP(yes,
 [#ifdef __KCC
@@ -668,9 +713,9 @@ dnl##			as its value.
 dnl##	GLISH_SLIB_SUFFIX - the suffix to stick onto all of the shared libraries
 dnl##			which are a part of a given Glish release.
 dnl##	MAKE_LIB -	Command to execute to build the static library;
-dnl##	MAKE_SLIB -	Command to execute to build the dynamic library
+dnl##	MAKE_SLIB -	Command to execute to build the shared library
 dnl##	TKCLIENT_LIBS - The libraries needed to link a Glish client indicated
-dnl##			by DYNAMIC_BIN & STATIC_BIN (so both should not be set)
+dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
 dnl##
 dnl##	---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---
 dnl##
@@ -724,9 +769,9 @@ case $host_os in
 	DL_LIBS="-lld"
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
-	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
@@ -745,10 +790,10 @@ case $host_os in
 	LD_FLAGS="-Wl,-E"
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p:$full_libdir:."
+	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
 	fi
 
-	TK_LD_RPATH="-Wl,+b,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -775,10 +820,10 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -796,10 +841,10 @@ case $host_os in
 	DL_LIBS=""
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -848,10 +893,10 @@ case $host_os in
 	DL_LIBS="$DL_LIBS -lc"
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Xlinker -rpath -Xlinker $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Xlinker -rpath -Xlinker ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -943,10 +988,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -961,10 +1006,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-rpath $full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="-rpath $full_libdir_p:$full_libdir"
+	TK_LD_RPATH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([-rpath ],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$x_includes,TK_LD_RPATH)
         ADD_LD_SEARCH([-rpath ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1010,9 +1055,9 @@ case $host_os in
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p -L$full_libdir"
+	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
-	TK_LD_RPATH="-L$full_libdir_p -L$full_libdir"
+	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
 	fi
@@ -1045,10 +1090,10 @@ case $host_os in
 	LD_FLAGS=""
 
 	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
+	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 
-	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p:$full_libdir"
+	TK_LD_RPATH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
@@ -1133,12 +1178,12 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi

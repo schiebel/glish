@@ -17,7 +17,7 @@ all:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
-	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS)
+	(cd $(BUILD_DIR)/shared; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing regexp ...
@@ -26,7 +26,7 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS install);	\
-	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS install)
+	(cd $(BUILD_DIR)/shared; $(MAKE) $$FLGS install)
 
 build: all
 
