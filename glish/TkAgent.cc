@@ -692,6 +692,23 @@ char *glishtk_strwithidx(TkAgent *a, const char *cmd, const char *param,
 	return ret;
 	}
 
+char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
+				parameter_list *args, int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "text append function";
+
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRVAL( val, event_name );
+	char *str = val->StringVal( ' ', 0, 1 );
+	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
+	rivet_va_cmd(a->Self(), "see", a->IndexCheck("end"), 0);
+	delete str;
+	EXPR_DONE( val )
+	return ret;
+	}
+
 char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 			   parameter_list *args, int is_request, int log )
 	{
@@ -2412,7 +2429,7 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_strandidx));
-	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_strwithidx));
+	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_text_append));
 	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_strwithidx));
 	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
 	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
