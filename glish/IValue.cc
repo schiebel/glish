@@ -127,6 +127,13 @@ int IValue::FailMarked( )
 
 unsigned int IValue::CountRefs( recordptr r ) const
 	{
+	//
+	// here we lie because if we are counting kernel structure
+	// (recordptr) ref count, we must protect the kernel for other
+	// values referencing us when our count is greater than 1
+	//
+	if ( RefCount() > 1 ) return 0;
+
 	if ( Type() == TYPE_FUNC )
 		return FuncPtr(0)[0]->CountRefs(r);
 	else
