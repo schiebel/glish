@@ -806,15 +806,6 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 			return new IValue( glish_true );
 		}
 
-int TkAgent::CreateEvent( const char* event_name, IValue* event_value, NotifyTrigger *t )
-	{
-	int is_interest = Agent::CreateEvent( event_name, event_value, t );
-
-	if ( is_interest ) glish_event_posted();
-
-	return is_interest;
-	}
-
 TkAgent::TkAgent( Sequencer *s ) : Agent( s )
 	{
 	agent_ID = "<graphic>";
@@ -1287,7 +1278,7 @@ void TkFrame::RemoveElement( TkAgent *obj )
 
 void TkFrame::KillFrame( )
 	{
-	CreateEvent( "killed", new IValue( glish_true ) );
+	glish_event_posted(sequencer->NewEvent( this, "killed", new IValue( glish_true ) ));
 	UnMap();
 	}
 
@@ -1653,7 +1644,7 @@ void TkButton::ButtonPressed( )
 		attr->Insert( strdup("state"), type != CHECK || state ? new IValue( glish_true ) :
 							    new IValue( glish_false ) ) ;
 
-		CreateEvent( "press", v );
+		glish_event_posted(sequencer->NewEvent( this, "press", v ));
 		}
 	else
 		dont_invoke_button = 0;
@@ -1800,7 +1791,7 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 
 void TkScale::ValueSet( double d )
 	{
-	CreateEvent( "value", new IValue( d ) );
+	glish_event_posted(sequencer->NewEvent( this, "value", new IValue( d ) ));
 	}
 
 TkAgent *TkScale::Create( Sequencer *s, const_args_list *args_val )
@@ -1949,12 +1940,12 @@ TkAgent *TkText::Create( Sequencer *s, const_args_list *args_val )
 
 void TkText::yScrolled( const double *d )
 	{
-	CreateEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 void TkText::xScrolled( const double *d )
 	{
-	CreateEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 charptr TkText::IndexCheck( charptr s )
@@ -2062,7 +2053,7 @@ TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 
 void TkScrollbar::Scrolled( IValue *data )
 	{
-	CreateEvent( "scroll", data, new ScrollbarTrigger( this ) );
+	glish_event_posted(sequencer->NewEvent( this, "scroll", data, 0, new ScrollbarTrigger( this ) ));
 	}
 
 
@@ -2237,12 +2228,12 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 void TkEntry::ReturnHit( )
 	{
 	IValue *ret = new IValue( rivet_va_cmd( self, "get", 0 ) );
-	CreateEvent( "return", ret );
+	glish_event_posted(sequencer->NewEvent( this, "return", ret ));
 	}
 
 void TkEntry::xScrolled( const double *d )
 	{
-	CreateEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 TkAgent *TkEntry::Create( Sequencer *s, const_args_list *args_val )
@@ -2484,17 +2475,17 @@ charptr TkListbox::IndexCheck( charptr s )
 
 void TkListbox::yScrolled( const double *d )
 	{
-	CreateEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 void TkListbox::xScrolled( const double *d )
 	{
-	CreateEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 void TkListbox::elementSelected(  )
 	{
-	CreateEvent( "select", glishtk_splitsp_int(rivet_va_cmd( self, "curselection", 0 )) );
+	glish_event_posted(sequencer->NewEvent( this, "select", glishtk_splitsp_int(rivet_va_cmd( self, "curselection", 0 )) ));
 	}
 
 #endif

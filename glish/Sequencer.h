@@ -204,7 +204,12 @@ public:
 
 	void AssociateTaskWithChannel( Task* task, Channel *chan );
 
-	int NewEvent( Task* task, GlishEvent* event );
+	int NewEvent( Task* task, GlishEvent* event, int complain_if_no_interest = 0,
+		      NotifyTrigger *t=0 );
+	int NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_interest = 0,
+		      NotifyTrigger *t=0 );
+	int NewEvent( Agent* agent, const char* event_name, IValue* value,
+		      int complain_if_no_interest = 0, NotifyTrigger *t=0 );
 
 	// Returns true if tasks associated with the given nam should
 	// have an implicit "<suspend>" attribute, false otherwise.
@@ -261,6 +266,8 @@ public:
 		return script_created;
 		}
 	void InitScriptClient();
+
+	static void TopLevelReset();
 
 protected:
 	void MakeEnvGlobal();
@@ -342,6 +349,9 @@ protected:
 	// Keeps track of the current sequencer...
 	// Later this may have to be a stack...
 	static Sequencer *cur_sequencer;
+
+	// Called from Sequencer::TopLevelReset()
+	void toplevelreset();
 	};
 
 #endif /* sequencer_h */

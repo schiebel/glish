@@ -8,7 +8,7 @@
 #include <libc.h>
 #endif
 
-typedef void (*signal_handler)(int);
+typedef void (*signal_handler)( );
 
 #ifdef __cplusplus
 extern "C" {

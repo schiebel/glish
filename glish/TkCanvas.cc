@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include "Rivet/rivet.h"
 #include "Reporter.h"
+#include "Sequencer.h"
 #include "IValue.h"
 #include "Expr.h"
 
@@ -744,7 +745,7 @@ void TkCanvas::UnMap()
 
 void TkCanvas::ButtonEvent( const char *event, IValue *rec )
 	{
-	CreateEvent( event, rec );
+	glish_event_posted(sequencer->NewEvent( this, event, rec ));
 	}
 
 TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height, const Value *region_,
@@ -838,12 +839,12 @@ unsigned long TkCanvas::NewItemCount(const char *name)
 
 void TkCanvas::yScrolled( const double *d )
 	{
-	CreateEvent( "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "yscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 void TkCanvas::xScrolled( const double *d )
 	{
-	CreateEvent( "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) );
+	glish_event_posted(sequencer->NewEvent( this, "xscroll", new IValue( (double*) d, 2, COPY_ARRAY ) ));
 	}
 
 const char **TkCanvas::PackInstruction()

@@ -43,6 +43,8 @@ class Agent : public GlishObject {
 	Agent( Sequencer* s );
 	virtual ~Agent();
 
+	virtual const char* Name() const { return agent_ID; }
+
 	// Send the given event/value list or pair to the event agent.
 	// If is_request is true then this is a request/response event,
 	// and the response value is returned; otherwise nil is returned.

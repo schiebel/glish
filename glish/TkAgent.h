@@ -25,7 +25,7 @@ typedef PDict(TkProc) tkprochash;
 // glish event of interest has occurred. See TkSelector.cc for
 // more information
 //
-extern void glish_event_posted();
+extern void glish_event_posted( int );
 
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
@@ -146,8 +146,6 @@ class TkAgent : public Agent {
 	virtual IValue *Invoke(TkProc*,parameter_list*arg, int x, int y);
 
 	virtual charptr IndexCheck( charptr );
-
-	int CreateEvent( const char* event_name, IValue* event_value, NotifyTrigger *t=0 );
 
 	IValue *UnrecognizedEvent();
 	int IsValid() { return self != 0; }

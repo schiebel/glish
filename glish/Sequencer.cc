@@ -271,6 +271,23 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+void Sequencer::TopLevelReset()
+	{
+	if ( cur_sequencer )
+		cur_sequencer->toplevelreset();
+	}
+
+void Sequencer::toplevelreset()
+	{
+	if ( await_stmt && yyin && isatty( fileno( yyin ) ) && 
+			! selector->FindSelectee( fileno( yyin ) ) )
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+
+	await_stmt = 0;
+	await_only_flag = 0;
+	except_stmt = 0;
+	}
+
 void Sequencer::InitScriptClient()
 	{
 	// Create "script" global.
@@ -1210,14 +1227,6 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 		}
 
 	EventLoop();
-	//
-	// Sometimes, i.e. an await on a TkAgent, the queue still has an
-	// event for that agent in it. This clears out the queue. So that
-	// the queue doesn't contain references to deleted values. At some
-	// point, this should be explored a bit more.
-	//
-	if ( NotificationQueueLength() )
-		RunQueue();
 
 	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -1377,7 +1386,8 @@ void Sequencer::RemoveSelectee( Channel* chan )
 	}
 
 
-int Sequencer::NewEvent( Task* task, GlishEvent* event )
+int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_interest,
+			 NotifyTrigger *t )
 	{
 	if ( ! event )
 		{ // task termination
@@ -1400,9 +1410,6 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 
 	if ( monitor_task && task != monitor_task )
 		LogEvent( task->TaskID(), task->Name(), event_name, value, 1 );
-
-	// If true, generate message if no interest in event.
-	int complain_if_no_interest = 0;
 
 	if ( ! strcmp( event_name, "established" ) )
 		{
@@ -1428,41 +1435,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 	else
 		complain_if_no_interest = 1;
 
-	int ignore_event = 0;
-	int await_finished = 0;
-
-	if ( await_stmt )
-		{
-		await_finished =
-			task->HasRegisteredInterest( await_stmt, event_name );
-
-		if ( ! await_finished && await_only_flag &&
-		     ! task->HasRegisteredInterest( except_stmt, event_name ) )
-			ignore_event = 1;
-		}
-
-	if ( ignore_event )
-		warn->Report( "event ", task->Name(), ".", event_name,
-			      " ignored due to \"await\"" );
-
-	else
-		{
-		// We're going to want to keep the event value as a field
-		// in the task's AgentRecord.
-		Ref( value );
-
-		int was_interest = task->CreateEvent( event_name, value );
-
-		if ( ! was_interest && complain_if_no_interest )
-			warn->Report( "event ", task->Name(), ".", event_name,
-					" (", value, ") dropped" );
-
-		RunQueue();	// process effects of CreateEvent()
-		}
-
-	Unref( event );
-
-	if ( await_finished )
+	if ( NewEvent( (Agent*) task, event, complain_if_no_interest, t ) )
 		{
 		pending_task = task;
 
@@ -1478,6 +1451,63 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event )
 		return 0;
 	}
 
+#define NEWEVENT_BODY							\
+	int ignore_event = 0;						\
+	int await_finished = 0;						\
+									\
+	if ( await_stmt )						\
+		{							\
+		await_finished =					\
+			agent->HasRegisteredInterest( await_stmt,	\
+						      event_name );	\
+									\
+		if ( ! await_finished && await_only_flag &&		\
+		     ! agent->HasRegisteredInterest( except_stmt,	\
+						     event_name ) )	\
+			ignore_event = 1;				\
+		}							\
+									\
+	if ( ignore_event )						\
+		warn->Report( "event ", agent->Name(), ".", event_name,	\
+			      " ignored due to \"await\"" );		\
+	else								\
+		{							\
+		/* We're going to want to keep the event value as a */	\
+		/* field in the agent's AgentRecord.                */	\
+		Ref( value );						\
+									\
+		int was_interest = agent->CreateEvent( event_name,	\
+						       value, t );	\
+									\
+		if ( ! was_interest && complain_if_no_interest )	\
+			warn->Report( "event ", agent->Name(), ".",	\
+				      event_name, " (", value, 		\
+				      ") dropped" );			\
+									\
+		RunQueue();	/* process effects of CreateEvent() */	\
+		}
+
+
+int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
+			 int complain_if_no_interest, NotifyTrigger *t )
+	{
+	NEWEVENT_BODY
+
+	Unref( value );
+	return await_finished ? 1 : 0;
+	}
+
+int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_interest,
+			 NotifyTrigger *t )
+	{
+	const char* event_name = event->name;
+	IValue* value = (IValue*)event->value;
+
+	NEWEVENT_BODY
+
+	Unref( event );
+	return await_finished ? 1 : 0;
+	}
 
 void Sequencer::NewClientStarted()
 	{

@@ -34,7 +34,7 @@ char* strdup( const char* );
 #include "system.h"
 #include "ports.h"
 
-typedef RETSIGTYPE (*SigHandler)(int);
+typedef RETSIGTYPE (*SigHandler)( );
 
 static Client* current_client;
 static const char* prog_name = "glish-interpreter";
@@ -48,7 +48,7 @@ inline streq( const char* s1, const char* s2 )
 	}
 
 
-void Client_signal_handler(int)
+void Client_signal_handler( )
 	{
 	current_client->HandlePing();
 	}

@@ -37,7 +37,7 @@ RCSID("@(#) $Id$")
 #include <vfork.h>
 #endif
 
-typedef RETSIGTYPE (*correct_sig_handler)(int);
+typedef RETSIGTYPE (*correct_sig_handler)( );
 
 
 /*

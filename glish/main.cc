@@ -67,46 +67,34 @@ void glish_cleanup( )
 	set_term_unchar_mode();
 	}
 
-void glish_signal_cleanup(int sig)
-	{
 
-	glish_cleanup( );
-
-#define GLISH_CLEANUP_ACTION(SIGNAL,SIGNAL_STR)					\
-	case SIGNAL:								\
-		fprintf(stderr,"\n[fatal error, '%s' (signal %d), exiting]\n",	\
-			SIGNAL_STR,sig);					\
-		break;
-
-	switch ( sig )
-		{
-		GLISH_CLEANUP_ACTION(SIGINT,"interrupt signal")
-		GLISH_CLEANUP_ACTION(SIGHUP,"hangup signal")
-		GLISH_CLEANUP_ACTION(SIGTERM,"terminate signal")
-		GLISH_CLEANUP_ACTION(SIGABRT,"abort signal")
-		GLISH_CLEANUP_ACTION(SIGBUS,"bus error")
-		GLISH_CLEANUP_ACTION(SIGILL,"illegal instruction")
-		GLISH_CLEANUP_ACTION(SIGSEGV,"segmentation violation")
-		GLISH_CLEANUP_ACTION(SIGEMT,"hardware fault")
-		GLISH_CLEANUP_ACTION(SIGFPE,"floating point exception")
-		GLISH_CLEANUP_ACTION(SIGQUIT,"quit signal")
-		GLISH_CLEANUP_ACTION(SIGSYS,"invalid system call")
-		GLISH_CLEANUP_ACTION(SIGTRAP,"hardware fault")
-		default:
-			fprintf(stderr,"\n[fatal error, signal %d, exiting]\n",sig);
-		}
-
-	install_signal_handler( sig, SIG_DFL );
-	kill(getpid(), sig);
+#define DEFINE_SIG_FWD(NAME,STRING,SIGNAL)				\
+void NAME( )								\
+	{								\
+	glish_cleanup( );						\
+	fprintf(stderr,"\n[fatal error, '%s' (signal %d), exiting]\n",	\
+			STRING, SIGNAL);				\
+									\
+	install_signal_handler( SIGNAL, (signal_handler) SIG_DFL );	\
+	kill( getpid(), SIGNAL );					\
 	}
 
-void glish_sigint(int sig)
+
+DEFINE_SIG_FWD(glish_sighup,"hangup signal",SIGHUP)
+DEFINE_SIG_FWD(glish_sigterm,"terminate signal",SIGTERM)
+DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT)
+DEFINE_SIG_FWD(glish_sigquit,"quit signal",SIGQUIT)
+
+void glish_sigint( )
 	{
 	if ( glish_jmpbuf_set )
+		{
+		Sequencer::TopLevelReset();
 		longjmp( glish_top_level, 1 );
+		}
 
-	install_signal_handler( sig, SIG_DFL );
-	kill(getpid(), sig);
+	install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
+	kill(getpid(), SIGINT);
 	}
 
 int main( int argc, char** argv )
@@ -114,10 +102,10 @@ int main( int argc, char** argv )
 	install_terminate_handlers();
 
 	(void) install_signal_handler( SIGINT, glish_sigint );
-	(void) install_signal_handler( SIGHUP, glish_signal_cleanup );
-	(void) install_signal_handler( SIGTERM, glish_signal_cleanup );
-	(void) install_signal_handler( SIGABRT, glish_signal_cleanup );
-	(void) install_signal_handler( SIGQUIT, glish_signal_cleanup );
+	(void) install_signal_handler( SIGHUP, glish_sighup );
+	(void) install_signal_handler( SIGTERM, glish_sigterm );
+	(void) install_signal_handler( SIGABRT, glish_sigabrt );
+	(void) install_signal_handler( SIGQUIT, glish_sigquit );
 
 	s = new Sequencer( argc, argv );
 
@@ -130,15 +118,23 @@ int main( int argc, char** argv )
 	return 0;
 	}
 
+DEFINE_SIG_FWD(glish_sigsegv,"segmentation violation",SIGSEGV)
+DEFINE_SIG_FWD(glish_sigbus,"bus error",SIGBUS)
+DEFINE_SIG_FWD(glish_sigill,"illegal instruction",SIGILL)
+DEFINE_SIG_FWD(glish_sigemt,"hardware fault",SIGEMT)
+DEFINE_SIG_FWD(glish_sigfpe,"floating point exception",SIGFPE)
+DEFINE_SIG_FWD(glish_sigtrap,"hardware fault",SIGTRAP)
+DEFINE_SIG_FWD(glish_sigsys,"invalid system call",SIGSYS)
+
 static void install_terminate_handlers()
 	{
-	(void) install_signal_handler( SIGSEGV, glish_signal_cleanup );
-	(void) install_signal_handler( SIGBUS, glish_signal_cleanup );
-	(void) install_signal_handler( SIGILL, glish_signal_cleanup );
-	(void) install_signal_handler( SIGEMT, glish_signal_cleanup );
-	(void) install_signal_handler( SIGFPE, glish_signal_cleanup );
-	(void) install_signal_handler( SIGTRAP, glish_signal_cleanup );
-	(void) install_signal_handler( SIGSYS, glish_signal_cleanup );
+	(void) install_signal_handler( SIGSEGV, glish_sigsegv );
+	(void) install_signal_handler( SIGBUS, glish_sigbus );
+	(void) install_signal_handler( SIGILL, glish_sigill );
+	(void) install_signal_handler( SIGEMT, glish_sigemt );
+	(void) install_signal_handler( SIGFPE, glish_sigfpe );
+	(void) install_signal_handler( SIGTRAP, glish_sigtrap );
+	(void) install_signal_handler( SIGSYS, glish_sigsys );
 	}
 
 
