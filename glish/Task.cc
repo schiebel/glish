@@ -273,14 +273,12 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 
 void Task::Exec( const char** argv )
 	{
-	char* exec_name = 0;
-
 	if ( attrs->daemon_channel )
 		executable =
 			new RemoteExec( attrs->daemon_channel, argv[0], argv );
 	else
 		{
-		exec_name = which_executable( argv[0] );
+		char* exec_name = which_executable( argv[0] );
 
 		if ( ! exec_name )
 			return;
@@ -292,6 +290,7 @@ void Task::Exec( const char** argv )
 
 		local_channel = sequencer->AddLocalClient( read_pipe[0],
 								write_pipe[1] );
+		delete exec_name;
 		}
 
 	no_such_program = 0;
@@ -317,7 +316,6 @@ void Task::Exec( const char** argv )
 		// rendezvous.
 		sequencer->NewClientStarted();
 
-	delete exec_name;
 	}
 
 void Task::SetActivity( int is_active )
