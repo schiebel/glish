@@ -10,6 +10,7 @@
 #include "Stmt.h"
 #include "BuiltIn.h"
 #include "Task.h"
+#include "Frame.h"
 
 
 Stmt* null_stmt;
@@ -648,6 +649,38 @@ void ReturnStmt::Describe( ostream& s ) const
 		s << " ";
 		retval->Describe( s );
 		}
+	}
+
+StmtBlock::StmtBlock( int fsize, Stmt *arg_stmt,
+			Sequencer *arg_sequencer )
+	{
+	stmt = arg_stmt;
+	frame_size = fsize;
+	sequencer = arg_sequencer;
+	}
+
+Value* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
+	{
+	Frame* call_frame = new Frame( frame_size, 0, LOCAL_SCOPE );
+	sequencer->PushFrame( call_frame );
+
+	Value* result = 0;
+
+	result = stmt->Exec( value_needed, flow );
+
+	if ( sequencer->PopFrame() != call_frame )
+		fatal->Report( "frame inconsistency in StmtBlock::DoExec" );
+
+	Unref( call_frame );
+
+	return result;
+	}
+
+void StmtBlock::Describe( ostream& s ) const
+	{
+	s << "{{ ";
+	stmt->Describe( s );
+	s << " }}";
 	}
 
 Value* NullStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )

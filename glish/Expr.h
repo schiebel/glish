@@ -20,7 +20,7 @@ typedef PList(Expr) expr_list;
 
 // Different scopes to use when resolving identifiers; used by the VarExpr
 // and Sequencer classes.
-typedef enum { LOCAL_SCOPE, GLOBAL_SCOPE } scope_type;
+typedef enum { LOCAL_SCOPE, FUNC_SCOPE, GLOBAL_SCOPE } scope_type;
 
 // Different types of expression evaluation: evaluate and return a
 // modifiable copy of the result; evaluate and return a read-only
@@ -102,8 +102,8 @@ class Expr : public GlishObject {
 
 class VarExpr : public Expr {
     public:
-	VarExpr( char* var_id, scope_type scope, int frame_offset,
-			Sequencer* sequencer );
+	VarExpr( char* var_id, scope_type scope, int scope_offset,
+			int frame_offset, Sequencer* sequencer );
 
 	~VarExpr();
 
@@ -113,11 +113,13 @@ class VarExpr : public Expr {
 	void Assign( Value* new_value );
 
 	const char* VarID()	{ return id; }
+	int offset()		{ return frame_offset; }
 
     protected:
 	char* id;
 	scope_type scope;
 	int frame_offset;
+	int scope_offset;
 	Sequencer* sequencer;
 	};
 
