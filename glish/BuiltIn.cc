@@ -1045,22 +1045,23 @@ IValue* RandomBuiltIn::DoCall( const_args_list* args_val )
 		result = new type[cols*rows];				\
 		break;
 
-#define XBIND_PLACE_ACTION(tag,type,array,to,from,access)		\
+#define XBIND_PLACE_ACTION(tag,type,array,to,from,access,conv)		\
 	case tag:							\
-		((type*)result)[to]  = (type)( array[from] access );	\
+		((type*)result)[to]  = (type)( array[from] access conv );\
 		break;
 
 #define XBIND_PLACE_ELEMENT(array,to,from,access)			\
 	switch ( result_type )						\
 		{							\
-	XBIND_PLACE_ACTION(TYPE_BOOL,glish_bool,array,to,from,access)	\
-	XBIND_PLACE_ACTION(TYPE_INT,int,array,to,from,access)		\
-	XBIND_PLACE_ACTION(TYPE_BYTE,byte,array,to,from,access)		\
-	XBIND_PLACE_ACTION(TYPE_SHORT,short,array,to,from,access)	\
-	XBIND_PLACE_ACTION(TYPE_FLOAT,float,array,to,from,access)	\
-	XBIND_PLACE_ACTION(TYPE_DOUBLE,double,array,to,from,access)	\
-	XBIND_PLACE_ACTION(TYPE_COMPLEX,complex,array,to,from,)		\
-	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,dcomplex,array,to,from,)	\
+	XBIND_PLACE_ACTION(TYPE_BOOL,glish_bool,array,to,from,access,	\
+			      ? glish_true : glish_false )		\
+	XBIND_PLACE_ACTION(TYPE_INT,int,array,to,from,access,)		\
+	XBIND_PLACE_ACTION(TYPE_BYTE,byte,array,to,from,access,)	\
+	XBIND_PLACE_ACTION(TYPE_SHORT,short,array,to,from,access,)	\
+	XBIND_PLACE_ACTION(TYPE_FLOAT,float,array,to,from,access,)	\
+	XBIND_PLACE_ACTION(TYPE_DOUBLE,double,array,to,from,access,)	\
+	XBIND_PLACE_ACTION(TYPE_COMPLEX,complex,array,to,from,,)	\
+	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,dcomplex,array,to,from,,)	\
 		default:						\
 		 fatal->Report( "bad type in CbindBuiltIn::DoCall()" );	\
 		}
