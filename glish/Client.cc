@@ -1581,11 +1581,11 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name, unsig
 
 			sos.put_record_start( len, head );
 
-			char **fields = (char**) alloc_memory( sizeof(char*) * len );
+			const char **fields = (const char**) alloc_memory( sizeof(char*) * len );
 			int i = 0;
 
 			for ( i = 0; i < len; ++i )
-				member = rec->NthEntry( i, (const char *) fields[i] );
+				member = rec->NthEntry( i, fields[i] );
 
 			sos.put( fields, len );
 			free_memory( fields );
