@@ -40,7 +40,7 @@ GLISH_LIBS = $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) \
 		$(LIBDIR_P)/librivet$(LIB_SUFFIX)
 LIBS = $(CLIENT_LIBS) @LIBS@
 
-OBJS = main.o tkAgent.o tkCanvas.o malloc.o
+OBJS = main.o tkAgent.o tkCanvas.o tkPgplot.o malloc.o
 
 RCDIR = @RCDIR@
 TK_LIB = @TK_LIB@ 
@@ -71,6 +71,9 @@ tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h
 
 tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkCanvas.cc 
+
+tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(SRC)/tkAgent.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -w -c $(SRC)/tkPgplot.cc 
 
 malloc.o: $(GLISH_SRC)/malloc.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c

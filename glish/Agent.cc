@@ -264,7 +264,7 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	if ( args->length() == 0 )
 		return false_ivalue();
 
-	if ( args->length() == 1 )
+	if ( args->length() == 1 && ! (*args)[0]->Name() )
 		{
 		Expr* arg_expr = (*args)[0]->Arg();
 

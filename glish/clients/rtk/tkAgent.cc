@@ -8,8 +8,8 @@ RCSID("@(#) $Id$")
 #include "tkAgent.h"
 #include "tkCanvas.h"
 
-#if defined(XTKPGPLOT)
-#include "TkPgplot.h"
+#if defined(TKPGPLOT)
+#include "tkPgplot.h"
 #endif
 
 #include <X11/Xlib.h>
@@ -20,9 +20,8 @@ RCSID("@(#) $Id$")
 #include "Glish/Value.h"
 #include "system.h"
 
-unsigned long TkRadioContainer::count = 0;
-
 extern ProxyStore *global_store;
+unsigned long TkRadioContainer::count = 0;
 
 Rivetobj TkAgent::root = 0;
 unsigned long TkFrame::top_created = 0;
@@ -293,7 +292,7 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 	const Value *var##_val_ = var;					\
 	if ( ! var )							\
 		{							\
-		global_store->Error("bad value: %", EVENT);		\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
 		}
 
@@ -1293,7 +1292,7 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 		val = (*iproc)(s, cmdstr, i, arg);
 	else if ( iproc1 )
 		val = (*iproc1)(s, cmdstr, param, i, arg);
-#if defined(XTKPGPLOT)
+#if defined(TKPGPLOT)
 	else if ( pgproc && pgplot )
 		val = (pgplot->*pgproc)( arg);
 #endif

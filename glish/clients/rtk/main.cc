@@ -6,6 +6,9 @@ RCSID("@(#) $Id$")
 #include "tkAgent.h"
 #include "tkCanvas.h"
 #include "Rivet/rivet.h"
+#if defined(TKPGPLOT)
+#include "tkPgplot.h"
+#endif
 
 class TkStore : public ProxyStore {
     public:
@@ -75,6 +78,15 @@ int main( int argc, char** argv )
 	stor.Register( "message", TkMessage::Create );
 	stor.Register( "listbox", TkListbox::Create );
 	stor.Register( "canvas", TkCanvas::Create );
+#if defined(TKPGPLOT)
+	stor.Register( "pgplot", TkPgplot::Create );
+#endif
 
 	stor.Loop();
 	}
+
+#if defined(TKPGPLOT)
+extern "C" int grexec_();
+void *grexec__ = grexec_;
+#endif
+

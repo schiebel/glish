@@ -10,16 +10,16 @@
     hsb := scrollbar(yyy,orient='horizontal')
 
     whenever vsb->scroll, hsb->scroll do
-        send c->view($value)
+        c->view($value)
     whenever c->yscroll do
-        send vsb->view($value)
+        vsb->view($value)
     whenever c->xscroll do
-        send hsb->view($value)
-    poly := request c->poly(20,-40,40,-20,40,20,20,40,-20,40,-40,
-                            20,-40,-20,-20,-40,fill='red',tag='stop')
-    edge := request c->line(20,-40,40,-20,40,20,20,40,-20,40,-40,20,-40,-20,
-                            -20,-40,20,-40,fill='white',width='5',tag='stop')
-    word := request c->text(0,0,text='STOP',fill='white',tag='stop')
+        hsb->view($value)
+    poly := c->poly(20,-40,40,-20,40,20,20,40,-20,40,-40,
+                    20,-40,-20,-20,-40,fill='red',tag='stop')
+    edge := c->line(20,-40,40,-20,40,20,20,40,-20,40,-40,20,-40,-20,
+                    -20,-40,20,-40,fill='white',width='5',tag='stop')
+    word := c->text(0,0,text='STOP',fill='white',tag='stop')
     c->move("all",50,50)
     c->bind('stop','<Button-1>','snag')
     c->bind('stop','<B1-Motion>','drag')
@@ -27,6 +27,6 @@
         state := $value.cpoint
     whenever c->drag do
         {
-        tmp := request c->move($value.tag, $value.cpoint - state)
+        tmp := c->move($value.tag, $value.cpoint - state)
         state := $value.cpoint
         }

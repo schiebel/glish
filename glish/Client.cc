@@ -644,7 +644,10 @@ void Client::Unrecognized( const ProxyId &proxy_id )
 		// Internal event - ignore.
 		return;
 
-	PostEvent( "unrecognized", last_event->name, proxy_id );
+	if ( ReplyPending() )
+		Reply( "unrecognized", last_event->name, proxy_id );
+	else
+		PostEvent( "unrecognized", last_event->name, proxy_id );
 	}
 
 void Client::Error( const char* msg, const ProxyId &proxy_id )

@@ -5,15 +5,12 @@ RCSID("@(#) $Id$")
 #ifdef GLISHTK
 #ifdef TKPGPLOT
 
-#include "TkPgplot.h"
+#include "tkPgplot.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include "Rivet/rivet.h"
 #include "Reporter.h"
-#include "Sequencer.h"
-#include "IValue.h"
-#include "Expr.h"
 #include "system.h"
 //
 // PGPLOT routines et al.
@@ -24,15 +21,39 @@ RCSID("@(#) $Id$")
 #include "rvpgplot.h"
 #include "cpgplot.h"
 
-#include <iostream.h>
-
+extern ProxyStore *global_store;
 extern Rivetclass PgplotClass;
 
-#define SETVAL(var, condition)						\
-	const IValue *var = (*args_val)[c++];				\
-	if (!(condition)) {						\
-		return (IValue *)generate_error ("invalid type for argument ", --c);					                                \
+#define InvalidArg( num )						\
+	{								\
+	global_store->Error( "invalid type for argument " ## #num );	\
+	return;								\
 	}
+
+#define InvalidNumberOfArgs( num )					\
+	{								\
+	global_store->Error( "invalid number of arguments, " ## #num ## " expected" );\
+	return;								\
+	}
+
+#define SETINIT								\
+	if ( args->Type() != TYPE_RECORD )				\
+		{							\
+		global_store->Error("bad value");			\
+		return;							\
+		}							\
+									\
+	Ref( args );							\
+	recordptr rptr = args->RecordPtr(0);				\
+	int c = 0;							\
+	const char *key;
+
+#define SETDONE Unref(args);
+
+#define SETVAL(var,condition)						\
+	const Value *var      = rptr->NthEntry( c++, key );		\
+	if ( ! ( condition) )						\
+		InvalidArg(c-1);
 
 #define SETINT(var)							\
 	SETVAL(var##_v_, var##_v_ ->IsNumeric() &&			\
@@ -40,42 +61,47 @@ extern Rivetclass PgplotClass;
 	int var = var##_v_ ->IntVal();
 
 #define SETSTR(var)							\
-	SETVAL (var##_v_, var##_v_->Type () == TYPE_STRING &&		\
-		var##_v_->Length () > 0);				\
-	charptr var = (var##_v_->StringPtr (0))[0];
-
+	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
+				var##_v_ ->Length() > 0 )		\
+	charptr var = ( var##_v_ ->StringPtr(0) )[0];
 #define SETDIM(var)							\
-	SETVAL (var##_v_, var##_v_->Type () == TYPE_STRING &&		\
-		var##_v_->Length () > 0 || var##_v_->IsNumeric ());	\
+	SETVAL(var##_v_, var##_v_ ->Type() == TYPE_STRING &&		\
+				var##_v_ ->Length() > 0   ||		\
+				var##_v_ ->IsNumeric() )		\
 	char var##_char_[30];						\
 	charptr var = 0;						\
-	if (var##_v_->Type () == TYPE_STRING) {				\
-		var = (var##_v_->StringPtr (0))[0];			\
-	} else {							\
-		sprintf (var##_char_, "%d", var##_v_->IntVal ());	\
+	if ( var##_v_ ->Type() == TYPE_STRING )				\
+		var = ( var##_v_ ->StringPtr(0) )[0];			\
+	else								\
+		{							\
+		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
 		var = var##_char_;					\
-	}
+		}
 
 #define GETSTART(var)							\
-	int arg_len = args->length ();					\
+	if ( args->Type() != TYPE_RECORD )				\
+		{							\
+		global_store->Error("bad argument value");		\
+		return 0;						\
+		}							\
+									\
+	int arg_len = args->Length ();					\
 	if (arg_len != var) {						\
-		cout << "Wrong number of arguments\n";			\
+		global_store->Error("Wrong number of arguments");	\
 		return 0;						\
 	}								\
 	int c = 0;							\
-	int len = 0;
+	int len = 0;							\
+	recordptr rptr = args->RecordPtr(0);				\
+	const char *key;
 
-#define GETEXPR(var)							\
-	Expr *var##_expr = (*args)[c++]->Arg ();			\
-	if (!(var##_expr)) {						\
-		return 0;						\
-	}
+#define GETEXPR(var)
 
 #define GETVAL(var)							\
 	GETEXPR (var);							\
-	const IValue *var##_val = var##_expr->ReadOnlyEval ();		\
+	const Value *var##_val = rptr->NthEntry( c++, key );		\
 	if (!var##_val->IsNumeric () || var##_val->Length () <= 0) {	\
-		var##_expr->ReadOnlyDone (var##_val);			\
+		global_store->Error("bad argument, numeric expected");	\
 		return 0;						\
 	}								\
 	if (var##_val->Length () > len) {				\
@@ -118,65 +144,75 @@ extern Rivetclass PgplotClass;
 
 #define GETSTRING(var)							\
 	GETEXPR (var);							\
-	const IValue *var##_val = var##_expr->ReadOnlyEval ();		\
+	const Value *var##_val = rptr->NthEntry( c++, key );		\
 	if (var##_val->Length () <= 0) {				\
-		var##_expr->ReadOnlyDone (var##_val);			\
+		{							\
+		global_store->Error("zero length argument");		\
 		return 0;						\
+		}							\
 	}								\
 	char *var = var##_val->StringVal ();
 
 #define GETDONEARRAY(var)						\
-	var##_expr->ReadOnlyDone (var##_val);				\
 	free_memory (var);
 
-#define GETDONESINGLE(var)						\
-	var##_expr->ReadOnlyDone (var##_val);
+#define GETDONESINGLE(var)
 
 #define GETDONESTRING(var)						\
-	var##_expr->ReadOnlyDone (var##_val);				\
 	free_memory (var);
 
+#define EXPRINIT(EVENT)							\
+	if ( args->Type() != TYPE_RECORD )				\
+		{							\
+		global_store->Error("bad value: %s", EVENT);		\
+		return 0;						\
+		}							\
+									\
+	/*Ref(args);*/							\
+	recordptr rptr = args->RecordPtr(0);				\
+	int c = 0;							\
+	const char *key;
+
 // JAU: Only used once; could be removed.
-#define EXPRDIM(var, EVENT)						\
-	Expr *var##_expr_ = (*args)[c++]->Arg ();			\
-	const IValue *var##_val_ = var##_expr_->ReadOnlyEval ();	\
+#define EXPRDIM(var,EVENT)						\
+	const Value *var##_val_ = rptr->NthEntry( c++, key );		\
 	charptr var = 0;						\
 	char var##_char_[30];						\
-	if (!var##_val_ || (var##_val_->Type () != TYPE_STRING &&	\
-	    !var##_val_->IsNumeric ()) || var##_val_->Length () <= 0) {	\
-		error->Report ("bad value for ", EVENT);		\
-		var##_expr_->ReadOnlyDone (var##_val_);			\
+	if ( ! var##_val_ || ( var##_val_ ->Type() != TYPE_STRING &&	\
+			       ! var##_val_ ->IsNumeric() ) ||		\
+		var##_val_ ->Length() <= 0 )				\
+		{							\
+		global_store->Error("bad value: %s", EVENT);		\
 		return 0;						\
-	} else {							\
-		if (var##_val_->Type () == TYPE_STRING) {		\
-			var = (var##_val_->StringPtr (0))[0];		\
-		} else {						\
-			sprintf (var##_char_, "%d",			\
-				 var##_val_->IntVal ());		\
-			var = var##_char_;				\
 		}							\
-	}
+	else								\
+		if ( var##_val_ ->Type() == TYPE_STRING	)		\
+			var = ( var##_val_ ->StringPtr(0) )[0];		\
+		else							\
+			{						\
+			sprintf(var##_char_,"%d", var##_val_->IntVal());\
+			var = var##_char_;				\
+			}
+
+#define EXPRSTRVALXX(var,EVENT,LINE)					\
+	const Value *var = rptr->NthEntry( c++, key );			\
+	LINE								\
+	if ( ! var || var ->Type() != TYPE_STRING ||			\
+		var->Length() <= 0 )					\
+		{							\
+		global_store->Error("bad value: %s", EVENT);		\
+		return 0;						\
+		}
 
 // JAU: Only used once; could be removed.
-#define EXPRSTRVAL(var, EVENT)						\
-	Expr *var##_expr_ = (*args)[c++]->Arg ();			\
-	const IValue *var = var##_expr_->ReadOnlyEval ();		\
-	const IValue *var##_val_ = var;					\
-	if (!var || var->Type () != TYPE_STRING ||			\
-	    var->Length () <= 0) {					\
-		error->Report ("bad value for ", EVENT);		\
-		var##_expr_->ReadOnlyDone (var);			\
-		return 0;						\
-	}
+#define EXPRSTRVAL(var,EVENT) EXPRSTRVALXX(var,EVENT,const Value *var##_val_ = var;)
 
-#define EXPRSTR(var, EVENT)						\
+#define EXPRSTR(var,EVENT)						\
 	charptr var = 0;						\
-	EXPRSTRVAL (var##_val_, EVENT);					\
-	Expr *var##_expr_ = var##_val__expr_;				\
-	var = (var##_val_->StringPtr (0))[0];
+	EXPRSTRVALXX(var##_val_, EVENT,)				\
+	var = ( var##_val_ ->StringPtr(0) )[0];
 
-#define EXPR_DONE(var)							\
-	var##_expr_->ReadOnlyDone (var##_val_);
+#define EXPR_DONE(var)
 
 // JAU: Check for memory leakage.
 #define GETSHAPE(var)							\
@@ -190,6 +226,23 @@ extern Rivetclass PgplotClass;
 	}								\
 	int idim = shape_val->IntVal (1);				\
 	int jdim = shape_val->IntVal (2);
+
+#define CREATE_RETURN						\
+	if ( ! ret || ! ret->IsValid() )			\
+		{						\
+		Value *err = ret->GetError();			\
+		if ( err )					\
+			{					\
+			global_store->Error( err );		\
+			Unref( err );				\
+			}					\
+		else						\
+			global_store->Error( "tk widget creation failed" ); \
+		}						\
+	else							\
+		ret->SendCtor("newtk");				\
+								\
+	SETDONE
 
 static int colorcells_available(Rivetobj obj, int needed)
 {
@@ -268,22 +321,22 @@ struct tk_iarrayRec
   int *val;
 };
 
-extern IValue *glishtk_str (char *str);
+extern Value *glishtk_str (char *str);
 
-IValue *
+Value *
 tk_castfToStr (char *str)
 {
   tk_farrayRec *floats = (tk_farrayRec *)str;
 
-  return new IValue (floats->val, floats->len);
+  return new Value (floats->val, floats->len);
 }
 
-IValue *
+Value *
 tk_castiToStr (char *str)
 {
   tk_iarrayRec *ints = (tk_iarrayRec *)str;
 
-  return new IValue (ints->val, ints->len);
+  return new Value (ints->val, ints->len);
 }
 
 struct glishtk_pgplot_bindinfo
@@ -405,13 +458,13 @@ glishtk_pgplot_buttoncb (Rivetobj pgplot, XEvent *xevent, ClientData assoc,
 }
 
 char *
-glishtk_pgplot_bind (TkAgent *agent, const char *cmd, parameter_list *args,
-		     int is_request, int log)
+glishtk_pgplot_bind (TkAgent *agent, const char *cmd, Value *args)
 {
   char *event_name = "pgplot bind function";
   int c = 0;
 
-  if (args->length () >= 2) {
+  if (args->Length () >= 2) {
+    EXPRINIT(event_name)
     EXPRSTR (button, event_name);
     EXPRSTR (event, event_name);
     glishtk_pgplot_bindinfo *binfo =
@@ -420,7 +473,7 @@ glishtk_pgplot_bind (TkAgent *agent, const char *cmd, parameter_list *args,
     if (rivet_create_binding (agent->Self (), 0, (char *)button,
 			      (int (*)())glishtk_pgplot_buttoncb,
 			      (ClientData)binfo, 1, 0) == TCL_ERROR) {
-      error->Report ("Error, binding not created.");
+      global_store->Error( "binding not created." );
       delete binfo;
     }
     EXPR_DONE (event);
@@ -429,21 +482,20 @@ glishtk_pgplot_bind (TkAgent *agent, const char *cmd, parameter_list *args,
   return 0;
 }
 
-IValue *
+Value *
 glishtk_int (char *sel)
 {
-  return new IValue (atoi (sel));
+  return new Value (atoi (sel));
 }
 
 char *
-glishtk_oneornodim (Rivetobj self, const char *cmd, parameter_list *args,
-		    int is_request, int log)
+glishtk_oneornodim (Rivetobj self, const char *cmd, Value *args)
 {
   char *event_name = "one or zero dim function";
 
-  if (args->length () > 0) {
-    int c = 0;
+  if (args->Length () > 0) {
 
+    EXPRINIT(event_name)
     EXPRDIM (dim, event_name);
     rivet_set (self, (char *)cmd, (char *)dim);
     EXPR_DONE (dim);
@@ -455,9 +507,9 @@ glishtk_oneornodim (Rivetobj self, const char *cmd, parameter_list *args,
 }
 
 // JAU: Will need to change glish.init et al. for rivet-less behavior.
-TkPgplot::TkPgplot (Sequencer *s, TkFrame *frame_, charptr width,
-		    charptr height, const IValue *region_, const IValue *axis_,
-		    const IValue *nxsub_, const IValue *nysub_, charptr relief_,
+TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
+		    charptr height, const Value *region_, const Value *axis_,
+		    const Value *nxsub_, const Value *nysub_, charptr relief_,
 		    charptr borderwidth, charptr padx, charptr pady, charptr foreground,
 		    charptr background, charptr fill_, int mincolors, int maxcolors, int cmap_share, int cmap_fail ) :
 		TkAgent (s), fill (0)
@@ -483,7 +535,7 @@ TkPgplot::TkPgplot (Sequencer *s, TkFrame *frame_, charptr width,
   if (cmap_fail && DisplayPlanes (frameSelf->tkwin->display,
 				  frameSelf->tkwin->screenNum) <= 8 &&
       !colorcells_available (frameSelf, mincolors)) {
-    SetError ((IValue *)generate_error ("Not enough color cells available"));
+    SetError ((Value *)generate_error ("Not enough color cells available"));
     frame = 0;
     return;
   }
@@ -528,7 +580,7 @@ TkPgplot::TkPgplot (Sequencer *s, TkFrame *frame_, charptr width,
   self = rivet_create (PgplotClass, frameSelf, c, argv);
 
   if (!self) {
-    SetError ((IValue *)generate_error ("Rivet creation failed in TkPgplot::TkPgplot"));
+    SetError ((Value *)generate_error ("Rivet creation failed in TkPgplot::TkPgplot"));
     return;
   }
   // JAU: Make rivet-less.
@@ -683,45 +735,24 @@ TkPgplot::TkPgplot (Sequencer *s, TkFrame *frame_, charptr width,
 void
 TkPgplot::yScrolled (const double *d)
 {
-  glish_event_posted (sequencer->NewEvent (this, "yscroll",
-					   new IValue ((double *)d, 2,
-						       COPY_ARRAY)));
+  PostTkEvent("yscroll", new Value ((double *)d, 2, COPY_ARRAY));
 }
 
 void
 TkPgplot::xScrolled (const double *d)
 {
-  glish_event_posted (sequencer->NewEvent (this, "xscroll",
-					   new IValue ((double *)d, 2,
-						       COPY_ARRAY)));
+  PostTkEvent("xscroll", new Value ((double *)d, 2, COPY_ARRAY));
 }
 
 //
 //--- --- --- --- --- --- cursor interaction --- --- --- --- --- ---
 //
-#define CURSOR_cleanup							\
-	for (int X = 0; X < 4; ++X) {					\
-		if (e[X]) {						\
-			e[X]->ReadOnlyDone (v[X]);			\
-		}							\
-	}
-
-#define CURSOR_cleanup_exit						\
-{									\
-	CURSOR_cleanup;							\
-	return "";							\
-}
-
 #define CURSOR_name_match(NAME, NUM)					\
-	if (!strcmp (name, #NAME)) {					\
-		if (e[NUM]) {						\
-			e[NUM]->ReadOnlyDone (v[NUM]);			\
-		}							\
-		if (!set_cursor_parm (*(*args)[c], item[NUM], e[NUM],	\
-				      v[NUM])) {			\
-			CURSOR_cleanup_exit;				\
-		}							\
-	}
+	if (!strcmp (name, #NAME))					\
+		{							\
+		if ( item[NUM] ) free_memory( item[NUM] );		\
+		item[NUM] = val->StringVal();				\
+		}
 
 #define CURSOR_match							\
 {									\
@@ -731,73 +762,46 @@ TkPgplot::xScrolled (const double *d)
 	else CURSOR_name_match (color, 3)				\
 }
 
-static int
-set_cursor_parm (const Parameter &p, const char *&item, Expr *&e,
-		 const IValue *&v)
-{
-  e = p.Arg ();
+char *TkPgplot::Cursor (Value *args)
+	{
+	static const char *item[4];
+	static int init = 0;
 
-  if (!e) {
-    return 0;
-  }
-  v = e->ReadOnlyEval ();
+	if (!init)
+		{
+		item[0] = strdup ("norm");
+		item[1] = strdup ("0");
+		item[2] = strdup ("0");
+		item[3] = strdup ("1");
+		init = 1;
+		}
 
-  if (!v || v->Length () <= 0) {
-    e->ReadOnlyDone (v);
-    e = 0;
-    v = 0;
+	if ( args->Type() == TYPE_RECORD )
+		{
+		recordptr rptr = args->RecordPtr(0);
+		for (int c = 0; c < 4 && c < rptr->Length(); ++c)
+			{
+			const char *name;
+			const Value *val = rptr->NthEntry( c, name );
+			if ( strncmp( name, "arg", 3 ) )
+				CURSOR_match
+			else
+				{
+				if ( item[c] ) free_memory( item[c] );
+				item[c] = val->StringVal();
+				}
+			}
+		}
+	else
+		item[0] = args->StringVal();
 
-    return 0;
-  }
-  if (item) {
-    free_memory ((char *)item);
-  }
-  item = v->StringVal ();
-
-  return 1;
-}
-
-char *
-TkPgplot::Cursor (parameter_list *args, int is_request, int log)
-{
-  const char *name = 0;
-  static const char *item[4];
-  static int init = 0;
-  Expr *e[4];
-  const IValue *v[4];
-
-  e[0] = e[1] = e[2] = e[3] = 0;
-  v[0] = v[1] = v[2] = v[3] = 0;
-
-  if (!init) {
-    item[0] = strdup ("norm");
-    item[1] = strdup ("0");
-    item[2] = strdup ("0");
-    item[3] = strdup ("1");
-    init = 1;
-  }
-  for (int c = 0; c < 4 && c < args->length (); ++c) {
-    if (name = (*args)[c]->Name ()) {
-      CURSOR_match;
-    } else {
-      if (e[c]) {
-	e[c]->ReadOnlyDone (v[c]);
-      }
-      if (!set_cursor_parm (*(*args)[c], item[c], e[c], v[c])) {
-	CURSOR_cleanup_exit;
-      }
-    }
-  }
-  rivet_va_cmd (self, "setcursor", item[0], item[1], item[2], item[3], 0);
-  CURSOR_cleanup;
-
-  return (char *)item[0];
-}
-
+	rivet_va_cmd (self, "setcursor", item[0], item[1], item[2], item[3], 0);
+	return (char *)item[0];
+	}
 
 //PGARRO -- draw an arrow
 char *
-TkPgplot::Pgarro (parameter_list *args, int is_request, int log)
+TkPgplot::Pgarro (Value *args)
 {
   GETSTART (4);
   GETFLOAT (x1);
@@ -816,7 +820,7 @@ TkPgplot::Pgarro (parameter_list *args, int is_request, int log)
 
 //PGASK -- control new page prompting
 char *
-TkPgplot::Pgask (parameter_list *args, int is_request, int log)
+TkPgplot::Pgask (Value *args)
 {
   GETSTART (1);
   GETBOOLEAN (ask);
@@ -829,7 +833,7 @@ TkPgplot::Pgask (parameter_list *args, int is_request, int log)
 
 //PGBBUF -- begin batch of output (buffer)
 char *
-TkPgplot::Pgbbuf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgbbuf (Value *args)
 {
   cpgslct (id);
   cpgbbuf ();
@@ -839,7 +843,7 @@ TkPgplot::Pgbbuf (parameter_list *args, int is_request, int log)
 
 //PGBEG -- begin PGPLOT, open output device
 char *
-TkPgplot::Pgbeg (parameter_list *args, int is_request, int log)
+TkPgplot::Pgbeg (Value *args)
 {
   GETSTART (4);
   GETINT (unit);
@@ -858,7 +862,7 @@ TkPgplot::Pgbeg (parameter_list *args, int is_request, int log)
 
 //PGBIN -- histogram of binned data
 char *
-TkPgplot::Pgbin (parameter_list *args, int is_request, int log)
+TkPgplot::Pgbin (Value *args)
 {
   GETSTART (3);
   GETFLOATARRAY (x);
@@ -875,7 +879,7 @@ TkPgplot::Pgbin (parameter_list *args, int is_request, int log)
 
 //PGBOX -- draw labeled frame around viewport
 char *
-TkPgplot::Pgbox (parameter_list *args, int is_request, int log)
+TkPgplot::Pgbox (Value *args)
 {
   GETSTART (6);
   GETSTRING (xopt);
@@ -898,7 +902,7 @@ TkPgplot::Pgbox (parameter_list *args, int is_request, int log)
 
 //PGCIRC -- draw a filled or outline circle
 char *
-TkPgplot::Pgcirc (parameter_list *args, int is_request, int log)
+TkPgplot::Pgcirc (Value *args)
 {
   GETSTART (3);
   GETFLOAT (xcent);
@@ -915,7 +919,7 @@ TkPgplot::Pgcirc (parameter_list *args, int is_request, int log)
 
 //PGCLOS -- close the selected graphics device
 char *
-TkPgplot::Pgclos (parameter_list *args, int is_request, int log)
+TkPgplot::Pgclos (Value *args)
 {
   cpgslct (id);
   cpgclos ();
@@ -925,7 +929,7 @@ TkPgplot::Pgclos (parameter_list *args, int is_request, int log)
 
 //PGCONB -- contour map of a 2D data array, with blanking
 char *
-TkPgplot::Pgconb (parameter_list *args, int is_request, int log)
+TkPgplot::Pgconb (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (a);
@@ -948,7 +952,7 @@ TkPgplot::Pgconb (parameter_list *args, int is_request, int log)
 
 //PGCONL -- label contour map of a 2D data array
 char *
-TkPgplot::Pgconl (parameter_list *args, int is_request, int log)
+TkPgplot::Pgconl (Value *args)
 {
   GETSTART (6);
   GETFLOATARRAY (a);
@@ -972,7 +976,7 @@ TkPgplot::Pgconl (parameter_list *args, int is_request, int log)
 
 //PGCONS -- contour map of a 2D data array (fast algorithm)
 char *
-TkPgplot::Pgcons (parameter_list *args, int is_request, int log)
+TkPgplot::Pgcons (Value *args)
 {
   GETSTART (3);
   GETFLOATARRAY (a);
@@ -993,7 +997,7 @@ TkPgplot::Pgcons (parameter_list *args, int is_request, int log)
 
 //PGCONT -- contour map of a 2D data array (contour-following)
 char *
-TkPgplot::Pgcont (parameter_list *args, int is_request, int log)
+TkPgplot::Pgcont (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (a);
@@ -1017,7 +1021,7 @@ TkPgplot::Pgcont (parameter_list *args, int is_request, int log)
 
 //PGCTAB -- install the color table to be used by PGIMAG
 char *
-TkPgplot::Pgctab (parameter_list *args, int is_request, int log)
+TkPgplot::Pgctab (Value *args)
 {
   GETSTART (6);
   GETFLOATARRAY (l);
@@ -1046,7 +1050,7 @@ TkPgplot::Pgctab (parameter_list *args, int is_request, int log)
 
 //PGDRAW -- draw a line from the current pen position to a point
 char *
-TkPgplot::Pgdraw (parameter_list *args, int is_request, int log)
+TkPgplot::Pgdraw (Value *args)
 {
   GETSTART (2);
   GETFLOAT (x);
@@ -1061,7 +1065,7 @@ TkPgplot::Pgdraw (parameter_list *args, int is_request, int log)
 
 //PGEBUF -- end batch of output (buffer)
 char *
-TkPgplot::Pgebuf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgebuf (Value *args)
 {
   cpgslct (id);
   cpgebuf ();
@@ -1071,7 +1075,7 @@ TkPgplot::Pgebuf (parameter_list *args, int is_request, int log)
 
 //PGEND -- terminate PGPLOT
 char *
-TkPgplot::Pgend (parameter_list *args, int is_request, int log)
+TkPgplot::Pgend (Value *args)
 {
   // JAU: Using this and then calling ~TkPgplot causes PGPLOT to whine!
   cpgslct (id);
@@ -1082,9 +1086,9 @@ TkPgplot::Pgend (parameter_list *args, int is_request, int log)
 
 //PGENV -- set window and viewport and draw labeled frame
 char *
-TkPgplot::Pgenv (parameter_list *args, int is_request, int log)
+TkPgplot::Pgenv (Value *args)
 {
-  static parameter_list xargs;
+  static Value xargs;
 
   GETSTART (6);
   GETFLOAT (xmin);
@@ -1095,7 +1099,7 @@ TkPgplot::Pgenv (parameter_list *args, int is_request, int log)
   GETINT (axis);
   cpgslct (id);
   cpgenv (xmin, xmax, ymin, ymax, just, axis);
-  Cursor (&xargs, 0, 0);
+  Cursor (&xargs);
   GETDONESINGLE (xmin);
   GETDONESINGLE (xmax);
   GETDONESINGLE (ymin);
@@ -1108,7 +1112,7 @@ TkPgplot::Pgenv (parameter_list *args, int is_request, int log)
 
 //PGERAS -- erase all graphics from current page
 char *
-TkPgplot::Pgeras (parameter_list *args, int is_request, int log)
+TkPgplot::Pgeras (Value *args)
 {
   cpgslct (id);
   cpgeras ();
@@ -1118,7 +1122,7 @@ TkPgplot::Pgeras (parameter_list *args, int is_request, int log)
 
 //PGERRB -- horizontal or vertical error bar
 char *
-TkPgplot::Pgerrb (parameter_list *args, int is_request, int log)
+TkPgplot::Pgerrb (Value *args)
 {
   GETSTART (5);
   GETINT (dir);
@@ -1139,7 +1143,7 @@ TkPgplot::Pgerrb (parameter_list *args, int is_request, int log)
 
 //PGERRX -- horizontal error bar
 char *
-TkPgplot::Pgerrx (parameter_list *args, int is_request, int log)
+TkPgplot::Pgerrx (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (x1);
@@ -1158,7 +1162,7 @@ TkPgplot::Pgerrx (parameter_list *args, int is_request, int log)
 
 //PGERRY -- vertical error bar
 char *
-TkPgplot::Pgerry (parameter_list *args, int is_request, int log)
+TkPgplot::Pgerry (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (x);
@@ -1179,7 +1183,7 @@ TkPgplot::Pgerry (parameter_list *args, int is_request, int log)
 // JAU: Not listed in current Glish/PGPLOT documentation.
 // (An effective no-op anyway....)
 char *
-TkPgplot::Pgetxt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgetxt (Value *args)
 {
   cpgslct (id);
   cpgetxt ();
@@ -1189,7 +1193,7 @@ TkPgplot::Pgetxt (parameter_list *args, int is_request, int log)
 
 //PGGRAY -- gray-scale map of a 2D data array
 char *
-TkPgplot::Pggray (parameter_list *args, int is_request, int log)
+TkPgplot::Pggray (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (a);
@@ -1209,7 +1213,7 @@ TkPgplot::Pggray (parameter_list *args, int is_request, int log)
 
 //PGHI2D -- cross-sections through a 2D data array
 char *
-TkPgplot::Pghi2d (parameter_list *args, int is_request, int log)
+TkPgplot::Pghi2d (Value *args)
 {
   GETSTART (6);
   GETFLOATARRAY (data);
@@ -1233,7 +1237,7 @@ TkPgplot::Pghi2d (parameter_list *args, int is_request, int log)
 
 //PGHIST -- histogram of unbinned data
 char *
-TkPgplot::Pghist (parameter_list *args, int is_request, int log)
+TkPgplot::Pghist (Value *args)
 {
   GETSTART (5);
   GETFLOATARRAY (data);
@@ -1254,7 +1258,7 @@ TkPgplot::Pghist (parameter_list *args, int is_request, int log)
 
 //PGIDEN -- write username, date, and time at bottom of plot
 char *
-TkPgplot::Pgiden (parameter_list *args, int is_request, int log)
+TkPgplot::Pgiden (Value *args)
 {
   cpgslct (id);
   cpgiden ();
@@ -1264,7 +1268,7 @@ TkPgplot::Pgiden (parameter_list *args, int is_request, int log)
 
 //PGIMAG -- color image from a 2D data array
 char *
-TkPgplot::Pgimag (parameter_list *args, int is_request, int log)
+TkPgplot::Pgimag (Value *args)
 {
   GETSTART (4);
   GETFLOATARRAY (a);
@@ -1284,7 +1288,7 @@ TkPgplot::Pgimag (parameter_list *args, int is_request, int log)
 
 //PGLAB -- write labels for x-axis, y-axis, and top of plot
 char *
-TkPgplot::Pglab (parameter_list *args, int is_request, int log)
+TkPgplot::Pglab (Value *args)
 {
   GETSTART (3);
   GETSTRING (xlbl);
@@ -1301,7 +1305,7 @@ TkPgplot::Pglab (parameter_list *args, int is_request, int log)
 
 //PGLDEV -- list available device types
 char *
-TkPgplot::Pgldev (parameter_list *args, int is_request, int log)
+TkPgplot::Pgldev (Value *args)
 {
   cpgslct (id);
   cpgldev ();
@@ -1311,7 +1315,7 @@ TkPgplot::Pgldev (parameter_list *args, int is_request, int log)
 
 //PGLEN -- find length of a string in a variety of units
 char *
-TkPgplot::Pglen (parameter_list *args, int is_request, int log)
+TkPgplot::Pglen (Value *args)
 {
   GETSTART (2);
   GETINT (units);
@@ -1331,7 +1335,7 @@ TkPgplot::Pglen (parameter_list *args, int is_request, int log)
 
 //PGLINE -- draw a polyline (curve defined by line-segments)
 char *
-TkPgplot::Pgline (parameter_list *args, int is_request, int log)
+TkPgplot::Pgline (Value *args)
 {
   GETSTART (2);
   GETFLOATARRAY (xpts);
@@ -1346,7 +1350,7 @@ TkPgplot::Pgline (parameter_list *args, int is_request, int log)
 
 //PGMOVE -- move pen (change current pen position)
 char *
-TkPgplot::Pgmove (parameter_list *args, int is_request, int log)
+TkPgplot::Pgmove (Value *args)
 {
   GETSTART (2);
   GETFLOAT (x);
@@ -1361,7 +1365,7 @@ TkPgplot::Pgmove (parameter_list *args, int is_request, int log)
 
 //PGMTXT -- write text at position relative to viewport
 char *
-TkPgplot::Pgmtxt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgmtxt (Value *args)
 {
   GETSTART (5);
   GETSTRING (side);
@@ -1382,7 +1386,7 @@ TkPgplot::Pgmtxt (parameter_list *args, int is_request, int log)
 
 //PGNUMB -- convert a number into a plottable character string
 char *
-TkPgplot::Pgnumb (parameter_list *args, int is_request, int log)
+TkPgplot::Pgnumb (Value *args)
 {
   GETSTART (3);
   GETINT (mm);
@@ -1402,7 +1406,7 @@ TkPgplot::Pgnumb (parameter_list *args, int is_request, int log)
 
 //PGOPEN -- open a graphics device
 char *
-TkPgplot::Pgopen (parameter_list *args, int is_request, int log)
+TkPgplot::Pgopen (Value *args)
 {
   GETSTART (1);
   GETSTRING (device);
@@ -1421,7 +1425,7 @@ TkPgplot::Pgopen (parameter_list *args, int is_request, int log)
 
 //PGPAGE -- advance to new page
 char *
-TkPgplot::Pgpage (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpage (Value *args)
 {
   cpgslct (id);
   cpgpage ();
@@ -1431,7 +1435,7 @@ TkPgplot::Pgpage (parameter_list *args, int is_request, int log)
 
 //PGPANL -- switch to a different panel on the view surface
 char *
-TkPgplot::Pgpanl (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpanl (Value *args)
 {
   GETSTART (2);
   GETINT (ix);
@@ -1446,7 +1450,7 @@ TkPgplot::Pgpanl (parameter_list *args, int is_request, int log)
 
 //PGPAP -- change the size of the view surface
 char *
-TkPgplot::Pgpap (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpap (Value *args)
 {
   GETSTART (2);
   GETFLOAT (width);
@@ -1461,7 +1465,7 @@ TkPgplot::Pgpap (parameter_list *args, int is_request, int log)
 
 //PGPIXL -- draw pixels
 char *
-TkPgplot::Pgpixl (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpixl (Value *args)
 {
   GETSTART (5);
   GETINTARRAY (ia);
@@ -1483,7 +1487,7 @@ TkPgplot::Pgpixl (parameter_list *args, int is_request, int log)
 
 //PGPNTS -- draw one or more graph markers, not all the same
 char *
-TkPgplot::Pgpnts (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpnts (Value *args)
 {
   GETSTART (3);
   GETFLOATARRAY (x);
@@ -1503,7 +1507,7 @@ TkPgplot::Pgpnts (parameter_list *args, int is_request, int log)
 
 //PGPOLY -- fill a polygonal area with shading
 char *
-TkPgplot::Pgpoly (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpoly (Value *args)
 {
   GETSTART (2);
   GETFLOATARRAY (xpts);
@@ -1518,7 +1522,7 @@ TkPgplot::Pgpoly (parameter_list *args, int is_request, int log)
 
 //PGPT -- draw one or more graph markers
 char *
-TkPgplot::Pgpt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgpt (Value *args)
 {
   GETSTART (3);
   GETFLOATARRAY (xpts);
@@ -1535,7 +1539,7 @@ TkPgplot::Pgpt (parameter_list *args, int is_request, int log)
 
 //PGPTXT -- write text at arbitrary position and angle
 char *
-TkPgplot::Pgptxt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgptxt (Value *args)
 {
   GETSTART (5);
   GETFLOAT (x);
@@ -1556,7 +1560,7 @@ TkPgplot::Pgptxt (parameter_list *args, int is_request, int log)
 
 //PGQAH -- inquire arrow-head style
 char *
-TkPgplot::Pgqah (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqah (Value *args)
 {
   static tk_farrayRec qah;
   int fs = 0;			// Gets returned as float; can't mix types.
@@ -1572,7 +1576,7 @@ TkPgplot::Pgqah (parameter_list *args, int is_request, int log)
 
 //PGQCF -- inquire character font
 char *
-TkPgplot::Pgqcf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqcf (Value *args)
 {
   static tk_iarrayRec qcf;
 
@@ -1586,7 +1590,7 @@ TkPgplot::Pgqcf (parameter_list *args, int is_request, int log)
 
 //PGQCH -- inquire character height
 char *
-TkPgplot::Pgqch (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqch (Value *args)
 {
   static tk_farrayRec qch;
 
@@ -1600,7 +1604,7 @@ TkPgplot::Pgqch (parameter_list *args, int is_request, int log)
 
 //PGQCI -- inquire color index
 char *
-TkPgplot::Pgqci (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqci (Value *args)
 {
   static tk_iarrayRec qci;
 
@@ -1614,7 +1618,7 @@ TkPgplot::Pgqci (parameter_list *args, int is_request, int log)
 
 //PGQCIR -- inquire color index range
 char *
-TkPgplot::Pgqcir (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqcir (Value *args)
 {
   static tk_iarrayRec qcir;
 
@@ -1628,7 +1632,7 @@ TkPgplot::Pgqcir (parameter_list *args, int is_request, int log)
 
 //PGQCOL -- inquire color capability
 char *
-TkPgplot::Pgqcol (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqcol (Value *args)
 {
   static tk_iarrayRec qcol;
 
@@ -1642,7 +1646,7 @@ TkPgplot::Pgqcol (parameter_list *args, int is_request, int log)
 
 //PGQCR -- inquire color representation
 char *
-TkPgplot::Pgqcr (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqcr (Value *args)
 {
   GETSTART (1);
   GETINT (ci);
@@ -1660,7 +1664,7 @@ TkPgplot::Pgqcr (parameter_list *args, int is_request, int log)
 
 //PGQCS -- inquire character height in a variety of units
 char *
-TkPgplot::Pgqcs (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqcs (Value *args)
 {
   GETSTART (1);
   GETINT (units);
@@ -1678,7 +1682,7 @@ TkPgplot::Pgqcs (parameter_list *args, int is_request, int log)
 
 //PGQFS -- inquire fill-area style
 char *
-TkPgplot::Pgqfs (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqfs (Value *args)
 {
   static tk_iarrayRec qfs;
 
@@ -1692,7 +1696,7 @@ TkPgplot::Pgqfs (parameter_list *args, int is_request, int log)
 
 //PGQHS -- inquire hatching style
 char *
-TkPgplot::Pgqhs (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqhs (Value *args)
 {
   static tk_farrayRec qhs;
 
@@ -1706,7 +1710,7 @@ TkPgplot::Pgqhs (parameter_list *args, int is_request, int log)
 
 //PGQID -- inquire current device identifier
 char *
-TkPgplot::Pgqid (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqid (Value *args)
 {
   static tk_iarrayRec qid;
 
@@ -1720,7 +1724,7 @@ TkPgplot::Pgqid (parameter_list *args, int is_request, int log)
 
 //PGQINF -- inquire PGPLOT general information
 char *
-TkPgplot::Pgqinf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqinf (Value *args)
 {
   GETSTART (1);
   GETSTRING (item);
@@ -1737,7 +1741,7 @@ TkPgplot::Pgqinf (parameter_list *args, int is_request, int log)
 
 //PGQITF -- inquire image transfer function
 char *
-TkPgplot::Pgqitf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqitf (Value *args)
 {
   static tk_iarrayRec qitf;
 
@@ -1751,7 +1755,7 @@ TkPgplot::Pgqitf (parameter_list *args, int is_request, int log)
 
 //PGQLS -- inquire line style
 char *
-TkPgplot::Pgqls (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqls (Value *args)
 {
   static tk_iarrayRec qls;
 
@@ -1765,7 +1769,7 @@ TkPgplot::Pgqls (parameter_list *args, int is_request, int log)
 
 //PGQLW -- inquire line width
 char *
-TkPgplot::Pgqlw (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqlw (Value *args)
 {
   static tk_iarrayRec qlw;
 
@@ -1779,7 +1783,7 @@ TkPgplot::Pgqlw (parameter_list *args, int is_request, int log)
 
 //PGQPOS -- inquire current pen position
 char *
-TkPgplot::Pgqpos (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqpos (Value *args)
 {
   static tk_farrayRec qpos;
 
@@ -1793,7 +1797,7 @@ TkPgplot::Pgqpos (parameter_list *args, int is_request, int log)
 
 //PGQTBG -- inquire text background color index
 char *
-TkPgplot::Pgqtbg (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqtbg (Value *args)
 {
   static tk_iarrayRec qtbg;
 
@@ -1807,7 +1811,7 @@ TkPgplot::Pgqtbg (parameter_list *args, int is_request, int log)
 
 //PGQTXT -- find bounding box of text string
 char *
-TkPgplot::Pgqtxt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqtxt (Value *args)
 {
   GETSTART (5);
   GETFLOAT (x);
@@ -1833,7 +1837,7 @@ TkPgplot::Pgqtxt (parameter_list *args, int is_request, int log)
 
 //PGQVP -- inquire viewport size and position
 char *
-TkPgplot::Pgqvp (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqvp (Value *args)
 {
   GETSTART (1);
   GETINT (units);
@@ -1851,7 +1855,7 @@ TkPgplot::Pgqvp (parameter_list *args, int is_request, int log)
 
 //PGQVSZ -- find the window defined by the full view surface
 char *
-TkPgplot::Pgqvsz (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqvsz (Value *args)
 {
   GETSTART (1);
   GETINT (units);
@@ -1869,7 +1873,7 @@ TkPgplot::Pgqvsz (parameter_list *args, int is_request, int log)
 
 //PGQWIN -- inquire window boundary coordinates
 char *
-TkPgplot::Pgqwin (parameter_list *args, int is_request, int log)
+TkPgplot::Pgqwin (Value *args)
 {
   static tk_farrayRec qwin;
 
@@ -1883,7 +1887,7 @@ TkPgplot::Pgqwin (parameter_list *args, int is_request, int log)
 
 //PGRECT -- draw a rectangle, using fill-area attributes
 char *
-TkPgplot::Pgrect (parameter_list *args, int is_request, int log)
+TkPgplot::Pgrect (Value *args)
 {
   GETSTART (4);
   GETFLOAT (x1);
@@ -1902,7 +1906,7 @@ TkPgplot::Pgrect (parameter_list *args, int is_request, int log)
 
 //PGRND -- find the smallest 'round' nubmer greater than x
 char *
-TkPgplot::Pgrnd (parameter_list *args, int is_request, int log)
+TkPgplot::Pgrnd (Value *args)
 {
   GETSTART (2);
   GETFLOAT (x);
@@ -1921,7 +1925,7 @@ TkPgplot::Pgrnd (parameter_list *args, int is_request, int log)
 
 //PGRNGE -- choose axis limits
 char *
-TkPgplot::Pgrnge (parameter_list *args, int is_request, int log)
+TkPgplot::Pgrnge (Value *args)
 {
   GETSTART (2);
   GETFLOAT (x1);
@@ -1941,7 +1945,7 @@ TkPgplot::Pgrnge (parameter_list *args, int is_request, int log)
 
 //PGSAH -- set arrow-head style
 char *
-TkPgplot::Pgsah (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsah (Value *args)
 {
   GETSTART (3);
   GETINT (fs);
@@ -1958,7 +1962,7 @@ TkPgplot::Pgsah (parameter_list *args, int is_request, int log)
 
 //PGSAVE -- save PGPLOT attributes
 char *
-TkPgplot::Pgsave (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsave (Value *args)
 {
   cpgslct (id);
   cpgsave ();
@@ -1968,7 +1972,7 @@ TkPgplot::Pgsave (parameter_list *args, int is_request, int log)
 
 //PGSCF -- set character font
 char *
-TkPgplot::Pgscf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgscf (Value *args)
 {
   GETSTART (1);
   GETINT (font);
@@ -1981,7 +1985,7 @@ TkPgplot::Pgscf (parameter_list *args, int is_request, int log)
 
 //PGSCH -- set character height
 char *
-TkPgplot::Pgsch (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsch (Value *args)
 {
   GETSTART (1);
   GETFLOAT (size);
@@ -1994,7 +1998,7 @@ TkPgplot::Pgsch (parameter_list *args, int is_request, int log)
 
 //PGSCI -- set color index
 char *
-TkPgplot::Pgsci (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsci (Value *args)
 {
   GETSTART (1);
   GETINT (ci);
@@ -2007,7 +2011,7 @@ TkPgplot::Pgsci (parameter_list *args, int is_request, int log)
 
 //PGSCIR -- set color index range
 char *
-TkPgplot::Pgscir (parameter_list *args, int is_request, int log)
+TkPgplot::Pgscir (Value *args)
 {
   GETSTART (2);
   GETINT (icilo);
@@ -2022,7 +2026,7 @@ TkPgplot::Pgscir (parameter_list *args, int is_request, int log)
 
 //PGSCR -- set color representation
 char *
-TkPgplot::Pgscr (parameter_list *args, int is_request, int log)
+TkPgplot::Pgscr (Value *args)
 {
   GETSTART (4);
   GETINT (ci);
@@ -2041,7 +2045,7 @@ TkPgplot::Pgscr (parameter_list *args, int is_request, int log)
 
 //PGSCRN -- set color representation by name
 char *
-TkPgplot::Pgscrn (parameter_list *args, int is_request, int log)
+TkPgplot::Pgscrn (Value *args)
 {
   GETSTART (2);
   GETINT (ci);
@@ -2061,7 +2065,7 @@ TkPgplot::Pgscrn (parameter_list *args, int is_request, int log)
 
 //PGSFS -- set fill-area style
 char *
-TkPgplot::Pgsfs (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsfs (Value *args)
 {
   GETSTART (1);
   GETINT (fs);
@@ -2074,7 +2078,7 @@ TkPgplot::Pgsfs (parameter_list *args, int is_request, int log)
 
 //PGSHLS -- set color representation using HLS system
 char *
-TkPgplot::Pgshls (parameter_list *args, int is_request, int log)
+TkPgplot::Pgshls (Value *args)
 {
   GETSTART (4);
   GETINT (ci);
@@ -2093,7 +2097,7 @@ TkPgplot::Pgshls (parameter_list *args, int is_request, int log)
 
 //PGSHS -- set hatching style
 char *
-TkPgplot::Pgshs (parameter_list *args, int is_request, int log)
+TkPgplot::Pgshs (Value *args)
 {
   GETSTART (3);
   GETFLOAT (angle);
@@ -2110,7 +2114,7 @@ TkPgplot::Pgshs (parameter_list *args, int is_request, int log)
 
 //PGSITF -- set image transfer function
 char *
-TkPgplot::Pgsitf (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsitf (Value *args)
 {
   GETSTART (1);
   GETINT (itf);
@@ -2123,7 +2127,7 @@ TkPgplot::Pgsitf (parameter_list *args, int is_request, int log)
 
 //PGSLCT -- select an open graphics device
 char *
-TkPgplot::Pgslct (parameter_list *args, int is_request, int log)
+TkPgplot::Pgslct (Value *args)
 {
   GETSTART (1);
   GETINT (ID);
@@ -2136,7 +2140,7 @@ TkPgplot::Pgslct (parameter_list *args, int is_request, int log)
 
 //PGSLS -- set line style
 char *
-TkPgplot::Pgsls (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsls (Value *args)
 {
   GETSTART (1);
   GETINT (ls);
@@ -2149,7 +2153,7 @@ TkPgplot::Pgsls (parameter_list *args, int is_request, int log)
 
 //PGSLW -- set line width
 char *
-TkPgplot::Pgslw (parameter_list *args, int is_request, int log)
+TkPgplot::Pgslw (Value *args)
 {
   GETSTART (1);
   GETINT (lw);
@@ -2162,7 +2166,7 @@ TkPgplot::Pgslw (parameter_list *args, int is_request, int log)
 
 //PGSTBG -- set text background color index
 char *
-TkPgplot::Pgstbg (parameter_list *args, int is_request, int log)
+TkPgplot::Pgstbg (Value *args)
 {
   GETSTART (1);
   GETINT (tbci);
@@ -2175,7 +2179,7 @@ TkPgplot::Pgstbg (parameter_list *args, int is_request, int log)
 
 //PGSUBP -- subdivide view surface into panels
 char *
-TkPgplot::Pgsubp (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsubp (Value *args)
 {
   GETSTART (2);
   GETINT (nxsub);
@@ -2190,7 +2194,7 @@ TkPgplot::Pgsubp (parameter_list *args, int is_request, int log)
 
 //PGSVP -- set viewport (normalized device coordinates)
 char *
-TkPgplot::Pgsvp (parameter_list *args, int is_request, int log)
+TkPgplot::Pgsvp (Value *args)
 {
   GETSTART (4);
   GETFLOAT (xleft);
@@ -2209,7 +2213,7 @@ TkPgplot::Pgsvp (parameter_list *args, int is_request, int log)
 
 //PGSWIN -- set window
 char *
-TkPgplot::Pgswin (parameter_list *args, int is_request, int log)
+TkPgplot::Pgswin (Value *args)
 {
   GETSTART (4);
   GETFLOAT (x1);
@@ -2228,7 +2232,7 @@ TkPgplot::Pgswin (parameter_list *args, int is_request, int log)
 
 //PGTBOX -- draw frame and write (DD) HH MM SS.S labelling
 char *
-TkPgplot::Pgtbox (parameter_list *args, int is_request, int log)
+TkPgplot::Pgtbox (Value *args)
 {
   GETSTART (6);
   GETSTRING (xopt);
@@ -2251,7 +2255,7 @@ TkPgplot::Pgtbox (parameter_list *args, int is_request, int log)
 
 //PGTEXT -- write text (horizontal, left-justified)
 char *
-TkPgplot::Pgtext (parameter_list *args, int is_request, int log)
+TkPgplot::Pgtext (Value *args)
 {
   GETSTART (3);
   GETFLOAT (x);
@@ -2268,7 +2272,7 @@ TkPgplot::Pgtext (parameter_list *args, int is_request, int log)
 
 //PGUPDT -- update display
 char *
-TkPgplot::Pgupdt (parameter_list *args, int is_request, int log)
+TkPgplot::Pgupdt (Value *args)
 {
   cpgslct (id);
   cpgupdt ();
@@ -2278,7 +2282,7 @@ TkPgplot::Pgupdt (parameter_list *args, int is_request, int log)
 
 //PGUNSA -- restore PGPLOT attributes
 char *
-TkPgplot::Pgunsa (parameter_list *args, int is_request, int log)
+TkPgplot::Pgunsa (Value *args)
 {
   cpgslct (id);
   cpgunsa ();
@@ -2288,7 +2292,7 @@ TkPgplot::Pgunsa (parameter_list *args, int is_request, int log)
 
 //PGVECT -- vector map of a 2D data array, with blanking
 char *
-TkPgplot::Pgvect (parameter_list *args, int is_request, int log)
+TkPgplot::Pgvect (Value *args)
 {
   GETSTART (6);
   GETFLOATARRAY (a);
@@ -2312,7 +2316,7 @@ TkPgplot::Pgvect (parameter_list *args, int is_request, int log)
 
 //PGVSIZ -- set viewport (inches)
 char *
-TkPgplot::Pgvsiz (parameter_list *args, int is_request, int log)
+TkPgplot::Pgvsiz (Value *args)
 {
   GETSTART (4);
   GETFLOAT (xleft);
@@ -2331,7 +2335,7 @@ TkPgplot::Pgvsiz (parameter_list *args, int is_request, int log)
 
 //pgvstd -- set standard (default) viewport
 char *
-TkPgplot::Pgvstd (parameter_list *args, int is_request, int log)
+TkPgplot::Pgvstd (Value *args)
 {
   cpgslct (id);
   cpgvstd ();
@@ -2341,7 +2345,7 @@ TkPgplot::Pgvstd (parameter_list *args, int is_request, int log)
 
 //PGWEDG -- annotate an image plot with a wedge
 char *
-TkPgplot::Pgwedg (parameter_list *args, int is_request, int log)
+TkPgplot::Pgwedg (Value *args)
 {
   GETSTART (6);
   GETSTRING (size);
@@ -2364,7 +2368,7 @@ TkPgplot::Pgwedg (parameter_list *args, int is_request, int log)
 
 //PGWNAD -- set window and adjust viewport to same aspect ratio
 char *
-TkPgplot::Pgwnad (parameter_list *args, int is_request, int log)
+TkPgplot::Pgwnad (Value *args)
 {
   GETSTART (4);
   GETFLOAT (x1);
@@ -2381,16 +2385,15 @@ TkPgplot::Pgwnad (parameter_list *args, int is_request, int log)
   return "";
 }
 
-IValue *
-TkPgplot::Create (Sequencer *s, const_args_list *args_val)
+void
+TkPgplot::Create (ProxyStore *s, Value *args, void *)
 {
   TkPgplot *ret;
 
-  if (args_val->length () != 19) {
-    return (IValue *)generate_error("invalid number of arguments, 19 expected");
-  }
-  int c = 1;
+  if ( args->Length() != 18 )
+    InvalidNumberOfArgs(18);
 
+  SETINIT
   SETVAL (parent, parent->IsAgentRecord ());
   SETDIM (width);
   SETDIM (height);
@@ -2410,28 +2413,22 @@ TkPgplot::Create (Sequencer *s, const_args_list *args_val)
   SETINT (cmap_share);
   SETINT (cmap_fail);
 
-  Agent *agent = parent->AgentVal ();
-
+  TkAgent *agent = (TkAgent*) (global_store->GetProxy(parent));
   if (agent && !strcmp (agent->AgentID (), "<graphic:frame>")) {
+    // pgplot likes to blurt out a bunch
+    // of scroll events right off the bat...
+    hold_glish_events++;
     ret = new TkPgplot (s, (TkFrame *)agent, width, height, region, axis,
 			nxsub, nysub, relief, borderwidth, padx, pady, foreground,
 			background, fill, mincolor, maxcolor, cmap_share, cmap_fail);
   } else {
-    return (IValue *)generate_error ("bad parent type");
+    SETDONE
+    global_store->Error("bad parent type");
+    return;
   }
-  if (!ret || !ret->IsValid ()) {
-    IValue *err = ret->GetError ();
 
-    if (err) {
-      Ref (err);
-
-      return err;
-    } else {
-      return (IValue *)generate_error ("tk widget creation failed");
-    }
-  } else {
-    return ret->AgentRecord ();
-  }
+  CREATE_RETURN
+  FlushGlishEvents();
 }
 
 const char **TkPgplot::PackInstruction () {
@@ -2477,11 +2474,11 @@ TkPgplot::CursorEvent (const char *name, const char *type, const char *key,
 
   recordptr rec = create_record_dict ();
 
-  rec->Insert (strdup ("world"), new IValue (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new IValue (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("key"), new IValue (key));
-  rec->Insert (strdup ("type"), new IValue (type));
-  PostTkEvent (name, new IValue (rec));
+  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
+  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
+  rec->Insert (strdup ("key"), new Value (key));
+  rec->Insert (strdup ("type"), new Value (type));
+  PostTkEvent (name, new Value (rec));
 }
 
 // ButtonPress, ButtonRelease
@@ -2495,11 +2492,11 @@ TkPgplot::CursorEvent (const char *name, const char *type, int button,
 
   recordptr rec = create_record_dict ();
 
-  rec->Insert (strdup ("world"), new IValue (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new IValue (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("button"), new IValue (button));
-  rec->Insert (strdup ("type"), new IValue (type));
-  PostTkEvent (name, new IValue (rec));
+  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
+  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
+  rec->Insert (strdup ("button"), new Value (button));
+  rec->Insert (strdup ("type"), new Value (type));
+  PostTkEvent (name, new Value (rec));
 }
 
 // MotionNotify, LeaveNotify, EnterNotify
@@ -2512,10 +2509,10 @@ TkPgplot::CursorEvent (const char *name, const char *type, int *device)
 
   recordptr rec = create_record_dict ();
 
-  rec->Insert (strdup ("world"), new IValue (world, 2, COPY_ARRAY));
-  rec->Insert (strdup ("device"), new IValue (device, 2, COPY_ARRAY));
-  rec->Insert (strdup ("type"), new IValue (type));
-  PostTkEvent (name, new IValue (rec));
+  rec->Insert (strdup ("world"), new Value (world, 2, COPY_ARRAY));
+  rec->Insert (strdup ("device"), new Value (device, 2, COPY_ARRAY));
+  rec->Insert (strdup ("type"), new Value (type));
+  PostTkEvent (name, new Value (rec));
 }
 
 // Other XEvents
@@ -2524,8 +2521,8 @@ TkPgplot::CursorEvent (const char *name, const char *type)
 {
   recordptr rec = create_record_dict ();
 
-  rec->Insert (strdup ("type"), new IValue (type));
-  PostTkEvent (name, new IValue (rec));
+  rec->Insert (strdup ("type"), new Value (type));
+  PostTkEvent (name, new Value (rec));
 }
 
 #endif
