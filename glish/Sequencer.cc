@@ -71,7 +71,7 @@ extern int glish_include_jmpbuf_set;
 const char * const LD_PATH = "LD_LIBRARY_PATH";
 
 // Time to wait until probing a remote daemon, in seconds.
-#define PROBE_DELAY 5
+#define PROBE_DELAY 6
 
 // Interval between subsequent probes, in seconds.
 #define PROBE_INTERVAL 5
@@ -453,6 +453,7 @@ public:
 
 protected:
 	int DoExpiration();
+	double probe_interval;
 
 	PDict(RemoteDaemon)* daemons;
 	Sequencer* sequencer;
@@ -953,6 +954,28 @@ void SystemInfo::update_path( )
 	update &= ~PATH();
 	}
 
+void SystemInfo::update_client( )
+	{
+	const IValue *v1;
+	const IValue *v2;
+	double tmp;
+
+	client_ping = PROBE_INTERVAL;
+	if ( val && val->Type() == TYPE_RECORD &&
+	     val->HasRecordElement( "client" ) &&
+	     (v1 = (IValue*) val->ExistingRecordElement( "client" )) &&
+	     v1 != false_value && v1->Type() == TYPE_RECORD )
+		{
+		if ( v1->HasRecordElement( "ping" ) &&
+		     (v2 = (IValue*) v1->ExistingRecordElement("ping")) &&
+		     v2 != false_value && v2->IsNumeric() &&
+		     (tmp = v2->DoubleVal()) > 0 )
+			client_ping = tmp;
+		}
+
+	update &= ~CLIENT();
+	}
+
 void Sequencer::SystemChanged( )
 	{
 	system_change_count += 1;
@@ -1405,7 +1428,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	selector = new Selector;
 
 	selector->AddSelectee( new AcceptSelectee( this, connection_socket ) );
-	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
 	connection_host = local_host_name();
 	connection_port = alloc_char(32);
@@ -1600,6 +1622,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			}
 		}
 
+	// after glishrc to register setting of system.client.ping
+	selector->AddTimer( new ProbeTimer( &daemons, this ) );
 
 	if ( load_list->length() )
 		{
@@ -4168,6 +4192,12 @@ ProbeTimer::ProbeTimer( PDict(RemoteDaemon)* arg_daemons, Sequencer* s )
 	{
 	daemons = arg_daemons;
 	sequencer = s;
+	probe_interval = sequencer->System().ClientPing();
+	if ( probe_interval != (double) PROBE_INTERVAL )
+		{
+		interval_t.tv_sec = (long) probe_interval;
+		interval_t.tv_usec = (long) (( probe_interval - (long) probe_interval ) * 1000000);
+		}
 	}
 
 int ProbeTimer::DoExpiration()
@@ -4195,6 +4225,14 @@ int ProbeTimer::DoExpiration()
 
 		if ( r->State() == DAEMON_OK )
 			r->SetState( DAEMON_REPLY_PENDING );
+		}
+
+	double new_interval = sequencer->System().ClientPing();
+	if ( new_interval != probe_interval )
+		{
+		probe_interval = new_interval;
+		interval_t.tv_sec = (long) probe_interval;
+		interval_t.tv_usec = (long) (( probe_interval - (long) probe_interval ) * 1000000);
 		}
 
 	return 1;

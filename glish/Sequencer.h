@@ -137,6 +137,7 @@ public:
 	inline unsigned int OLOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int PAGER( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int STACKLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
+	inline unsigned int CLIENT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
 
 	int Trace() { if ( TRACE(update) ) update_output( ); return trace; }
 	int ILog() { if ( ILOGX(update) ) update_output( ); return ilog || log; }
@@ -156,6 +157,7 @@ public:
 	const IValue *BinPath() { if ( PATH(update) ) update_path( ); return binpath; }
 	const IValue *LdPath() { if ( PATH(update) ) update_path( ); return ldpath; }
 	int StackLimit() { if ( STACKLIMIT(update) ) update_stacklimit( ); return stacklimit; }
+	double ClientPing() { if ( CLIENT(update) ) update_client( ); return client_ping; }
 	SystemInfo( Sequencer *s ) : val(0), log(0), log_val(0), log_file(0), log_name(0),
 			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
 			olog(0), olog_val(0), olog_file(0), olog_name(0),
@@ -173,6 +175,7 @@ private:
 	void update_stacklimit( );
 	void update_print( );
 	void update_path( );
+	void update_client( );
 	IValue *val;
 	int trace;
 
@@ -203,6 +206,8 @@ private:
 	const IValue *binpath;
 	const IValue *ldpath;
 	charptr keydir;
+
+	double client_ping;
 
 	unsigned int update;
 	Sequencer *sequencer;
