@@ -51,7 +51,7 @@ extern void delete_agent_dict( agent_dict * );
 
 class Agent : public GlishObject {
     public:
-	Agent( Sequencer* s );
+	Agent( Sequencer* s, int DestructLast=0 );
 	virtual ~Agent();
 
 	virtual const char* Name() const { return agent_ID ? agent_ID : "<agent>"; }

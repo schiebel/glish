@@ -289,7 +289,7 @@ void SendChildInput( Client& c, int send_to_child_fd )
 	if ( ! e || streq( e->name, "terminate" ) )
 		{
 		kill( pid, SIGTERM );
-		sleep(1);
+		sleep(2);
 		if ( kill( pid, 0 ) >= 0 )
 			{
 			kill ( - pid, SIGKILL );

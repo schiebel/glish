@@ -65,7 +65,7 @@ void Serialize::set( char *new_string )
 	ary[str_element] = new_string;
 	}
 
-Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
+Task::Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast ) : Agent( s, DestructLast )
 	{
 	attrs = task_attrs;
 	pending_events = 0;
@@ -516,7 +516,7 @@ void Task::AbnormalExit( int status )
 
 ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 			Sequencer* s )
-    : Task( task_attrs, s )
+    : Task( task_attrs, s, 1 )
 	{
 	char* arg_string = paste( args );
 

@@ -59,7 +59,7 @@ Notifiee::~Notifiee()
 	Unref( stack_ );
 	}
 
-Agent::Agent( Sequencer* s )
+Agent::Agent( Sequencer* s, int DestructLast )
 	{
 	sequencer = s;
 	agent_ID = 0;
@@ -67,7 +67,10 @@ Agent::Agent( Sequencer* s )
 	string_copies = 0;
 
 	agent_value = new IValue( create_record_dict(), this );
-	(*agents).append( this );
+	if ( DestructLast )
+		(*agents).insert( this );
+	else
+		(*agents).append( this );
 	preserve_events = 0;
 	}
 

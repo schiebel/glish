@@ -40,7 +40,7 @@ class TaskAttr GC_FINAL_CLASS {
 class Task : public Agent {
     public:
 	enum State { INITIAL, ACTIVE, FINISHED };
-	Task( TaskAttr* task_attrs, Sequencer* s );
+	Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast=0 );
 	~Task();
 
 	void SendTerminate( );
