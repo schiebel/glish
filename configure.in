@@ -473,7 +473,15 @@ dnl##
 dnl## Checks for programs.
 dnl##
 AC_PROG_CC
+
 HAVE_AIX
+dnl##
+dnl## Used to mix-in the AIX portions of the makefile
+dnl##
+if test "$AIX" '=' 'yes'; then
+    AIXpp="$AIX"
+fi
+
 HAVE_ALPHA
 AC_C_CONST
 AC_PROG_CXX
@@ -751,7 +759,7 @@ if test -z "$NO_TK"; then
     dnl##
     if test -z "$option_tcl_libraries"; then
 
-        AC_CHECK_PROGS(TCLSH,tclsh tcl expect moat tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4,tclsh)
+        AC_CHECK_PROGS(TCLSH, tclsh tclsh8.4 tclsh8.3 tclsh8.2 tclsh8.1 tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4 tclsh7.3 tcl expect moat )
         if test -n "$TCLSH"; then
             AC_MSG_CHECKING(for tcl version)
             tcl_ext=`echo 'puts stdout [[info tclversion]]' | $TCLSH`
@@ -1002,6 +1010,21 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
 fi
 
 dnl##
+dnl## If the TCL/Tk version is < 8.4, then we need a dummy CONST84
+dnl## because as of TCL/Tk 8.4 the signature of Tcl_CmdProc changed
+dnl##
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$tcl_incl"
+AC_MSG_CHECKING([for const argv in Tcl_CmdProc])
+AC_TRY_COMPILE(
+[#include <tcl.h>],
+[extern void foo( Tcl_CmdProc* );
+extern int foocb( ClientData, Tcl_Interp *, int, char *[] );
+foo(foocb);
+], [AC_MSG_RESULT(non const); AC_DEFINE(NEED_EMPTY_CONST84,)], AC_MSG_RESULT(const))
+CPPFLAGS="$saved_CPPFLAGS"
+
+dnl##
 dnl## vfork() must be called from C++, and cannot be
 dnl## wrapped in a C layer. Check to see if it is available.
 dnl##
@@ -1166,17 +1189,70 @@ GC_LOW_OPT=""
 GC_MACH_DEP=""
 MACH_SYSINFO=sysinfo/stub.cc
 
+LINK_LIBGLISHTK="-lglishtk"
+LINK_LIBGLISHP="-lglishp${GLISH_SLIB_VERSION}"
+LINK_LIBGLISH="-lglish${GLISH_SLIB_VERSION}"
+LINK_LIBSOS="-lsos${SOS_SLIB_VERSION}"
+LINK_LIBEDIT="-ledit${EDITLINE_SLIB_VERSION}"
+LINK_LIBREGX="-lregx${REGX_SLIB_VERSION}"
+LINK_LIBNPD="-lnpd${NPD_SLIB_VERSION}"
+
+LINK_LIBGLISH_interp=$LINK_LIBGLISH
+
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
-	SLIB_LD="\$(top)/config/ldAix /bin/ld -bhalt:4 -bM:SRE -bE:lib.exp -H512 -T512"
-	SLIB_LD_LIBS='${LIBS}'
+	SLIB_LD="\$(top)/config/ldAix g++ -shared -Wl,-bhalt:4 -Wl,-bM:SRE -Wl,-bE:lib.exp -Wl,-H512 -Wl,-T512 -Wl,-bnoentry"
+#	SLIB_LD_LIBS='${LIBS} -L/homes/aips2mgr/local/lib -lgcc_s -lstdc++ -lc -lX11'
+	SLIB_LD_LIBS='${LIBS} -lX11'
 	SLIB_SUFFIX=".so"
-	DL_LIBS="-lld"
-	LD_FLAGS=""
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+
+	LINK_LIBGLISHTK='-Wl,-bI:${LIBDIR_P}/libglishtk.exp'
+	LINK_LIBGLISHP='$(INTERP_OBJS)'
+	LINK_LIBGLISH='-Wl,-bI:${LIBDIR_P}/libglish.exp'
+	LINK_LIBGLISH_interp='${LIBDIR_P}/libglish.a'
+	LINK_LIBSOS='-Wl,-bI:${LIBDIR_P}/libsos.exp'
+	LINK_LIBEDIT='-Wl,-bI:${LIBDIR_P}/libedit.exp'
+	LINK_LIBREGX='-Wl,-bI:${LIBDIR_P}/libregx.exp'
+	LINK_LIBNPD='-Wl,-bI:${LIBDIR_P}/libnpd.exp'
+
+	SLIB_LABEL=''
+
+	LIBS="$LIBS -lstdc++"
+
+	dnl##
+	dnl## Seemingly, AIX does not support shared library version numbers
+	dnl##
+	GLISH_SLIB_SUFFIX=".so"
+	SOS_SLIB_SUFFIX=".so"
+	NPD_SLIB_SUFFIX=".so"
+	EDITLINE_SLIB_SUFFIX=".so"
+	REGX_SLIB_SUFFIX=".so"
+
+	tclXlib="$tcl_lib"
+
+	if test -n "$tcl_lib"; then
+	    tklib=[`echo $tcl_lib | sed 's/.*-ltk\([0-9.]*\).*/tk\1/'`]
+	    tcllib=[`echo $tcl_lib | sed 's/.*-ltcl\([0-9.]*\).*/tcl\1/'`]
 	fi
+
+	tclXpath=`echo $tcl_path | sed 's/\//\\\\\//g'`
+	if test -f "$tcl_path/lib$tcllib.exp"; then
+	    tcl_lib=[`echo $tcl_lib | sed "s/-l$tcllib[^ ]*/-Wl,-bI:$tclXpath\/lib$tcllib.exp/"`]
+	fi
+	if test -f "$tcl_path/lib$tklib.exp"; then
+	    tcl_lib=[`echo $tcl_lib | sed "s/-l$tklib[^ ]*/-Wl,-bI:$tclXpath\/lib$tklib.exp/"`]
+	fi
+
+	if test "$tclXlib" != "$tcl_lib"; then
+	    TK_LIB="$tcl_lib"
+	fi
+
+	DL_LIBS="-lld"
+
+	LD_FLAGS=""
+	GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
+
 	TK_LD_RPATH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
         if test -n "$x_libraries"; then
 	    TK_LD_RPATH="$TK_LD_RPATH -L$x_libraries"
@@ -1717,7 +1793,7 @@ if test "$static_binary" = "yes"; then
     STATIC_BIN=bin_tgt
     GLISH_LIBS="$GLISH_LD_SEARCH \${LIBDIR_P}/libglishp$GLISH_LIB_SUFFIX \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libedit$GLISH_LIB_SUFFIX \${LIBDIR_P}/libregx$GLISH_LIB_SUFFIX"
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHTK \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath \${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
     if test "$do_npd" = "yes"; then
 	GLISH_LIBS="$GLISH_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
@@ -1728,15 +1804,15 @@ if test "$static_binary" = "yes"; then
 else
     SHARED_BIN=bin_tgt
     STATIC_BIN=
-    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
-    TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
+    GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHP $LINK_LIBGLISH_interp $LINK_LIBSOS $LINK_LIBEDIT $LINK_LIBREGX"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISH $LINK_LIBSOS"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHTK ${GLISH_SLIB_VERSION} $LINK_LIBGLISH $LINK_LIBSOS"
+    TKLIB_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISH $LINK_LIBSOS"
     if test "$do_npd" = "yes"; then
-	GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
-	CLIENT_LIBS="$CLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
-	TKLIB_LIBS="$TKLIB_LIBS -lnpd${NPD_SLIB_VERSION}"
+	GLISH_LIBS="$GLISH_LIBS $LINK_LIBNPD"
+	CLIENT_LIBS="$CLIENT_LIBS $LINK_LIBNPD"
+	TKCLIENT_LIBS="$TKCLIENT_LIBS $LINK_LIBNPD"
+	TKLIB_LIBS="$TKLIB_LIBS $LINK_LIBNPD"
     fi
     if test -n "$DL_LIBS"; then
 	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
@@ -1877,6 +1953,12 @@ dnl## OS specific implementation of the Sysinfo class
 dnl##
 AC_SUBST(MACH_SYSINFO)
 
+dnl##
+dnl## with TCL/Tk 8.4+, the argv parameter for Tcl_CmdProc's is "CONST84 char *[]"
+dnl## we define NEED_EMPTY_CONST84 for the older TCL/Tk versions
+dnl## 
+AC_SUBST(NEED_EMPTY_CONST84)
+
 #dnl##
 #dnl## $1 => input file
 #dnl## $2 => output file
@@ -1913,28 +1995,34 @@ if test -n "$SLIB_LABEL"; then
 fi
 
 echo "$ac_t""preprocessing template makefiles" 1>&AC_FD_MSG
-PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,)
+PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,[AIX="$AIXpp"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"
 SLIB_SYM_LINKS="$make_slib_symlinks"])
 PREPROCESS(glish/clients/glishtk/shared.in,glish/clients/glishtk/$ARCH/shared.in,[SHARED="yes"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"
 SLIB_SYM_LINKS="$make_slib_symlinks"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in,)
 PREPROCESS(npd/mkfile.in,npd/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in,)
 PREPROCESS(editline/mkfile.in,editline/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in,)
 PREPROCESS(regx/mkfile.in,regx/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in,)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+AIX="$AIXpp"
 LABEL_SLIB="$label_slib"])
 
 AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
