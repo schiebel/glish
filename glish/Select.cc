@@ -17,14 +17,6 @@ RCSID("@(#) $Id$")
 #include <X11/fd.h>
 #endif
 
-#ifdef HAVE_SYS_SELECT_H
-#include <sys/select.h>
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
 #ifdef SOLARIS
 #include <sys/time.h>
 extern "C" int gettimeofday( struct timeval *, struct timezone * );
