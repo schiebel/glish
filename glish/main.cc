@@ -538,7 +538,7 @@ void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
 //  result. There doesn't seem to be a good fix for this because casting
 //  doesn't generate an exception; division is not the problem.
 //
-static void install_sigfpe() { sigfpe(FPE_INTDIV, glish_sigfpe ); }
+static void install_sigfpe() { sigfpe(FPE_INTDIV, (signal_handler) glish_sigfpe ); }
 #elif defined(__alpha) || defined(__alpha__)
 //
 // for the alpha, this should be defined in "alpha.c"
