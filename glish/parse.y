@@ -3,9 +3,9 @@
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
-%token TOK_LOCAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF TOK_REQUEST
-%token TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO TOK_UNLINK
-%token TOK_VAL TOK_WHENEVER TOK_WHILE
+%token TOK_LOCAL TOK_GLOBAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
+%token TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
+%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE
 
 %left ','
 %right TOK_ASSIGN
@@ -24,11 +24,12 @@
 %type <ival> TOK_ACTIVATE TOK_ASSIGN
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
-%type <expr> TOK_CONSTANT expression var function formal_param_default
-%type <expr> function_head subscript
+%type <expr> TOK_CONSTANT expression scoped_expr var function formal_param_default
+%type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
 %type <event> event
-%type <stmt> statement_list statement local_list local_item func_body
+%type <stmt> statement_list statement func_body block
+%type <stmt> local_list local_item global_list global_item
 %type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
@@ -95,13 +96,17 @@ glish:
 			if ( interactive )
 				{
 				const Value *sys = Sequencer::LookupVal( "system" );
-				if ( sys && sys->Type() == TYPE_RECORD && sys->HasRecordElement( "trace" ) )
-					{
-					const Value *tVal = sys->ExistingRecordElement( "trace" );
-					if ( tVal != false_value && tVal->Type() == TYPE_BOOL &&
-							tVal->BoolVal() == glish_true )
-						message->Report( "\tt> ", $2 );
-					}
+				const Value *dbgv;
+				const Value *echov;
+				if ( sys && sys->Type() == TYPE_RECORD &&
+					sys->HasRecordElement( "debug" ) &&
+					(dbgv = sys->ExistingRecordElement( "debug" )) &&
+					dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
+					dbgv->HasRecordElement( "echo" ) &&
+					(echov = dbgv->ExistingRecordElement("echo")) &&
+					echov != false_value && echov->Type() == TYPE_BOOL &&
+					echov->BoolVal() == glish_true )
+					message->Report( "\te> ", $2 );
 
 				stmt_flow_type flow;
 				Value* val = $2->Exec( 1, flow );
@@ -144,10 +149,12 @@ statement_list:
 
 
 statement:
-		'{' statement_list '}'
-			{ $$ = $2; }
+		block
 
 	|	TOK_LOCAL local_list ';'
+			{ $$ = $2; }
+
+	|	TOK_GLOBAL global_list ';'
 			{ $$ = $2; }
 
 	|	TOK_WHENEVER event_list TOK_DO statement
@@ -175,7 +182,7 @@ statement:
 	|	TOK_ACTIVATE ';'
 			{ $$ = new ActivateStmt( $1, 0, current_sequencer ); }
 
-	|	TOK_ACTIVATE expression ';'
+	|	TOK_ACTIVATE scoped_expr ';'
 			{ $$ = new ActivateStmt( $1, $2, current_sequencer ); }
 
 	|	TOK_SEND event '(' actual_param_list ')' ';'
@@ -188,15 +195,15 @@ statement:
 			$$ = new ExprStmt( new SendEventExpr( $1, $3, 0 ) );
 			}
 
-	|	TOK_IF '(' expression ')' cont statement
+	|	TOK_IF '(' scoped_expr ')' cont statement
 			{ $$ = new IfStmt( $3, $6, 0 ); }
-	|	TOK_IF '(' expression ')' cont statement TOK_ELSE statement
+	|	TOK_IF '(' scoped_expr ')' cont statement TOK_ELSE statement
 			{ $$ = new IfStmt( $3, $6, $8 ); }
 
-	|	TOK_FOR '(' var TOK_IN expression ')' cont statement
+	|	TOK_FOR '(' var TOK_IN scoped_expr ')' cont statement
 			{ $$ = new ForStmt( $3, $5, $8 ); }
 
-	|	TOK_WHILE '(' expression ')' cont statement
+	|	TOK_WHILE '(' scoped_expr ')' cont statement
 			{ $$ = new WhileStmt( $3, $6 ); }
 
 	|	TOK_LOOP ';'	/* "next" statement; "loop" is historical */
@@ -208,25 +215,29 @@ statement:
 	|	TOK_RETURN ';'
 			{ $$ = new ReturnStmt( 0 ); }
 
-	|	TOK_RETURN expression ';'
+	|	TOK_RETURN scoped_expr ';'
 			{ $$ = new ReturnStmt( $2 ); }
 
 	|	TOK_EXIT ';'
 			{ $$ = new ExitStmt( 0, current_sequencer ); }
 
-	|	TOK_EXIT expression ';'
+	|	TOK_EXIT scoped_expr ';'
 			{ $$ = new ExitStmt( $2, current_sequencer ); }
 
 	|	TOK_PRINT actual_param_list ';'
 			{ $$ = new PrintStmt( $2 ); }
 
-	|	expression ';'
+	|	scoped_expr ';'
 			{ $$ = new ExprStmt( $1 ); }
 
 	|	';'
 			{ $$ = null_stmt; }
 	;
 
+scoped_expr:
+		expression
+			{ $$ = $$->BuildFrameInfo( SCOPE_UNKNOWN ); }
+	;
 
 expression:
 		'(' expression ')'
@@ -327,10 +338,10 @@ local_list:	local_list ',' local_item
 	|	local_item
 	;
 
-local_item:	TOK_ID TOK_ASSIGN expression
+local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			{
 			Expr* id =
-				current_sequencer->InstallID( $1, LOCAL_SCOPE );
+				current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
@@ -339,11 +350,51 @@ local_item:	TOK_ID TOK_ASSIGN expression
 			}
 	|	TOK_ID
 			{
-			(void) current_sequencer->InstallID( $1, LOCAL_SCOPE );
+			(void) current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 			$$ = null_stmt;
 			}
 	;
 
+
+global_list:	global_list ',' global_item
+			{ $$ = merge_stmts( $1, $3 ); }
+	|	global_item
+	;
+
+global_item:	TOK_ID TOK_ASSIGN scoped_expr
+			{
+			Expr* id =
+				current_sequencer->LookupID( $1, GLOBAL_SCOPE, 1, 0 );
+
+			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
+
+			if ( $2 != 0 )
+				warn->Report( "compound assignment in", $$ );
+			}
+	|	TOK_ID
+			{
+			(void) current_sequencer->LookupID( $1, GLOBAL_SCOPE, 1, 0 );
+			$$ = null_stmt;
+			}
+	;
+
+
+block:		block_head statement_list '}'
+			{ 
+			int frame_size = current_sequencer->PopScope();
+
+			if ( frame_size )
+				$$ = new StmtBlock( frame_size, $2, current_sequencer );
+			else
+				$$ = $2;
+			}
+
+block_head:	'{'
+			{
+			current_sequencer->PushScope();
+			$$ = 0;
+			}
+	;
 
 function:	function_head opt_id '(' formal_param_list ')' cont func_body
 		no_cont
@@ -354,31 +405,41 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							current_sequencer, $1 );
 			Value* func_val = new Value( func );
 
-			if ( $2 )
-				{ // Create global reference to function.
-				Expr* global_func =
-					current_sequencer->LookupID(
-							$2, GLOBAL_SCOPE );
+			$$ = new ConstExpr( func_val );
 
-				Value* ref = new Value( copy_value( func_val ),
+			if ( $2 )
+				{
+				if ( current_sequencer->GetScope() == GLOBAL_SCOPE )
+					{ 
+					// Create global reference to function.
+					Expr* func =
+						current_sequencer->LookupID(
+							$2, LOCAL_SCOPE );
+
+					Value* ref = new Value( copy_value( func_val ),
 							VAL_CONST );
 
-				global_func->Assign( ref );
+					func->Assign( ref );
+					}
+				else
+					{
+					Expr *lhs = 
+						current_sequencer->LookupID( $2, LOCAL_SCOPE);
+					$$ = compound_assignment( lhs, 0, $$ );
+					}
 				}
-
-			$$ = new ConstExpr( func_val );
 			}
 	;
 
 function_head:	TOK_FUNCTION
 			{
-			current_sequencer->PushScope();
+			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = 0;
 			}
 
 	|	TOK_SUBSEQUENCE
 			{
-			current_sequencer->PushScope();
+			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( strdup( "self" ),
 								LOCAL_SCOPE );
 			}
@@ -425,7 +486,7 @@ formal_param_class:
 	;
 
 formal_param_default:
-		'=' expression
+		'=' scoped_expr
 			{ $$ = $2; }
 	|
 			{ $$ = 0; }
@@ -447,10 +508,10 @@ actual_params:	actual_params ',' actual_param
 			}
 	;
 
-actual_param:	expression
+actual_param:	scoped_expr
 			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
 
-	|	TOK_ID '=' expression
+	|	TOK_ID '=' scoped_expr
 			{
 			Ref( $3 );
 			$$ = new ActualParameter( $1, VAL_VAL, $3, 0, $3 );
@@ -509,10 +570,10 @@ opt_actual_params:	opt_actual_params ',' opt_actual_param
        			}
 	;
 
-opt_actual_param:	expression
+opt_actual_param:	scoped_expr
 			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
 
-	|	TOK_ID '=' expression
+	|	TOK_ID '=' scoped_expr
 			{
 			Ref( $3 );
 			$$ = new ActualParameter( $1, VAL_VAL, $3, 0, $3 );
@@ -562,7 +623,7 @@ subscript_list: subscript_list ',' subscript
 	;
 
 
-subscript:	expression
+subscript:	scoped_expr
 	;
 
 
@@ -570,16 +631,17 @@ func_body:	'{' statement_list '}'
 			{ $$ = $2; }
 
 	|	expression	%prec ','
-			{ $$ = new ExprStmt( $1 ); }
+			{ $$ = new ExprStmt( $1->BuildFrameInfo( SCOPE_UNKNOWN ) ); }
 	;
 
 
 var:		TOK_ID
 			{
-			$$ = current_sequencer->LookupID( $1, LOCAL_SCOPE );
+			$$ = current_sequencer->LookupID( strdup($1), LOCAL_SCOPE, 0 );
+			if ( ! $$ )
+				$$ = new VarExpr( $1, current_sequencer );
 			}
 	;
-
 
 opt_id:		TOK_ID
 	|
@@ -596,11 +658,11 @@ event_list:	event_list ',' event
 			}
 	;
 
-event:		expression TOK_ARROW '[' expression ']'
+event:		scoped_expr TOK_ARROW '[' scoped_expr ']'
 			{ $$ = new EventDesignator( $1, $4 ); }
-	|	expression TOK_ARROW TOK_ID
+	|	scoped_expr TOK_ARROW TOK_ID
 			{ $$ = new EventDesignator( $1, $3 ); }
-	|	expression TOK_ARROW '*' no_cont
+	|	scoped_expr TOK_ARROW '*' no_cont
 			{ $$ = new EventDesignator( $1, (Expr*) 0 ); }
 	;
 

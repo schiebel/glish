@@ -6,8 +6,9 @@
 #include "Reporter.h"
 
 
-Frame::Frame( int frame_size, Value* param_info )
+Frame::Frame( int frame_size, Value* param_info, scope_type s )
 	{
+	scope = s;
 	size = frame_size;
 	missing = param_info ? param_info : empty_value();
 	values = new Value*[size];

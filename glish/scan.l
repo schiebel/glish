@@ -187,6 +187,7 @@ if		return TOK_IF;
 in		return TOK_IN;
 link		return TOK_LINK;
 local		return TOK_LOCAL;
+global		return TOK_GLOBAL;
 next|continue	statement_can_end = 1; return TOK_LOOP;
 only		return TOK_ONLY;
 print		return TOK_PRINT;
@@ -316,22 +317,32 @@ include		BEGIN(INCL); break;
 
 <INCL>\"[^"]*\"	{
 		yytext[yyleng - 1] = '\0';	// nuke trailing quote
-		char* filename = &yytext[1];	// skip leading quote
-		FILE* file = fopen( filename, "r" );
+		char* filename = which_include( &yytext[1] );	// skip leading quote
 
-		if ( ! file )
+		if ( ! filename )
 			error->Report( "can't open include file \"",
-					filename, "\"" );
-
+					&yytext[1], "\"" );
 		else
 			{
-			// Save current file information.
-			file_list.append( new InputFileInfo() );
-			input_file_name = strdup( filename );
-			YY_BUFFER_STATE incl_buf =
-				yy_create_buffer( file, YY_BUF_SIZE );
-			yy_switch_to_buffer( incl_buf );
-			new_file();
+			FILE* file = fopen( filename, "r" );
+
+			if ( ! file )
+				{
+				error->Report( "can't open include file \"",
+						filename, "\"" );
+				delete filename;
+				}
+			else
+				{
+				// Save current file information.
+				file_list.append( new InputFileInfo() );
+				input_file_name = filename;
+				YY_BUFFER_STATE incl_buf =
+					yy_create_buffer( file, YY_BUF_SIZE );
+				yy_switch_to_buffer( incl_buf );
+				new_file();
+				}
+
 			}
 
 		BEGIN(INITIAL);

@@ -19,6 +19,10 @@ class Notifiee;
 class ScriptClient;
 class Channel;
 
+// Searches "system.include.path" for the given file; returns a malloc()'d copy
+// of the path to the executable, which the caller should delete when
+// done with.
+char* which_include( const char* file_name );
 
 class Notification : public GlishObject {
 public:
@@ -49,8 +53,24 @@ declare(PDict,char);
 declare(PQueue,Notification);
 
 typedef PDict(Expr) expr_dict;
-declare(PList,expr_dict);
-typedef PList(expr_dict) scope_list;
+
+class Scope : public expr_dict {
+public:
+	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
+	scope_type GetScope() const { return scope; }
+	int WasGlobalRef(const char *c) const
+		{ return global_refs.Lookup(c) ? 1 : 0; }
+	void MarkGlobalRef(const char *c);
+	void ClearGlobalRef(const char *c);
+private:
+	scope_type scope;
+	Dict(int) global_refs;
+};
+
+declare(PList,Scope);
+typedef PList(Scope) scope_list;
+typedef PList(Frame) frame_list;
+typedef List(int) offset_list;
 
 
 class Sequencer {
@@ -64,11 +84,15 @@ public:
 
 	void QueueNotification( Notification* n );
 
-	void PushScope();
+	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
 
-	Expr* InstallID( char* id, scope_type scope );
-	Expr* LookupID( char* id, scope_type scope, int do_install = 1 );
+	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
+					int GlobalRef = 0, int FrameOffset = 0 );
+	Expr* LookupID( char* id, scope_type scope, int do_install = 1, int do_warn = 1 );
+
+	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
+	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
@@ -80,8 +104,8 @@ public:
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame* CurrentFrame();
 
-	Value* FrameElement( scope_type scope, int frame_offset );
-	void SetFrameElement( scope_type scope, int frame_offset,
+	Value* FrameElement( scope_type scope, int scope_offset, int frame_offset );
+	void SetFrameElement( scope_type scope, int scope_offset, int frame_offset,
 				Value* value );
 
 	// The last notification processed, or 0 if none received yet.
@@ -111,10 +135,15 @@ public:
 	// Returns 0 if the index is invalid.
 	Stmt* LookupStmt( int index );
 
-	// Return a channel to a daemon for managing clients on the given host.
-	Channel* GetHostDaemon( const char* host );
+	// Returns a non-zero value if the hostname is the local
+	// host, and zero otherwise
+	int LocalHost( const char* hostname );
 
-	void Exec();
+	// Return a channel to a daemon for managing clients on the given host.
+	// sets "err" to a non-zero value if an error occurs
+	Channel* GetHostDaemon( const char* host, int &err );
+
+	void Exec( int startup_script = 0 );
 
 	// Wait for an event in which await_stmt has expressed interest,
 	// though while waiting process any of the events in which
@@ -190,6 +219,8 @@ public:
 	// Returns a non-zero value if there are existing clients.
 	int ActiveClients() const	{ return num_active_processes > 0; }
 
+	scope_type GetScope() const;
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc );
@@ -198,7 +229,8 @@ protected:
 	void Parse( const char file[] );
 	void Parse( const char* strings[] );
 	RemoteDaemon* CreateDaemon( const char* host );
-	RemoteDaemon* OpenDaemonConnection( const char* host );
+	// Sets err to a non-zero value if an error occurred
+	RemoteDaemon* OpenDaemonConnection( const char* host, int &err );
 	void ActivateMonitor( char* monitor_client );
 	void Rendezvous( const char* event_name, Value* value );
 	void ForwardEvent( const char* event_name, Value* value );
@@ -214,9 +246,12 @@ protected:
 	ScriptClient* script_client;
 
 	scope_list scopes;
+	offset_list global_scopes;
+
+	frame_list frames;
+	offset_list global_frames;
 
 	value_list global_frame;
-	PList(Frame) local_frames;
 
 	int last_task_id;
 	PDict(Task) ids_to_tasks;
