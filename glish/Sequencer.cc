@@ -980,7 +980,7 @@ Frame* Sequencer::PopFrame( unsigned int howmany )
 			"local frame stack underflow in Sequencer::PopFrame" );
 
 	Frame *top_frame = 0;
-	for ( int i = top_frame_pos; howmany > 0; howmany-- )
+	for ( int i = top_frame_pos; howmany > 0; howmany--, i-- )
 		{
 		top_frame = frames.remove_nth( i );
 		if ( top_frame && top_frame->GetScopeType() != LOCAL_SCOPE )
