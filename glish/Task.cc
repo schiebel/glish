@@ -639,7 +639,7 @@ IValue* CreateTaskBuiltIn::SynchronousShell( const char* command,
 
 	if ( result )
 		{
-		IValue *stat_val = new IValue( status );
+		IValue *stat_val = new IValue( status >> 8 );
 		result->AssignAttribute( "status", stat_val );
 		Unref( stat_val );
 		}
