@@ -308,7 +308,7 @@ char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 			EXPR_DONE( v )
 			}
 
-		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, " {", buf, "}", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", buf, "}", 0 );
 		*buf = '\0';
 		}
 
@@ -781,7 +781,7 @@ void TkCanvas::UnMap()
 		}
 
 	if ( self )
-		Tcl_VarEval( tcl, Tk_PathName(self), " configure -xscrollcommand \"\"", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " config -xscrollcommand \"\"", 0 );
 
 	TkAgent::UnMap();
 	}

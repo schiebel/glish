@@ -345,6 +345,8 @@ class TkFrame : public TkRadioContainer {
 	TkAgent *tlead;
 	char *tpos;
 	int unmapped;
+
+	char *icon;
 	};
 
 class TkButton : public TkRadioContainer {
