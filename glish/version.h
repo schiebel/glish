@@ -1,1 +1,1 @@
-#define GLISH_VERSION "2.5.0.7c"
+#define GLISH_VERSION "2.5.0.8"
