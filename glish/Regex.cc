@@ -443,20 +443,21 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 
 				if ( splits )
 					{
-					int xlenx = len;
 					len += count * splits;
 					outs_len += count * splits;
 					outs = (char**) realloc_memory(outs, sizeof(char*)*(outs_len+1));
-					if (! swap_io ) { root = outs; root_len = outs_len; }
+
 					resized = 1;
 
-					if ( i+1 < xlenx && ! swap_io )
-						move_ptrs( &outs[outs_off+i+count*splits+1], &outs[outs_off+i+1], xlenx-i );
+					if ( outs_off+i+1 < root_len && ! swap_io )
+						move_ptrs( &outs[outs_off+i+count*splits+1], &outs[outs_off+i+1], root_len-i );
 
 					if ( free_it && ! swap_io ) free_str = outs[outs_off+i];
 
 					subst.split(&outs[outs_off+i],regx_buffer);
 					i += count * splits;
+
+					if (! swap_io ) { root = outs; root_len = outs_len; }
 					}
 				else
 					{
@@ -493,158 +494,6 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 		return match_count;
 		}
 	}
-
-#if 0
-IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, int free_it,
-		     int can_resize, char **alt_src )
-	{
-
-	if ( ! reg || ! match )
-		return (IValue*) Fail( "bad regular expression" );
-
-	int swap_io = 0;
-	int resized = 0;
-
-	if ( ! strs )
-		if ( alt_src )
-			swap_io = 1;
-		else
-			return 0;
-
-	match_count = 0;
-	int count = 0;
-
-	if ( subst.str() )
-		{
-		char **outs = strs;
-		int *mret = 0;
-
-		int splits = subst.splitCount();
-
-		if ( ! in_place || swap_io )
-			{
-			outs = (char**) alloc_memory(sizeof(char*)*len);
-			if ( swap_io ) strs = alt_src;
-			}
-		else 
-			{
-			if ( splits && ! can_resize )
-				{
-				splits = 0;
-				warn->Report( "line splitting requires resizing, can't do it" );
-				}
-			}
-
-		for ( int i=0,mc=0; i < len; ++i,++mc )
-			{
-			char *free_str = 0;
-			subst.splitReset();
-			char *dest = regx_buffer;
-			EVAL_ACTION( strs[ in_place && ! swap_io ? i : mc ], SUBST_PLACE_ACTION )
-
-			if ( subst.err() )
-				{
-				if ( free_str ) free_memory( free_str );
-				return (IValue*) Fail( subst.err() );
-				}
-
-			if ( count )
-				{
-				if ( s < s_end )
-					{
-					memcpy( dest, s, s_end - s );
-					dest += s_end - s;
-					}
-				*dest = '\0';
-
-				if ( splits )
-					{
-					int xlenx = len;
-					len += count * splits;
-					outs = (char**) realloc_memory(outs, sizeof(char*)*(len+1));
-					if ( in_place && ! swap_io ) strs = outs;
-					resized = 1;
-
-					if ( i+1 < xlenx && in_place && ! swap_io )
-						move_ptrs( &outs[i+count*splits+1], &outs[i+1], xlenx-i );
-
-					if ( in_place && free_it && ! swap_io ) free_str = outs[i];
-
-					subst.split(&outs[i],regx_buffer);
-					i += count * splits;
-					}
-				else
-					{
-					if ( in_place && free_it && ! swap_io ) free_memory(outs[i]);
-					outs[i] = strdup( regx_buffer );
-					}
-				}
-			else if ( ! in_place || swap_io )
-				{
-				if ( free_it && ! swap_io ) free_str = outs[i];
-				outs[i] = strdup(strs[ in_place && ! swap_io ? i : mc ]);
-				}
-
-			if ( free_str ) free_memory( free_str );
-
-			}
-
-		if ( resized || swap_io ) strs = outs;
-
-		return in_place ? 0 : new IValue(  (charptr*) outs, len );
-		}
-	else
-		{
-		int *r = (int*) alloc_memory( sizeof(int) * len );
-
-		for ( int i=0; i < len; ++i )
-			{
-			EVAL_ACTION( strs[i], )
-
-			r[i] = count;
-			}
-
-		return new IValue( r, len );
-		}
-	}
-
-
-int Regex::Eval( char *&string, RegexMatch *XMATCH, int in_place )
-	{
-
-	int count = 0;
-	if ( subst.str() )
-		{
-		if ( in_place )
-			{
-			char *dest = regx_buffer;
-			EVAL_ACTION( string, SUBST_PLACE_ACTION )
-
-			if ( count )
-				{
-				if ( s < s_end )
-					{
-					memcpy( dest, s, s_end - s );
-					dest += s_end - s;
-					}
-				*dest = '\0';
-
-				register char *tmp = string;
-				string = strdup( regx_buffer );
-				free_memory( tmp );
-				}
-
-			}
-		}
-	else
-		{
-		EVAL_ACTION( string, )
-
-		}
-
-	return count;
-	}
-#endif
 
 void Regex::Describe( OStream& s ) const
 	{

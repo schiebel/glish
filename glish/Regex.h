@@ -71,21 +71,6 @@ class Regex : public GlishObject {
 	Regex( const Regex &oth );
 	Regex( const Regex *oth );
 
-#if 0
-	//
-	// The latter two parameters are ONLY used when doing a substitution. Currently,
-	// this function is only used for substitutions; for it to be used for matches,
-	// the "return_matches" parameter would need to be reviewed.
-	//
-	IValue *Eval( char **&strs, int &len, RegexMatch *match=0, int in_place = 0, int free_it = 0,
-		      int can_resize = 0, char **alt_src = 0 /*, int return_matches = 0*/ );
-
-	//
-	// Lower level routines to allow a series of REs to be applied to
-	// each string. The latter allocates memory which must be freed.
-	//
-	int Eval( char *&string, RegexMatch *match=0, int in_place = 0 );
-#endif
 	//
 	// Always in_place and can_resize!! Returns (total) number of matches.
 	//

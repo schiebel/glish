@@ -769,10 +769,11 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 				if ( tlen > 1 )
 					{
 					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
-					move_ptrs( &indices[k+tlen-1], &indices[k+1], ilen-k-1 );
+					move_ptrs( &indices[k+tlen], &indices[k+1], ilen-k-1 );
 					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
 					ilen += tlen-1;
 					k += tlen-1;
+					for ( int Y=k+1; Y < ilen; ++Y ) indices[Y] += tlen-1;
 					}
 				}
 			match_count[j] = count;
@@ -795,10 +796,11 @@ IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&in
 				if ( tlen > 1 )
 					{
 					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
-					move_ptrs( &indices[k+tlen-1], &indices[k+1], ilen-k-1 );
+					move_ptrs( &indices[k+tlen], &indices[k+1], ilen-k-1 );
 					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
 					ilen += tlen-1;
 					k += tlen-1;
+					for ( int Y=k+1; Y < ilen; ++Y ) indices[Y] += tlen-1;
 					}
 				}
 			match_count[j] = count ? glish_true : glish_false;
