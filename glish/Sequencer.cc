@@ -688,6 +688,8 @@ void Sequencer::Exec( int startup_script )
 void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
+	int removed_yyin = 0;
+
 	Stmt* hold_await_stmt = await_stmt;
 	int hold_only_flag = await_only_flag;
 	Stmt* hold_except_stmt = except_stmt;
@@ -696,12 +698,16 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
 
-	if ( yyin && isatty( fileno( yyin ) ) )
+	if ( yyin && isatty( fileno( yyin ) ) && 
+			selector->FindSelectee( fileno( yyin ) ) )
+		{
 		selector->DeleteSelectee( fileno( yyin ) );
+		removed_yyin = 1;
+		}
 
 	EventLoop();
 
-	if ( yyin && isatty( fileno( yyin ) ) )
+	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
 	await_stmt = hold_await_stmt;
