@@ -68,7 +68,7 @@ class ValueKernel {
 
 		array_t() : type(TYPE_ERROR), length(0), alloc_bytes(0),
 				type_bytes(0), values(0), ref_count(1),
-				zero(0), copy(0) { DIAG2((void*)this,"\t\t\tarray_t alloc") }
+				zero(0), copy(0) { DIAG2((void*)this,"\t\tarray_t alloc") }
 		~array_t();
 	};
 
@@ -76,7 +76,7 @@ class ValueKernel {
 		recordptr record;
 		unsigned long ref_count;
 		void clear();
-		record_t() : record(0), ref_count(1) { DIAG2((void*)this,"\t\t\trecord_t alloc") }
+		record_t() : record(0), ref_count(1) { DIAG2((void*)this,"\t\trecord_t alloc") }
 		~record_t() { clear(); }
 	};
 
