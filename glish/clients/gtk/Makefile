@@ -26,6 +26,8 @@ install:
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
+	if test -d tkpgplot; then				\
+		(cd tkpgplot; $(MAKE) $$FLGS all); fi;		\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
 
 build: all
