@@ -18,7 +18,6 @@ RCSID("@(#) $Id$")
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/un.h>
 #include <sys/resource.h>

@@ -14,7 +14,10 @@ RCSID("@(#) $Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
+#if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
 
 int start_remote_daemon( const char *host )
 	{

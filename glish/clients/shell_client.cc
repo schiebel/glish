@@ -12,7 +12,6 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <wait.h>
 
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
