@@ -118,6 +118,7 @@ Boolean			ignoreErrors;	/* -i flag */
 Boolean			beSilent;	/* -s flag */
 Boolean			oldVars;	/* variable substitution style */
 Boolean			checkEnvFirst;	/* -e flag */
+Boolean			ackEvent;	/* -A flag */
 static Boolean		jobsRunning;	/* TRUE if the jobs might be running */
 
 static Boolean		ReadMakefile();
@@ -174,7 +175,7 @@ MainParseArgs(argc, argv)
 		argv[0] = "";		/* avoid problems in getopt */
 
 	optind = 1;	/* since we're called more than once */
-# define OPTFLAGS "D:I:d:ef::"
+# define OPTFLAGS "D:I:d:ef:A"
 rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		switch(c) {
 		case 'D':
@@ -233,6 +234,10 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
 			break;
 		}
+		case 'A':
+			ackEvent = TRUE;
+			Var_Append(MAKEFLAGS, "-N", VAR_GLOBAL);
+			break;
 		case 'e':
 			checkEnvFirst = TRUE;
 			Var_Append(MAKEFLAGS, "-e", VAR_GLOBAL);

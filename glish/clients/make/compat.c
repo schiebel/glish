@@ -81,7 +81,7 @@ static GNode	    *ENDNode;
 static void CompatInterrupt __P((int));
 static int GlishRunCommand __P((ClientData, ClientData));
 static int CompatMake __P((ClientData, ClientData));
-static void (*action_handler)(char*) = 0;
+static void (*action_handler)(char*,int) = 0;
 static void (*uptodate_handler)(char*) = 0;
 
 /*-
@@ -229,7 +229,7 @@ GlishRunCommand (cmdp, gnp)
     }
 
     if ( action_handler )
-        (*action_handler)( cmd );
+        (*action_handler)( cmd, (int) ackEvent );
     else
         printf("%s\n",cmd);
 
@@ -550,7 +550,7 @@ Compat_Run(targs)
 
 void
 bMake_SetActionHandler( func )
-    void (*func)(char*);
+    void (*func)(char*,int);
 {
     action_handler = func;
 }

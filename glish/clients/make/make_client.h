@@ -40,7 +40,7 @@ extern "C" {
 	/**  set the function which is called to
 	 **  perform each make action
 	 **/
-	void bMake_SetActionHandler( void (*)(char*) );
+	void bMake_SetActionHandler( void (*)(char*,int) );
 	/**  set the function which is called
 	 **  when a target is up to date
 	 **/

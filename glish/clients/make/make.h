@@ -336,6 +336,9 @@ extern Boolean 	queryFlag;    	/* TRUE if we aren't supposed to really make
 extern Boolean	checkEnvFirst;	/* TRUE if environment should be searched for
 				 * variables before the global context */
 
+extern Boolean	ackEvent;	/* TRUE if client should wait for a "complete"
+				 * event after each make "rule" is executed */
+
 extern GNode    *DEFAULT;    	/* .DEFAULT rule */
 
 extern GNode    *VAR_GLOBAL;   	/* Variables defined in a global context, e.g

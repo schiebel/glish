@@ -19,7 +19,7 @@ inline int streq( const char* a, const char* b )
         }
 
 static Client *client = 0;
-static void action_handler( char *cmd ) {
+static void action_handler( char *cmd, int ack ) {
 
     if ( ! cmd ) return;
     while ( isspace(*cmd) ) ++cmd;
@@ -35,6 +35,11 @@ static void action_handler( char *cmd ) {
 	Value *val = *cmd ? new Value( cmd ) : new Value( glish_true );
 	client->PostEvent( event, val );
 	Unref( val );
+	if ( ack ) {
+	    GlishEvent *e = client->NextEvent();
+	    if ( strcmp( e->name, "ack" ) )
+	        fprintf( stderr, "error \"%s\" taken as acknowledgement\n" );
+	}
     } else {
         printf( "%s\n", cmd );
     }
