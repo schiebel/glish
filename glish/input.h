@@ -35,7 +35,7 @@ extern int in_func_decl;
 
 extern void restart_yylex( FILE* input_file );
 extern void scan_strings( const char** strings );
-extern char *readline_read( const char prompt[], char history='\0' );
+extern char *readline_read( const char prompt[], int new_editor=1 );
 extern int interactive_read( FILE* file, const char prompt[], char buf[],
 				int max_size );
 

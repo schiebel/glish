@@ -20,28 +20,31 @@ void
 rl_ttyset(Reset)
     int				Reset;
 {
+    static int mucked = 0;
     static struct termios	old;
     struct termios		new;
 
-    if (Reset == 0) {
-	(void)tcgetattr(0, &old);
-	rl_erase = old.c_cc[VERASE];
-	rl_kill = old.c_cc[VKILL];
-	rl_eof = old.c_cc[VEOF];
-	rl_intr = old.c_cc[VINTR];
-	rl_quit = old.c_cc[VQUIT];
+    if ( Reset == 0 ) {
+        if ( ! mucked++ ) {
+	    (void)tcgetattr(0, &old);
+	    rl_erase = old.c_cc[VERASE];
+	    rl_kill = old.c_cc[VKILL];
+	    rl_eof = old.c_cc[VEOF];
+	    rl_intr = old.c_cc[VINTR];
+	    rl_quit = old.c_cc[VQUIT];
 #if	defined(DO_SIGTSTP) && defined(SIGTSTP)
-	rl_susp = old.c_cc[VSUSP];
+	    rl_susp = old.c_cc[VSUSP];
 #endif	/* defined(DO_SIGTSTP) */
 
-	new = old;
-	new.c_lflag &= ~(ECHO | ICANON | ISIG);
-	new.c_iflag &= ~(ISTRIP | INPCK);
-	new.c_cc[VMIN] = 1;
-	new.c_cc[VTIME] = 0;
-	(void)tcsetattr(0, TCSADRAIN, &new);
+	    new = old;
+	    new.c_lflag &= ~(ECHO | ICANON | ISIG);
+	    new.c_iflag &= ~(ISTRIP | INPCK);
+	    new.c_cc[VMIN] = 1;
+	    new.c_cc[VTIME] = 0;
+	    (void)tcsetattr(0, TCSADRAIN, &new);
+	}
     }
-    else
+    else if ( ! --mucked )
 	(void)tcsetattr(0, TCSADRAIN, &old);
 }
 

@@ -456,7 +456,7 @@ IValue* ReadlineBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 #endif
 		}
 
-	char *result = readline_read( prompt, 'A' );
+	char *result = readline_read( prompt );
 
 	if ( added_stdin )
 		{

@@ -72,7 +72,6 @@ typedef struct _HISTORY {
     int		Pos;
     CHAR	*Lines[HIST_SIZE];
 } HISTORY;
-#define History (*history_pointer)
 
 /*
 **  Globals.
@@ -91,34 +90,60 @@ int		rl_susp;
 STATIC int	rl_nodata = 0x100;
 
 STATIC CHAR		NIL[] = "";
-STATIC STRING		Input = NIL;
-STATIC CHAR		*Line;
-STATIC const char	*Prompt;
-STATIC CHAR		*Yanked;
-STATIC char		*Screen;
 STATIC char		NEWLINE[]= CRLF;
-STATIC HISTORY		H;
-STATIC HISTORY		ALT_H;
-STATIC HISTORY		*history_pointer = &H;
-STATIC int		Repeat;
-STATIC int		End;
-STATIC int		Mark;
-STATIC int		OldPoint;
-STATIC int		Point;
-STATIC int		PushBack;
-STATIC int		Pushed;
 STATIC int		Signal;
 FORWARD KEYMAP		Map[33];
 FORWARD KEYMAP		MetaMap[17];
-STATIC size_t		Length;
-STATIC size_t		ScreenCount;
-STATIC size_t		ScreenSize;
-STATIC char		*backspace;
 STATIC int		TTYwidth;
 STATIC int		TTYrows;
 
-STATIC CHAR		still_collecting_data = 0;
-STATIC CHAR		force_refresh = 0;
+/*
+** Allow re-entrant editing
+*/
+typedef struct _EDITOR {
+    STRING	Input;
+    CHAR	*Line;
+    const char	*Prompt;
+    CHAR	*Yanked;
+    char	*Screen;
+    HISTORY	History;
+    int		Repeat;
+    int		End;
+    int		Mark;
+    int		Point;
+    int		OldPoint;
+    int		PushBack;
+    int		Pushed;
+    size_t	Length;
+    size_t	ScreenCount;
+    size_t	ScreenSize;
+    char	*backspace;
+    CHAR	still_collecting_data;
+    CHAR	force_refresh;
+} EDITOR;
+
+STATIC EDITOR			default_editor;
+STATIC EDITOR			*Editor = &default_editor;
+
+#define Input			Editor->Input
+#define Line			Editor->Line
+#define Prompt			Editor->Prompt
+#define Yanked			Editor->Yanked
+#define Screen			Editor->Screen
+#define History			Editor->History
+#define Repeat			Editor->Repeat
+#define End			Editor->End
+#define Mark			Editor->Mark
+#define Point			Editor->Point
+#define OldPoint		Editor->OldPoint
+#define PushBack		Editor->PushBack
+#define Pushed			Editor->Pushed
+#define Length			Editor->Length
+#define ScreenCount		Editor->ScreenCount
+#define ScreenSize		Editor->ScreenSize
+#define backspace		Editor->backspace
+#define still_collecting_data	Editor->still_collecting_data
+#define force_refresh		Editor->force_refresh
 
 /* Display print 8-bit chars as `M-x' or as the actual 8-bit char? */
 int		rl_meta_chars = 1;
@@ -555,20 +580,17 @@ toggle_meta_mode()
 }
 
 
-/*
-** perhaps this should be expanded to have an arbitrary number
-** of histories... currently one alternative suffices...
-*/
-char set_history( char mode )
+void *set_editor( void *Edit )
 {
-    char last_history = history_pointer == &ALT_H ? 'A' : '\0';
+    EDITOR *old_edit = Editor;
+    force_refresh = 1;
+    Editor = (EDITOR*) Edit;
+    return old_edit;
+}
 
-    if ( mode == 'A' )
-        history_pointer = &ALT_H;
-    else
-        history_pointer = &H;
-
-    return last_history;
+void *create_editor( )
+{
+    return alloc_zero_memory( sizeof(EDITOR) );
 }
 
 STATIC CHAR *
@@ -1149,6 +1171,8 @@ readline(prompt)
     CHAR	*line;
     int		s;
 
+    if ( Input == NULL ) Input = NIL;
+
     if (Line == NULL) {
 	Length = MEM_INC;
 	if ((Line = alloc_char(Length)) == NULL)
@@ -1231,6 +1255,8 @@ nb_readline(prompt)
 {
     CHAR	*line;
     int		s;
+
+    if ( Input == NULL ) Input = NIL;
 
     if (Line == NULL) {
 	Length = MEM_INC;

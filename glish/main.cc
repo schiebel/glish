@@ -95,8 +95,9 @@ extern "C" {
 	char *nb_readline( const char * );
 	extern char *rl_data_incomplete;
 	void add_history( char * );
-	char set_history( char mode );
 	void nb_readline_cleanup();
+	void *create_editor( );
+	void *set_editor( void * );
 }
 #endif
 
@@ -302,7 +303,7 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 		return 0;
 	}
 
-char *readline_read( const char *prompt, char history )
+char *readline_read( const char *prompt, int new_editor )
 	{
 #ifndef __GNUC__
         static int did_sync = 0;
@@ -314,11 +315,12 @@ char *readline_read( const char *prompt, char history )
 #endif
 
 	char* ret;
-	char last_history = '\0';
+	void *last_editor = 0;
+
 	//
-	// tell readline to use the alternate history
+	// tell readline to create a new editor environment?
 	//
-	if ( history ) last_history = set_history(history);
+	if ( new_editor ) last_editor = set_editor( create_editor( ) );
 
 	ret = nb_readline( prompt );
 
@@ -330,7 +332,7 @@ char *readline_read( const char *prompt, char history )
 
 	if ( ret && *ret ) add_history( ret );
 
-	if ( history ) set_history(last_history);
+	if ( last_editor ) free_memory( set_editor( last_editor ) );
 
 	return ret;
 	}
@@ -338,7 +340,7 @@ char *readline_read( const char *prompt, char history )
 int interactive_read( FILE* /* file */, const char prompt[], char buf[],
 			int max_size )
 	{
-	return fmt_readline_str( buf, max_size, readline_read(prompt) );
+	return fmt_readline_str( buf, max_size, readline_read(prompt,0) );
 	}
 
 #endif
