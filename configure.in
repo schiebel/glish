@@ -245,10 +245,10 @@ dnl##
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h)
-AC_CHECK_HEADERS(sys/signal.h nan.h fp.h)
+AC_CHECK_HEADERS(sys/signal.h fp.h)
 AC_CHECK_HEADERS(sys/time.h)
 AC_CHECK_HEADERS(stdlib.h)
-AC_CHECK_HEADERS(dirent.h termio.h)
+AC_CHECK_HEADERS(dirent.h termio.h sys/shm.h)
 
 dnl##
 dnl## Checks for typedefs, structures, and compiler characteristics.
@@ -267,7 +267,7 @@ AC_CHECK_LIB(socket, main)
 AC_CHECK_LIB(inet, main)
 AC_CHECK_LIB(nsl, main)
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr isnan)
+AC_CHECK_FUNCS(gethostname setrlimit waitpid strdup setsockopt random lrand48 flock lockf sigprocmask uname tcgetattr shmget)
 
 dnl##--------------------------------------------------------------------
 dnl##
@@ -420,26 +420,6 @@ AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
     AC_DEFINE(GETTOD_NOT_DECLARED)
 ])
-
-dnl##
-dnl## Look for the stat of NaN. The order of preference is
-dnl## NaN(), IS_NAN(), and finally isnam().
-dnl##
-AC_MSG_CHECKING(for NaN)
-AC_EGREP_CPP(^%%%~yes~indeed~%%%$,
-[#include <nan.h>
-#ifdef NaN
-%%%~yes~indeed~%%%
-#endif
-], [AC_MSG_RESULT(yes); AC_DEFINE(HAVE_NAN)],AC_MSG_RESULT(no))
-
-AC_MSG_CHECKING(for IS_NAN)
-AC_EGREP_CPP(^%%%~yes~indeed~%%%$,
-[#include <fp.h>
-#ifdef IS_NAN
-%%%~yes~indeed~%%%
-#endif
-], [AC_MSG_RESULT(yes); AC_DEFINE(HAVE_IS_NAN)],AC_MSG_RESULT(no))
 
 dnl##
 dnl##  Add in AIX flags
