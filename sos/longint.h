@@ -20,7 +20,7 @@ extern int sos_big_endian;
 //
 class long_int_init;
 class long_int {
-	friend long_int_init;
+	friend class long_int_init;
     public:
 	// higher order followed by lower order
 	long_int(unsigned int i1, unsigned int i0) : data(data_)
