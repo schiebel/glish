@@ -54,7 +54,7 @@ class Dictionary GC_FINAL_CLASS {
 		{ return ! order || n < 0 || n >= num_entries ? 0 : (*order)[n]->value; }
 
 	void* NthEntry( int n, const char*& key ) const
-		{ register DictEntry* entry;
+		{ register DictEntry* entry = 0;
 	  	  return ! order || n < 0 || n >= num_entries ? 0 :
 		         (key = ((entry=(*order)[n])->key)), entry->value; }
 
