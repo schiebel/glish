@@ -34,8 +34,6 @@ RCSID("@(#) $Id$")
 extern "C" int writev(int, const struct iovec *, int);
 #endif
 
-// linux sets IOV_MAX (or some other) but lies,
-// 16 is the best that is supported
 #if defined(__alpha) || defined(__linux__)
 #define MAXIOV 16
 #else
@@ -51,7 +49,6 @@ extern "C" int writev(int, const struct iovec *, int);
 #endif
 
 sos_status *sos_err_status = (sos_status*) -1;
-sos_write_buf_factory *sos_fd_sink::buf_factory = 0;
 
 struct final_info GC_FREE_CLASS {
 	final_info( final_func f, void * d ) : func(f), data(d) { }
@@ -188,47 +185,14 @@ sos_fd_buf_kernel *sos_fd_buf::add( )
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-unsigned char *sos_write_buf::append( int size )
-	{
-	if ( ! buffer )
-		{
-		buffer_len = 1024;
-		while ( buffer_len < size ) buffer_len *= 2;
-		buffer = (unsigned char*) alloc_memory( buffer_len );
-		}
-
-	if ( buffer_len - buffer_off < size )
-		{
-		while ( buffer_len - buffer_off < size ) buffer_len *= 2;
-		buffer = (unsigned char*) realloc_memory( buffer, buffer_len );
-		}
-
-	unsigned char *ret = &buffer[buffer_off];
-	buffer_off += size;
-	return ret;
-	}
-
-sos_write_buf *sos_write_buf_factory::get( )
-	{
-	int len = free_stack.length( );
-
-	if ( len <= 0 )
-		return new sos_write_buf;
-
-	sos_write_buf *ret = free_stack.remove_nth( len - 1 );
-	ret->reset( );
-	return ret;
-	}
-
-sos_fd_sink::sos_fd_sink( int fd__, sos_common *c ) : sos_sink(c), sent(0), start(0), buf_holder(0),
-					fd_(fd__), fill(0), out(0), buffer_written(0) { }
+sos_fd_sink::sos_fd_sink( int fd__, sos_common *c ) : sos_sink(c), sent(0), start(0), buf_holder(0), fd_(fd__) { }
 
 void sos_fd_sink::setFd( int fd__ )
 	{
 	fd_ = fd__;
 	}
 
-sos_status *sos_fd_sink::write_iov( const unsigned char *cbuf, unsigned int len, buffer_type type )
+sos_status *sos_fd_sink::write( const unsigned char *cbuf, unsigned int len, buffer_type type )
 	{
 	if ( fd_ < 0 ) return 0;
 
@@ -279,96 +243,74 @@ void sos_fd_sink::reset( )
 	while ( (K = buf.next()) );
 	}
 
-sos_status *sos_fd_sink::write_buf( const unsigned char *cbuf, unsigned int len )
-	{
-	if ( fd_ < 0 ) return 0;
-
-	if ( ! fill )
-		{
-		if ( ! buf_factory ) buf_factory = new sos_write_buf_factory;
-		fill = buf_factory->get( );
-		}
-
-	if ( common && (*fill).length( ) == 0 && common->remote_version() > 1 )
-		(*fill).append( SOS_HEADER_SIZE );
-
-	(*fill).append( cbuf, len );
-
-	return 0;
-	}
-
 sos_status *sos_fd_sink::flush( )
 	{
+	sos_fd_buf_kernel *K = buf.first();
 
-	if ( ! fill ) return 0;
-
-	// nothing to flush
-	if ( (*fill).length( ) <= 0 )
+	int done = 0;
+	while ( K && K->cnt > 0 )
 		{
-		buf_factory->put( fill );
-		fill = 0;
-		return 0;
-		}
+		done += 1;
+		struct iovec *iov = K->iov;
+		unsigned int needed = K->total - sent;
+		unsigned int buckets = K->cnt - start;
+		int cur = 0;
 
-	if ( common && common->remote_version() > 1 )
-		{
-		sos_header header( (*fill).get( ) );
-		header.set_version_override( 255 );
-		header.set_length_override( (*fill).length( ) - SOS_HEADER_SIZE );
-		header.stamp( );
-		}
-
-	if ( out )
-		out_queue.append( fill );
-	else
-		out = fill;
-			  
-	fill = 0;
-	return resume( );
-	}
-
-sos_status *sos_fd_sink::resume( )
-	{
-
-	if ( ! out && out_queue.length( ) > 0 )
-		out = out_queue.remove_nth(0);
-
-	if ( ! out ) return 0;
-
-	errno = 0;
-	int cur = 0;
-	int needed = (*out).length( ) - buffer_written;
-	if ( (cur = ::write( fd_, &(*out).get( )[buffer_written], needed )) < needed || cur < 0 )
-		{
-		if ( cur < 0 )
+		if ( (cur = writev( fd_, &iov[start], buckets )) < (int) needed  || cur < 0 )
 			{
-			// resource temporarily unavailable OR
-			// operation would block
-			if ( errno == EAGAIN ) return this;
-			if ( errno == EPIPE )
+			if ( cur < 0 )
 				{
-				// error, pipe closed
-				buf_factory->put( out );
-				buffer_written = 0;
+				sos_fd_buf_kernel *l = buf.last();
+				if ( l->cnt >= l->size ) buf.add( );
+				// resource temporarily unavailable OR
+				// operation would block
+				if ( errno == EAGAIN ) return this;
+				// broken pipe
+				if ( errno == EPIPE ) { reset(); return 0; }
+				perror( "sos_fd_sink::flush( )" );
 				return 0;
 				}
-			perror( "sos_fd_sink::flush( )" );
-			return 0;
+
+			unsigned int old_start = start;
+
+			unsigned int cnt;
+			for ( cnt = iov[start].iov_len; (int) cnt < cur; cnt += iov[++start].iov_len );
+
+			// if we've stopped on a bucket boundary (as linux
+			// likes to do), we must bump the start counter
+			if ( (int) cnt == cur ) start++;
+
+			if ( buf_holder && old_start != start )
+				{
+				iov[old_start].iov_base = (char*) buf_holder;
+				buf_holder = 0;
+				}
+
+			if ( (int) cnt > cur )
+				{
+				if ( ! buf_holder ) buf_holder = iov[start].iov_base;
+				iov[start].iov_base = (char *)(iov[start].iov_base) +
+							       iov[start].iov_len - (cnt - cur);
+				iov[start].iov_len = cnt - cur;
+				}
+
+			sent += cur;
+
+			sos_fd_buf_kernel *l = buf.last();
+			if ( l->cnt >= l->size ) buf.add( );
+			return this;
 			}
 
-		buffer_written += cur;
-		return this;
+		if ( buf_holder )
+			{
+			iov[start].iov_base = (char*) buf_holder;
+			buf_holder = 0;
+			}
+
+		start = sent = 0;
+		K = buf.next( );
 		}
 
-	buf_factory->put( out );
-	buffer_written = 0;
-	if ( out_queue.length( ) > 0 )
-		{
-		out = out_queue.remove_nth(0);
-		return resume( );
-		}
-
-	out = 0;
 	return 0;
 	}
 
@@ -406,88 +348,18 @@ unsigned int sos_fd_source::read( unsigned char *buf, unsigned int len )
 	unsigned int needed = len;
 	unsigned int total = 0;
 
-	if ( buffer && buffer_len > 0 )
-		{
-		int remains = buffer_len - buffer_off;
-		if ( len < remains )
-			{
-			memcpy( buf, &buffer[buffer_off], len );
-			buffer_off += len;
-			return len;
-			}
-		else if ( len == remains )
-			{
-			memcpy( buf, &buffer[buffer_off], len );
-			buffer_off = 0;
-			buffer_len = 0;
-			return len;
-			}
-		else
-			{
-			// error, bytes requested did not match byte bundle boundary
-			// recover and read from pipe...
-			fprintf( stderr, "inconsistency in buffer management, sos_fd_source::read (%d)\n", getpid() );
-			memcpy( buf, &buffer[buffer_off], remains );
-			total += remains;
-			buf += remains;
-			needed -= remains;
-			free_memory( buffer );
-			buffer = 0;
-			buffer_len = 0;
-			buffer_size = 0;
-			}
-		}
-
 	errno = 0;
 	register int cur = 0;
-	unsigned char *ptr = buf;
-	while ( needed && ((cur = ::read( fd_, ptr, needed )) > 0 || errno == EAGAIN ) )
+	while ( needed && ((cur = ::read( fd_, buf, needed )) > 0 || errno == EAGAIN ) )
 		{
 		if ( cur < 0 && errno == EAGAIN ) continue;
 		total += cur;
-		ptr += cur;
+		buf += cur;
 		needed -= cur;
 		if ( total >= len ) needed = 0;
 		}
 
 	if ( cur < 0 ) perror("sos_fd_source::read()");
-
-	if ( try_buffer_io && len == SOS_HEADER_2_SIZE && *((unsigned char*) buf) == 255 )
-		{
-		sos_header header(buf);
-		total = 0;
-		errno = 0;
-		cur = 0;
-
-		buffer_len = needed = header.length();
-
-		if ( ! buffer )
-			{
-			buffer_size = 1024;
-			while ( buffer_size < needed ) buffer_size *= 2;
-			buffer = (unsigned char*) alloc_memory( buffer_size );
-			}
-		else if ( buffer_size < needed )
-			{
-			while ( buffer_size < needed ) buffer_size *= 2;
-			buffer = (unsigned char*) realloc_memory( buffer, buffer_size );
-			}
-			
-		ptr = buffer;
-		while ( needed && ((cur = ::read( fd_, ptr, needed )) > 0 || errno == EAGAIN ) )
-			{
-			if ( cur < 0 && errno == EAGAIN ) continue;
-			total += cur;
-			ptr += cur;
-			needed -= cur;
-			if ( total >= buffer_len ) needed = 0;
-			}
-
-		memcpy( buf, buffer, SOS_HEADER_2_SIZE );
-		total = buffer_off = SOS_HEADER_2_SIZE;
-		}
-	else
-		try_buffer_io = 0;
 
 	return total;
 	}
@@ -741,10 +613,6 @@ void *sos_in::get( unsigned int &len, sos_code &type )
 		unread( head.iBuffer() + SOS_HEADER_0_SIZE, SOS_HEADER_SIZE - SOS_HEADER_0_SIZE );
 		head.adjust_version( );
 		}
-	else if ( head.version( ) == 1 )
-		{
-		if ( in ) in->set_remote_version( 1 );
-		}
 
 	type = head.type();
 	len = head.length();
@@ -774,10 +642,6 @@ void *sos_in::get( unsigned int &len, sos_code &type, sos_header &h )
 		if ( in ) in->set_remote_version( 0 );
 		unread( head.iBuffer() + SOS_HEADER_0_SIZE, SOS_HEADER_SIZE - SOS_HEADER_0_SIZE );
 		head.adjust_version( );
-		}
-	else if ( head.version( ) == 1 )
-		{
-		if ( in ) in->set_remote_version( 1 );
 		}
 
 	type = head.type();

@@ -104,47 +104,14 @@ class sos_fd_buf GC_FINAL_CLASS {
 	sos_buf_list buf;
 };
 
-
-class sos_write_buf {
-    public:
-	sos_write_buf( ) : buffer(0), buffer_off(0), buffer_len(0) { }
-
-	int length( ) const { return buffer_off; }
-
-	unsigned char *append( int size );
-	void append( const unsigned char *buf, int size )
-		{ memcpy( append(size), buf, size ); }
-
-	unsigned char *get( ) { return buffer; }
-
-	void reset( ) { buffer_off = 0; }
-
-    private:
-	unsigned char *buffer;
-	int   buffer_off;
-	int   buffer_len;
-};
-
-sos_declare(PList,sos_write_buf);
-typedef PList(sos_write_buf) sos_write_buf_list;
-
-class sos_write_buf_factory {
-    public:
-	sos_write_buf *get( );
-	void put( sos_write_buf *b ) { free_stack.append(b); }
-    private:
-	sos_write_buf_list free_stack;
-};
-
 class sos_fd_sink : public sos_sink {
     public:
 	sos_fd_sink( int fd_ = -1, sos_common *c=0 );
-	sos_status *write( const unsigned char *b, unsigned int l, buffer_type t = HOLD )
-		{ return write_buf(b,l); }
+	sos_status *write( const unsigned char *, unsigned int, buffer_type type = HOLD );
 	sos_status *flush( );
 
 	void finalize( final_func, void * );
-	sos_status *resume( );
+	sos_status *resume( ) { return flush(); }
 
 	//
 	// set fd state for blocking or nonblocking writes
@@ -161,9 +128,6 @@ class sos_fd_sink : public sos_sink {
 	unsigned int remaining() { return buf.total() - sent; }
 
     private:
-	sos_status *write_iov( const unsigned char *, unsigned int, buffer_type type = HOLD );
-	sos_status *write_buf( const unsigned char *, unsigned int );
-
 	void reset();
 	// how much have we already sent
 	unsigned int sent;
@@ -175,20 +139,11 @@ class sos_fd_sink : public sos_sink {
 	sos_fd_buf buf;
 
 	int fd_;
-
-	static sos_write_buf_factory *buf_factory;
-	sos_write_buf_list out_queue;
-
-	sos_write_buf *fill;
-	sos_write_buf *out;
-	int   buffer_written;
 };
 
 class sos_fd_source : public sos_source {
     public:
-	sos_fd_source( int fd__ = -1, sos_common *c=0 ) : sos_source(c), fd_(fd__), try_buffer_io(1),
-					buffer(0), buffer_off(0), buffer_len(0), buffer_size(0) { }
-
+	sos_fd_source( int fd__ = -1, sos_common *c=0 ) : sos_source(c), fd_(fd__) { }
 	unsigned int read( unsigned char *, unsigned int );
 
 	~sos_fd_source();
@@ -197,11 +152,6 @@ class sos_fd_source : public sos_source {
 	int fd() { return fd_; }
     private:
 	int fd_;
-	int   try_buffer_io;
-	unsigned char *buffer;
-	int   buffer_off;
-	int   buffer_len;	// filled
-	int   buffer_size;	// allocated
 };
 
 class sos_out GC_FINAL_CLASS {
