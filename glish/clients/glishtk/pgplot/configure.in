@@ -24,6 +24,7 @@ AC_ARG_ASSIGN(script-dir-tcl,      [  --script-dir-tcl=SCRIPT_DIR  directory for
 AC_ARG_ASSIGN(load-dir,            [  --load-dir=LOAD_DIR          directory for loadable shared objects])
 AC_ARG_ASSIGN(tcl-includes,        [  --tcl-includes=DIR           system tcl and tk include files are in DIR])
 AC_ARG_ASSIGN(tcl-libraries,       [  --tcl-libraries=DIR          system tcl and tk libraries are in DIR])
+AC_ARG_ENABLE(pgplot,              [  --enable-pgplot              build pgplot])
 AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags    PGPLOT include flags])
 AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags    PGPLOT link flags])
 AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags   PGPLOT search flags])
@@ -1133,6 +1134,9 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,-rpath,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -1336,7 +1340,8 @@ case $host_os in
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
-	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -lX11"
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
+	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -1395,7 +1400,7 @@ case $host_os in
 	    GLISH_LD_SEARCH=`echo $GLISH_LD_SEARCH | sed 's/:/ -L/g'`
 	fi
 
-	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lpgplot $TK_LIB -lX11"
+	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -lX11"
 	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -lX11"
 	;;
 esac
