@@ -1101,6 +1101,14 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 		}
 
 	EventLoop();
+	//
+	// Sometimes, i.e. an await on a TkAgent, the queue still has an
+	// event for that agent in it. This clears out the queue. So that
+	// the queue doesn't contain references to deleted values. At some
+	// point, this should be explored a bit more.
+	//
+	if ( NotificationQueueLength() )
+		RunQueue();
 
 	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -1717,6 +1725,7 @@ void Sequencer::EventLoop()
 	while ( ActiveClients() && ! selector->DoSelection() )
 #endif
 		RunQueue();
+
 	}
 
 

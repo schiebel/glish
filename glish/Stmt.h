@@ -165,8 +165,6 @@ class AwaitStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
 
-	int canDelete() const;
-
 	~AwaitStmt();
 
     protected:

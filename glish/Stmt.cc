@@ -292,11 +292,6 @@ void UnLinkStmt::LinkAction( Task* src, IValue* v )
 	}
 
 
-int AwaitStmt::canDelete() const
-	{
-	return 0;
-	}
-
 AwaitStmt::~AwaitStmt()
 	{
 	NodeUnref( except_stmt );
