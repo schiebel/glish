@@ -33,6 +33,8 @@ class TkProc;
 glish_declare(PDict,TkProc);
 typedef PDict(TkProc) tkprochash;
 
+#define NULL_TkProc ((TkProc*) -1)
+
 //###  Function to do Argv Eval
 extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
 
