@@ -342,7 +342,7 @@ expression:
 	|	expression '(' opt_actual_param_list ')'
 			{ $$ = new CallExpr( $1, $3 ); }
 
-	|	value_type expression	%prec '!'
+	|	value_type expression	%prec '^'
 			{ $$ = new RefExpr( $2, $1 ); }
 
 	|	TOK_REQUEST event '(' actual_param_list ')'

@@ -1094,7 +1094,9 @@ void ArrayRefExpr::Assign( IValue* new_value )
 	IValue* lhs_value_ref = op->RefEval( VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
 
-	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() )
+	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
+	     lhs_value_ref->VecRefDeref()->Type() != TYPE_RECORD &&
+	     (lhs_value_ref->IsModConst() || lhs_value->IsModConst()) )
 		{
 		error->Report( "'const' values cannot be modified." );
 		Unref( lhs_value_ref );
@@ -1277,7 +1279,8 @@ void RecordRefExpr::Assign( IValue* new_value )
 	IValue* lhs_value_ref = op->RefEval( VAL_REF );
 	IValue* lhs_value = (IValue*)(lhs_value_ref->Deref());
 
-	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() )
+	if ( lhs_value_ref->IsConst() || lhs_value->VecRefDeref()->IsConst() ||
+	     lhs_value_ref->IsRefConst() || lhs_value->VecRefDeref()->IsRefConst() )
 		{
 		error->Report( "'const' values cannot be modified." );
 		Unref( lhs_value_ref );
@@ -1509,12 +1512,7 @@ IValue* RefExpr::Eval( eval_type /* etype */ )
 	IValue *val = op->RefEval( type );
 
 	if ( type == VAL_CONST )
-		{
-		if ( val->VecRefDeref()->Type() == TYPE_RECORD )
-			val->VecRefDeref()->MakeFieldConst( );
-		else if ( val->Type() == TYPE_REF )
-			val->MakeConst();
-		}
+		val->MakeModConst();
 
 	return val;
 	}

@@ -121,18 +121,22 @@ Value::Value( Value* ref_value, value_type val_type )
 	DIAG2( (void*) this, "Value( Value*, value_type )" )
 	InitValue();
 
-	int is_const = ref_value->IsConst();
+	int is_const = ref_value->IsConst() | ref_value->IsRefConst();
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
 		fatal->Report( "bad value_type in Value::Value" );
 
 	ref_value = ref_value->Deref();
-	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst();
+	is_const |= ref_value->IsConst() | ref_value->VecRefDeref()->IsConst() |
+			ref_value->IsRefConst() | ref_value->VecRefDeref()->IsRefConst();
 
 	Ref( ref_value );
 	kernel.SetValue(ref_value);
 
-	if ( val_type == VAL_CONST || is_const )
+	if ( val_type == VAL_CONST )
 		kernel.MakeConst();
+	else if ( is_const )
+		kernel.MakeModConst();
+	
 
 	attributes = ref_value->CopyAttributePtr();
 	}

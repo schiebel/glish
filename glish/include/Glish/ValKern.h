@@ -87,7 +87,7 @@ class ValueKernel {
 	inline unsigned int REF( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
 	inline unsigned int OPAQUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
-	inline unsigned int FIELD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
+	inline unsigned int MOD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
 
 	union {
 		array_t *array;
@@ -124,9 +124,9 @@ class ValueKernel {
     public:
 
 	void MakeConst() { mode |= CONST(); }
-	void MakeFieldConst() { mode |= FIELD_CONST(); }
+	void MakeModConst() { mode |= MOD_CONST(); }
 	int IsConst() const { return CONST(mode); }
-	int IsFieldConst() const { return FIELD_CONST(mode); }
+	int IsModConst() const { return MOD_CONST(mode); }
 
 	ValueKernel() : array(0), mode(0) { }
 	ValueKernel( const ValueKernel &v ) : mode( v.mode & ~ CONST() ),

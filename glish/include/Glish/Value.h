@@ -193,10 +193,12 @@ public:
 	int IsConst() const { return kernel.IsConst(); }
 	void MakeConst() { kernel.MakeConst(); }
 
-	// A record to which no new values can be added
-	int IsFieldConst() const { return kernel.IsFieldConst(); }
-	void MakeFieldConst() { kernel.MakeFieldConst(); }
-
+	// A value can be reassigned, but not changed, e.g. by array operations
+	void MakeModConst() { kernel.MakeModConst(); }
+	int IsModConst() const { return kernel.IsModConst(); }
+	int IsFieldConst() const { return Type() == TYPE_RECORD && IsModConst(); }
+	int IsRefConst() const { return Type() == TYPE_REF && IsModConst(); }
+  
 	// True if the value is a sub-vector reference.
 	int IsVecRef() const { return kernel.Type() == TYPE_SUBVEC_REF; }
 
