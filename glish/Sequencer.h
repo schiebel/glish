@@ -205,6 +205,8 @@ extern int glish_dummy_int;
 
 class Sequencer {
 public:
+	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
+
 	friend class SystemInfo;
 	Sequencer( int& argc, char**& argv );
 	~Sequencer();
@@ -500,6 +502,7 @@ protected:
 	char *name;
 	char *interpreter_path;
 	int verbose;
+	unsigned int verbose_mask;
 	int my_id;
 
 	void SystemChanged( );

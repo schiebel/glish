@@ -30,6 +30,12 @@ const char* type_names[NUM_GLISH_TYPES] =
 
 const Value* false_value = 0;
 
+#define INIT_VALUE_ACTION		\
+	description = 0;		\
+	value_manager = 0;		\
+	attributes = 0;			\
+	++num_Values_created;
+
 class DelObj : public GlishObject {
 public:
 	DelObj( GlishObject* arg_obj )	{ obj = arg_obj; ptr = 0; cptr = 0; }
@@ -55,14 +61,19 @@ DelObj::~DelObj()
 Value::Value( )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
-	InitValue();
+	INIT_VALUE_ACTION
 	kernel.SetFail( );
+	}
+
+Value::Value( glish_type )
+	{
+	INIT_VALUE_ACTION
 	}
 
 Value::Value( const char *message, const char *file, int lineNum )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
-	InitValue();
+	INIT_VALUE_ACTION
 	kernel.SetFail( );
 
 	if ( file && file[0] )
@@ -80,7 +91,7 @@ Value::Value( const char *message, const char *file, int lineNum )
 Value::Value( constructor_type value )					\
 	{								\
 	DIAG4( (void*) this, "Value(", #constructor_type,")" )		\
-	InitValue();							\
+	INIT_VALUE_ACTION						\
 	kernel.SetArray( &value, 1, 1 );				\
 	}
 
@@ -88,7 +99,7 @@ Value::Value( constructor_type value )					\
 Value::Value( constructor_type value[], int len, array_storage_type s ) \
 	{								\
 	DIAG4( (void*) this, "Value(", #constructor_type, "[] )" )	\
-	InitValue();							\
+	INIT_VALUE_ACTION						\
 	kernel.SetArray( value, len, s == COPY_ARRAY || s == PRESERVE_ARRAY ); \
 	}
 
@@ -96,7 +107,7 @@ Value::Value( constructor_type value[], int len, array_storage_type s ) \
 Value::Value( constructor_type& value_ref )				\
 	{								\
 	DIAG4( (void*) this, "Value(", #constructor_type, "& )" )	\
-	InitValue();							\
+	INIT_VALUE_ACTION						\
 	SetValue( value_ref );						\
 	}
 
@@ -118,7 +129,7 @@ DEFINE_CONSTRUCTORS(charptr,charptrref)
 Value::Value( recordptr value )
 	{
 	DIAG2( (void*) this, "Value( recordptr )" )
-	InitValue();
+	INIT_VALUE_ACTION
 	kernel.SetRecord( value );
 	}
 
@@ -126,7 +137,7 @@ Value::Value( recordptr value )
 Value::Value( Value* ref_value, value_type val_type )
 	{
 	DIAG2( (void*) this, "Value( Value*, value_type )" )
-	InitValue();
+	INIT_VALUE_ACTION
 
 	int is_const = ref_value->IsConst() | ref_value->IsRefConst();
 	if ( val_type != VAL_CONST && val_type != VAL_REF )
@@ -152,7 +163,7 @@ Value::Value( Value* ref_value, int index[], int num_elements,
 		value_type val_type, int take_index )
 	{
 	DIAG2( (void*) this, "Value( Value*, int[], int, value_type )" )
-	InitValue();
+	INIT_VALUE_ACTION
 	SetValue( ref_value, index, num_elements, val_type, take_index );
 	attributes = ref_value->CopyAttributePtr();
 	}
@@ -247,15 +258,6 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 	if ( val_type == VAL_CONST )
 		kernel.MakeConst( );
 
-	}
-
-
-void Value::InitValue()
-	{
-	description = 0;
-	value_manager = 0;
-	attributes = 0;
-	++num_Values_created;
 	}
 
 

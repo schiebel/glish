@@ -1032,7 +1032,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0),
 							system(this), system_change_count(1),
-							run_file(0), doing_pager(0), expanded_name(0)
+							run_file(0), doing_pager(0), expanded_name(0),
+							verbose_mask(0)
 	{
 	cur_sequencer = this;
 
@@ -1161,6 +1162,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
+
+		else if ( ! strcmp( argv[0], "-vi" ) )
+			verbose_mask |= VERB_INCL();
 
 		else if ( ! strcmp( argv[0], "-w" ) )
 			++allwarn;
@@ -2930,6 +2934,9 @@ IValue *Sequencer::Include( const char *file )
 		expanded_name = 0;
 		return error_ivalue();
 		}
+
+	if ( VERB_INCL(verbose_mask) )
+		cerr << "vi " << expanded_name << endl;
 
 	Str *old_file_name = file_name;
 	Str new_file_name(file);

@@ -605,7 +605,7 @@ public:
 
 protected:
 
-	Value ( glish_type ) { }		// for IValue
+	Value( glish_type );
 
 	void SetValue( glish_boolref& value_ref );
 	void SetValue( byteref& value_ref );
@@ -622,9 +622,6 @@ protected:
 
 	virtual void DeleteValue();
 	void DeleteAttributes();
-
-	void InitValue();
-	void InitRecord( recordptr r );
 
 	void InitAttributes()
 		{

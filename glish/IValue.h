@@ -159,9 +159,6 @@ public:
 protected:
 	void DeleteValue();
 
-	void InitRecord( recordptr r );
-	void InitRecord( recordptr r, Agent* agent = 0 );
-
 	// ** NOTE THIS CAN PROBABLY BE REMOVED, BUT IT IS LEFT IN FOR NOW **
 	// Does the actual work of assigning a list of array elements,
 	// once type-checking has been done.

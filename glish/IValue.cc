@@ -109,7 +109,6 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
-	InitValue();
 	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
@@ -117,14 +116,12 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
 	{
-	InitValue();
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY,
 			 copy_funcs, 0, delete_funcs );
 	}
 
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
-	InitValue();
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
 		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
@@ -137,7 +134,6 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 
 IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
 	{
-	InitValue();
 	value->Insert( strdup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
 
