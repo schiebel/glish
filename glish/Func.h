@@ -36,6 +36,12 @@ class Parameter : public GlishObject {
 	Parameter( const char* name, value_type parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0,
 			int is_empty = 0 );
+	Parameter( char* name, value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 );
+	Parameter( value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 );
 
 	const char* Name() const		{ return name; }
 	value_type ParamType() const		{ return parm_type; }
@@ -56,9 +62,10 @@ class Parameter : public GlishObject {
 	~Parameter();
 
     protected:
-	const char* name;
+	char* name;
 	value_type parm_type;
 	Expr* arg;
+	int can_delete;
 	int is_ellipsis;
 	int is_empty;
 	Expr* default_value;
@@ -68,6 +75,10 @@ class Parameter : public GlishObject {
 class FormalParameter : public Parameter {
     public:
 	FormalParameter( const char* name, value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0 );
+	FormalParameter( char* name, value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0 );
+	FormalParameter( value_type parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
 
 	void Describe( ostream& s ) const;
@@ -82,9 +93,23 @@ class ActualParameter : public Parameter {
 				default_value, is_empty )
 		{
 		}
+	ActualParameter( char* name, value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 )
+		: Parameter( name, parm_type, arg, is_ellipsis,
+				default_value, is_empty )
+		{
+		}
+	ActualParameter( value_type parm_type, Expr* arg,
+			int is_ellipsis = 0, Expr* default_value = 0,
+			int is_empty = 0 )
+		: Parameter( parm_type, arg, is_ellipsis,
+				default_value, is_empty )
+		{
+		}
 
 	// A missing parameter.
-	ActualParameter() : Parameter( 0, VAL_VAL, 0, 0, 0, 1 )
+	ActualParameter() : Parameter( VAL_VAL, 0, 0, 0, 1 )
 		{
 		}
 	};
@@ -94,6 +119,7 @@ class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 			Sequencer* sequencer, Expr* subsequence_expr );
+	~UserFunc();
 
 	IValue* Call( parameter_list* args, eval_type etype );
 	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing );

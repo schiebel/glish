@@ -79,7 +79,7 @@ void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 					int log )
 	{
 	ConstExpr c( value ); Ref( (IValue*) value );
-	Parameter p( "event_in", VAL_VAL, &c, 0 ); Ref( &c );
+	Parameter p((const char *) "event_in", VAL_VAL, &c, 0 ); Ref( &c );
 	parameter_list plist;
 	plist.append( &p );
 

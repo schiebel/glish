@@ -168,8 +168,6 @@ class VarExpr : public Expr {
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
-	int canDelete() const;
-
     protected:
 	char* id;
 	scope_type scope;

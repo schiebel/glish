@@ -23,7 +23,7 @@ RCSID("@(#) $Id$")
 void copy_agents( void *to_, void *from_, unsigned long len )
 	{
 	agentptr *to = (agentptr*) to_;
-	agentptr *from = (agentptr*) to_;
+	agentptr *from = (agentptr*) from_;
 	copy_array(from,to,len,agentptr);
 	for (int i = 0; i < len; i++)
 		Ref(to[i]);
@@ -35,16 +35,34 @@ void delete_agents( void *ary_, unsigned long len )
 		Unref(ary[i]);
 	}
 
+void copy_funcs( void *to_, void *from_, unsigned long len )
+	{
+	funcptr *to = (funcptr*) to_;
+	funcptr *from = (funcptr*) from_;
+	copy_array(from,to,len,funcptr);
+	for (int i = 0; i < len; i++)
+		Ref(to[i]);
+	}
+void delete_funcs( void *ary_, unsigned long len )
+	{
+	funcptr *ary = (funcptr*) ary_;
+	for (int i = 0; i < len; i++)
+		Unref(ary[i]);
+	}
+
 IValue::IValue( funcptr value )
 	{
 	InitValue();
-	kernel.SetArray( (voidptr*) &value, 1, TYPE_FUNC, 1 );
+	funcptr *ary = new funcptr[1];
+	copy_array(&value,ary,1,funcptr);
+	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0, copy_funcs, 0, delete_funcs );
 	}
 
 IValue::IValue( funcptr value[], int len, array_storage_type s )
 	{
 	InitValue();
-	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
+	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY,
+			 copy_funcs, 0, delete_funcs );
 	}
 
 IValue::IValue( agentptr value, array_storage_type storage )

@@ -107,12 +107,12 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 
 VarExpr::~VarExpr()
 	{
-	delete id;
-	}
-
-int VarExpr::canDelete() const
-	{
-	return 0;
+	//
+	// if scope_offset is less than 0, then this VarExpr is
+	// simply a reference to a global variable.
+	//
+	if ( scope_offset >= 0 )
+		delete id;
 	}
 
 VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
@@ -131,6 +131,7 @@ VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) : Expr(var_id)
 	id = strdup(var_id);
 	sequencer = var_sequencer;
 	scope = ANY_SCOPE;
+	scope_offset = 0;
 	}
 
 void VarExpr::set( scope_type var_scope, int var_scope_offset,
@@ -211,6 +212,11 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 		{
 		if ( ! dl.is_member(this) )
 			dl.append( this );
+
+		Ref(ret);
+
+		if ( RefCount() > 1 )
+			Unref(this);
 		}
 	else
 		dl.remove( this );
@@ -488,8 +494,11 @@ IValue* AndExpr::Eval( eval_type etype )
 ConstructExpr::~ConstructExpr()
 	{
 	if ( args )
+		{
 		loop_over_list( *args, i )
 			NodeUnref( (*args)[i] );
+		delete args;
+		}
 	}
 
 ConstructExpr::ConstructExpr( parameter_list* arg_args ) : Expr("[construct]")
@@ -803,7 +812,15 @@ IValue* ConstructExpr::BuildRecord()
 	}
 
 
-ArrayRefExpr::~ArrayRefExpr() { }
+ArrayRefExpr::~ArrayRefExpr()
+	{
+	if ( args )
+		{
+		loop_over_list( *args, i )
+			NodeUnref( (*args)[i] );
+		delete args;
+		}
+	}
 
 ArrayRefExpr::ArrayRefExpr( Expr* op1, expr_list* a ) : UnaryExpr(op1, "[]")
 	{
@@ -826,13 +843,13 @@ IValue* ArrayRefExpr::Eval( eval_type etype )
 			{ // Subscript operator functions.
 			parameter_list pl;
 
-			pl.append( new ActualParameter( 0, VAL_VAL, op ) );
+			pl.append( new ActualParameter( VAL_VAL, op ) );
 
 			for ( int i = 0; i < args->length(); ++i )
 				{
 				Expr* arg = (*args)[i];
 				if ( arg )
-					pl.append( new ActualParameter( 0,
+					pl.append( new ActualParameter(
 							VAL_VAL, (*args)[i] ) );
 				else
 					pl.append( new ActualParameter() );
@@ -978,13 +995,13 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 		if ( func_val && ! func_val->Mark() )
 			{ // Subscript operator functions.
 			parameter_list pl;
-			pl.append( new ActualParameter( 0, VAL_VAL, op ) );
+			pl.append( new ActualParameter( VAL_VAL, op ) );
 
 			for ( int i = 0; i < args->length(); ++i )
 				{
 				if ( (arg = (*args)[i]) )
 					pl.append( new ActualParameter(
-							0, VAL_VAL, arg ) );
+							VAL_VAL, arg ) );
 				else
 					pl.append( new ActualParameter() );
 				}
@@ -1109,17 +1126,17 @@ void ArrayRefExpr::Assign( IValue* new_value )
 			parameter_list pl;
 
 			if ( do_assign )
-				pl.append( new ActualParameter( 0, VAL_VAL,
+				pl.append( new ActualParameter( VAL_VAL,
 						new ValExpr( new_value ) ) );
 
-			pl.append( new ActualParameter( 0, VAL_VAL, op ) );
+			pl.append( new ActualParameter( VAL_VAL, op ) );
 
 			for ( int i = 0; i < args->length(); ++i )
 				{
 				Expr* arg = (*args)[i];
 				if ( arg )
 					pl.append( new ActualParameter(
-							0, VAL_VAL, arg ) );
+							VAL_VAL, arg ) );
 				else
 					pl.append( new ActualParameter() );
 				}
@@ -1213,7 +1230,11 @@ void ArrayRefExpr::Describe( ostream& s ) const
 	s << "]";
 	}
 
-RecordRefExpr::~RecordRefExpr() { } 
+RecordRefExpr::~RecordRefExpr()
+	{
+	if ( field )
+		delete field;
+	}
 
 RecordRefExpr::RecordRefExpr( Expr* op, char* record_field )
     : UnaryExpr(op, ".")
@@ -1294,7 +1315,11 @@ void RecordRefExpr::Describe( ostream& s ) const
 	s << "." << field;
 	}
 
-AttributeRefExpr::~AttributeRefExpr() { } 
+AttributeRefExpr::~AttributeRefExpr()
+	{
+	if ( field )
+		delete field;
+	} 
 
 AttributeRefExpr::AttributeRefExpr( Expr *op1 ) : BinaryExpr(op1, 0, "::")
 	{
@@ -1587,8 +1612,11 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 CallExpr::~CallExpr()
 	{
 	if ( args )
+		{
 		loop_over_list( *args, i )
 			NodeUnref( (*args)[i] );
+		delete args;
+		}
 	}
 
 CallExpr::CallExpr( Expr* func, parameter_list* args_args )
@@ -1644,8 +1672,11 @@ void CallExpr::Describe( ostream& s ) const
 SendEventExpr::~SendEventExpr()
 	{
 	if ( args )
+		{
 		loop_over_list( *args, i )
 			NodeUnref( (*args)[i] );
+		delete args;
+		}
 	} 
 
 SendEventExpr::SendEventExpr( EventDesignator* arg_sender,

@@ -197,17 +197,29 @@ protected:
 	};
 
 
-void Scope::MarkGlobalRef(const char *c)
+Scope::~Scope()
+	{
+	IterCookie* c = InitForIteration();
+
+	Expr* member;
+	const char* key;
+	while ( (member = NextEntry( key, c )) )
+		{
+		//delete (char*) key;    -- pointer shared with "member"
+		Unref( member );
+		}
+	}
+
+
+void Scope::MarkGlobalRef(char *c)
 	{
 	if ( ! WasGlobalRef( c ) )
-		global_refs.Insert( strdup(c), 1 );
+		global_refs.Insert( c, 1 );
 	}
 
 void Scope::ClearGlobalRef(const char *c)
 	{
 	char *v = global_refs.Remove(c);
-	if ( v )
-		delete v;
 	}
 
 void NotifyTrigger::NotifyDone() { }
@@ -523,6 +535,15 @@ Sequencer::~Sequencer()
 	delete connection_socket;
 	delete connection_port;
 	delete interpreter_tag;
+
+	loop_over_list( scopes, j )
+		delete scopes[j];
+
+	loop_over_list( global_frame, i )
+		Unref( global_frame[i] );
+
+	loop_over_list( frames, k )
+		Unref( frames[k] );
 	}
 
 
@@ -642,7 +663,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 			warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
-	cur_scope->Insert( id, result );
+	Expr *old = (Expr*) cur_scope->Insert( id, result );
 
 	if ( scope == GLOBAL_SCOPE )
 		{
@@ -650,6 +671,12 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
 			InstallID( id, LOCAL_SCOPE, do_warn, 1, frame_offset );
 		}
+	else if ( old )
+		{		// We still have a memory leak
+		delete id;	//  in the "if" of this "else"
+		}
+
+	Unref(old);
 
 	return result;
 	}
@@ -752,10 +779,16 @@ Expr *Sequencer::InstallVar( char* id, scope_type scope, VarExpr *var )
 		warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
-	cur_scope->Insert( id, var );
+	Expr *old = (Expr*) cur_scope->Insert( id, var );
 
 	if ( scope == GLOBAL_SCOPE )
 		global_frame.append( 0 );
+
+	if ( old )
+		{
+		Unref(old);
+		delete id;
+		}
 
 	return var;
 	}
@@ -1437,13 +1470,17 @@ void Sequencer::MakeEnvGlobal()
 		if ( delim )
 			{
 			*delim = '\0';
-			env_value->AssignRecordElement( *env_ptr,
-						    new IValue( delim + 1 ) );
+			IValue *val = new IValue( delim + 1 );
+			env_value->AssignRecordElement( *env_ptr, val );
+			Unref(val);
 			*delim = '=';
 			}
 		else
-			env_value->AssignRecordElement( *env_ptr,
-						new IValue( glish_false ) );
+			{
+			IValue *val = new IValue( glish_false );
+			env_value->AssignRecordElement( *env_ptr, val );
+			Unref(val);
+			}
 		}
 
 	Expr* env_expr = LookupID( strdup( "environ" ), GLOBAL_SCOPE );
@@ -1618,10 +1655,10 @@ void Sequencer::LogEvent( const char* gid, const char* id,
 	ConstExpr name_expr( &name_value ); Ref( &name_value );
 	ConstExpr value_expr( event_value ); Ref( (IValue*) event_value );
 
-	Parameter gid_param( "glish_id", VAL_VAL, &gid_expr, 0 ); Ref( &gid_expr );
-	Parameter id_param( "id", VAL_VAL, &id_expr, 0 ); Ref( &id_expr );
-	Parameter name_param( "name", VAL_VAL, &name_expr, 0 ); Ref( &name_expr );
-	Parameter value_param( "value", VAL_VAL, &value_expr, 0 ); Ref( &value_expr );
+	Parameter gid_param((const char *) "glish_id", VAL_VAL, &gid_expr, 0 ); Ref( &gid_expr );
+	Parameter id_param((const char *) "id", VAL_VAL, &id_expr, 0 ); Ref( &id_expr );
+	Parameter name_param((const char *) "name", VAL_VAL, &name_expr, 0 ); Ref( &name_expr );
+	Parameter value_param((const char *) "value", VAL_VAL, &value_expr, 0 ); Ref( &value_expr );
 
 	args.insert( &name_param );
 	args.insert( &id_param );

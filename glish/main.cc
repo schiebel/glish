@@ -81,6 +81,8 @@ int main( int argc, char** argv )
 
 	glish_cleanup();
 
+	delete s;
+
 	return 0;
 	}
 

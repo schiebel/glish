@@ -166,7 +166,7 @@ public:
 	// Discard present value and instead take new_value.
 	void TakeValue( Value* new_value );
 
-	~Value();
+	virtual ~Value();
 
 
 	// A value manager is an object that is Unref()'d upon destruction

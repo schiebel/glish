@@ -362,6 +362,7 @@ local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			Expr* id =
 				current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
 
+			Ref(id);
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
 			if ( $2 != 0 )
@@ -385,6 +386,7 @@ global_item:	TOK_ID TOK_ASSIGN scoped_expr
 			Expr* id =
 				current_sequencer->LookupID( $1, GLOBAL_SCOPE, 1, 0 );
 
+			Ref(id);
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
 
 			if ( $2 != 0 )
@@ -435,7 +437,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 						current_sequencer->LookupID(
 							$2, LOCAL_SCOPE );
 
-					IValue* ref = copy_value( func_val );
+					IValue* ref = func_val;
 
 					func->Assign( ref );
 					}
@@ -443,6 +445,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 					{
 					Expr *lhs = 
 						current_sequencer->LookupID( $2, LOCAL_SCOPE);
+					Ref(lhs);
 					$$ = compound_assignment( lhs, 0, $$ );
 					}
 				}
@@ -464,6 +467,7 @@ function_head:	TOK_FUNCTION
 			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( strdup( "self" ),
 								LOCAL_SCOPE );
+			Ref($$);
 			}
 	;
 
@@ -487,7 +491,8 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 			{
 			Expr* param =
 				current_sequencer->InstallID( $2, LOCAL_SCOPE );
-			$$ = new FormalParameter( $2, $1, param, 0, $3 );
+			Ref(param);
+			$$ = new FormalParameter( (const char *) $2, $1, param, 0, $3 );
 			}
 
 	|	TOK_ELLIPSIS formal_param_default
@@ -496,7 +501,8 @@ formal_param:	formal_param_class TOK_ID formal_param_default
 				current_sequencer->InstallID(
 					strdup( "..." ), LOCAL_SCOPE );
 
-			$$ = new FormalParameter( 0, VAL_CONST,
+			Ref(ellipsis);
+			$$ = new FormalParameter( VAL_CONST,
 							ellipsis, 1, $2 );
 			}
 	;
@@ -531,7 +537,7 @@ actual_params:	actual_params ',' actual_param
 	;
 
 actual_param:	scoped_expr
-			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+			{ $$ = new ActualParameter( VAL_VAL, $1 ); }
 
 	|	TOK_ID '=' scoped_expr
 			{
@@ -548,13 +554,15 @@ actual_param:	scoped_expr
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
-				$$ = new ActualParameter( 0, VAL_VAL,
+				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( error_ivalue() ) );
 				}
 
 			else
-				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
-							1 );
+				{
+				Ref(ellipsis);
+				$$ = new ActualParameter( VAL_VAL, ellipsis, 1 );
+				}
 			}
 	;
 
@@ -575,7 +583,7 @@ array_record_params:	array_record_params ',' array_record_param
 	;
 
 array_record_param:	scoped_expr
-			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+			{ $$ = new ActualParameter( VAL_VAL, $1 ); }
 
 	|	TOK_CONST TOK_ID '=' scoped_expr
 			{
@@ -598,13 +606,15 @@ array_record_param:	scoped_expr
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
-				$$ = new ActualParameter( 0, VAL_VAL,
+				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( error_ivalue() ) );
 				}
 
 			else
-				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
-							1 );
+				{
+				Ref(ellipsis);
+				$$ = new ActualParameter( VAL_VAL, ellipsis, 1 );
+				}
 			}
 	;
 
@@ -643,7 +653,7 @@ opt_actual_params:	opt_actual_params ',' opt_actual_param
 	;
 
 opt_actual_param:	scoped_expr
-			{ $$ = new ActualParameter( 0, VAL_VAL, $1 ); }
+			{ $$ = new ActualParameter( VAL_VAL, $1 ); }
 
 	|	TOK_ID '=' scoped_expr
 			{
@@ -660,13 +670,15 @@ opt_actual_param:	scoped_expr
 			if ( ! ellipsis )
 				{
 				error->Report( "\"...\" not available" ); 
-				$$ = new ActualParameter( 0, VAL_VAL,
+				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( error_ivalue() ) );
 				}
 
 			else
-				$$ = new ActualParameter( 0, VAL_VAL, ellipsis,
-							1 );
+				{
+				Ref(ellipsis);
+				$$ = new ActualParameter( VAL_VAL, ellipsis, 1 );
+				}
 			}
 	;
 
@@ -712,6 +724,7 @@ var:		TOK_ID
 			$$ = current_sequencer->LookupID( strdup($1), LOCAL_SCOPE, 0 );
 			if ( ! $$ )
 				$$ = CreateVarExpr( $1, current_sequencer );
+			Ref($$);
 			}
 	;
 

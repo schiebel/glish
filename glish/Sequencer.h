@@ -71,10 +71,11 @@ typedef PDict(Expr) expr_dict;
 class Scope : public expr_dict {
 public:
 	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
+	~Scope();
 	scope_type GetScopeType() const { return scope; }
 	int WasGlobalRef(const char *c) const
 		{ return global_refs.Lookup(c) ? 1 : 0; }
-	void MarkGlobalRef(const char *c);
+	void MarkGlobalRef(char *c);
 	void ClearGlobalRef(const char *c);
 private:
 	scope_type scope;

@@ -20,9 +20,24 @@ Parameter::~Parameter()
 	{
 	NodeUnref( arg );
 	NodeUnref( default_value );
+	if ( name && can_delete )
+		delete name;
 	}
 
 Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
+			Expr* arg_arg, int arg_is_ellipsis,
+			Expr* arg_default_value, int arg_is_empty )
+	{
+	name = (char*) arg_name;
+	parm_type = arg_parm_type;
+	arg = arg_arg;
+	is_ellipsis = arg_is_ellipsis;
+	default_value = arg_default_value;
+	is_empty = arg_is_empty;
+	can_delete = 0;
+	}
+
+Parameter::Parameter( char* arg_name, value_type arg_parm_type,
 			Expr* arg_arg, int arg_is_ellipsis,
 			Expr* arg_default_value, int arg_is_empty )
 	{
@@ -32,6 +47,20 @@ Parameter::Parameter( const char* arg_name, value_type arg_parm_type,
 	is_ellipsis = arg_is_ellipsis;
 	default_value = arg_default_value;
 	is_empty = arg_is_empty;
+	can_delete = 1;
+	}
+
+Parameter::Parameter( value_type arg_parm_type,
+			Expr* arg_arg, int arg_is_ellipsis,
+			Expr* arg_default_value, int arg_is_empty )
+	{
+	name = 0;
+	parm_type = arg_parm_type;
+	arg = arg_arg;
+	is_ellipsis = arg_is_ellipsis;
+	default_value = arg_default_value;
+	is_empty = arg_is_empty;
+	can_delete = 0;
 	}
 
 int Parameter::NumEllipsisVals() const
@@ -91,6 +120,18 @@ FormalParameter::FormalParameter( const char* name, value_type parm_type,
 	{
 	}
 
+FormalParameter::FormalParameter( char* name, value_type parm_type,
+			Expr* arg, int is_ellipsis, Expr* default_value )
+    : Parameter(name, parm_type, arg, is_ellipsis, default_value, 0)
+	{
+	}
+
+FormalParameter::FormalParameter( value_type parm_type,
+			Expr* arg, int is_ellipsis, Expr* default_value )
+    : Parameter(parm_type, arg, is_ellipsis, default_value, 0)
+	{
+	}
+
 void FormalParameter::Describe( ostream& s ) const
 	{
 	if ( parm_type == VAL_CONST )
@@ -132,6 +173,18 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			has_ellipsis = 1;
 			ellipsis_position = i;
 			}
+	}
+
+UserFunc::~UserFunc()
+	{
+	loop_over_list( *formals, i )
+		Unref((*formals)[i]);
+
+	delete formals;	      
+
+	NodeUnref(subsequence_expr);
+
+	Unref(body);
 	}
 
 IValue* UserFunc::Call( parameter_list* args, eval_type etype )
