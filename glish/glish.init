@@ -3,8 +3,6 @@
 pi := 3.141592653589793238462643
 e  := 2.718281828459045235360287
 
-func is_defined( const x )	length( symbol_value( x ) ) > 0
-
 func is_boolean( const x )	type_name(x) == "boolean"
 func is_byte( const x )		type_name(x) == "byte"
 func is_short( const x )	type_name(x) == "short"

@@ -2242,6 +2242,39 @@ IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
 	return new IValue( glish_true );
 	}
 
+IValue* IsDefinedBuiltIn::DoCall( const_args_list *args_val )
+	{
+	const IValue *str = (*args_val)[0];
+
+	if ( ! str || str->Type() != TYPE_STRING )
+		return (IValue*) Fail( this, " takes 1 string argument" );
+
+	IValue *ret = 0;
+	charptr *strs = str->StringPtr(0);
+
+	int len;
+	if ( (len = str->Length()) > 1 )
+		{
+		glish_bool *ret_ary = (glish_bool*) alloc_memory(sizeof(glish_bool)*len);
+		for ( int i = 0; i < len; i++ )
+			{
+			Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+			if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
+				ret_ary[i] = glish_true;
+			else
+				ret_ary[i] = glish_false;
+			}
+		ret = new IValue( ret_ary, len );
+		}
+	else
+		{
+		Expr *exp = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 0, 0);
+		ret = new IValue( exp && ((VarExpr*)exp)->Access() == USE_ACCESS ? glish_true : glish_false );
+		}
+
+	return ret;
+	}
+
 IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	Frame* cur = sequencer->FuncFrame();
@@ -2788,6 +2821,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new SymbolValueBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolSetBuiltIn( s ) );
 	s->AddBuiltIn( new SymbolDeleteBuiltIn( s ) );
+	s->AddBuiltIn( new IsDefinedBuiltIn( s ) );
 
 	s->AddBuiltIn( new WheneverActiveBuiltIn( s ) );
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );

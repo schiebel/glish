@@ -361,7 +361,7 @@ int write_agent( sos_out &sos, Value *val_, sos_header &head, const ProxyId &pro
 	Agent *agent = val->AgentVal();
 	if ( ! agent || ! agent->IsProxy() )
 		{
-		warn->Report( "non-proxy agent" );
+// 		warn->Report( "non-proxy agent" );
 		return 0;
 		}
 
