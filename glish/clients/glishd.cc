@@ -46,10 +46,10 @@ int suspend_user = 0;
 void glishd_sighup();
 void install_terminate_handlers();
 
-extern "C" {
-	extern char* sys_errlist[];
-	extern int chdir( const char* path );
-}
+#ifndef __linux__
+extern "C" char* sys_errlist[];
+#endif
+extern "C" int chdir( const char* path );
 
 //  --   --   --   --   --   --   --   --   --   --   --   --   --   --   --
 //		SIGHUP can be used to shut down glishd
