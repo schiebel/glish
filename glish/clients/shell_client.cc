@@ -35,9 +35,6 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Client.h"
 
-#include "Channel.h"
-
-
 inline int streq( const char* a, const char* b )
 	{
 	return ! strcmp( a, b );
@@ -49,12 +46,17 @@ int pid;
 int ping_through;
 
 
-// Given an argv, forks argv[0] as a new child, returning a Channel
-// to the child and modifying pid to the child's PID.
+// Given an argv, forks argv[0] as a new child, returns an array of
+// file descriptors (ret):
+//	ret[0]	=>	child's stdout
+//	ret[1]	=>	child's stdin
+//	ret[2]	=>	child's stderr
+//
+// and modifies pid to the child's PID.
 //
 // The global prog_name is used for generating error messages.
 
-Channel* CreateChild( char** argv, int& pid );
+int* CreateChild( char** argv, int& pid );
 
 
 // Get the next event via Client c and depending on its name do the following:
@@ -74,13 +76,13 @@ void SendChildInput( Client& c, int write_to_child_fd );
 
 
 // Exhaust input present on a child's fd; if read goes okay (not EOF),
-// send a "stdout" message via Client c and return 0; otherwise, wait for
+// send an 'event_name' message via Client c and return 0; otherwise, wait for
 // child termination and return non-zero and set status to child exit status.
 //
 // The globals prog_name and child_name are used for generating error
 // messages.
 
-int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status );
+int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const char *event_name );
 
 
 // Wait for the child to exit and return its exit status.
@@ -121,12 +123,13 @@ int main( int argc, char** argv )
 		return 1;
 		}
 
-	Channel* child_channel = CreateChild( argv, pid );
+	int *child_pipes = CreateChild( argv, pid );
 
-	if ( ! child_channel )
+	if ( ! child_pipes )
 		return 1;
 
-	int child_fd = child_channel->ReadFD();
+	int child_fd = child_pipes[0];
+	int child_err = child_pipes[2];
 	int child_exit_fd = child_exit_pipe[0];
 
 	fd_set selection_mask;
@@ -135,6 +138,7 @@ int main( int argc, char** argv )
 	for ( ; ; )
 		{
 		FD_SET( child_fd, &selection_mask );
+		FD_SET( child_err, &selection_mask );
 		FD_SET( child_exit_fd, &selection_mask );
 		c.AddInputMask( &selection_mask );
 
@@ -155,12 +159,19 @@ int main( int argc, char** argv )
 			}
 
 		if ( c.HasClientInput( &selection_mask ) )
-			SendChildInput( c, child_channel->WriteFD() );
+			SendChildInput( c, child_pipes[1] );
 
 		if ( FD_ISSET( child_fd, &selection_mask ) )
 			{
 			int status;
-			if ( ReceiveChildOutput( c, child_fd, status ) )
+			if ( ReceiveChildOutput( c, child_fd, status, "stdout" ) )
+				return status;
+			}
+
+		if ( FD_ISSET( child_err, &selection_mask ) )
+			{
+			int status;
+			if ( ReceiveChildOutput( c, child_err, status, "stderr" ) )
 				return status;
 			}
 
@@ -170,9 +181,10 @@ int main( int argc, char** argv )
 	}
 
 
-Channel* CreateChild( char** argv, int& pid )
+int* CreateChild( char** argv, int& pid )
 	{
 	int to_pipe[2];
+	static int ret[3];
 
 	if ( pipe( to_pipe ) < 0 )
 		{
@@ -199,6 +211,23 @@ Channel* CreateChild( char** argv, int& pid )
 			}
 		}
 
+	// Try to create a pseudo-terminal for the child's standard
+	// error so that text it generates will be line-buffered.
+	int err_pipe[2];
+
+	if ( ! get_pty_pair( err_pipe ) )
+		{
+		using_pty = 0;
+
+		// Fall back on using a pipe for the output.
+		if ( pipe( err_pipe ) < 0 )
+			{
+			fprintf( stderr, "%s (%s): ", prog_name, argv[0] );
+			perror( "couldn't create pipe" );
+			return 0;
+			}
+		}
+
 	pid = vfork();
 
 	if ( pid == 0 )
@@ -210,7 +239,8 @@ Channel* CreateChild( char** argv, int& pid )
 		setpgid(pid,pid);
 
 		if ( dup2( to_pipe[0], fileno(stdin) ) < 0 ||
-		     dup2( from_pipe[1], fileno(stdout) ) < 0 )
+		     dup2( from_pipe[1], fileno(stdout) ) < 0 ||
+		     dup2( err_pipe[1], fileno(stderr) ) < 0 )
 			{
 			fprintf( stderr, "%s (%s): ", prog_name, argv[0] );
 			perror( "couldn't do dup2()" );
@@ -221,6 +251,8 @@ Channel* CreateChild( char** argv, int& pid )
 		close( to_pipe[1] );
 		close( from_pipe[0] );
 		close( from_pipe[1] );
+		close( err_pipe[0] );
+		close( err_pipe[1] );
 
 		execvp( argv[0], &argv[0] );
 
@@ -231,8 +263,13 @@ Channel* CreateChild( char** argv, int& pid )
 
 	close( to_pipe[0] );
 	close( from_pipe[1] );
+	close( err_pipe[1] );
 
-	return new Channel( from_pipe[0], to_pipe[1] );
+	ret[0] = from_pipe[0];
+	ret[1] = to_pipe[1];
+	ret[2] = err_pipe[0];
+
+	return ret;
 	}
 
 
@@ -279,7 +316,7 @@ void SendChildInput( Client& c, int send_to_child_fd )
 	}
 
 
-int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status )
+int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status, const char *event_name )
 	{
 	// Exhaust child's output, until we come across a read that ends
 	// on a line ('\n') boundary.
@@ -333,7 +370,7 @@ int ReceiveChildOutput( Client& c, int read_from_child_fd, int& status )
 		if ( line_end > buf && line_end[-1] == '\r' )
 			line_end[-1] = '\0';
 
-		c.PostEvent( "stdout", buf_ptr );
+		c.PostEvent( event_name, buf_ptr );
 		buf_ptr = line_end + 1;
 		}
 	while ( *buf_ptr != '\0' );
