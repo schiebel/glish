@@ -35,6 +35,9 @@ struct sos_header_kernel GC_FINAL_CLASS {
 	int version( ) const { return version_; }
 	void set_version( int v ) { if ( v >= 0 && v <= SOS_VERSION ) version_ = v; off_ = version_ ? 0 : -4; }
 
+	// What is the differential between the remote SOS header version
+	// and the current SOS header version. This is needed for sending
+	// legacy SOS headers to old clients.
 	int offset( ) const { return off_; }
 
 	unsigned char	*buf_;
@@ -43,7 +46,6 @@ struct sos_header_kernel GC_FINAL_CLASS {
 	unsigned int	length_;	// in units of type_
 	unsigned int	count_;
 	int		freeit_;
-    private:
 	int		version_;
 };
 
@@ -181,6 +183,7 @@ public:
 		  return s[ ver >= 0 && ver <= SOS_VERSION ? ver : SOS_VERSION ]; }
 	int size( ) const { return size( kernel->version() ); }
 
+	// where does user data start?
 	int start_offset( ) const { return 22 + kernel->offset( ); }
 
 	void set_version( int v ) { kernel->set_version( v ); }
