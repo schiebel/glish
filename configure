@@ -3448,6 +3448,9 @@ fi
 		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
 	    fi
 	fi
+	if test -n "$LD_SEARCH_FLAGS"; then
+	    LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS\$(EXTRA_LDSEARCH)"
+	fi
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -3552,7 +3555,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3556 "configure"
+#line 3559 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3560,7 +3563,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3564: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3567: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3583,7 +3586,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3587 "configure"
+#line 3590 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3591,7 +3594,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3595: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3598: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
