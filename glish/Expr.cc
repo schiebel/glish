@@ -1273,7 +1273,7 @@ IValue* ArrayRefExpr::Eval( evalOpt &opt )
 		     index_val->Length() == 1 )
 			{ // Return single element belonging to record.
 			const IValue* const_result = (const IValue *)
-				array->ExistingRecordElement( index_val );
+				array->Deref()->ExistingRecordElement( index_val );
 
 			const_result = (const IValue *) (const_result->Deref());
 			opt = lopt;
