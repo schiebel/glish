@@ -611,7 +611,7 @@ void glish_sigfpe( int, siginfo_t *, ucontext_t *uap )
 		{
 		glish_cleanup( );
 		fprintf(stderr,"\n[fatal error, 'floating point exception' (signal %d), exiting]\n", SIGFPE );
-		sigfpe(FPE_INTDIV, (signal_handler) SIGFPE_DEFAULT);
+		sigfpe(FPE_INTDIV, (RETSIGTYPE (*)(...)) SIGFPE_DEFAULT);
 		kill( getpid(), SIGFPE );
 		}
 	}
@@ -621,7 +621,7 @@ void glish_sigfpe( int, siginfo_t *, ucontext_t *uap )
 //  result. There doesn't seem to be a good fix for this because casting
 //  doesn't generate an exception; division is not the problem.
 //
-static void install_sigfpe() { sigfpe(FPE_INTDIV, (signal_handler) glish_sigfpe ); }
+static void install_sigfpe() { sigfpe(FPE_INTDIV, (RETSIGTYPE (*)(...)) glish_sigfpe ); }
 #elif defined(__alpha) || defined(__alpha__)
 //
 // for the alpha, this should be defined in "alpha.c"
