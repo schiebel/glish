@@ -483,6 +483,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	useshm = 0;
 	script_client = script_file;
 	multithreaded = NONSHARED;
+	transcript_file = 0;
 
 	ClientInit();
 
@@ -520,6 +521,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name,
 	useshm = 0;
 	script_client = script_file;
 	multithreaded = arg_multithreaded;
+	transcript_file = 0;
 
 	ClientInit();
 
