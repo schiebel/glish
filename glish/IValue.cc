@@ -1560,8 +1560,12 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 		}
 
 	int max_index, min_index;
-	if ( ! IndexRange( indices, num_indices, max_index, min_index ) )
+	const char *err = IndexRange( indices, num_indices, max_index );
+	if ( err )
+		{
+		error->Report( err );
 		return;
+		}
 
 	int orig_len = Length();
 	if ( max_index > Length() )

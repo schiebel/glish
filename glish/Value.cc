@@ -273,7 +273,7 @@ void Value::SetValue( Value* ref_value, int index[], int num_elements,
 	ref_value = ref_value->Deref();
 
 	int max_index;
-	if ( ! IndexRange( index, num_elements, max_index ) )
+	if ( IndexRange( index, num_elements, max_index ) )
 		fatal->Report( "bad index in Value::Value" );
 
 	if ( max_index > ref_value->Length() )
@@ -1488,8 +1488,8 @@ Value* Value::RecordSlice( int* indices, int num_indices ) const
 		fatal->Report( "non-record type in Value::RecordSlice()" );
 
 	int max_index = 0;
-	if ( ! IndexRange( indices, num_indices, max_index ) )
-		return error_value();
+	const char *err = IndexRange( indices, num_indices, max_index );
+	if ( err ) return error_value( err );
 
 	recordptr rptr = RecordPtr(0);
 
@@ -1672,8 +1672,12 @@ void Value::AssignRecordSlice( Value* value, int* indices, int num_indices )
 	recordptr rptr = RecordPtr();
 
 	int max_index = 0;
-	if ( ! IndexRange( indices, num_indices, max_index ) )
+	const char *err = IndexRange( indices, num_indices, max_index );
+	if ( err )
+		{
+		error->Report( err );
 		return;
+		}
 
 	if ( num_indices == 1 )
 		{ // Just assigning to one field.
@@ -1769,8 +1773,12 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		}
 
 	int max_index, min_index;
-	if ( ! IndexRange( indices, num_indices, max_index, min_index ) )
+	const char *err = IndexRange( indices, num_indices, max_index );
+	if ( err )
+		{
+		error->Report( err );
 		return;
+		}
 
 	int orig_len = Length();
 	if ( max_index > Length() )
@@ -2309,7 +2317,7 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
 	return;
 	}
 
-int Value::IndexRange( int* indices, int num_indices, int& max_index, int& min_index ) const
+const char *Value::IndexRange( int* indices, int num_indices, int& max_index, int& min_index ) const
 	{
 	max_index = 0;
 	min_index = num_indices > 0 ? indices[num_indices-1] : 0;
@@ -2318,9 +2326,9 @@ int Value::IndexRange( int* indices, int num_indices, int& max_index, int& min_i
 		{
 		if ( indices[i] < 1 )
 			{
-			error->Report( "index (=", indices[i],
-				") out of range (< 1)" );
-			return 0;
+			static char buf[45];
+			sprintf( buf, "index (=%d) out of range (< 1)", indices[i]);
+			return buf;
 			}
 
 		else
@@ -2332,7 +2340,7 @@ int Value::IndexRange( int* indices, int num_indices, int& max_index, int& min_i
 			}
 		}
 
-	return 1;
+	return 0;
 	}
 
 void Value::Negate()
@@ -2654,7 +2662,7 @@ int Value::Describe( OStream& s, const ioOpt &opt ) const
 		}
 	else
 		{
-		char* desc = StringVal( opt.sep(), PrintLimit() , 1 );
+		char* desc = StringVal( opt.sep(), opt.maxElements() >= 0 ? opt.maxElements() : PrintLimit(), 1 );
 		s << desc;
 		free_memory( desc );
 		}

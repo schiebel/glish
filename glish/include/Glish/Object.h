@@ -30,18 +30,23 @@ class ioOpt GC_FINAL_CLASS {
     public:
 	inline static unsigned short SHORT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
 	inline static unsigned short NO_NEWLINE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }
-	ioOpt( ) : prefix_(0), flags_(0), sep_(' ') { }
-	ioOpt( unsigned short f ) : prefix_(0), flags_(f), sep_(' ') { }
-	ioOpt( unsigned short f, char s ) : prefix_(0), flags_(f), sep_(s) { }
-	ioOpt( unsigned short f, charptr p ) : prefix_(p), flags_(f), sep_(' ') { }
-	ioOpt( unsigned short f, char s, charptr p ) : prefix_(p), flags_(f), sep_(s) { }
+	ioOpt( ) : prefix_(0), flags_(0), sep_(' '), maxe_(-1) { }
+	ioOpt( unsigned short f ) : prefix_(0), flags_(f), sep_(' '), maxe_(-1) { }
+	ioOpt( unsigned short f, char s ) : prefix_(0), flags_(f), sep_(s), maxe_(-1) { }
+	ioOpt( unsigned short f, charptr p ) : prefix_(p), flags_(f), sep_(' '), maxe_(-1) { }
+	ioOpt( unsigned short f, int m ) : prefix_(0), flags_(f), sep_(' '), maxe_(m) { }
+	ioOpt( unsigned short f, char s, charptr p ) : prefix_(p), flags_(f), sep_(s), maxe_(-1) { }
+	ioOpt( unsigned short f, char s, int m ) : prefix_(0), flags_(f), sep_(s), maxe_(m) { }
+	ioOpt( unsigned short f, char s, charptr p, int m ) : prefix_(p), flags_(f), sep_(s), maxe_(m) { }
 	unsigned short flags( unsigned short mask=~((unsigned short) 0) ) const { return mask & flags_; }
 	char sep() const { return sep_; }
 	charptr prefix() const { return prefix_; }
+	int maxElements() const { return maxe_; }
     private:
 	charptr prefix_;
 	unsigned short flags_;
 	char sep_;
+	int maxe_;
 };
 
 class GlishObject : public GlishRef {

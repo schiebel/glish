@@ -645,9 +645,9 @@ protected:
 
 	// Searches a list of indices to find the largest and returns
 	// it in "max_index".  If an invalid (< 1) index is found, a
-	// error is generated and false is returned; otherwise true
-	// is returned.
-	int IndexRange( int* indices, int num_indices, int& max_index,
+	// error is generated and an error string is returned; otherwise
+	// zero is returned.
+	const char *IndexRange( int* indices, int num_indices, int& max_index,
 			int& min_index = glish_dummy_int ) const;
 
 	// returns a new string
