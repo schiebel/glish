@@ -122,6 +122,11 @@ IValue *glishtk_splitsp_int( char *sel )
 	return new IValue( ary, cnt, COPY_ARRAY );
 	}
 
+inline void glishtk_pack( Rivetobj root, int argc, char **argv)
+	{
+	rivet_func(root,(int (*)())Tk_PackCmd,argc,argv);
+	}
+
 
 static TkAgent *InvalidArg( int num )
 	{
@@ -896,7 +901,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	while ( instr[cnt] )
 		argv[i++] = (char*) instr[cnt++];
 
-	rivet_func(root,(int (*)())Tk_PackCmd,i,argv);
+	glishtk_pack(root,i,argv);
 	delete argv;
 	}
 
@@ -921,7 +926,11 @@ void TkFrame::Pack( )
 		argv[c++] = "-pady";
 		argv[c++] = pady;
 
-		rivet_func(root, (int (*)()) Tk_PackCmd,c,argv);
+		glishtk_pack(root,c,argv);
+
+		if ( frame )
+			frame->Pack();
+
 		delete argv;
 		}
 	}
@@ -1411,12 +1420,15 @@ void TkScrollbar::Scrolled( IValue *data )
 DEFINE_DTOR(TkLabel)
 
 TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
-		  charptr padx, charptr pady, charptr font, charptr relief, charptr borderwidth,
-		  charptr foreground, charptr background )
+		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
+		  charptr borderwidth, charptr foreground, charptr background )
 			: TkAgent( s )
 	{
 	frame = frame_;
-	char *argv[20];
+	char *argv[22];
+	char width[30];
+
+	sprintf(width,"%d",width_);
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
@@ -1441,6 +1453,8 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = (char*) foreground;
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background;
+	argv[c++] = "-width";
+	argv[c++] = width;
 
 	self = rivet_create(LabelClass, frame->Self(), c, argv);
 	agent_ID = "<graphic:label>";
@@ -1464,8 +1478,8 @@ TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkLabel *ret;
 
-	if ( args_val->length() != 11 )
-		return InvalidNumberOfArgs(11);
+	if ( args_val->length() != 12 )
+		return InvalidNumberOfArgs(12);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -1474,12 +1488,13 @@ TkAgent *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	SETDIM( padx )
 	SETDIM( pady )
 	SETSTR( font )
+	SETINT( width )
 	SETSTR( relief )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
 
-	ret =  new TkLabel( s, (TkFrame*)parent->AgentVal(), text, justify, padx, pady,
+	ret =  new TkLabel( s, (TkFrame*)parent->AgentVal(), text, justify, padx, pady, width,
 			    font, relief, borderwidth, foreground, background );
 
 	return ret;

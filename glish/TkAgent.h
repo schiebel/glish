@@ -180,7 +180,7 @@ class TkScrollbar : public TkAgent {
 class TkLabel : public TkAgent {
     public:
 	TkLabel( Sequencer *, TkFrame *, charptr text,
-		 charptr justify, charptr padx, charptr pady, 
+		 charptr justify, charptr padx, charptr pady, int width,
 		 charptr font, charptr relief, charptr borderwidth,
 		 charptr foreground, charptr background );
 

@@ -110,8 +110,8 @@ function text ( parent, width=30, height=8, wrap='word', font='', disabled=F, te
 function scrollbar ( parent, orient='vertical', foreground='black', background='lightgrey' )
 	create_graphic( 'scrollbar', parent, orient, foreground, background )
 
-function label ( parent, text='label', justify='left', padx=4, pady=2, font='', relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
-	create_graphic( 'label', parent, text, justify, padx, pady, font, relief, borderwidth, foreground, background )
+function label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey' )
+	create_graphic( 'label', parent, text, justify, padx, pady, font, width, relief, borderwidth, foreground, background )
 
 function entry ( parent, width=30, justify='left', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', disabled=F, show=T, exportselection=T )
 	create_graphic( 'entry', parent, width, justify, font, relief, borderwidth, foreground, background, disabled, show, exportselection )
