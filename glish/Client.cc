@@ -219,12 +219,13 @@ private:
 
 int glish_timedoutdummy = 0;
 
-Client::Client( int& argc, char** argv, ShareType arg_multithreaded ) :
-	last_context( ), useshm(0)
+void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
 	{
 	int usingpipes = 0;
 	char** orig_argv = argv;
 
+	useshm = 0;
+	script_client = script_file;
 	multithreaded = arg_multithreaded;
 	int useshm_ = 0;
 
@@ -396,11 +397,12 @@ Client::Client( int& argc, char** argv, ShareType arg_multithreaded ) :
 	}
 
 
-Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
-	last_context( name ), useshm(0)
+void Client::Init( int client_read_fd, int client_write_fd, const char* name, const char *script_file )
 	{
 	initial_client_name = prog_name = name;
 
+	useshm = 0;
+	script_client = script_file;
 	multithreaded = NONSHARED;
 
 	ClientInit();
@@ -425,13 +427,14 @@ Client::Client( int client_read_fd, int client_write_fd, const char* name ) :
 	CreateSignalHandler();
 	}
 
-Client::Client( int client_read_fd, int client_write_fd, const char* name,
-	const EventContext &arg_context, ShareType arg_multithreaded ) : 
-	last_context( arg_context ), useshm(0)
+void Client::Init( int client_read_fd, int client_write_fd, const char* name,
+	const EventContext &arg_context, ShareType arg_multithreaded, const char *script_file )
 	{
 	// BUG HERE -- name (argument) could go away...
 	initial_client_name = prog_name = name;
 
+	useshm = 0;
+	script_client = script_file;
 	multithreaded = arg_multithreaded;
 
 	ClientInit();
@@ -725,7 +728,9 @@ int Client::ReRegister( char* registration_name )
 	event_sources.append( es );
 
 	charptr *reg_val = (charptr*) alloc_memory(sizeof(charptr)*2);
-	reg_val[0] = strdup( ! registration_name ? prog_name : registration_name );
+
+	reg_val[0] = strdup( script_client ? script_client : 
+			     ! registration_name ? prog_name : registration_name );
 	reg_val[1] = strdup( multithreaded == GROUP ? "GROUP" :
 			     multithreaded == WORLD ? "WORLD" : "USER" );
 
@@ -857,17 +862,17 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			//
 			// Change last_context to the context of the entering
 			//	interpreter.
-
-			char* info = last_event->value->StringVal();
-
-			if ( streq( last_event->name, "client" ) )
+			const Value *val = 0;
+			if ( streq( last_event->name, "client" ) &&
+			     (val = last_event->value->HasRecordElement( "argv" )) )
 				{
 				int port;
 				char c_name[256];
 				char host[256];
 				char interp_tag[256];
+				char* info = val->StringVal();
 
-				sscanf(info, "remote task %*d %*s -id %s -host %s -port %d -interpreter %s",
+				sscanf(info, "%*s -id %s -host %s -port %d -interpreter %s",
 						c_name, host, &port, interp_tag);
 
 				int my_socket = get_tcp_socket();

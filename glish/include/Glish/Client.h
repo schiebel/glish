@@ -138,15 +138,18 @@ class Client {
 	// Client's are constructed by giving them the program's
 	// argc and argv.  Any client-specific arguments are read
 	// and stripped off.
-	Client( int& argc, char** argv, ShareType arg_multithreaded = NONSHARED );
+	Client( int& argc, char** argv, ShareType arg_multithreaded = NONSHARED )
+		{ Init( argc, argv, arg_multithreaded, 0 ); }
 
 	// Alternatively, a Client can be constructed from fd's for
 	// reading and writing events and a client name.  This version
 	// of the constructor does not generate an initial "established"
 	// event.
-	Client( int client_read_fd, int client_write_fd, const char* name );
+	Client( int client_read_fd, int client_write_fd, const char* name ) : last_context( name )
+		{ Init( client_read_fd, client_write_fd, name, 0 ); }
 	Client( int client_read_fd, int client_write_fd, const char* name,
-		const EventContext &arg_context, ShareType arg_multithreaded = NONSHARED );
+		const EventContext &arg_context, ShareType arg_multithreaded = NONSHARED ) : last_context(arg_context)
+		{ Init( client_read_fd, client_write_fd, name, arg_context, arg_multithreaded, 0 ); }
 
 	virtual ~Client();
 
@@ -267,6 +270,15 @@ class Client {
 	const EventContext &LastContext() { return last_context; }
 
     protected:
+
+	void Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file );
+	void Init( int client_read_fd, int client_write_fd, const char* name, const char *script_file );
+	void Init( int client_read_fd, int client_write_fd, const char* name,
+		   const EventContext &arg_context, ShareType arg_multithreaded, const char *script_file );
+
+	Client( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
+		{ Init( argc, argv, arg_multithreaded, script_file ); }
+
 	friend void Client_signal_handler( );
 
 	// Performs Client initialization that doesn't depend on the
@@ -375,6 +387,9 @@ class Client {
 
 	// Use shared memory
 	int useshm;
+
+	// Is this a script client
+	const char *script_client;
 	};
 
 Value *read_value( sos_in & );

@@ -137,7 +137,8 @@ stack_type::~stack_type( )
 // FD_Change() to create or delete ScriptSelectee's as needed.
 class ScriptClient : public Client {
 public:
-	ScriptClient( int& argc, char** argv, Client::ShareType multi = Client::NONSHARED );
+	ScriptClient( int& argc, char** argv, Client::ShareType multi = Client::NONSHARED,
+		      const char *script_file = 0 );
 
 	// Inform the ScriptClient as to which selector and agent
 	// it should use for getting and propagating events.
@@ -821,10 +822,10 @@ void Sequencer::toplevelreset()
 	current_await_done = 0;
 	}
 
-void Sequencer::InitScriptClient()
+void Sequencer::InitScriptClient( )
 	{
 	// Create "script" global.
-	script_client = new ScriptClient( argc_, argv_, MultiClientScript() );
+	script_client = new ScriptClient( argc_, argv_, MultiClientScript(), run_file );
 
 	if ( script_client->HasSequencerConnection() )
 		{
@@ -954,7 +955,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 
 
 Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0),
-							system(this), system_change_count(1)
+							system(this), system_change_count(1),
+							run_file(0)
 	{
 	cur_sequencer = this;
 
@@ -1186,23 +1188,20 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 		}
 
 	int do_interactive = 1;
-	char *runfile = 0;
-	if ( argc > 0 && strcmp( argv[0], "--" ) && (runfile = which_include(argv[0])) )
+	if ( argc > 0 && strcmp( argv[0], "--" ) && (run_file = which_include(argv[0])) )
 		{
 		MakeArgvGlobal( argv, argc );
-		Parse( runfile );
+		Parse( run_file );
 		do_interactive = 0;
-		free_memory( runfile );
 		}
 	else
 		MakeArgvGlobal( argv, argc, 1 );
 
 	if ( ! ScriptCreated() )
-		InitScriptClient();
+		InitScriptClient( );
 
 	if ( do_interactive )
 		Parse( stdin );
-
 	}
 
 
@@ -3246,7 +3245,8 @@ int ProbeTimer::DoExpiration()
 	}
 
 
-ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi ) : Client( argc, argv, multi )
+ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi,
+			    const char *script_file ) : Client( argc, argv, multi, script_file )
 	{
 	selector = 0;
 	agent = 0;

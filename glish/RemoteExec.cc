@@ -15,11 +15,12 @@ RCSID("@(#) $Id$")
 #include "system.h"
 
 
-RemoteExec::RemoteExec( Channel* arg_daemon_channel,
-			const char* arg_executable, const char** argv )
+RemoteExec::RemoteExec( Channel* arg_daemon_channel, const char* arg_executable,
+			const char *arg_name, const char** argv )
     : Executable( arg_executable )
 	{
 	daemon_channel = arg_daemon_channel;
+	name = arg_name ? strdup( arg_name ) : 0;
 
 	char id_buf[64];
 	static int remote_exec_id = 0;
@@ -28,19 +29,14 @@ RemoteExec::RemoteExec( Channel* arg_daemon_channel,
 	id = strdup( id_buf );
 
 	int argc = 0;
-	while ( argv[argc] )
-		++argc;
+	while ( argv[argc] ) ++argc;
 
-	charptr* client_argv = (charptr*) alloc_memory( sizeof(charptr)*(argc+1) );
-
-	client_argv[0] = id;
-	for ( int i = 1; i <= argc; ++i )
-		client_argv[i] = argv[i-1];
-
-	Value argv_value( client_argv, argc + 1, COPY_ARRAY );
-	send_event( daemon_channel->Sink(), "client", &argv_value );
-
-	free_memory( client_argv );
+	recordptr rec = create_record_dict();
+	rec->Insert( strdup("name"), create_value( arg_name ? arg_name : arg_executable ) );
+	rec->Insert( strdup("argv"), create_value( argv, argc, COPY_ARRAY ) );
+	rec->Insert( strdup("id"), create_value( id ) );
+	Value param( rec );
+	send_event( daemon_channel->Sink(), "client", &param );
 	}
 
 
@@ -53,6 +49,7 @@ RemoteExec::~RemoteExec()
 		}
 
 	free_memory( id );
+	free_memory( name );
 	}
 
 

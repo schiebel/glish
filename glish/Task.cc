@@ -23,6 +23,49 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Reporter.h"
 
+
+class Serialize {
+    public:
+	Serialize( const_args_list &argv_, int start = 0 ) : argv(argv_),
+			list_element(start), str_element(0) { }
+	const char *get( )
+		{ return list_element >= argv.length() ? 0 :
+		  argv[list_element]->StringPtr(0)[str_element]; }
+	void set( char * );
+
+	Serialize &operator++( );
+	Serialize &operator++( int )
+		{ return (*this).operator++( ); }
+
+    protected:
+	const_args_list &argv;
+	int list_element;
+	int str_element;
+};
+
+Serialize &Serialize::operator++( )
+	{
+	if ( list_element < argv.length() &&
+	     ++str_element >= argv[list_element]->Length() )
+		{
+		str_element = 0;
+		while ( ++list_element < argv.length() &&
+			! argv[list_element]->Length() );
+		}
+
+	return *this;
+	}
+	
+void Serialize::set( char *new_string )
+	{
+	if ( list_element >= argv.length() ||
+	     str_element >= argv[list_element]->Length() )
+		return;
+	const char **ary = argv[list_element]->StringPtr( );
+	free_memory( (char*) ary[str_element] );
+	ary[str_element] = new_string;
+	}
+
 Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	{
 	attrs = task_attrs;
@@ -307,7 +350,8 @@ void Task::Exec( const char** argv )
 	if ( attrs->daemon_channel )
 		{
 		sequencer->UpdateRemoteBinPath( );
-		executable = new RemoteExec( attrs->daemon_channel, argv[0], argv );
+		executable = new RemoteExec( attrs->daemon_channel, argv[0],
+					     attrs->name, argv );
 		}
 	else
 		{
@@ -501,9 +545,9 @@ void ClientTask::CreateAsyncClient( const char** argv )
 	}
 
 
-TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname,
-		    Channel* arg_daemon_channel, int arg_async_flag,
-		    int arg_ping_flag, int arg_suspend_flag )
+TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname, Channel* arg_daemon_channel,
+		    int arg_async_flag, int arg_ping_flag, int arg_suspend_flag,
+		    const char *name_ )
 	{
 	task_var_ID = arg_ID;
 	hostname = arg_hostname;
@@ -512,12 +556,14 @@ TaskAttr::TaskAttr( char* arg_ID, char* arg_hostname,
 	ping_flag = arg_ping_flag;
 	suspend_flag = arg_suspend_flag;
 	useshm = 0;
+	name = name_ ? strdup(name_) : 0;
 	}
 
 TaskAttr::~TaskAttr()
 	{
 	free_memory( task_var_ID );
 	free_memory( hostname );
+	free_memory( name );
 	}
 
 
@@ -547,20 +593,22 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 		return (IValue*) Fail( "remote task creation failed" );
 
 	int shm_flag = 1;
+	const char *script_name = 0;
 	if ( sequencer->LocalHost( hostname ) && channel )
 		{
 		shm_flag = 0;
 		sequencer->UpdateBinPath( );
 		char *client = GetString( args[task_args_start] );
 
-		char *ptr = client + strlen(client) - 1;
-		while ( ptr != client && *ptr != '/' ) --ptr;
+		const char *ptr_base = args[task_args_start]->StringPtr(0)[0];
+		const char *ptr = ptr_base + strlen(ptr_base) - 1;
+		while ( ptr != ptr_base && *ptr != '/' ) --ptr;
 		char *exe = which_executable( ptr );
 
-		cerr << (exe ? exe : "0x0") << endl;
-
-		IValue val( client );
-		send_event( channel->Sink(), "client-up", &val );
+		script_name = ! strcmp( exe, sequencer->Path() ) ?
+				 ExpandScript( task_args_start, args ) : 0;
+		IValue val( script_name ? script_name : client );
+		send_event( channel->Sink(),  "client-up", &val );
 		GlishEvent* e = recv_event( channel->Source() );
 		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
 			{
@@ -591,8 +639,8 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 
 	shm_flag = shm_flag && args[7]->IntVal();
 
-	attrs = new TaskAttr( var_ID, hostname, channel, async_flag, ping_flag,
-				suspend_flag );
+	attrs = new TaskAttr( var_ID, hostname, channel, async_flag,
+			      ping_flag, suspend_flag, script_name );
 
 	// Collect the arguments to the task.
 	const_args_list task_args;
@@ -668,6 +716,37 @@ char* CreateTaskBuiltIn::GetString( const IValue* val )
 		return 0;
 	else
 		return val->StringVal();
+	}
+
+
+const char* CreateTaskBuiltIn::ExpandScript( int start, const_args_list &argv )
+	{
+	Serialize args( argv, start );
+
+	++args;					// step past the interpreter
+						// to the first argument
+	const char *arg;
+	for ( ; arg = args.get(); ++args )
+		{
+		if ( ! strcmp( arg, "-v" ) || ! strcmp( arg, "-w" ) || strchr( arg, '=' ) )
+			continue;
+		else if ( ! strcmp( arg, "-l" ) )
+			++args;
+		else
+			break;
+		}
+
+	char *runfile;
+	if ( arg && strcmp( arg, "--" ) &&
+	     (runfile = which_include(arg)) )
+		{
+		char *ret = canonic_path( runfile );
+		args.set( ret );
+		free_memory( runfile );
+		return ret;
+		}
+
+	return 0;
 	}
 
 

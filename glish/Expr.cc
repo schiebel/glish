@@ -346,7 +346,7 @@ Expr *ScriptVarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 		{
 		const IValue *v = ret->ReadOnlyEval();
 		if ( v->Type() == TYPE_BOOL )
-			sequencer->InitScriptClient();
+			sequencer->InitScriptClient( );
 		ret->ReadOnlyDone( v );
 		}
 

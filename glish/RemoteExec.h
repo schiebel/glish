@@ -10,8 +10,8 @@ class Channel;
 
 class RemoteExec : public Executable {
     public:
-	RemoteExec( Channel* daemon_channel,
-		    const char* arg_executable, const char** argv );
+	RemoteExec( Channel* daemon_channel, const char* arg_executable,
+		    const char * arg_name, const char** argv );
 	~RemoteExec();
 
 	int Active();
@@ -19,6 +19,7 @@ class RemoteExec : public Executable {
 
     protected:
 	char* id;
+	char *name;			// name as registered with glishd
 	Channel* daemon_channel;
 	};
 

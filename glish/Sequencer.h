@@ -401,7 +401,7 @@ public:
 		script_created = set_to;
 		return script_created;
 		}
-	void InitScriptClient();
+	void InitScriptClient( );
 
 	static void TopLevelReset();
 
@@ -510,6 +510,8 @@ protected:
 	int argc_;
 	char **argv_;
 	IValue *sys_val;
+
+	char *run_file;
 
 	IValue *error_result;
 

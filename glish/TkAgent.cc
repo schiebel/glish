@@ -792,14 +792,32 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 
 	HASARG( args, > 0 )
 	int c = 0;
-	EXPRVAL( val, event_name );
-	char *str = val->StringVal( ' ', 0, 1 );
+	char **argv = (char**) alloc_memory(sizeof(char*) * (args->length()+3));
+	int argc = 0;
+	argv[argc++] = 0;
+	argv[argc++] = (char*) cmd;
+	if ( param ) argv[argc++] = (char*) a->IndexCheck(param);
+	int start = argc;
+	for ( int i=0; i < args->length(); ++i )
+		{
+		EXPRVAL( val, event_name )
+		argv[argc++] = i != 1 || param ? val->StringVal( ' ', 0, 1 ) :
+				a->IndexCheck(val->StringVal( ' ', 0, 1 ));
+		EXPR_DONE( val )
+		}
 	a->EnterEnable();
-	ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(param), str, 0);
-	rivet_va_cmd(a->Self(), "see", a->IndexCheck("end"), 0);
+	if ( ! param && argc > 3 )
+		{
+		char *tmp = argv[3];
+		argv[3] = argv[2];
+		argv[2] = tmp;
+		}
+	ret = rivet_cmd(a->Self(), argc, argv);
+	if ( param ) rivet_va_cmd(a->Self(), "see", a->IndexCheck(param), 0);
 	a->ExitEnable();
-	free_memory( str );
-	EXPR_DONE( val )
+	for ( LOOPDECL i = start; i < argc; ++i )
+		free_memory(argv[i]);
+	free_memory( argv );
 	return ret;
 	}
 
@@ -2783,9 +2801,9 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("get", new TkProc(this, "get", glishtk_oneortwoidx_strary, glishtk_strary_to_value));
-	procs.Insert("insert", new TkProc(this, "insert", glishtk_strandidx));
+	procs.Insert("insert", new TkProc(this, "insert", 0, glishtk_text_append));
 	procs.Insert("append", new TkProc(this, "insert", "end", glishtk_text_append));
-	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_strwithidx));
+	procs.Insert("prepend", new TkProc(this, "insert", "start", glishtk_text_append));
 	procs.Insert("addtag", new TkProc("tag", "add", glishtk_text_tagfunc));
 	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
 	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));

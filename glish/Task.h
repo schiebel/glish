@@ -20,7 +20,7 @@ typedef PList(GlishEvent) glish_event_list;
 class TaskAttr {
     public:
 	TaskAttr( char* arg_ID, char* hostname, Channel* daemon_channel,
-		  int async_flag, int ping_flag, int suspend_flag );
+		  int async_flag, int ping_flag, int suspend_flag, const char *name_ = 0 );
 
 	~TaskAttr();
 
@@ -31,6 +31,7 @@ class TaskAttr {
 	int ping_flag;
 	int suspend_flag;
 	int useshm;
+	char *name;
 	};
 
 
@@ -154,6 +155,11 @@ class CreateTaskBuiltIn : public BuiltIn {
 	// Extract a string from the given value, or if it indicates
 	// "default" (by being equal to F) return 0.
 	char* GetString( const IValue* val );
+
+	// 'argv' represents the parameters to start a "script client",
+	// this function goes through these arguments and expands the
+	// path to the glish script.
+	const char* ExpandScript( int start, const_args_list &args_val );
 
 	// Execute the given command locally and synchronously, with the
 	// given string as input, and return a Value holding the result.
