@@ -79,8 +79,6 @@ const char * const LD_PATH = "LD_LIBRARY_PATH";
 // Interval between subsequent probes, in seconds.
 #define PROBE_INTERVAL 5
 
-int glish_dummy_int =  0;
-
 extern int allwarn;
 extern void init_regex();
 

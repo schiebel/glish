@@ -20,6 +20,8 @@ extern int glish_collecting_garbage;
 int num_Values_created = 0;
 int num_Values_deleted = 0;
 
+int glish_dummy_int =  0;
+
 const char* type_names[NUM_GLISH_TYPES] =
 	{
 	"error", "ref", "subref",
@@ -2648,13 +2650,24 @@ void Value::AssignArrayElements( int* indices, int num_indices, Value* value,
 		return;
 		}
 
-	int max_index;
-	if ( ! IndexRange( indices, num_indices, max_index ) )
+	int max_index, min_index;
+	if ( ! IndexRange( indices, num_indices, max_index, min_index ) )
 		return;
 
+	int orig_len = Length();
 	if ( max_index > Length() )
 		if ( ! Grow( (unsigned int) max_index ) )
 			return;
+
+	if ( Type() == TYPE_STRING && min_index > orig_len )
+		{
+		char **ary = (char**) StringPtr();
+		for ( int x=orig_len; x < min_index; ++x )
+			{
+			ary[x] = (char*) alloc_memory(1);
+			ary[x][0] = '\0';
+			}
+		}
 
 	switch ( Type() )
 		{
@@ -3157,9 +3170,10 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
 	return;
 	}
 
-int Value::IndexRange( int* indices, int num_indices, int& max_index ) const
+int Value::IndexRange( int* indices, int num_indices, int& max_index, int& min_index ) const
 	{
 	max_index = 0;
+	min_index = num_indices > 0 ? indices[num_indices-1] : 0;
 
 	for ( int i = 0; i < num_indices; ++i )
 		{
@@ -3170,8 +3184,13 @@ int Value::IndexRange( int* indices, int num_indices, int& max_index ) const
 			return 0;
 			}
 
-		else if ( indices[i] > max_index )
-			max_index = indices[i];
+		else
+			{
+			if ( indices[i] > max_index )
+				max_index = indices[i];
+			if ( indices[0] < min_index )
+				min_index = indices[i];
+			}
 		}
 
 	return 1;

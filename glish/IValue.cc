@@ -322,13 +322,24 @@ void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
 		return;
 		}
 
-	int max_index;
-	if ( ! IndexRange( indices, num_indices, max_index ) )
+	int max_index, min_index;
+	if ( ! IndexRange( indices, num_indices, max_index, min_index ) )
 		return;
 
+	int orig_len = Length();
 	if ( max_index > Length() )
 		if ( ! Grow( (unsigned int) max_index ) )
 			return;
+
+	if ( Type() == TYPE_STRING && min_index > orig_len )
+		{
+		char **ary = (char**) StringPtr();
+		for ( int x=orig_len; x < min_index; ++x )
+			{
+			ary[x] = (char*) alloc_memory(1);
+			ary[x][0] = '\0';
+			}
+		}
 
 	switch ( Type() )
 		{

@@ -214,8 +214,6 @@ class EnvHolder {
 	PDict(char) strings;
 };
 
-extern int glish_dummy_int;
-
 class Sequencer {
 public:
 	inline unsigned int VERB_INCL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }

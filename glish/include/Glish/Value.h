@@ -22,6 +22,7 @@ typedef enum {
 	PRESERVE_ARRAY		// use the array, don't delete it or grow it
 	} array_storage_type;
 
+extern int glish_dummy_int;
 
 class Value;
 struct complex;
@@ -663,7 +664,8 @@ protected:
 	// it in "max_index".  If an invalid (< 1) index is found, a
 	// error is generated and false is returned; otherwise true
 	// is returned.
-	int IndexRange( int* indices, int num_indices, int& max_index ) const;
+	int IndexRange( int* indices, int num_indices, int& max_index,
+			int& min_index = glish_dummy_int ) const;
 
 	// returns a new string
 	char* RecordStringVal( char sep = ' ', int max_elements = 0, 
