@@ -310,19 +310,59 @@ char *glishtk_oneortwoidx(TkProxy *a, const char *cmd, Value *args )
 		{
 		HASARG( args, > 1 )
 		EXPRINIT( event_name )
-		EXPRSTR( start, event_name )
-		EXPRSTR( end, event_name )
-		a->EnterEnable();
-		tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start ), SP, a->IndexCheck( end ), (char *)NULL );
-		a->ExitEnable();
-		EXPR_DONE( end )
-		EXPR_DONE( start )
+		EXPRVAL( start, event_name );
+		if ( start->Type() == TYPE_STRING )
+			{
+			// LEAKS!!!! upon error
+			EXPRSTR( end, event_name )
+			a->EnterEnable();
+			tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start->StringPtr(0)[0] ), SP, a->IndexCheck( end ), (char *)NULL );
+			a->ExitEnable();
+			EXPR_DONE( end )
+			}
+		else if ( start->Type() == TYPE_INT )
+			{
+			char startbuf[20];
+			charptr cstart = a->IndexCheck( start->IntPtr(0)[0], startbuf );
+			if ( cstart )
+				{
+				// LEAKS!!!! upon error
+				EXPRINT( end, event_name )
+				char endbuf[20];
+				charptr cend = a->IndexCheck( end, endbuf );
+				if ( cend )
+					{
+					a->EnterEnable();
+					tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, cstart, SP, cend, (char *)NULL );
+					a->ExitEnable();
+					}
+				EXPR_DONE( end )
+				}
+			}
+		else
+			{
+			EXPR_DONE( start );
+			global_store->Error("bad value: %s", event_name);
+			return 0;
+			}
+		EXPR_DONE( start );
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
 		tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), (char *)NULL );
 		a->ExitEnable();
+		}
+	else if ( args->Type() == TYPE_INT )
+		{
+		char idxbuf[20];
+		charptr idx = a->IndexCheck( args->IntPtr(0)[0], idxbuf );
+		if ( idx )
+			{
+			a->EnterEnable();
+			tcl_VarEval( a, Tk_PathName(a->Self()), SP, cmd, SP, idx, (char *)NULL );
+			a->ExitEnable();
+			}
 		}
 	return ret;
 	}
@@ -4145,6 +4185,13 @@ charptr TkEntry::IndexCheck( charptr s )
 	return s;
 	}
 
+charptr TkEntry::IndexCheck( int idx, char *buf )
+	{
+	static char sbuf[20];
+	if ( ! buf ) buf = sbuf;
+	sprintf( buf, "%d", idx );
+	return buf;
+	}
 
 STD_EXPAND_PACKINSTRUCTION(TkEntry)
 STD_EXPAND_CANEXPAND(TkEntry)
@@ -4489,6 +4536,14 @@ charptr TkListbox::IndexCheck( charptr s )
 	if ( s && s[0] == 's' && ! strcmp(s,"start") )
 		return "0";
 	return s;
+	}
+
+charptr TkListbox::IndexCheck( int idx, char *buf )
+	{
+	static char sbuf[20];
+	if ( ! buf ) buf = sbuf;
+	sprintf( buf, "%d", idx );
+	return buf;
 	}
 
 void TkListbox::yScrolled( const double *d )

@@ -69,6 +69,7 @@ class TkProxy : public Proxy {
 
 	virtual charptr NewName( Tk_Window parent=0 ) const;
 	virtual charptr IndexCheck( charptr );
+	virtual charptr IndexCheck( int idx, char *buf=0 );
 
 	virtual int IsValid() const;
 	virtual void UnMap();

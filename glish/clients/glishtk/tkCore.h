@@ -341,6 +341,7 @@ class TkEntry : public TkProxy {
 	static void Create( ProxyStore *, Value * );
 
 	charptr IndexCheck( charptr );
+	charptr IndexCheck( int idx, char *buf=0 );
 
 	void ReturnHit( );
 	void xScrolled( const double *firstlast );
@@ -391,6 +392,7 @@ class TkListbox : public TkProxy {
 		   charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	charptr IndexCheck( charptr );
+	charptr IndexCheck( int idx, char *buf=0 );
 
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );

@@ -841,6 +841,11 @@ charptr TkProxy::IndexCheck( charptr c )
 	return c;
 	}
 
+charptr TkProxy::IndexCheck( int, char* )
+	{
+	return 0;
+	}
+
 int TkProxy::CanExpand() const
 	{
 	return 0;
