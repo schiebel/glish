@@ -611,7 +611,7 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 	Notification *cached_note = 0;
 	int len = cached_notes.length();
-	if ( len && (cached_note=cached_notes.remove_nth(len-1)) != sequencer->LastNotification() )
+	if ( len && (cached_note=cached_notes.remove_nth(len-1)) && cached_note != sequencer->LastNotification() )
 		sequencer->PushNote(cached_note);
 	else
 		Unref(cached_note);
@@ -638,7 +638,10 @@ void AwaitStmt::ClearCachedNote()
 	Notification *cached_note = 0;
 	int len = cached_notes.length();
 	if ( len && (cached_note=cached_notes.remove_nth(len-1)) )
+		{
 		Unref(cached_note);
+		cached_notes.append(0);
+		}
 	}
 
 const char *AwaitStmt::TerminateInfo() const
