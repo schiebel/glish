@@ -438,17 +438,21 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 					$$ = compound_assignment( lhs, 0, $$ );
 					}
 				}
+
+			in_func_decl = 0;
 			}
 	;
 
 function_head:	TOK_FUNCTION
 			{
+			in_func_decl = 1;
 			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = 0;
 			}
 
 	|	TOK_SUBSEQUENCE
 			{
+			in_func_decl = 1;
 			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( strdup( "self" ),
 								LOCAL_SCOPE );
@@ -747,6 +751,12 @@ no_cont:		{ statement_can_end = 1; }
 
 void yyerror( char msg[] )
 	{
+	if ( in_func_decl )
+		{
+		in_func_decl = 0;
+		current_sequencer->PopScope();
+		}
+
 	error->Report( msg, " at or near '", yytext, "'" );
 	}
 
