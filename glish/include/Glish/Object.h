@@ -93,7 +93,7 @@ class GlishObject : public GlishRef {
 		const RMessage& = EndMessage 
 		) const;
 
-	Value *Fail( const RMessage&, const RMessage& = EndMessage,
+	Value *Fail( int auto_fail, const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -103,6 +103,17 @@ class GlishObject : public GlishRef {
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage 
 		) const;
+
+	Value *Fail( const RMessage &a, const RMessage &b = EndMessage,
+		const RMessage &c = EndMessage, const RMessage &d = EndMessage,
+		const RMessage &e = EndMessage, const RMessage &f = EndMessage,
+		const RMessage &g = EndMessage, const RMessage &h = EndMessage,
+		const RMessage &i = EndMessage, const RMessage &j = EndMessage,
+		const RMessage &k = EndMessage, const RMessage &l = EndMessage,
+		const RMessage &m = EndMessage, const RMessage &n = EndMessage,
+		const RMessage &o = EndMessage, const RMessage &p = EndMessage,
+		const RMessage &q = EndMessage 
+		) const { return Fail( 1, a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p ); }
 
 	Value *Fail( const Value * ) const;
 

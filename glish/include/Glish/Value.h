@@ -77,8 +77,8 @@ extern const Value* false_value;
 extern Value* empty_value( glish_type t = TYPE_INT );
 extern Value* empty_bool_value();
 extern Value* error_value( );
-extern Value* error_value( const char *message );
-extern Value* error_value( const char *message, const char *file, int line );
+extern Value* error_value( const char *message, int auto_fail = 1 );
+extern Value* error_value( const char *message, const char *file, int line, int auto_fail = 1 );
 
 extern Value* create_record();
 
@@ -92,7 +92,7 @@ friend class IValue;
 public:
 	// Create a <fail> value
 	Value( );
-	Value( const char *message, const char *file, int lineNum );
+	Value( const char *message, const char *file, int lineNum, int auto_fail=1 );
 	Value( const Value *val, const char *file, int lineNum );
 	void SetFailMessage( Value * );
 	void SetFail( recordptr );
@@ -713,7 +713,7 @@ extern Value *Fail( );
 // IValue* they are also defined in glishlib.cc (which goes into libglish)
 // and return a Value*
 extern Value *create_value( );
-extern Value *create_value( const char *message, const char *file, int line );
+extern Value *create_value( const char *message, const char *file, int line, int auto_fail=1 );
 extern Value *create_value( const Value *val, const char *file, int line );
 extern Value *create_value( const Value &value );
 extern Value *create_value( glish_bool value );

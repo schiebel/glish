@@ -130,7 +130,7 @@ extern void report_error( const char *file, int line,
 		const RMessage& = EndMessage 
 		);
 
-extern Value *generate_error( const RMessage&, const RMessage& = EndMessage,
+extern Value *generate_error( int auto_fail, const RMessage&,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -138,9 +138,21 @@ extern Value *generate_error( const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
-		const RMessage& = EndMessage 
+		const RMessage& = EndMessage, const RMessage& = EndMessage 
 		);
-extern Value *generate_error( const char *file, int line,
+
+inline Value *generate_error( const RMessage &a, const RMessage &b = EndMessage,
+		const RMessage &c = EndMessage, const RMessage &d = EndMessage,
+		const RMessage &e = EndMessage, const RMessage &f = EndMessage,
+		const RMessage &g = EndMessage, const RMessage &h = EndMessage,
+		const RMessage &i = EndMessage, const RMessage &j = EndMessage,
+		const RMessage &k = EndMessage, const RMessage &l = EndMessage,
+		const RMessage &m = EndMessage, const RMessage &n = EndMessage,
+		const RMessage &o = EndMessage, const RMessage &p = EndMessage,
+		const RMessage &q = EndMessage 
+		) { return generate_error( 1, a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q ); }
+
+extern Value *generate_error( int auto_fail, const char *file, int line,
 		const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -151,6 +163,18 @@ extern Value *generate_error( const char *file, int line,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,
 		const RMessage& = EndMessage 
 		);
+
+inline Value *generate_error( const char *file, int line,
+		const RMessage &a, const RMessage &b = EndMessage,
+		const RMessage &c = EndMessage, const RMessage &d = EndMessage,
+		const RMessage &e = EndMessage, const RMessage &f = EndMessage,
+		const RMessage &g = EndMessage, const RMessage &h = EndMessage,
+		const RMessage &i = EndMessage, const RMessage &j = EndMessage,
+		const RMessage &k = EndMessage, const RMessage &l = EndMessage,
+		const RMessage &m = EndMessage, const RMessage &n = EndMessage,
+		const RMessage &o = EndMessage, const RMessage &p = EndMessage,
+		const RMessage &q = EndMessage 
+		) { return generate_error( 1, file, line, a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q ); }
 
 extern const Str generate_error_str( const RMessage&, const RMessage& = EndMessage,
 		const RMessage& = EndMessage, const RMessage& = EndMessage,

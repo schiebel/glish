@@ -79,7 +79,7 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast ) : Agent( s, D
 	read_pipe_str = write_pipe_str = 0;
 	pipes_used = 0;
 
-	active = INITIAL;	// not ACTIVE till we get a .established event
+	active = sINITIAL;	// not sACTIVE till we get a .established event
 	protocol = 0;		// not set until Client establishes itself
 
 	bundle = 0;
@@ -511,10 +511,13 @@ void Task::Exec( const char** argv )
 void Task::SetActivity( State is_active )
 	{
 	active = is_active;
-	CreateEvent( "active", new IValue( is_active != FINISHED ), 0, 1 );
+	CreateEvent( "active", new IValue( active != sFINISHED ), 0, 1 );
 
-	if ( is_active == FINISHED )
+	if ( active == sFINISHED )
+		{
 		CloseChannel();
+		if ( executable ) executable->DoneReceived();
+		}
 	}
 
 void Task::AbnormalExit( int status )
@@ -1194,6 +1197,17 @@ ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), bu
 	sprintf(buf, "<proxy:%d>", id.id());
 	agent_ID = string_dup(buf);
 	task->RegisterProxy(this);
+	SetActive( );
+	}
+
+void ProxyTask::SetActivity( State s )
+	{
+	active = s;
+
+	CreateEvent( "active", new IValue( active != sFINISHED ), 0, 1 );
+
+	if ( active == sFINISHED )
+		(void) (*agents).remove( this );
 	}
 
 void ProxyTask::WrapperGone( const IValue *v )

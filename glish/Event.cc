@@ -88,7 +88,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 
 	IValue* result = 0;
 
-	if ( a )
+	if ( a && ! a->Finished( ) )
 		{
 		if ( nl.length() > 1 )
 			error->Report( this,
@@ -96,6 +96,9 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 
 		result = a->SendEvent( nl[0], arguments, is_request, 1, from_subsequence );
 		}
+
+	else if ( a )
+		result = (IValue*) Fail( is_request, EventAgentExpr(), "has finished and exited" );
 
 	else
 		result = (IValue*) Fail( EventAgentExpr(), "is not an agent" );

@@ -85,7 +85,7 @@ Value *copy_value( const Value *value )
 int write_agent( sos_out &, Value *, sos_header &, const ProxyId & )
 	{ return 0; }
 
-Value *generate_error( const RMessage& m0,
+Value *generate_error( int, const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,
 		       const RMessage& m5, const RMessage& m6,
@@ -100,7 +100,7 @@ Value *generate_error( const RMessage& m0,
 	return error_value();
 	}
 
-Value *generate_error( const char * /*file*/, int /*line*/,
+Value *generate_error( int, const char * /*file*/, int /*line*/,
 		       const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,

@@ -51,8 +51,19 @@ extern void delete_agent_dict( agent_dict * );
 
 class Agent : public GlishObject {
     public:
+	enum State { sINITIAL, sACTIVE, sFINISHED };
 	Agent( Sequencer* s, int DestructLast=0 );
 	virtual ~Agent();
+
+	virtual void SetActivity( State );
+	void SetActive()	{ SetActivity( sACTIVE ); }
+	void SetFinished()	{ SetActivity( sFINISHED ); }
+
+	// True for a Task if a .established has been seen; different
+	// from Exec()->Active(), which is true if the executable has
+	// be fired up and hasn't terminated yet
+	int Active() const		{ return active == sACTIVE; }
+	int Finished() const		{ return active == sFINISHED; }
 
 	virtual const char* Name() const { return agent_ID ? agent_ID : "<agent>"; }
 
@@ -185,6 +196,8 @@ class Agent : public GlishObject {
 	const char* agent_ID;
 	IValue* agent_value;
 	int preserve_events;
+
+	State active;
 	};
 
 class uagent_await_info;

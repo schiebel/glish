@@ -43,7 +43,6 @@ class TaskAttr GC_FINAL_CLASS {
 
 class Task : public Agent {
     public:
-	enum State { INITIAL, ACTIVE, FINISHED };
 	Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast=0 );
 	~Task();
 
@@ -56,12 +55,6 @@ class Task : public Agent {
 	int NoSuchProgram() const	{ return no_such_program; }
 	Executable* Exec() const	{ return executable; }
 	int TaskError() const		{ return task_error; }
-
-	// True if a .established has been seen; different from
-	// Exec()->Active(), which is true if the executable has
-	// be fired up and hasn't terminated yet
-	int Active() const		{ return active == ACTIVE; }
-	int Finished() const		{ return active == FINISHED; }
 
 	// Bundling of events is done with this first SendEvent() to
 	// avoid double bundling of events, i.e. in ProxyTask and Task.
@@ -77,10 +70,6 @@ class Task : public Agent {
 	// Returns non-zero on success
 	int BundleEvents( int howmany=0 );
 	int FlushEvents( );
-
-	void SetActive()	{ SetActivity( ACTIVE ); }
-	void SetFinished()	{ SetActivity( FINISHED );
-				  if ( executable ) executable->DoneReceived(); }
 
 	int  GetPid( ) const    { return attrs->pid; }
 	void SetPid( int pid )  { attrs->pid = pid; }
@@ -142,6 +131,7 @@ class Task : public Agent {
 	const char** CreateArgs( const char* prog, int num_args, int& argc );
 
 	void Exec( const char** argv );
+
 	void SetActivity( State );
 
 	void *getTranscriptFile( );
@@ -161,7 +151,6 @@ class Task : public Agent {
 
 	Executable* executable;
 	int task_error;	// true if any problems occurred
-	State active;
 
 	int protocol;	// which protocol the client speaks, or 0 if not known
 
@@ -253,6 +242,8 @@ class ProxyTask : public Agent {
     public:
 	ProxyTask( const ProxyId &id_, Task *t, Sequencer *s );
 	~ProxyTask( );
+
+	void SetActivity( State );
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log, Expr *from_subsequence=0 );

@@ -154,7 +154,7 @@ IValue::IValue( ) : unref(0), Value( )
 	Sequencer::FailCreated( this );
 	}
 
-IValue::IValue( const char *message, const char *fle, int lne ) : unref(0), Value( message, fle, lne )
+IValue::IValue( const char *message, const char *fle, int lne, int auto_fail ) : unref(0), Value( message, fle, lne )
 	{
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
@@ -195,6 +195,13 @@ IValue::IValue( const char *message, const char *fle, int lne ) : unref(0), Valu
 
 		FailStmt::SetFail( this );
 		}
+
+	//
+	// Sequencer keeps a stack (of stacks) of fail statements
+	// in order to automatically propagate unhandled fails.
+	//
+	if ( auto_fail )
+		Sequencer::FailCreated( this );
 	}
 
 IValue::IValue( funcptr value ) : unref(0), Value(TYPE_FUNC)

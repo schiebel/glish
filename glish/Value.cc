@@ -51,7 +51,7 @@ Value::Value( glish_type )
 	INIT_VALUE_ACTION
 	}
 
-Value::Value( const char *message, const char *xfile, int lineNum )
+Value::Value( const char *message, const char *xfile, int lineNum, int )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
 	INIT_VALUE_ACTION
@@ -2823,14 +2823,14 @@ Value* error_value( )
 	return create_value( );
 	}
 
-Value* error_value( const char *message )
+Value* error_value( const char *message, int auto_fail )
 	{
-	return create_value( message, (const char*) 0, 0 );
+	return create_value( message, (const char*) 0, 0, auto_fail );
 	}
 
-Value* error_value( const char *message, const char *file, int line )
+Value* error_value( const char *message, const char *file, int line, int auto_fail )
 	{
-	return create_value( message, file, line );
+	return create_value( message, file, line, auto_fail );
 	}
 
 Value* create_record()

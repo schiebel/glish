@@ -51,7 +51,7 @@ class IValue : public Value {
 public:
 	// Create a <fail> value
 	IValue( );
-	IValue( const char *message, const char *file, int lineNum );
+	IValue( const char *message, const char *file, int lineNum, int auto_fail=1 );
 	IValue( const Value *val, const char *file, int lineNum ) :
 				Value( val, file, lineNum ) { }
 
@@ -290,9 +290,10 @@ extern IValue* copy_value( const IValue* value );
 inline IValue* empty_ivalue(glish_type t = TYPE_INT) { return (IValue*) empty_value(t); }
 inline IValue* empty_bool_ivalue() { return (IValue*) empty_bool_value(); }
 inline IValue* error_ivalue( ) { return (IValue*) error_value(); }
-inline IValue* error_ivalue( const char *message ) { return (IValue*) error_value(message); }
-inline IValue* error_ivalue( const char *message, const char *file, int line )
-		{ return (IValue*) error_value(message, file, line); }
+inline IValue* error_ivalue( const char *message, int auto_fail = 1 )
+		{ return (IValue*) error_value(message, auto_fail); }
+inline IValue* error_ivalue( const char *message, const char *file, int line, int auto_fail = 1 )
+		{ return (IValue*) error_value(message, file, line, auto_fail ); }
 inline IValue* false_ivalue() { return new IValue( glish_false ); }
 inline IValue* create_irecord() { return (IValue*) create_record(); }
 inline IValue* isplit( char* source, char* split_chars = " \t\n" )

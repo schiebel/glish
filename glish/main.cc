@@ -389,7 +389,7 @@ int lookup_print_limit( )
 	return Sequencer::CurSeq()->System().PrintLimit();
 	}
 
-Value *generate_error( const RMessage& m0,
+Value *generate_error( int auto_fail, const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,
 		       const RMessage& m5, const RMessage& m6,
@@ -402,7 +402,7 @@ Value *generate_error( const RMessage& m0,
 	{
 	srpt->Stream().reset();
 	srpt->report( ioOpt(ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str() );
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), auto_fail );
 	if ( allwarn )
 		{
 		error->Stream() << "E[" << ++error_count << "]: ";
@@ -412,7 +412,7 @@ Value *generate_error( const RMessage& m0,
 	return ret;
 	}
 
-Value *generate_error( const char *file, int line,
+Value *generate_error( int auto_fail, const char *file, int line,
 		       const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,
@@ -426,7 +426,7 @@ Value *generate_error( const char *file, int line,
 	{
 	srpt->Stream().reset();
 	srpt->report( ioOpt( ioOpt::NO_NEWLINE(), 3 ), m0,m1,m2,m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14,m15,m16);
-	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line );
+	IValue *ret = error_ivalue( ((SOStream&)srpt->Stream()).str(), file, line, auto_fail );
 	if ( allwarn )
 		{
 		error->Stream() << "E[" << ++error_count << "]: ";

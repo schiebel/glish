@@ -65,6 +65,7 @@ Agent::Agent( Sequencer* s, int DestructLast )
 	agent_ID = 0;
 	agent_value = 0;
 	string_copies = 0;
+	active = sINITIAL;
 
 	agent_value = new IValue( create_record_dict(), this );
 	if ( DestructLast )
@@ -73,6 +74,8 @@ Agent::Agent( Sequencer* s, int DestructLast )
 		(*agents).append( this );
 	preserve_events = 0;
 	}
+
+void Agent::SetActivity( State s ) { active = s; }
 
 void Agent::Done()
 	{
@@ -351,7 +354,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value, NotifyTrig
 		}
 
 	if ( (preserve_events || preserve) && agent_value &&
-	     ! there_is_interest && agent_value->Type() == TYPE_RECORD )
+	     agent_value->Type() == TYPE_RECORD )
 		{
 		// We have to assign the corresponding field in the agent
 		// record right here, ourselves, since the sequencer isn't

@@ -2527,7 +2527,7 @@ IValue* SendEventExpr::Eval( evalOpt &opt )
 	{
 	IValue* result = sender->SendEvent( args, is_request_reply, in_subsequence );
 
-	if ( opt.side_effects() )
+	if ( opt.side_effects() && ( ! result || result->Type() != TYPE_FAIL ) )
 		{
 		Unref( result );
 		return 0;

@@ -1714,6 +1714,10 @@ void TkFrameP::UnMap()
 	if ( unmapped ) return;
 	unmapped = 1;
 
+	Value *v = new Value( glish_true );
+	PostTkEvent( "done", v );
+	Unref(v);
+
 	if ( RefCount() > 0 ) Ref(this);
 
 	if ( self )
@@ -2278,6 +2282,10 @@ void TkButton::UnMap()
 	{
 	if ( unmapped ) return;
 	unmapped = 1;
+
+	Value *v = new Value( glish_true );
+	PostTkEvent( "done", v );
+	Unref(v);
 
 	if ( frame ) frame->RemoveElement( this );
 

@@ -8,8 +8,8 @@
 #define DEFINE_CREATE_VALUE(type)						\
 	Value *create_value( )							\
 		{ return new type( ); }						\
-	Value *create_value( const char *message, const char *file, int line )	\
-		{ return new type( message, file, line ); }			\
+	Value *create_value( const char *message, const char *file, int line, int auto_fail ) \
+		{ return new type( message, file, line, auto_fail ); }		\
 	Value *create_value( const Value *v, const char *file, int line )	\
 		{ return new type( v, file, line ); }				\
 	Value *create_value( const Value &value )				\

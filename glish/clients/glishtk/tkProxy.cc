@@ -395,12 +395,12 @@ void TkProxy::SetError( Value *v )
 
 void TkProxy::PostTkEvent( const char *s, Value *v )
 	{
-	Ref(this);
+	if ( RefCount() > 0 ) Ref(this);
 	if ( hold_glish_events )
 		tk_queue->EnQueue( new glishtk_event( this, s, v ) );
 	else
 		PostEvent( s, v );
-	Unref(this);
+	if ( RefCount() > 0 ) Unref(this);
 	}
 
 void TkProxy::FlushGlishEvents()
@@ -813,7 +813,14 @@ void TkProxy::Enable( int force )
 
 void TkProxy::UnMap()
 	{
-	if ( self ) Tk_DestroyWindow( self );
+	if ( self )
+		{
+		Value *v = new Value( glish_true );
+		PostTkEvent( "done", v );
+		Unref(v);
+
+		Tk_DestroyWindow( self );
+		}
 
 	frame = 0;
 	self = 0;

@@ -3332,6 +3332,9 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 					else
 						event->SetValue((Value*)copy_value(nval));
 
+					if ( ! strcmp( event_name, "done" ) )
+						pxy->SetFinished( );
+
 					agent = pxy;
 					}
 				else
