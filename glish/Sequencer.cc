@@ -984,9 +984,9 @@ void Sequencer::DescribeFrames( ostream& s ) const
 		s << endl;
 
 		s << "\t\t";
-		loop_over_list(frames, i)
-			if ( frames[i] )
-				s << frames[i]->Size() << "\t\t";
+		loop_over_list(frames, j)
+			if ( frames[j] )
+				s << frames[j]->Size() << "\t\t";
 			else
 			  	s << "X" << "\t\t";
 		s << endl;
