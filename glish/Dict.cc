@@ -127,10 +127,12 @@ int Dictionary::Sizeof( ) const
 		{
 		PList(DictEntry) *chain = tbl[i];
 		if ( chain ) size += sizeof(BaseList) +
-			       chain->curlen() * sizeof(void*);
+			       chain->curlen() * sizeof(void*) +
+			       chain->length() * sizeof(DictEntry);
 		}
 
-	return sizeof(Dictionary) + (order ? sizeof(BaseList) + order->curlen() * sizeof(void*) : 0);
+	return sizeof(Dictionary) + (order ? sizeof(BaseList) + order->curlen() * sizeof(void*) : 0)
+				  + num_buckets * sizeof(void*) + size;
 	}
 
 

@@ -450,17 +450,17 @@ int ValueKernel::Sizeof( ) const
 	if ( ARRAY(mode) )
 		{
 		if ( Type() != TYPE_STRING )
-			return (int) array->bytes() + sizeof(ValueKernel);
+			return (int) array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
 		else
 			{
 			int cnt = 0;
 			for ( unsigned int i = 0; i < array->length; i++ )
 				cnt += strlen(((char**)array->values)[i])+1;
-			return cnt + array->bytes() + sizeof(ValueKernel);
+			return cnt + array->bytes() + sizeof(array_t) + sizeof(ValueKernel);
 			}
 		}
 	else if ( RECORD(mode) )
-		return record->Sizeof( );
+		return sizeof(record_t) + record->Sizeof( );
 	else
 		return otherSizeof();
 	}
