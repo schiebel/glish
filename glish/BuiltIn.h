@@ -141,8 +141,10 @@ DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)
 
 DERIVE_BUILTIN(WheneverStmtsBuiltIn,1,"whenever_stmts",)
-
 DERIVE_BUILTIN(ActiveAgentsBuiltIn,0,"active_agents",)
+DERIVE_BUILTIN(BundleEventsBuiltIn,NUM_ARGS_VARIES,"bundle_events",)
+DERIVE_BUILTIN(FlushEventsBuiltIn,1,"flush_events",)
+
 DERIVE_BUILTIN(TimeBuiltIn,0,"time",)
 
 class IsConstBuiltIn : public BuiltIn {

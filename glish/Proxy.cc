@@ -20,8 +20,8 @@ class pxy_store_cbinfo {
     public:
 	pxy_store_cbinfo( PxyStoreCB1 cb, void * data_ ) : cb1(cb), cb2(0), data(data_) { }
 	pxy_store_cbinfo( PxyStoreCB2 cb, void * data_ ) : cb1(0), cb2(cb), data(data_) { }
-	void invoke( ProxyStore *s, GlishEvent *e )
-		{ if ( cb1 ) (*cb1)( s, e, data ); else (*cb2)( s, e->Val(), data ); }
+	void invoke( ProxyStore *s, Value *v, GlishEvent *e )
+		{ if ( cb1 ) (*cb1)( s, v, e, data ); else (*cb2)( s, v, data ); }
     private:
 	PxyStoreCB1 cb1;
 	PxyStoreCB2 cb2;
@@ -140,16 +140,59 @@ void ProxyStore::ProcessEvent( GlishEvent *e )
 				if ( ! strcmp( "terminate", e->Name() ) )
 					Unref(pxlist[i]->Done( val ));
 				else
-					pxlist[i]->ProcessEvent( e->Name(), val );
+					{
+					if ( e->IsBundle() )
+						{
+						if ( val->Type() != TYPE_RECORD )
+							{
+							Error( "bad event bundle" );
+							return;
+							}
+
+						recordptr events = val->RecordPtr(0);
+						for ( int x=0; x < events->Length(); ++x )
+							{
+							const char* bname;
+							Value *bval = events->NthEntry( x, bname );
+							pxlist[i]->ProcessEvent( &bname[8], bval );
+							}
+						}
+					else
+						pxlist[i]->ProcessEvent( e->Name(), val );
+					}
 				break;
 				}
 
 		if ( ! found ) Error( "bad proxy id" );
 		}
-	else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
-		cbi->invoke( this, e );
-	else
-		Unrecognized( );
+	else 
+		{
+		if ( e->IsBundle( ) )
+			{
+			Value *val = e->Val();
+	
+			if ( val->Type() != TYPE_RECORD )
+				{
+				Error( "bad event bundle" );
+				return;
+				}
+
+			recordptr events = val->RecordPtr(0);
+			for ( int x=0; x < events->Length(); ++x )
+				{
+				const char* bname;
+				Value *bval = events->NthEntry( x, bname );
+				if ( pxy_store_cbinfo *cbi = cbdict[bname] )
+					cbi->invoke( this, bval, e );
+				else
+					Unrecognized( );
+				}
+			}
+		else if ( pxy_store_cbinfo *cbi = cbdict[e->Name()] )
+			cbi->invoke( this, e->Val(), e );
+		else
+			Unrecognized( );
+		}
 	}
 
 void ProxyStore::Loop( )

@@ -2021,6 +2021,35 @@ IValue* ActiveAgentsBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return r;
 	}
 
+IValue* BundleEventsBuiltIn::DoCall( const_args_list* args_val )
+	{
+	if ( args_val->length() < 1 )
+		return (IValue*) Fail( this, " takes one or two arguments" );
+
+	Agent* agent = (*args_val)[0]->AgentVal();
+
+	if ( ! agent )
+		return (IValue*) Fail("no agent for ", this);
+
+	if ( args_val->length() > 1 && (*args_val)[1]->IsNumeric() )
+		return new IValue( agent->BundleEvents((*args_val)[1]->IntVal()) ?
+				   glish_true : glish_false );
+	else
+		return new IValue( agent->BundleEvents( ) ?
+				   glish_true : glish_false );
+	}
+
+IValue* FlushEventsBuiltIn::DoCall( const_args_list* args_val )
+	{
+	Agent* agent = (*args_val)[0]->AgentVal();
+
+	if ( ! agent )
+		return (IValue*) Fail("no agent for ", this);
+	else
+		return new IValue( agent->FlushEvents() ? glish_true : glish_false );
+	}
+
+
 IValue* TimeBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	IValue *ret = new IValue((double)0.0);
@@ -2794,8 +2823,10 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new WriteValueBuiltIn );
 
 	s->AddBuiltIn( new WheneverStmtsBuiltIn );
-
 	s->AddBuiltIn( new ActiveAgentsBuiltIn );
+	s->AddBuiltIn( new BundleEventsBuiltIn );
+	s->AddBuiltIn( new FlushEventsBuiltIn );
+
 	s->AddBuiltIn( new TimeBuiltIn );
 
 	s->AddBuiltIn( new CreateAgentBuiltIn( s ) );

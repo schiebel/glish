@@ -7,7 +7,7 @@ class ProxyA : public Proxy {
     public:
 	ProxyA( ProxyStore *s );
 	~ProxyA( );
-	static void Create( ProxyStore *s, GlishEvent *e, void *data );
+	static void Create( ProxyStore *s, Value *v, GlishEvent *e, void *data );
 	void ProcessEvent( const char *name, Value *val );
 };
 
@@ -18,9 +18,9 @@ ProxyA::~ProxyA( )
 	cerr << "bye bye " << id << endl;
 	}
 
-void ProxyA::Create( ProxyStore *s, GlishEvent *e, void *data )
+void ProxyA::Create( ProxyStore *s, Value *v, GlishEvent *e, void *data )
 	{
-	message->Report( e->Val() );
+	message->Report( v );
 	ProxyA *np = new ProxyA( s );
 	np->SendCtor("newtp");
 	}

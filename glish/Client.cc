@@ -161,45 +161,19 @@ GlishEvent::~GlishEvent()
 	}
 
 
-int GlishEvent::IsRequest() const
-	{
-	return flags & GLISH_REQUEST_EVENT;
-	}
+int GlishEvent::IsRequest() const { return flags & GLISH_REQUEST_EVENT; }
+int GlishEvent::IsReply() const   { return flags & GLISH_REPLY_EVENT; }
+int GlishEvent::IsProxy() const   { return flags & GLISH_PROXY_EVENT; }
+int GlishEvent::IsBundle() const  { return flags & GLISH_EVENT_BUNDLE; }
+int GlishEvent::IsQuiet() const   { return flags & GLISH_QUIET_EVENT; }
 
-int GlishEvent::IsReply() const
-	{
-	return flags & GLISH_REPLY_EVENT;
-	}
+//  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+void GlishEvent::SetIsRequest()   { flags |= GLISH_REQUEST_EVENT; }
+void GlishEvent::SetIsReply()     { flags |= GLISH_REPLY_EVENT; }
+void GlishEvent::SetIsProxy()     { flags |= GLISH_PROXY_EVENT; }
+void GlishEvent::SetIsBundle()    { flags |= GLISH_EVENT_BUNDLE; }
+void GlishEvent::SetIsQuiet()     { flags |= GLISH_QUIET_EVENT; }
 
-int GlishEvent::IsProxy() const
-	{
-	return flags & GLISH_PROXY_EVENT;
-	}
-
-int GlishEvent::IsQuiet() const
-	{
-	return flags & GLISH_QUIET_EVENT;
-	}
-
-void GlishEvent::SetIsRequest()
-	{
-	flags |= GLISH_REQUEST_EVENT;
-	}
-
-void GlishEvent::SetIsReply()
-	{
-	flags |= GLISH_REPLY_EVENT;
-	}
-
-void GlishEvent::SetIsProxy()
-	{
-	flags |= GLISH_PROXY_EVENT;
-	}
-
-void GlishEvent::SetIsQuiet()
-	{
-	flags |= GLISH_QUIET_EVENT;
-	}
 
 void GlishEvent::SetValue( Value *v )
 	{

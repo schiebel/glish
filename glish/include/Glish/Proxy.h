@@ -10,7 +10,7 @@ class ProxyStore;
 glish_declare(PList,Proxy);
 typedef PList(Proxy) proxy_list;
 
-typedef void (*PxyStoreCB1)( ProxyStore *, GlishEvent *, void * );
+typedef void (*PxyStoreCB1)( ProxyStore *, Value *, GlishEvent *, void * );
 typedef void (*PxyStoreCB2)( ProxyStore *, Value *, void * );
 class pxy_store_cbinfo;
 glish_declare(PDict,pxy_store_cbinfo);

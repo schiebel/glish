@@ -83,6 +83,9 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	active = 0;	// not true till we get a .established event
 	protocol = 0;	// not set until Client establishes itself
 
+	bundle = 0;
+	bundle_size = 0;
+
 	id = sequencer->RegisterTask( this, idi );
 
 	if ( attrs->task_var_ID )
@@ -119,7 +122,7 @@ Task::~Task()
 	}
 
 IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
-			int is_request, int log, const ProxyId &proxy_id )
+			int is_request, int log, const ProxyId &proxy_id, int is_bundle )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
@@ -161,6 +164,8 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			e->SetIsProxy( );
 		if ( is_request )
 			e->SetIsRequest();
+		if ( is_bundle )
+			e->SetIsBundle();
 
 		// will need to keep track of proxy_id's if pending_events
 		// is ever made to work with request/reply events.
@@ -192,6 +197,8 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 			GlishEvent e( event_name, (const Value*)event_val );
 			e.SetIsRequest();
 
+			if ( is_bundle ) e.SetIsBundle( );
+
 			Agent *agent = this;
 			if ( &proxy_id != &glish_proxyid_dummy )
 				{
@@ -211,6 +218,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		else
 			{
 			GlishEvent e( event_name, (const Value*) event_val );
+			if ( is_bundle ) e.SetIsBundle( );
 			if ( &proxy_id != &glish_proxyid_dummy ) e.SetIsProxy( );
 			sendEvent( sink, &e, ProxyId(sequencer->pid(),idi,0) );
 			}
@@ -237,8 +245,57 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 IValue *Task::SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log )
 	{
-	return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
+	if ( bundle_size )
+		{
+		if ( is_request )
+			{
+			FlushEvents( );
+			return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
+			}
+		else
+			{
+			if ( ! bundle ) bundle = create_record_dict( );
+			IValue* val = BuildEventValue( args, 0 );
+			char *nme = (char*) alloc_memory( strlen(event_name) + 9 );
+			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
+			bundle->Insert( nme, val );
+			if ( bundle->Length() >= bundle_size )
+				FlushEvents( );
+			return 0;
+			}
+		}
+	else
+		return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
 	}
+
+int Task::BundleEvents( int howmany )
+	{
+	bundle_size = howmany <= 1 ? 0 : howmany;
+
+	if ( bundle && bundle->Length() >= bundle_size )
+		FlushEvents( );
+
+	if ( bundle && bundle_size <= 0 )
+		{
+		delete_record( bundle );
+		bundle = 0;
+		}
+
+	return 1;
+	}
+
+int Task::FlushEvents( )
+	{
+	if ( bundle && bundle->Length() > 0 )
+		{
+		IValue *val = new IValue( bundle );
+		SendEvent( "event-bundle", val, 0, 1, glish_proxyid_dummy, 1 );
+		Unref( val );
+		bundle = 0;
+		}
+	return 1;
+	}
+
 
 void Task::SetChannel( Channel* c, Selector* s )
 	{
@@ -1068,7 +1125,8 @@ void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_)
+ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_),
+								    bundle(0), bundle_size(0)
 	{
 	char buf[128];
 	sprintf(buf, "<proxy:%d>", id.id());
@@ -1095,17 +1153,71 @@ void ProxyTask::WrapperGone( const IValue *v )
 
 ProxyTask::~ProxyTask( )
 	{
+	if ( bundle && bundle->Length() >= bundle_size )
+		FlushEvents( );
+
 	IValue *val = new IValue(glish_true);
 	task->SendEvent( "terminate", val, 0, 1, id );
 	Unref( val );
+
 	task->UnregisterProxy(this);
+
+	if ( bundle ) delete_record( bundle );
 	if ( agent_ID ) free_memory((char*)agent_ID);
 	}
 
 IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log )
 	{
-	return task->SendEvent( event_name, args, is_request, log, id );
+	if ( bundle_size )
+		{
+		if ( is_request )
+			{
+			FlushEvents( );
+			return task->SendEvent( event_name, args, is_request, log, id );
+			}
+		else
+			{
+			if ( ! bundle ) bundle = create_record_dict( );
+			IValue* val = BuildEventValue( args, 0 );
+			char *nme = (char*) alloc_memory( strlen(event_name) + 9 );
+			sprintf( nme, "%.8x%s", bundle->Length(), event_name );
+			bundle->Insert( nme, val );
+			if ( bundle->Length() >= bundle_size )
+				FlushEvents( );
+			return 0;
+			}
+		}
+	else
+		return task->SendEvent( event_name, args, is_request, log, id );
+	}
+
+int ProxyTask::BundleEvents( int howmany )
+	{
+	bundle_size = howmany <= 1 ? 0 : howmany;
+
+	if ( bundle && bundle->Length() >= bundle_size )
+		FlushEvents( );
+
+	if ( bundle && bundle_size <= 0 )
+		{
+		delete_record( bundle );
+		bundle = 0;
+		}
+
+	return 1;
+	}
+
+int ProxyTask::FlushEvents( )
+	{
+	if ( bundle && bundle->Length() > 0 )
+		{
+		IValue *val = new IValue( bundle );
+		task->SendEvent( "event-bundle", val, 0, 1, id, 1 );
+		Unref( val );
+		bundle = 0;
+		}
+	return 1;
 	}
 
 int ProxyTask::IsProxy( ) const

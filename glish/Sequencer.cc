@@ -152,6 +152,10 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 		if ( ! await_agent )
 			continue;
 
+		// if agent has bundled up events, make
+		// sure they're flushed...
+		await_agent->FlushEvents( );
+
 		loop_over_list( nl, Y )
 			{
 			char *nme = nl[Y];

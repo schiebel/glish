@@ -59,16 +59,20 @@ class Task : public Agent {
 	// be fired up and hasn't terminated yet
 	int Active() const		{ return active; }
 
-
-	// Send an event with the given name and associated values
-	// to the associated task.
+	// Bundling of events is done with this first SendEvent() to
+	// avoid double bundling of events, i.e. in ProxyTask and Task.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log );
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
-			   int is_request=0, int log=0,
-			   const ProxyId &proxy_id=glish_proxyid_dummy );
+			int is_request=0, int log=0,
+			const ProxyId &proxy_id=glish_proxyid_dummy,
+			int is_bundle=0 );
+
+	// Returns non-zero on success
+	int BundleEvents( int howmany=0 );
+	int FlushEvents( );
 
 	void SetActive()	{ SetActivity( 1 ); }
 	void SetDone()		{ SetActivity( 0 );
@@ -155,6 +159,9 @@ class Task : public Agent {
 	int read_pipe[2], write_pipe[2];
 	char* read_pipe_str;
 	char* write_pipe_str;
+
+	recordptr bundle;
+	int       bundle_size;
 	};
 
 
@@ -237,6 +244,10 @@ class ProxyTask : public Agent {
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log );
 
+	// Returns non-zero on success
+	int BundleEvents( int howmany=0 );
+	int FlushEvents( );
+
 	const ProxyId &Id() const { return id; }
 
 	void WrapperGone( const IValue *v );
@@ -244,6 +255,9 @@ class ProxyTask : public Agent {
 	int IsProxy( ) const;
 
     private:
+	recordptr bundle;
+	int       bundle_size;
+
 	Task *task;
 	ProxyId id;
 };

@@ -55,12 +55,14 @@ public:
 	int IsRequest() const;
 	int IsReply() const;
 	int IsProxy() const;
+	int IsBundle() const;
 	int IsQuiet() const;
 	unsigned char Flags() const	{ return flags; }
 
 	void SetIsRequest();
 	void SetIsReply();
 	void SetIsProxy();
+	void SetIsBundle();
 	void SetIsQuiet();
 	void SetFlags( unsigned char new_flags ) { flags = new_flags; }
 

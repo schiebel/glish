@@ -65,6 +65,10 @@ class Agent : public GlishObject {
 	virtual IValue* SendEvent( const char* event_name, parameter_list* args,
 				int is_request, int log ) = 0;
 
+	// Returns non-zero on success
+	virtual int BundleEvents( int howmany=0 );
+	virtual int FlushEvents( );
+
 	// Same for an event with just one value.
 	void SendSingleValueEvent( const char* event_name, const IValue* value,
 					int log );
