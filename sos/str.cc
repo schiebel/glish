@@ -16,7 +16,7 @@ str_kernel::str_kernel( const char *s ) : cnt(1), len(1)
 		unsigned int s_len = ::strlen(s);
 		ary[0] = (char*) alloc_memory(s_len+5);
 		*((unsigned int*)ary[0]) = s_len;
-		memcpy(&ary[4],s,s_len+1);
+		memcpy(&ary[0][4],s,s_len+1);
 		}
 	}
 

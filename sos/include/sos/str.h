@@ -22,6 +22,7 @@ public:
 	unsigned int length() const { return len; }
 
 	char *get( unsigned int off ) { return ary[off] ? &ary[off][4] : 0; }
+	char *Get( unsigned int off ) { return ary[off] ? &ary[off][4] : ""; }
 	void set( unsigned int, const char * );
 
 	const char **raw_getary( ) { return (const char **) ary; }
@@ -67,6 +68,8 @@ public:
 	str( unsigned int size = 0 ) : kernel( new str_kernel( size ) ) { }
 	str( const char *s ) : kernel( new str_kernel(s) ) { }
 	str( const str &s ) : kernel(s.kernel) { kernel->ref(); }
+	str( const str *s ) : kernel( s ? s->kernel : new str_kernel( (unsigned int) 0) )
+		{ if ( s ) kernel->ref(); }
 
 	str &operator=( const str &s )
 		{
@@ -86,8 +89,10 @@ public:
 
 	void set( unsigned int off, const char *s )
 		{ kernel->set(off, s); }
-	const char *get( unsigned int off ) const
+	const char *get( unsigned int off = 0 ) const
 		{ return kernel->get( off ); }
+	const char *Get( unsigned int off = 0 ) const
+		{ return kernel->Get( off ); }
 	
 	const char *raw_get( unsigned int off ) const
 		{ return kernel->raw_get( off ); }
@@ -98,6 +103,7 @@ public:
 	// make sure we have a modifiable version
 	//
 	void mod() { if ( kernel->count() > 1 ) do_copy(); }
+	unsigned int count() const { return kernel->count(); }
 
 	void grow( unsigned int size )
 		{ mod(); kernel->grow( size ); }
@@ -120,5 +126,8 @@ inline str_ref &str_ref::operator=( const str_ref &o )
 
 inline unsigned int strlen( const str_ref &ref )
 	{ return ref.s->kernel->strlen(ref.off); }
+
+typedef str* strptr;
+typedef const char * const * const_charptr;
 
 #endif
