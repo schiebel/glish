@@ -617,8 +617,8 @@ Sequencer::~Sequencer()
 	loop_over_list( global_frame, i )
 		Unref( global_frame[i] );
 
-	loop_over_list( frames(), k )
-		Unref( frames()[k] );
+	for ( int k=stack.length()-1; k >= 0; k-- )
+		Unref( stack.remove_nth(k) );
 
 	delete script_client;
 	delete interpreter_tag;

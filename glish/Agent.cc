@@ -41,7 +41,7 @@ Notifiee::Notifiee( Stmt* arg_stmt, stack_type *arg_stack ) : frame(0)
 	stmt = arg_stmt;
 	stack = arg_stack;
 
-	Ref( stack );
+	if ( stack ) Ref( stack );
 	Ref( stmt );
 	}
 
