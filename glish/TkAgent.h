@@ -386,6 +386,11 @@ class TkButton : public TkRadioContainer {
 
 	Rivetobj TopLevel();
 
+	// Enable modification, used to allow glish commands to modify
+	// a widget even if it has been disabled for the user.
+	void EnterEnable();
+	void ExitEnable();
+
     protected:
 	IValue *value;
 

@@ -2706,6 +2706,27 @@ int tk_button_menupost(Rivetobj, XEvent *, ClientData, ClientData)
 	}
 
 
+void TkButton::EnterEnable()
+	{
+	if ( ! enable_state && disable_count )
+		{
+		enable_state++;
+		if ( frame )
+			rivet_set( self, "-state", "normal" );
+		else
+			rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "normal", 0 );
+		}
+	}
+
+void TkButton::ExitEnable()
+	{
+	if ( enable_state && --enable_state == 0 )
+		if ( frame )
+			rivet_set( self, "-state", "disabled" );
+		else
+			rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "disabled", 0 );
+	}
+
 void TkButton::Disable( )
 	{
 	disable_count++;
@@ -3159,11 +3180,13 @@ void TkButton::State(unsigned char s)
 		}
 	else
 		{
+		EnterEnable();
 		dont_invoke_button = 1;
 		if ( frame )
 			rivet_va_cmd( self, "invoke", 0 );
 		else if ( menu )
 			rivet_va_cmd( Menu(), "invoke", Index(), 0 );
+		ExitEnable();
 		}
 	}
 
