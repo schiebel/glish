@@ -450,6 +450,7 @@ protected:
 class ProbeTimer : public SelectTimer {
 public:
 	ProbeTimer( PDict(RemoteDaemon)* daemons, Sequencer* s );
+	void UpdateInterval( );
 
 protected:
 	int DoExpiration();
@@ -1428,6 +1429,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	selector = new Selector;
 
 	selector->AddSelectee( new AcceptSelectee( this, connection_socket ) );
+	ProbeTimer *daemon_probe = new ProbeTimer( &daemons, this );
+	selector->AddTimer( daemon_probe );
 
 	connection_host = local_host_name();
 	connection_port = alloc_char(32);
@@ -1622,8 +1625,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			}
 		}
 
-	// after glishrc to register setting of system.client.ping
-	selector->AddTimer( new ProbeTimer( &daemons, this ) );
+	// after glishrc update timer settings to register
+	// any change to system.client.ping
+	daemon_probe->UpdateInterval( );
 
 	if ( load_list->length() )
 		{
@@ -4192,12 +4196,9 @@ ProbeTimer::ProbeTimer( PDict(RemoteDaemon)* arg_daemons, Sequencer* s )
 	{
 	daemons = arg_daemons;
 	sequencer = s;
-	probe_interval = sequencer->System().ClientPing();
-	if ( probe_interval != (double) PROBE_INTERVAL )
-		{
-		interval_t.tv_sec = (long) probe_interval;
-		interval_t.tv_usec = (long) (( probe_interval - (long) probe_interval ) * 1000000);
-		}
+	probe_interval = (double) PROBE_INTERVAL;
+	if ( probe_interval != sequencer->System().ClientPing() )
+		UpdateInterval();
 	}
 
 int ProbeTimer::DoExpiration()
@@ -4227,6 +4228,14 @@ int ProbeTimer::DoExpiration()
 			r->SetState( DAEMON_REPLY_PENDING );
 		}
 
+	if ( probe_interval != sequencer->System().ClientPing() )
+		UpdateInterval();
+
+	return 1;
+	}
+
+void ProbeTimer::UpdateInterval( )
+	{
 	double new_interval = sequencer->System().ClientPing();
 	if ( new_interval != probe_interval )
 		{
@@ -4234,10 +4243,7 @@ int ProbeTimer::DoExpiration()
 		interval_t.tv_sec = (long) probe_interval;
 		interval_t.tv_usec = (long) (( probe_interval - (long) probe_interval ) * 1000000);
 		}
-
-	return 1;
 	}
-
 
 ScriptClient::ScriptClient( int& argc, char** argv, Client::ShareType multi, Client::PersistType persist,
 			    const char *script_file ) : Client( argc, argv, multi, persist, script_file )
