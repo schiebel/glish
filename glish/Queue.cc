@@ -8,6 +8,7 @@ RCSID("@(#) $Id$")
 BaseQueue::BaseQueue()
 	{
 	head = tail = 0;
+	num_entries = 0;
 	}
 
 void BaseQueue::EnQueue( void* element )
@@ -22,6 +23,7 @@ void BaseQueue::EnQueue( void* element )
 		tail->next = qe;
 		tail = qe;
 		}
+	++num_entries;
 	}
 
 void* BaseQueue::DeQueue()
@@ -38,5 +40,6 @@ void* BaseQueue::DeQueue()
 	void* result = qe->elem;
 	delete qe;
 
+	--num_entries;
 	return result;
 	}

@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 
 #include "Glish/List.h"
 
+static const int DEFAULT_CHUNK_SIZE = 10;
 
 // Print message on stderr and exit.
 void default_error_handler(char* s)
@@ -31,7 +32,6 @@ PFC BaseList::set_error_handler(PFC handler)
 
 BaseList::BaseList(int size, PFC handler)
 	{
-	const int DEFAULT_CHUNK_SIZE = 10;
 
 	if ( size <= 0 )
 		chunk_size = DEFAULT_CHUNK_SIZE;
@@ -161,6 +161,7 @@ void BaseList::clear()
 	delete entry;
 	entry = 0;
 	num_entries = max_entries = 0;
+	chunk_size = DEFAULT_CHUNK_SIZE;
 	}
 
 ent BaseList::operator[](int i) const
