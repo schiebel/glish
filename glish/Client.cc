@@ -500,6 +500,7 @@ Client::~Client()
 	if ( interpreter_tag )
 		free_memory( interpreter_tag );
 
+	finalize_reporters();
 	}
 
 GlishEvent* Client::NextEvent(const struct timeval *timeout, int &timedout)

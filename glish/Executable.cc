@@ -167,6 +167,7 @@ void set_executable_path( charptr *path, int len )
 
 char* which_executable( const char* exec_name )
 	{
+	if ( ! exec_name ) return 0;
 
 	if ( exec_name[0] == '/' || exec_name[0] == '.' )
 		{

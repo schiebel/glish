@@ -56,10 +56,10 @@ RMessage EndMessage( "" );
 // Due to bugs in gcc-2.1, we don't initialize these here but rather
 // have Sequencer::Sequencer do it.
 
-Reporter* warn;
-Reporter* error;
-Reporter* fatal;
-Reporter* message;
+Reporter* warn = 0;
+Reporter* error = 0;
+Reporter* fatal = 0;
+Reporter* message = 0;
 
 
 RMessage::RMessage( const GlishObject* message_object )
@@ -321,17 +321,27 @@ void MessageReporter::Prolog()
 
 void init_reporters()
 	{
-	warn = new WarningReporter;
-	error = new ErrorReporter;
-	fatal = new FatalReporter;
-	message = new MessageReporter;
+	static int did_init = 0;
+	if ( ! did_init )
+		{
+		warn = new WarningReporter;
+		error = new ErrorReporter;
+		fatal = new FatalReporter;
+		message = new MessageReporter;
+		did_init = 1;
+		}
 	}
 
 void finalize_reporters()
 	{
-	delete warn;
-	delete error;
-	delete fatal;
-	delete message;
+	static int did_final = 0;
+	if ( ! did_final )
+		{
+		delete warn;
+		delete error;
+		delete fatal;
+		delete message;
+		did_final = 1;
+		}
 	}
 

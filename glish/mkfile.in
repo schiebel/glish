@@ -71,6 +71,7 @@ INTERP_OBJS = \
 	Frame.o \
 	Func.o \
 	Garbage.o \
+	Pager.o \
 	RemoteExec.o \
 	Sequencer.o \
 	Select.o \
@@ -112,6 +113,7 @@ INTERP_OBJS_PROXY = \
 	$(D)Frame.o \
 	$(D)Func.o \
 	$(D)Garbage.o \
+	$(D)Pager.o \
 	$(D)RemoteExec.o \
 	$(D)Sequencer.o \
 	$(D)Select.o \
@@ -304,6 +306,9 @@ $(D)Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
 
 $(D)Garbage.o: $(SRC)/Garbage.cc $(SRC)/Garbage.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Garbage.cc $(T)
+
+$(D)Pager.o: $(SRC)/Pager.cc $(SRC)/Pager.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Pager.cc $(T)
 
 $(D)LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/LocalExec.cc $(T)

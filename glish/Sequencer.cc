@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "Pager.h"
 
 #if HAVE_OSFCN_H
 #include <osfcn.h>
@@ -249,6 +250,15 @@ public:
 	int NotifyOfSelection()	{ return 1; }
 	};
 
+
+class PagerSelectee : public Selectee {
+public:
+	PagerSelectee( int user_fd, Sequencer *s ) : Selectee( user_fd ),
+						     seq(s) { }
+	int NotifyOfSelection();
+protected:
+	Sequencer *seq;
+	};
 
 // A Selectee for detecting Glish daemon activity.
 class DaemonSelectee : public Selectee {
@@ -548,6 +558,7 @@ void SystemInfo::update_output( )
 	{
 	const IValue *v1;
 	const IValue *v2;
+	const IValue *v3;
 
 	trace = 0;
 	log = 0;
@@ -561,6 +572,26 @@ void SystemInfo::update_output( )
 		     v2 != false_value && v2->Type() == TYPE_BOOL &&
 		     v2->BoolVal() == glish_true )
 			trace = 1;
+
+		if ( v1->HasRecordElement( "pager" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("pager"))) &&
+		     v2 != false_value && v2->Type() == TYPE_RECORD )
+			{
+			pager_exec = 0;
+			if ( v2->HasRecordElement( "exec" ) &&
+			     (v3 = (const IValue*)(v2->ExistingRecordElement("exec"))) &&
+			     v3 != false_value && v3->Type() == TYPE_STRING )
+				{
+				pager_exec = v3->StringPtr(0);
+				pager_exec_len = v3->Length();
+				}
+
+			if ( v2->HasRecordElement( "limit" ) &&
+			     (v3 = (const IValue*)(v2->ExistingRecordElement("limit"))) &&
+			     v3 != false_value && v3->IsNumeric() )
+				pager_limit = v3->IntVal();
+			}
+
 
 #define UPDATE_LOG_ACTION(VAR, EXTRA_CLEANUP)				\
 if ( v1->HasRecordElement( #VAR ) &&					\
@@ -985,6 +1016,15 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	limits->Insert( strdup("min"), new IValue( min ) );
 
 	sys_value->SetField( "limits", new IValue( limits ) );
+
+	recordptr output = create_record_dict();
+	recordptr pager = create_record_dict();
+	char *envpager = getenv( "PAGER" );
+	pager->Insert( strdup("exec"), new IValue( envpager ? envpager : "more" ) );
+	pager->Insert( strdup("limit"), new IValue( 24 ) );
+	output->Insert( strdup("pager"), new IValue( pager ) );
+
+	sys_value->SetField( "output", new IValue( output ) );
 	}
 
 
@@ -1003,7 +1043,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	error_result = 0;
 
 	agents = new agent_list;
-	init_reporters();
+	init_interp_reporters(this);
 	init_values();
 
 	// Create the global scope.
@@ -1274,7 +1314,7 @@ Sequencer::~Sequencer()
 	Unref( selector );
 
 	finalize_values();
-	finalize_reporters();
+	finalize_interp_reporters();
 	delete null_stmt;
 	}
 
@@ -1679,9 +1719,12 @@ void Sequencer::DeleteVal( const char* id )
 		// Get the value that we are blowing away and change it to 'F',
 		// but leave it in the frame because functions may be point to it.
 		IValue *iv = global_frame[expr->offset()];
-		IValue *newval = new IValue(glish_false);
-		iv->TakeValue(newval);
-		Unref(newval);
+		if ( iv )
+			{
+			IValue *newval = new IValue(glish_false);
+			iv->TakeValue(newval);
+			Unref(newval);
+			}
 		// Create an impossible, non-clashing name
 		sprintf(buf,"*%lx*",filler++);
 		char *newid = strdup(buf);
@@ -2203,7 +2246,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		}
 
 	if ( yyin && isatty( fileno( yyin ) ) &&
-			selector->FindSelectee( fileno( yyin ) ) )
+	     selector->FindSelectee( fileno( yyin ) ) )
 		{
 		selector->DeleteSelectee( fileno( yyin ) );
 		removed_yyin = 1;
@@ -2236,6 +2279,79 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 		}
 
 	PopAwait();
+	}
+
+void Sequencer::PagerOutput( char *string, char **argv )
+	{
+	int removed_yyin = 0;
+
+	if ( yyin && isatty( fileno( yyin ) ) &&
+	     selector->FindSelectee( fileno( yyin ) ) )
+		{
+		selector->DeleteSelectee( fileno( yyin ) );
+		removed_yyin = 1;
+#if USE_EDITLINE
+		//
+		// reset term so user can see what is typed
+		//
+		nb_reset_term(1);
+#endif
+		}
+
+	int input[2];
+	int status[2];
+
+	if ( pipe( input ) < 0 || pipe( status ) < 0 )
+		perror( "glish: problem creating pipe" );
+
+	int pid_ = (int) vfork();
+
+	if ( pid_ == 0 )
+		{ // child
+
+		if ( dup2( input[0], fileno(stdin) ) < 0 )
+			{
+			perror( "glish: couldn't do dup2()" );
+			_exit( -1 );
+			}
+
+		close( input[0] );
+		close( input[1] );
+		close( status[1] );
+
+                execvp( argv[0], &argv[0] );
+
+                perror( "glish couldn't exec child" );
+                _exit( -1 );
+                }
+
+	close( input[0] );
+	close( status[0] );
+
+	write( input[1], string, strlen(string) );
+	close( input[1] );
+
+	//
+	// UserInputSelectee is pulling double duty here; all it does
+	// is stop the event loop when a fd changes. "status[1]" should
+	// only change when the exec'ed  pager exits (i.e. when it is
+	// closed).
+	//
+	selector->AddSelectee( new PagerSelectee( status[1], this ) );
+
+	doing_pager = 1;
+	EventLoop( 0 );
+
+	selector->DeleteSelectee( status[1] );
+	close( status[1] );
+
+	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+		{
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+#if USE_EDITLINE
+		nb_reset_term(0);
+#endif
+		}
 	}
 
 
@@ -2884,7 +3000,10 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 		// We're all done, the daemon was already running.
 		return rd;
 
-	return new RemoteDaemon( host, start_remote_daemon(host) );
+	RemoteDaemon *ret = new RemoteDaemon( host, start_remote_daemon(host) );
+	daemons.Insert( strdup( host ), ret );
+	selector->AddSelectee(new DaemonSelectee( ret, selector, this ) );
+	return ret;
 	}
 
 RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
@@ -3050,10 +3169,10 @@ void Sequencer::EventLoop( int in_await )
 		}
 
 #if defined( GLISHTK )
-	while ( (ActiveClients() || TkFrame::TopLevelCount() > 0) &&
+	while ( (doing_pager || ActiveClients() || TkFrame::TopLevelCount() > 0) &&
 		! selector->DoSelection() )
 #else
-	while ( ActiveClients() && ! selector->DoSelection() )
+	while ( (doing_pager || ActiveClients()) && ! selector->DoSelection() )
 #endif
 		{
 		RunQueue();
@@ -3264,6 +3383,11 @@ int ScriptSelectee::NotifyOfSelection()
 	return 0;
 	}
 
+int PagerSelectee::NotifyOfSelection( )
+	{
+	seq->PagerDone( );
+	return 1;
+	}
 
 DaemonSelectee::DaemonSelectee( RemoteDaemon* arg_daemon, Selector* sel,
 				Sequencer* s )
@@ -3304,9 +3428,9 @@ int DaemonSelectee::NotifyOfSelection()
 
 		else
 			{
-			error->Report(
-				"received unsolicited message from daemon @ ",
-					daemon->Host() );
+			if ( strcmp( e->name, "established" ) )
+				error->Report( "received unsolicited message from daemon @ ",
+					       daemon->Host(), ", [", e->name, "]"  );
 			}
 
 		Unref( e );

@@ -62,6 +62,7 @@
 #include "Stmt.h"
 #include "Func.h"
 #include "Reporter.h"
+#include "Pager.h"
 #include "Sequencer.h"
 #include "Task.h"
 #include "input.h"
@@ -998,12 +999,12 @@ IValue *glish_parser( Stmt *&stmt )
 				if ( Sequencer::CurSeq()->System().OLog() )
 					Sequencer::CurSeq()->System().DoOLog(current_sequencer->ErrorResult());
 
-				message->Report( current_sequencer->ErrorResult() );
+				pager->Report( current_sequencer->ErrorResult() );
 				current_sequencer->ClearErrorResult();
 				}
 			else if ( val )
 				{
-				message->Report( val );
+				pager->Report( val );
 				Unref( val );
 				}
 

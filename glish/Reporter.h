@@ -48,16 +48,16 @@ class Reporter {
 	Reporter( OStream *reporter_stream );
 	~Reporter( );
 
-	void Report( const RMessage&,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage,
-		     const RMessage& = EndMessage, const RMessage& = EndMessage 
-		   );
+	virtual void Report( const RMessage&,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage,
+			     const RMessage& = EndMessage, const RMessage& = EndMessage 
+			   );
 
 	// Count of how many times this reporter has generated a message
 	int Count()			{ return count; }

@@ -120,10 +120,14 @@ public:
 	inline unsigned int PATH( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
 	inline unsigned int ILOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int OLOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
+	inline unsigned int PAGER( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 
 	int Trace() { if ( TRACE(update) ) update_output( ); return trace; }
 	int ILog() { if ( ILOGX(update) ) update_output( ); return ilog || log; }
 	int OLog() { if ( OLOGX(update) ) update_output( ); return olog || log; }
+	int PagerLimit() { if ( PAGER(update) ) update_output( ); return pager_limit; }
+	charptr *PagerExec() { if ( PAGER(update) ) update_output( ); return pager_exec; }
+	int PagerExecLen() { if ( PAGER(update) ) update_output( ); return pager_exec_len; }
 	void DoILog( const char *s, int len=-1 ) { DoLog( 1, s, len ); }
 	void DoILog( const Value *v) { DoLog( 1, v ); }
 	void DoOLog( const char *s, int len=-1 ) { DoLog( 0, s, len ); }
@@ -139,7 +143,7 @@ public:
 			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
 			olog(0), olog_val(0), olog_file(0), olog_name(0),
 			printlimit(0), printprecision(-1), include(0), includelen(0),
-			keydir(0), binpath(0), sequencer(s) { }
+			keydir(0), binpath(0), pager_limit(0), pager_exec(0), pager_exec_len(0), sequencer(s) { }
 	void SetVal(IValue *v);
 	~SystemInfo();
 	void AbortOccurred();
@@ -165,6 +169,10 @@ private:
 	IValue *ilog_val;
 	FILE *ilog_file;
 	char *ilog_name;
+
+	int pager_limit;
+	charptr *pager_exec;
+	int pager_exec_len;
 
 	int printlimit;
 	int printprecision;
@@ -316,6 +324,8 @@ public:
 	// except_stmt has expressed interest (or all other events,
 	// if "only_flag" is false).
 	void Await( AwaitStmt* await_list, int only_flag, Stmt* except_list );
+	void PagerOutput( char *string, char **argv );
+	void PagerDone( ) { doing_pager = 0; }
 
 	// Wait for a reply to the given event to arrive on the given
 	// channel and return its value.
@@ -572,6 +582,7 @@ protected:
 
 	// Called from Sequencer::TopLevelReset()
 	void toplevelreset();
+	int doing_pager;
 	};
 
 extern IValue *glish_parser( Stmt *&stmt );

@@ -11,6 +11,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 
 #include "Reporter.h"
+#include "Pager.h"
 #include "Sequencer.h"
 #include "Stmt.h"
 #include "BuiltIn.h"
@@ -925,7 +926,7 @@ IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	if ( args )
 		{
 		char* args_string = paste( args );
-		message->Report( args_string );
+		pager->Report( args_string );
 		free_memory( args_string );
 		}
 
