@@ -196,7 +196,7 @@ dnl##
 SET_PREFIX
 test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
 
-AC_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADER($ARCH/config.h:config.h.in)
 
 dnl Checks for programs.
 AC_PROG_CC
