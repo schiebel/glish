@@ -2011,21 +2011,17 @@ void IValue::SetUnref( NodeList *r, int propagate_only )
 	{
 	if ( r )
 		{
-		if ( unref.ptr() && r != unref)
+		if ( unref.ptr() && r != unref )
 			{
-			if ( mUNREF(mask) && propagate_only || ! mUNREF(mask) && ! propagate_only )
-				{
-				// we've got a mix of propagate and Unref()
-				fprintf( stderr, "Uh Oh!!! %s(0x%x)=>%s(0x%x)\n", mUNREF(mask)?"unref":"propagate",unref.ptr(),propagate_only?"propagate":"unref",r );
-				ClearUnref( );
-				}
-			else
-				{
-				if ( ! propagate_only && ! mUNREF(mask) )
-					mask |=  mUNREF();
-				unref->append( r );
-				return;
-				}
+			// There may be residual problems here, previously before
+			// the transition to "reflexive pointers" we handled (well
+			// we actually just threw up our hands) the cases of
+			// "mUNREF(mask) && propagate_only" and
+			// "! mUNREF(mask) && ! propagate_only" specially.
+			if ( ! propagate_only && ! mUNREF(mask) )
+				mask |=  mUNREF();
+			unref->append( r );
+			return;
 			}
 
 		unref = r;

@@ -24,32 +24,28 @@ void ReflexPtrBase::ObjGone( )
 
 ReflexPtrBase::ReflexPtrBase( ReflexObj *p) : obj(p)
 	{
-	if ( obj )
-		{
-		obj->AddPointer( this );
-		}
+	if ( obj ) obj->AddPointer( this );
 	}
 
 ReflexPtrBase::ReflexPtrBase( ReflexPtrBase &p ) : obj(p.obj)
 	{
-	if ( obj )
-		{
-		obj->AddPointer( this );
-		}
+	if ( obj ) obj->AddPointer( this );
 	}
 
 ReflexPtrBase &ReflexPtrBase::operator=( ReflexObj *o )
 	{
-	if ( obj ) obj->PointerGone( this );
+	ReflexObj *tobj = obj;
 	obj = o;
 	if ( obj ) obj->AddPointer( this );
+	if ( tobj ) tobj->PointerGone( this );
 	}
 
 ReflexPtrBase &ReflexPtrBase::operator=( ReflexPtrBase &p )
 	{
-	if ( obj ) obj->PointerGone( this );
+	ReflexObj *tobj = obj;
 	obj = p.obj;
 	if ( obj ) obj->AddPointer( this );
+	if ( tobj ) tobj->PointerGone( this );
 	}
 
 ReflexObj::~ReflexObj( )
