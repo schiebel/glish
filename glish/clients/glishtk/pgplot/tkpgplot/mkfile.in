@@ -8,7 +8,10 @@ INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+
+#IF LABEL_SLIB
 LABEL = @SLIB_LABEL@libgtkpgdrv$(GSUFFIX)
+#FI
 
 MK_LIB = @MAKE_SLIB@
 LD_LIBS =  @SLIB_LD_LIBS@
@@ -30,7 +33,13 @@ XINC = @XINCLUDES@
 
 CINCLUDE = -I. -I$(SRC) -I$(SRC)/tkpgplot @TK_INCL@ $(XINC)
 
+#IF AIX
+LIBS = @TK_LD_RPATH@ @PGPLOT_LIBS@ @TK_LIB@ $(XLIB) $(DL_LIBS)
+AIXSYM = $(LIBDIR)/libgtkpgdrv.exp
+AIXSYM_P = $(LIBDIR_P)/libgtkpgdrv.exp
+#ELSE
 LIBS = $(XLIB) @LIBS@ $(DL_LIBS)
+#FI
 
 OBJS=grexec.o pgxwin.o tkpgplot.o
 
@@ -49,7 +58,7 @@ LIBDIR = @libdir@
 
 MKHIER = $(top)/config/mkhier
 
-all: make-libdir_p $(LIBDIR_P)/libgtkpgdrv$(SUFFIX)
+all: make-libdir_p $(AIXSYM_P) $(LIBDIR_P)/libgtkpgdrv$(SUFFIX)
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -57,7 +66,7 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install: make-libdir $(LIBDIR)/libgtkpgdrv$(SUFFIX)
+install: make-libdir $(AIXSYM) $(LIBDIR)/libgtkpgdrv$(SUFFIX)
 
 libgtkpgdrv$(GSUFFIX): $(OBJS_PROXY)
 	rm -f $@
@@ -118,6 +127,16 @@ $(D)pgxwin.o: $(SRC)/pgxwin.c
 
 $(D)tkpgplot.o: $(SRC)/tkpgplot.c
 	$(CC) $(CINCLUDE) $(CFLAGS) $(EXTRA) -c $(SRC)/tkpgplot.c $(T)
+
+#IF AIX
+$(LIBDIR_P)/libgtkpgdrv.exp: libgtkpgdrv$(GSUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libgtkpgdrv.exp $(LIBDIR_P)
+
+$(LIBDIR)/libgtkpgdrv.exp: libgtkpgdrv$(GSUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libgtkpgdrv.exp $(LIBDIR)
+#FI
 
 INSTALL_:
 
