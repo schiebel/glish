@@ -1,0 +1,53 @@
+This directory contains a port of the BSD make tool (from NetBSD)
+I have run it on SunOS,Solaris,HP-UX 9 and IRIX.
+
+Building is simply a matter of:
+
+configure
+make -f makefile.boot
+make -f makefile.boot install
+
+if you have GNU make or a make which supports VPATH, you can build it
+in a separate directory:
+
+here=`pwd`
+mkdir /tmp/bmake
+cd /tmp/bmake
+$here/configure
+gmake -f makefile.boot
+gmake -f makefile.boot install
+
+In bmake/mk I have provided a set of bsd.*.mk macros and a set of *.mk
+macros which I now use since the bsd.* macros are only supported for
+building /usr/src.  makefile.boot will install them in
+/use/local/share/mk
+
+bmake.0 is a pre-formatted copy of bmake.1
+
+I have also provided tmac.shar which contains the BSD mandoc macros
+and a man macro set that will pick whether to run andoc or an.old
+If you do not have tmac.andoc and want it, then:
+
+cd /usr/lib/tmac
+mv tmac.an tmac.an.old
+sh $here/tmac.shar
+
+Note that if your man macros do not live in /usr/lib/tmac (ok for
+SunOS), you can either make /usr/lib/tmac a symlink to the correct
+directory or edit each of tmac.* appropriately.
+
+bmake has a couple of variables built into it, MACHINE and MACHINE_ARCH
+
+These are set in makefile.boot by the script machine.sh which
+typically produces:
+
+MACHINE=`uname -s`
+
+or if the OS runs on multiple platforms
+
+MACHINE=`uname -s`.`uname -m`
+
+But `uname -m` may be either too general or too specific
+Eg. on SunOS `arch` is more useful.
+
+--sjg
