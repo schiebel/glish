@@ -86,6 +86,10 @@ extern "C" {
 	/* Mark the given file descriptor as close-on-exec. */
 	void mark_close_on_exec( int fd );
 
+	/* maximum number of file descriptors
+	 */
+	int max_fds( );
+
 	/* Do a popen() to read from a shell command, and if input is
 	 * non-nil set up its standard input to read the given text.
 	 *
@@ -93,6 +97,20 @@ extern "C" {
 	 * at a time.
 	 */
 	FILE* popen_with_input( const char* command, const char* input );
+
+	/* Extended popen which allows opening a shell and reading and
+	 * writing from/to the process. Returns nill on failure.
+	 */
+	int dual_popen( const char *command, FILE **in, FILE **out );
+	/*
+	 * Extended pclose. This closes the FILEs opened by dual_popen().
+	 * After all of the fd's opened to the child process have been
+	 * closed, a waitpid() is done. This must be called for each
+	 * FILE returned by dual_popen(). Returns -1 on failure. Note,
+	 * -1 is also return if there are still outstanding FILEs
+	 * associated with the child process.
+	 */
+	int dual_pclose( FILE * );
 
 	/* The matching close command. */
 	int pclose_with_input( FILE* pipe );

@@ -68,6 +68,7 @@ INTERP_OBJS = \
 	Daemon.o \
 	Event.o \
 	Expr.o \
+	File.o \
 	Frame.o \
 	Func.o \
 	Garbage.o \
@@ -111,6 +112,7 @@ INTERP_OBJS_PROXY = \
 	$(D)Daemon.o \
 	$(D)Event.o \
 	$(D)Expr.o \
+	$(D)File.o \
 	$(D)Frame.o \
 	$(D)Func.o \
 	$(D)Garbage.o \
@@ -299,6 +301,9 @@ $(D)Executable.o: $(SRC)/Executable.cc $(SRC)/Executable.h
 
 $(D)Expr.o: $(SRC)/Expr.cc $(KEY_HEADERS) $(SRC)/Reporter.h $(SRC)/Task.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Expr.cc $(T)
+
+$(D)File.o: $(SRC)/File.cc $(SRC)/File.h $(H)/Object.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/File.cc $(T)
 
 $(D)Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Frame.cc $(T)

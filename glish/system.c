@@ -45,6 +45,8 @@ RCSID("@(#) $Id$")
 #include <sys/utsname.h>
 #endif
 
+#define SHELL "/bin/sh"
+
 typedef RETSIGTYPE (*correct_sig_handler)( );
 
 #ifdef SETRLIMIT_NOT_DECLARED
@@ -579,6 +581,129 @@ int pclose_with_input( FILE* pipe )
 	return status;
 	}
 
+int max_fds( )
+	{
+#ifdef HAVE_SETRLIMIT
+	static int max_num_fds = 0;
+        struct rlimit rl;
+	if ( ! max_num_fds )
+		{
+		if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
+			gripe( "getrlimit() failed" );
+
+		max_num_fds = (int) rl.rlim_max;
+		}
+	return max_num_fds;
+#else
+        return  32;
+#endif
+	}
+
+static pid_t *dual_popen_children = 0;
+
+int dual_popen( const char *command, FILE **in, FILE **out )
+	{
+	pid_t pid;
+	int i, infd[2], outfd[2];
+	int num_fds = max_fds();
+
+	if ( ! out && ! in )
+		return 0;
+
+	if ( ! dual_popen_children )
+		dual_popen_children = (pid_t*) alloc_zero_memory( sizeof(pid_t) * num_fds );
+
+	if ( in )
+		{
+		if ( pipe(infd) < 0 )
+			gripe( "can't create pipe" );
+		mark_close_on_exec( infd[0] );
+		}
+
+
+	if ( out )
+		{
+		if ( pipe(outfd) < 0 )
+			gripe( "can't create pipe" );
+		mark_close_on_exec( outfd[1] );
+		}
+
+	if ( (pid = vfork()) < 0 )
+		gripe( "couldn't fork process" );
+
+	if ( pid == 0 )
+		{ /* child */
+		if ( in )
+			{ /* parent reads from "in" */
+			if ( dup2( infd[1], fileno(stdout) ) < 0 )
+				{
+				perror( "couldn't do dup2(), stdout" );
+				_exit(-1);
+				}
+			close( infd[1] );
+			}
+
+		if (  out )
+			{ /* parent writes to "out" */
+			if ( dup2( outfd[0], fileno(stdin) ) < 0 )
+				{
+				perror( "couldn't do dup2(), stdin" );
+				_exit(-1);
+				}
+			close( outfd[0] );
+			}
+
+		execl( SHELL, "sh", "-c", command, 0 );
+		perror( "exec failed" );
+		_exit(1);
+		}
+
+	/* parent */
+	if ( in )
+		{
+		if ( ! (*in = fdopen( infd[0], "r")) )
+			gripe( "fdopen failed, input" );
+		dual_popen_children[fileno(*in)] = pid;
+		close( infd[1] );
+		}
+
+	if ( out )
+		{
+		if ( ! (*out = fdopen( outfd[1], "w")) )
+			gripe( "fdopen failed, output" );
+		dual_popen_children[fileno(*out)] = pid;
+		close( outfd[0] );
+		}
+
+	return 1;
+	}
+	
+int dual_pclose( FILE *fp )
+	{
+	pid_t pid;
+	int i, fd, stat;
+	int num_fds = max_fds();
+
+	if ( ! fp || ! dual_popen_children )
+		return -1;
+
+	fd = fileno( fp );
+	fclose( fp );
+
+	if ( ! (pid = dual_popen_children[fd]) )
+		return -1;
+
+	dual_popen_children[fd] = 0;
+	for ( i=0; i < num_fds; ++i )
+		if ( dual_popen_children[i] == pid )
+			return -1;
+
+	while (waitpid(pid, &stat, 0) < 0)
+		if ( errno != EINTR )
+			return -1;
+
+	return stat;
+	}
 
 char* make_named_pipe()
 	{

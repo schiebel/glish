@@ -27,7 +27,7 @@ const char* type_names[NUM_GLISH_TYPES] =
 	"error", "ref", "subref",
 	"boolean", "byte", "short", "integer",
 	"float", "double", "string", "agent", "function", "record",
-	"complex", "dcomplex", "fail", "regex",
+	"complex", "dcomplex", "fail", "regex", "file"
 	};
 
 const Value* false_value = 0;
