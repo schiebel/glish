@@ -2108,7 +2108,10 @@ void Sequencer::PushFrames( stack_type *new_stack )
 		stack.append( ns );
 		}
 	else
+		{
+		Ref(new_stack);
 		stack.append(new_stack);
+		}
 	}
 
 Frame* Sequencer::PopFrame( )
@@ -2136,6 +2139,8 @@ void Sequencer::PopFrames( )
 	stack_type *ns = stack.remove_nth(stack.length()-1);
 	if ( ns->delete_on_spot() )
 		delete ns;
+	else
+		Unref(ns);
 	}
 
 Frame* Sequencer::CurrentFrame()
