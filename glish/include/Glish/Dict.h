@@ -80,6 +80,8 @@ class Dictionary {
 	PList(DictEntry)* order;
 	int num_buckets;
 	int num_entries;
+
+	IterCookie *stale_cookie;
 	};
 
 #define NotFound ((void*) 0)

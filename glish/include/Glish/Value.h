@@ -487,7 +487,8 @@ public:
 	virtual void Polymorph( glish_type new_type );
 	void VecRefPolymorph( glish_type new_type );
 
-	Value *GETATTRIBUTES() { return attributes; }
+	// Retrieves all attributes as a Value, non-modifiable
+	const Value *GetAttributes() const { return attributes; }
 
 	// Retrieve the non-modifiable set of attributes, possibly nil.
 	const attributeptr AttributePtr() const

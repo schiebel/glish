@@ -1411,18 +1411,21 @@ case tag:						\
 	return new IValue( glish_false );
 	}
 
-extern Value *read_value( int );
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
+	static sos_fd_source FD;
+	static sos_in sos( FD, 0, 0 );
+
 	char* filename = (*args_val)[0]->StringVal();
 	IValue* result;
 	int fd = open(filename,O_RDONLY,0644);
-	
+
+	FD.setFd( fd );
 
 	if ( fd < 0 )
 		result = (IValue*) Fail( "could not read value from \"", filename, "\"" );
 	else
-		result = (IValue*) read_value( fd );
+		result = (IValue*) read_value( sos );
 
 	close(fd);
 	free_memory( filename );
@@ -1433,48 +1436,30 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	{
-// 	char* filename = (*args_val)[1]->StringVal();
-// 	const IValue* v = (*args_val)[0];
+	static sos_fd_sink FD;
+	static sos_out sos( FD, 0 );
 
-// 	IValue *ret = 0;
+	if ( (*args_val)[1]->Type() != TYPE_STRING )
+		return (IValue*) Fail( "bad type for filename (argument 1), string expected." );
 
-// 	if ( v->Type() == TYPE_OPAQUE )
-// 		{
-// 		int sds = v->SDS_IndexVal();
+	char* filename = (*args_val)[1]->StringVal();
+	const IValue* v = (*args_val)[0];
+	IValue *result = 0;
 
-// 		if ( sds_ass( sds, filename, SDS_FILE ) != sds )
-// 			ret = (IValue*) Fail( "could not save opaque value to \"",
-// 					filename, "\"" );
-// 		}
-// 	else
-// 		{
-// 		int sds = (int) sds_new( (char*) "" );
+	int fd = open(filename,O_WRONLY|O_CREAT,0644);
 
-// 		if ( sds < 0 )
-// 			ret = (IValue*) Fail( "problem saving value to \"", filename,
-// 					"\", SDS error code = ", sds );
-// 		else
-// 			{
-// 			del_list d;
+	FD.setFd( fd );
 
-// 			(*args_val)[0]->AddToSds( sds, &d );
+	if ( fd < 0 )
+		result = (IValue*) Fail( "could not write value to \"", filename, "\"" );
+	else
+		write_value( sos, v );
 
-// 			if ( sds_ass( sds, filename, SDS_FILE ) != sds )
-// 				ret = (IValue*) Fail( "could not save value to \"",
-// 						filename, "\"" );
+	close(fd);
+	free_memory( filename );
 
-// 			sds_destroy( sds );
-
-// 			delete_list( &d );
-// 			}
-// 		}
-
-// 	free_memory( filename );
-
-// 	return ret ? ret : new IValue( 1 );
-	return 0;
+	return result ? result : new IValue( glish_true );
 	}
-
 
 IValue* WheneverStmtsBuiltIn::DoCall( const_args_list* args_val )
 	{

@@ -16,6 +16,9 @@ char* strdup( const char* );
 #endif
 }
 
+class sos_in;
+class sos_out;
+
 struct fd_set;
 class EventContext {
 public:
@@ -372,7 +375,10 @@ class Client {
 	int useshm;
 	};
 
+Value *read_value( sos_in & );
+void write_value( sos_out &, const Value * );
 
+// --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 extern GlishEvent* recv_event( int fd );
 
 extern void send_event( int fd, const char* event_name,

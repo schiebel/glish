@@ -26,12 +26,12 @@ public:
 // bucket at which to start looking for the next value to return.
 class IterCookie {
 public:
-	IterCookie( int b, int o )
+	IterCookie( int b, int o ) : bucket(b), offset(o) { }
+	Set( int b, int o )
 		{
 		bucket = b;
 		offset = o;
 		}
-
 	int bucket, offset;
 	};
 
@@ -44,6 +44,8 @@ Dictionary::Dictionary( dict_order ordering, int initial_size )
 		order = new PList(DictEntry);
 	else
 		order = 0;
+
+	stale_cookie = 0;
 	}
 
 Dictionary::~Dictionary()
@@ -61,6 +63,8 @@ Dictionary::~Dictionary()
 
 	if ( order )
 		delete order;
+	if ( stale_cookie )
+		delete stale_cookie;
 	}
 
 
@@ -149,7 +153,17 @@ char* Dictionary::Remove( const char* key )
 
 IterCookie* Dictionary::InitForIteration() const
 	{
-	return new IterCookie( 0, 0 );
+	IterCookie *ret = 0;
+	if ( stale_cookie )
+		{
+		ret = stale_cookie;
+		ret->Set(0,0);
+		((Dictionary*)this)->stale_cookie = 0;
+		}
+	else
+		ret = new IterCookie( 0, 0 );
+
+	return ret;
 	}
 
 void* Dictionary::NextEntry( const char*& key, IterCookie*& cookie ) const
@@ -172,7 +186,10 @@ void* Dictionary::NextEntry( const char*& key, IterCookie*& cookie ) const
 
 	if ( b >= num_buckets )
 		{ // All done.
-		delete cookie;
+		if ( ! stale_cookie )
+			((Dictionary*)this)->stale_cookie = cookie;
+		else
+			delete cookie;
 		return 0;
 		}
 

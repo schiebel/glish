@@ -1382,7 +1382,6 @@ void Client::RemoveInterpreter( EventSource* source )
 	}
 
 static Value *read_value( sos_in &, char *&, unsigned char & );
-Value *read_value( int fd );
 static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 	{
 	sos_code type;
@@ -1478,23 +1477,6 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 	return val;
 	}
 
-
-Value *read_value( int fd )
-	{
-	static sos_fd_source FD;
-	static sos_in sos( FD, 0, 0 );
-
-	FD.setFd( fd );
-
-	char *name = 0;
-	unsigned char flags;
-	Value *result = read_value( sos, name, flags );
-
-	cerr << "read_value: " << name << " (" << (void*) flags << ")" << endl;
-
-	return result;
-	}
-	
 GlishEvent* recv_event( int fd )
 	{
 	static sos_fd_source FD;
@@ -1556,7 +1538,7 @@ static void write_value( sos_out &sos, Value *val, const char *label, char *name
 		WRITE_ACTION(TYPE_DCOMPLEX,DcomplexPtr, (double*), *2 )
 		WRITE_ACTION(TYPE_STRING,StringPtr,,)
 		case TYPE_FAIL:
-			val = val->GETATTRIBUTES();
+			val = (Value*) val->GetAttributes();
 			head.usetc( val->AttributePtr() ? 1 : 0, 1 );
 		case TYPE_RECORD:
 			{
@@ -1599,7 +1581,7 @@ static void write_value( sos_out &sos, Value *val, const char *label, char *name
 	if ( name ) sos.write( name, strlen(name) );
 
 	if ( val->AttributePtr() )
-		write_value( sos, val->GETATTRIBUTES(), name );
+		write_value( sos, (Value*) val->GetAttributes(), name );
 	}
 
 void send_event( int fd, const char* name, const GlishEvent* e, int sds )
@@ -1613,6 +1595,28 @@ void send_event( int fd, const char* name, const GlishEvent* e, int sds )
 	sos.flush();
 	}
 
+//
+// Routines for reading and writing values to and from files.
+// Used by:
+//		WriteValueBuiltIn::DoCall( const_args_list* )
+//		ReadValueBuiltIn::DoCall( const_args_list* )
+//
+Value *read_value( sos_in &sos )
+	{
+	char *name = 0;
+	unsigned char flags;
+	Value *result = read_value( sos, name, flags );
+
+	cerr << "read_value: " << name << " (" << (void*) flags << ")" << endl;
+
+	return result;
+	}
+
+void write_value( sos_out &sos, const Value *v )
+	{
+	write_value( sos, (Value*) v, 0, 0, 0 );
+	}
+	
 #if ! defined(HAVE_SHMGET)
 
 void send_shm_event( int write_fd, const char* event_name,

@@ -39,8 +39,14 @@ extern "C" int writev(int, const struct iovec *, int);
 #define MAXIOV 16
 #endif
 
-unsigned int sos_fd_sink::tmp_buf_count = 10;
-unsigned int sos_fd_sink::tmp_buf_size = 1024;
+//
+//  These may need to be tuned for each application that uses
+//  this library. With glish, the only writes which are tagged
+//  as "COPY" are the writing of record headers (i.e. 
+//  SOS_HEADER_SIZE bytes).
+//
+unsigned int sos_fd_sink::tmp_buf_count = 16;
+unsigned int sos_fd_sink::tmp_buf_size = 64;
 
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
@@ -142,33 +148,33 @@ sos_out::sos_out( sos_sink &out_, int integral_header ) : out(out_)
 static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 
 
-#define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )		\
-	{							\
-	if ( not_integral )					\
-		{						\
-		head.set(l,SOSTYPE);				\
-		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
-		head.stamp();					\
+#define PUTNUMERIC_BODY( TYPE, SOSTYPE, PARAM, SOURCE )			\
+	{								\
+	if ( not_integral )						\
+		{							\
+		head.set(l,SOSTYPE);					\
+		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
+		head.stamp();						\
 		out.write( head.iBuffer(), SOS_HEADER_SIZE, sos_sink::COPY ); \
-		return out.write( a, l * sos_size(SOSTYPE), type ); \
-		}						\
-	else							\
-		{						\
-		head.set(a,l PARAM);				\
-		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
-		head.stamp();					\
+		return out.write( a, l * sos_size(SOSTYPE), type ); 	\
+		}							\
+	else								\
+		{							\
+		head.set(a,l PARAM);					\
+		memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
+		head.stamp();						\
 		return out.write( head.iBuffer(), l * sos_size(SOSTYPE) + \
-			   SOS_HEADER_SIZE, type );		\
-		}						\
+			   SOS_HEADER_SIZE, type );			\
+		}							\
 	}
 
 
-#define PUTNUMERIC(TYPE,SOSTYPE)				\
+#define PUTNUMERIC(TYPE,SOSTYPE)					\
 sos_status *sos_out::put( TYPE *a, unsigned int l,			\
-		    sos_sink::buffer_type type )		\
-	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)		\
+		    sos_sink::buffer_type type )			\
+	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)			\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_header &h,	\
-		    sos_sink::buffer_type type ) 		\
+		    sos_sink::buffer_type type ) 			\
 	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
 
 PUTNUMERIC(byte,SOS_BYTE)
@@ -178,12 +184,12 @@ PUTNUMERIC(float,SOS_FLOAT)
 PUTNUMERIC(double,SOS_DOUBLE)
 
 #define COMMA(X) , X
-#define PUTCHAR(TYPE)						\
+#define PUTCHAR(TYPE)							\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
-		    sos_sink::buffer_type type )		\
-	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)	\
+		    sos_sink::buffer_type type )			\
+	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)		\
 sos_status *sos_out::put( TYPE *a, unsigned int l, sos_code t,		\
-		    sos_header &h, sos_sink::buffer_type type )	\
+		    sos_header &h, sos_sink::buffer_type type )		\
 	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
 
 PUTCHAR(char)
@@ -193,7 +199,7 @@ PUTCHAR(unsigned char)
 #define PUTCHARPTR_BODY(SOURCE)						\
 	{								\
 	unsigned int total = (len+1) * 4;				\
-	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE );	\
+	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE ); \
 	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);	\
 									\
 	*lptr++ = len;							\
@@ -203,7 +209,7 @@ PUTCHAR(unsigned char)
 		total += lptr[i];					\
 		}							\
 									\
-	buf = (char*) sos_realloc_memory( buf, total + SOS_HEADER_SIZE );	\
+	buf = (char*) sos_realloc_memory( buf, total + SOS_HEADER_SIZE ); \
 	lptr = (unsigned int *) (buf + SOS_HEADER_SIZE + 4);		\
 									\
 	head.set(buf,total,SOS_STRING);					\
@@ -230,7 +236,7 @@ PUTCHAR(unsigned char)
 	if ( type == sos_sink::FREE )					\
 		{							\
 		for ( int X = 0; X < len; X++ )				\
-			sos_free_memory( (char*) s[X] );			\
+			sos_free_memory( (char*) s[X] );		\
 		sos_free_memory( s );					\
 		}							\
 									\
@@ -245,7 +251,7 @@ PUTCHAR(unsigned char)
 	for ( unsigned int i = 0; i < len; i++ )			\
 		total += s.strlen(i);					\
 									\
-	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE );	\
+	char *buf = (char*) sos_alloc_memory( total + SOS_HEADER_SIZE );\
 									\
 	head.set(buf,total,SOS_STRING);					\
 	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
@@ -290,20 +296,20 @@ sos_status *sos_out::put( const str &s, sos_header &h )
 #endif
 
 
-#define PUTREC_BODY( SOURCE )					\
-	{							\
-	static char buf[SOS_HEADER_SIZE];			\
-								\
-	if ( not_integral )					\
-		head.set(l,SOS_RECORD);				\
-	else							\
-		head.set(buf,l,SOS_RECORD);			\
-								\
-	memcpy( head.iBuffer() + 18, SOURCE, 6 );		\
-	head.stamp();						\
-								\
-	return out.write( head.iBuffer(), SOS_HEADER_SIZE,	\
-			  sos_sink::COPY );			\
+#define PUTREC_BODY( SOURCE )						\
+	{								\
+	static char buf[SOS_HEADER_SIZE];				\
+									\
+	if ( not_integral )						\
+		head.set(l,SOS_RECORD);					\
+	else								\
+		head.set(buf,l,SOS_RECORD);				\
+									\
+	memcpy( head.iBuffer() + 18, SOURCE, 6 );			\
+	head.stamp();							\
+									\
+	return out.write( head.iBuffer(), SOS_HEADER_SIZE,		\
+			  sos_sink::COPY );				\
 	}
 
 sos_status *sos_out::put_record_start( unsigned int l )
