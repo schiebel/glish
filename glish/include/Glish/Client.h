@@ -12,12 +12,6 @@
 #include "Glish/Value.h"
 #include "sos/io.h"
 
-extern "C" {
-#ifndef HAVE_STRDUP
-char* strdup( const char* );
-#endif
-}
-
 class sos_in;
 class sos_out;
 class ProxyId;

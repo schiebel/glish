@@ -8,12 +8,6 @@
 #include <unistd.h>
 #include <string.h>
 
-extern "C" {
-#ifndef HAVE_STRDUP
-char* strdup( const char* );
-#endif
-}
-
 //
 //  This contains a simple string implementation, which is currently only
 //  used for maintaining the correspondence between glish objects and file
