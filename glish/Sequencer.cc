@@ -1337,7 +1337,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				system(this), script_client(0), script_client_active(0),
 				expanded_name(0), run_file(0), doing_pager(0)
 	{
-	evalOpt opt(1);
+	evalOpt opt;
 
 #if defined(ENABLE_GC)
 	/* We try to make sure that we allocate at 	*/
@@ -1557,6 +1557,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		if ( is_regular_file( glish_rc_filename ) &&
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
+				if ( VERB_INCL(verbose_mask) )
+					cerr << "vi " << glish_rc_filename << endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
 				loaded_system_glishrc = 1;
 				}
@@ -1573,7 +1575,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 		if ( is_regular_file( glish_rc_filename ) &&
 			(glish_rc_file = fopen( glish_rc_filename, "r")) )
+				{
+				if ( VERB_INCL(verbose_mask) )
+					cerr << "vi " << glish_rc_filename << endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
+				}
 		}
 
 	//
@@ -1582,7 +1588,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	if ( (glish_rc_dir = getenv( "GLISHRC" )) &&
 	     is_regular_file( glish_rc_dir ) &&
 	     (glish_rc_file = fopen( glish_rc_dir, "r")) )
+		{
+		if ( VERB_INCL(verbose_mask) )
+			cerr << "vi " << glish_rc_dir << endl;
 		Parse( opt, glish_rc_file, glish_rc_dir );
+		}
 	else
 		{
 		//
@@ -1590,7 +1600,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		//
 		if ( is_regular_file( GLISH_RC_FILE ) &&
 		     (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
+			{
+			if ( VERB_INCL(verbose_mask) )
+				cerr << "vi " << GLISH_RC_FILE << endl;
 			Parse( opt, glish_rc_file, GLISH_RC_FILE );
+			}
 
 		else if ( (glish_rc_dir = getenv( "HOME" )) )
 			{
@@ -1599,7 +1613,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 
 			if ( is_regular_file(glish_rc_filename) &&
 			     (glish_rc_file = fopen( glish_rc_filename, "r")) )
+				{
+				if ( VERB_INCL(verbose_mask) )
+					cerr << "vi " << glish_rc_filename << endl;
 				Parse( opt, glish_rc_file, glish_rc_filename );
+				}
 			}
 		}
 
@@ -1626,6 +1644,8 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			if ( ! include_once.Lookup((*load_list)[j]) )
 				{
 				expanded_name = (*load_list)[j];
+				if ( VERB_INCL(verbose_mask) )
+					cerr << "vi " << expanded_name << endl;
 				Parse( opt, (*load_list)[j] );
 				}
 
@@ -1641,7 +1661,11 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		do_interactive = 0;
 		MakeArgvGlobal( opt, argv, argc, 0 );
 		if ( ! include_once.Lookup( run_file ) )
+			{
+			if ( VERB_INCL(verbose_mask) )
+				cerr << "vi " << run_file << endl;
 			Parse( opt, run_file );
+			}
 		}
 
 	if ( ! ScriptCreated() )

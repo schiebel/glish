@@ -75,24 +75,30 @@ class evalOpt {
 	enum flowType { NEXT=5, LOOP=6, BREAK=7, RETURN=8 };
 	enum returnType { VALUE_NEEDED=9 };
 
-	evalOpt( int OK=0 ) : mask(0) { }
-	evalOpt( exprType t, int OK=0 ) : mask(1<<t) { }
-	evalOpt( flowType t, int OK=0 ) : mask(1<<t) { }
-	evalOpt( returnType t, int OK=0 ) : mask(1<<t) { }
+	evalOpt( ) : mask(0), fcount(0) { }
+	evalOpt( exprType t ) : mask(1<<t), fcount(0) { }
+	evalOpt( flowType t ) : mask(1<<t), fcount(0) { }
+	evalOpt( returnType t ) : mask(1<<t), fcount(0) { }
 
 	// This is sort of messed up... the copy ctor preserves all flags
 	// but the assignment operator doesn't fiddle with the flow flags.
 	// This is due to the semantics of Expr and Stmt flags, Stmt functions
 	// were built using reference semantics while Expr functions used
 	// value semantics... need to work on this...
-	evalOpt( const evalOpt &o ) : mask(o.mask) { }
-	evalOpt &operator=( const evalOpt &o ) { mask = o.mask & ~0x1e0 | mask & 0x1e0; return *this; }
+	evalOpt( const evalOpt &o ) : mask(o.mask), fcount(o.fcount) { }
+	evalOpt &operator=( const evalOpt &o ) { mask = o.mask & ~0x1e0 | mask & 0x1e0; fcount = o.fcount; return *this; }
 
 	void set( flowType t ) { mask = mask & ~0x1e0 | 1<<t; }
 	void set( exprType t ) { mask = mask & ~0x1f | 1<<t; }
 
 	void clear( returnType t ) { mask &= ~1<<t; }
 	void set( returnType t ) { mask |= 1<<t; }
+
+	// handle the function depth count
+	void clearfc( ) { fcount = 0; }
+	unsigned int getfc( ) { return fcount; }
+	void incfc( ) { ++fcount; }
+	void decfc( ) { --fcount; }
 
 	// evaluation types/modes
 	inline static unsigned short mCOPY( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
@@ -126,6 +132,8 @@ class evalOpt {
 
     protected:
 	unsigned short mask;
+	// count of function depth
+	unsigned int fcount;
 };
 
 typedef void (*change_var_notice)(IValue*,IValue*);

@@ -575,10 +575,7 @@ static void list_element_unref( void *vp )
 
 IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 	{
-	static unsigned int COUNT = 0;
-	for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
-	fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
-	++COUNT;
+	opt.incfc();
 
 	if ( subsequence_expr )
 		{
@@ -589,7 +586,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 			self->SetReflect( );
 		}
 
-	evalOpt flow;
+	evalOpt flow(opt);
 	if ( ! opt.side_effects() ) flow.set(evalOpt::VALUE_NEEDED);
 
 	//
@@ -678,7 +675,7 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 				}
 			}
 
-		if ( COUNT > 1 )
+		if ( opt.getfc() > 1 )
 			{
 			if ( ! old_cycle_roots ) old_cycle_roots = new ref_list;
 			old_cycle_roots->append( cycle_roots );
@@ -699,24 +696,18 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 		if ( result )
 			{
 			if ( result->Type() == TYPE_FAIL )
-{
---COUNT;
-for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
-fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
+				{
+				opt.decfc();
 				return result;
-}
+				}
 
 			if ( result->Type() != TYPE_BOOL || result->BoolVal(1,err) )
 				{
 				if ( err.chars() )
 					{
 					Unref( result );
-{
---COUNT;
-for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
-fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
+					opt.decfc();
 					return (IValue*) Fail(err.chars());
-}
 					}
 
 				warn->Report( "value (", result,
@@ -734,10 +725,7 @@ fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], li
 			warn->Report( "agent returned by subsequence ignored" );
 		}
 
-	--COUNT;
-	for ( int XXX=0; XXX < COUNT; ++XXX ) fprintf( stderr, "\t" );
-	fprintf( stderr, "DoCall#%d: %s %d 0x%x (%d)\n", COUNT, (*glish_files)[file], line, stack, stack ? stack->RefCount() : -1 );
-
+	opt.decfc();
 	return result;
 	}
 
