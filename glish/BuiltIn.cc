@@ -34,6 +34,8 @@ RCSID("@(#) $Id$")
 #include "glishlib.h"
 #include "input.h"
 
+#define AGENT_MEMBER_NAME "*agent*"
+
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
 #if defined(HUGE_VAL)
 #define HUGE HUGE_VAL
@@ -2732,6 +2734,17 @@ IValue* is_fail_built_in( const IValue* arg )
 	return new IValue( arg->Type() == TYPE_FAIL ? glish_true : glish_false );
 	}
 
+IValue* is_agent_built_in( const IValue* arg )
+	{
+	((IValue*)arg)->MarkFail();
+	arg = (const IValue *) arg->Deref( );
+	const IValue *agent = 0;
+	return new IValue( arg->Type() == TYPE_AGENT || arg->Type() == TYPE_RECORD &&
+			   (agent = (const IValue*) arg->HasRecordElement(AGENT_MEMBER_NAME)) &&
+			   agent->Type( ) == TYPE_AGENT &&
+			   agent->AgentVal( ) ? glish_true : glish_false );
+	}
+
 IValue* length_built_in( const IValue* arg )
 	{
 	return new IValue( int( arg->Length() ) );
@@ -2857,6 +2870,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
 	add_one_arg_built_in( s, is_fail_built_in, "is_fail", 0, 1 );
+	add_one_arg_built_in( s, is_agent_built_in, "is_agent", 0, 1 );
 	add_one_arg_built_in( s, field_names_built_in, "field_names" );
 
 	s->AddBuiltIn( new NumericVectorBuiltIn( sqrt, sqrt, "sqrt" ) );

@@ -20,9 +20,6 @@ func is_file( const x )		type_name(x) == "file"
 func to_lower( str )	tr('[A-Z]','[a-z]',str)
 func to_upper( str )	tr('[a-z]','[A-Z]',str)
 
-func is_agent( const x )
-	type_name(x) == "agent" || (is_record(x) && has_field(x, "*agent*"))
-
 func is_numeric( const x )
 	sum(type_name(x) ==
 		"boolean byte short integer float double complex dcomplex") > 0
