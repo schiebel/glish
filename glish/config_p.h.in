@@ -1,5 +1,8 @@
 /* custom config_p.h template - do not recreate using autoheader */
 
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#undef pid_t
+
 /* Define to `void*' if <sys/types.h> and <stdlib.h> don't define.  */
 #undef malloc_t
 
