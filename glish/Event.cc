@@ -96,10 +96,9 @@ void EventDesignator::Register( Notifiee* notifiee )
 
 	if ( a )
 		{
-		if ( ! nl )
+		if ( ! nl || nl->length() == 0 )
 			// Register for all events.
 			a->RegisterInterest( notifiee );
-
 		else
 			loop_over_list( *nl, i )
 				a->RegisterInterest( notifiee, (*nl)[i], 1 );

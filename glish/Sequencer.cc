@@ -101,50 +101,50 @@ void system_change_function(IValue *, IValue *n)
 
 stack_type::stack_type( )
 	{
-	frames = new frame_list;
+	frames_ = new frame_list;
 	flen = -1;
-	offsets = new offset_list;
+	offsets_ = new offset_list;
 	olen = -1;
-	delete_on_spot = 0;
+	delete_on_spot_ = 0;
 	}
 
-stack_type::stack_type( const stack_type &other, int clip )
+stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_arg )
 	{
-	frames = new frame_list;
-	offsets = new offset_list;
+	frames_ = new frame_list;
+	offsets_ = new offset_list;
 
-	int len = clip && other.flen >= 0 ? other.flen : other.frames->length();
+	int len = clip && other.frame_len() >= 0 ? other.frame_len() : other.frames()->length();
 	for ( int i = 0; i < len; i++ )
 		{
-		Frame *n = (*other.frames)[i];
+		Frame *n = (*other.frames())[i];
 		if (n) Ref(n);
-		frames->append(n);
+		frames_->append(n);
 		}
 	flen = len;
 
-	len = clip && other.olen >= 0 ? other.olen : other.offsets->length();
+	len = clip && other.offset_len() >= 0 ? other.offset_len() : other.offsets()->length();
 	for ( LOOPDECL i = 0; i < len; i++ )
-		offsets->append((*other.offsets)[i]);
+		offsets_->append((*other.offsets())[i]);
 	olen = len;
 
-	delete_on_spot = 0;
+	delete_on_spot_ = delete_on_spot_arg;
 	}
 
 stack_type::~stack_type( )
 	{
-	for ( int i=frames->length()-1;i >= 0; i-- )
-		Unref(frames->remove_nth(i));
-	Unref( frames );
-	Unref( offsets );
+	for ( int i=frames_->length()-1;i >= 0; i-- )
+		Unref(frames_->remove_nth(i));
+	Unref( frames_ );
+	Unref( offsets_ );
 	}
 
 #ifdef GGC
 void stack_type::TagGC( )
 	{
-	if ( ! frames ) return;
-	loop_over_list( *frames, i )
-		if ( (*frames)[i] )
-			(*frames)[i]->TagGC();
+	if ( ! frames_ ) return;
+	loop_over_list( *frames_, i )
+		if ( (*frames_)[i] )
+			(*frames_)[i]->TagGC();
 	}
 #endif
 
@@ -411,7 +411,7 @@ void Notification::Describe( OStream& s ) const
 	s << "." << field << " (";
 	value->DescribeSelf( s );
 	s << ") for ";
-	notifiee->stmt->DescribeSelf( s );
+	notifiee->stmt()->DescribeSelf( s );
 	}
 
 #define LOG_CLEANUP_ONE(VAR)						\
@@ -1301,8 +1301,7 @@ Sequencer::~Sequencer()
 	loop_over_list( global_frame, i )
 		Unref( global_frame[i] );
 
-	for ( int k=stack.length()-1; k >= 0; k-- )
-		Unref( stack.remove_nth(k) );
+	while ( stack.length() ) PopFrames();
 
 	if ( ! script_client_active && script_client )
 		delete script_client;
@@ -1753,29 +1752,29 @@ void Sequencer::DescribeFrames( OStream& s ) const
 		{
 		stack_type *S = stack[X];
 		s << "[" << X << "]" << (void*) S;
-		if ( (*S->frames).length() )
+		if ( (*S->frames()).length() )
 			{
 			s << "\tframes:\t\t";
-			loop_over_list((*S->frames), i)
-				if ( (*S->frames)[i] )
-					s << (void*) (*S->frames)[i] << "\t";
+			loop_over_list((*S->frames()), i)
+				if ( (*S->frames())[i] )
+					s << (void*) (*S->frames())[i] << "\t";
 				else
 				  	s << "X" << "\t\t";
 			s << endl;
 
 			s << "\t\t\t\t";
-			loop_over_list((*S->frames), j)
-				if ( (*S->frames)[j] )
-					s << (*S->frames)[j]->Size() << "\t\t";
+			loop_over_list((*S->frames()), j)
+				if ( (*S->frames())[j] )
+					s << (*S->frames())[j]->Size() << "\t\t";
 				else
 				  	s << "X" << "\t\t";
 			}
 		s << endl;
-		if ( (*S->offsets).length() )
+		if ( (*S->offsets()).length() )
 			{
 			s << "\t\toffsets:\t";
-			loop_over_list((*S->offsets), i)
-				s << (*S->offsets)[i] << "\t\t";
+			loop_over_list((*S->offsets()), i)
+				s << (*S->offsets())[i] << "\t\t";
 			s << endl;
 			}
 		}
@@ -1790,10 +1789,9 @@ void Sequencer::PushFrame( Frame* new_frame )
 
 void Sequencer::PushFrames( stack_type *new_stack )
 	{
-	if ( new_stack && new_stack->flen != new_stack->frames->length() )
+	if ( new_stack && new_stack->frame_len() != new_stack->frames()->length() )
 		{
-		stack_type *ns = new stack_type( *new_stack, 1 );
-		ns->delete_on_spot = 1;
+		stack_type *ns = new stack_type( *new_stack, 1, 1);
 		stack.append( ns );
 		}
 	else
@@ -1823,7 +1821,7 @@ Frame* Sequencer::PopFrame( )
 void Sequencer::PopFrames( )
 	{
 	stack_type *ns = stack.remove_nth(stack.length()-1);
-	if ( ns->delete_on_spot )
+	if ( ns->delete_on_spot() )
 		delete ns;
 	}
 
@@ -3199,10 +3197,10 @@ void Sequencer::RunQueue()
 		if ( verbose > 1 )
 			message->Report( "doing", n );
 
-		if ( n->notifiee->stack )
-			PushFrames( n->notifiee->stack );
-		else if ( n->notifiee->frame )
-			PushFrame( n->notifiee->frame );
+		if ( n->notifiee->stack() )
+			PushFrames( n->notifiee->stack() );
+		else if ( n->notifiee->frame() )
+			PushFrame( n->notifiee->frame() );
 
 		IValue* notifier_val = n->notifier->AgentRecord();
 
@@ -3220,7 +3218,7 @@ void Sequencer::RunQueue()
 
 		Ref( n );
 		Ref(notifier_val);
-		n->notifiee->stmt->Notify( n->notifier );
+		n->notifiee->stmt()->Notify( n->notifier );
 
 		// This extra check is necessary because a 'whenever' stmt which
 		// is set for the same event as a "current" 'await' stmt could
@@ -3233,9 +3231,9 @@ void Sequencer::RunQueue()
 			last_notification = n;
 			}
 
-		if ( n->notifiee->stack )
+		if ( n->notifiee->stack() )
 			(void) PopFrames( );
-		else if ( n->notifiee->frame )
+		else if ( n->notifiee->frame() )
 			(void) PopFrame();
 
 		if ( n->trigger )

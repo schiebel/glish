@@ -22,37 +22,37 @@ RCSID("@(#) $Id$")
 agent_list *agents;
 
 
-Notifiee::Notifiee( Stmt* arg_stmt ) : stack(0), frame(0)
+Notifiee::Notifiee( Stmt* arg_stmt ) : stack_(0), frame_(0)
 	{
-	stmt = arg_stmt;
-	Ref( stmt );
+	stmt_ = arg_stmt;
+	Ref( stmt_ );
 	}
 
-Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame ) : stack(0)
+Notifiee::Notifiee( Stmt* arg_stmt, Frame* arg_frame ) : stack_(0)
 	{
-	stmt = arg_stmt;
-	frame = arg_frame;
+	stmt_ = arg_stmt;
+	frame_ = arg_frame;
 
-	Ref( stmt );
+	Ref( stmt_ );
 
 	if ( frame )
-		Ref( frame );
+		Ref( frame_ );
 	}
 
-Notifiee::Notifiee( Stmt* arg_stmt, stack_type *arg_stack ) : frame(0)
+Notifiee::Notifiee( Stmt* arg_stmt, stack_type *arg_stack ) : frame_(0)
 	{
-	stmt = arg_stmt;
-	stack = arg_stack;
+	stmt_ = arg_stmt;
+	stack_ = arg_stack;
 
-	if ( stack ) Ref( stack );
-	Ref( stmt );
+	if ( stack_ ) Ref( stack_ );
+	Ref( stmt_ );
 	}
 
 Notifiee::~Notifiee()
 	{
-	Unref( stmt );
-	Unref( frame );
-	Unref( stack );
+	Unref( stmt_ );
+	Unref( frame_ );
+	Unref( stack_ );
 	}
 
 Agent::Agent( Sequencer* s )
@@ -77,7 +77,7 @@ Agent::~Agent()
 	while ( (list = interested_parties.NextEntry( key, c )) )
 		{
 		loop_over_list( *list, i )
-			delete (*list)[i];
+			Unref( (*list)[i] );
 		delete list;
 		}
 
@@ -132,6 +132,7 @@ void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
 		interested_parties.Insert( field, interest_list );
 		}
 
+	Ref( notifiee );
 	interest_list->append( notifiee );
 
 	if ( is_copy )
@@ -158,14 +159,14 @@ void Agent::UnRegisterInterest( Stmt* s, const char* field )
 
 	int element = -1;
 	loop_over_list( *list, i )
-		if ( (*list)[i]->stmt == s )
+		if ( (*list)[i]->stmt() == s )
 			{
 			element = i;
 			break;
 			}
 
 	if ( element >= 0 )
-		delete list->remove_nth(element);
+		Unref( list->remove_nth(element) );
 
 	}
 
@@ -205,7 +206,7 @@ IValue* Agent::AssociatedStatements()
 		loop_over_list( *interest, j )
 			{
 			event[count] = strdup( key );
-			stmt[count] = (*interest)[j]->stmt->Index();
+			stmt[count] = (*interest)[j]->stmt()->Index();
 			++count;
 			}
 		}
@@ -325,7 +326,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value,
 int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
 			   NotifyTrigger *t )
 	{
-	Stmt* s = n->stmt;
+	Stmt* s = n->stmt();
 
 	if ( s->IsActiveFor( this, field, value ) )
 		{
@@ -345,7 +346,7 @@ int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
 int Agent::SearchNotificationList( notification_list* list, Stmt* stmt )
 	{
 	loop_over_list( *list, i )
-		if ( (*list)[i]->stmt == stmt )
+		if ( (*list)[i]->stmt() == stmt )
 			return 1;
 
 	return 0;

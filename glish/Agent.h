@@ -22,17 +22,21 @@ typedef List(string) string_list;
 glish_declare(PList,Agent);
 typedef PList(Agent) agent_list;
 
-class Notifiee {
+class Notifiee : public GlishRef {
     public:
 	Notifiee( Stmt* arg_stmt );
 	Notifiee( Stmt* arg_stmt, Frame* arg_frame );
 	Notifiee( Stmt* arg_stmt, stack_type *arg_stack );
-
 	~Notifiee();
-
-	Stmt* stmt;
-	Frame* frame;
-	stack_type *stack;
+	Stmt *stmt() { return stmt_; }
+	Frame *frame() { return frame_; }
+	stack_type *stack() { return stack_; }
+    protected:
+	Notifiee( const Notifiee & );
+	Notifiee &operator=( const Notifiee & );
+	Stmt* stmt_;
+	Frame* frame_;
+	stack_type *stack_;
 	};
 
 glish_declare(PList,Notifiee);

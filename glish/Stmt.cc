@@ -236,9 +236,10 @@ void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *a
 
 	stack = sequencer->LocalFrames();
 
+	Notifiee *note = new Notifiee( this, stack );
 	loop_over_list( *trigger, i )
 		{
-		(*trigger)[i]->Register( new Notifiee( this, stack ) );
+		(*trigger)[i]->Register( note );
 		Agent *ag = (*trigger)[i]->EventAgent( VAL_CONST );
 		if ( ag )
 			{
@@ -246,6 +247,8 @@ void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *a
 			(*trigger)[i]->EventAgentDone( );
 			}
 		}
+
+	Unref( note );
 
 	active = 1;
 

@@ -1815,7 +1815,7 @@ IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	if ( ! n )
 		return (IValue*) Fail( "no active whenever, in call to", this );
 
-	return new IValue( n->notifiee->stmt->Index() );
+	return new IValue( n->notifiee->stmt()->Index() );
 	}
 
 IValue* EvalBuiltIn::DoCall( const_args_list* args_val )

@@ -91,19 +91,32 @@ glish_declare(PList,Scope);
 typedef PList(Scope) scope_list;
 typedef List(int) offset_list;
 
-struct stack_type : GlishRef {
-	stack_type( const stack_type &, int clip = 0 );
+class stack_type : public GlishRef {
+    public:
+	stack_type( const stack_type &, int clip = 0,
+		    int delete_on_spot_arg = 0 );
 	stack_type( );
 	~stack_type( );
-	frame_list *frames;
-	int flen;
-	offset_list *offsets;
-	int olen;
-	int delete_on_spot;
+
+	frame_list *frames() { return frames_; }
+	const frame_list *frames() const { return frames_; }
+	int frame_len() const { return flen; }
+	offset_list *offsets() { return offsets_; }
+	const offset_list *offsets() const { return offsets_; }
+	int offset_len() const { return olen; }
+	int delete_on_spot() const { return delete_on_spot_; }
 
 #ifdef GGC
 	void TagGC( );
 #endif
+
+    protected:
+	stack_type &operator=( const stack_type & );
+	frame_list *frames_;
+	int flen;
+	offset_list *offsets_;
+	int olen;
+	int delete_on_spot_;
 };
 
 glish_declare(PList,stack_type);
@@ -503,10 +516,10 @@ protected:
 	offset_list global_scopes;
 
 	stack_list stack;
-	const frame_list &frames() const { return *(stack[stack.length()-1]->frames); }
-	frame_list &frames() { return *(stack[stack.length()-1]->frames); }
-	const offset_list &global_frames() const { return *(stack[stack.length()-1]->offsets); }
-	offset_list &global_frames() { return *(stack[stack.length()-1]->offsets); }
+	const frame_list &frames() const { return *(stack[stack.length()-1]->frames()); }
+	frame_list &frames() { return *(stack[stack.length()-1]->frames()); }
+	const offset_list &global_frames() const { return *(stack[stack.length()-1]->offsets()); }
+	offset_list &global_frames() { return *(stack[stack.length()-1]->offsets()); }
 
 	ivalue_list global_frame;
 
