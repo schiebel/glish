@@ -71,7 +71,7 @@ class SubVecRef(type) : public VecRef {					\
 type* SubVecRef(type)::DupVec( type *ret ) const			\
 	{								\
 	if ( ! ret )							\
-		ret = alloc_memory( sizeof(type)*Length() );		\
+		ret = (type*) alloc_memory( sizeof(type)*Length() );	\
 									\
 	for ( int i = 0; i < Length(); ++i )				\
 		{							\
