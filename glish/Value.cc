@@ -408,7 +408,7 @@ DEFINE_REF_ACCESSOR(DcomplexRef,TYPE_DCOMPLEX,dcomplexref)
 DEFINE_REF_ACCESSOR(StringRef,TYPE_STRING,charptrref)
 
 
-#define XXX_VAL(name, val_type, rhs_elm, text_func, type_name, zero)	\
+#define XXX_VAL(name, val_type, rhs_elm, conv, text_func, type_name, zero) \
 val_type Value::name( int n ) const					\
 	{								\
 	if ( IsRef() )							\
@@ -433,26 +433,30 @@ val_type Value::name( int n ) const					\
 			return val_type( BoolPtr(0)[n - 1] ? 1 : 0 );	\
 									\
 		case TYPE_BYTE:						\
-			return val_type( BytePtr(0)[n - 1] );		\
+			return val_type( BytePtr(0)[n - 1] conv );	\
 									\
 		case TYPE_SHORT:					\
-			return val_type( ShortPtr(0)[n - 1] );		\
+			return val_type( ShortPtr(0)[n - 1] conv );	\
 									\
 		case TYPE_INT:						\
-			return val_type( IntPtr(0)[n - 1] );		\
+			return val_type( IntPtr(0)[n - 1] conv );	\
 									\
 		case TYPE_FLOAT:					\
-			return val_type( FloatPtr(0)[n - 1] );		\
+			return val_type( FloatPtr(0)[n - 1] conv );	\
 									\
 		case TYPE_DOUBLE:					\
-			return val_type( DoublePtr(0)[n - 1] );		\
+			return val_type( DoublePtr(0)[n - 1] conv );	\
 									\
 		case TYPE_COMPLEX:					\
-			return val_type( ComplexPtr(0)[n - 1] rhs_elm );\
-									\
+			{						\
+			complex &ptr = ComplexPtr(0)[n - 1];		\
+			return val_type( ptr rhs_elm conv );		\
+			}						\
 		case TYPE_DCOMPLEX:					\
-			return val_type( DcomplexPtr(0)[n - 1] rhs_elm );\
-									\
+			{						\
+			dcomplex &ptr = DcomplexPtr(0)[n - 1];		\
+			return val_type( ptr rhs_elm conv );		\
+			}						\
 		case TYPE_STRING:					\
 			{						\
 			int successful;					\
@@ -492,14 +496,14 @@ val_type Value::name( int n ) const					\
 		}							\
 	}
 
-XXX_VAL(BoolVal, glish_bool, .r, text_to_integer, "bool", glish_false)
-XXX_VAL(ByteVal, byte, .r, text_to_integer, "byte", 0)
-XXX_VAL(ShortVal, short, .r, text_to_integer, "short", 0)
-XXX_VAL(IntVal, int, .r, text_to_integer, "integer", 0)
-XXX_VAL(FloatVal, float, .r, text_to_double, "float", 0.0)
-XXX_VAL(DoubleVal, double, .r, text_to_double, "double", 0.0)
-XXX_VAL(ComplexVal, complex,, text_to_dcomplex, "complex", complex(0.0, 0.0))
-XXX_VAL(DcomplexVal, dcomplex,, text_to_dcomplex, "dcomplex",
+XXX_VAL(BoolVal, glish_bool, .r || ptr.i, ? glish_true : glish_false, text_to_integer, "bool", glish_false)
+XXX_VAL(ByteVal, byte, .r,, text_to_integer, "byte", 0)
+XXX_VAL(ShortVal, short, .r,, text_to_integer, "short", 0)
+XXX_VAL(IntVal, int, .r,, text_to_integer, "integer", 0)
+XXX_VAL(FloatVal, float, .r,, text_to_double, "float", 0.0)
+XXX_VAL(DoubleVal, double, .r,, text_to_double, "double", 0.0)
+XXX_VAL(ComplexVal, complex,,, text_to_dcomplex, "complex", complex(0.0, 0.0))
+XXX_VAL(DcomplexVal, dcomplex,,, text_to_dcomplex, "dcomplex",
 	dcomplex(0.0, 0.0))
 
 
