@@ -122,41 +122,47 @@ int SeqStmt::DescribeSelf( OStream &, charptr ) const
 	return 0;
 	}
 
-WheneverStmt::WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer )
+
+
+WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer )
 	{
 	trigger = arg_trigger;
 	stmt = 0;
 	sequencer = arg_sequencer;
-	active = 0;
 
+	//
+	// Change the "current_whenever_index" temporarily so that parameterless
+	// "enable"/"disable" stmts within the whenever have the right index.
+	// "current_whenever_index" is reset in SetStmt().
+	//
 	index = current_whenever_index;
-	current_whenever_index = sequencer->RegisterStmt( this );
+	cur = new WheneverStmt(sequencer);
+	current_whenever_index = cur->Index();
 
 	description = "whenever";
 	}
 
-void WheneverStmt::SetStmt( Stmt* arg_stmt )
+void WheneverStmtCtor::SetStmt( Stmt* arg_stmt )
 	{
-	int tmp = current_whenever_index;
 	current_whenever_index = index;
-	index = tmp;
+	index = 0;
 	stmt = arg_stmt;
 	}
 
-WheneverStmt::~WheneverStmt()
+WheneverStmtCtor::~WheneverStmtCtor()
 	{
 	NodeUnref( stmt );
 
-	if ( trigger )
+	if ( trigger && trigger->RefCount() == 1 )
 		{
 		loop_over_list( *trigger, i )
 			Unref( (*trigger)[i] );
-
-		delete trigger;
 		}
+
+	Unref( trigger );
 	}
 
-void WheneverStmt::CollectUnref( stmt_list &del_list )
+void WheneverStmtCtor::CollectUnref( stmt_list &del_list )
 	{
 	if ( RefCount() > 1 )
 		NodeUnref( this );
@@ -168,14 +174,51 @@ void WheneverStmt::CollectUnref( stmt_list &del_list )
 		}
 	}
 
-int WheneverStmt::canDelete() const
-	{
-	return shutting_glish_down;
-	}
-
-IValue* WheneverStmt::DoExec( int /* value_needed */,
+IValue* WheneverStmtCtor::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
+	if ( ! cur )
+		new WheneverStmt( trigger, stmt, sequencer );
+	else
+		{
+		cur->Init( trigger, stmt );
+		cur = 0;
+		}
+
+	return 0;
+	}
+
+void WheneverStmtCtor::Describe( OStream& s ) const
+	{
+	DescribeSelf( s );
+	s << " ";
+	describe_event_list( trigger, s );
+	s << " do ";
+	stmt->Describe( s );
+	}
+
+
+
+WheneverStmt::WheneverStmt(Sequencer *arg_seq) : sequencer(arg_seq), active(0)
+	{
+	index = sequencer->RegisterStmt( this );
+	description = "whenever";
+	}
+
+WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt,
+			    Sequencer* arg_seq ) : sequencer(arg_seq), active(0)
+	{
+	index = sequencer->RegisterStmt( this );
+
+	Init( arg_trigger, arg_stmt );
+	description = "whenever";
+	}
+
+void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt )
+	{
+	trigger = arg_trigger; Ref(trigger);
+	stmt = arg_stmt; Ref(stmt);
+
 	stack_type *stack = sequencer->LocalFrames();
 
 	loop_over_list( *trigger, i )
@@ -185,8 +228,11 @@ IValue* WheneverStmt::DoExec( int /* value_needed */,
 	active = 1;
 
 	sequencer->WheneverExecuted( this );
+	}
 
-	return 0;
+int WheneverStmt::canDelete() const
+	{
+	return shutting_glish_down;
 	}
 
 void WheneverStmt::Notify( Agent* /* agent */ )
@@ -200,7 +246,7 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 	}
 
 int WheneverStmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
-				IValue* /* value */ ) const
+			       IValue* /* value */ ) const
 	{
 	return active;
 	}
@@ -218,6 +264,25 @@ void WheneverStmt::Describe( OStream& s ) const
 	s << " do ";
 	stmt->Describe( s );
 	}
+
+IValue* WheneverStmt::DoExec( int value_needed, stmt_flow_type& flow )
+	{
+	return 0;
+	}
+
+WheneverStmt::~WheneverStmt()
+	{
+	NodeUnref( stmt );
+
+	if ( trigger && trigger->RefCount() == 1 )
+		{
+		loop_over_list( *trigger, i )
+			Unref( (*trigger)[i] );
+		}
+
+	Unref( trigger );
+	}
+
 
 
 LinkStmt::~LinkStmt()

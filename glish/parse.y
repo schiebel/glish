@@ -186,7 +186,7 @@ statement:
 
 	|	whenever_head TOK_DO statement
 			{
-			((WheneverStmt*) $1)->SetStmt($3); 
+			((WheneverStmtCtor*) $1)->SetStmt($3); 
 			$$ = $1;
 			}
 
@@ -270,7 +270,7 @@ statement:
 	;
 
 whenever_head: TOK_WHENEVER event_list
-			{ $$ = new WheneverStmt( $2, current_sequencer ); }
+			{ $$ = new WheneverStmtCtor( $2, current_sequencer ); }
 
 expression:
 		'(' expression ')'

@@ -113,15 +113,10 @@ class SeqStmt : public Stmt {
 
 class WheneverStmt : public Stmt {
     public:
+	WheneverStmt( Sequencer *arg_seq );
 
-	//
-	// It is assumed that these, the ctor and "SetStmt()",  will
-	// be called together. This little dance is to allow
-	// activate/deactivate statements to be constructed with the
-	// proper index.
-	//
-	WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer );
-	void SetStmt( Stmt* arg_stmt );
+	void Init( event_list* arg_trigger, Stmt *arg_stmt );
+	WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq );
 
 	virtual ~WheneverStmt();
 
@@ -135,13 +130,39 @@ class WheneverStmt : public Stmt {
 
 	int canDelete() const;
 
+    protected:
+	event_list* trigger;
+	Stmt* stmt;
+	Sequencer* sequencer;
+	int active;
+	};
+
+
+class WheneverStmtCtor : public Stmt {
+    public:
+
+	//
+	// It is assumed that these, the ctor and "SetStmt()",  will
+	// be called together. This little dance is to allow
+	// activate/deactivate statements to be constructed with the
+	// proper index.
+	//
+	WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer );
+	void SetStmt( Stmt* arg_stmt );
+
+	virtual ~WheneverStmtCtor();
+
+	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+
+	void Describe( OStream& s ) const;
+
 	void CollectUnref( stmt_list & );
 
     protected:
 	event_list* trigger;
 	Stmt* stmt;
 	Sequencer* sequencer;
-	int active;
+	WheneverStmt* cur;
 	};
 
 
