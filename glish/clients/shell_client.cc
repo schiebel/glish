@@ -302,7 +302,8 @@ void SendChildInput( Client& c, int send_to_child_fd )
 
 	else if ( streq( e->name, "stdin" ) )
 		{
-		struct iovec iv[2] = { { 0, 0 }, { "\n", 1 } };
+		char* ivtmp = "\n";
+		struct iovec iv[2] = { { 0, 0 }, { ivtmp, 1 } };
 		char* input_str = e->value->StringVal();
 
 		iv[0].iov_base = input_str;

@@ -65,6 +65,7 @@ extern int glish_include_jmpbuf_set;
 #include "Socket.h"
 #include "ports.h"
 #include "version.h"
+#include "change.h"
 
 #define GLISH_RC_FILE ".glishrc"
 #define RCDIR_VAR "GLISHROOT"
@@ -1208,7 +1209,12 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	sys_value->SetField( "host", host );
 	Unref(host);
 
-	IValue *ver = new IValue( GLISH_VERSION );
+	char change[24];
+	sprintf( change, "%d", GLISH_CHANGE );
+	charptr *verv = (charptr*) alloc_charptr( 2 );
+	verv[0] = string_dup(GLISH_VERSION);
+	verv[1] = string_dup(change);
+	IValue *ver = new IValue( verv, 2 );
 	sys_value->SetField( "version", ver );
 	Unref(ver);
 

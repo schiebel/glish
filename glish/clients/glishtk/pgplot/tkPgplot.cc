@@ -1,4 +1,4 @@
-// $Header$
+// $Id$
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
