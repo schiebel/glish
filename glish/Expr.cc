@@ -1727,10 +1727,10 @@ IValue *RefExpr::Assign( IValue* new_value )
 	else if ( type == VAL_CONST )
 		{
 		new_value->MakeConst( );
-		op->Assign( new_value );
+		return op->Assign( new_value );
 		}
 	else
-		Expr::Assign( new_value );
+		return Expr::Assign( new_value );
 
 	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}

@@ -292,10 +292,10 @@ T		RETURN_CONSTANT( glish_true );
 InClUdE		BEGIN(INCL); break;
 include		return TOK_INCLUDE;
 
-pragma{WS}shared{WS}user{OWS}\n		PRAGMA_SHARED(USER)
-pragma{WS}shared{WS}group{OWS}\n	PRAGMA_SHARED(GROUP)
-pragma{WS}shared{WS}world{OWS}\n	PRAGMA_SHARED(WORLD)
-pragma{WS}include{WS}once{OWS}\n	PRAGMA_ONCE
+pragma{WS}shared{WS}user{OWS};?{OWS}\n		PRAGMA_SHARED(USER)
+pragma{WS}shared{WS}group{OWS};?{OWS}\n		PRAGMA_SHARED(GROUP)
+pragma{WS}shared{WS}world{OWS};?{OWS}\n		PRAGMA_SHARED(WORLD)
+pragma{WS}include{WS}once{OWS};?{OWS}\n		PRAGMA_ONCE
 pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 {ID}		{
