@@ -3,6 +3,7 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#include "config.h"
 #include "tkPgplot.h"
 #include "Glish/Dict.h"
 #include <string.h>
@@ -17,13 +18,13 @@ extern "C" int Tkpgplot_Init(Tcl_Interp *);
 
 #define InvalidArg( num )						\
 	{								\
-	global_store->Error( "invalid type for argument " ## #num );	\
+	global_store->Error( "invalid type for argument " #num );	\
 	return;								\
 	}
 
 #define InvalidNumberOfArgs( num )					\
 	{								\
-	global_store->Error( "invalid number of arguments, expected " ## #num ); \
+	global_store->Error( "invalid number of arguments, expected " #num ); \
 	return;								\
 	}
 
@@ -393,7 +394,7 @@ typedef PList(glishtk_pgplot_bindinfo) glishtk_pgplot_bindlist;
 glish_declare(PDict,glishtk_pgplot_bindlist);
 typedef PDict(glishtk_pgplot_bindlist) glishtk_pgplot_bindtable;
 
-int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, char *argv[] )
+int glishtk_pgplot_bindcb( ClientData data, Tcl_Interp *, int /*argc*/, CONST84 char *argv[] )
 	{
 	static char *event_names[] =
 	  {
