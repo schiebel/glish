@@ -24,7 +24,7 @@
 %left '+' '-'
 %left '*' '/' '%'
 %right '^'
-%nonassoc TOK_APPLYRX
+%left TOK_APPLYRX
 %nonassoc ':'
 %right '!'
 %left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST

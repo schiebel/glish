@@ -940,7 +940,7 @@ BUILD_WITH_COERCE_TYPE(TYPE_DCOMPLEX, dcomplex, CoerceToDcomplexArray)
 #define twisted_copy_funcs(src,dest,len,type) \
 	copy_funcs( (void*) dest, (void*) src, len )
 BUILD_WITH_NON_COERCE_TYPE(TYPE_STRING, charptr, StringPtr(), COPY_ARRAY, copy_array )
-BUILD_WITH_NON_COERCE_TYPE(TYPE_REGEX, regexptr, RegexPtr(), TAKE_OVER_ARRAY, twisted_copy_regexs )
+BUILD_WITH_NON_COERCE_TYPE(TYPE_REGEX, regexptr, RegexPtr(0), TAKE_OVER_ARRAY, twisted_copy_regexs )
 BUILD_WITH_NON_COERCE_TYPE(TYPE_FUNC, funcptr, FuncPtr(), TAKE_OVER_ARRAY, twisted_copy_funcs )
 
 		case TYPE_AGENT:
@@ -1835,7 +1835,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	if ( slen < 1 )
 		APPLYREG_BAIL( "zero length string" )
 
-	regexptr *regs = regval->RegexPtr();
+	regexptr *regs = regval->RegexPtr(0);
 	Regex::regex_type type = regs[0]->Type();
 	int splits = regs[0]->Splits() ? 1 : 0;
 	for ( int i = 1; i < rlen; ++i )
