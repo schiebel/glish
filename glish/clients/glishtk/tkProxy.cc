@@ -13,6 +13,7 @@ RCSID("@(#) $Id$")
 #include "tkCanvas.h"
 #include "comdefs.h"
 
+typedef Dict(int) color_list;
 extern ProxyStore *global_store;
 
 int TkProxy::root_unmapped = 0;
@@ -443,6 +444,53 @@ void TkProxy::HaveGui( ProxyStore *s, Value * )
 		}
 	}
 
+void TkProxy::CheckColor( ProxyStore *s, Value *arg )
+	{
+	if ( s->ReplyPending() )
+		{
+		const char *err = init_tk(0);
+
+		if ( err )
+			{
+			s->Error( err );
+			return;
+			}
+
+		const char *color = 0;
+		if ( arg->Type() == TYPE_STRING && arg->Length() >= 1 &&
+		     (color = arg->StringPtr(0)[0]) )
+			{
+			static color_list *existing_colors = 0;
+
+			if ( ! existing_colors )
+				existing_colors = new color_list;
+
+			int result = 0;
+			//
+			//  +1  =>  color exists
+			//  -1  =>  color does not exist
+			//
+			if ( ! (result = existing_colors->Lookup( color )) )
+				{
+				XColor xcolor;
+				XColor xscreen;
+
+				if ( XLookupColor( Tk_Display(root), Tk_Colormap(root), color, &xscreen, &xcolor ) )
+					{
+					existing_colors->Insert( strdup( color ), 1 );
+					result = 1;
+					}
+				else
+					existing_colors->Insert( strdup( color ), -1 );
+				}
+
+			Value val( result > 0 ? glish_true : glish_false );
+			s->Reply( &val );
+			}
+		else
+			s->Error( "bad argument type for tk_checkcolor" );
+		}
+	}
 
 void TkProxy::Load( ProxyStore *s, Value *arg )
 	{

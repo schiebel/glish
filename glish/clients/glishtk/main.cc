@@ -98,6 +98,7 @@ int main( int argc, char** argv )
 	stor.Register( "tk_hold", TkProxy::HoldEvents );
 	stor.Register( "tk_release", TkProxy::ReleaseEvents );
 	stor.Register( "tk_iconpath", TkProxy::SetBitmapPath );
+	stor.Register( "tk_checkcolor", TkProxy::CheckColor );
 
 	stor.Register( "tk_load", TkProxy::Load );
 	stor.Register( "tk_loadpath", TkProxy::SetLoadPath );

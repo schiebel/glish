@@ -91,6 +91,7 @@ class TkProxy : public Proxy {
 
 	static void Version( ProxyStore *p, Value *v );
 	static void HaveGui( ProxyStore *p, Value *v );
+	static void CheckColor( ProxyStore *p, Value *v=0 );
 	static void HoldEvents( ProxyStore *p=0, Value *v=0 );
 	static void ReleaseEvents( ProxyStore *p=0, Value *v=0 );
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );

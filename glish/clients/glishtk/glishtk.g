@@ -117,6 +117,7 @@ func init_glishtk( ) {
     ret.tk_hold := func ( ) { if ( ! system.nogui ) gtk->tk_hold(T); return T }
     ret.tk_release := func ( ) { if ( ! system.nogui ) gtk->tk_release(T); return T }
     ret.tk_iconpath := func ( path ) { gtk->tk_iconpath(path); return T }
+    ret.tk_checkcolor := func ( color ) { return ! system.nogui && gtk->tk_checkcolor( color ) }
 
     ret.tk_load := func ( module_name, init_func, needtk=T ) {
 			if ( is_function(init_func) && is_string(module_name) ) {
@@ -149,5 +150,6 @@ have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold
 tk_release := dgtk.tk_release
 tk_iconpath := dgtk.tk_iconpath
+tk_checkcolor := dgtk.tk_checkcolor
 tk_load := dgtk.tk_load
 tk_loadpath := dgtk.tk_loadpath
