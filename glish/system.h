@@ -119,6 +119,14 @@ extern "C" {
 	 * between C & C++ includes.
 	 */
 	int fork_process();
+	/*
+	 * Initialize random number generator
+	 */
+	void seed_random_number_generator();
+	/*
+	 * Get a random number
+	 */
+	long random_long();
 
 #ifndef HAVE_STRDUP
 	char *strdup( const char *str );

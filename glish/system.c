@@ -535,3 +535,65 @@ double get_current_time()
 	       (double) 0.000001;
 #endif
 	}
+
+/*******************************************************************
+**** If you change these two routines, also change npd/util.c   ****
+****                                                            ****
+**** If AUTHENTICATE is defined, it is assumed that libnpd      ****
+**** supplies these functions.                                  ****
+*******************************************************************/
+#if !defined(AUTHENTICATE)
+/* Seeds the random number generator. */
+void seed_random_number_generator()
+	{
+	static int did_seed = 0;
+
+	if ( ! did_seed )
+		{
+		struct timeval t;
+
+#if defined(HAVE_LRAND48)
+		static unsigned short state[3];
+
+		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+			abort();
+
+		state[0] = (unsigned short) t.tv_sec;
+		state[1] = (unsigned short) t.tv_usec;
+		state[2] = (unsigned short) getpid();
+
+		(void) seed48( state );
+#elif defined(HAVE_RANDOM)
+		static long state[2];
+		extern char *initstate( unsigned seed, char *state, int n );
+
+		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+			abort();
+
+		state[0] = (long) t.tv_sec;
+		state[1] = (long) t.tv_usec;
+
+		(void) initstate( (unsigned) getpid(),
+					(char *) state, sizeof state );
+#else
+		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+			abort();
+		(void) srand( (int) (t.tv_sec + t.tv_usec) );
+#endif
+
+		did_seed = 1;
+		}
+	}
+
+long random_long( )
+	{
+#if defined(HAVE_LRAND48)
+	long l = (long) lrand48();
+#elif defined(HAVE_RANDOM)
+	long l = (long) random();
+#else
+	long l = (long) rand();
+#endif
+	return l;
+	}
+#endif

@@ -117,8 +117,34 @@ static unsigned char *decode_string_to_binary( const char *str, int *len_p )
 	return b;
 	}
 
+/* Given two byte arrays b1 and b2, both of length n, executes b1 ^= b2. */
+void xor_together( unsigned char *b1, unsigned char *b2, int len )
+	{
+	int n;
+
+	for ( n = 0; n < len; ++n )
+		b1[n] ^= b2[n];
+	}
+
+/* Returns true if byte arrays b1 and b2 (both of length n) are equal, false
+ * otherwise.
+ */
+int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len )
+	{
+	int n;
+
+	for ( n = 0; n < len; ++n )
+		if ( b1[n] != b2[n] )
+			return 0;
+
+	return 1;
+	}
+
+/*******************************************************************
+**** If you change this routine, also change glish/system.c     ****
+*******************************************************************/
 /* Seeds the random number generator. */
-static void seed_random_number_generator()
+void seed_random_number_generator()
 	{
 	static int did_seed = 0;
 
@@ -159,29 +185,9 @@ static void seed_random_number_generator()
 		}
 	}
 
-/* Given two byte arrays b1 and b2, both of length n, executes b1 ^= b2. */
-void xor_together( unsigned char *b1, unsigned char *b2, int len )
-	{
-	int n;
-
-	for ( n = 0; n < len; ++n )
-		b1[n] ^= b2[n];
-	}
-
-/* Returns true if byte arrays b1 and b2 (both of length n) are equal, false
- * otherwise.
- */
-int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len )
-	{
-	int n;
-
-	for ( n = 0; n < len; ++n )
-		if ( b1[n] != b2[n] )
-			return 0;
-
-	return 1;
-	}
-
+/*******************************************************************
+**** If you change this routine, also change glish/system.c     ****
+*******************************************************************/
 long random_long( )
 	{
 #if defined(HAVE_LRAND48)

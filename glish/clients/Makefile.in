@@ -35,8 +35,7 @@ INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include $(PLUSINC
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include
 
 SDS_LIB = $(LIBDIR)/libsds.a
-NPD_LIB = $(LIBDIR)/libnpd.a
-GLISH_LIBS = $(GLISH_SRC)/$(ARCH)/libglish.a $(SDS_LIB) $(NPD_LIB)
+GLISH_LIBS = $(GLISH_SRC)/$(ARCH)/libglish.a $(SDS_LIB) @NPD_LIB@
 LIBS = $(GLISH_LIBS) -lm @LIBS@
 
 CLIENTS = \

@@ -24,6 +24,7 @@ AC_SUBST(GLISHROOT)
 
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
+    NPD_LIB="$(LIBDIR)/libnpd.a"
     GLISH_NPD="GLISH_NPD"
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in)
     if test -z "$KEYDIR"; then
@@ -40,9 +41,10 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     fi
 else
     GLISH_NPD=""
+    NPD_LIB=""
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in)
 fi
-
+AC_SUBST(NPD_LIB)
     
 dnl Checks for programs.
 AC_PROG_CC

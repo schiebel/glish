@@ -92,7 +92,7 @@ PFX_BINDIR = $(PFX_INSTALLDIR)/bin
 
 GLISHROOT = @GLISHROOT@
 
-LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a $(LIBDIR)/libnpd.a
+LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a @NPD_LIB@
 
 TAR_FILE = glish.tar
 
@@ -100,7 +100,7 @@ all: libglish.a libinterp.a glish
 
 glish: main.o libinterp.a libglish.a $(LIBS)
 	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
-		$(LIBS) @GLISH_LIB@ $(XLIB) -lm @LIBS@
+		 $(LIBS) @GLISH_LIB@ $(XLIB) -lm @LIBS@
 
 libglish.a: $(CLIENT_OBJS)
 	rm -f libglish.a

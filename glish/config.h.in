@@ -53,5 +53,11 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have the random() BSD function.  */
+#undef HAVE_RANDOM
+
+/* Define if you have the lrand48() SYSV function.  */
+#undef HAVE_LRAND48
+
 /* Define to be "int" if C++ for loops have local scope.  */
 #undef LOOPDECL

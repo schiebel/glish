@@ -30,6 +30,8 @@ extern int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len );
  * enough memory available.
  */
 extern unsigned char *random_bytes( int len );
+extern void seed_random_number_generator();
+extern long random_long();
 
 /* Reads an encoded binary representation from the given file.  The file
  * format is as an ASCII string.  Whitespace is ignored, as are newlines

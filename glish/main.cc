@@ -107,6 +107,8 @@ int main( int argc, char** argv )
 	(void) install_signal_handler( SIGABRT, glish_sigabrt );
 	(void) install_signal_handler( SIGQUIT, glish_sigquit );
 
+	seed_random_number_generator();
+
 	s = new Sequencer( argc, argv );
 
 	s->Exec();
