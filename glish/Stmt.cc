@@ -182,7 +182,6 @@ WheneverStmtCtor::WheneverStmtCtor( event_dsg_list* arg_trigger, Sequencer* arg_
 	{
 	trigger = arg_trigger;
 	stmt = 0;
-	misc = 0;
 	cur = 0;
 	sequencer = arg_sequencer;
 	sequencer->RegisterWhenever(this);
@@ -196,18 +195,16 @@ int WheneverStmtCtor::Index( )
 	return cur->Index();
 	}
 
-void WheneverStmtCtor::SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc )
+void WheneverStmtCtor::SetStmt( Stmt* arg_stmt )
 	{
 	sequencer->UnregisterWhenever( );
 	index = 0;
 	stmt = arg_stmt;
-	misc = arg_misc;
 	}
 
 WheneverStmtCtor::~WheneverStmtCtor()
 	{
 	NodeUnref( stmt );
-	Unref( misc );
 
 	if ( trigger && trigger->RefCount() == 1 )
 		{
@@ -233,10 +230,10 @@ void WheneverStmtCtor::CollectUnref( stmt_list &del_list )
 IValue* WheneverStmtCtor::DoExec( evalOpt & )
 	{
 	if ( ! cur )
-		new WheneverStmt( trigger, stmt, sequencer, misc, in_subsequence );
+		new WheneverStmt( trigger, stmt, sequencer, in_subsequence );
 	else
 		{
-		cur->Init( trigger, stmt, misc, in_subsequence );
+		cur->Init( trigger, stmt, in_subsequence );
 		cur = 0;
 		}
 
@@ -271,27 +268,24 @@ Notification::Type WheneverStmt::NoteType( ) const
 	}
 
 WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
-						 active(0), stack(0), misc(0), in_subsequence(0)
+						 active(0), stack(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 	}
 
 WheneverStmt::WheneverStmt( event_dsg_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
-			    ivalue_list *arg_misc, Expr *arg_in_subsequence ) : trigger(0),
-						sequencer(arg_seq), active(0), stack(0),
-						misc(0), in_subsequence(0)
+			    Expr *arg_in_subsequence ) : trigger(0), sequencer(arg_seq),
+						 active(0), stack(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 
-	Init( arg_trigger, arg_stmt, arg_misc, arg_in_subsequence );
+	Init( arg_trigger, arg_stmt, arg_in_subsequence );
 	}
 
-void WheneverStmt::Init( event_dsg_list* arg_trigger, Stmt *arg_stmt,
-			 ivalue_list *arg_misc, Expr *arg_in_subsequence )
+void WheneverStmt::Init( event_dsg_list* arg_trigger, Stmt *arg_stmt, Expr *arg_in_subsequence )
 	{
 	trigger = arg_trigger; Ref(trigger);
 	stmt = arg_stmt; Ref(stmt);
-	misc = arg_misc; if ( misc ) Ref(misc);
 	in_subsequence = arg_in_subsequence;
 
 	stack = sequencer->LocalFrames();

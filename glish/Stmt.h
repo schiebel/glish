@@ -150,10 +150,9 @@ class WheneverStmt : public Stmt {
     public:
 	WheneverStmt( Sequencer *arg_seq );
 
-	void Init( event_dsg_list* arg_trigger, Stmt *arg_stmt,
-		   ivalue_list *arg_misc, Expr *arg_in_subsequence=0 );
+	void Init( event_dsg_list* arg_trigger, Stmt *arg_stmt, Expr *arg_in_subsequence=0 );
 	WheneverStmt( event_dsg_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
-		      ivalue_list *arg_misc, Expr *arg_in_subsequence=0 );
+		      Expr *arg_in_subsequence=0 );
 
 	virtual ~WheneverStmt();
 
@@ -188,7 +187,6 @@ class WheneverStmt : public Stmt {
 	int active;
 	static unsigned int notify_count;
 	stack_type *stack;
-	ivalue_list *misc;
 	Expr *in_subsequence;
 	};
 
@@ -203,7 +201,7 @@ class WheneverStmtCtor : public Stmt {
 	// proper index.
 	//
 	WheneverStmtCtor( event_dsg_list* arg_trigger, Sequencer* arg_sequencer );
-	void SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc = 0 );
+	void SetStmt( Stmt* arg_stmt );
 
 	virtual ~WheneverStmtCtor();
 
@@ -224,7 +222,6 @@ class WheneverStmtCtor : public Stmt {
 	Stmt* stmt;
 	Sequencer* sequencer;
 	WheneverStmt* cur;
-	ivalue_list *misc;
 	Expr *in_subsequence;
 	};
 

@@ -120,14 +120,6 @@ static int scope_depth = 0;
 static Stmt *cur_stmt = null_stmt;
 static evalOpt *eval_options;
 
-#ifdef GGC
-/* collect values for garbage collection w/ functions */
-int glish_do_gc_register = 0;
-void glish_gc_register( IValue * );
-static ivalue_list *gc_registry = 0;
-static List(int) *gc_registry_offset = 0;
-#endif
-
 int first_line = 1;
 extern int glish_regex_matched;
 extern void putback_token( int );
@@ -295,40 +287,13 @@ statement:
 
 whenever: whenever_head TOK_DO statement
 			{
-			// handle values (from ConstExpr~s) which must be
-			// preserved along with this function
-			ivalue_list *gc_list = 0;
-#ifdef GGC
-			int len = gc_registry_offset->length() - 1;
-			int off = gc_registry_offset->remove_nth(len);
-			--glish_do_gc_register;
-
-			if ( len == 0 && gc_registry->length() > 0 )
-				{
-				// we~re the last function
-				gc_list = gc_registry;
-				gc_registry = new ivalue_list;
-				}
-			else if ( off < gc_registry->length() )
-				{
-				// not the last function and
-				// there are values to preserve
-				gc_list = new ivalue_list;
-				for ( int rlen = gc_registry->length(); off < rlen; ++off )
-					gc_list->append( (*gc_registry)[off] );
-				}
-#endif
-			((WheneverStmtCtor*) $1)->SetStmt($3, gc_list);
+			((WheneverStmtCtor*) $1)->SetStmt($3);
 			$$ = $1;
 			}
 	;
 
 whenever_head: TOK_WHENEVER event_list
 			{
-#ifdef GGC
-			gc_registry_offset->append( gc_registry->length() );
-			++glish_do_gc_register;
-#endif
 		        $$ = new WheneverStmtCtor( $2, current_sequencer );
 			}
 	;
@@ -584,32 +549,9 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes co
 			int frame_size = current_sequencer->PopScope( &back_refs );
 			IValue *err = 0;
 
-			// handle values (from ConstExpr~s) which must be
-			// preserved along with this function
-			ivalue_list *gc_list = 0;
-#ifdef GGC
-			int len = gc_registry_offset->length() - 1;
-			int off = gc_registry_offset->remove_nth(len);
-			--glish_do_gc_register;
-
-			if ( len == 0 && gc_registry->length() > 0 )
-				{
-				// we~re the last function
-				gc_list = gc_registry;
-				gc_registry = new ivalue_list;
-				}
-			else if ( off < gc_registry->length() )
-				{
-				// not the last function and
-				// there are values to preserve
-				gc_list = new ivalue_list;
-				for ( int rlen = gc_registry->length(); off < rlen; ++off )
-					gc_list->append( (*gc_registry)[off] );
-				}
-#endif
 			UserFunc* ufunc = new UserFunc( $4, $9, frame_size, back_refs,
 							current_sequencer, $1, err,
-							attributes, gc_list );
+							attributes);
 
 			if ( ! err )
 				{
@@ -660,10 +602,6 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_attributes co
 function_head:	TOK_FUNCTION
 			{
 			current_sequencer->PushScope( FUNC_SCOPE );
-#ifdef GGC
-			gc_registry_offset->append( gc_registry->length() );
-			++glish_do_gc_register;
-#endif
 			$$ = 0;
 			}
 
@@ -672,10 +610,6 @@ function_head:	TOK_FUNCTION
 			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( string_dup( "self" ), LOCAL_SCOPE );
 			glish_current_subsequence->append($$);
-#ifdef GGC
-			gc_registry_offset->append( gc_registry->length() );
-			++glish_do_gc_register;
-#endif
 			Ref($$);
 			}
 	;
@@ -777,10 +711,6 @@ actual_param:	scoped_expr
 				{
 				error->Report( "\"...\" not available" );
 				IValue *v = error_ivalue();
-#ifdef GGC
-				if ( glish_do_gc_register )
-					glish_gc_register( v );
-#endif
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
 				}
@@ -834,10 +764,6 @@ array_record_param:	scoped_expr
 				{
 				error->Report( "\"...\" not available" ); 
 				IValue *v = error_ivalue();
-#ifdef GGC
-				if ( glish_do_gc_register )
-					glish_gc_register( v );
-#endif
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
 				}
@@ -903,10 +829,6 @@ opt_actual_param:	scoped_expr
 				{
 				error->Report( "\"...\" not available" ); 
 				IValue *v = error_ivalue();
-#ifdef GGC
-				if ( glish_do_gc_register )
-					glish_gc_register( v );
-#endif
 				$$ = new ActualParameter( VAL_VAL,
 					new ConstExpr( v ) );
 				}
@@ -1063,14 +985,6 @@ IValue *glish_parser( evalOpt &opt, Stmt *&stmt )
 	cur_stmt = stmt = null_stmt;
 	eval_options = &opt;
 
-#ifdef GGC
-	if ( ! gc_registry )
-		{
-		gc_registry = new ivalue_list;
-		gc_registry_offset = new List(int);
-		}
-#endif
-
 	error->SetCount(0);
 	status = 0;
 
@@ -1163,9 +1077,3 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 		}
 	}
 
-#ifdef GGC
-void glish_gc_register( IValue *v )
-	{
-	gc_registry->append( v );
-	}
-#endif
