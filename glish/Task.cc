@@ -46,8 +46,17 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 		agent_ID = id;
 	}
 
+void Task::SendTerminate( )
+	{
+	IValue tru(glish_true);
+	SendSingleValueEvent( "terminate", &tru, 1 );
+	if ( executable ) executable->Deactivate( );
+	}
+
 Task::~Task()
 	{
+	SendTerminate();
+
 	sequencer->DeleteTask( this );
 
 	CloseChannel();

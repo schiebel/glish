@@ -36,6 +36,7 @@ class Task : public Agent {
 	Task( TaskAttr* task_attrs, Sequencer* s );
 	~Task();
 
+	void SendTerminate( );
 
 	const char* Name() const	{ return name; }
 	const char* TaskID() const	{ return id; }

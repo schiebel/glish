@@ -24,7 +24,7 @@ char* strdup( const char* );
 Executable::Executable( const char* arg_executable )
 	{
 	executable = strdup( arg_executable );
-	exec_error = has_exited = 0;
+	exec_error = has_exited = deactivated = 0;
 	}
 
 

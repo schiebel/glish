@@ -99,7 +99,7 @@ void LocalExec::MakeExecutable( const char** argv )
 
 int LocalExec::Active()
 	{
-	if ( has_exited || exec_error )
+	if ( has_exited || exec_error || deactivated )
 		return 0;
 
 	int status;

@@ -65,7 +65,7 @@ void RemoteExec::Ping()
 
 int RemoteExec::Active()
 	{
-	if ( has_exited || exec_error )
+	if ( has_exited || exec_error || deactivated )
 		return 0;
 	else
 		return 1;	// ### query agent?

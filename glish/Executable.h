@@ -19,12 +19,14 @@ class Executable {
 
 	// true if the executable is still "out there"
 	virtual int Active() = 0;
+	void Deactivate( ) { deactivated = 1; }
 	virtual void Ping() = 0;
 
     protected:
 	char* executable;
 	int exec_error;
 	int has_exited;
+	int deactivated;
 	};
 
 #endif	/* executable_h */
