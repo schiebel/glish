@@ -376,12 +376,6 @@ IValue* NegExpr::Eval( eval_type /* etype */ )
 	return result;
 	}
 
-Expr *NegExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
-	{
-	op = op->DoBuildFrameInfo( m, dl );
-	return this;
-	}
-
 NotExpr::NotExpr( Expr* operand ) : UnaryExpr( operand, "!" )
 	{
 	}
@@ -391,12 +385,6 @@ IValue* NotExpr::Eval( eval_type /* etype */ )
 	IValue* result = op->CopyEval();
 	result->Not();
 	return result;
-	}
-
-Expr *NotExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
-	{
-	op = op->DoBuildFrameInfo( m, dl );
-	return this;
 	}
 
 

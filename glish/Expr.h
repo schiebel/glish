@@ -267,8 +267,6 @@ class NegExpr : public UnaryExpr {
 	NegExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype );
-
-	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 	};
 
 
@@ -277,8 +275,6 @@ class NotExpr : public UnaryExpr {
 	NotExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype );
-
-	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 	};
 
 
