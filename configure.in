@@ -158,7 +158,7 @@ AC_SUBST(GLISH_HOME)
 if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
     GLISH_NPD="GLISH_NPD"
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in npd/$ARCH/config.h:npd/config.h.in)
     if test -z "$KEYDIR"; then
         KEYDIR="$GLISH_HOME/keys"
     fi
@@ -177,7 +177,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     fi
 else
     GLISH_NPD=""
-    AC_CONFIG_HEADER(glish/$ARCH/config.h)
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in)
 fi
 
     

@@ -3,6 +3,7 @@
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
 #include "system.h"
+#include "config_p.h"
 
 #include <stdio.h>
 #include <netdb.h>
