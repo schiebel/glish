@@ -54,8 +54,11 @@ ProxyStore::ProxyStore( int &argc, char **argv,
 	
 ProxyStore::~ProxyStore( )
 	{
-	loop_over_list( pxlist, i )
-		Unref( pxlist[i] );
+	while ( pxlist.length() > 0 )
+		{
+		Proxy *p = pxlist.remove_nth(0);
+		Unref( p );
+		}
 
 	IterCookie* c = cbdict.InitForIteration();
 	pxy_store_cbinfo *member;
