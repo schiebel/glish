@@ -93,9 +93,17 @@ static unsigned char *get_key( const char *dir, const char *host,
 	const char *nme;
 	int user_len;
 	int n,id;
+	static int did_root_check = 0;
+	static int running_as_root = 0;
 
 	static const char from_fmt[] = "%s/hosts/%s";
 	static const char to_fmt[] = "%s/hosts/%s";
+
+	if ( ! did_root_check )
+		{
+		running_as_root = ! getuid();
+		did_root_check = 1;
+		}
 
 	*len_p = 0;
 	n = strlen( to_flag ? to_fmt : from_fmt ) +
@@ -137,8 +145,11 @@ static unsigned char *get_key( const char *dir, const char *host,
 
 	sprintf( key_file, user_fmt, dir, user );
 
+	if ( running_as_root ) seteuid( get_userid( user ) );
+
 	if ( ! (key_f = fopen( key_file, "r" )) )
 		{
+		if ( running_as_root ) seteuid( 0 );
 		sprintf( errmsg, "couldn't open user key file \"%s\"", key_file );
 		return 0;
 		}
@@ -146,6 +157,8 @@ static unsigned char *get_key( const char *dir, const char *host,
 	user_key = read_encoded_binary( key_f, &user_len );
 
 	fclose( key_f );
+
+	if ( running_as_root ) seteuid( 0 );
 
 	if ( host_len != user_len )
 		{
