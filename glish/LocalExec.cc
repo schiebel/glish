@@ -34,22 +34,14 @@ RCSID("@(#) $Id$")
 
 #include "LocalExec.h"
 
-#if defined(SIGCHLD)
-#define GLISH_SIGCHLD SIGCHLD
-#elif defined(SIGCLD)
-#define GLISH_SIGCHLD SIGCLD
-#endif
-
-PList(LocalExec) *LocalExec::doneList = 0;
-
 LocalExec::LocalExec( const char* arg_executable, const char** argv )
-    : Executable( arg_executable )
+    : Executable( arg_executable ), lexpid( this )
 	{
 	MakeExecutable( argv );
 	}
 
 LocalExec::LocalExec( const char* arg_executable )
-    : Executable( arg_executable )
+    : Executable( arg_executable ), lexpid( this )
 	{
 	const char* argv[2];
 	argv[0] = arg_executable;
@@ -58,34 +50,11 @@ LocalExec::LocalExec( const char* arg_executable )
 	}
 
 
-LocalExec::~LocalExec()
-	{
-	if ( Active( 1 ) )
-		{
-		//
-		//  remove the SIG_IGN in Client::ReRegister when
-		//  this is removed.
-		//
-		kill( pid, SIGTERM );
-		Active( 1 );
-		}
-
-	if ( doneList )
-		{
-		signal_handler old = install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
-		doneList->remove(this);
-		install_signal_handler( GLISH_SIGCHLD, (signal_handler) old );
-		}
-
-	// NEED TO REVISIT THIS. WHY AREN'T THESE BEING
-	// WAITED ON IN NORMAL COURSE?
-	int status;
-	for (int X=0; X<3000 && ! wait_for_pid( pid, &status, WNOHANG); ++X );
-	}
+LocalExec::~LocalExec() { }
 
 void LocalExec::MakeExecutable( const char** argv )
 	{
-	pid = 0;
+	pid_ = 0;
 	exec_error = 1;
 	has_exited = 0;
 
@@ -98,9 +67,9 @@ void LocalExec::MakeExecutable( const char** argv )
 	*/
 	signal_handler old_sigint = install_signal_handler( SIGINT, (signal_handler) SIG_IGN );
 
-	pid = (int) vfork();
+	pid_ = (int) vfork();
 
-	if ( pid == 0 )
+	if ( pid_ == 0 )
 		{ // child
 		extern char** environ;
 #ifndef POSIX
@@ -115,7 +84,7 @@ void LocalExec::MakeExecutable( const char** argv )
 		}
 
 
-	if ( pid > 0 )
+	if ( pid_ > 0 )
 		exec_error = 0;
 
 	/*
@@ -131,27 +100,17 @@ int LocalExec::Active( int ignore_deactivate )
 	if ( has_exited || exec_error || ( !ignore_deactivate && deactivated ) )
 		return 0;
 
-	int status;
-	int child_id = wait_for_pid( pid, &status, WNOHANG );
+	return 1;
+	}
 
-	if ( child_id == 0 )
-		return 1;
-
-	if ( child_id == pid )
-		{
-		if ( (status & 0xff) != 0 )
-			cerr << "LocalExec::Active: strange child status for "
-			     << executable << "\n";
-		}
-
-	else if ( errno != ECHILD )
-		{
-		cerr << "LocalExec::Active: problem getting child status for ";
-		perror( executable );
-		}
-
+void LocalExec::SetStatus( int s )
+	{
+	status = s;
 	has_exited = 1;
-	return 0;
+
+	if ( ! WIFEXITED(status) )
+		cerr << "LocalExec::SetStatus: abnormal child termination for "
+		     << executable << "\n";
 	}
 
 int LocalExec::Active()
@@ -161,34 +120,14 @@ int LocalExec::Active()
 
 void LocalExec::Ping()
 	{
-	if ( kill( pid, SIGIO ) < 0 )
+	if ( kill( pid_, SIGIO ) < 0 )
 		{
 		cerr << "LocalExec::Ping: problem pinging executable ";
 		perror( executable );
 		}
 	}
 
-
-void LocalExec::DoneReceived()
+int LocalExec::pid( )
 	{
-#if defined(GLISH_SIGCHLD)
-	if ( ! doneList ) doneList = new PList(LocalExec);
-	install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
-	doneList->append(this);
-	install_signal_handler( GLISH_SIGCHLD, (signal_handler) sigchld );
-#endif
-	}
-
-void LocalExec::sigchld()
-	{
-#if defined(GLISH_SIGCHLD)
-	for (int i=doneList->length()-1; i >= 0; --i)
-		if ( ! (*doneList)[i]->Active() )
-			doneList->remove_nth(i);
-
-	if ( doneList->length() )
-		install_signal_handler( GLISH_SIGCHLD, (signal_handler) sigchld );
-	else
-		install_signal_handler( GLISH_SIGCHLD, (signal_handler) SIG_DFL );
-#endif
+	return pid_;
 	}

@@ -6,6 +6,7 @@
 #include <system.h>
 
 class Channel;
+class Value;
 
 // Possible states a daemon can be in.
 typedef enum
@@ -32,6 +33,8 @@ public:
 	Channel* DaemonChannel()	{ return chan; }
 	daemon_states State()		{ return state; }
 	void SetState( daemon_states s )	{ state = s; }
+
+	void UpdatePath( const Value * );
 
 	~RemoteDaemon() { free_memory(host); }
 

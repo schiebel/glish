@@ -305,10 +305,13 @@ const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 void Task::Exec( const char** argv )
 	{
 	if ( attrs->daemon_channel )
-		executable =
-			new RemoteExec( attrs->daemon_channel, argv[0], argv );
+		{
+		sequencer->UpdateRemoteBinPath( );
+		executable = new RemoteExec( attrs->daemon_channel, argv[0], argv );
+		}
 	else
 		{
+		sequencer->UpdateLocalBinPath( );
 		char* exec_name = which_executable( argv[0] );
 
 		if ( ! exec_name )

@@ -38,6 +38,8 @@ inline char* extract_prog_name( char *exec_line )
 	{ return (!strtok( exec_line, " " ) || !strtok( NULL, " " ) ||
 		  !strtok( NULL, " " )) ? 0 : strtok( NULL, " " ); }
 
+int suspend_user = 0;
+
 void glishd_sighup();
 void install_terminate_handlers();
 
@@ -69,7 +71,7 @@ extern "C" {
 //
 //  Base class for daemons
 //
-class GlishDaemon {
+class GlishDaemon : public Exec {
     public:
 	GlishDaemon( int &argc, char **&argv );
 	GlishDaemon( );
@@ -106,7 +108,7 @@ declare(PDict,LocalExec);
 //
 class Interp {
     public:
-	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")) {  }
+	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")), path(0) {  }
 	~Interp();
 
 	// Read and act on the next interpreter request.  Returns 0 to
@@ -132,6 +134,7 @@ class Interp {
     protected:
 
 	void SetWD( Value* wd );
+	void SetPath( Value* path_ );
 	void PingClient( Value* client_id );
 	void CreateClient( Value* argv, dUser *hub );
 	void ClientRunning( Value* client, dUser *hub );
@@ -143,6 +146,7 @@ class Interp {
 
 	Client* interpreter;	// Client used for connection to interpreter.
 	char* work_dir;		// working-directory for this interpreter.
+	Value *path;		// the path to use to start clients
 
 	// Whether we've generated an error message for a bad work_dir.
 	int did_wd_msg;
@@ -199,6 +203,7 @@ class dUser : public GlishDaemon {
 	void loop();				// handle requests
 
     protected:
+	int pid();
 	Client *LookupClientInMaster( const char *s );
 	char *new_name();
 
@@ -210,9 +215,12 @@ class dUser : public GlishDaemon {
 	Client *master;
 	Client *slave;
 
+	ExecMinder lexpid;
+
 	int count;
 	int fd_pipe;
-	
+
+	int pid_;
 };
 
 declare(PDict,dUser);
@@ -290,13 +298,13 @@ GlishDaemon::GlishDaemon( int &argc, char **&argv ) : valid(0)
 	//        that it's process has finished
 	//     o  get a new processed id so we're not a process
 	//        group leader
-	int pid;
-	if ( (pid = fork()) < 0 )
+	int npid;
+	if ( (npid = fork()) < 0 )
 		{
 		syslog( LOG_ERR, "problem forking server daemon" );
 		return;
 		}
-	else if ( pid != 0 )		// parent
+	else if ( npid != 0 )		// parent
 		exit(0);
 
 	// setsid() to:
@@ -350,15 +358,17 @@ void GlishDaemon::close_on_fork( int fd )
 
 int GlishDaemon::fork()
 	{
-	int pid = ::fork();
+	int npid = ::fork();
 
-	if ( pid == 0 )		// child
+	if ( npid == 0 )		// child
 		{
 		for ( int len = close_fds->length(); len > 0; --len )
 			close( close_fds->remove_nth( len - 1 ) );
+
+		ExecMinder::ForkReset( );
 		}
 
-	return pid;
+	return npid;
 	}
 
 void GlishDaemon::Invalidate()
@@ -373,7 +383,12 @@ void GlishDaemon::FatalError() { }
 
 GlishDaemon::~GlishDaemon() { }
 
-dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0),
+dUser::pid( )
+	{
+	return pid_;
+	}
+
+dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0), pid_(0),
 						fd_pipe(0), master(0), slave(0)
 	{
 	// it is assumed that GlishDaemon will set valid if all is OK
@@ -382,7 +397,8 @@ dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0),
 	interps.append( new Interp( new Client( argc, argv )) );
 	}
 
-dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(0), fd_pipe(0), slave(0)
+dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(0), fd_pipe(0),
+							       slave(0), lexpid(this), pid_(0)
 	{
 	// it is assumed that GlishDaemon will set valid if all is OK
 	if ( ! valid ) return;
@@ -410,14 +426,14 @@ dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(
 	// responsible for forking, pinging, etc. for the clients "user"
 	// creates on this machine. this new "glishd" will create with
 	// the "root" "glishd" via the pipes.
-	int pid;
-	if ( (pid = fork()) < 0 )
+	int npid;
+	if ( (npid = fork()) < 0 )
 		{
 		valid = 0;
 		syslog( LOG_ERR, "problem forking user daemon" );
 		return;
 		}
-	else if ( pid == 0 )		// child
+	else if ( npid == 0 )		// child
 		{
 		setuid(get_userid( user ));
 		setgid(get_user_group( user ));
@@ -432,6 +448,8 @@ dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(
 		transition.append( new Client( sock, sock, new_name() ) );
 		fd_pipe = fd_pipe_[0];
 
+		while ( suspend_user ) sleep(1);
+
 		loop();
 
 		exit (0);
@@ -444,6 +462,8 @@ dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(
 
 		slave = new Client( read_pipe[0], write_pipe[1], id );
 		fd_pipe = fd_pipe_[1];
+
+		pid_ = npid;
 		}
 	}
 
@@ -1092,6 +1112,9 @@ int Interp::NextRequest( GlishEvent* e, dUser *hub, GlishEvent*& internal_event 
 	if ( streq( e->name, "setwd" ) )
 		SetWD( e->value );
 
+	else if ( streq( e->name, "setpath" ) )
+		SetPath( e->value );
+
 	else if ( streq( e->name, "ping" ) )
 		PingClient( e->value );
 
@@ -1127,6 +1150,13 @@ void Interp::SetWD( Value* v )
 
 	work_dir = v->StringVal();
 	ChangeDir();	// try it out to see if it's okay
+	}
+
+void Interp::SetPath( Value* path_ )
+	{
+	if ( path ) Unref( path );
+	Ref( path_ );
+	path = path_;
 	}
 
 void Interp::PingClient( Value* client_id )
@@ -1190,6 +1220,9 @@ void Interp::CreateClient( Value* argv, dUser *hub )
 		client_argv[i] = argv_ptr[i];
 
 	client_argv[argc] = 0;
+
+	if ( path )
+		set_executable_path( path->StringPtr(0), path->Length() );
 
 	const char* exec_name = which_executable( client_argv[0] );
 	if ( ! exec_name )

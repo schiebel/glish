@@ -4,16 +4,55 @@
 #ifndef executable_h
 #define executable_h
 
+#include "Glish/List.h"
 
 // Searches PATH for the given executable; returns a malloc()'d copy
 // of the path to the executable, which the caller should delete when
 // done with.
 char* which_executable( const char* exec_name );
+void set_executable_path( charptr *path, int len );
+
 // Given a fully qualified path, this checks to see if the file can
 // be executed.
 int can_execute( const char* name );
 
-class Executable {
+class Exec {
+    public:
+	friend class ExecMinder;
+	Exec( );
+	virtual ~Exec( );
+    protected:
+	virtual int pid();
+	virtual void SetStatus( int );
+};
+
+class ExecMinder;
+declare(PList,ExecMinder);
+
+//
+// look after waiting on children
+//
+class ExecMinder {
+    public:
+	// look after this Exec
+	ExecMinder( Exec * );
+	// do nothing
+	ExecMinder( );
+	~ExecMinder( );
+	int pid() { return lexec ? lexec->pid() : 0 ; }
+
+	// can be called after a fork (where an exec is not done)
+	// to clean up all pid information from the parent
+	static void ForkReset( );
+
+    protected:
+	static void sigchld( );
+	static PList(ExecMinder) *active_list;
+	void SetStatus( int s ) { if ( lexec ) lexec->SetStatus( s ); }
+	Exec *lexec;
+};
+
+class Executable : public Exec {
     public:
 	Executable( const char* arg_executable );
 	virtual ~Executable();

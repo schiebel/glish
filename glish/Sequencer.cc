@@ -410,6 +410,7 @@ void SystemInfo::SetVal(IValue *v)
 	val=v;
 	if ( val ) Ref(val);
 	update = ~((unsigned int) 0);
+	if ( sequencer ) sequencer->SystemChanged( );
 	}
 
 const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
@@ -686,15 +687,81 @@ void SystemInfo::update_path( )
 			includelen = v2->Length();
 			}
 
-		if ( v1->HasRecordElement( "keys" ) &&
-		     (v2 = (const IValue*)(v1->ExistingRecordElement("keys"))) &&
+		if ( v1->HasRecordElement( "key" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("key"))) &&
 		     v2 != false_value && v2->Type() == TYPE_STRING &&
 		     v2->Length() )
 			keydir = v2->StringPtr(0)[0];
 
+		if ( v1->HasRecordElement( "bin" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("bin"))) &&
+		     v2 != false_value &&
+		     ( v2->Type() == TYPE_STRING || v2->Type() == TYPE_RECORD ) &&
+		     v2->Length() )
+			binpath = v2;
+
 		}
 
 	update &= ~PATH();
+	}
+
+void Sequencer::SystemChanged( )
+	{
+	system_change_count += 1;
+	}
+
+void Sequencer::UpdateLocalBinPath( )
+	{
+	static unsigned int count = 0;
+	if ( count != system_change_count )
+		{
+		IValue *path = (IValue*) system.BinPath();
+		if ( path && (path = (IValue*) path->Deref()) )
+			{
+			const IValue *v1;
+			if ( path && path->Type() == TYPE_STRING )
+				set_executable_path( path->StringPtr(0), path->Length() );
+			else if ( path && path->Type() == TYPE_RECORD )
+				{
+				if ( path->HasRecordElement( "localhost" ) &&
+				     (v1 = (IValue*) path->ExistingRecordElement("localhost")) &&
+				     v1 != false_value && v1->Type() == TYPE_STRING )
+					set_executable_path( v1->StringPtr(0), v1->Length() );
+				else if ( path->HasRecordElement( connection_host ) &&
+					  (v1 = (IValue*) path->ExistingRecordElement( connection_host )) &&
+					   v1 != false_value && v1->Type() == TYPE_STRING )
+					set_executable_path( v1->StringPtr(0), v1->Length() );
+				}
+			}
+		}
+	count = system_change_count;
+	}
+
+void Sequencer::UpdateRemoteBinPath( )
+	{
+	static unsigned int count = 0;
+	if ( count != system_change_count && daemons.Length() )
+		{
+		IValue *path = (IValue*) system.BinPath();
+		if ( path  && (path = (IValue*) path->Deref()) )
+			{
+			if ( path && path->Type() == TYPE_RECORD )
+				{
+				const IValue *v1;
+				const char *key = 0;
+				RemoteDaemon *daemon = 0;
+				IterCookie* c = daemons.InitForIteration();
+				while ( daemon = daemons.NextEntry( key, c ) )
+					{
+					if ( path->HasRecordElement( daemon->Host() ) &&
+					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
+					     v1 != false_value && v1->Type() == TYPE_STRING ) 
+						daemon->UpdatePath( v1 );
+					}
+				}
+			}
+		}
+	count = system_change_count;
 	}
 
 void Sequencer::TopLevelReset()
@@ -772,6 +839,41 @@ void Sequencer::InitScriptClient()
 	}
 
 
+static char **split_path( char *path, int &count )
+	{
+	count = 0;
+	if ( ! path ) return 0;
+
+	int i = 1;
+	char *ptr = path;
+	while ( *ptr ) { if ( *ptr++ == ':' ) i++; }
+
+	char **ret = (char**) alloc_memory( sizeof(char*) * i );
+
+	count = 0;
+	char *cur = path;
+	while ( i-- )
+		{
+		if ( i )
+			{
+			for ( ptr=cur; *ptr && *ptr != ':'; ++ptr );
+			if ( *ptr == ':' )
+				{
+				*ptr = '\0';
+				ret[count++] = strdup(cur);
+				*ptr++ = ':';
+				cur = ptr;
+				}
+			else
+				ret[count++] = strdup(cur);
+			}
+		else
+			ret[count++] = strdup(cur);
+		}
+
+	return ret;
+	}
+
 void Sequencer::SetupSysValue( IValue *sys_value )
 	{
 	IValue *ver = new IValue( GLISH_VERSION );
@@ -787,7 +889,21 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	Unref(ppid);
 
 	recordptr path = create_record_dict();
-	path->Insert( strdup("keys"), new IValue(get_key_directory()) );
+	path->Insert( strdup("key"), new IValue(get_key_directory()) );
+
+	char *envpath = getenv( "PATH" );
+	if ( envpath )
+		{
+		int len = 0;
+		charptr *binpath = (charptr*) split_path(envpath,len);
+		if ( binpath && len )
+			{
+			recordptr bin = create_record_dict( );
+			bin->Insert( strdup(local_host_name()), new IValue(binpath,len) );
+			path->Insert( strdup("bin"), new IValue( bin ) );
+			}
+		}
+
 	sys_value->SetField( "path", new IValue( path ) );
 
 	recordptr max = create_record_dict();
@@ -812,7 +928,8 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	}
 
 
-Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0)
+Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0),
+							system(this), system_change_count(1)
 	{
 	cur_sequencer = this;
 

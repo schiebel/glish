@@ -5,10 +5,8 @@
 #define localexec_h
 
 #include "Executable.h"
-#include "Glish/List.h"
 
 class LocalExec;
-declare(PList,LocalExec);
 
 class LocalExec : public Executable {
     public:
@@ -19,17 +17,20 @@ class LocalExec : public Executable {
 	int Active();
 	void Ping();
 
-	int PID()	{ return pid; }
+	int pid();
 
-	void DoneReceived();
-
-	static void sigchld( );
     protected:
-	static PList(LocalExec) *doneList;
+	// calling this implies that the child
+	// has exited and has been waited on.
+	void SetStatus( int s );
+
 	void MakeExecutable( const char** argv );
 	int Active( int ignore_deactivate );
 
-	int pid;
+	ExecMinder lexpid;
+
+	int pid_;
+	int status;
 	};
 
 #endif	/* localexec_h */

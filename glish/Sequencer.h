@@ -104,6 +104,8 @@ declare(PList,stack_type);
 typedef PList(stack_type) stack_list;
 
 extern void system_change_function(IValue *, IValue *);
+class Sequencer;
+
 class SystemInfo {
 public:
 	inline unsigned int TRACE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
@@ -125,11 +127,13 @@ public:
 	charptr KeyDir() { if ( PATH(update) ) update_path( ); return keydir; }
 	charptr *Include() { if ( PATH(update) ) update_path( ); return include; }
 	int IncludeLen() { if ( PATH(update) ) update_path( ); return includelen; }
-	SystemInfo() : val(0), update( ~((unsigned int) 0) ), 
+	const IValue *BinPath() { if ( PATH(update) ) update_path( ); return binpath; }
+	SystemInfo( Sequencer *s ) : val(0), update( ~((unsigned int) 0) ), 
 			log(0), log_val(0), log_file(0), log_name(0),
 			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
 			olog(0), olog_val(0), olog_file(0), olog_name(0),
-			printlimit(0), printprecision(-1), include(0), includelen(0) { }
+			printlimit(0), printprecision(-1), include(0), includelen(0),
+			keydir(0), binpath(0), sequencer(s) { }
 	void SetVal(IValue *v);
 	~SystemInfo();
 	void AbortOccurred();
@@ -161,15 +165,18 @@ private:
 
 	charptr *include;
 	int includelen;
+	const IValue *binpath;
 	charptr keydir;
 
 	unsigned int update;
+	Sequencer *sequencer;
 
 };
 	
 
 class Sequencer {
 public:
+	friend class SystemInfo;
 	Sequencer( int& argc, char**& argv );
 	~Sequencer();
 
@@ -397,6 +404,9 @@ public:
 
 	static void TopLevelReset();
 
+	void UpdateLocalBinPath( );
+	void UpdateRemoteBinPath( );
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc, int append_name=0 );
@@ -424,7 +434,10 @@ protected:
 	int verbose;
 	int my_id;
 
+	void SystemChanged( );
+	unsigned int system_change_count;
 	SystemInfo system;
+
 	UserAgent* system_agent;
 
 	Expr *script_expr;

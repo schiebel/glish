@@ -154,3 +154,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 		}
 	}
 
+void RemoteDaemon::UpdatePath( const Value *path )
+	{
+	send_event( chan->Sink(), "setpath", path );
+	}
