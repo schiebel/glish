@@ -3680,8 +3680,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f glish/static.in
-/bin/sh $ARCH/preprocess.conf > glish/static.in
+rm -f glish/$ARCH/static.in
+/bin/sh $ARCH/preprocess.conf > glish/$ARCH/static.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3703,8 +3703,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f glish/dynamic.in
-/bin/sh $ARCH/preprocess.conf > glish/dynamic.in
+rm -f glish/$ARCH/dynamic.in
+/bin/sh $ARCH/preprocess.conf > glish/$ARCH/dynamic.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3726,8 +3726,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f npd/static.in
-/bin/sh $ARCH/preprocess.conf > npd/static.in
+rm -f npd/$ARCH/static.in
+/bin/sh $ARCH/preprocess.conf > npd/$ARCH/static.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3749,8 +3749,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f npd/dynamic.in
-/bin/sh $ARCH/preprocess.conf > npd/dynamic.in
+rm -f npd/$ARCH/dynamic.in
+/bin/sh $ARCH/preprocess.conf > npd/$ARCH/dynamic.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3772,8 +3772,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f editline/static.in
-/bin/sh $ARCH/preprocess.conf > editline/static.in
+rm -f editline/$ARCH/static.in
+/bin/sh $ARCH/preprocess.conf > editline/$ARCH/static.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3795,8 +3795,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f editline/dynamic.in
-/bin/sh $ARCH/preprocess.conf > editline/dynamic.in
+rm -f editline/$ARCH/dynamic.in
+/bin/sh $ARCH/preprocess.conf > editline/$ARCH/dynamic.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3818,8 +3818,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f sds/static.in
-/bin/sh $ARCH/preprocess.conf > sds/static.in
+rm -f sds/$ARCH/static.in
+/bin/sh $ARCH/preprocess.conf > sds/$ARCH/static.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -3841,8 +3841,8 @@ cat >> $ARCH/preprocess.conf <<\EOF
 !NO!SUBS!
 EOF
 
-rm -f sds/dynamic.in
-/bin/sh $ARCH/preprocess.conf > sds/dynamic.in
+rm -f sds/$ARCH/dynamic.in
+/bin/sh $ARCH/preprocess.conf > sds/$ARCH/dynamic.in
 
 
 trap '' 1 2 15
@@ -3932,7 +3932,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/static.in npd/$ARCH/dynamic/Makefile:npd/dynamic.in sds/$ARCH/static/Makefile:sds/static.in sds/$ARCH/dynamic/Makefile:sds/dynamic.in editline/$ARCH/static/Makefile:editline/static.in editline/$ARCH/dynamic/Makefile:editline/dynamic.in glish/$ARCH/static/Makefile:glish/static.in glish/$ARCH/dynamic/Makefile:glish/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sds/$ARCH/static/Makefile:sds/$ARCH/static.in sds/$ARCH/dynamic/Makefile:sds/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -4010,7 +4010,7 @@ CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/static.in npd/$ARCH/dynamic/Makefile:npd/dynamic.in sds/$ARCH/static/Makefile:sds/static.in sds/$ARCH/dynamic/Makefile:sds/dynamic.in editline/$ARCH/static/Makefile:editline/static.in editline/$ARCH/dynamic/Makefile:editline/dynamic.in glish/$ARCH/static/Makefile:glish/static.in glish/$ARCH/dynamic/Makefile:glish/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in"}
+CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sds/$ARCH/static/Makefile:sds/$ARCH/static.in sds/$ARCH/dynamic/Makefile:sds/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
