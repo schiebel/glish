@@ -57,7 +57,10 @@ HEADER_SET(double,SOS_DOUBLE)
 void sos_header::set ( )
 	{
 	if ( kernel->count() > 1 )
+		{
+		kernel->unref();
 		kernel = new sos_header_kernel( 0, 0, SOS_UNKNOWN );
+		}
 	else
 		kernel->set( 0, 0, SOS_UNKNOWN);
 	}
@@ -65,7 +68,10 @@ void sos_header::set ( )
 void sos_header::set( char *a, unsigned int l, sos_code t, int freeit )
 	{
 	if ( kernel->count() > 1 )
+		{
+		kernel->unref();
 		kernel = new sos_header_kernel( a, l, t, freeit );
+		}
 	else
 		kernel->set( a, l, t, freeit );
 	}
@@ -73,9 +79,24 @@ void sos_header::set( char *a, unsigned int l, sos_code t, int freeit )
 void sos_header::set( unsigned char *a, unsigned int l, sos_code t, int freeit )
 	{
 	if ( kernel->count() > 1 )
+		{
+		kernel->unref();
 		kernel = new sos_header_kernel( a, l, t, freeit );
+		}
 	else
 		kernel->set( a, l, t, freeit );
+	}
+
+void sos_header::scratch( )
+	{
+	if ( kernel->count() == 1 && kernel->freeit_ ) return;
+	if ( kernel->count() > 1 )
+		{
+		kernel->unref();
+		kernel = new sos_header_kernel((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+		}
+	else
+		kernel->set( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
 	}
 
 void sos_header::useti( unsigned int i )

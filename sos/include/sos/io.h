@@ -66,29 +66,29 @@ class FD_SOURCE : public SOURCE {
 
 class sos_sink {
 public:
-	sos_sink( SINK &out_, int integral_header = 1 );
+	sos_sink( SINK &out_, int integral_header = 0 );
 
-	void put( byte *a, unsigned int l );
-	void put( byte *a, unsigned int l, sos_header &h );
-	void put( short *a, unsigned int l );
-	void put( short *a, unsigned int l, sos_header &h );
-	void put( int *a, unsigned int l );
-	void put( int *a, unsigned int l, sos_header &h );
-	void put( float *a, unsigned int l );
-	void put( float *a, unsigned int l, sos_header &h );
-	void put( double *a, unsigned int l );
-	void put( double *a, unsigned int l, sos_header &h );
-	void put( char *a, unsigned int l, sos_code t );
-	void put( char *a, unsigned int l, sos_code t, sos_header &h );
-	void put( unsigned char *a, unsigned int l, sos_code t );
-	void put( unsigned char *a, unsigned int l, sos_code t, sos_header &h );
+	void put( byte *a, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( byte *a, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( short *a, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( short *a, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( int *a, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( int *a, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( float *a, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( float *a, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( double *a, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( double *a, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( char *a, unsigned int l, sos_code t, SINK::buffer_type type = SINK::HOLD );
+	void put( char *a, unsigned int l, sos_code t, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( unsigned char *a, unsigned int l, sos_code t, SINK::buffer_type type = SINK::HOLD );
+	void put( unsigned char *a, unsigned int l, sos_code t, sos_header &h, SINK::buffer_type type = SINK::HOLD );
 
-	void put( charptr *cv, unsigned int l );
-	void put( charptr *cv, unsigned int l, sos_header &h );
-	void put( char **cv, unsigned int l )
-		{ put( (charptr*)cv, l ); }
-	void put( char **cv, unsigned int l, sos_header &h )
-		{ put( (charptr*)cv, l, h ); }
+	void put( charptr *cv, unsigned int l, SINK::buffer_type type = SINK::HOLD );
+	void put( charptr *cv, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD );
+	void put( char **cv, unsigned int l, SINK::buffer_type type = SINK::HOLD )
+		{ put( (charptr*)cv, l, type ); }
+	void put( char **cv, unsigned int l, sos_header &h, SINK::buffer_type type = SINK::HOLD )
+		{ put( (charptr*)cv, l, h, type ); }
 
 	void put( const str & );
 	void put( const str &, sos_header &h );
@@ -96,7 +96,8 @@ public:
 	void put_record_start( unsigned int l );
 	void put_record_start( unsigned int l, sos_header &h );
 
-	void write( const char *buf, unsigned int len ) { out.write( buf, len ); }
+	void write( const char *buf, unsigned int len, SINK::buffer_type type = SINK::HOLD )
+		{ out.write( buf, len, type ); }
 
 	unsigned int flush( ) { return out.flush( ); }
 
@@ -110,7 +111,7 @@ private:
 
 class sos_source {
 public:
-	sos_source( SOURCE &in_, int use_str_ = 1, int integral_header = 1 );
+	sos_source( SOURCE &in_, int use_str_ = 0, int integral_header = 0 );
 
 	void *get( unsigned int &length, sos_code &type );
 	void *get( unsigned int &length, sos_code &type, sos_header &h );

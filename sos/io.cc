@@ -127,7 +127,7 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
 		out.write( head.iBuffer(), SOS_HEADER_SIZE, SINK::COPY ); \
-		out.write( a, l * sos_size(SOSTYPE) );		\
+		out.write( a, l * sos_size(SOSTYPE), type );	\
 		}						\
 	else							\
 		{						\
@@ -135,16 +135,18 @@ static unsigned char zero_user_area[] = { 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 };
 		memcpy( head.iBuffer() + 18, SOURCE, 6 );	\
 		head.stamp();					\
 		out.write( head.iBuffer(), l * sos_size(SOSTYPE) + \
-			   SOS_HEADER_SIZE );			\
+			   SOS_HEADER_SIZE, type );		\
 		}						\
 	}
 
 
 #define PUTNUMERIC(TYPE,SOSTYPE)				\
-void sos_sink::put( TYPE *a, unsigned int l )			\
-PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)			\
-void sos_sink::put( TYPE *a, unsigned int l, sos_header &h ) 	\
-PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
+void sos_sink::put( TYPE *a, unsigned int l,			\
+		    SINK::buffer_type type )			\
+	PUTNUMERIC_BODY(TYPE, SOSTYPE,, zero_user_area)		\
+void sos_sink::put( TYPE *a, unsigned int l, sos_header &h,	\
+		    SINK::buffer_type type ) 			\
+	PUTNUMERIC_BODY(TYPE, SOSTYPE,, h.iBuffer() + 18)
 
 PUTNUMERIC(byte,SOS_BYTE)
 PUTNUMERIC(short,SOS_SHORT)
@@ -154,10 +156,12 @@ PUTNUMERIC(double,SOS_DOUBLE)
 
 #define COMMA(X) , X
 #define PUTCHAR(TYPE)						\
-void sos_sink::put( TYPE *a, unsigned int l, sos_code t )	\
-PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)		\
-void sos_sink::put( TYPE *a, unsigned int l, sos_code t, sos_header &h ) 	\
-PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
+void sos_sink::put( TYPE *a, unsigned int l, sos_code t,	\
+		    SINK::buffer_type type )			\
+	PUTNUMERIC_BODY(TYPE, t, COMMA(t), zero_user_area)	\
+void sos_sink::put( TYPE *a, unsigned int l, sos_code t,	\
+		    sos_header &h, SINK::buffer_type type )	\
+	PUTNUMERIC_BODY(TYPE, t, COMMA(t), h.iBuffer() + 18)
 
 PUTCHAR(char)
 PUTCHAR(unsigned char)
@@ -197,6 +201,13 @@ PUTCHAR(unsigned char)
 									\
 	out.write( buf, total + SOS_HEADER_SIZE, SINK::FREE );		\
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
+									\
+	if ( type == SINK::FREE )					\
+		{							\
+		for ( int X = 0; X < len; X++ )				\
+			free_memory( (char*) s[X] );			\
+		free_memory( s );					\
+		}							\
 	}
 
 #define PUTSTR_BODY(SOURCE)						\
@@ -235,9 +246,9 @@ PUTCHAR(unsigned char)
 	if ( not_integral ) head.set( not_integral, 0, SOS_UNKNOWN );	\
 	}
 
-void sos_sink::put( charptr *s, unsigned int len )
+void sos_sink::put( charptr *s, unsigned int len, SINK::buffer_type type )
 	PUTCHARPTR_BODY(zero_user_area)
-void sos_sink::put( charptr *s, unsigned int len, sos_header &h )
+void sos_sink::put( charptr *s, unsigned int len, sos_header &h, SINK::buffer_type type )
 	PUTCHARPTR_BODY(h.iBuffer() + 18)
 
 void sos_sink::put( const str &s )
@@ -287,7 +298,7 @@ void sos_sink::put_record_start( unsigned int l, sos_header &h )
 
 sos_sink::~sos_sink() { if ( not_integral ) free_memory(not_integral); }
 
-sos_source::sos_source( SOURCE &in_, int use_str_ = 1, int integral_header = 1 ) : in(in_), use_str(use_str_),
+sos_source::sos_source( SOURCE &in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
 			head((char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), not_integral(integral_header ? 0 : 1)
 	{
 	}
@@ -327,16 +338,16 @@ void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
 		case SOS_STRING:
 			{
 			void *ret = use_str ? get_string( len, head ) : get_chars( len, head );
-			char *b = (char*) alloc_memory( SOS_HEADER_SIZE );
-			memcpy( b, head.iBuffer(), SOS_HEADER_SIZE );
-			h.set(b,len,SOS_STRING,1);
+			h.scratch();
+			h.set(len,SOS_STRING);
+			memcpy( h.iBuffer(), head.iBuffer(), SOS_HEADER_SIZE );
 			return ret;
 			}
 		case SOS_RECORD:
 			{
-			char *b = (char*) alloc_memory( SOS_HEADER_SIZE );
-			memcpy( b, head.iBuffer(), SOS_HEADER_SIZE );
-			h.set(b,len,SOS_RECORD,1);
+			h.scratch();
+			h.set(len,SOS_RECORD);
+			memcpy( h.iBuffer(), head.iBuffer(), SOS_HEADER_SIZE );
 			return (void*) -1;
 			}
 		default:
@@ -344,9 +355,9 @@ void *sos_source::get( unsigned int &len, sos_code &type, sos_header &h )
 			char *ret = (char*) get_numeric( type, len, head );
 			if ( not_integral )
 				{
-				char *b = (char*) alloc_memory(SOS_HEADER_SIZE);
-				memcpy( b, head.iBuffer(), SOS_HEADER_SIZE );
-				h.set(b,len,type,1);
+				h.scratch();
+				h.set(len,type);
+				memcpy( h.iBuffer(), head.iBuffer(), SOS_HEADER_SIZE );
 				}
 			else
 				h.set(ret,len,type);

@@ -115,6 +115,9 @@ public:
 	void set( unsigned char *a, unsigned int l, sos_code t, int freeit = 0 );
 	void set( unsigned int l, sos_code t ) { kernel->set( l, t ); }
 
+	// make sure we have a scratch buffer to write to.
+	void scratch( );
+
 	//
 	// access to user data
 	//
