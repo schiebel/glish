@@ -79,7 +79,7 @@ struct sos_fd_buf_kernel {
 //  SOS_HEADER_SIZE bytes).
 //
 unsigned int sos_fd_buf_kernel::tmp_cnt = 16;
-unsigned int sos_fd_buf_kernel::tmp_size = 64;
+unsigned int sos_fd_buf_kernel::tmp_size = 128;
 unsigned int sos_fd_buf_kernel::size = MAXIOV;
 
 sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), tmp_cur(0), total(0)
@@ -194,13 +194,6 @@ sos_status *sos_fd_sink::write( const char *cbuf, unsigned int len, buffer_type 
 	return 0;
 	}
 
-sos_status *sos_fd_sink::flush( )
-	{
-	sos_status *stat = real_flush( );
-	while ( stat ) stat = stat->resume( );
-	return 0;
-	}
-
 void sos_fd_sink::reset( )
 	{
 	sos_fd_buf_kernel *K = buf.first();
@@ -219,7 +212,7 @@ void sos_fd_sink::reset( )
 	while ( K = buf.next() );
 	}
 
-sos_status *sos_fd_sink::real_flush( )
+sos_status *sos_fd_sink::flush( )
 	{
 	sos_fd_buf_kernel *K = buf.first();
 
@@ -264,6 +257,7 @@ sos_status *sos_fd_sink::real_flush( )
 				}
 
 			sent += cur;
+			if ( K->cnt >= K->size ) buf.add( );
 			return this;
 			}
 

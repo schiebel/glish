@@ -84,7 +84,7 @@ class sos_fd_sink : public sos_sink {
 	sos_fd_sink( int fd_ = -1 );
 	sos_status *write( const char *, unsigned int, buffer_type type = HOLD );
 	sos_status *flush( );
-	sos_status *resume( ) { return real_flush(); }
+	sos_status *resume( ) { return flush(); }
 
 	//
 	// set fd state for blocking or nonblocking writes
@@ -107,7 +107,6 @@ class sos_fd_sink : public sos_sink {
 	unsigned int remaining() { return buf.total() - sent; }
 
     private:
-	sos_status *real_flush( );
 	void reset();
 	// how much have we already sent
 	unsigned int sent;
