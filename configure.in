@@ -468,7 +468,7 @@ AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_RANLIB
 AC_PROG_YACC
-AC_CHECK_PROGS(RSH,ssh remsh rsh)
+AC_CHECK_PROG(RSH,remsh,remsh,rsh)
 
 dnl##
 dnl## defeat use of Lea's malloc
@@ -615,11 +615,27 @@ dnl## Configure authentication
 dnl##
 dnl##--------------------------------------------------------------------
 
-BUILD_NPD=""
-USENPD='0'
-NPD_LIB=""
-do_npd='no'
-AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
+    GLISH_FLAGS="$GLISH_FLAGS -DAUTHENTICATE"
+    NPD_LIB='${LIBDIR_P}/libnpd${NPD_SUFFIX}'
+    do_npd='yes'
+    BUILD_NPD="BUILD_NPD"
+    USENPD='1'
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    if test -z "$option_key_dir"; then
+        KEYDIR="${sharedstatedir}/glish/keys"
+	EXPAND_VAR(KEYDIR)
+    else
+	KEYDIR="$option_key_dir"
+    fi
+    AC_SUBST(KEYDIR)
+else
+    BUILD_NPD=""
+    USENPD='0'
+    NPD_LIB=""
+    do_npd='no'
+    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+fi
 
 dnl##--------------------------------------------------------------------
 dnl##
