@@ -1183,7 +1183,8 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 				scopes[off]->MarkGlobalRef( id );
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
 					{
-					Expr *result = CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - goff,
+					Expr *result = CreateVarExpr( id, LOCAL_SCOPE,
+							cnt+1 - goff + ((VarExpr*)((*scopes[cnt+1])[id]))->soffset(),
 							((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
 					Expr *old = (Expr*) scopes[off]->Insert( id, result );
 					if ( old )
@@ -1326,7 +1327,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 					return CreateVarExpr( id, 
 							      ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 && 
 								((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE ) 
-							      ? GLOBAL_SCOPE : LOCAL_SCOPE, cnt+1 - goff,
+							      ? GLOBAL_SCOPE : LOCAL_SCOPE,
+							      cnt+1 - goff + ((VarExpr*)((*scopes[cnt+1])[id]))->soffset(),
 							      ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
 				}
 
@@ -1474,11 +1476,9 @@ void Sequencer::DescribeFrames( OStream& s ) const
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{
-//	cout << "Sequencer::PushFrame( Frame* )" << endl;
 	frames().append( new_frame );
 	if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames().append( frames().length() - 1 );
-//	DescribeFrames(cout);
 	}
 
 void Sequencer::PushFrames( stack_type *new_stack )
@@ -1497,7 +1497,6 @@ Frame* Sequencer::PopFrame( )
 	{
 	unsigned int howmany = 1;
 
-//	cout << "Sequencer::PopFrame(" << howmany << ")" << endl;
 	int top_frame_pos = frames().length() - 1;
 	if ( top_frame_pos < howmany - 1 )
 		fatal->Report(
@@ -1511,7 +1510,6 @@ Frame* Sequencer::PopFrame( )
 			global_frames().remove( i );
 		}
 
-//	DescribeFrames(cout);
 	return top_frame;
 	}
 
@@ -1619,6 +1617,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 			IValue*& frame_value =
 				frames()[offset]->FrameElement( frame_offset );
+
 			if ( frame_value && frame_value->IsConst() )
 				ret = "'const' values cannot be modified.";
 			else
@@ -1640,6 +1639,7 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 
 			IValue*& frame_value =
 				frames()[offset]->FrameElement( frame_offset );
+
 			if ( frame_value && frame_value->IsConst() )
 				ret = "'const' values cannot be modified.";
 			else
