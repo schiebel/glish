@@ -18,7 +18,7 @@ char* strdup( const char* );
 struct fd_set;
 class EventContext {
 public:
-	EventContext(const char *context_, const char *client_name_);
+	EventContext(const char *client_name_ = 0, const char *context_ = 0 );
 	EventContext(const EventContext &c);
 	EventContext &operator=(const EventContext &c);
 	const char *id() const { return context; }
@@ -27,6 +27,7 @@ public:
 private:
 	char *context;
 	char *client_name;
+	static unsigned int client_count;
 };
 
 class GlishEvent : public GlishObject {
@@ -63,7 +64,7 @@ typedef enum event_src_type { INTERP, I_LINK, STDIO, GLISHD } event_src_type;
 class EventSource : public GlishObject {
     public:
 	EventSource( int arg_read_fd, int arg_write_fd,
-	    event_src_type arg_type = INTERP ) : context("<unknown>",0)
+	    event_src_type arg_type = INTERP ) : context( )
 		{
 		read_fd = arg_read_fd;
 		write_fd = arg_write_fd;
@@ -80,7 +81,7 @@ class EventSource : public GlishObject {
 		}
 
 	EventSource( int arg_fd, event_src_type arg_type = INTERP ) : 
-	    context("<unknown>",0)
+	    context( )
 		{
 		read_fd = write_fd = arg_fd;
 		type = arg_type;
@@ -102,7 +103,7 @@ class EventSource : public GlishObject {
 
 	int Read_FD() { return read_fd; }
 	int Write_FD() { return write_fd; }
-	const EventContext &Context() { return context; }
+	const EventContext &Context() const { return context; }
 	event_src_type Type() { return type; }
 
     protected:
@@ -178,19 +179,19 @@ class Client {
 	// Sends an event with the given name and value.
 	void PostEvent( const GlishEvent* event, const EventContext &context );
 	void PostEvent( const GlishEvent* event ) 
-		{ PostEvent( event, EventContext( interpreter_tag, initial_client_name ) ); }
+		{ PostEvent( event, EventContext( initial_client_name, interpreter_tag ) ); }
 	void PostEvent( const char* event_name, const Value* event_value,
 		const EventContext &context );
 	void PostEvent( const char* event_name, const Value* event_value )
 		{ PostEvent( event_name, event_value, 
-			     EventContext(interpreter_tag, initial_client_name) ); }
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Sends an event with the given name and character string value.
 	void PostEvent( const char* event_name, const char* event_value,
 		const EventContext &context );
 	void PostEvent( const char* event_name, const char* event_value )
 		{ PostEvent( event_name, event_value,
-			     EventContext(interpreter_tag, initial_client_name) ); }
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Sends an event with the given name, using a printf-style format
 	// and an associated string argument.  For example,
@@ -202,14 +203,14 @@ class Client {
 	void PostEvent( const char* event_name, const char* event_fmt,
 				const char* event_arg )
 		{ PostEvent( event_name, event_fmt, event_arg, 
-			     EventContext(interpreter_tag, initial_client_name) ); }
+			     EventContext(initial_client_name, interpreter_tag) ); }
 	void PostEvent( const char* event_name, const char* event_fmt,
 				const char* arg1, const char* arg2,
 				const EventContext &context );
 	void PostEvent( const char* event_name, const char* event_fmt,
 				const char* arg1, const char* arg2 )
 		{ PostEvent( event_name, event_fmt, arg1, arg2,
-			     EventContext(interpreter_tag, initial_client_name) ); }
+			     EventContext(initial_client_name, interpreter_tag) ); }
 
 	// Reply to the last received event.
 	void Reply( const Value* event_value );
@@ -223,7 +224,7 @@ class Client {
 		const EventContext &context );
 	void PostOpaqueSDS_Event( const char* event_name, int sds )
 		{ PostOpaqueSDS_Event( event_name, sds, 
-				       EventContext(interpreter_tag, initial_client_name) ); }
+				       EventContext(initial_client_name, interpreter_tag) ); }
 
 
 	// For any file descriptors this Client might read events from,
@@ -357,14 +358,15 @@ class Client {
 	// Previous signal handler; used for <ping>'s.
 	glish_signal_handler former_handler;
 
-	const char* local_host;
-	const char* interpreter_tag;
+	const char *local_host;
+	char *interpreter_tag;
 
 	// Context of last received event
 	EventContext last_context;
 
 	// Multithreaded or not?
 	int multithreaded;
+
 	};
 
 
