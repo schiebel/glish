@@ -71,19 +71,11 @@ int create_keyfile()
 	char *s = 0, *ptr = buf;
 	if ( ! create_userkeyfile( keys_dir ? keys_dir : KEYS_DIR ) )
 		{
-		if ( s = getenv("AIPSPATH") )
+		if ( s = getenv("GLISHROOT") )
 			{
-			while ( *s && *s != ' ' )
-				*ptr++ = *s++;
-			if ( *s )
-				{
-				*ptr++ = '/'; *ptr++ = 'k';
-				*ptr++ = 'e'; *ptr++ = 'y';
-				*ptr++ = 's'; *ptr++ = '\0';
-				return create_userkeyfile( buf );
-				}
-			else
-				return 0;
+			strcpy( buf, s );
+			strcat( buf, "/keys" );
+			return create_userkeyfile( buf );
 			}
 		else
 			return 0;
