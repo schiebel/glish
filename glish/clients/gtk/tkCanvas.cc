@@ -298,6 +298,7 @@ char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 			}
 
 		EXPRINIT( event_name)
+		buf[0] = '\0';
 		for ( int x=0; x < howmany; x++ )
 			{
 			EXPRINT( v, event_name )
@@ -307,7 +308,6 @@ char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd,
 			}
 
 		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, " {", buf, "}", 0 );
-		*buf = '\0';
 		}
 
 	Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
