@@ -278,7 +278,7 @@ stack_type::~stack_type( )
 	for ( int i=frames_->length()-1;i >= 0; i-- )
 		{
 		Frame *cur = frames_->remove_nth(i);
-		if ( cur->RefCount() > 1 &&
+		if ( cur && cur->RefCount() > 1 &&
 		     ! been_there.is_member( cur ) &&
 		     cur->CountRefs(cur)+1 == cur->RefCount() )
 			{
