@@ -1296,6 +1296,12 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)), "WM_DELETE_WINDOW",
 		      rivet_new_callback((int (*)()) glishtk_delframe_cb,(ClientData) this, 0), 0);
 
+	//
+	// Clearing the height/width of toplevel frames fixes problems
+	// with configuring the widget. When setting the cursor, for
+	// example, the frame & children go crazy resizing themselves.
+	//
+	rivet_clear_frame_dims( self );
 	AddElement( this );
 
 	if ( frame )
