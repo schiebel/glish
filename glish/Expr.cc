@@ -259,8 +259,9 @@ IValue* VarExpr::Eval( evalOpt &opt )
 	if ( ! value )
 		{
 		warn->Report( "uninitialized ",
-				scope == GLOBAL_SCOPE ? "global" : "local",
-				" variable", this, "used" );
+			      scope == GLOBAL_SCOPE ? "global" : "local",
+			      " variable", this, "used",
+			      ! strcmp(id,"quit") ? "; use \"exit\" to quit" : "" );
 		value = false_ivalue();
 		sequencer->SetFrameElement( scope, scope_offset, 
 						frame_offset, value );
