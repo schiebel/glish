@@ -23,9 +23,18 @@ int main( int argc, char** argv )
 
 	for ( GlishEvent* e; (e = c.NextEvent()); )
 		if ( e->IsRequest() )
+			{
+			c.PostEvent( "bogus", e->value );
 			c.Reply( e->value );
+			}
 		else
+			{
+			c.PostEvent( "start", e->value );
+			c.PostEvent( "second", e->value );
+			c.PostEvent( "third", e->value );
+			c.PostEvent( "last", e->value );
 			c.PostEvent( e );
+			}
 
 	return 0;
 	}
