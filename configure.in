@@ -15,9 +15,11 @@ dnl##
 dnl## Extra command line options
 dnl##
 dnl##--------------------------------------------------------------------
-AC_ARG_ENABLE(static-binary, [ --enable-static-binary            force binaries to be static])
-AC_ARG_ENABLE(dynamic,       [ --enable-dynamic                  build dynamic libraries])
-AC_ARG_ENABLE(min-space,     [ --enable-min-space                delete intermediate objects])
+AC_ARG_ENABLE(static-binary, [  --enable-static-binary  force binaries to be static])
+AC_ARG_ENABLE(dynamic,       [  --enable-dynamic        build dynamic libraries])
+AC_ARG_ENABLE(min-space,     [  --enable-min-space      delete intermediate objects])
+AC_ARG_ASSIGN(rc-dir,        [  --rc-dir=SITE_RC_DIR    directory for sitewide .glishrc])
+AC_ARG_ASSIGN(key-dir,       [  --key-dir=SITE_KEY_DIR  directory for sitewide key files])
 
 if test "$enable_static_binary" = "yes" -o "$enable_dynamic" != "yes"; then
 	static_binary="yes"
@@ -181,11 +183,11 @@ dnl## Make sure basic values are set
 dnl##
 SET_PREFIX
 test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
-if test -z "$GLISH_RCDIR"; then
+if test -z "$option_rc_dir"; then
     RCDIR="${datadir}/glish"
     EXPAND_VAR(RCDIR)
 else
-    RCDIR="$GLISH_RCDIR"
+    RCDIR="$option_rc_dir"
 fi
 AC_SUBST(RCDIR)
 
@@ -364,11 +366,11 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
     AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
-    if test -z "$GLISH_KEYDIR"; then
+    if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
     else
-	KEYDIR="$GLISH_KEYDIR"
+	KEYDIR="$option_key_dir"
     fi
     AC_SUBST(KEYDIR)
 else
