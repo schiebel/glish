@@ -115,6 +115,8 @@ DERIVE_BUILTIN(IsModifiableBuiltIn,1,"is_modifiable",)
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
 DERIVE_BUILTIN(SplitBuiltIn,NUM_ARGS_VARIES,"split",)
 
+DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
+
 DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)
 

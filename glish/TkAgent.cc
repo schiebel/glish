@@ -875,6 +875,11 @@ charptr TkAgent::IndexCheck( charptr c )
 	return c;
 	}
 
+int TkAgent::CanExpand() const
+	{
+	return 0;
+	}
+
 TkAgent::~TkAgent( )
 	{
 	IterCookie* c = procs.InitForIteration();
@@ -1307,6 +1312,17 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	delete argv;
 	}
 
+int TkFrame::ExpandNum() const
+	{
+	int cnt = 0;
+	loop_over_list( elements, i )
+		{
+		if ( elements[i] != this && elements[i]->CanExpand() )
+			cnt++;
+		}
+	return cnt;
+	}
+
 void TkFrame::Pack( )
 	{
 	if ( elements.length() )
@@ -1402,6 +1418,14 @@ const char **TkFrame::PackInstruction()
 		ret[c++] = 0;
 		return ret;
 		}
+
+	return 0;
+	}
+
+int TkFrame::CanExpand() const
+	{
+	if ( strcmp(expand,"none") && ( ! frame || ! strcmp(expand,"both") ) )
+		return 1;
 
 	return 0;
 	}
@@ -2059,6 +2083,14 @@ const char **TkText::PackInstruction()
 	}
 
 
+int TkText::CanExpand() const
+	{
+	if ( fill && ( ! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) ) )
+		return 1;
+
+	return 0;
+	}
+
 DEFINE_DTOR(TkScrollbar)
 
 int scrollbarcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData calldata)
@@ -2107,17 +2139,26 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 const char **TkScrollbar::PackInstruction()
 	{
-	static char *ret[5];
-	ret[0] = "-expand";
-	ret[1] = "true";
-	ret[2] = "-fill";
-	ret[4] = 0;
+	static char *ret[7];
+	ret[0] = "-fill";
 	char *orient = rivet_va_cmd(self, "cget", "-orient", 0);
 	if ( orient[0] == 'v' && ! strcmp(orient,"vertical") )
-		ret[3] = "y";
+		ret[1] = "y";
 	else
-		ret[3] = "x";
+		ret[1] = "x";
+	ret[2] = ret[4] = 0;
+	if ( frame->ExpandNum() == 1 || ! strcmp(frame->Expand(),ret[1]) )
+		{
+		ret[2] = "-expand";
+		ret[3] = "true";
+		}
+
 	return ret;
+	}
+
+int TkScrollbar::CanExpand() const
+	{
+	return 1;
 	}
 
 TkAgent *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )

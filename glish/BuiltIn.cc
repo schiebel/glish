@@ -1408,6 +1408,45 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
+IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const Value* val = (*args_val)[0];
+
+	if ( val && (val->Type() == TYPE_FLOAT || val->Type() == TYPE_DOUBLE ))
+		{
+		int len = val->Length();
+		if ( len > 1 )
+			{
+			glish_bool *ret = new glish_bool[len];
+			switch( val->Type() )
+				{
+#define ISNAN_ACTION(tag,type,accessor) 		\
+case tag:						\
+	{						\
+	type *v = val->accessor();			\
+	for (int i = 0; i < len; i++)			\
+		ret[i] = ( is_a_nan( v[i] ) ) ? glish_true : glish_false; \
+	}						\
+	break;
+
+				ISNAN_ACTION(TYPE_FLOAT,float,FloatPtr)
+				ISNAN_ACTION(TYPE_DOUBLE,double,DoublePtr)
+				}
+
+			return new IValue(ret, len);
+			}
+		else
+			{
+			double nv = val->DoubleVal();
+			return new IValue( ( is_a_nan(nv) ) ? 
+					   glish_true : glish_false );
+			}
+		}
+
+	return new IValue( glish_false );
+	}
+
+
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	char* file_name = (*args_val)[0]->StringVal();
@@ -2186,6 +2225,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );
+
+	s->AddBuiltIn( new IsNaNBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

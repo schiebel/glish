@@ -37,6 +37,7 @@ class TkCanvas : public TkAgent {
 	int ItemCount(const char *) const;
 	int NewItemCount(const char *);
 	Sequencer *seq() { return sequencer; }
+	int CanExpand() const;
     protected:
 	char *fill;
 	static int count;

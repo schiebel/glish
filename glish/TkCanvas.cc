@@ -869,6 +869,14 @@ const char **TkCanvas::PackInstruction()
 		return 0;
 	}
 
+int TkCanvas::CanExpand() const
+	{
+	if ( fill && (! strcmp(fill,"both") || ! strcmp(fill, frame->Expand()) ) )
+		return 1;
+
+	return 0;
+	}
+	  
 TkAgent *TkCanvas::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkCanvas *ret;

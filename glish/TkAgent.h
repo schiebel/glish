@@ -151,7 +151,9 @@ class TkAgent : public Agent {
 	int IsValid() { return self != 0; }
 	virtual void UnMap();
 	Rivetobj Self() { return self; }
+	const Rivetobj Self() const { return self; }
 	virtual const char **PackInstruction();
+	virtual int CanExpand() const;
     protected:
 	tkprochash procs;
 	static Rivetobj root;
@@ -201,10 +203,14 @@ class TkFrame : public TkAgent {
 
 	const char **PackInstruction();
 	const char *Expand() const { return expand; }
+	int CanExpand() const;
 
 	unsigned long RadioID() const { return radio_id; }
 	void RadioID( unsigned long id_ ) { radio_id = id_; }
 
+	int ExpandNum() const;
+
+	int NumChildren() const { return elements.length() - 1; }
     protected:
 	char *side;
 	char *padx;
@@ -297,6 +303,7 @@ class TkText : public TkAgent {
 	void yScrolled( const double *firstlast );
 	void xScrolled( const double *firstlast );
 	~TkText();
+	int CanExpand() const;
     protected:
 	char *fill;
 	};
@@ -310,6 +317,7 @@ class TkScrollbar : public TkAgent {
 
 	static TkAgent *Create( Sequencer *, const_args_list *);
 	void Scrolled( IValue *data );
+	int CanExpand() const;
 	~TkScrollbar();
 	};
 
