@@ -270,6 +270,12 @@ IValue* VarExpr::RefEval( value_type val_type )
 IValue *VarExpr::Assign( IValue* new_value )
 	{
 	access = USE_ACCESS;
+
+	VarExpr *ve = 0;
+	if ( scope == GLOBAL_SCOPE && scope_offset != 0 &&
+	     (ve = (VarExpr*)(*sequencer->GetScope())[id]) )
+		ve->access = USE_ACCESS;
+
 	const char *err = 0;
 
 	int len = frames.length();
