@@ -24,7 +24,7 @@ int TkProxy::hold_tk_events = 0;
 int TkProxy::hold_glish_events = 0;
 Value *TkProxy::last_error = 0;
 Value *TkProxy::bitmap_path = 0;
-Value *TkProxy::dload_path = 0;
+Value *TkProxy::load_path = 0;
 int TkProxy::widget_index = 0;
 
 unsigned long TkFrame::count = 0;
@@ -277,7 +277,7 @@ void TkProxy::HaveGui( ProxyStore *s, Value * )
 	}
 
 
-void TkProxy::dLoad( ProxyStore *s, Value *arg )
+void TkProxy::Load( ProxyStore *s, Value *arg )
 	{
 	char *toload = 0;
 	const char *module = 0;
@@ -306,20 +306,46 @@ void TkProxy::dLoad( ProxyStore *s, Value *arg )
 		s->Error( "Couldn't find object to load" );
 	}
 
-void TkProxy::SetDloadPath( ProxyStore *, Value *v )
+static char *join_path( const char **path, int len, const char *var_name = 0 )
+	{
+	int count = len + 1;
+	if ( ! path ) return 0;
+
+	for ( int i = 0; i < len; ++i )
+		count += strlen(path[i]);
+
+	if ( var_name ) count += strlen(var_name) + 1;
+	char *ret = (char*) alloc_memory( sizeof(char) * count );
+	if ( var_name ) sprintf( ret, "%s=", var_name );
+	else ret[0] = '\0';
+
+	for ( LOOPDECL i=0; i < len; ++i )
+		{
+		strcat( ret, path[i] );
+		if ( i < len-1 ) strcat(ret, ":");
+		}
+
+	return ret;
+	}
+
+
+void TkProxy::SetLoadPath( ProxyStore *, Value *v )
 	{
 	if ( v && v->Type() == TYPE_STRING )
 		{
-		if ( dload_path ) Unref( dload_path );
-		dload_path = v;
-		Ref( dload_path );
+		if ( load_path ) Unref( load_path );
+		load_path = v;
+		Ref( load_path );
+		char *libpath = join_path(load_path->StringPtr(),load_path->Length(),"LD_LIBRARY_PATH=");
+		putenv(libpath);
+		free_memory(libpath);
 		}
 	}
 
 char *TkProxy::which_shared_object( const char* filename )
 	{
-	charptr *paths = dload_path ? dload_path->StringPtr() : 0;
-	int len = dload_path ? dload_path->Length() : 0;
+	charptr *paths = load_path ? load_path->StringPtr() : 0;
+	int len = load_path ? load_path->Length() : 0;
 
 	int sl = strlen(filename);
 	int do_pre_post = 1;

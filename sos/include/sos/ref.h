@@ -17,11 +17,13 @@ class SosRef {
 	// Return the ref count so other classes can do intelligent copying.
 	unsigned short RefCount() const		{ return ref_count; }
 
+#ifdef MEMFREE
 	void MarkFinal( ) 			{ flags |= 1; }
 	void ClearFinal( )			{ flags &= ~1; }
 	int doFinal( ) const			{ return flags & 1; }
 
 	virtual int Finalize( );
+#endif
 
     protected:
 	friend inline void Ref( SosRef* object );
@@ -39,7 +41,9 @@ inline void Ref( SosRef* object )
 inline void Unref( SosRef* object )
 	{
 	if ( object && --object->ref_count == 0 )
+#ifdef MEMFREE
 		if ( ! object->doFinal( ) || object->Finalize( ) )
+#endif
 			delete object;
 	}
 

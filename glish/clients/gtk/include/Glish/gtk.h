@@ -80,8 +80,8 @@ class TkProxy : public Proxy {
 	static int DoOneTkEvent( int flags, int hold_wait = 0 );
 	static int DoOneTkEvent( );
 	static void SetBitmapPath( ProxyStore *p, Value *v );
-	static void dLoad( ProxyStore *p, Value *v );
-	static void SetDloadPath( ProxyStore *p, Value *v );
+	static void Load( ProxyStore *p, Value *v );
+	static void SetLoadPath( ProxyStore *p, Value *v );
 
 	// For some widgets, they must be enabled before an action is performed
 	// otherwise widgets which are disabled will not even accept changes
@@ -108,6 +108,9 @@ class TkProxy : public Proxy {
 
 	void ProcessEvent( const char *name, Value *val );
 
+	// locate the bitmap file
+	char *which_bitmap( const char * );
+
     protected:
 	void do_pack( int argc, char **argv)
 		{ Tk_PackCmd( root, tcl, argc, argv ); }
@@ -128,10 +131,8 @@ class TkProxy : public Proxy {
 	// For keeping track of last error
 	static Value *last_error;
 	static Value *bitmap_path;
-	static Value *dload_path;
+	static Value *load_path;
 
-	// locate the bitmap file
-	char *which_bitmap( const char * );
 	// locate the shared object file
 	static char *which_shared_object( const char* filename );
 

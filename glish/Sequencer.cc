@@ -184,7 +184,21 @@ void system_change_function(IValue *, IValue *n)
 	Sequencer::CurSeq()->System().SetVal(n);
 	}
 
-static char **split_path( char *path, int &count )
+static charptr *merge_chars( charptr *one, int onelen, charptr *two, int twolen )
+	{
+	if ( ! one || ! two || ! onelen || ! twolen ) return 0;
+
+	charptr *ret = (charptr*) alloc_memory(sizeof(charptr)*(onelen+twolen));
+	for (int i=0; i < onelen; ++i)
+		ret[i] = one[i];
+	for ( LOOPDECL i=0; i < twolen; ++i )
+		ret[i+onelen] = two[i];
+	free_memory(one);
+	free_memory(two);
+	return ret;
+	}
+
+static char **split_path( char *path, int &count, int canonic=0 )
 	{
 	count = 0;
 	if ( ! path ) return 0;
@@ -205,12 +219,12 @@ static char **split_path( char *path, int &count )
 			if ( *ptr == ':' )
 				{
 				*ptr = '\0';
-				ret[count++] = strdup(cur);
+				ret[count++] = canonic ? canonic_path(cur) : strdup(cur);
 				*ptr++ = ':';
 				cur = ptr;
 				}
 			else
-				ret[count++] = strdup(cur);
+				ret[count++] = canonic ? canonic_path(cur) : strdup(cur);
 			}
 		else
 			ret[count++] = strdup(cur);
@@ -912,8 +926,8 @@ void SystemInfo::update_path( )
 		     v2->Length() )
 			binpath = v2;
 
-		if ( v1->HasRecordElement( "ld" ) &&
-		     (v2 = (const IValue*)(v1->ExistingRecordElement("ld"))) &&
+		if ( v1->HasRecordElement( "lib" ) &&
+		     (v2 = (const IValue*)(v1->ExistingRecordElement("lib"))) &&
 		     v2 != false_value &&
 		     ( v2->Type() == TYPE_STRING || v2->Type() == TYPE_RECORD ) &&
 		     v2->Length() )
@@ -1188,6 +1202,10 @@ void Sequencer::InitScriptClient( )
 
 void Sequencer::SetupSysValue( IValue *sys_value )
 	{
+	IValue *host = new IValue(local_host_name());
+	sys_value->SetField( "host", host );
+	Unref(host);
+
 	IValue *ver = new IValue( GLISH_VERSION );
 	sys_value->SetField( "version", ver );
 	Unref(ver);
@@ -1217,15 +1235,32 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		}
 
 	envpath = getenv( LD_PATH );
+	char libdir[] = LIBDIR;
 	if ( envpath )
 		{
-		int len = 0;
-		charptr *ldpath = (charptr*) split_path(envpath,len);
+		int ldlen = 0;
+		charptr *ldpath = (charptr*) split_path(envpath,ldlen);
+		int lblen = 0;
+		charptr *lbpath = (charptr*) split_path(libdir,lblen,1);
+		int len = ldlen + lblen;
+		if ( lblen && ldlen )
+			ldpath = merge_chars(ldpath,ldlen,lbpath,lblen);
 		if ( ldpath && len )
 			{
 			recordptr ld = create_record_dict( );
 			ld->Insert( strdup(local_host_name()), new IValue(ldpath,len) );
-			path->Insert( strdup("ld"), new IValue( ld ) );
+			path->Insert( strdup("lib"), new IValue( ld ) );
+			}
+		}
+	else
+		{
+		int len = 0;
+		charptr *lbpath = (charptr*) split_path(libdir,len);
+		if ( lbpath && len )
+			{
+			recordptr ld = create_record_dict( );
+			ld->Insert( strdup(local_host_name()), new IValue(lbpath,len) );
+			path->Insert( strdup("lib"), new IValue( ld ) );
 			}
 		}
 

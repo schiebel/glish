@@ -960,6 +960,7 @@ void Client::SendEstablishedEvent( const EventContext &context )
 
 	r->SetField( "name", context.name() ? context.name() : initial_client_name );
 	r->SetField( "protocol", GLISH_CLIENT_PROTO_VERSION );
+	r->SetField( "pid", (int) getpid() );
 
 	// Leave some time to allow client to setup
 	sleep(1);

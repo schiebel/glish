@@ -15,5 +15,5 @@ if ( include 'gtk.g' ) {
 	rec.pgplot := pgplot
     }
 
-    tk_dload( 'gPgplot.so', pginit )
+    tk_load( 'gPgplot.so', pginit )
 }

@@ -80,15 +80,16 @@ func init_gtk( ) {
     ret.tk_release := func ( ) { gtk->tk_release(T); return T }
     ret.tk_iconpath := func ( path ) { gtk->tk_iconpath(path); return T }
 
-    ret.tk_dload := func ( module_name, init_func ) {
+    ret.tk_load := func ( module_name, init_func ) {
 			if ( is_function(init_func) && is_string(module_name) ) {
-			    gtk->tk_dload( module_name )
+			    gtk->tk_load( module_name )
 			    return init_func( gtk, ret )
 			}
 			fail 'bad parameter' }
 
-    ret.tk_dloadpath := func ( path ) { gtk->tk_dloadpath( path ); return T }
-    ret.tk_dloadpath( "." )
+    ret.tk_loadpath := func ( path ) { gtk->tk_loadpath( path ); return T }
+
+    ret.tk_loadpath( system.path.lib[system.host] )
 
     return ref ret
 }
@@ -110,5 +111,5 @@ have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold
 tk_release := dgtk.tk_release
 tk_iconpath := dgtk.tk_iconpath
-tk_dload := dgtk.tk_dload
-tk_dloadpath := dgtk.tk_dloadpath
+tk_load := dgtk.tk_load
+tk_loadpath := dgtk.tk_loadpath

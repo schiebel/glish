@@ -99,8 +99,8 @@ int main( int argc, char** argv )
 	stor.Register( "tk_release", TkProxy::ReleaseEvents );
 	stor.Register( "tk_iconpath", TkProxy::SetBitmapPath );
 
-	stor.Register( "tk_dload", TkProxy::dLoad );
-	stor.Register( "tk_dloadpath", TkProxy::SetDloadPath );
+	stor.Register( "tk_load", TkProxy::Load );
+	stor.Register( "tk_loadpath", TkProxy::SetLoadPath );
 
 	stor.Loop();
 	}

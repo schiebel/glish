@@ -214,6 +214,17 @@ SET_PREFIX
 test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
 
 dnl##
+dnl## sitewide glish script
+dnl##
+if test -z "$option_script_dir"; then
+	SCRIPTDIR="${datadir}/glish"
+	EXPAND_VAR(SCRIPTDIR)
+else
+	SCRIPTDIR="$option_script_dir"
+fi
+AC_SUBST(SCRIPTDIR)
+
+dnl##
 dnl## Fully qualified library path needed for
 dnl## shared library flags.
 dnl##

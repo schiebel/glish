@@ -27,6 +27,7 @@ RCSID("@(#) $Id$")
 
 const char *glish_charptrdummy = 0;
 
+#ifdef MEMFREE
 ivalue_list *IValue::finalize_list = 0;
 
 int IValue::Finalize( )
@@ -46,7 +47,7 @@ int IValue::Finalize( )
 
 	return top ? 1 : 0;
 	}
-
+#endif
 
 void copy_agents( void *to_, void *from_, unsigned int len )
 	{
@@ -178,7 +179,7 @@ int IValue::CountRefs( Frame *f ) const
 extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( (other = FailStmt::GetFail()) )
@@ -222,7 +223,7 @@ IValue::IValue( ) : Value( ) GGCTOR
 
 IValue::IValue( const char *message, const char *fle, int lne ) : Value( message, fle, lne ) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	const IValue *other = 0;
 	attributeptr attr = ModAttributePtr();
 	if ( !message && (other = FailStmt::GetFail()) )
@@ -266,7 +267,7 @@ IValue::IValue( const char *message, const char *fle, int lne ) : Value( message
 
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	funcptr *ary = (funcptr*) alloc_memory( sizeof(funcptr) );
 	copy_array(&value,ary,1,funcptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FUNC, 0 );
@@ -274,14 +275,14 @@ IValue::IValue( funcptr value ) : Value(TYPE_FUNC) GGCTOR
 
 IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FUNC) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
 	copy_array(&value,ary,1,regexptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0 );
@@ -289,14 +290,14 @@ IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 
 IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	fileptr *ary = (fileptr*) alloc_memory( sizeof(fileptr) );
 	copy_array(&value,ary,1,fileptr);
 	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
@@ -304,14 +305,14 @@ IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
 
 IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	kernel.SetArray( (voidptr*) value, len, TYPE_FILE, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
 
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
 		{
 		agentptr *ary = (agentptr*) alloc_memory( sizeof(agentptr) );
@@ -324,7 +325,7 @@ IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT)
 
 IValue::IValue( recordptr value, Agent* agent ) : Value(TYPE_AGENT) GGCTOR
 	{
-	MarkFinal( );
+	MARKFINAL
 	value->Insert( strdup( AGENT_MEMBER_NAME ),
 		       new IValue( agent, TAKE_OVER_ARRAY ) );
 
@@ -341,6 +342,7 @@ void IValue::DeleteValue()
 
 IValue::~IValue()
 	{
+#ifdef MEMFREE
 	if ( finalize_list && finalize_list->length() > 0 )
 		{
 		finalize_list->remove(this);
@@ -350,6 +352,7 @@ IValue::~IValue()
 			delete cur;
 			}
 		}
+#endif
 
 	if ( Type() == TYPE_FAIL &&
 	     kernel.RefCount() == 1 && 

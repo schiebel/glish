@@ -160,22 +160,27 @@ char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *ar
 	return ret;
 	}
 
-char *glishtk_bitmap(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
+char *glishtk_bitmap( TkProxy *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
-	if ( args->Type() == TYPE_STRING )
+	if ( args->Type() == TYPE_STRING && args->Length() > 0 )
 		{
 		const char *str = args->StringPtr(0)[0];
-		char *bitmap = (char*) alloc_memory(strlen(str)+2);
-		sprintf(bitmap," @%s",str);
-		Tcl_VarEval( tcl, Tk_PathName(self), " config ", cmd, bitmap, 0 );
-		free_memory( bitmap );
+		char *expanded = a->which_bitmap(str);
+		if ( expanded )
+			{
+			char *bitmap = (char*) alloc_memory(strlen(expanded)+2);
+			sprintf(bitmap," @%s",expanded);
+			Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " config ", cmd, bitmap, 0 );
+			free_memory( expanded );
+			free_memory( bitmap );
+			}
 		}
 	else
 		{
-		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
-		ret = Tcl_GetStringResult(tcl);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(a->Interp());
 		if ( *ret == '@' ) ++ret;
 		}
 
@@ -2225,7 +2230,7 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 
 	procs.Insert("anchor", new TkProc("-anchor", glishtk_onestr, glishtk_str));
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
-	procs.Insert("bitmap", new TkProc("-bitmap", glishtk_bitmap, glishtk_str));
+	procs.Insert("bitmap", new TkProc(this, "-bitmap", glishtk_bitmap, glishtk_str));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
@@ -2412,7 +2417,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 
 	procs.Insert("text", new TkProc(this, "-label", glishtk_menu_onestr));
 	procs.Insert("font", new TkProc(this, "-font", glishtk_menu_onestr));
-	procs.Insert("bitmap", new TkProc("-bitmap", glishtk_bitmap, glishtk_str));
+	procs.Insert("bitmap", new TkProc(this, "-bitmap", glishtk_bitmap, glishtk_str));
 	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr));
 	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));

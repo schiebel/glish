@@ -623,7 +623,11 @@ ClientTask::ClientTask( const_args_list* args, TaskAttr* task_attrs,
 		free_memory( ((char**) argv)[argp] );
 
 	if ( name && agent_value )
+		{
 		agent_value->AssignRecordElement("name",new IValue((const char*) name));
+		const char *host = ! attrs->hostname || ! strcmp(attrs->hostname,"localhost") ? local_host_name() : attrs->hostname;
+		agent_value->AssignRecordElement("host",new IValue(host));
+		}
 
 	free_memory( argv );
 	}
