@@ -17,7 +17,6 @@ RCSID("@(#) $Id$")
 
 #include "Channel.h"
 #include "Select.h"
-#include "LocalExec.h"
 #include "RemoteExec.h"
 #include "Task.h"
 #include "Sequencer.h"
@@ -80,8 +79,8 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s ) : Agent(s)
 	read_pipe_str = write_pipe_str = 0;
 	pipes_used = 0;
 
-	active = 0;	// not true till we get a .established event
-	protocol = 0;	// not set until Client establishes itself
+	active = INITIAL;	// not ACTIVE till we get a .established event
+	protocol = 0;		// not set until Client establishes itself
 
 	bundle = 0;
 	bundle_size = 0;
@@ -460,7 +459,7 @@ void Task::Exec( const char** argv )
 		//
 		const char *tmp = argv[0];
 		argv[0] = exec_name;
-		executable = new LocalExec( exec_name, argv );
+		executable = new TaskLocalExec( exec_name, argv, this );
 		argv[0] = tmp;
 
 		if ( ! attrs->force_sockets )
@@ -500,15 +499,20 @@ void Task::Exec( const char** argv )
 
 	}
 
-void Task::SetActivity( int is_active )
+void Task::SetActivity( State is_active )
 	{
 	active = is_active;
-	CreateEvent( "active", new IValue( is_active ), 0, 1 );
+	CreateEvent( "active", new IValue( is_active != DONE ), 0, 1 );
 
-	if ( ! is_active )
+	if ( is_active == DONE )
 		CloseChannel();
 	}
 
+
+void Task::AbnormalExit( int status )
+	{
+	sequencer->NewEvent( this, 0, 1 );
+	}
 
 ShellTask::ShellTask( const_args_list* args, TaskAttr* task_attrs,
 			Sequencer* s )
@@ -1233,6 +1237,11 @@ int ProxyTask::FlushEvents( )
 int ProxyTask::IsProxy( ) const
 	{
 	return 1;
+	}
+
+void TaskLocalExec::AbnormalExit( int status )
+	{
+	task->AbnormalExit( status );
 	}
 
 int same_host( Task* t1, Task* t2 )

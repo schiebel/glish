@@ -6,7 +6,7 @@
 
 #include "Agent.h"
 #include "BuiltIn.h"
-#include "Executable.h"
+#include "LocalExec.h"
 #include "Glish/Client.h"
 
 class Channel;
@@ -39,6 +39,7 @@ class TaskAttr {
 
 class Task : public Agent {
     public:
+	enum State { INITIAL, ACTIVE, DONE };
 	Task( TaskAttr* task_attrs, Sequencer* s );
 	~Task();
 
@@ -55,7 +56,8 @@ class Task : public Agent {
 	// True if a .established has been seen; different from
 	// Exec()->Active(), which is true if the executable has
 	// be fired up and hasn't terminated yet
-	int Active() const		{ return active; }
+	int Active() const		{ return active == ACTIVE; }
+	int Done() const		{ return active == DONE; }
 
 	// Bundling of events is done with this first SendEvent() to
 	// avoid double bundling of events, i.e. in ProxyTask and Task.
@@ -72,8 +74,8 @@ class Task : public Agent {
 	int BundleEvents( int howmany=0 );
 	int FlushEvents( );
 
-	void SetActive()	{ SetActivity( 1 ); }
-	void SetDone()		{ SetActivity( 0 );
+	void SetActive()	{ SetActivity( ACTIVE ); }
+	void SetDone()		{ SetActivity( DONE );
 				  if ( executable ) executable->DoneReceived(); }
 
 	void SetChannel( Channel* c, Selector* s );
@@ -118,6 +120,8 @@ class Task : public Agent {
 		{ ptlist.remove(p); }
 	ProxyTask *GetProxy( const ProxyId &proxy_id );
 
+	void AbnormalExit( int );
+
     protected:
 	// Creates and returns an argv vector with room for num_args arguments.
 	// The program name and any additional, connection-related arguments
@@ -129,7 +133,7 @@ class Task : public Agent {
 	const char** CreateArgs( const char* prog, int num_args, int& argc );
 
 	void Exec( const char** argv );
-	void SetActivity( int is_active );
+	void SetActivity( State );
 
 	char* name;
 	char* id;
@@ -146,7 +150,7 @@ class Task : public Agent {
 
 	Executable* executable;
 	int task_error;	// true if any problems occurred
-	int active;
+	State active;
 
 	int protocol;	// which protocol the client speaks, or 0 if not known
 
@@ -260,6 +264,18 @@ class ProxyTask : public Agent {
 	ProxyId id;
 };
 
+class TaskLocalExec : public LocalExec {
+    public:
+	TaskLocalExec( const char* arg_executable, const char** argv, Task *t ) :
+			LocalExec( arg_executable, argv ), task(t) { }
+	TaskLocalExec( const char* arg_executable, Task *t ) :
+			LocalExec( arg_executable ), task(t) { }
+
+	void AbnormalExit( int );
+
+    protected:
+	Task *task;
+	};
 
 // True if both tasks are executing on the same host.
 extern int same_host( Task* t1, Task* t2 );

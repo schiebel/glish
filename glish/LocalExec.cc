@@ -109,9 +109,14 @@ void LocalExec::SetStatus( int s )
 	has_exited = 1;
 
 	if ( ! WIFEXITED(s) )
+		{
+		AbnormalExit( s );
 		cerr << "LocalExec::SetStatus: abnormal child termination for "
 		     << executable << "\n";
+		}
 	}
+
+void LocalExec::AbnormalExit( int ) { }
 
 int LocalExec::Active()
 	{

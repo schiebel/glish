@@ -12,12 +12,14 @@ class LocalExec : public Executable {
     public:
 	LocalExec( const char* arg_executable, const char** argv );
 	LocalExec( const char* arg_executable );
-	~LocalExec();
+	virtual ~LocalExec();
 
 	int Active();
 	void Ping();
 
 	int pid();
+
+	virtual void AbnormalExit( int );
 
     protected:
 	// calling this implies that the child

@@ -3062,7 +3062,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 		{ // task termination
 		task->CloseChannel();
 
-		if ( ! task->Active() )
+		if ( task->Done() )
 			return 0;
 
 		// Abnormal termination - no "done" message first.
