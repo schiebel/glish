@@ -3226,8 +3226,13 @@ fi
     fi
 
 
-	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
-	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	if test -n "$PGPLOTLINKFLAGS"; then
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	else		
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	fi
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -3257,12 +3262,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 3261 "configure"
+#line 3266 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:3266: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3271: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3533,8 +3538,13 @@ fi
     fi
 
 
-	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
-	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
+	if test -n "$PGPLOTLINKFLAGS"; then
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	else		
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	fi
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
@@ -3683,7 +3693,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3687 "configure"
+#line 3697 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3691,7 +3701,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3695: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3705: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3714,7 +3724,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3718 "configure"
+#line 3728 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3722,7 +3732,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3726: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3736: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*

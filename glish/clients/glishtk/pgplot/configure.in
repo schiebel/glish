@@ -1135,8 +1135,13 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,-rpath,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,-rpath,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
-	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
-	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	if test -n "$PGPLOTLINKFLAGS"; then
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	else		
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	fi
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -1340,8 +1345,13 @@ case $host_os in
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([${LDI}-R ${LDI}],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
-	SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
-	LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS -lcpgplot -lpgplot $TK_LIB -lX11"
+	if test -n "$PGPLOTLINKFLAGS"; then
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH $PGPLOTLINKFLAGS"
+	else		
+	    SLIB_LD_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	    LDOBJ_LIBS="-L\${LIBDIR_P} $TK_LD_RPATH -lglishtk -lglish -lsos -lnpd $PGPLOTLINKSEARCH -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
+	fi
 	;;
     ultrix4.*)
 	SLIB_CFLAGS="-G 0"
