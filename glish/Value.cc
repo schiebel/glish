@@ -74,7 +74,7 @@ Value::Value( const char *message, const char *file, int lineNum )
 	InitValue();
 	kernel.SetFail( );
 
-	if ( file )
+	if ( file && file[0] )
 		{
 		AssignAttribute( "file", create_value( file ));
 		if ( lineNum > 0 )

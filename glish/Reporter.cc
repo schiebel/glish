@@ -226,7 +226,7 @@ void Reporter::Prolog()
 	{
 	if ( ! interactive )
 		{
-		if ( file_name )
+		if ( file_name && file_name->chars() )
 			stream << "\"" << file_name->Chars() << "\", ";
 
 		if ( line_num > 0 )

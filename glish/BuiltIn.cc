@@ -152,6 +152,13 @@ IValue* BuiltIn::Call( parameter_list* args, eval_type etype )
 
 	delete args_vals;
 
+	//
+	// If we are returning from a function, and a failure did
+	// not occur. Clear the last <fail> stored.
+	//
+	if ( ! handle_fail && result && result->Type() != TYPE_FAIL )
+		FailStmt::ClearFail();
+
 	return result;
 	}
 
@@ -1376,19 +1383,19 @@ case tag:						\
 
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
-	char* file_name = (*args_val)[0]->StringVal();
+	char* filename = (*args_val)[0]->StringVal();
 
-	int sds = (int) sds_access( file_name, SDS_FILE, SDS_READ );
+	int sds = (int) sds_access( filename, SDS_FILE, SDS_READ );
 
 	IValue* result;
 
 	if ( sds < 0 )
-		result = (IValue*) Fail( "could not read value from \"", file_name,
+		result = (IValue*) Fail( "could not read value from \"", filename,
 				"\"" );
 	else
 		result = read_ivalue_from_SDS( sds );
 
-	delete file_name;
+	delete filename;
 
 	return result;
 	}
@@ -1396,7 +1403,7 @@ IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	{
-	char* file_name = (*args_val)[1]->StringVal();
+	char* filename = (*args_val)[1]->StringVal();
 	const IValue* v = (*args_val)[0];
 
 	IValue *ret = 0;
@@ -1405,16 +1412,16 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 		{
 		int sds = v->SDS_IndexVal();
 
-		if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
+		if ( sds_ass( sds, filename, SDS_FILE ) != sds )
 			ret = (IValue*) Fail( "could not save opaque value to \"",
-					file_name, "\"" );
+					filename, "\"" );
 		}
 	else
 		{
 		int sds = (int) sds_new( (char*) "" );
 
 		if ( sds < 0 )
-			ret = (IValue*) Fail( "problem saving value to \"", file_name,
+			ret = (IValue*) Fail( "problem saving value to \"", filename,
 					"\", SDS error code = ", sds );
 		else
 			{
@@ -1422,9 +1429,9 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 
 			(*args_val)[0]->AddToSds( sds, &d );
 
-			if ( sds_ass( sds, file_name, SDS_FILE ) != sds )
+			if ( sds_ass( sds, filename, SDS_FILE ) != sds )
 				ret = (IValue*) Fail( "could not save value to \"",
-						file_name, "\"" );
+						filename, "\"" );
 
 			sds_destroy( sds );
 
@@ -1432,7 +1439,7 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 			}
 		}
 
-	delete file_name;
+	delete filename;
 
 	return ret ? ret : new IValue( 1 );
 	}

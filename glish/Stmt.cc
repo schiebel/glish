@@ -14,7 +14,7 @@ RCSID("@(#) $Id$")
 #include "Task.h"
 #include "Frame.h"
 
-
+IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
 extern int current_whenever_index;
 
@@ -728,6 +728,25 @@ void FailStmt::Describe( ostream& s ) const
 		arg->Describe( s );
 
 	s << ";";
+	}
+
+
+void FailStmt::ClearFail()
+	{
+	Unref(last_fail);
+	last_fail = 0;
+	}
+
+const IValue *FailStmt::GetFail()
+	{
+	return last_fail;
+	}
+
+void FailStmt::SetFail( IValue *err )
+	{
+	Ref( err );
+	Unref(last_fail);
+	last_fail = err;
 	}
 
 

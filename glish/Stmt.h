@@ -281,7 +281,12 @@ class FailStmt : public Stmt {
 
 	~FailStmt();
 
+	static void SetFail( IValue *err );
+	static void ClearFail();
+	static const IValue *GetFail();
+
     protected:
+	static IValue *last_fail;
 	Expr* arg;
 	};
 

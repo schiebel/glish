@@ -2414,7 +2414,7 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 		selector->DeleteSelectee( fd );
 	}
 
-char* which_include( const char* file_name )
+char* which_include( const char* filename )
 	{
 	const IValue *val;
 	const IValue *pathv;
@@ -2433,10 +2433,10 @@ char* which_include( const char* file_name )
 			inclv->Length() )
 		paths = inclv->StringPtr(0);
 
-	if ( ! paths || file_name[0] == '/' || file_name[0] == '.' )
+	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
-		if ( access( file_name, R_OK ) == 0 )
-			return strdup( file_name );
+		if ( access( filename, R_OK ) == 0 )
+			return strdup( filename );
 		else
 			return 0;
 		}
@@ -2446,7 +2446,7 @@ char* which_include( const char* file_name )
 	for ( int i = 0; i < inclv->Length(); i++ )
 		if ( paths[i] && strlen(paths[i]) )
 			{
-			sprintf( directory, "%s/%s", paths[i], file_name );
+			sprintf( directory, "%s/%s", paths[i], filename );
 
 			if ( access( directory, R_OK ) == 0 )
 				return strdup( directory );

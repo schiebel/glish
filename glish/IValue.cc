@@ -55,30 +55,55 @@ void delete_funcs( void *ary_, unsigned int len )
 extern int interactive;
 IValue::IValue( ) : Value( )
 	{
-	if ( file_name && file_name->chars() && ! interactive )
+	const IValue *other = 0;
+	if ( other = FailStmt::GetFail() )
 		{
-		AssignAttribute( "file", new IValue( file_name->Chars() ) );
-		if ( line_num > 0 && ! interactive )
-			AssignAttribute( "line", new IValue( line_num ));
+		Unref( attributes );
+		kernel = other->kernel;
+		attributes = other->CopyAttributePtr();
 		}
+	else
+		{
 
-	IValue *stack = Sequencer::FuncNameStack();
-	if ( stack )
-		AssignAttribute( "stack", stack );
+		if ( file_name && file_name->chars() && ! interactive )
+			{
+			AssignAttribute( "file", new IValue( file_name->Chars() ) );
+			if ( line_num > 0 && ! interactive )
+				AssignAttribute( "line", new IValue( line_num ));
+			}
+
+		IValue *stack = Sequencer::FuncNameStack();
+		if ( stack )
+			AssignAttribute( "stack", stack );
+
+		FailStmt::SetFail( this );
+		}
 	}
 
 IValue::IValue( const char *message, const char *file, int line ) : Value( message, file, line )
 	{
-	if ( ! file && file_name && ! interactive )
+	const IValue *other = 0;
+	if ( !message && (other = FailStmt::GetFail()) )
 		{
-		AssignAttribute( "file", new IValue( file_name->Chars() ) );
-		if ( line <= 0 && line_num > 0 && ! interactive )
-			AssignAttribute( "line", new IValue( line_num ));
+		Unref( attributes );
+		kernel = other->kernel;
+		attributes = other->CopyAttributePtr();
 		}
+	else
+		{
+		if ( ! file && file_name && file_name->chars() && ! interactive )
+			{
+			AssignAttribute( "file", new IValue( file_name->Chars() ) );
+			if ( line <= 0 && line_num > 0 && ! interactive )
+				AssignAttribute( "line", new IValue( line_num ));
+			}
 
-	IValue *stack = Sequencer::FuncNameStack();
-	if ( stack  )
-		AssignAttribute( "stack", stack );
+		IValue *stack = Sequencer::FuncNameStack();
+		if ( stack  )
+			AssignAttribute( "stack", stack );
+
+		FailStmt::SetFail( this );
+		}
 	}
 
 IValue::IValue( funcptr value ) : Value(TYPE_FUNC)

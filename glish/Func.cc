@@ -173,7 +173,15 @@ UserFunc::~UserFunc()
 
 IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	{
-	return kernel->Call(args, etype,stack);
+	IValue *ret = kernel->Call(args, etype,stack);
+	//
+	// If we are returning from a function, and a failure did
+	// not occur. Clear the last <fail> stored.
+	//
+	if ( ret && ret->Type() != TYPE_FAIL )
+		FailStmt::ClearFail();
+
+	return ret;
 	}
 
 void UserFunc::EstablishScope()
