@@ -554,7 +554,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 		{
 		cur_scope->ClearGlobalRef( id );
 		if ( do_warn )
-			warn->Report( "scope of ", id," goes from global to local");
+			warn->Report( "scope of \"", id,"\" goes from global to local");
 		}
 
 	cur_scope->Insert( id, result );
