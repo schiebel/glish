@@ -30,7 +30,7 @@ Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    NotifyTrigger *t, Type ty ) : valid(1), type_(ty)
 	{
 	notifier = arg_notifier;
-	field = arg_field ? string_dup( arg_field ) : 0;
+	field = string_dup( arg_field );
 	value = arg_value;
 	notifiee = arg_notifiee;
 	trigger = t;
