@@ -1,4 +1,4 @@
-// $Header$
+// $Id$
 
 #ifndef epicsclient_h
 #define epicsclient_h

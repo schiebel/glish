@@ -1,7 +1,8 @@
-# $Header$
-#
-# Autoconf Makefile template for glish clients.
-
+## $Id$
+##
+##
+##  Autoconf Makefile template for glish clients.
+##
 
 GLISH_LIB_SUFFIX = @GLISH_LIB_SUFFIX@
 CLIENT_LIBS = @CLIENT_LIBS@

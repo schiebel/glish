@@ -1,7 +1,8 @@
-# $Header$
-
-#
-# Makefile for glish clients.
+## $Id$
+##
+##
+## Makefile for glish clients.
+##
 
 TAR_FILE = glish-clients.tar
 

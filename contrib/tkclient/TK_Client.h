@@ -1,4 +1,4 @@
-// $Header$
+// $Id$
 
 #ifndef tkclient_h
 #define tkclient_h
