@@ -89,7 +89,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		var = ( var##_v_ ->StringPtr() )[0];			\
 	else								\
 		{							\
-		sprintf(var##_char_,"%dp", var##_v_ ->IntVal());	\
+		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
 		var = var##_char_;					\
 		}
 #define SETINT(var)							\
@@ -142,7 +142,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 			var = ( var##_val_ ->StringPtr() )[0];		\
 		else							\
 			{						\
-			sprintf(var##_char_,"%dp", var##_val_->IntVal());\
+			sprintf(var##_char_,"%d", var##_val_->IntVal());\
 			var = var##_char_;				\
 			}
 
@@ -245,6 +245,58 @@ IValue *glishtk_StrToInt( char *str )
 	{
 	int i = atoi(str);
 	return new IValue( i );
+	}
+
+char *glishtk_onedim_query(Rivetobj self, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one dim function";
+	if ( args->length() > 0 )
+		{
+		int c = 0;
+		EXPRDIM( dim, event_name )
+		rivet_set( self, (char*) cmd, (char*) dim );
+		EXPR_DONE( dim )
+		}
+	ret = rivet_get(self, (char*) cmd);
+	return ret;
+	}
+
+char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one int list function";
+	if ( args->length() >= howmany )
+		{
+		static int len = 4;
+		static char *buf = new char[len*128];
+		static char elem[128];
+
+		if ( ! howmany )
+			howmany = args->length();
+
+		while ( howmany > len )
+			{
+			len *= 2;
+			buf = (char *) realloc(buf, len * sizeof(char) * 128);
+			}
+
+		int c = 0;
+		for ( int x=0; x < howmany; x++ )
+			{
+			EXPRINT( v, event_name )
+			sprintf(elem,"%d ",v);
+			strcat(buf,elem);
+			EXPR_DONE( v )
+			}
+
+		rivet_set( self, (char*) cmd, buf );
+		}
+
+	ret = rivet_get( self, (char*) cmd );
+	return ret;
 	}
 
 char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
@@ -627,6 +679,12 @@ IValue *glishtk_tkcast( char *tk )
 	return agent ? agent->AgentRecord() : error_ivalue();
 	}
 
+IValue *glishtk_valcast( char *val )
+	{
+        IValue *v = (IValue*) val;
+	return v ? v : error_ivalue();
+	}
+
 char *glishtk_canvas_frame(TkAgent *agent, const char *cmd, parameter_list *args,
 				int is_request, int log )
 	{
@@ -721,8 +779,8 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	frame->AddElement( this );
 	frame->Pack();
 
-	procs.Insert("height", new TkProc("-height", glishtk_onedim));
-	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("height", new TkProc("-height", glishtk_onedim_query, glishtk_StrToInt));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim_query, glishtk_StrToInt));
 	procs.Insert("canvasx", new TkProc("canvasx", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("canvasy", new TkProc("canvasy", 2, glishtk_canvas_1toNint, glishtk_StrToInt));
 	procs.Insert("line", new TkProc(this, "create", "line", glishtk_canvas_pointfunc,glishtk_str));
@@ -736,7 +794,7 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 	procs.Insert("move", new TkProc("", glishtk_canvas_move));
 	procs.Insert("bind", new TkProc(this, "", glishtk_canvas_bind));
 	procs.Insert("frame", new TkProc(this, "", glishtk_canvas_frame, glishtk_tkcast));
-	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist));
+	procs.Insert("region", new TkProc("-scrollregion", 4, glishtk_oneintlist_query, glishtk_splitsp_int));
 	procs.Insert("addtag", new TkProc("addtag","withtag", 2, glishtk_canvas_tagfunc));
 	procs.Insert("tagabove", new TkProc("addtag","above", 2, glishtk_canvas_tagfunc));
 	procs.Insert("tagbelow", new TkProc("addtag","below", 2, glishtk_canvas_tagfunc));

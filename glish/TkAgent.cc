@@ -196,7 +196,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 		var = ( var##_v_ ->StringPtr() )[0];			\
 	else								\
 		{							\
-		sprintf(var##_char_,"%dp", var##_v_ ->IntVal());	\
+		sprintf(var##_char_,"%d", var##_v_ ->IntVal());	\
 		var = var##_char_;					\
 		}
 #define SETINT(var)							\
@@ -246,7 +246,7 @@ static TkAgent *InvalidNumberOfArgs( int num )
 			var = ( var##_val_ ->StringPtr() )[0];		\
 		else							\
 			{						\
-			sprintf(var##_char_,"%dp", var##_val_->IntVal());\
+			sprintf(var##_char_,"%d", var##_val_->IntVal());\
 			var = var##_char_;				\
 			}
 
@@ -769,7 +769,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 		int c = 2;
 		argv[0] = argv[1] = 0;
 		argv[c++] = "-borderwidth";
-		argv[c++] = "0p";
+		argv[c++] = "0";
 		argv[c++] = "-width";
 		argv[c++] = (char*) width;
 		argv[c++] = "-height";
