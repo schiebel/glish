@@ -1,3 +1,6 @@
+##
+## $Header$
+##
 AC_INIT(glish)
 
 AC_DEFUN(HAVE_AIX,
