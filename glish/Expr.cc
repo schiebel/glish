@@ -101,6 +101,7 @@ Expr *Expr::BuildFrameInfo( scope_modifier m )
 
 void Expr::StandAlone( ) { }
 	
+int Expr::LhsIs( const Expr * ) const { return 0; }
 
 Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 	{
@@ -365,6 +366,12 @@ void VarExpr::ClearChangeNotice( )
 	{
 	func = 0;
 	}
+
+int VarExpr::LhsIs( const Expr *e ) const
+	{
+	return e == this;
+	}
+
 
 ScriptVarExpr::~ScriptVarExpr() { }
 
@@ -648,7 +655,7 @@ AssignExpr::AssignExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2)
 IValue* AssignExpr::Eval( eval_type etype )
 	{
 	IValue *r_err = 0;
-	IValue *r = right->CopyEval( 1 );
+	IValue *r = right->CopyEval( left->LhsIs(right) ? 1 : 0 );
 	if ( ! r ) return 0;
 	if ( r->Type() == TYPE_FAIL )
 		r_err = copy_value(r);
@@ -1900,6 +1907,11 @@ int RefExpr::Describe( OStream &s, const ioOpt &opt ) const
 const char *RefExpr::Description() const
 	{
 	return "ref";
+	}
+
+int RefExpr::LhsIs( const Expr *e ) const
+	{
+	return op == e ? 1 : op->LhsIs(e);
 	}
 
 const char *RangeExpr::Description() const

@@ -158,6 +158,15 @@ class Expr : public ParseNode {
 	// a "request" event, i.e. is a return value expected.
 	virtual void StandAlone( );
 
+	// Used by AssignExpr::Eval() to prevent assignments like:
+	//
+	//	y := y
+	//	const y := y
+	//	etc:
+	//
+	// from messing up the ref'ness of the RHS
+	virtual int LhsIs( const Expr * ) const;
+
 	// This should not be called outside of the Expr hierarchy. Use
 	// BuildFrameInfo() instead.
 	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -241,6 +250,8 @@ class VarExpr : public Expr {
 	// to the 'sequencer'. This result in a 'PushFrame(f)' too.
 	IValue *Assign( IValue* new_value, Frame *f )
 		{ PushFrame( f ); return Assign( new_value ); }
+
+	int LhsIs( const Expr * ) const;
 
     protected:
 	char* id;
@@ -552,6 +563,8 @@ class RefExpr : public UnaryExpr {
 		{ return Describe( s, ioOpt() ); }
 
 	const char *Description() const;
+
+	int LhsIs( const Expr * ) const;
 
     protected:
 	value_type type;
