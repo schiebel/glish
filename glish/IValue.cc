@@ -929,10 +929,12 @@ ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(ne
 	}
 
 
-IValue* IValue::TrueArrayRef( int* indices, int num_indices, int take_indices ) const
+IValue* IValue::TrueArrayRef( int* indices, int num_indices, int take_indices,
+			      value_type vtype ) const
 	{
 	if ( IsRef() )
-		return ((IValue*) Deref())->TrueArrayRef( indices, num_indices );
+		return ((IValue*) Deref())->TrueArrayRef( indices, num_indices,
+							  take_indices, vtype );
 
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		return (IValue*) RecordSlice( indices, num_indices );
@@ -947,7 +949,7 @@ IValue* IValue::TrueArrayRef( int* indices, int num_indices, int take_indices ) 
 				") out of range, array length =", kernel.Length() );
 			}
 
-	return new IValue( (IValue*) this, indices, num_indices, VAL_REF, take_indices );
+	return new IValue( (IValue*) this, indices, num_indices, vtype, take_indices );
 	}
 
 
@@ -1295,7 +1297,7 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,
 	return;
 	}
 
-IValue* IValue::SubRef( const IValue* index )
+IValue* IValue::SubRef( const IValue* index, value_type vtype )
 	{
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		{
@@ -1315,12 +1317,12 @@ IValue* IValue::SubRef( const IValue* index )
 	int* indices = GenerateIndices( index, num_indices, indices_are_copy );
 
 	if ( indices )
-		return TrueArrayRef( indices, num_indices, indices_are_copy );
+		return TrueArrayRef( indices, num_indices, indices_are_copy, vtype );
 	else
 		return error_ivalue();
 	}
 
-IValue* IValue::SubRef( const_value_list *args_val )
+IValue* IValue::SubRef( const_value_list *args_val, value_type )
 	{
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
 		return (IValue*) Fail( "invalid type in subreference operation:",

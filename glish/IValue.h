@@ -180,7 +180,8 @@ public:
 	IValue* ArrayRef( int* indices, int num_indices ) const;
 
 	// Return a new value holding a reference the specified subelement(s).
-	IValue* TrueArrayRef( int* indices, int num_indices, int take_indices = 0 ) const;
+	IValue* TrueArrayRef( int* indices, int num_indices, int take_indices = 0,
+			      value_type vtype = VAL_REF ) const;
 
 	// Pick distinct elements from an array.
 	// Returns a newed value
@@ -195,8 +196,8 @@ public:
 
 	// Return a true sub-array reference.
 	// Both of the following return a newed value.
-	IValue* SubRef( const IValue* index );
-	IValue* SubRef( const_value_list *args_val );
+	IValue* SubRef( const IValue* index, value_type vtype = VAL_REF );
+	IValue* SubRef( const_value_list *args_val, value_type vtype = VAL_REF );
 
 	void Polymorph( glish_type new_type );
 

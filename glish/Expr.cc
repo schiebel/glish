@@ -1356,7 +1356,7 @@ IValue* ArrayRefExpr::RefEval( value_type val_type )
 		// Single element pick operation
 		result = (IValue*)array->PickRef( index_val );
 	else
-		result = (IValue*)array->SubRef( index_val );
+		result = (IValue*)array->SubRef( index_val, val_type );
 
 	arg->ReadOnlyDone( index_val );
 
