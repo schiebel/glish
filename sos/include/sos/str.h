@@ -129,5 +129,6 @@ inline unsigned int strlen( const str_ref &ref )
 
 typedef str* strptr;
 typedef const char * const * const_charptr;
+typedef const char* charptr;
 
 #endif

@@ -48,13 +48,49 @@ void sos_sink::put( TYPE *a, sos_code t, unsigned int l, short U1, short U2 ) \
 PUTACTION_B(char)
 PUTACTION_B(unsigned char)
 
+void sos_sink::put( charptr *s, unsigned int len, short U1, short U2 )
+	{
+	unsigned int total = (len+1) * 4;
+	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );
+	unsigned int *lptr = (unsigned int *) (buf + SOS_HEADER_SIZE);
+
+	*lptr++ = len;
+	for ( unsigned int i = 0; i < len; i++ )
+		{
+		lptr[i] = s[i] ? ::strlen(s[i]) : 0;
+		total += lptr[i];
+		}
+
+	buf = (char*) realloc_memory( total + SOS_HEADER_SIZE );
+
+	head.set(buf,SOS_STRING,total);
+	head.usets(U1,0);
+	head.usets(U2,1);
+	head.stamp();
+
+	char *cptr = (char*)(&lptr[len]);
+
+	for ( unsigned int j = 0; j < len; j++ )
+		{
+		register char *out = (char*) s[j];
+		if ( out )
+			{
+			memcpy( cptr, out, *lptr );
+			cptr += *lptr++;
+			}
+		}
+
+	write( FD, buf, total + SOS_HEADER_SIZE );
+	free_memory( buf );
+	}
+
 void sos_sink::put( const str &s, short U1, short U2 )
 	{
 	unsigned int len = s.length();
-	unsigned int total = 4;
+	unsigned int total = (len+1) * 4;
 
 	for ( unsigned int i = 0; i < len; i++ )
-		total += s.strlen(i) + 4;
+		total += s.strlen(i);
 
 	char *buf = (char*) alloc_memory( total + SOS_HEADER_SIZE );
 

@@ -20,6 +20,7 @@ public:
 	void put( double *a, unsigned int l, short U1 = 0, short U2 = 0 );
 	void put( char *a, sos_code t, unsigned int l, short U1 = 0, short U2 = 0 );
 	void put( unsigned char *a, sos_code t, unsigned int l, short U1 = 0, short U2 = 0 );
+	void put( charptr *cv, unsigned int l, short U1 = 0, short U2 = 0 );
 	void put( const str &, short U1 = 0, short U2 = 0 );
 
 	~sos_sink( );
