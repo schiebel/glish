@@ -3,9 +3,9 @@
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
-%token TOK_LOCAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF TOK_REQUEST
-%token TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO TOK_UNLINK
-%token TOK_VAL TOK_WHENEVER TOK_WHILE
+%token TOK_LOCAL TOK_GLOBAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
+%token TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
+%token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE
 
 %left ','
 %right TOK_ASSIGN
@@ -25,10 +25,11 @@
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
 %type <expr> TOK_CONSTANT expression var function formal_param_default
-%type <expr> function_head subscript
+%type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
 %type <event> event
-%type <stmt> statement_list statement local_list local_item func_body
+%type <stmt> statement_list statement func_body block
+%type <stmt> local_list local_item global_list global_item
 %type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
@@ -148,10 +149,12 @@ statement_list:
 
 
 statement:
-		'{' statement_list '}'
-			{ $$ = $2; }
+		block
 
 	|	TOK_LOCAL local_list ';'
+			{ $$ = $2; }
+
+	|	TOK_GLOBAL global_list ';'
 			{ $$ = $2; }
 
 	|	TOK_WHENEVER event_list TOK_DO statement
@@ -349,6 +352,46 @@ local_item:	TOK_ID TOK_ASSIGN expression
 	;
 
 
+global_list:	global_list ',' global_item
+			{ $$ = merge_stmts( $1, $3 ); }
+	|	global_item
+	;
+
+global_item:	TOK_ID TOK_ASSIGN expression
+			{
+			Expr* id =
+				current_sequencer->LookupID( $1, GLOBAL_SCOPE );
+
+			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
+
+			if ( $2 != 0 )
+				warn->Report( "compound assignment in", $$ );
+			}
+	|	TOK_ID
+			{
+			(void) current_sequencer->LookupID( $1, GLOBAL_SCOPE );
+			$$ = null_stmt;
+			}
+	;
+
+
+block:		block_head statement_list '}'
+			{ 
+			int frame_size = current_sequencer->PopScope();
+
+			if ( frame_size )
+				$$ = new StmtBlock( frame_size, $2, current_sequencer );
+			else
+				$$ = $2;
+			}
+
+block_head:	'{'
+			{
+			current_sequencer->PushScope();
+			$$ = 0;
+			}
+	;
+
 function:	function_head opt_id '(' formal_param_list ')' cont func_body
 		no_cont
 			{
@@ -358,31 +401,41 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							current_sequencer, $1 );
 			Value* func_val = new Value( func );
 
-			if ( $2 )
-				{ // Create global reference to function.
-				Expr* global_func =
-					current_sequencer->LookupID(
-							$2, GLOBAL_SCOPE );
+			$$ = new ConstExpr( func_val );
 
-				Value* ref = new Value( copy_value( func_val ),
+			if ( $2 )
+				{
+				if ( current_sequencer->GetScope() == GLOBAL_SCOPE )
+					{ 
+					// Create global reference to function.
+					Expr* func =
+						current_sequencer->LookupID(
+							$2, LOCAL_SCOPE );
+
+					Value* ref = new Value( copy_value( func_val ),
 							VAL_CONST );
 
-				global_func->Assign( ref );
+					func->Assign( ref );
+					}
+				else
+					{
+					Expr *lhs = 
+						current_sequencer->LookupID( $2, LOCAL_SCOPE);
+					$$ = compound_assignment( lhs, 0, $$ );
+					}
 				}
-
-			$$ = new ConstExpr( func_val );
 			}
 	;
 
 function_head:	TOK_FUNCTION
 			{
-			current_sequencer->PushScope();
+			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = 0;
 			}
 
 	|	TOK_SUBSEQUENCE
 			{
-			current_sequencer->PushScope();
+			current_sequencer->PushScope( FUNC_SCOPE );
 			$$ = current_sequencer->InstallID( strdup( "self" ),
 								LOCAL_SCOPE );
 			}

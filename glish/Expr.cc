@@ -81,12 +81,14 @@ Value* Expr::CopyOrRefValue( const Value* value, eval_type etype )
 	}
 
 
-VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_offset,
+VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
+			int var_frame_offset,
 			Sequencer* var_sequencer ) : Expr(var_id)
 	{
 	id = var_id;
 	scope = var_scope;
-	frame_offset = var_offset;
+	frame_offset = var_frame_offset;
+	scope_offset = var_scope_offset;
 	sequencer = var_sequencer;
 	}
 
@@ -97,13 +99,14 @@ VarExpr::~VarExpr()
 
 Value* VarExpr::Eval( eval_type etype )
 	{
-	Value* value = sequencer->FrameElement( scope, frame_offset );
-
+	Value* value = sequencer->FrameElement( scope, scope_offset,
+						frame_offset );
 	if ( ! value )
 		{
 		warn->Report( "uninitialized variable", this, "used" );
 		value = error_value();
-		sequencer->SetFrameElement( scope, frame_offset, value );
+		sequencer->SetFrameElement( scope, scope_offset, 
+						frame_offset, value );
 		}
 
 	value = value->Deref();
@@ -113,13 +116,14 @@ Value* VarExpr::Eval( eval_type etype )
 
 Value* VarExpr::RefEval( value_type val_type )
 	{
-	Value* var = sequencer->FrameElement( scope, frame_offset );
-
+	Value* var = sequencer->FrameElement( scope, scope_offset,
+						frame_offset );
 	if ( ! var )
 		{
 		// Presumably we're going to be assigning to a subelement.
 		var = new Value( glish_false );
-		sequencer->SetFrameElement( scope, frame_offset, var );
+		sequencer->SetFrameElement( scope, scope_offset,
+						frame_offset, var );
 		}
 
 	if ( val_type == VAL_VAL )
@@ -133,7 +137,8 @@ Value* VarExpr::RefEval( value_type val_type )
 
 void VarExpr::Assign( Value* new_value )
 	{
-	sequencer->SetFrameElement( scope, frame_offset, new_value );
+	sequencer->SetFrameElement( scope, scope_offset, frame_offset,
+					new_value );
 	}
 
 Value* ValExpr::Eval( eval_type etype )

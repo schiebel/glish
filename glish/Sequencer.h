@@ -53,8 +53,19 @@ declare(PDict,char);
 declare(PQueue,Notification);
 
 typedef PDict(Expr) expr_dict;
-declare(PList,expr_dict);
-typedef PList(expr_dict) scope_list;
+
+class Scope : public expr_dict {
+public:
+	Scope( scope_type s = LOCAL_SCOPE ) : scope(s), expr_dict() {}
+	scope_type GetScope() const { return scope; }
+private:
+	scope_type scope;
+};
+
+declare(PList,Scope);
+typedef PList(Scope) scope_list;
+typedef PList(Frame) frame_list;
+typedef List(int) offset_list;
 
 
 class Sequencer {
@@ -68,10 +79,10 @@ public:
 
 	void QueueNotification( Notification* n );
 
-	void PushScope();
+	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
 
-	Expr* InstallID( char* id, scope_type scope );
+	Expr* InstallID( char* id, scope_type scope, int GlobalRef = 0, int foff = 0 );
 	Expr* LookupID( char* id, scope_type scope, int do_install = 1 );
 
 	// This function attempts to look up a value in the current sequencer.
@@ -84,8 +95,8 @@ public:
 	// The current evaluation frame, or 0 if there are no local frames.
 	Frame* CurrentFrame();
 
-	Value* FrameElement( scope_type scope, int frame_offset );
-	void SetFrameElement( scope_type scope, int frame_offset,
+	Value* FrameElement( scope_type scope, int scope_offset, int frame_offset );
+	void SetFrameElement( scope_type scope, int scope_offset, int frame_offset,
 				Value* value );
 
 	// The last notification processed, or 0 if none received yet.
@@ -199,6 +210,8 @@ public:
 	// Returns a non-zero value if there are existing clients.
 	int ActiveClients() const	{ return num_active_processes > 0; }
 
+	scope_type GetScope() const;
+
 protected:
 	void MakeEnvGlobal();
 	void MakeArgvGlobal( char** argv, int argc );
@@ -224,9 +237,12 @@ protected:
 	ScriptClient* script_client;
 
 	scope_list scopes;
+	offset_list global_scopes;
+
+	frame_list frames;
+	offset_list global_frames;
 
 	value_list global_frame;
-	PList(Frame) local_frames;
 
 	int last_task_id;
 	PDict(Task) ids_to_tasks;

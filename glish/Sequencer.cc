@@ -219,7 +219,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	init_values();
 
 	// Create the global scope.
-	scopes.append( new expr_dict );
+	PushScope( GLOBAL_SCOPE );
 
 	create_built_ins( this, argv[0] );
 
@@ -464,9 +464,12 @@ void Sequencer::QueueNotification( Notification* n )
 	}
 
 
-void Sequencer::PushScope()
+void Sequencer::PushScope( scope_type s )
 	{
-	scopes.append( new expr_dict );
+	Scope *newscope = new Scope( s );
+	scopes.append( newscope );
+	if ( s != LOCAL_SCOPE )
+		global_scopes.append( scopes.length() - 1 );
 	}
 
 int Sequencer::PopScope()
@@ -476,53 +479,110 @@ int Sequencer::PopScope()
 	if ( top_scope_pos < 0 )
 		fatal->Report( "scope underflow in Sequencer::PopScope" );
 
-	expr_dict* top_scope = scopes[top_scope_pos];
+	Scope* top_scope = scopes[top_scope_pos];
 	int frame_size = top_scope->Length();
 
 	scopes.remove( top_scope );
+
+	if ( top_scope->GetScope() != LOCAL_SCOPE )
+		global_scopes.remove( top_scope_pos );
+
 	delete top_scope;
 
 	return frame_size;
 	}
 
 
-Expr* Sequencer::InstallID( char* id, scope_type scope )
+Expr* Sequencer::InstallID( char* id, scope_type scope, int GlobalRef, int foff )
 	{
 	int scope_index;
+	int scope_offset = 0;
+	int gs_index = global_scopes.length() - 1;
 
-	if ( scope == LOCAL_SCOPE )
-		scope_index = scopes.length() - 1;
-	else
-		scope_index = 0;
+	if ( GlobalRef )
+		scope = LOCAL_SCOPE;
 
-	int frame_offset = scopes[scope_index]->Length();
-	Expr* result = new VarExpr( id, scope, frame_offset, this );
+	switch ( scope )
+		{
+		case LOCAL_SCOPE:
+			scope_index = scopes.length() - 1;
+		  	if ( GlobalRef )
+				scope_offset = -scope_index;
+			else
+				{
+				int goff = global_scopes[gs_index];
+				if ( scopes[goff]->GetScope() != GLOBAL_SCOPE )
+					scope_offset = scope_index - goff;
+				}
+			break;
+		case FUNC_SCOPE:
+			scope_index = global_scopes[gs_index];
+			break;
+		case GLOBAL_SCOPE:
+			scope_index = 0;
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::InstallID()" );
 
-	scopes[scope_index]->Insert( id, result );
+		}
+
+	Scope *cur_scope = scopes[scope_index];
+	
+	scope = cur_scope->GetScope();
+
+	int frame_offset = GlobalRef ? foff : cur_scope->Length();
+
+	Expr* result = new VarExpr( id, scope, scope_offset, frame_offset, this );
+
+	cur_scope->Insert( id, result );
 
 	if ( scope == GLOBAL_SCOPE )
+		{
 		global_frame.append( 0 );
+		if ( GetScope() != GLOBAL_SCOPE && ! GlobalRef )
+			InstallID( id, LOCAL_SCOPE, 1, frame_offset );
+		}
 
 	return result;
 	}
 
 Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install )
 	{
-	int scope_index;
+	Expr *result = 0;
 
-	if ( scope == LOCAL_SCOPE )
-		scope_index = scopes.length() - 1;
-	else
-		scope_index = 0;
-
-	Expr* result = (*scopes[scope_index])[id];
-
-	if ( ! result && do_install )
+	switch ( scope )
 		{
-		if ( scope == LOCAL_SCOPE )
-			return LookupID( id, GLOBAL_SCOPE );
-		else
-			return InstallID( id, GLOBAL_SCOPE );
+		case LOCAL_SCOPE:
+			{
+			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+				{
+				result = (*scopes[cnt])[id];
+				if ( scopes[cnt]->GetScope() != LOCAL_SCOPE )
+					break;
+				}
+			if ( ! result && do_install )
+				return InstallID( id, FUNC_SCOPE );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int cnt = global_scopes.length() - 1;
+			int offset = global_scopes[cnt];
+			result = (*scopes[offset])[id];
+			if ( ! result && do_install )
+				return InstallID( id, FUNC_SCOPE );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			result = (*scopes[0])[id];
+			if ( ! result && do_install )
+				return InstallID( id, GLOBAL_SCOPE );
+			if ( result && GetScope() != GLOBAL_SCOPE )
+				return InstallID( id, LOCAL_SCOPE, 1, ((VarExpr*)result)->offset() );
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::LookupID()" );
+
 		}
 
 	delete id;
@@ -544,76 +604,145 @@ const Value *Sequencer::LookupVal( const char *id )
 
 void Sequencer::PushFrame( Frame* new_frame )
 	{
-	local_frames.append( new_frame );
+	frames.append( new_frame );
+	if ( new_frame->GetScope() != LOCAL_SCOPE )
+		global_frames.append( frames.length() - 1 );
 	}
 
 Frame* Sequencer::PopFrame()
 	{
-	int top_frame = local_frames.length() - 1;
-	if ( top_frame < 0 )
+	int top_frame_pos = frames.length() - 1;
+	if ( top_frame_pos < 0 )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
 
-	return local_frames.remove_nth( top_frame );
+	Frame *top_frame = frames.remove_nth( top_frame_pos );
+	if ( top_frame->GetScope() != LOCAL_SCOPE )
+		global_frames.remove( top_frame_pos );
+
+	return top_frame;
 	}
 
 Frame* Sequencer::CurrentFrame()
 	{
-	int top_frame = local_frames.length() - 1;
+	int top_frame = frames.length() - 1;
 	if ( top_frame < 0 )
 		return 0;
 
-	return local_frames[top_frame];
+	return frames[top_frame];
 	}
 
 
-Value* Sequencer::FrameElement( scope_type scope, int frame_offset )
+Value* Sequencer::FrameElement( scope_type scope, int scope_offset,
+					int frame_offset )
 	{
-	if ( scope == LOCAL_SCOPE )
-		{
-		int top_frame = local_frames.length() - 1;
-		if ( top_frame < 0 )
-			fatal->Report(
-	    "local frame requested but none exist in Sequencer::FrameElement" );
+	if ( scope_offset < 0 )
+		scope = GLOBAL_SCOPE;
 
-		return local_frames[top_frame]->FrameElement( frame_offset );
-		}
-
-	else
+	switch ( scope )
 		{
-		if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-			fatal->Report(
-			"bad global frame offset in Sequencer::FrameElement" );
-		return global_frame[frame_offset];
+		case LOCAL_SCOPE:
+			{
+			int offset = scope_offset;
+			int gs_off = global_frames.length() - 1;
+
+			if ( gs_off >= 0 )
+				offset += global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::FrameElement (",
+		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
+		    "," , frames.length(), ")" );
+
+			return frames[offset]->FrameElement( frame_offset );
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int gs_off = global_frames.length() - 1;
+			int offset = global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::FrameElement (",
+		    offset, " (", gs_off, "), ", frames.length(), ")" );
+
+			return frames[offset]->FrameElement( frame_offset );
+			}
+			break;
+		case GLOBAL_SCOPE:
+			{
+			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
+				fatal->Report(
+				"bad global frame offset in Sequencer::FrameElement" );
+			return global_frame[frame_offset];
+			}
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::FrameElement()" );
 		}
 	}
 
-void Sequencer::SetFrameElement( scope_type scope, int frame_offset,
-					Value* value )
+void Sequencer::SetFrameElement( scope_type scope, int scope_offset,
+					int frame_offset, Value* value )
 	{
 	Value* prev_value;
 
-	if ( scope == LOCAL_SCOPE )
+	if ( scope_offset < 0 )
+		scope = GLOBAL_SCOPE;
+
+	switch ( scope )
 		{
-		int top_frame = local_frames.length() - 1;
-		if ( top_frame < 0 )
-			fatal->Report(
-	"local frame requested but none exist in Sequencer::SetFrameElement" );
+		case LOCAL_SCOPE:
+			{
+			int offset = scope_offset;
+			int gs_off = global_frames.length() - 1;
 
-		Value*& frame_value =
-			local_frames[top_frame]->FrameElement( frame_offset );
-		prev_value = frame_value;
-		frame_value = value;
+			if ( gs_off >= 0 )
+				offset += global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::SetFrameElement (",
+		    scope_offset, ",", gs_off ? global_frames[gs_off] : -1,
+		    "," , frames.length(), ")" );
+
+			Value*& frame_value =
+				frames[offset]->FrameElement( frame_offset );
+			prev_value = frame_value;
+			frame_value = value;
+			}
+			break;
+		case FUNC_SCOPE:
+			{
+			int gs_off = global_frames.length() - 1;
+			int offset = global_frames[gs_off];
+
+			if ( offset < 0 || offset >= frames.length() )
+				fatal->Report(
+		    "local frame error in Sequencer::SetFrameElement (",
+		    offset, " (", gs_off, "), ", frames.length(), ")" );
+
+			Value*& frame_value =
+				frames[offset]->FrameElement( frame_offset );
+			prev_value = frame_value;
+			frame_value = value;
+			}
+			break;
+		case GLOBAL_SCOPE:
+			{
+			if ( frame_offset < 0 || frame_offset >= global_frame.length() )
+				fatal->Report(
+				"bad global frame offset in Sequencer::FrameElement" );
+			prev_value = global_frame.replace( frame_offset, value );
+			}
+			break;
+		default:
+			fatal->Report("bad scope tag in Sequencer::SetFrameElement()" );
+
+
 		}
-
-	else
-		{
-		if ( frame_offset < 0 || frame_offset >= global_frame.length() )
-			fatal->Report(
-		"bad global frame offset in Sequencer::SetFrameElement" );
-		prev_value = global_frame.replace( frame_offset, value );
-		}
-
 	Unref( prev_value );
 	}
 
@@ -1381,6 +1510,19 @@ void Sequencer::RunQueue()
 		}
 	}
 
+scope_type Sequencer::GetScope() const
+	{
+	int s_index = scopes.length() - 1;
+
+        if ( ! s_index )
+		return GLOBAL_SCOPE;
+
+	if ( int gs_index = global_scopes.length() &&
+			global_scopes[--gs_index] == s_index )
+		return FUNC_SCOPE;
+
+	return LOCAL_SCOPE;
+	}
 
 ClientSelectee::ClientSelectee( Sequencer* s, Task* t )
     : Selectee( t->GetChannel()->ReadFD() )
