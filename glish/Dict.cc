@@ -229,14 +229,14 @@ void* Dictionary::Insert( DictEntry* new_entry )
 	return 0;
 	}
 
-int Dictionary::Hash( const char* str, int hash_size ) const
+int Dictionary::Hash( const register char* str, int hash_size ) const
 	{
-	int hashval = 0;
+	register unsigned int hashval = 1;
 
 	while ( *str )
 		hashval = (hashval << 1) + *str++;
 
-	return (hashval < 0 ? -hashval : hashval) % hash_size;
+	return (int)(hashval % (unsigned int) hash_size);
 	}
 
 int Dictionary::NextPrime( int n ) const
