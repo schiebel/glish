@@ -2064,17 +2064,17 @@ void IValue::TakeValue( Value* new_value, Str &err )
 		return;
 		}
 
-	if ( unref ) ClearUnref( );
+	nv = copy_value( nv );
 
-	// We've taking the new_value (which may be encumbered
-	// by unref info, but we are still bound by the other
-	// mask flags, e.g. revert the reference count.
- 	mask |= (mPROPAGATE() | mUNREF()) & nv->mask;
-	nv->mask = 0;
-	unref = nv->unref;
-	nv->unref = 0;
-
-	Value::TakeValue( new_value, err );
+	//
+	// Value::TakeValue() Unref()s nv...
+	//
+	Value::TakeValue( nv, err );
+	//
+	// It is assumed (everywhere?) that we will
+	// Unref() new_value...
+	//
+	Unref( new_value );
 	}
 
 void init_ivalues( )
