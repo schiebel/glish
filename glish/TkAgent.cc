@@ -457,6 +457,8 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 #define DEFINE_DTOR(CLASS)				\
 CLASS::~CLASS( )					\
 	{						\
+	rivet_delete_all_bindings(self, 0);		\
+							\
 	if ( frame )					\
 		{					\
 		frame->RemoveElement( this );		\
@@ -2132,6 +2134,7 @@ void TkFrame::UnMap()
 
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 
+	
 	if ( canvas )
 		rivet_va_cmd( canvas->Self(), "delete", tag, 0 );
 	else if ( self )
@@ -2171,6 +2174,8 @@ void TkFrame::UnMap()
 
 TkFrame::~TkFrame( )
 	{
+	rivet_delete_all_bindings(self, 0);
+
 	if ( frame )
 		frame->RemoveElement( this );
 	if ( canvas )
@@ -2674,6 +2679,8 @@ void TkButton::UnMap()
 
 TkButton::~TkButton( )
 	{
+	rivet_delete_all_bindings(self, 0);
+
 	if ( frame )
 		{
 		frame->RemoveElement( this );

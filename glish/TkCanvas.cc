@@ -203,6 +203,8 @@ int TkCanvas::count = 0;
 #define DEFINE_DTOR(CLASS)				\
 CLASS::~CLASS( )					\
 	{						\
+	rivet_delete_all_bindings(self, 0);		\
+							\
 	if ( frame )					\
 		{					\
 		frame->RemoveElement( this );		\

@@ -226,6 +226,8 @@ TkPgplot::UnMap ()
 
 TkPgplot::~TkPgplot ()
 {
+  rivet_delete_all_bindings(self, 0);
+
   if (frame)
     {
       frame->RemoveElement (this);
