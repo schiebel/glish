@@ -975,7 +975,7 @@ char *prog;
 		    ln = regcc->cur;
 		    cp = regcppush(cc->parenfloor);
 		    if (regmatch(cc->next)) {
-			regcppartblow(cp);
+			regcppartblow(/*cp*/);
 			sayYES;	/* All done. */
 		    }
 		    regcppop();
@@ -991,7 +991,7 @@ char *prog;
 		    cc->lastloc = locinput;
 		    cp = regcppush(cc->parenfloor);
 		    if (regmatch(cc->scan)) {
-			regcppartblow(cp);
+			regcppartblow(/*cp*/);
 			sayYES;
 		    }
 		    regcppop();
@@ -1006,7 +1006,7 @@ char *prog;
 		    cc->cur = n;
 		    cc->lastloc = locinput;
 		    if (regmatch(cc->scan)) {
-			regcppartblow(cp);
+			regcppartblow(/*cp*/);
 			sayYES;
 		    }
 		    regcppop();		/* Restore some previous $<digit>s? */
