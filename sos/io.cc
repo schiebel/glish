@@ -28,7 +28,7 @@ RCSID("@(#) $Id$")
 #include <fcntl.h>
 
 #if defined(HAVE_WRITEV) && defined(WRITEV_NOT_DECLARED)
-extern int writev(int, const struct iovec *, int);
+extern "C" int writev(int, const struct iovec *, int);
 #endif
 
 #if defined(IOV_MAX)

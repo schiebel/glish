@@ -17,6 +17,22 @@ typedef const char* charptr;
 #endif
 #endif
 
+class sos_status {
+    public:
+	enum Type { WRITE, READ };
+
+	Type type() { return type_; }
+	int fd() { return fd_; }
+
+	unsigned int total() { return total_; }
+	unsigned int remaining() { return total_ - sent_; }
+    private:
+	int fd_;
+	Type type_;
+	unsigned int total_;
+	unsigned int sent_;
+};
+
 class sos_sink {
     public:
 	enum buffer_type { FREE, HOLD, COPY };
