@@ -351,7 +351,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 
-<INITIAL>[ms]{RXSTART}	{
+[ms]{RXSTART}	{
 		clear_literal();
 		regex_start = yytext[0];
 		regex_delimit = yytext[1];
