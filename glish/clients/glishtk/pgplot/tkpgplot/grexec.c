@@ -71,7 +71,7 @@ markers; `N' otherwise.
 */
 
 /* The dispatcher for PGPLOT. */
-static int NUMDRIVERS = 7;
+static int NUMDRIVERS = 6;
 extern int psdriv_(int *ifunc, float *rbuf, int *nbuf, char *chr,
 					int *lchr, int *mode, int chr_len);
 extern int tkdriv(int *ifunc, float *rbuf, int *nbuf, char *chr, int *lchr, int len);
@@ -90,10 +90,11 @@ int num,i;
 		*nbuf = 1;
 		break;
 	case 1:
-		nudriv_(ifunc, rbuf, nbuf, chr, lchr, chr_len);
+		tkdriv(ifunc, rbuf, nbuf, chr, lchr, chr_len);
 		break;
 	case 2:
-		tkdriv(ifunc, rbuf, nbuf, chr, lchr, chr_len);
+		num = 1;
+		psdriv_(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
 		break;
 	case 3:
 		num = 2;
@@ -109,10 +110,6 @@ int num,i;
 		break;
 	case 6:
 		num = 5;
-		psdriv_(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
-		break;
-	case 7:
-		num = 6;
 		if ( display_library_pgplot_driver )
 			(*display_library_pgplot_driver)(ifunc, rbuf, nbuf, chr, lchr, &num, chr_len);
 		else if ( *ifunc == 1 )
@@ -124,8 +121,7 @@ int num,i;
 			}
 		break;
 	default:
-		fprintf(stderr, "SvPGDriver::grexec: Unknown device code %d\n",
-			*idev);
+		fprintf(stderr, "grexec: Unknown device code %d\n", *idev);
 		break;
 	}
 	return 0;
