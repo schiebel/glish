@@ -762,6 +762,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 	last_task_id = my_id = 1;
 
 	await_stmt = except_stmt = 0;
+	await_dict = 0;
 	await_only_flag = 0;
 	current_await_done = 0;
 	last_await_info = 0;
@@ -1892,7 +1893,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
 
-	await_dict = new agent_dict;
+	await_dict = new agent_dict( ORDERED );
 	event_list *el = ((AwaitStmt*)await_stmt)->AwaitList();
 	loop_over_list ( *el, X )
 		{
