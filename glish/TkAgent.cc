@@ -164,11 +164,8 @@ IValue *glishtk_splitnl( char *str )
 	for ( nls = 0, str = prev; *str; str++ )
 		if ( *str == '\n' )
 			{
-			if ( prev != str )
-				{
-				*str = (char) 0;
-				ary[nls++] = strdup( prev );
-				}
+			*str = (char) 0;
+			ary[nls++] = strdup( prev );
 			prev = str+1;
 			}
 
