@@ -88,7 +88,9 @@ class Regex : public GlishObject {
 	//
 	const char *Error( ) const { return error_string ? error_string : subst.err(); }
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	// returns an allocated string
 	const char *Description( ) const;

@@ -42,7 +42,9 @@ public:
 			Notifiee* notifiee, NotifyTrigger *t=0 );
 	~Notification();
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	void invalid( ) { valid = 0; }
 

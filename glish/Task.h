@@ -73,7 +73,9 @@ class Task : public Agent {
 
 	Task* AgentTask();
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	virtual void sendEvent( sos_sink &fd, const char* event_name,
 			const GlishEvent* e, int can_suspend = 1 );

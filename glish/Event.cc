@@ -179,16 +179,17 @@ name_list &EventDesignator::EventNames()
 	return *names;
 	}
 
-int EventDesignator::DescribeSelf( OStream& s, charptr prefix ) const
+int EventDesignator::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	EventAgentExpr()->DescribeSelf( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	// skip prefix below
+	EventAgentExpr()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "->";
 
 	if ( event_name_expr )
 		{
 		s << "[";
-		event_name_expr->Describe( s );
+		event_name_expr->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		s << "]";
 	}
 

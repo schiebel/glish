@@ -90,10 +90,16 @@ func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
 func write(file, ..., sep='\n')
-	internal_write(file, sep, ...)
+	internal_write(file, sep, ' ', ...)
 
 func read(file, num=1)
 	internal_read(file, num)
+
+func fprintf(file,...)
+	internal_write(file, '', '', sprintf(...))
+
+func printf(...)
+	internal_printf(sprintf(...))
 
 func readline(prompt='>> ')
 	internal_readline(prompt)

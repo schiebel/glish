@@ -166,9 +166,10 @@ char *File::clean_string( )
 	return buffer;
 	}
 
-void File::Describe( OStream& s ) const
+int File::Describe( OStream& s, const ioOpt & ) const
 	{
 	s << "<FILE: " << str << ">";
+	return 1;
 	}
 
 const char *File::Description( ) const

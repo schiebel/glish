@@ -26,6 +26,24 @@ extern Str glish_errno;
 typedef const char* charptr;
 typedef SosRef GlishRef;
 
+class ioOpt {
+    public:
+	inline static unsigned short SHORT( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<0; }
+	inline static unsigned short NO_NEWLINE( unsigned short mask=~((unsigned short) 0) ) { return mask & 1<<1; }
+	ioOpt( ) : flags_(0), sep_(' '), prefix_(0) { }
+	ioOpt( unsigned short f ) : flags_(f), sep_(' '), prefix_(0) { }
+	ioOpt( unsigned short f, char s ) : flags_(f), sep_(s), prefix_(0) { }
+	ioOpt( unsigned short f, charptr p ) : flags_(f), sep_(' '), prefix_(p) { }
+	ioOpt( unsigned short f, char s, charptr p ) : flags_(f), sep_(s), prefix_(p) { }
+	unsigned short flags( unsigned short mask=~((unsigned short) 0) ) const { return mask & flags_; }
+	char sep() const { return sep_; }
+	charptr prefix() const { return prefix_; }
+    private:
+	charptr prefix_;
+	unsigned short flags_;
+	char sep_;
+};
+
 class GlishObject : public GlishRef {
     public:
 	GlishObject() : file( file_name ), line(line_num)	{ }
@@ -36,23 +54,22 @@ class GlishObject : public GlishRef {
 
 	// Generate a long description of the object to the
 	// given stream.  This typically includes descriptions of
-	// subobjects as well as this object.
-	virtual void Describe( OStream& ) const;
-
-	// Generate a short description of the object to the
-	// given stream. Returns non-zero if something was actually
-	// written to the stream.
-	virtual int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+	// subobjects as well as this object. Returns non-zero if
+	// something is actuall written to the stream.
+	virtual int Describe( OStream&, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	// Non-virtual, non-const versions of Describe() and DescribeSelf().
 	// We add it here so that if when deriving a subclass of GlishObject we
 	// forget the "const" declaration on the Describe/DescribeSelf
 	// member functions, we'll hopefully get a warning message that
 	// we're shadowing a non-virtual function.
-	void Describe( OStream& stream )
-		{ ((const GlishObject*) this)->Describe( stream ); }
-	int DescribeSelf( OStream& stream, charptr prefix = 0 )
-		{ return ((const GlishObject*) this)->DescribeSelf( stream, prefix ); }
+	int Describe( OStream& s, const ioOpt &opt )
+		{ return ((const GlishObject*) this)->Describe( s, opt ); }
+	int Describe( OStream& s )
+		{ return Describe( s, ioOpt() ); }
+
 	// Get a quick (minimal) description of the object. This is
 	// used in CallExpr::Eval() to get the name of the function.
 	// Getting it via a stream is just too much overhead.

@@ -215,7 +215,9 @@ public:
 	void DcomplexOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
 				const char *&err = glish_charptrdummy );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	void MarkFail( );
 	int FailMarked( );

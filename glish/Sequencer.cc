@@ -463,14 +463,15 @@ Notification::~Notification()
 	Unref( notifier );
 	}
 
-void Notification::Describe( OStream& s ) const
+int Notification::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	s << "notification of ";
-	notifier->DescribeSelf( s );
+	notifier->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "." << field << " (";
-	value->DescribeSelf( s );
+	value->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << ") for ";
-	notifiee->stmt()->DescribeSelf( s );
+	notifiee->stmt()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
 	}
 
 void Notification::ClearNotifier( )
@@ -580,7 +581,7 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		if ( ret && ret->Type() == TYPE_FAIL )				\
 			{							\
 			error->Report("in trace function (disconnecting):");	\
-			ret->DescribeSelf( error->Stream() );			\
+			ret->Describe( error->Stream(), ioOpt(ioOpt::SHORT()) );\
 			error->Stream() << endl;				\
 			Unref(VAR##_val);					\
 			VAR##_val = 0;						\

@@ -63,7 +63,9 @@ class Parameter : public GlishObject {
 	// value is indexed using n=0.
 	const IValue* NthEllipsisVal( int n ) const;
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~Parameter();
 
@@ -87,7 +89,9 @@ class FormalParameter : public Parameter {
 	FormalParameter( value_type parm_type, Expr* arg,
 			int is_ellipsis = 0, Expr* default_value = 0 );
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 	};
 
 class ActualParameter : public Parameter {
@@ -129,7 +133,9 @@ class UserFuncKernel : public GlishObject {
 	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
 	IValue* DoCall( eval_type etype, stack_type *stack = 0 );
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
     protected:
 	IValue* EvalParam( Parameter* p, Expr* actual, IValue *&fail );
@@ -171,7 +177,9 @@ class UserFunc : public Func {
 	void EstablishScope();
 	UserFunc *clone() { return new UserFunc(this); }
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 #ifdef GGC
 	void TagGC();

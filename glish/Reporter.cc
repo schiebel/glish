@@ -24,29 +24,29 @@ extern int glish_silent;
 class WarningReporter : public Reporter {
     public:
 	WarningReporter() : Reporter( new ProxyStream(cerr) )	{ }
-	virtual void Prolog();
+	virtual void Prolog( const ioOpt & );
 	};
 
 
 class ErrorReporter : public Reporter {
     public:
 	ErrorReporter() : Reporter( new ProxyStream(cerr) )	{ }
-	virtual void Prolog();
+	virtual void Prolog( const ioOpt & );
 	};
 
 
 class FatalReporter : public Reporter {
     public:
 	FatalReporter() : Reporter( new ProxyStream(cerr) )	{ }
-	virtual void Prolog();
-	virtual void Epilog();
+	virtual void Prolog( const ioOpt & );
+	virtual void Epilog( const ioOpt & );
 	};
 
 
 class MessageReporter : public Reporter {
     public:
 	MessageReporter() : Reporter( new ProxyStream(cout) )	{ }
-	virtual void Prolog();
+	virtual void Prolog( const ioOpt & );
 	};
 
 
@@ -90,14 +90,14 @@ RMessage::RMessage( int message_int )
 	int_val = message_int;
 	}
 
-char RMessage::Write( OStream& s, int leading_space, int trailing_space ) const
+char RMessage::Write( OStream& s, int leading_space, int trailing_space, const ioOpt &opt ) const
 	{
 	if ( object )
 		{
 		if ( leading_space )
 			s << " ";
 
-		object->Describe( s );
+		object->Describe( s, opt );
 
 		if ( trailing_space )
 			s << " ";
@@ -173,7 +173,7 @@ Reporter::~Reporter( )
 	Unref( sout );
 	}
 
-void Reporter::Report( const RMessage& m0,
+void Reporter::report( const ioOpt &opt, const RMessage& m0,
 		       const RMessage& m1, const RMessage& m2,
 		       const RMessage& m3, const RMessage& m4,
 		       const RMessage& m5, const RMessage& m6,
@@ -212,7 +212,7 @@ void Reporter::Report( const RMessage& m0,
 	if ( (do_log = loggable && do_output_log()) )
 		sout->reset();
 
-	Prolog();
+	Prolog(opt);
 
 	const char* suppress_following_blank = " ([{#@$%-`'\"";
 	const char* suppress_preceding_blank = " )]},:;.'\"";
@@ -239,9 +239,9 @@ void Reporter::Report( const RMessage& m0,
 				trailing_space = 1;
 			}
 
-		c = messages[i]->Write( stream, leading_space, trailing_space );
+		c = messages[i]->Write( stream, leading_space, trailing_space, opt );
 		if ( do_log )
-			messages[i]->Write( *sout, leading_space, trailing_space );
+			messages[i]->Write( *sout, leading_space, trailing_space, opt );
 
 		leading_space = ! (c && strchr( suppress_following_blank, c ));
 		}
@@ -249,12 +249,12 @@ void Reporter::Report( const RMessage& m0,
 	if ( do_log )
 		log_output( sout->str() );
 
-	Epilog();
+	Epilog(opt);
 
 	++count;
 	}
 
-void Reporter::Prolog()
+void Reporter::Prolog( const ioOpt &opt )
 	{
 	if ( ! interactive )
 		{
@@ -274,46 +274,47 @@ void Reporter::Prolog()
 		}
 	}
 
-void Reporter::Epilog()
+void Reporter::Epilog( const ioOpt &opt )
 	{
-	stream << "\n";
+	if ( ! opt.flags(ioOpt::NO_NEWLINE()) )
+		stream << "\n";
 	stream.flush();
 	}
 
 
-void WarningReporter::Prolog()
+void WarningReporter::Prolog( const ioOpt &opt )
 	{
-	Reporter::Prolog();
+	Reporter::Prolog(opt);
 	stream << "warning, ";
 	if ( do_log ) *sout << "warning, ";
 	}
 
 
-void ErrorReporter::Prolog()
+void ErrorReporter::Prolog( const ioOpt &opt )
 	{
-	Reporter::Prolog();
+	Reporter::Prolog(opt);
 	stream << "error, ";
 	if ( do_log ) *sout << "error, ";
 	}
 
 
-void FatalReporter::Prolog()
+void FatalReporter::Prolog( const ioOpt &opt )
 	{
 	show_glish_stack( stream );
-	Reporter::Prolog();
+	Reporter::Prolog(opt);
 	stream << "fatal internal error, ";
 	if ( do_log ) *sout << "fatal internal error, ";
 	}
 
-void FatalReporter::Epilog()
+void FatalReporter::Epilog( const ioOpt &opt )
 	{
-	Reporter::Epilog();
+	Reporter::Epilog(opt);
 	glish_cleanup();
 	exit( 1 );
 	}
 
 
-void MessageReporter::Prolog()
+void MessageReporter::Prolog( const ioOpt & )
 	{
 	}
 

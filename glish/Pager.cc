@@ -9,7 +9,7 @@ extern int glish_silent;
 
 Reporter* pager = 0;
 
-void PagerReporter::Report( const RMessage& m0,
+void PagerReporter::report( const ioOpt &opt, const RMessage& m0,
 			    const RMessage& m1, const RMessage& m2,
 			    const RMessage& m3, const RMessage& m4,
 			    const RMessage& m5, const RMessage& m6,
@@ -30,12 +30,12 @@ void PagerReporter::Report( const RMessage& m0,
 
 	if ( ! exec_ary || exec_len < 0 || limit < 0 ||
 	     ! (exec = which_executable( exec_ary[0] )) )
-		message->Report( m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
+		message->report( opt, m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
 				 m9, m10, m11, m12, m13, m14, m15, m16 );
 	else
 		{
 		stream.reset();
-		Reporter::Report( m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
+		Reporter::report( opt, m0, m1,  m2,  m3,  m4,  m5,  m6,  m7, m8,
 				  m9, m10, m11, m12, m13, m14, m15, m16 );
 
 		int line_count = 0;
@@ -45,7 +45,7 @@ void PagerReporter::Report( const RMessage& m0,
 
 		if ( line_count <= limit &&
 		     char_count / 85 <= limit )
-			message->Report( ((SOStream&)stream).str() );
+			message->report( opt, ((SOStream&)stream).str() );
 		else
 			{
 			int x = 0;
@@ -64,11 +64,11 @@ void PagerReporter::Report( const RMessage& m0,
 		}
 	}
 
-void PagerReporter::Prolog()
+void PagerReporter::Prolog( const ioOpt & )
 	{
 	}
 
-void PagerReporter::Epilog()
+void PagerReporter::Epilog( const ioOpt & )
 	{
 	stream.flush();
 	}

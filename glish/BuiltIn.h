@@ -41,7 +41,9 @@ class BuiltIn : public Func {
 	void SetFailHandling( int do_fail )
 		{ handle_fail = do_fail; }
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	const char *Description() const;
 
@@ -132,6 +134,7 @@ DERIVE_BUILTIN(OpenBuiltIn,NUM_ARGS_VARIES,"open",)
 DERIVE_BUILTIN(WriteBuiltIn,NUM_ARGS_VARIES,"internal_write",)
 DERIVE_BUILTIN(ReadBuiltIn,2,"internal_read",)
 DERIVE_BUILTIN(SprintfBuiltIn,NUM_ARGS_VARIES,"sprintf",)
+DERIVE_BUILTIN(PrintfBuiltIn,1,"internal_printf",)
 
 DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)

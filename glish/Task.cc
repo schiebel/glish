@@ -244,9 +244,9 @@ Task* Task::AgentTask()
 	return this;
 	}
 
-int Task::DescribeSelf( OStream& s, charptr prefix ) const
+int Task::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "task " << Name();
 	return 1;
 	}

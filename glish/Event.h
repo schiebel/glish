@@ -52,7 +52,9 @@ public:
 
 	name_list &EventNames( );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~EventDesignator();
 

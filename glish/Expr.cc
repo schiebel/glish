@@ -452,9 +452,9 @@ IValue* ConstExpr::Eval( eval_type etype )
 	return CopyOrRefValue( const_value, etype );
 	}
 
-int ConstExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int ConstExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	return const_value->DescribeSelf( s, prefix );
+	return const_value->Describe( s, opt );
 	}
 
 
@@ -480,10 +480,10 @@ IValue* FuncExpr::Eval( eval_type )
 	return new IValue( ret );
 	}
 
-int FuncExpr::DescribeSelf( OStream& s, charptr prefix ) const
+int FuncExpr::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	func->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	func->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	return 1;
 	}
 
@@ -497,10 +497,10 @@ UnaryExpr::UnaryExpr( Expr* operand )
 	op = operand;
 	}
 
-int UnaryExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int UnaryExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	GlishObject::DescribeSelf( s, prefix );
-	op->Describe( s );
+	GlishObject::Describe( s, opt );
+	op->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	return 1;
 	}
 
@@ -529,15 +529,15 @@ BinaryExpr::BinaryExpr( Expr* op1, Expr* op2 )
 	}
 
 
-int BinaryExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int BinaryExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "(";
-	left->Describe( s );
+	left->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << " ";
-	GlishObject::DescribeSelf( s );
+	GlishObject::Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << " ";
-	right->Describe( s );
+	right->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << ")";
 	return 1;
 	}
@@ -844,9 +844,9 @@ IValue* ConstructExpr::Eval( eval_type /* etype */ )
 		return BuildRecord();
 	}
 
-int ConstructExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int ConstructExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "[";
 
 	if ( args )
@@ -1515,10 +1515,10 @@ IValue *ArrayRefExpr::ApplyRegx( regexptr* /* ptr */, int /*len*/, RegexMatch & 
 	return (IValue*) Fail( this, "is not a valid target for regex application" );
 	}
 
-int ArrayRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int ArrayRefExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	op->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	op->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "[";
 	if ( args )
 		describe_expr_list( args, s );
@@ -1610,10 +1610,10 @@ IValue *RecordRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-int RecordRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int RecordRefExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	op->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	op->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "." << field;
 	return 1;
 	}
@@ -1785,10 +1785,10 @@ IValue *AttributeRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-int AttributeRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int AttributeRefExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	left->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	left->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 
 	if ( field )
 		s << "::" << field;
@@ -1796,7 +1796,7 @@ int AttributeRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	else if ( right )
 		{
 		s << "::[";
-		right->Describe( s );
+		right->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		s << "]";
 		}
 	return 1;
@@ -1862,9 +1862,9 @@ IValue *RefExpr::Assign( IValue* new_value )
 	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}
 
-int RefExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int RefExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	if ( type == VAL_CONST )
 		s << "const ";
 	else if ( type == VAL_REF )
@@ -1872,7 +1872,7 @@ int RefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	else
 		s << "val ";
 
-	op->Describe( s );
+	op->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	return 1;
 	}
 
@@ -2153,7 +2153,7 @@ IValue* CallExpr::Eval( eval_type etype )
 	Func* func_val = func->FuncVal();
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( DescribeSelf(message->Stream(), "\t|-> ") )
+		if ( Describe(message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
 			message->Stream() << endl;
 
 	IValue* result = 0;
@@ -2194,17 +2194,17 @@ IValue *CallExpr::SideEffectsEval()
 	return 0;
 	}
 
-int CallExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int CallExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
-	op->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	op->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "(";
 	loop_over_list( *args, i )
 		{
 		if ( i > 0 )
 			s << ", ";
 
-		(*args)[i]->Describe( s );
+		(*args)[i]->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
 
 	s << ")";
@@ -2298,12 +2298,12 @@ IValue *SendEventExpr::SideEffectsEval()
 	return 0;
 	}
 
-int SendEventExpr::DescribeSelf( OStream &s, charptr ) const
+int SendEventExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
 	if ( is_request_reply )
 		s << "request ";
 
-	sender->Describe( s );
+	sender->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << "->(";
 	describe_parameter_list( args, s );
 	s << ")";
@@ -2385,9 +2385,9 @@ IValue* LastEventExpr::RefEval( value_type val_type )
 	return result;
 	}
 
-int LastEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int LastEventExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 
 	switch( type )
 		{
@@ -2461,9 +2461,9 @@ IValue* LastRegexExpr::RefEval( value_type val_type )
 	return result;
 	}
 
-int LastRegexExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int LastRegexExpr::Describe( OStream &s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 
 	if ( type == REGEX_MATCH )
 		s << "$m";

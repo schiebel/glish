@@ -104,18 +104,19 @@ const IValue* Parameter::NthEllipsisVal( int n ) const
 	return result;
 	}
 
-void Parameter::Describe( OStream& s ) const
+int Parameter::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	if ( name )
 		s << name;
 	else if ( arg )
-		arg->Describe( s );
+		arg->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 
 	if ( default_value )
 		{
 		s << " = ";
-		default_value->Describe( s );
+		default_value->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
+	return 1;
 	}
 
 
@@ -137,7 +138,7 @@ FormalParameter::FormalParameter( value_type parm_type_,
 	{
 	}
 
-void FormalParameter::Describe( OStream& s ) const
+int FormalParameter::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	if ( parm_type == VAL_CONST )
 		s << "const";
@@ -148,7 +149,8 @@ void FormalParameter::Describe( OStream& s ) const
 
 	s << " ";
 
-	Parameter::Describe( s );
+	Parameter::Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
 	}
 
 
@@ -204,9 +206,9 @@ void UserFunc::EstablishScope()
 		}
 	}
 
-void UserFunc::Describe( OStream& s ) const
+int UserFunc::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	kernel->Describe(s);
+	return kernel->Describe(s, opt);
 	}
 
 #ifdef GGC
@@ -593,12 +595,14 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	}
 
 
-void UserFuncKernel::Describe( OStream& s ) const
+int UserFuncKernel::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	s << "function (";
 	describe_parameter_list( formals, s );
 	s << ") ";
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
 	body->Describe( s );
+	return 1;
 	}
 
 

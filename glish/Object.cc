@@ -22,14 +22,9 @@ const char* GlishObject::Description() const
 	return 0;
 	}
 
-void GlishObject::Describe( OStream& s ) const
+int GlishObject::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	DescribeSelf( s );
-	}
-
-int GlishObject::DescribeSelf( OStream& s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	const char *d = Description();
 	s << (d ? d : "<*unknown*>");
 	return 1;

@@ -120,7 +120,9 @@ class Agent : public GlishObject {
 	const char* AgentID()	{ return agent_ID; }
 	IValue* AgentRecord()	{ return agent_value; }
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	// Sometimes the wrapper of a Task (subclass of Agent) can go
 	// out-of-scope and be deleted, but the Task sticks around

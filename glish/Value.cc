@@ -2599,9 +2599,9 @@ char *Value::GetNSDesc( ) const
 	}
 
 
-int Value::DescribeSelf( OStream& s, charptr prefix ) const
+int Value::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	if ( IsRef() )
 		{
 		if ( IsConst() )
@@ -2609,11 +2609,11 @@ int Value::DescribeSelf( OStream& s, charptr prefix ) const
 		else
 			s << "ref ";
 
-		RefPtr()->DescribeSelf( s );
+		RefPtr()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
 	else
 		{
-		char* desc = StringVal( ' ', PrintLimit() , 1 );
+		char* desc = StringVal( opt.sep(), PrintLimit() , 1 );
 		s << desc;
 		free_memory( desc );
 		}

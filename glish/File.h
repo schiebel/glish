@@ -14,7 +14,9 @@ class File : public GlishObject {
 	char *read( );
 	void write( charptr buf );
 	void close( Type t=PBOTH );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 	const char *Description( ) const;
 	Type type( ) { return type_; }
     private:

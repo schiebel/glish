@@ -40,7 +40,7 @@ IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	flow = FLOW_NEXT;
 
 	if ( Sequencer::CurSeq()->System().Trace() )
-		if ( ! DoesTrace() && DescribeSelf(message->Stream(), "\t|-> ") )
+		if ( ! DoesTrace() && Describe(message->Stream(), ioOpt(ioOpt::SHORT(),"\t|-> ")) )
 			message->Stream() << endl;
 
 	IValue* result = DoExec( value_needed, flow );
@@ -123,20 +123,16 @@ void SeqStmt::CollectUnref( stmt_list &del_list )
 		}
 	}
 
-void SeqStmt::Describe( OStream& s ) const
+int SeqStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.flags(ioOpt::SHORT()) ) return 0;
 	s << "{\n";
-	lhs->Describe( s );
+	lhs->Describe( s, opt );
 	s << "\n";
-	rhs->Describe( s );
+	rhs->Describe( s, opt );
 	s << "}\n";
+	return 1;
 	}
-
-int SeqStmt::DescribeSelf( OStream &, charptr ) const
-	{
-	return 0;
-	}
-
 
 const char *WheneverStmtCtor::Description() const
 	{
@@ -207,13 +203,15 @@ IValue* WheneverStmtCtor::DoExec( int /* value_needed */,
 	return 0;
 	}
 
-void WheneverStmtCtor::Describe( OStream& s ) const
+int WheneverStmtCtor::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	DescribeSelf( s );
+	GlishObject::Describe( s, opt );
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
 	s << " ";
 	describe_event_list( trigger, s );
 	s << " do ";
-	stmt->Describe( s );
+	stmt->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
 	}
 
 
@@ -312,13 +310,15 @@ int WheneverStmt::GetActivity( ) const
 	return active;
 	}
 
-void WheneverStmt::Describe( OStream& s ) const
+int WheneverStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	DescribeSelf( s );
+	GlishObject::Describe( s, opt );
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
 	s << " ";
 	describe_event_list( trigger, s );
 	s << " do ";
-	stmt->Describe( s );
+	stmt->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
 	}
 
 IValue* WheneverStmt::DoExec( int, stmt_flow_type& )
@@ -470,13 +470,14 @@ IValue* LinkStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return err;
 	}
 
-void LinkStmt::Describe( OStream& s ) const
+int LinkStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	DescribeSelf( s );
+	GlishObject::Describe( s, opt );
 	s << " ";
 	describe_event_list( source, s );
 	s << " to ";
 	describe_event_list( sink, s );
+	return 1;
 	}
 
 void LinkStmt::MakeLink( Task* src, const char* source_event,
@@ -604,13 +605,13 @@ const char *AwaitStmt::TerminateInfo() const
 	return sos.str();
 	}
 
-void AwaitStmt::Describe( OStream& s ) const
+int AwaitStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	s << "await ";
 
 	loop_over_list( *await_list, i )
 		{
-		(*await_list)[i]->Describe( s );
+		(*await_list)[i]->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		s << " ";
 		}
 
@@ -620,10 +621,11 @@ void AwaitStmt::Describe( OStream& s ) const
 
 		loop_over_list( *except_list, j )
 			{
-			(*except_list)[j]->Describe( s );
+			(*except_list)[j]->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 			s << " ";
 			}
 		}
+	return 1;
 	}
 
 const char *ActivateStmt::Description() const
@@ -697,7 +699,7 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 	return 0;
 	}
 
-void ActivateStmt::Describe( OStream& s ) const
+int ActivateStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	if ( activate )
 		s << "activate";
@@ -707,8 +709,9 @@ void ActivateStmt::Describe( OStream& s ) const
 	if ( expr )
 		{
 		s << " ";
-		expr->Describe( s );
+		expr->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
+	return 1;
 	}
 
 const char *IfStmt::Description() const
@@ -768,29 +771,24 @@ IValue* IfStmt::DoExec( int value_needed, stmt_flow_type& flow )
 	return result;
 	}
 
-void IfStmt::Describe( OStream& s ) const
+int IfStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "if ";
-	expr->Describe( s );
+	expr->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
 	s << " ";
 
 	if ( true_branch )
-		true_branch->Describe( s );
+		true_branch->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	else
 		s << " { } ";
 
 	if ( false_branch )
 		{
 		s << "\nelse ";
-		false_branch->Describe( s );
+		false_branch->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
-	}
-
-int IfStmt::DescribeSelf( OStream &s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
-	s << "if ";
-	expr->Describe( s );
 	return 1;
 	}
 
@@ -875,24 +873,16 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return result;
 	}
 
-void ForStmt::Describe( OStream& s ) const
+int ForStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "for ( ";
-	index->Describe( s );
+	index->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << " in ";
-	range->Describe( s );
+	range->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << " ) ";
-	body->Describe( s );
-	}
-
-int ForStmt::DescribeSelf( OStream& s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
-	s << "for ( ";
-	index->Describe( s );
-	s << " in ";
-	range->Describe( s );
-	s << " )";
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
+	body->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	return 1;
 	}
 
@@ -960,12 +950,15 @@ IValue* WhileStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return result;
 	}
 
-void WhileStmt::Describe( OStream& s ) const
+int WhileStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "while ( ";
-	test->Describe( s );
+	test->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << " ) ";
-	body->Describe( s );
+	if ( opt.flags(ioOpt::SHORT()) ) return 1;
+	body->Describe( s, ioOpt(opt.flags(),opt.sep()) );
+	return 1;
 	}
 
 const char *PrintStmt::Description() const
@@ -998,22 +991,17 @@ IValue* PrintStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
-void PrintStmt::Describe( OStream& s ) const
+int PrintStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "print ";
 
 	describe_parameter_list( args, s );
 
 	s << ";";
-	}
-
-
-int PrintStmt::DescribeSelf( OStream &s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
-	Describe(s);
 	return 1;
 	}
+
 
 const char *FailStmt::Description() const
 	{
@@ -1043,14 +1031,16 @@ IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	return ret;
 	}
 
-void FailStmt::Describe( OStream& s ) const
+int FailStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "fail ";
 
 	if ( arg )
-		arg->Describe( s );
+		arg->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 
 	s << ";";
+	return 1;
 	}
 
 
@@ -1103,14 +1093,16 @@ IValue* IncludeStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ 
 	return ret;
 	}
 
-void IncludeStmt::Describe( OStream& s ) const
+int IncludeStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "include ";
 
 	if ( arg )
-		arg->Describe( s );
+		arg->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 
 	s << ";";
+	return 1;
 	}
 
 
@@ -1137,16 +1129,11 @@ int ExprStmt::DoesTrace( ) const
 	return expr->DoesTrace();
 	}
 
-void ExprStmt::Describe( OStream& s ) const
+int ExprStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	expr->Describe( s );
+	if ( opt.prefix() ) s << opt.prefix();
+	expr->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 	s << ";";
-	}
-
-int ExprStmt::DescribeSelf( OStream& s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
-	expr->DescribeSelf( s );
 	return 1;
 	}
 
@@ -1177,15 +1164,17 @@ IValue* ExitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	return 0;
 	}
 
-void ExitStmt::Describe( OStream& s ) const
+int ExitStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "exit";
 
 	if ( status )
 		{
 		s << " ";
-		status->Describe( s );
+		status->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
+	return 1;
 	}
 
 const char *LoopStmt::Description() const
@@ -1236,24 +1225,18 @@ IValue* ReturnStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 		return 0;
 	}
 
-void ReturnStmt::Describe( OStream& s ) const
+int ReturnStmt::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "return";
 
 	if ( retval )
 		{
 		s << " ";
-		retval->Describe( s );
+		retval->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
-	}
-
-int ReturnStmt::DescribeSelf( OStream &s, charptr prefix ) const
-	{
-	if ( prefix ) s << prefix;
-	Describe(s);
 	return 1;
 	}
-
 
 StmtBlock::~StmtBlock()
 	{
@@ -1307,16 +1290,14 @@ IValue* StmtBlock::DoExec( int value_needed, stmt_flow_type& flow )
 	return result;
 	}
 
-void StmtBlock::Describe( OStream& s ) const
+int StmtBlock::Describe( OStream& s, const ioOpt &opt ) const
 	{
+	if ( opt.flags(ioOpt::SHORT()) ) return 0;
+	if ( opt.prefix() ) s << opt.prefix();
 	s << "{{ ";
-	stmt->Describe( s );
+	stmt->Describe( s, opt );
 	s << " }}";
-	}
-
-int StmtBlock::DescribeSelf( OStream &, charptr ) const
-	{
-	return 0;
+	return 1;
 	}
 
 const char *NullStmt::Description() const

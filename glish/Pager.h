@@ -11,7 +11,7 @@ class PagerReporter : public Reporter {
     public:
 	PagerReporter(Sequencer *s) : Reporter( new SOStream ), seq(s) { }
 
-	virtual void Report( const RMessage&,
+	virtual void report( const ioOpt &opt, const RMessage&,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -22,8 +22,8 @@ class PagerReporter : public Reporter {
 			     const RMessage& = EndMessage, const RMessage& = EndMessage 
 			   );
     protected:
-	void Prolog();
-	void Epilog();
+	void Prolog( const ioOpt & );
+	void Epilog( const ioOpt & );
 	Sequencer *seq;
 };
 

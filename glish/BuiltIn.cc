@@ -23,6 +23,7 @@ RCSID("@(#) $Id$")
 #include "glish_event.h"
 #include "BuiltIn.h"
 #include "Reporter.h"
+#include "Pager.h"
 #include "Task.h"
 #include "Sequencer.h"
 #include "Frame.h"
@@ -207,9 +208,9 @@ void BuiltIn::DoSideEffectsCall( const_args_list* args_vals,
 	Unref( DoCall( args_vals ) );
 	}
 
-int BuiltIn::DescribeSelf( OStream& s, charptr prefix ) const
+int BuiltIn::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	s << description << "()";
 	return 1;
 	}
@@ -1744,14 +1745,15 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	{
-	if ( args_val->length() < 2 )
+	if ( args_val->length() < 3 )
 		return (IValue*) Fail( "too few arguments for \"write\"" );
 
 	const IValue *file_val = (*args_val)[0];
 	const IValue *sep_val = (*args_val)[1];
+	const IValue *isep_val = (*args_val)[2];
 
 	if ( file_val->Type() != TYPE_FILE )
-		return (IValue*) Fail( "argument 1 to sread is not a file" );
+		return (IValue*) Fail( "argument 1 to \"write\" is not a file" );
 
 	fileptr file = file_val->FileVal();
 
@@ -1760,13 +1762,16 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot write to this file" );
 
-	char *sep = sep_val->Length() > 0 ? sep_val->StringVal() : 0;
+	char *osep = sep_val->Length() > 0 ? sep_val->StringVal() : 0;
+	char *sep = osep && *osep ? osep : 0;
+	char isep = isep_val->Length() > 0 ? isep_val->StringPtr(0)[0][0] : 0;
+	isep = isep ? isep : ' ';
 
-	if ( args_val->length() > 2 )
+	if ( args_val->length() > 3 )
 
-		for ( int i=2; i < args_val->length(); ++i )
+		for ( int i=3; i < args_val->length(); ++i )
 			{
-			char *string = (*args_val)[i]->StringVal();
+			char *string = (*args_val)[i]->StringVal( isep );
 			file->write( string );
 			if ( sep ) file->write(sep);
 			free_memory(string);
@@ -1776,7 +1781,7 @@ IValue* WriteBuiltIn::DoCall( const_args_list* args_val )
 
 		file->write( sep );
 
-	if ( sep ) free_memory(sep);
+	if ( osep ) free_memory(osep);
 	return new IValue( glish_true );
 	}
 
@@ -1821,6 +1826,15 @@ IValue* SprintfBuiltIn::DoCall( const_args_list* args_val )
 		return new IValue( (charptr*) ary, len );
 	else
 		return (IValue*) Fail( err );
+	}
+
+IValue* PrintfBuiltIn::DoCall( const_args_list* args_val )
+	{
+	if ( args_val->length() < 1 )
+		return (IValue*) Fail( "too few arguments for \"printf\"" );
+	const IValue *out = (*args_val)[0];
+	pager->report( ioOpt(ioOpt::NO_NEWLINE(),'\0'), out );
+	return new IValue( glish_true );
 	}
 
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
@@ -2684,6 +2698,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new ReadBuiltIn );
 	s->AddBuiltIn( new WriteBuiltIn );
 	s->AddBuiltIn( new SprintfBuiltIn );
+	s->AddBuiltIn( new PrintfBuiltIn );
 
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );

@@ -1836,16 +1836,16 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 		}
 	}
 
-int IValue::DescribeSelf( OStream& s, charptr prefix ) const
+int IValue::Describe( OStream& s, const ioOpt &opt ) const
 	{
 	if ( Type() == TYPE_FUNC )
 		{
 		// ### what if we're an array of functions?
-		if ( prefix ) s << prefix;
-		FuncVal()->Describe( s );
+		if ( opt.prefix() ) s << opt.prefix();
+		FuncVal()->Describe( s, ioOpt(opt.flags(),opt.sep()) );
 		}
 	else
-		return Value::DescribeSelf( s, prefix );
+		return Value::Describe( s, opt );
 
 	return 1;
 	}

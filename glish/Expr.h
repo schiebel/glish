@@ -292,7 +292,9 @@ class ConstExpr : public Expr {
 	ConstExpr( const IValue* const_value );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ConstExpr();
 
@@ -308,7 +310,9 @@ class FuncExpr : public Expr {
 	FuncExpr( UserFunc* f );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~FuncExpr();
 
@@ -324,7 +328,9 @@ class UnaryExpr : public Expr {
 	UnaryExpr( Expr* operand );
 
 	IValue* Eval( eval_type etype ) = 0;
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -340,7 +346,9 @@ class BinaryExpr : public Expr {
 	BinaryExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype ) = 0;
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -421,7 +429,9 @@ class ConstructExpr : public Expr {
 	ConstructExpr( ParameterPList* args );
 
 	IValue* Eval( eval_type etype );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ConstructExpr();
 
@@ -460,7 +470,9 @@ class ArrayRefExpr : public UnaryExpr {
 	IValue *Assign( IValue* new_value );
 	IValue *ApplyRegx( regexptr *ptr, int len, RegexMatch &match );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ArrayRefExpr();
 
@@ -481,7 +493,9 @@ class RecordRefExpr : public UnaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~RecordRefExpr();
 
@@ -503,7 +517,9 @@ class AttributeRefExpr : public BinaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -523,7 +539,9 @@ class RefExpr : public UnaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue *Assign( IValue* new_value );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	const char *Description() const;
 
@@ -563,7 +581,9 @@ class CallExpr : public UnaryExpr {
 	IValue *SideEffectsEval();
 	int DoesTrace( ) const;
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~CallExpr();
 
@@ -593,7 +613,9 @@ class SendEventExpr : public Expr {
 
 	void StandAlone( );
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~SendEventExpr();
 
@@ -614,7 +636,9 @@ class LastEventExpr : public Expr {
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	const char *Description() const;
 
@@ -631,7 +655,9 @@ class LastRegexExpr : public Expr {
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	const char *Description() const;
 

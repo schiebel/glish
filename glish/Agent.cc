@@ -239,9 +239,9 @@ Task* Agent::AgentTask()
 	return 0;
 	}
 
-int Agent::DescribeSelf( OStream& s, charptr prefix ) const
+int Agent::Describe( OStream& s, const ioOpt &opt ) const
 	{
-	if ( prefix ) s << prefix;
+	if ( opt.prefix() ) s << opt.prefix();
 	if ( agent_ID )
 		s << agent_ID;
 	else

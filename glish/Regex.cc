@@ -495,12 +495,13 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 		}
 	}
 
-void Regex::Describe( OStream& s ) const
+int Regex::Describe( OStream& s, const ioOpt & ) const
 	{
 	if ( subst.str() )
 		s << "s" << divider << match << divider << subst.str() << divider;
 	else
 		s << "m" << divider << match << divider;
+	return 1;
 	}
 
 

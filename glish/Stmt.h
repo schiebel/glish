@@ -102,8 +102,10 @@ class SeqStmt : public Stmt {
 	SeqStmt( Stmt* arg_lhs, Stmt* arg_rhs );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+
+	int Describe( OStream&, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~SeqStmt();
 
@@ -138,7 +140,9 @@ class WheneverStmt : public Stmt {
 
 	static unsigned int NotifyCount();
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	int canDelete() const;
 
@@ -174,7 +178,9 @@ class WheneverStmtCtor : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	void CollectUnref( stmt_list & );
 
@@ -196,7 +202,9 @@ class LinkStmt : public Stmt {
 	LinkStmt( event_list* source, event_list* sink, Sequencer* sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~LinkStmt();
 
@@ -235,7 +243,9 @@ class AwaitStmt : public Stmt {
 		   Sequencer* arg_sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 	const char *TerminateInfo() const;
 	event_list *AwaitList() { return await_list; }
 
@@ -259,7 +269,9 @@ class ActivateStmt : public Stmt {
 	ActivateStmt( int activate, Expr* e, Sequencer* sequencer );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ActivateStmt();
 
@@ -280,8 +292,9 @@ class IfStmt : public Stmt {
 		Stmt* arg_false_branch );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~IfStmt();
 
@@ -302,8 +315,9 @@ class ForStmt : public Stmt {
 		 Stmt* body_stmt );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ForStmt();
 
@@ -323,7 +337,9 @@ class WhileStmt : public Stmt {
 	WhileStmt( Expr* test_expr, Stmt* body_stmt );
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~WhileStmt();
 
@@ -342,8 +358,9 @@ class PrintStmt : public Stmt {
 	PrintStmt( parameter_list* arg_args ) {	args = arg_args; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~PrintStmt();
 
@@ -359,7 +376,9 @@ class FailStmt : public Stmt {
 	FailStmt( Expr* arg_arg ) { arg = arg_arg; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~FailStmt();
 
@@ -383,7 +402,9 @@ class IncludeStmt : public Stmt {
 		{ arg = arg_arg; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~IncludeStmt();
 
@@ -402,8 +423,9 @@ class ExprStmt : public Stmt {
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	int DoesTrace( ) const;
 
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ExprStmt();
 
@@ -424,7 +446,9 @@ class ExitStmt : public Stmt {
 		}
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ExitStmt();
 
@@ -469,8 +493,9 @@ class ReturnStmt : public Stmt {
 		{ retval = arg_retval; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~ReturnStmt();
 
@@ -487,8 +512,9 @@ class StmtBlock : public Stmt {
 
 	IValue *DoExec( int value_needed, stmt_flow_type &flow );
 
-	void Describe( OStream& s ) const;
-	int DescribeSelf( OStream&, charptr prefix = 0 ) const;
+	int Describe( OStream& s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	~StmtBlock();
 

@@ -9,6 +9,7 @@
 class OStream;
 class SOStream;
 class Value;
+class Reporter;
 
 class RMessage {
     public:
@@ -25,7 +26,7 @@ class RMessage {
 	//  The character returned is that *last* character written, if
 	// known (it will be known in the string case but not in the
 	// GlishObject case), or '\0' if not known.
-	char Write( OStream&, int leading_space, int trailing_space ) const;
+	char Write( OStream&, int leading_space, int trailing_space, const ioOpt &opt ) const;
 
 	// Returns the *first* character which would be written, if
 	// known (it will be known in the string case but not in the
@@ -48,7 +49,7 @@ class Reporter {
 	Reporter( OStream *reporter_stream );
 	virtual ~Reporter( );
 
-	virtual void Report( const RMessage&,
+	virtual void report( const ioOpt &opt, const RMessage&,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
@@ -58,6 +59,19 @@ class Reporter {
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage 
 			   );
+
+	void Report( const RMessage &m0,
+		     const RMessage &m1 = EndMessage, const RMessage &m2 = EndMessage,
+		     const RMessage &m3 = EndMessage, const RMessage &m4 = EndMessage,
+		     const RMessage &m5 = EndMessage, const RMessage &m6 = EndMessage,
+		     const RMessage &m7 = EndMessage, const RMessage &m8 = EndMessage,
+		     const RMessage &m9 = EndMessage, const RMessage &m10 = EndMessage,
+		     const RMessage &m11 = EndMessage, const RMessage &m12 = EndMessage,
+		     const RMessage &m13 = EndMessage, const RMessage &m14 = EndMessage,
+		     const RMessage &m15 = EndMessage, const RMessage &m16 = EndMessage 
+		   )
+		{ report( ioOpt(), m0, m1, m2, m3, m4, m5, m6, m7,
+			  m8, m9, m10, m11, m12, m13, m14, m15, m16 ); }
 
 	// Count of how many times this reporter has generated a message
 	int Count()			{ return count; }
@@ -69,8 +83,8 @@ class Reporter {
 	int loggable;
 	int do_log;
 	static SOStream *sout;
-	virtual void Prolog();
-	virtual void Epilog();
+	virtual void Prolog(const ioOpt&);
+	virtual void Epilog(const ioOpt&);
 
 	int count;
 

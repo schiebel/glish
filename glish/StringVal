@@ -370,7 +370,7 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 
 			if ( i < length - 1 )
 				// More to come.
-				*buf_ptr++ = sep;
+				if (sep) *buf_ptr++ = sep;
 			}
 
 		if ( max_elements && length > max_elements )

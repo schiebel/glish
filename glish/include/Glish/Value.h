@@ -552,7 +552,9 @@ public:
 		return a;
 		}
 
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
+	int Describe( OStream &s, const ioOpt &opt ) const;
+	int Describe( OStream &s ) const
+		{ return Describe( s, ioOpt() ); }
 
 	// Provide the rudiments of copy on write... i.e. it copies
 	// when necessary.
