@@ -10,6 +10,11 @@ class ProxyStore;
 glish_declare(PList,Proxy);
 typedef PList(Proxy) proxy_list;
 
+class event_queue_item;
+glish_declare(PList,event_queue_item);
+typedef PList(event_queue_item) event_queue;
+
+
 typedef void (*PxyStoreCB1)( ProxyStore *, Value *, GlishEvent *, void * );
 typedef void (*PxyStoreCB2)( ProxyStore *, Value *, void * );
 typedef void (*PxyStoreCB3)( ProxyStore *, Value * );
@@ -25,6 +30,10 @@ friend class Proxy;
 
 	~ProxyStore( );
 
+	GlishEvent* NextEvent(const struct timeval *timeout = 0, int &timedout = glish_timedoutdummy);
+	GlishEvent* NextEvent( fd_set* mask );
+	GlishEvent* NextEvent( EventSource* source );
+
 	virtual void Register( const char *string, PxyStoreCB1 cb, void *data = 0 );
 	virtual void Register( const char *string, PxyStoreCB2 cb, void *data = 0 );
 	virtual void Register( const char *string, PxyStoreCB3 cb );
@@ -34,6 +43,8 @@ friend class Proxy;
 	virtual void Loop( );
 	virtual void ProcessEvent( GlishEvent *e );
 
+	int QueuedEvents() const { return equeue.length() > 0; }
+
     protected:
 	virtual void addProxy( Proxy * );
 	virtual void removeProxy( Proxy * );
@@ -42,6 +53,7 @@ friend class Proxy;
 
 	proxy_list       pxlist;
 	pxy_store_cbdict cbdict;
+	event_queue	 equeue;
 };
 
 class Proxy : public GlishRef {

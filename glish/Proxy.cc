@@ -31,6 +31,17 @@ class pxy_store_cbinfo {
 	void *data;
 };
 
+class event_queue_item {
+    public:
+	event_queue_item( GlishEvent *e, char *&rn ) : event(e), reply_name(rn)
+		{ rn = 0; }
+	GlishEvent *Event() { return event; }
+	char *ReplyName() { return reply_name; }
+    protected:
+	GlishEvent *event;
+	char *reply_name;
+};
+
 ProxyStore::ProxyStore( int &argc, char **argv,
 			Client::ShareType multithreaded ) :
 		Client( argc, argv, multithreaded ) { }
@@ -48,6 +59,51 @@ ProxyStore::~ProxyStore( )
 		free_memory( (char*) key );
 		delete member;
 		}
+	}
+
+GlishEvent *ProxyStore::NextEvent(const struct timeval *timeout, int &timedout)
+	{
+	if ( equeue.length() )
+		{
+		timedout = 0;
+		Unref(last_event);
+		event_queue_item *eqi = equeue.remove_nth(0);
+		last_event = eqi->Event();
+		pending_reply = eqi->ReplyName();
+		delete eqi;
+		return last_event;
+		}
+	return Client::NextEvent(timeout,timedout);
+	}
+
+GlishEvent *ProxyStore::NextEvent( fd_set* mask )
+	{
+	if ( equeue.length() )
+		{
+		Unref(last_event);
+		event_queue_item *eqi = equeue.remove_nth(0);
+		last_event = eqi->Event();
+		pending_reply = eqi->ReplyName();
+		delete eqi;
+		return last_event;
+		}
+
+	return Client::NextEvent(mask);
+	}
+
+GlishEvent *ProxyStore::NextEvent( EventSource* source )
+	{
+	if ( equeue.length() )
+		{
+		Unref(last_event);
+		event_queue_item *eqi = equeue.remove_nth(0);
+		last_event = eqi->Event();
+		pending_reply = eqi->ReplyName();
+		delete eqi;
+		return last_event;
+		}
+
+	return Client::NextEvent(source);
 	}
 
 void ProxyStore::Register( const char *string, PxyStoreCB1 cb, void *data )
@@ -103,12 +159,23 @@ const ProxyId ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
 	GlishEvent *save_last = last_event;
+	char *rname = pending_reply;
+	pending_reply = 0;
 	Ref(save_last);
 
 	GlishEvent e( (const char*) PXGETID, (const Value*) v );
 	e.SetIsProxy( );
 	PostEvent( &e );
-	GlishEvent *reply = NextEvent( );
+
+	// we could get other events before our
+	// *proxy-id* event is responded to...
+	GlishEvent *reply = Client::NextEvent( );
+	while ( strcmp(reply->Name(),PXGETID) )
+		{
+		Ref(reply);
+		equeue.append(new event_queue_item(reply,pending_reply));
+		reply = Client::NextEvent( );
+		}
 
 	if ( ! reply || reply->Val()->Type() != TYPE_INT ||
 	     reply->Val()->Length() != ProxyId::len() )
@@ -121,6 +188,8 @@ const ProxyId ProxyStore::getId( )
 	ProxyId result(reply->Val()->IntPtr(0));
 	Unref( last_event );
 	last_event = save_last;
+	pending_reply = rname;
+
 	return result;
 	}
 
