@@ -293,6 +293,11 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
 				var##_v_ ->Length() > 0 )		\
 	int var = var##_v_ ->IntVal();
 
+#define SETDOUBLE(var)							\
+	SETVAL(var##_v_, var##_v_ ->IsNumeric() &&			\
+				var##_v_ ->Length() > 0 )		\
+	double var = var##_v_ ->DoubleVal();
+
 #define EXPRVAL(var,EVENT)						\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
 	const IValue *var = var##_expr_ ->ReadOnlyEval();		\
@@ -396,6 +401,32 @@ inline void glishtk_pack( Rivetobj root, int argc, char **argv)
                 }                                                       \
         else                                                            \
                 var = var##_val_ ->DoubleVal();
+
+#define EXPRDOUBLE2(var,EVENT)						\
+	Expr *var##_expr_ = (*args)[c++]->Arg();			\
+	const IValue *var##_val_ = var##_expr_ ->ReadOnlyEval();	\
+        char var##_char_[30];						\
+	charptr var = 0;						\
+	if ( ! var##_val_ || var##_val_ ->Length() <= 0 )		\
+		{							\
+		error->Report("bad value for ", EVENT);			\
+		var##_expr_ ->ReadOnlyDone(var##_val_);			\
+		return 0;						\
+		}							\
+	if ( var##_val_ -> IsNumeric() )				\
+		{							\
+		double var##_double_ = var##_val_ ->DoubleVal();	\
+		var = var##_char_;					\
+		sprintf(var##_char_,"%f",var##_double_);		\
+		}							\
+	else if ( var##_val_ -> Type() == TYPE_STRING )			\
+		var = ( var##_val_ ->StringPtr(0) )[0];			\
+	else								\
+		{							\
+		error->Report("bad type for ", EVENT);			\
+		var##_expr_ ->ReadOnlyDone(var##_val_);			\
+		return 0;						\
+		}
 
 #define EXPRDOUBLEPTR(var, NUM, EVENT)					\
 	Expr *var##_expr_ = (*args)[c++]->Arg();			\
@@ -525,6 +556,19 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, parameter_list *args,
 	HASARG( args, > 0 )
 	int c = 0;
 	EXPRINT2( i, event_name )
+	ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
+	EXPR_DONE( i )
+	return ret;
+	}
+
+char *glishtk_onedouble(Rivetobj self, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one double function";
+	HASARG( args, > 0 )
+	int c = 0;
+	EXPRDOUBLE2( i, event_name )
 	ret = (char*) rivet_set( self, (char*) cmd, (char*) i );
 	EXPR_DONE( i )
 	return ret;
@@ -1309,10 +1353,20 @@ int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, Clien
 	return TCL_OK;
 	}
 
+void glishtk_resizeframe_cb( ClientData clientData, XEvent *eventPtr)
+	{
+	if ( eventPtr->xany.type == ConfigureNotify )
+		{
+		TkFrame *f = (TkFrame*) clientData;
+		f->ResizeEvent();
+		}
+	}
+
 TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background, charptr width,
 		  charptr height, charptr cursor, charptr title, charptr icon ) : TkAgent( s ), is_tl( 1 ),
-		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+		  pseudo( 0 ), tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0),
+		  reject_first_resize(1)
 
 	{
 	char *argv[15];
@@ -1418,12 +1472,19 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon ));
+
+	Tk_CreateEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
+
+	size[0] = self->tkwin->reqWidth;
+	size[1] = self->tkwin->reqHeight;
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor ) : TkAgent( s ), is_tl( 0 ), pseudo( 0 ),
-		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0)
+		  tag(0), radio_id(0), canvas(0), side(0), padx(0), pady(0), expand(0),
+		  reject_first_resize(0)
+
 	{
 	char *argv[14];
 	frame = frame_;
@@ -1489,7 +1550,9 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, const char *tag_ ) : TkAgent( s ), is_tl( 0 ),
-		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0)
+		  pseudo( 0 ), radio_id(0), side(0), padx(0), pady(0), expand(0),
+		  reject_first_resize(0)
+
 	{
 	char *argv[12];
 	frame = 0;
@@ -1866,6 +1929,23 @@ void TkFrame::KillFrame( )
 	{
 	PostTkEvent( "killed", new IValue( glish_true ) );
 	UnMap();
+	}
+
+void TkFrame::ResizeEvent( )
+	{
+	if ( reject_first_resize )
+		reject_first_resize = 0;
+	else
+		{
+		recordptr rec = create_record_dict();
+
+		rec->Insert( strdup("old"), new IValue( size, 2, COPY_ARRAY ) );
+		size[0] = self->tkwin->changes.width;
+		size[1] = self->tkwin->changes.height;
+		rec->Insert( strdup("new"), new IValue( size, 2, COPY_ARRAY ) );
+
+		PostTkEvent( "resize", new IValue( rec ) );
+		}
 	}
 
 IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
@@ -2432,16 +2512,19 @@ char *glishtk_scale_value(TkAgent *a, const char *cmd, parameter_list *args,
 	return 0;
 	}
 
-TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
-		   charptr text, charptr orient, charptr relief, charptr borderwidth,
-		   charptr foreground, charptr background, charptr fill_ )
+TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charptr len,
+		   charptr text, double resolution, charptr orient, int width, charptr font,
+		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
+		   charptr fill_ )
 			: TkAgent( s ), fill(0), from_(from), to_(to)
 	{
 	char var_name[256];
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 	char from_c[40];
 	char to_c[40];
+	char resolution_[40];
+	char width_[30];
 	id = ++scale_count;
 
 	agent_ID = "<graphic:scale>";
@@ -2450,8 +2533,11 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 
 	sprintf(var_name,"ScAlE%d\n",id);
 
-	sprintf(from_c,"%d",from);
-	sprintf(to_c,"%d",to);
+	sprintf(from_c,"%f",from);
+	sprintf(to_c,"%f",to);
+
+	sprintf(resolution_,"%f",resolution);
+	sprintf(width_,"%d", width);
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
@@ -2461,10 +2547,19 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	argv[c++] = to_c;
 	argv[c++] = "-length";
 	argv[c++] = (char*) len;
+	argv[c++] = "-resolution";
+	argv[c++] = (char*) resolution_;
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
 	argv[c++] = "-label";
 	argv[c++] = (char*) text;
+	argv[c++] = "-width";
+	argv[c++] = (char*) width_;
+	if ( font[0] )
+		{
+		argv[c++] = "-font";
+		argv[c++] = (char*) font;
+		}
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief;
 	argv[c++] = "-borderwidth";
@@ -2499,6 +2594,9 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, int from, int to, charptr len,
 	procs.Insert("end", new TkProc("-to", glishtk_oneint));
 	procs.Insert("start", new TkProc("-from", glishtk_oneint));
 	procs.Insert("value", new TkProc(this, "", glishtk_scale_value));
+	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("font", new TkProc("-font", glishtk_onestr));
 	}
 
 void TkScale::ValueSet( double d )
@@ -2522,23 +2620,26 @@ IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkScale *ret;
 
-	if ( args_val->length() != 12 )
-		return InvalidNumberOfArgs(12);
+	if ( args_val->length() != 15 )
+		return InvalidNumberOfArgs(15);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
-	SETINT( start )
-	SETINT( end )
+	SETDOUBLE( start )
+	SETDOUBLE( end )
 	SETDIM( len )
 	SETSTR( text )
+	SETDOUBLE( resolution )
 	SETSTR( orient )
+	SETINT( width )
+	SETSTR( font )
 	SETSTR( relief )
 	SETDIM( borderwidth )
 	SETSTR( foreground )
 	SETSTR( background )
 	SETSTR( fill )
 
-	ret = new TkScale( s, (TkFrame*)parent->AgentVal(), start, end, len, text, orient, relief, borderwidth, foreground, background, fill );
+	ret = new TkScale( s, (TkFrame*)parent->AgentVal(), start, end, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
 
 	CREATE_RETURN
 	}      
@@ -2718,7 +2819,7 @@ int scrollbarcb(Rivetobj button, XEvent *unused1, ClientData assoc, ClientData c
 	}
 
 TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
-			  charptr foreground, charptr background )
+			  int width, charptr foreground, charptr background )
 				: TkAgent( s )
 	{
 	frame = frame_;
@@ -2728,10 +2829,15 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 	if ( ! frame || ! frame->Self() ) return;
 
+	char width_[30];
+	sprintf(width_,"%d", width);
+
 	int c = 2;
 	argv[0] = argv[1] = 0;
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
+	argv[c++] = "-width";
+	argv[c++] = width_;
 	argv[c++] = "-command";
 	argv[c++] = rivet_new_callback((int (*)()) scrollbarcb, (ClientData) this, 0);
 
@@ -2752,6 +2858,7 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 
 	procs.Insert("view", new TkProc("", glishtk_scrollbar_update));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr));
+	procs.Insert("width", new TkProc("-width", glishtk_onedim));
 	}
 
 const char **TkScrollbar::PackInstruction()
@@ -2787,16 +2894,17 @@ IValue *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 	{
 	TkScrollbar *ret;
 
-	if ( args_val->length() != 5 )
-		return InvalidNumberOfArgs(5);
+	if ( args_val->length() != 6 )
+		return InvalidNumberOfArgs(6);
 
 	int c = 1;
 	SETVAL( parent, parent->IsAgentRecord() )
 	SETSTR( orient )
+	SETINT( width )
 	SETSTR( foreground )
 	SETSTR( background )
 
-	ret = new TkScrollbar( s, (TkFrame*)parent->AgentVal(), orient, foreground, background );
+	ret = new TkScrollbar( s, (TkFrame*)parent->AgentVal(), orient, width, foreground, background );
 
 	CREATE_RETURN
 	}      

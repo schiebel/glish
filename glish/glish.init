@@ -117,15 +117,15 @@ func frame ( parent=F, relief='flat',
 func button ( parent, text='button', type='plain', padx=7, pady=3, width=0, height=1, justify='center', font='',  relief='raised', borderwidth=2, foreground='black', background='lightgrey', disabled=F, value=T, fill='none' )
 	create_graphic( 'button', parent, text, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, value, fill )
 
-func scale ( parent, start=0, end=100, length=110, text='', orient='horizontal',
-		 relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='' )
-	create_graphic( 'scale', parent, start, end, length, text, orient, relief, borderwidth, foreground, background, fill )
+func scale ( parent, start=0.0, end=100.0, length=110, text='', resolution=1.0, orient='horizontal', width=15,
+		 font='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='' )
+	create_graphic( 'scale', parent, start, end, length, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill )
 
 func text ( parent, width=30, height=8, wrap='word', font='', disabled=F, text='', relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='both' )
 	create_graphic( 'text', parent, width, height, wrap, font, disabled, text, relief, borderwidth, foreground, background, fill )
 
-func scrollbar ( parent, orient='vertical', foreground='black', background='lightgrey' )
-	create_graphic( 'scrollbar', parent, orient, foreground, background )
+func scrollbar ( parent, orient='vertical', width=15, foreground='black', background='lightgrey' )
+	create_graphic( 'scrollbar', parent, orient, width, foreground, background )
 
 func label ( parent, text='label', justify='left', padx=4, pady=2, font='', width=0, relief='flat', borderwidth=2, foreground='black', background='lightgrey', fill='none' )
 	create_graphic( 'label', parent, text, justify, padx, pady, font, width, relief, borderwidth, foreground, background, fill )

@@ -243,6 +243,7 @@ class TkFrame : public TkAgent {
 
 	// Called when the frame is killed via the window manager
 	void KillFrame( );
+	void ResizeEvent( );
 
 	char *SetSide( parameter_list *, int, int );
 	char *SetPadx( parameter_list *, int, int );
@@ -298,6 +299,9 @@ class TkFrame : public TkAgent {
 	Rivetobj pseudo;
 
 	unsigned long radio_id;
+	unsigned char reject_first_resize;
+
+	int size[2];
 	};
 
 class TkButton : public TkAgent {
@@ -360,9 +364,9 @@ class TkButton : public TkAgent {
 
 class TkScale : public TkAgent {
     public:
-	TkScale ( Sequencer *, TkFrame *, int from, int to, charptr len,
-		  charptr text, charptr orient, charptr relief, charptr borderwidth,
-		  charptr foreground, charptr background, charptr fill );
+	TkScale ( Sequencer *, TkFrame *, double from, double to, charptr len, charptr text,
+		  double resolution, charptr orient, int width, charptr font, charptr relief,
+		  charptr borderwidth, charptr foreground, charptr background, charptr fill );
 
 	// value was set, so generate an event
 	void ValueSet( double );
@@ -406,7 +410,7 @@ class TkText : public TkAgent {
 
 class TkScrollbar : public TkAgent {
     public:
-	TkScrollbar( Sequencer *, TkFrame *, charptr orient, 
+	TkScrollbar( Sequencer *, TkFrame *, charptr orient, int width,
 		     charptr foreground, charptr background );
 
 	const char **PackInstruction();
