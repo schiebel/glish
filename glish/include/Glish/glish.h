@@ -13,7 +13,7 @@ typedef unsigned char byte;
 
 typedef void (*glish_signal_handler)();
 
-#if ! defined(DIAG)
+#if ! defined(DIAG) && defined(__cplusplus)
 #if defined(DO_DIAG)
 #include "Reporter.h"
 #define DiAg_LiSt_hdn2(w,x) w,x
