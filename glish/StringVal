@@ -158,6 +158,30 @@ static void check_for_decimal( char *buf )
 		}
 	}
 
+static int *collapse_shape( const Value *shape_val, int &shape_len, int &is_copy )
+	{
+	int shape_is_copy = 0;
+	int *shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
+
+	int cur=0;
+	for ( int i=0; i < shape_len; ++i )
+		if ( shape[i] > 0 )
+			{
+			if ( cur != i ) shape[cur] = shape[i];
+			++cur;
+			}
+	if ( cur <= 1 )
+		{
+		if ( shape_is_copy ) free_memory( shape );
+		shape = 0;
+		shape_is_copy = 0;
+		}
+
+	shape_len = cur;
+	is_copy = shape_is_copy;
+	return shape;
+	}
+
 char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 			int evalable, const char *prefix, Str &err ) const
 	{
@@ -405,9 +429,13 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	const Value* shape_val = 0;
 	int shape_len = 0;
 
+	int shape_is_copy = 0;
+	int* shape = 0;
+
+
 	if ( ! useAttributes || ! attr || ! (shape_val = (*attr)["shape"]) || 
-	     ! shape_val->IsNumeric() ||
-	     (shape_len = shape_val->Length()) <= 1 )
+	     ! shape_val->IsNumeric() || (shape_len = shape_val->Length()) <= 1 ||
+	     ! (shape = collapse_shape( shape_val, shape_len, shape_is_copy )) )
 		{ // not an n-D array.
 		for ( int i = 0; i < length && ( ! max_elements ||
 		      i < max_elements) ; ++i )
@@ -465,9 +493,6 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 
 	// How many element have we output...
 	int element_count = 0;
-
-	int shape_is_copy = 0;
-	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
 
 	// Store for setting up a plane in advance to get the proper
 	// spacing for the columns.  Note that these and the arrays
