@@ -18,8 +18,8 @@ glish_implement(SubVecRef,short)
 glish_implement(SubVecRef,int)
 glish_implement(SubVecRef,float)
 glish_implement(SubVecRef,double)
-glish_implement(SubVecRef,complex)
-glish_implement(SubVecRef,dcomplex)
+glish_implement(SubVecRef,glish_complex)
+glish_implement(SubVecRef,glish_dcomplex)
 glish_implement2(SubVecRef,charptr,string_dup)
 
 const char *VecRef::Description() const
@@ -132,8 +132,8 @@ SUBVEC_SUBSCRIPT_ACTION(ShortRef,short,TYPE_SHORT,ShortPtr)
 SUBVEC_SUBSCRIPT_ACTION(IntRef,int,TYPE_INT,IntPtr)
 SUBVEC_SUBSCRIPT_ACTION(FloatRef,float,TYPE_FLOAT,FloatPtr)
 SUBVEC_SUBSCRIPT_ACTION(DoubleRef,double,TYPE_DOUBLE,DoublePtr)
-SUBVEC_SUBSCRIPT_ACTION(ComplexRef,complex,TYPE_COMPLEX,ComplexPtr)
-SUBVEC_SUBSCRIPT_ACTION(DcomplexRef,dcomplex,TYPE_DCOMPLEX,DcomplexPtr)
+SUBVEC_SUBSCRIPT_ACTION(ComplexRef,glish_complex,TYPE_COMPLEX,ComplexPtr)
+SUBVEC_SUBSCRIPT_ACTION(DcomplexRef,glish_dcomplex,TYPE_DCOMPLEX,DcomplexPtr)
 SUBVEC_SUBSCRIPT_ACTION(StringRef,charptr,TYPE_STRING,StringPtr)
 
 // Called after someone has twiddled with our indices

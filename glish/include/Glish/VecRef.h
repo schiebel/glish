@@ -121,8 +121,8 @@ glish_declare(SubVecRef,short);
 glish_declare(SubVecRef,int);
 glish_declare(SubVecRef,float);
 glish_declare(SubVecRef,double);
-glish_declare(SubVecRef,complex);
-glish_declare(SubVecRef,dcomplex);
+glish_declare(SubVecRef,glish_complex);
+glish_declare(SubVecRef,glish_dcomplex);
 glish_declare(SubVecRef,charptr);
 
 #endif

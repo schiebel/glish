@@ -31,8 +31,8 @@ glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
 	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_AGENT */
 	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_FUNC */
 	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_RECORD */
-	  { sizeof(complex), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_COMPLEX */
-	  { sizeof(dcomplex), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_DCOMPLEX */
+	  { sizeof(glish_complex), 0, 0, 0, alloc_memory_atomic_func, 0 },	/* TYPE_COMPLEX */
+	  { sizeof(glish_dcomplex), 0, 0, 0, alloc_memory_atomic_func, 0 },	/* TYPE_DCOMPLEX */
 	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_FAIL */
 	  { sizeof(void*), 0, 0, 0, 0, 0 }					/* TYPE_REGEX */
 	};
@@ -336,8 +336,8 @@ DEFINE_ARRAY_SET(short,TYPE_SHORT)
 DEFINE_ARRAY_SET(int,TYPE_INT)
 DEFINE_ARRAY_SET(float,TYPE_FLOAT)
 DEFINE_ARRAY_SET(double,TYPE_DOUBLE)
-DEFINE_ARRAY_SET(complex,TYPE_COMPLEX)
-DEFINE_ARRAY_SET(dcomplex,TYPE_DCOMPLEX)
+DEFINE_ARRAY_SET(glish_complex,TYPE_COMPLEX)
+DEFINE_ARRAY_SET(glish_dcomplex,TYPE_DCOMPLEX)
 DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 
 void ValueKernel::Replace( charptr vec[], unsigned int len )

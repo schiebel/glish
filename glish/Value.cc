@@ -172,8 +172,8 @@ DEFINE_CONSTRUCTORS(short,shortref)
 DEFINE_CONSTRUCTORS(int,intref)
 DEFINE_CONSTRUCTORS(float,floatref)
 DEFINE_CONSTRUCTORS(double,doubleref)
-DEFINE_CONSTRUCTORS(complex,complexref)
-DEFINE_CONSTRUCTORS(dcomplex,dcomplexref)
+DEFINE_CONSTRUCTORS(glish_complex,complexref)
+DEFINE_CONSTRUCTORS(glish_dcomplex,dcomplexref)
 DEFINE_CONSTRUCTORS(charptr,charptrref)
 
 Value::Value( recordptr value )
@@ -415,8 +415,8 @@ DEFINE_CONST_ACCESSOR(ShortPtr,TYPE_SHORT,short*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(IntPtr,TYPE_INT,int*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(FloatPtr,TYPE_FLOAT,float*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*,modArray,constArray)
-DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
-DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(ComplexPtr,TYPE_COMPLEX,glish_complex*,modArray,constArray)
+DEFINE_CONST_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,glish_dcomplex*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
 DEFINE_CONST_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
 DEFINE_CONST_ACCESSOR(FailPtr,TYPE_FAIL,recordptr,modRecord,constRecord)
@@ -438,8 +438,8 @@ DEFINE_ACCESSOR(ShortPtr,TYPE_SHORT,short*,modArray,constArray)
 DEFINE_ACCESSOR(IntPtr,TYPE_INT,int*,modArray,constArray)
 DEFINE_ACCESSOR(FloatPtr,TYPE_FLOAT,float*,modArray,constArray)
 DEFINE_ACCESSOR(DoublePtr,TYPE_DOUBLE,double*,modArray,constArray)
-DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,complex*,modArray,constArray)
-DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,dcomplex*,modArray,constArray)
+DEFINE_ACCESSOR(ComplexPtr,TYPE_COMPLEX,glish_complex*,modArray,constArray)
+DEFINE_ACCESSOR(DcomplexPtr,TYPE_DCOMPLEX,glish_dcomplex*,modArray,constArray)
 DEFINE_ACCESSOR(StringPtr,TYPE_STRING,charptr*,modArray,constArray)
 DEFINE_ACCESSOR(RecordPtr,TYPE_RECORD,recordptr,modRecord,constRecord)
 DEFINE_ACCESSOR(FailPtr,TYPE_FAIL,recordptr,modRecord,constRecord)
@@ -532,12 +532,12 @@ val_type Value::name( int n, Str &err ) const				\
 									\
 		case TYPE_COMPLEX:					\
 			{						\
-			complex &ptr = ComplexPtr(0)[n - 1];		\
+			glish_complex &ptr = ComplexPtr(0)[n - 1];	\
 			return val_type( ptr rhs_elm conv );		\
 			}						\
 		case TYPE_DCOMPLEX:					\
 			{						\
-			dcomplex &ptr = DcomplexPtr(0)[n - 1];		\
+			glish_dcomplex &ptr = DcomplexPtr(0)[n - 1];	\
 			return val_type( ptr rhs_elm conv );		\
 			}						\
 		case TYPE_STRING:					\
@@ -589,9 +589,9 @@ XXX_VAL(ShortVal, short, .r,, text_to_integer, "short", 0)
 XXX_VAL(IntVal, int, .r,, text_to_integer, "integer", 0)
 XXX_VAL(FloatVal, float, .r,, text_to_double, "float", 0.0)
 XXX_VAL(DoubleVal, double, .r,, text_to_double, "double", 0.0)
-XXX_VAL(ComplexVal, complex,,, text_to_dcomplex, "complex", complex(0.0, 0.0))
-XXX_VAL(DcomplexVal, dcomplex,,, text_to_dcomplex, "dcomplex",
-	dcomplex(0.0, 0.0))
+XXX_VAL(ComplexVal, glish_complex,,, text_to_dcomplex, "complex", glish_complex(0.0, 0.0))
+XXX_VAL(DcomplexVal, glish_dcomplex,,, text_to_dcomplex, "dcomplex",
+	glish_dcomplex(0.0, 0.0))
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt )
 	{
@@ -809,8 +809,8 @@ BOOL_COERCE_ACTION(TYPE_SHORT,short,,ShortPtr,j,)
 BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,j,)
 BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,j,)
 BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,j,)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r || ptr[j].i,ComplexPtr,j,)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[j].i,DcomplexPtr,j,)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[j].i,ComplexPtr,j,)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[j].i,DcomplexPtr,j,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -832,8 +832,8 @@ BOOL_COERCE_BOOL_ACTION(off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_INT,int,,IntPtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_FLOAT,float,,FloatPtr,off,COERCE_ACTION_XLATE)
 BOOL_COERCE_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_COMPLEX,complex,.r || ptr[off].i,ComplexPtr,off,COERCE_ACTION_XLATE)
-BOOL_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[off].i,ComplexPtr,off,COERCE_ACTION_XLATE)
+BOOL_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off,COERCE_ACTION_XLATE)
 		default:
 			error->Report(
 				"bad type in Value::CoerceToBoolArray()" );
@@ -884,8 +884,8 @@ COERCE_ACTION_(TYPE_SHORT,short,,type,ShortPtr,j,)		\
 COERCE_ACTION_(TYPE_INT,int,,type,IntPtr,j,)			\
 COERCE_ACTION##MOD(TYPE_FLOAT,float,,type,FloatPtr,j,)		\
 COERCE_ACTION##MOD(TYPE_DOUBLE,double,,type,DoublePtr,j,)	\
-COERCE_ACTION_(TYPE_COMPLEX,complex,.r,type,ComplexPtr,j,)	\
-COERCE_ACTION_(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,j,)\
+COERCE_ACTION_(TYPE_COMPLEX,glish_complex,.r,type,ComplexPtr,j,) \
+COERCE_ACTION_(TYPE_DCOMPLEX,glish_dcomplex,.r,type,DcomplexPtr,j,)\
 								\
 		case TYPE_SUBVEC_REF:				\
 			{					\
@@ -899,8 +899,8 @@ COERCE_ACTION_(TYPE_SHORT,short,,type,ShortPtr,off,COERCE_ACTION_XLATE)\
 COERCE_ACTION_(TYPE_INT,int,,type,IntPtr,off,COERCE_ACTION_XLATE)	\
 COERCE_ACTION_(TYPE_FLOAT,float,,CAST##MOD(float,type),FloatPtr,off,COERCE_ACTION_XLATE)\
 COERCE_ACTION_(TYPE_DOUBLE,double,,CAST##MOD(double,type),DoublePtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION_(TYPE_COMPLEX,complex,.r,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
-COERCE_ACTION_(TYPE_DCOMPLEX,dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_COMPLEX,glish_complex,.r,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
+COERCE_ACTION_(TYPE_DCOMPLEX,glish_dcomplex,.r,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
 					error->Report(			\
@@ -1043,8 +1043,8 @@ COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr,j,)		\
 COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr,j,)			\
 COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr,j,)		\
 COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr,j,)		\
-COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,j,)	\
-COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,j,)	\
+COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,glish_complex,type,ComplexPtr,j,) \
+COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,type,DcomplexPtr,j,) \
 									\
 		case TYPE_SUBVEC_REF:					\
 			{						\
@@ -1058,8 +1058,8 @@ COMPLEX_BIN_COERCE_ACTION(TYPE_SHORT,short,type,ShortPtr,off,COERCE_ACTION_XLATE
 COMPLEX_BIN_COERCE_ACTION(TYPE_INT,int,type,IntPtr,off,COERCE_ACTION_XLATE)\
 COMPLEX_BIN_COERCE_ACTION(TYPE_FLOAT,float,type,FloatPtr,off,COERCE_ACTION_XLATE)\
 COMPLEX_BIN_COERCE_ACTION(TYPE_DOUBLE,double,type,DoublePtr,off,COERCE_ACTION_XLATE)\
-COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
-COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_CPX_COERCE_ACTION(TYPE_COMPLEX,glish_complex,type,ComplexPtr,off,COERCE_ACTION_XLATE)\
+COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,type,DcomplexPtr,off,COERCE_ACTION_XLATE)\
 									\
 				default:				\
 					error->Report(			\
@@ -1069,10 +1069,10 @@ COMPLEX_CPX_COERCE_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,off,COERCE_ACT
 			}						\
 			break;
 
-complex* Value::CoerceToComplexArray( int& is_copy, int size,
-				complex* result ) const
+glish_complex* Value::CoerceToComplexArray( int& is_copy, int size,
+				glish_complex* result ) const
 	{
-	COERCE_HDR(CoerceToComplexArray, complex, TYPE_COMPLEX,
+	COERCE_HDR(CoerceToComplexArray, glish_complex, TYPE_COMPLEX,
 			"complex", ComplexPtr)
 
 	switch ( Type() )
@@ -1088,10 +1088,10 @@ complex* Value::CoerceToComplexArray( int& is_copy, int size,
 	}
 
 
-dcomplex* Value::CoerceToDcomplexArray( int& is_copy, int size,
-				dcomplex* result ) const
+glish_dcomplex* Value::CoerceToDcomplexArray( int& is_copy, int size,
+				glish_dcomplex* result ) const
 	{
-	COERCE_HDR(CoerceToDcomplexArray, dcomplex, TYPE_DCOMPLEX,
+	COERCE_HDR(CoerceToDcomplexArray, glish_dcomplex, TYPE_DCOMPLEX,
 			"dcomplex", DcomplexPtr)
 
 	switch ( Type() )
@@ -1369,8 +1369,8 @@ DEFINE_FIELD_VAL(TYPE_SHORT, short, ShortVal)
 DEFINE_FIELD_VAL(TYPE_INT, int, IntVal)
 DEFINE_FIELD_VAL(TYPE_FLOAT, float, FloatVal)
 DEFINE_FIELD_VAL(TYPE_DOUBLE, double, DoubleVal)
-DEFINE_FIELD_VAL(TYPE_COMPLEX, complex, ComplexVal)
-DEFINE_FIELD_VAL(TYPE_DCOMPLEX, dcomplex, DcomplexVal)
+DEFINE_FIELD_VAL(TYPE_COMPLEX, glish_complex, ComplexVal)
+DEFINE_FIELD_VAL(TYPE_DCOMPLEX, glish_dcomplex, DcomplexVal)
 
 int Value::FieldVal( const char* field, char*& val )
 	{
@@ -1400,8 +1400,8 @@ DEFINE_FIELD_PTR(FieldShortPtr,TYPE_SHORT,short*,ShortPtr)
 DEFINE_FIELD_PTR(FieldIntPtr,TYPE_INT,int*,IntPtr)
 DEFINE_FIELD_PTR(FieldFloatPtr,TYPE_FLOAT,float*,FloatPtr)
 DEFINE_FIELD_PTR(FieldDoublePtr,TYPE_DOUBLE,double*,DoublePtr)
-DEFINE_FIELD_PTR(FieldComplexPtr,TYPE_COMPLEX,complex*,ComplexPtr)
-DEFINE_FIELD_PTR(FieldDcomplexPtr,TYPE_DCOMPLEX,dcomplex*,DcomplexPtr)
+DEFINE_FIELD_PTR(FieldComplexPtr,TYPE_COMPLEX,glish_complex*,ComplexPtr)
+DEFINE_FIELD_PTR(FieldDcomplexPtr,TYPE_DCOMPLEX,glish_dcomplex*,DcomplexPtr)
 DEFINE_FIELD_PTR(FieldStringPtr,TYPE_STRING,charptr*,StringPtr)
 
 
@@ -1432,8 +1432,8 @@ DEFINE_SET_FIELD(short)
 DEFINE_SET_FIELD(int)
 DEFINE_SET_FIELD(float)
 DEFINE_SET_FIELD(double)
-DEFINE_SET_FIELD(complex)
-DEFINE_SET_FIELD(dcomplex)
+DEFINE_SET_FIELD(glish_complex)
+DEFINE_SET_FIELD(glish_dcomplex)
 DEFINE_SET_FIELD(const char*)
 
 
@@ -1831,9 +1831,9 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,glish_complex*,glish_complex*,ComplexPtr,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,glish_dcomplex*,glish_dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
@@ -1853,9 +1853,9 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,glish_complex*,ComplexRef,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,glish_dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
@@ -1926,9 +1926,9 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,glish_complex*,glish_complex*,
 	ComplexPtr,CoerceToComplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,glish_dcomplex*,glish_dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray,string_dup, free_memory( (void*) lhs[i] );)
@@ -1948,9 +1948,9 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,glish_complex*,
 	ComplexRef,CoerceToComplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,glish_dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
@@ -2112,8 +2112,8 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_INT,int,IntPtr,IntVal,offset,)
 	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_FLOAT,float,FloatPtr,FloatVal,offset,)
 	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DOUBLE,double,DoublePtr,DoubleVal,offset,)
-	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,ComplexVal,offset,)
-	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,DcomplexVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX,glish_complex,ComplexPtr,ComplexVal,offset,)
+	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,DcomplexVal,offset,)
 	ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING,charptr,StringPtr,StringVal,offset,)
 
 			case TYPE_SUBVEC_REF:
@@ -2145,9 +2145,9 @@ ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_FLOAT, float, FloatPtr, FloatVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
 ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DOUBLE, double, DoublePtr, DoubleVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
-ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX, complex, ComplexPtr, ComplexVal,
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_COMPLEX, glish_complex, ComplexPtr, ComplexVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
-ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX, dcomplex, DcomplexPtr, DcomplexVal,
+ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_DCOMPLEX, glish_dcomplex, DcomplexPtr, DcomplexVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
 ASSIGN_ARY_ELEMENTS_ACTION_A(TYPE_STRING, charptr, StringPtr, StringVal,
 	off,ASSIGN_ARY_ELEMENTS_ACTION_A_XLATE)
@@ -2261,8 +2261,8 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,offset,,
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,offset,,)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,offset,,)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,offset,,)
-ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,offset,,)
-ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,CoerceToComplexArray,offset,,)
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,CoerceToDcomplexArray,offset,,)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,offset,string_dup,)
 
 		case TYPE_SUBVEC_REF:
@@ -2298,9 +2298,9 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_FLOAT, float, FloatPtr, CoerceToFloatArray,off,,
 	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DOUBLE, double, DoublePtr, CoerceToDoubleArray,off,,
 	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
-ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX, complex, ComplexPtr, CoerceToComplexArray,off,,
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_COMPLEX, glish_complex, ComplexPtr, CoerceToComplexArray,off,,
 	ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
-ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX, dcomplex, DcomplexPtr,
+ASSIGN_ARY_ELEMENTS_ACTION(TYPE_DCOMPLEX, glish_dcomplex, DcomplexPtr,
 	CoerceToDcomplexArray, off,, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
 ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING, charptr, StringPtr,
 	CoerceToStringArray, off, string_dup, ASSIGN_ARY_ELEMENTS_ACTION_XLATE)
@@ -2386,8 +2386,8 @@ NEGATE_ACTION(TYPE_BYTE,byte,BytePtr,-,)
 NEGATE_ACTION(TYPE_SHORT,short,ShortPtr,-,)
 NEGATE_ACTION(TYPE_FLOAT,float,FloatPtr,-,)
 NEGATE_ACTION(TYPE_DOUBLE,double,DoublePtr,-,)
-COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,complex,ComplexPtr,-)
-COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,-)
+COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,-)
+COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,-)
 
 		default:
 			fatal->Report( "bad type in Value::Negate()" );
@@ -2440,8 +2440,8 @@ NOT_ACTION(TYPE_SHORT,short,,ShortPtr,i,)
 NOT_ACTION(TYPE_INT,int,,IntPtr,i,)
 NOT_ACTION(TYPE_FLOAT,float,,FloatPtr,i,)
 NOT_ACTION(TYPE_DOUBLE,double,,DoublePtr,i,)
-NOT_ACTION(TYPE_COMPLEX,complex,.r || ptr[i].i,ComplexPtr,i,)
-NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
+NOT_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[i].i,ComplexPtr,i,)
+NOT_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -2463,8 +2463,8 @@ NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[i].i,DcomplexPtr,i,)
 NOT_ACTION(TYPE_INT,int,,IntPtr,off,NOT_ACTION_XLATE)
 NOT_ACTION(TYPE_FLOAT,float,,FloatPtr,off,NOT_ACTION_XLATE)
 NOT_ACTION(TYPE_DOUBLE,double,,DoublePtr,off,NOT_ACTION_XLATE)
-NOT_ACTION(TYPE_COMPLEX,complex,.r || ptr[off].i,ComplexPtr,off,NOT_ACTION_XLATE)
-NOT_ACTION(TYPE_DCOMPLEX,dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_COMPLEX,glish_complex,.r || ptr[off].i,ComplexPtr,off,NOT_ACTION_XLATE)
+NOT_ACTION(TYPE_DCOMPLEX,glish_dcomplex,.r || ptr[off].i,DcomplexPtr,off,NOT_ACTION_XLATE)
 				default:
 					error->Report( "bad type in Value::Not()" );
 					free_memory( result );
@@ -2533,8 +2533,8 @@ POLYMORPH_ACTION(TYPE_SHORT,short,CoerceToShortArray)
 POLYMORPH_ACTION(TYPE_INT,int,CoerceToIntArray)
 POLYMORPH_ACTION(TYPE_FLOAT,float,CoerceToFloatArray)
 POLYMORPH_ACTION(TYPE_DOUBLE,double,CoerceToDoubleArray)
-POLYMORPH_ACTION(TYPE_COMPLEX,complex,CoerceToComplexArray)
-POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,CoerceToDcomplexArray)
+POLYMORPH_ACTION(TYPE_COMPLEX,glish_complex,CoerceToComplexArray)
+POLYMORPH_ACTION(TYPE_DCOMPLEX,glish_dcomplex,CoerceToDcomplexArray)
 POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 
 		case TYPE_RECORD:
@@ -2580,8 +2580,8 @@ VECREF_POLYMORPH_ACTION(TYPE_SHORT,short,shortref,ShortRef,)
 VECREF_POLYMORPH_ACTION(TYPE_INT,int,intref,IntRef,)
 VECREF_POLYMORPH_ACTION(TYPE_FLOAT,float,floatref,FloatRef,)
 VECREF_POLYMORPH_ACTION(TYPE_DOUBLE,double,doubleref,DoubleRef,)
-VECREF_POLYMORPH_ACTION(TYPE_COMPLEX,complex,complexref,ComplexRef,)
-VECREF_POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,dcomplexref,DcomplexRef,)
+VECREF_POLYMORPH_ACTION(TYPE_COMPLEX,glish_complex,complexref,ComplexRef,)
+VECREF_POLYMORPH_ACTION(TYPE_DCOMPLEX,glish_dcomplex,dcomplexref,DcomplexRef,)
 VECREF_POLYMORPH_ACTION(TYPE_STRING,charptr,charptrref,StringRef,string_dup)
 
 		case TYPE_RECORD:
@@ -2782,8 +2782,8 @@ VALUE_FROM_MEM_ACTION(TYPE_SHORT, short)
 VALUE_FROM_MEM_ACTION(TYPE_INT, int)
 VALUE_FROM_MEM_ACTION(TYPE_FLOAT, float)
 VALUE_FROM_MEM_ACTION(TYPE_DOUBLE, double)
-VALUE_FROM_MEM_ACTION(TYPE_COMPLEX, complex)
-VALUE_FROM_MEM_ACTION(TYPE_DCOMPLEX, dcomplex)
+VALUE_FROM_MEM_ACTION(TYPE_COMPLEX, glish_complex)
+VALUE_FROM_MEM_ACTION(TYPE_DCOMPLEX, glish_dcomplex)
 
 				default:
 					fatal->Report( "Bad type (", (int) h.type, ") in ValueFromMemBlock( )" );
@@ -2950,9 +2950,9 @@ double text_to_double( const char text[], int& successful )
 
 
 // ### This should be looked at again, later.
-dcomplex text_to_dcomplex( const char text[], int& successful )
+glish_dcomplex text_to_dcomplex( const char text[], int& successful )
 	{
-	dcomplex result( 0.0, 0.0 );
+	glish_dcomplex result( 0.0, 0.0 );
 
 	char* text_ptr;
 	double num = strtod( text, &text_ptr );

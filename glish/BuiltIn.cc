@@ -259,7 +259,7 @@ IValue* NumericVectorBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	}
 
 	if ( type == TYPE_COMPLEX || type == TYPE_DCOMPLEX )
-		NUMERIC_BUILTIN_ACTION(dcomplex,CoerceToDcomplexArray,cfunc)
+		NUMERIC_BUILTIN_ACTION(glish_dcomplex,CoerceToDcomplexArray,cfunc)
 	else
 #if defined(__alpha) || defined(__alpha__)
 #undef NUMERIC_BUILTIN_ACTION_LOOP
@@ -301,8 +301,8 @@ IValue* RealBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 
 	switch ( v->Type() )
 		{
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,glish_complex,float,CoerceToComplexArray,i,.r,)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,double,CoerceToDcomplexArray,i,.r,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -324,8 +324,8 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 			sub-vector reference may be bad");	\
 		}
 
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,glish_complex,float,CoerceToComplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,double,CoerceToDcomplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
 
 				default:
 					result = copy_value(v);
@@ -350,8 +350,8 @@ IValue* ImagBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 
 	switch ( v->Type() )
 		{
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.i,)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,glish_complex,float,CoerceToComplexArray,i,.i,)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,double,CoerceToDcomplexArray,i,.i,)
 
 		case TYPE_SUBVEC_REF:
 			{
@@ -361,8 +361,8 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
 			switch ( theVal->Type() )
 				{
 
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,glish_complex,float,CoerceToComplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,double,CoerceToDcomplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
 
 				default:
 					result = copy_value(v);
@@ -541,13 +541,13 @@ IValue* ComplexBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 
 		switch ( maxt )
 			{
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_BOOL,complex,glish_bool,
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_BOOL,glish_complex,glish_bool,
 	CoerceToBoolArray,float)
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_BYTE,complex,byte,CoerceToByteArray,float)
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_SHORT,complex,short,CoerceToShortArray,float)
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_INT,complex,int,CoerceToIntArray,float)
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_FLOAT,complex,float,CoerceToFloatArray,)
-COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_BYTE,glish_complex,byte,CoerceToByteArray,float)
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_SHORT,glish_complex,short,CoerceToShortArray,float)
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_INT,glish_complex,int,CoerceToIntArray,float)
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_FLOAT,glish_complex,float,CoerceToFloatArray,)
+COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,glish_dcomplex,double,CoerceToDoubleArray,)
 
 			case TYPE_COMPLEX:
 			case TYPE_DCOMPLEX:
@@ -595,13 +595,13 @@ COMPLEXBUILTIN_TWOPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
 
 		switch ( v->Type() )
 			{
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_BOOL,complex,glish_bool,
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_BOOL,glish_complex,glish_bool,
 	CoerceToBoolArray,float)
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_BYTE,complex,byte,CoerceToByteArray,float)
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_SHORT,complex,short,CoerceToShortArray,float)
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_INT,complex,int,CoerceToIntArray,float)
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_FLOAT,complex,float,CoerceToFloatArray,)
-COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_DOUBLE,dcomplex,double,CoerceToDoubleArray,)
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_BYTE,glish_complex,byte,CoerceToByteArray,float)
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_SHORT,glish_complex,short,CoerceToShortArray,float)
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_INT,glish_complex,int,CoerceToIntArray,float)
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_FLOAT,glish_complex,float,CoerceToFloatArray,)
+COMPLEXBUILTIN_ONEPARM_ACTION(TYPE_DOUBLE,glish_dcomplex,double,CoerceToDoubleArray,)
 
 			case TYPE_COMPLEX:
 			case TYPE_DCOMPLEX:
@@ -642,7 +642,7 @@ IValue* SumBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	}
 
 	if ( max_type == TYPE_COMPLEX || max_type == TYPE_DCOMPLEX )
-		SUM_BUILTIN_ACTION(dcomplex,CoerceToDcomplexArray)
+		SUM_BUILTIN_ACTION(glish_dcomplex,CoerceToDcomplexArray)
 	else
 		SUM_BUILTIN_ACTION(double,CoerceToDoubleArray)
 
@@ -679,7 +679,7 @@ IValue* ProdBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 
 		case TYPE_COMPLEX:
 		case TYPE_DCOMPLEX:
-			PRODBUILTIN_ACTION(dcomplex,CoerceToDcomplexArray)
+			PRODBUILTIN_ACTION(glish_dcomplex,CoerceToDcomplexArray)
 
 		case TYPE_BOOL:
 		case TYPE_BYTE:
@@ -761,8 +761,8 @@ case tag:								\
 									\
 		switch ( val->Type() )					\
 			{						\
-RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,j,src_elem,) \
-RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,j,src_elem,)    \
+RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,glish_dcomplex,type,DcomplexPtr,j,src_elem,) \
+RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,glish_complex,type,ComplexPtr,j,src_elem,)    \
 RANGEBUILTIN_ARG_ACTION(TYPE_DOUBLE,double,type,DoublePtr,j,,)		\
 RANGEBUILTIN_ARG_ACTION(TYPE_FLOAT,float,type,FloatPtr,j,,)		\
 RANGEBUILTIN_ARG_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,j,,)		\
@@ -777,8 +777,8 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,j,,)			\
 									\
 				switch ( val->Type() )			\
 					{				\
-RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,dcomplex,type,DcomplexPtr,off,src_elem,RANGEBUILTIN_XLATE)\
-RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,complex,type,ComplexPtr,off,src_elem,RANGEBUILTIN_XLATE)	\
+RANGEBUILTIN_ARG_ACTION(TYPE_DCOMPLEX,glish_dcomplex,type,DcomplexPtr,off,src_elem,RANGEBUILTIN_XLATE)\
+RANGEBUILTIN_ARG_ACTION(TYPE_COMPLEX,glish_complex,type,ComplexPtr,off,src_elem,RANGEBUILTIN_XLATE)	\
 RANGEBUILTIN_ARG_ACTION(TYPE_DOUBLE,double,type,DoublePtr,off,,RANGEBUILTIN_XLATE)		\
 RANGEBUILTIN_ARG_ACTION(TYPE_FLOAT,float,type,FloatPtr,off,,RANGEBUILTIN_XLATE)			\
 RANGEBUILTIN_ARG_ACTION(TYPE_BOOL,glish_bool,type,BoolPtr,off,,RANGEBUILTIN_XLATE)		\
@@ -805,8 +805,8 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,off,,RANGEBUILTIN_XLATE)			\
 
 	switch ( max_type )
 		{
-		RANGEBUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,HUGE,)
-		RANGEBUILTIN_ACTION(TYPE_COMPLEX,complex,MAXFLOAT,)
+		RANGEBUILTIN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,HUGE,)
+		RANGEBUILTIN_ACTION(TYPE_COMPLEX,glish_complex,MAXFLOAT,)
 		RANGEBUILTIN_ACTION(TYPE_DOUBLE,double,HUGE,.r)
 		RANGEBUILTIN_ACTION(TYPE_FLOAT,float,MAXFLOAT,.r)
 		case TYPE_BOOL:
@@ -950,8 +950,8 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 		REPBUILTIN_ACTION_A(TYPE_INT,int,IntPtr,)
 		REPBUILTIN_ACTION_A(TYPE_FLOAT,float,FloatPtr,)
 		REPBUILTIN_ACTION_A(TYPE_DOUBLE,double,DoublePtr,)
-		REPBUILTIN_ACTION_A(TYPE_COMPLEX,complex,ComplexPtr,)
-		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
+		REPBUILTIN_ACTION_A(TYPE_COMPLEX,glish_complex,ComplexPtr,)
+		REPBUILTIN_ACTION_A(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,)
 		REPBUILTIN_ACTION_A(TYPE_STRING,charptr,StringPtr,string_dup)
 		REPBUILTIN_ACTION_A(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
@@ -986,8 +986,8 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 			REPBUILTIN_ACTION_B(TYPE_INT,int,IntVal,,)
 			REPBUILTIN_ACTION_B(TYPE_FLOAT,float,FloatVal,,)
 			REPBUILTIN_ACTION_B(TYPE_DOUBLE,double,DoubleVal,,)
-			REPBUILTIN_ACTION_B(TYPE_COMPLEX,complex,ComplexVal,,)
-			REPBUILTIN_ACTION_B(TYPE_DCOMPLEX,dcomplex,DcomplexVal,,)
+			REPBUILTIN_ACTION_B(TYPE_COMPLEX,glish_complex,ComplexVal,,)
+			REPBUILTIN_ACTION_B(TYPE_DCOMPLEX,glish_dcomplex,DcomplexVal,,)
 			REPBUILTIN_ACTION_B(TYPE_STRING,charptr,StringVal,string_dup,free_memory((void*)val);)
 			REPBUILTIN_ACTION_B(TYPE_REGEX,regexptr,RegexVal,new Regex,)
 
@@ -1023,8 +1023,8 @@ IValue* RepBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	REPBUILTIN_ACTION_C(TYPE_INT,int,IntPtr,)
 	REPBUILTIN_ACTION_C(TYPE_FLOAT,float,FloatPtr,)
 	REPBUILTIN_ACTION_C(TYPE_DOUBLE,double,DoublePtr,)
-	REPBUILTIN_ACTION_C(TYPE_COMPLEX,complex,ComplexPtr,)
-	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,)
+	REPBUILTIN_ACTION_C(TYPE_COMPLEX,glish_complex,ComplexPtr,)
+	REPBUILTIN_ACTION_C(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,)
 	REPBUILTIN_ACTION_C(TYPE_STRING,charptr,StringPtr,string_dup)
 	REPBUILTIN_ACTION_C(TYPE_REGEX,regexptr,RegexPtr,new Regex)
 
@@ -1168,8 +1168,8 @@ IValue* RandomBuiltIn::DoCall( evalOpt &opt, const_args_list* args_val )
 	XBIND_PLACE_ACTION(TYPE_SHORT,short,array,to,from,access,)	\
 	XBIND_PLACE_ACTION(TYPE_FLOAT,float,array,to,from,access,)	\
 	XBIND_PLACE_ACTION(TYPE_DOUBLE,double,array,to,from,access,)	\
-	XBIND_PLACE_ACTION(TYPE_COMPLEX,complex,array,to,from,,)	\
-	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,dcomplex,array,to,from,,)	\
+	XBIND_PLACE_ACTION(TYPE_COMPLEX,glish_complex,array,to,from,,)	\
+	XBIND_PLACE_ACTION(TYPE_DCOMPLEX,glish_dcomplex,array,to,from,,) \
 		default:						\
 		 fatal->Report( "bad type in CbindBuiltIn::DoCall()" );	\
 		}
@@ -1322,8 +1322,8 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		XBIND_ALLOC_PTR(TYPE_SHORT,short)			\
 		XBIND_ALLOC_PTR(TYPE_FLOAT,float)			\
 		XBIND_ALLOC_PTR(TYPE_DOUBLE,double)			\
-		XBIND_ALLOC_PTR(TYPE_COMPLEX,complex)			\
-		XBIND_ALLOC_PTR(TYPE_DCOMPLEX,dcomplex)			\
+		XBIND_ALLOC_PTR(TYPE_COMPLEX,glish_complex)		\
+		XBIND_ALLOC_PTR(TYPE_DCOMPLEX,glish_dcomplex)		\
 		default:						\
 		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
 		}							\
@@ -1343,8 +1343,8 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		int* int_ptr;						\
 		float* float_ptr;					\
 		double* double_ptr;					\
-		complex* complex_ptr;					\
-		dcomplex* dcomplex_ptr;					\
+		glish_complex* complex_ptr;				\
+		glish_dcomplex* dcomplex_ptr;				\
 									\
 		switch ( arg->Type() )					\
 			{						\
@@ -1376,8 +1376,8 @@ IValue* name::DoCall( evalOpt &opt, const_args_list* args_vals )	\
 		XBIND_RETURN_ACTION(TYPE_SHORT,short)			\
 		XBIND_RETURN_ACTION(TYPE_FLOAT,float)			\
 		XBIND_RETURN_ACTION(TYPE_DOUBLE,double)			\
-		XBIND_RETURN_ACTION(TYPE_COMPLEX,complex)		\
-		XBIND_RETURN_ACTION(TYPE_DCOMPLEX,dcomplex)		\
+		XBIND_RETURN_ACTION(TYPE_COMPLEX,glish_complex)		\
+		XBIND_RETURN_ACTION(TYPE_DCOMPLEX,glish_dcomplex)	\
 		default:						\
 		fatal->Report( "bad type in CbindBuiltIn::DoCall" );	\
 		}							\
@@ -1706,8 +1706,8 @@ case tag:						\
 
 				ISNAN_ACTION(TYPE_FLOAT,float,FloatPtr,)
 				ISNAN_ACTION(TYPE_DOUBLE,double,DoublePtr,)
-				ISNAN_ACTION(TYPE_COMPLEX,complex,ComplexPtr, ISNAN_ACTION_CPX_EXTRA)
-				ISNAN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr, ISNAN_ACTION_CPX_EXTRA)
+				ISNAN_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr, ISNAN_ACTION_CPX_EXTRA)
+				ISNAN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr, ISNAN_ACTION_CPX_EXTRA)
 				default: break;
 				}
 
@@ -1723,7 +1723,7 @@ case tag:						\
 				}
 			else
 				{
-				dcomplex nv = val->DcomplexVal();
+				glish_dcomplex nv = val->DcomplexVal();
 				return new IValue( ( is_a_nan(nv.r) || is_a_nan(nv.i) ) ?
 						   glish_true : glish_false );
 				}
@@ -2489,11 +2489,11 @@ DEFINE_AS_XXX_BUILT_IN(as_float_built_in, float, TYPE_FLOAT, atof,
 DEFINE_AS_XXX_BUILT_IN(as_double_built_in, double, TYPE_DOUBLE, atof,
 	CoerceToDoubleArray, "as_double", 0.0,,)
 
-DEFINE_AS_XXX_BUILT_IN(as_complex_built_in, complex, TYPE_COMPLEX, atocpx,
-	CoerceToComplexArray, "as_complex", complex(0.0, 0.0),,)
+DEFINE_AS_XXX_BUILT_IN(as_complex_built_in, glish_complex, TYPE_COMPLEX, atocpx,
+	CoerceToComplexArray, "as_complex", glish_complex(0.0, 0.0),,)
 
-DEFINE_AS_XXX_BUILT_IN(as_dcomplex_built_in, dcomplex, TYPE_DCOMPLEX, atodcpx,
-	CoerceToDcomplexArray, "as_dcomplex", dcomplex(0.0, 0.0),,)
+DEFINE_AS_XXX_BUILT_IN(as_dcomplex_built_in, glish_dcomplex, TYPE_DCOMPLEX, atodcpx,
+	CoerceToDcomplexArray, "as_dcomplex", glish_dcomplex(0.0, 0.0),,)
 
 IValue* as_byte_built_in( const IValue* arg )
 	{
@@ -2637,11 +2637,11 @@ IValue* as_string_built_in( const IValue* arg )
 			COERCE_XXX_TO_STRING_FP_FORMAT("%.6g"))			\
 	COERCE_XXX_TO_STRING(TYPE_DOUBLE,double,DoublePtr,fmt,INDEX,,XLATE,	\
 			COERCE_XXX_TO_STRING_FP_FORMAT("%.12g"))		\
-	COERCE_XXX_TO_STRING(TYPE_COMPLEX,complex,ComplexPtr,		  	\
+	COERCE_XXX_TO_STRING(TYPE_COMPLEX,glish_complex,ComplexPtr,	  	\
 		(vals[i].i>=0.0?fmt_plus:fmt_minus),INDEX,			\
 		COMMA_SEPARATED_SERIES(.r,vals[i].i),XLATE,			\
 			COERCE_XXX_TO_STRING_CPX_FORMAT("%.6g"))		\
-	COERCE_XXX_TO_STRING(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,		\
+	COERCE_XXX_TO_STRING(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,		\
 		(vals[i].i>=0.0?fmt_plus:fmt_minus),INDEX,			\
 		COMMA_SEPARATED_SERIES(.r,vals[i].i),XLATE,			\
 			COERCE_XXX_TO_STRING_CPX_FORMAT("%.12g"))
@@ -2819,20 +2819,20 @@ static void add_one_arg_built_in( Sequencer* s, value_func_1_value_arg func,
 //	These should be supplied later, probably from the `fn' library
 //	on `netlib'.
 //
-dcomplex asin( const dcomplex )
+glish_dcomplex asin( const glish_dcomplex )
 	{
 	error->Report( "Sorry, complex arcsine not yet implemented" );
-	return dcomplex( 0, 0 );
+	return glish_dcomplex( 0, 0 );
 	}
-dcomplex acos( const dcomplex )
+glish_dcomplex acos( const glish_dcomplex )
 	{
 	error->Report( "Sorry, complex arccosine not yet implemented" );
-	return dcomplex( 0, 0 );
+	return glish_dcomplex( 0, 0 );
 	}
-dcomplex atan( const dcomplex )
+glish_dcomplex atan( const glish_dcomplex )
 	{
 	error->Report( "Sorry, complex arctangent not yet implemented" );
-	return dcomplex( 0, 0 );
+	return glish_dcomplex( 0, 0 );
 	}
 
 void create_built_ins( Sequencer* s, const char *program_name )

@@ -1663,13 +1663,13 @@ static Value *read_value( sos_in &sos, char *&name, unsigned char &flags )
 		case SOS_SHORT: val = create_value( (short*) ary, len ); break;
 		case SOS_FLOAT:
 			if ( head.ugetc(0) == TYPE_COMPLEX )
-				val = create_value( (complex*) ary, len / 2 );
+				val = create_value( (glish_complex*) ary, len / 2 );
 			else
 				val = create_value( (float*) ary, len );
 			break;
 		case SOS_DOUBLE:
 			if ( head.ugetc(0) == TYPE_DCOMPLEX )
-				val = create_value( (dcomplex*) ary, len / 2 );
+				val = create_value( (glish_dcomplex*) ary, len / 2 );
 			else
 				val = create_value( (double*) ary, len );
 			break;

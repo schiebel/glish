@@ -1137,8 +1137,8 @@ BUILD_WITH_COERCE_TYPE(TYPE_SHORT, short, CoerceToShortArray)
 BUILD_WITH_COERCE_TYPE(TYPE_INT, int, CoerceToIntArray)
 BUILD_WITH_COERCE_TYPE(TYPE_FLOAT, float, CoerceToFloatArray)
 BUILD_WITH_COERCE_TYPE(TYPE_DOUBLE, double, CoerceToDoubleArray)
-BUILD_WITH_COERCE_TYPE(TYPE_COMPLEX, complex, CoerceToComplexArray)
-BUILD_WITH_COERCE_TYPE(TYPE_DCOMPLEX, dcomplex, CoerceToDcomplexArray)
+BUILD_WITH_COERCE_TYPE(TYPE_COMPLEX, glish_complex, CoerceToComplexArray)
+BUILD_WITH_COERCE_TYPE(TYPE_DCOMPLEX, glish_dcomplex, CoerceToDcomplexArray)
 
 // For strings, copy the result so that each string in the array gets
 // copied, too.

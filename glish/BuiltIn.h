@@ -8,7 +8,7 @@
 #include "IValue.h"
 #include "Func.h"
 
-struct dcomplex;
+struct glish_dcomplex;
 
 #define NUM_ARGS_VARIES -1
 
@@ -80,7 +80,7 @@ class OneValueArgBuiltIn : public BuiltIn {
 
 
 typedef double (*double_func_1_double_arg)( double );
-typedef dcomplex (*dcomplex_func_1_dcomplex_arg)( const dcomplex );
+typedef glish_dcomplex (*dcomplex_func_1_dcomplex_arg)( const glish_dcomplex );
 
 class NumericVectorBuiltIn : public BuiltIn {
     public:

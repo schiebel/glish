@@ -689,8 +689,8 @@ SUBSCRIPT_OP_ACTION(TYPE_SHORT,short,ShortPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_INT,int,IntPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_FLOAT,float,FloatPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_DOUBLE,double,DoublePtr(),length,offset,,)
-SUBSCRIPT_OP_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),length,offset,,)
-SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr(),length,offset,,)
 SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,string_dup,)
 
 		case TYPE_SUBVEC_REF:
@@ -724,9 +724,9 @@ SUBSCRIPT_OP_ACTION(TYPE_FLOAT, float, theVal->FloatPtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
 SUBSCRIPT_OP_ACTION(TYPE_DOUBLE, double, theVal->DoublePtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
-SUBSCRIPT_OP_ACTION(TYPE_COMPLEX, complex, theVal->ComplexPtr(),
+SUBSCRIPT_OP_ACTION(TYPE_COMPLEX, glish_complex, theVal->ComplexPtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
-SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX, dcomplex, theVal->DcomplexPtr(),
+SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX, glish_dcomplex, theVal->DcomplexPtr(),
 	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
 SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
 	theLen, off,string_dup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
@@ -926,8 +926,8 @@ ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,indices[i]-1,,)
-ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,indices[i]-1,,)
-ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,string_dup,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,indices[i]-1,,Ref(new_values[i]);)
 ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,indices[i]-1,,Ref(new_values[i]);)
@@ -953,8 +953,8 @@ ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,off,ARRAY_REF_ACTION_XLATE(;),)
-ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
-ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
 ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,string_dup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) free_memory( (void*) new_values[X] );),)
 ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
 ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
@@ -1144,8 +1144,8 @@ IValue* IValue::Pick( const IValue *index ) const
 		PICK_ACTION(TYPE_INT,int,IntPtr,offset,,,)
 		PICK_ACTION(TYPE_FLOAT,float,FloatPtr,offset,,,)
 		PICK_ACTION(TYPE_DOUBLE,double,DoublePtr,offset,,,)
-		PICK_ACTION(TYPE_COMPLEX,complex,ComplexPtr,offset,,,)
-		PICK_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,offset,,,)
+		PICK_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,offset,,,)
+		PICK_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,offset,,,)
 		PICK_ACTION(TYPE_STRING,charptr,StringPtr,offset,string_dup,,
 			PICK_ACTION_CLEANUP)
 
@@ -1174,8 +1174,8 @@ PICK_ACTION(TYPE_SHORT,short,theVal->ShortPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_INT,int,theVal->IntPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_FLOAT,float,theVal->FloatPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_DOUBLE,double,theVal->DoublePtr,off,,PICK_ACTION_XLATE(;),)
-PICK_ACTION(TYPE_COMPLEX,complex,theVal->ComplexPtr,off,,PICK_ACTION_XLATE(;),)
-PICK_ACTION(TYPE_DCOMPLEX,dcomplex,theVal->DcomplexPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_COMPLEX,glish_complex,theVal->ComplexPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_DCOMPLEX,glish_dcomplex,theVal->DcomplexPtr,off,,PICK_ACTION_XLATE(;),)
 PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,string_dup,
 	PICK_ACTION_XLATE(PICK_ACTION_CLEANUP),PICK_ACTION_CLEANUP)
 
@@ -1293,8 +1293,8 @@ PICKASSIGN_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,,)
 PICKASSIGN_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,,)
 PICKASSIGN_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,,)
 PICKASSIGN_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,,)
-PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,)
-PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,)
+PICKASSIGN_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,CoerceToComplexArray,,)
+PICKASSIGN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,CoerceToDcomplexArray,,)
 PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,)
 
 		case TYPE_SUBVEC_REF:
@@ -1330,9 +1330,9 @@ PICKASSIGN_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,,
 	PICKASSIGN_ACTION_XLATE)
 PICKASSIGN_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,,
 	PICKASSIGN_ACTION_XLATE)
-PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,
+PICKASSIGN_ACTION(TYPE_COMPLEX,glish_complex,ComplexPtr,CoerceToComplexArray,,
 	PICKASSIGN_ACTION_XLATE)
-PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,
+PICKASSIGN_ACTION(TYPE_DCOMPLEX,glish_dcomplex,DcomplexPtr,CoerceToDcomplexArray,,
 	PICKASSIGN_ACTION_XLATE)
 PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,
 	PICKASSIGN_ACTION_XLATE)
@@ -1637,9 +1637,9 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,ComplexPtr,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,glish_complex*,glish_complex*,ComplexPtr,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,DcomplexPtr,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,glish_dcomplex*,glish_dcomplex*,DcomplexPtr,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
@@ -1665,9 +1665,9 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,ComplexRef,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,glish_complex*,ComplexRef,
 	CoerceToComplexArray,,)
-ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,DcomplexRef,
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,glish_dcomplex*,DcomplexRef,
 	CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[indices[i]-1] );)
@@ -1738,9 +1738,9 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,float*,float*,FloatPtr,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,double*,double*,DoublePtr,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complex*,complex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,glish_complex*,glish_complex*,
 	ComplexPtr,CoerceToComplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplex*,dcomplex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,glish_dcomplex*,glish_dcomplex*,
 	DcomplexPtr,CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray,string_dup, free_memory( (void*) lhs[i] );)
@@ -1766,9 +1766,9 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FLOAT,floatref&,float*,FloatRef,
 	CoerceToFloatArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DOUBLE,doubleref&,double*,DoubleRef,
 	CoerceToDoubleArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,complex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_COMPLEX,complexref&,glish_complex*,
 	ComplexRef,CoerceToComplexArray,,)
-ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,dcomplex*,
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_DCOMPLEX,dcomplexref&,glish_dcomplex*,
 	DcomplexRef, CoerceToDcomplexArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptrref&,charptr*,StringRef,
 	CoerceToStringArray, string_dup, free_memory( (void*) lhs[i] );)
@@ -1817,8 +1817,8 @@ DEFINE_XXX_ARITH_OP_COMPUTE(ShortOpCompute,short,CoerceToShortArray,ShortPtr)
 DEFINE_XXX_ARITH_OP_COMPUTE(IntOpCompute,int,CoerceToIntArray,IntPtr)
 DEFINE_XXX_ARITH_OP_COMPUTE(FloatOpCompute,float,CoerceToFloatArray,FloatPtr)
 DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray,DoublePtr)
-DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray,ComplexPtr)
-DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray,DcomplexPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,glish_complex,CoerceToComplexArray,ComplexPtr)
+DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,glish_dcomplex,CoerceToDcomplexArray,DcomplexPtr)
 
 //
 // If you change this function check Value::Polymorph
@@ -1870,8 +1870,8 @@ POLYMORPH_ACTION(TYPE_SHORT,short,CoerceToShortArray)
 POLYMORPH_ACTION(TYPE_INT,int,CoerceToIntArray)
 POLYMORPH_ACTION(TYPE_FLOAT,float,CoerceToFloatArray)
 POLYMORPH_ACTION(TYPE_DOUBLE,double,CoerceToDoubleArray)
-POLYMORPH_ACTION(TYPE_COMPLEX,complex,CoerceToComplexArray)
-POLYMORPH_ACTION(TYPE_DCOMPLEX,dcomplex,CoerceToDcomplexArray)
+POLYMORPH_ACTION(TYPE_COMPLEX,glish_complex,CoerceToComplexArray)
+POLYMORPH_ACTION(TYPE_DCOMPLEX,glish_dcomplex,CoerceToDcomplexArray)
 POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 
 		case TYPE_FUNC:
@@ -2210,8 +2210,8 @@ DEFINE_XXX_REL_OP_COMPUTE(short_rel_op_compute,short,CoerceToShortArray)
 DEFINE_XXX_REL_OP_COMPUTE(int_rel_op_compute,int,CoerceToIntArray)
 DEFINE_XXX_REL_OP_COMPUTE(float_rel_op_compute,float,CoerceToFloatArray)
 DEFINE_XXX_REL_OP_COMPUTE(double_rel_op_compute,double,CoerceToDoubleArray)
-DEFINE_XXX_REL_OP_COMPUTE(complex_rel_op_compute,complex,CoerceToComplexArray)
-DEFINE_XXX_REL_OP_COMPUTE(dcomplex_rel_op_compute,dcomplex,
+DEFINE_XXX_REL_OP_COMPUTE(complex_rel_op_compute,glish_complex,CoerceToComplexArray)
+DEFINE_XXX_REL_OP_COMPUTE(dcomplex_rel_op_compute,glish_dcomplex,
 	CoerceToDcomplexArray)
 DEFINE_XXX_REL_OP_COMPUTE(string_rel_op_compute,charptr,CoerceToStringArray)
 

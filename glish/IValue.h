@@ -66,8 +66,8 @@ public:
 	IValue( int v ) : Value( v ) { }
 	IValue( float v ) : Value( v ) { }
 	IValue( double v ) : Value( v ) { }
-	IValue( complex v ) : Value( v ) { }
-	IValue( dcomplex v ) : Value( v ) { }
+	IValue( glish_complex v ) : Value( v ) { }
+	IValue( glish_dcomplex v ) : Value( v ) { }
 	IValue( const char* v ) : Value( v ) { }
 	IValue( funcptr v );
 	IValue( regexptr v );
@@ -109,10 +109,10 @@ public:
 	IValue( double value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
-	IValue( complex value[], int num_elements,
+	IValue( glish_complex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
-	IValue( dcomplex value[], int num_elements,
+	IValue( glish_dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY ) :
 			Value( value, num_elements, storage ) { }
 	IValue( charptr value[], int num_elements,

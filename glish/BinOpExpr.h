@@ -78,9 +78,9 @@ class ArithExpr : public BinOpExpr {
 			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
 	virtual void Compute( double lhs[], double rhs[], int lhs_len,
 			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
-	virtual void Compute( complex lhs[], complex rhs[], int lhs_len,
+	virtual void Compute( glish_complex lhs[], glish_complex rhs[], int lhs_len,
 			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
-	virtual void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,
+	virtual void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[], int lhs_len,
 			      int rhs_incr, const char *&err = glish_charptrdummy ) = 0;
 
     protected:
@@ -110,9 +110,9 @@ class name : public ArithExpr {							\
 		      int rhs_incr, const char *&err = glish_charptrdummy );	\
 	void Compute( double lhs[], double rhs[], int lhs_len,			\
 		      int rhs_incr, const char *&err = glish_charptrdummy );	\
-	void Compute( complex lhs[], complex rhs[], int lhs_len,		\
+	void Compute( glish_complex lhs[], glish_complex rhs[], int lhs_len,	\
 			int rhs_incr, const char *&err = glish_charptrdummy );	\
-	void Compute( dcomplex lhs[], dcomplex rhs[], int lhs_len,		\
+	void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[], int lhs_len,	\
 			int rhs_incr, const char *&err = glish_charptrdummy );	\
 	};
 
@@ -152,9 +152,9 @@ class RelExpr : public BinOpExpr {
 				int lhs_len, int rhs_incr ) = 0;
 	virtual void Compute( double lhs[], double rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( complex lhs[], complex rhs[], glish_bool result[],
+	virtual void Compute( glish_complex lhs[], glish_complex rhs[], glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
-	virtual void Compute( dcomplex lhs[], dcomplex rhs[],
+	virtual void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[],
 				glish_bool result[],
 				int lhs_len, int rhs_incr ) = 0;
 	virtual void Compute( charptr lhs[], charptr rhs[], glish_bool result[],
@@ -192,10 +192,10 @@ class name : public RelExpr {						\
 			int lhs_len, int rhs_incr );			\
 	void Compute( double lhs[], double rhs[], glish_bool result[],	\
 			int lhs_len, int rhs_incr );			\
-	void Compute( complex lhs[], complex rhs[], glish_bool result[],\
-			int lhs_len, int rhs_incr );			\
-	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],\
-			int lhs_len, int rhs_incr );			\
+	void Compute( glish_complex lhs[], glish_complex rhs[],		\
+			glish_bool result[], int lhs_len, int rhs_incr ); \
+	void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[],	\
+			glish_bool result[], int lhs_len, int rhs_incr ); \
 	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],\
 			int lhs_len, int rhs_incr );			\
 	};
@@ -230,9 +230,9 @@ class LogExpr : public RelExpr {
 			int lhs_len, int rhs_incr );
 	void Compute( double lhs[], double rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( complex lhs[], complex rhs[], glish_bool result[],
+	void Compute( glish_complex lhs[], glish_complex rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
-	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],
+	void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
 	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],
 			int lhs_len, int rhs_incr );
@@ -267,11 +267,11 @@ class name : public LogExpr {						\
 	void Compute( double lhs[], double rhs[], glish_bool result[],	\
 			int lhs_len, int rhs_incr )			\
 		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
-	void Compute( complex lhs[], complex rhs[], glish_bool result[],\
-			int lhs_len, int rhs_incr )			\
+	void Compute( glish_complex lhs[], glish_complex rhs[],		\
+			glish_bool result[], int lhs_len, int rhs_incr ) \
 		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
-	void Compute( dcomplex lhs[], dcomplex rhs[], glish_bool result[],\
-			int lhs_len, int rhs_incr )			\
+	void Compute( glish_dcomplex lhs[], glish_dcomplex rhs[],	\
+			glish_bool result[], int lhs_len, int rhs_incr ) \
 		{ LogExpr::Compute(lhs,rhs,result,lhs_len,rhs_incr); }	\
 	void Compute( charptr lhs[], charptr rhs[], glish_bool result[],\
 			int lhs_len, int rhs_incr )			\

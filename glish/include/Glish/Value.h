@@ -25,8 +25,8 @@ typedef enum {
 extern int glish_dummy_int;
 
 class Value;
-struct complex;
-struct dcomplex;
+struct glish_complex;
+struct glish_dcomplex;
 struct record_header;	// Needed when dealing with SDS; see AddToSds()
 
 // also declared in Sequencer.h
@@ -50,8 +50,8 @@ class SubVecRef(short);
 class SubVecRef(int);
 class SubVecRef(float);
 class SubVecRef(double);
-class SubVecRef(complex);
-class SubVecRef(dcomplex);
+class SubVecRef(glish_complex);
+class SubVecRef(glish_dcomplex);
 class SubVecRef(charptr);
 
 typedef SubVecRef(glish_bool) glish_boolref;
@@ -60,8 +60,8 @@ typedef SubVecRef(short) shortref;
 typedef SubVecRef(int) intref;
 typedef SubVecRef(float) floatref;
 typedef SubVecRef(double) doubleref;
-typedef SubVecRef(complex) complexref;
-typedef SubVecRef(dcomplex) dcomplexref;
+typedef SubVecRef(glish_complex) complexref;
+typedef SubVecRef(glish_dcomplex) dcomplexref;
 typedef SubVecRef(charptr) charptrref;
 
 
@@ -112,8 +112,8 @@ public:
 	Value( int value );
 	Value( float value );
 	Value( double value );
-	Value( complex value );
-	Value( dcomplex value );
+	Value( glish_complex value );
+	Value( glish_dcomplex value );
 	Value( const char* value );
 
 	Value( recordptr value );
@@ -137,9 +137,9 @@ public:
 		array_storage_type storage = TAKE_OVER_ARRAY );
 	Value( double value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
-	Value( complex value[], int num_elements,
+	Value( glish_complex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
-	Value( dcomplex value[], int num_elements,
+	Value( glish_dcomplex value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
 	Value( charptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
@@ -195,8 +195,8 @@ public:
 	int IntVal( int n = 1, Str &err = glish_errno ) const;
 	float FloatVal( int n = 1, Str &err = glish_errno ) const;
 	double DoubleVal( int n = 1, Str &err = glish_errno ) const;
-	complex ComplexVal( int n = 1, Str &err = glish_errno ) const;
-	dcomplex DcomplexVal( int n = 1, Str &err = glish_errno ) const;
+	glish_complex ComplexVal( int n = 1, Str &err = glish_errno ) const;
+	glish_dcomplex DcomplexVal( int n = 1, Str &err = glish_errno ) const;
 
 	// Returns the entire value converted to a single string, with
 	// "sep" used to separate array elements.  "max_elements" allows
@@ -234,8 +234,8 @@ public:
 	int* IntPtr( int modify=1 ) const;
 	float* FloatPtr( int modify=1 ) const;
 	double* DoublePtr( int modify=1 ) const;
-	complex* ComplexPtr( int modify=1 ) const;
-	dcomplex* DcomplexPtr( int modify=1 ) const;
+	glish_complex* ComplexPtr( int modify=1 ) const;
+	glish_dcomplex* DcomplexPtr( int modify=1 ) const;
 	charptr* StringPtr( int modify=1 ) const;
 	recordptr RecordPtr( int modify=1 ) const;
 	recordptr FailPtr( int modify=1 ) const;
@@ -246,8 +246,8 @@ public:
 	int* IntPtr( int modify=1 );
 	float* FloatPtr( int modify=1 );
 	double* DoublePtr( int modify=1 );
-	complex* ComplexPtr( int modify=1 );
-	dcomplex* DcomplexPtr( int modify=1 );
+	glish_complex* ComplexPtr( int modify=1 );
+	glish_dcomplex* DcomplexPtr( int modify=1 );
 	charptr* StringPtr( int modify=1 );
 	recordptr RecordPtr( int modify=1 );
 	recordptr FailPtr( int modify=1 );
@@ -314,10 +314,10 @@ public:
 			float* result = 0 ) const;
 	double* CoerceToDoubleArray( int& is_copy, int size,
 			double* result = 0 ) const;
-	complex* CoerceToComplexArray( int& is_copy, int size,
-			complex* result = 0 ) const;
-	dcomplex* CoerceToDcomplexArray( int& is_copy, int size,
-			dcomplex* result = 0 ) const;
+	glish_complex* CoerceToComplexArray( int& is_copy, int size,
+			glish_complex* result = 0 ) const;
+	glish_dcomplex* CoerceToDcomplexArray( int& is_copy, int size,
+			glish_dcomplex* result = 0 ) const;
 	charptr* CoerceToStringArray( int& is_copy, int size,
 			charptr* result = 0 ) const;
 
@@ -374,8 +374,8 @@ public:
 	int* FieldIntPtr( const char field[], int& len, int modify=1 );
 	float* FieldFloatPtr( const char field[], int& len, int modify=1 );
 	double* FieldDoublePtr( const char field[], int& len, int modify=1 );
-	complex* FieldComplexPtr( const char field[], int& len, int modify=1 );
-	dcomplex* FieldDcomplexPtr( const char field[], int& len, int modify=1 );
+	glish_complex* FieldComplexPtr( const char field[], int& len, int modify=1 );
+	glish_dcomplex* FieldDcomplexPtr( const char field[], int& len, int modify=1 );
 	charptr* FieldStringPtr( const char field[], int& len, int modify=1 );
 
 	// Looks for a field with the given name.  If present, returns true,
@@ -390,8 +390,8 @@ public:
 	int FieldVal( const char field[], int& val, int n = 1, Str &err = glish_errno );
 	int FieldVal( const char field[], float& val, int n = 1, Str &err = glish_errno );
 	int FieldVal( const char field[], double& val, int n = 1, Str &err = glish_errno );
-	int FieldVal( const char field[], complex& val, int n = 1, Str &err = glish_errno );
-	int FieldVal( const char field[], dcomplex& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], glish_complex& val, int n = 1, Str &err = glish_errno );
+	int FieldVal( const char field[], glish_dcomplex& val, int n = 1, Str &err = glish_errno );
 
 	// Returns a new string in "val".
 	int FieldVal( const char field[], char*& val );
@@ -409,8 +409,8 @@ public:
 	void SetField( const char field[], int value );
 	void SetField( const char field[], float value );
 	void SetField( const char field[], double value );
-	void SetField( const char field[], complex value );
-	void SetField( const char field[], dcomplex value );
+	void SetField( const char field[], glish_complex value );
+	void SetField( const char field[], glish_dcomplex value );
 	void SetField( const char field[], const char* value );
 
 	void SetField( const char field[], glish_bool value[], int num_elements,
@@ -425,9 +425,9 @@ public:
 			array_storage_type storage = TAKE_OVER_ARRAY );
 	void SetField( const char field[], double value[], int num_elements,
 			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetField( const char field[], complex value[], int num_elements,
+	void SetField( const char field[], glish_complex value[], int num_elements,
 			array_storage_type storage = TAKE_OVER_ARRAY );
-	void SetField( const char field[], dcomplex value[], int num_elements,
+	void SetField( const char field[], glish_dcomplex value[], int num_elements,
 			array_storage_type storage = TAKE_OVER_ARRAY );
 	void SetField( const char field[], charptr value[], int num_elements,
 			array_storage_type storage = TAKE_OVER_ARRAY );
@@ -686,7 +686,7 @@ extern Value* split( char* source, char* split_chars = " \t\n" );
 // false if the text does not describe a valid integer/double/dcomplex.
 extern int text_to_integer( const char text[], int& successful );
 extern double text_to_double( const char text[], int& successful );
-extern dcomplex text_to_dcomplex( const char text[], int& successful );
+extern glish_dcomplex text_to_dcomplex( const char text[], int& successful );
 
 const char *print_decimal_prec( const attributeptr attr, const char *default_fmt = "%g" );
 
@@ -722,8 +722,8 @@ extern Value *create_value( short value );
 extern Value *create_value( int value );
 extern Value *create_value( float value );
 extern Value *create_value( double value );
-extern Value *create_value( complex value );
-extern Value *create_value( dcomplex value );
+extern Value *create_value( glish_complex value );
+extern Value *create_value( glish_dcomplex value );
 extern Value *create_value( const char* value );
 extern Value *create_value( recordptr value );
 extern Value *create_value( Value* ref_value, value_type val_type );
@@ -741,9 +741,9 @@ extern Value *create_value( float value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
 extern Value *create_value( double value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( complex value[], int num_elements,
+extern Value *create_value( glish_complex value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
-extern Value *create_value( dcomplex value[], int num_elements,
+extern Value *create_value( glish_dcomplex value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );
 extern Value *create_value( charptr value[], int num_elements,
 	array_storage_type storage = TAKE_OVER_ARRAY );

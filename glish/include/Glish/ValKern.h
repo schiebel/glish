@@ -177,8 +177,8 @@ class ValueKernel GC_FINAL_CLASS {
 	void SetArray( int vec[], unsigned int len, int copy = 0 );
 	void SetArray( float vec[], unsigned int len, int copy = 0 );
 	void SetArray( double vec[], unsigned int len, int copy = 0 );
-	void SetArray( complex vec[], unsigned int len, int copy = 0 );
-	void SetArray( dcomplex vec[], unsigned int len, int copy = 0 );
+	void SetArray( glish_complex vec[], unsigned int len, int copy = 0 );
+	void SetArray( glish_dcomplex vec[], unsigned int len, int copy = 0 );
 	void SetArray( const char* vec[], unsigned int len, int copy = 0 );
 	void SetArray( voidptr vec[], unsigned int len, glish_type t, int copy = 0 );
 

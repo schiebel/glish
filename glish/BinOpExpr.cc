@@ -250,15 +250,15 @@ COMPUTE_OP(name,op,double,errmsg)		\
 
 #define DEFINE_SIMPLE_ARITH_EXPR(name, op, errmsg)	\
 DEFINE_ARITH_EXPR(name,op,errmsg)			\
-COMPLEX_COMPUTE_OP(name,op,complex,errmsg)		\
-COMPLEX_COMPUTE_OP(name,op,dcomplex,errmsg)		\
+COMPLEX_COMPUTE_OP(name,op,glish_complex,errmsg)	\
+COMPLEX_COMPUTE_OP(name,op,glish_dcomplex,errmsg)	\
 
 DEFINE_SIMPLE_ARITH_EXPR(AddExpr,+=,add_fpe_errmsg)
 DEFINE_SIMPLE_ARITH_EXPR(SubtractExpr,-=,sub_fpe_errmsg)
 
 DEFINE_ARITH_EXPR(MultiplyExpr,*=,mul_fpe_errmsg)
-COMPLEX_COMPUTE_MUL_OP(complex,mul_fpe_errmsg)
-COMPLEX_COMPUTE_MUL_OP(dcomplex,mul_fpe_errmsg)
+COMPLEX_COMPUTE_MUL_OP(glish_complex,mul_fpe_errmsg)
+COMPLEX_COMPUTE_MUL_OP(glish_dcomplex,mul_fpe_errmsg)
 
 #if defined(__alpha) || defined(__alpha__)
 #define ALPHA_DIV_OP(type,func)					\
@@ -280,8 +280,8 @@ COMPUTE_OP(DivideExpr,/=,double,div_fpe_errmsg)
 COMPUTE_OP(DivideExpr,/=,byte,div_fpe_errmsg)
 COMPUTE_OP(DivideExpr,/=,short,div_fpe_errmsg)
 COMPUTE_OP(DivideExpr,/=,int,div_fpe_errmsg)
-COMPLEX_COMPUTE_DIV_OP(complex,div_fpe_errmsg)
-COMPLEX_COMPUTE_DIV_OP(dcomplex,div_fpe_errmsg)
+COMPLEX_COMPUTE_DIV_OP(glish_complex,div_fpe_errmsg)
+COMPLEX_COMPUTE_DIV_OP(glish_dcomplex,div_fpe_errmsg)
 
 
 glish_type DivideExpr::OperandsType( const IValue* lhs, const IValue* rhs ) const
@@ -320,12 +320,12 @@ void ModuloExpr::Compute( double*, double*, int, int, const char *& )
 	fatal->Report( "ModuloExpr::Compute() called with double operands" );
 	}
 
-void ModuloExpr::Compute( complex*, complex*, int, int, const char *& )
+void ModuloExpr::Compute( glish_complex*, glish_complex*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with complex operands" );
 	}
 
-void ModuloExpr::Compute( dcomplex*, dcomplex*, int, int, const char *& )
+void ModuloExpr::Compute( glish_dcomplex*, glish_dcomplex*, int, int, const char *& )
 	{
 	fatal->Report( "ModuloExpr::Compute() called with dcomplex operands" );
 	}
@@ -375,12 +375,12 @@ void PowerExpr::Compute( double lhs[], double rhs[], int lhs_len,
 	if ( glish_fpe_exit( ) ) err = pow_fpe_errmsg;
 	}
 
-void PowerExpr::Compute( complex*, complex*, int, int, const char *& )
+void PowerExpr::Compute( glish_complex*, glish_complex*, int, int, const char *& )
 	{
 	fatal->Report( "PowerExpr::Compute() called with complex operands" );
 	}
 
-void PowerExpr::Compute( dcomplex lhs[], dcomplex rhs[],
+void PowerExpr::Compute( glish_dcomplex lhs[], glish_dcomplex rhs[],
 			int lhs_len, int rhs_incr, const char *&err )
 	{
 	err = 0;
@@ -561,8 +561,8 @@ COMPUTE_NUMERIC_REL_RESULT(name,op,short)				\
 COMPUTE_NUMERIC_REL_RESULT(name,op,int)					\
 COMPUTE_NUMERIC_REL_RESULT(name,op,float)				\
 COMPUTE_NUMERIC_REL_RESULT(name,op,double)				\
-COMPUTE_NUMERIC_REL_RESULT(name,op,complex)				\
-COMPUTE_NUMERIC_REL_RESULT(name,op,dcomplex)				\
+COMPUTE_NUMERIC_REL_RESULT(name,op,glish_complex)			\
+COMPUTE_NUMERIC_REL_RESULT(name,op,glish_dcomplex)			\
 COMPUTE_STRING_REL_RESULT(name,op,charptr)
 
 DEFINE_REL_EXPR(EQ_Expr, ==)
@@ -584,8 +584,8 @@ DEFINE_LOG_EXPR_COMPUTE(short, "short")
 DEFINE_LOG_EXPR_COMPUTE(int, "integer")
 DEFINE_LOG_EXPR_COMPUTE(float, "float")
 DEFINE_LOG_EXPR_COMPUTE(double, "double")
-DEFINE_LOG_EXPR_COMPUTE(complex, "complex")
-DEFINE_LOG_EXPR_COMPUTE(dcomplex, "dcomplex")
+DEFINE_LOG_EXPR_COMPUTE(glish_complex, "complex")
+DEFINE_LOG_EXPR_COMPUTE(glish_dcomplex, "dcomplex")
 DEFINE_LOG_EXPR_COMPUTE(charptr, "string")
 
 IValue *LogExpr::TypeCheck( const IValue* lhs, const IValue* rhs,

@@ -7,18 +7,18 @@ RCSID("@(#) $Id$")
 #include "Glish/Complex.h"
 
 // Defined in "Value.cc".
-extern dcomplex text_to_dcomplex( const char text[], int& successful );
+extern glish_dcomplex text_to_dcomplex( const char text[], int& successful );
 
-complex atocpx( const char text[] )
+glish_complex atocpx( const char text[] )
 	{
-	return complex( atodcpx( text ) );
+	return glish_complex( atodcpx( text ) );
 	}
 
-dcomplex atodcpx( const char text[] )
+glish_dcomplex atodcpx( const char text[] )
 	{
 	int successful;
-	dcomplex dr = text_to_dcomplex( text, successful );
-	return successful ? dr : dcomplex( 0.0, 0.0 );
+	glish_dcomplex dr = text_to_dcomplex( text, successful );
+	return successful ? dr : glish_dcomplex( 0.0, 0.0 );
 	}
 
 #define sqr(x) ((x) * (x))
@@ -46,47 +46,47 @@ type div( const type divd, const type dsor )				\
 	return type( cast( p / y ), cast( q / y ) );			\
 	}
 
-COMPLEX_DIV_OP(dcomplex,double)
-COMPLEX_DIV_OP(complex,float)
+COMPLEX_DIV_OP(glish_dcomplex,double)
+COMPLEX_DIV_OP(glish_complex,float)
 
-dcomplex exp( const dcomplex v ) 
+glish_dcomplex exp( const glish_dcomplex v ) 
 	{
 	double r = exp( v.r );
-	return dcomplex( r * cos(v.i), r * sin(v.i) );
+	return glish_dcomplex( r * cos(v.i), r * sin(v.i) );
 	}
 
-dcomplex log( const dcomplex v )
+glish_dcomplex log( const glish_dcomplex v )
 	{
 	double h = hypot( v.r, v.i );
 	/* THROW EXCEPTION if h <= 0*/
-	return dcomplex( log(h), atan2(v.i, v.r) );
+	return glish_dcomplex( log(h), atan2(v.i, v.r) );
 	}
 
-dcomplex log10( const dcomplex v )
+glish_dcomplex log10( const glish_dcomplex v )
 	{
 	double log10e = 0.4342944819032518276511289;
-	dcomplex l = log(v);
-	return dcomplex( l.r * log10e, l.i * log10e );
+	glish_dcomplex l = log(v);
+	return glish_dcomplex( l.r * log10e, l.i * log10e );
 	}
 
-dcomplex sin( const dcomplex v )
+glish_dcomplex sin( const glish_dcomplex v )
 	{
-	return dcomplex( sin(v.r) * cosh(v.i), cos(v.r) * sinh(v.i) );
+	return glish_dcomplex( sin(v.r) * cosh(v.i), cos(v.r) * sinh(v.i) );
 	}
 
-dcomplex cos( const dcomplex v )
+glish_dcomplex cos( const glish_dcomplex v )
 	{
-	return dcomplex( cos(v.r) * cosh(v.i), -sin(v.r) * sinh(v.i) );
+	return glish_dcomplex( cos(v.r) * cosh(v.i), -sin(v.r) * sinh(v.i) );
 	}
 
-dcomplex sqrt( const dcomplex v )
+glish_dcomplex sqrt( const glish_dcomplex v )
 	{
-	return v.r == 0 && v.i == 0 ? dcomplex(0,0) : pow( v, dcomplex( 0.5 ) );
+	return v.r == 0 && v.i == 0 ? glish_dcomplex(0,0) : pow( v, glish_dcomplex( 0.5 ) );
 	}
 
-dcomplex pow( const dcomplex x, const dcomplex y )
+glish_dcomplex pow( const glish_dcomplex x, const glish_dcomplex y )
 	{
-	dcomplex z = log( x );
+	glish_dcomplex z = log( x );
 	z = mul( z, y );
 	return exp( z );
 	}

@@ -255,8 +255,8 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 	int* int_ptr = 0;
 	float* float_ptr = 0;
 	double* double_ptr = 0;
-	complex* complex_ptr = 0;
-	dcomplex* dcomplex_ptr = 0;
+	glish_complex* complex_ptr = 0;
+	glish_dcomplex* dcomplex_ptr = 0;
 	charptr* string_ptr = 0;
 	const char *flt_prec = 0;
 #ifdef DOIVAL

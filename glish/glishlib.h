@@ -26,9 +26,9 @@
 		{ return new type( value ); }					\
 	Value *create_value( double value )					\
 		{ return new type( value ); }					\
-	Value *create_value( complex value )					\
+	Value *create_value( glish_complex value )				\
 		{ return new type( value ); }					\
-	Value *create_value( dcomplex value )					\
+	Value *create_value( glish_dcomplex value )				\
 		{ return new type( value ); }					\
 	Value *create_value( const char* value )				\
 		{ return new type( value ); }					\
@@ -56,10 +56,10 @@
 	Value *create_value( double value[], int num_elements,			\
 		array_storage_type storage )					\
 		{ return new type( value, num_elements, storage ); }		\
-	Value *create_value( complex value[], int num_elements,			\
+	Value *create_value( glish_complex value[], int num_elements,		\
 		array_storage_type storage )					\
 		{ return new type( value, num_elements, storage ); }		\
-	Value *create_value( dcomplex value[], int num_elements,		\
+	Value *create_value( glish_dcomplex value[], int num_elements,		\
 		array_storage_type storage )					\
 		{ return new type( value, num_elements, storage ); }		\
 	Value *create_value( charptr value[], int num_elements,			\
