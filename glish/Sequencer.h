@@ -636,6 +636,7 @@ protected:
 	awaitinfo *last_await_info;
 	int current_await_done;
 	IValue* last_reply;
+	int stdin_selectee_removed;
 
 	// Task that we interrupted processing because we came across
 	// an "await"-ed upon event; if non-null, should be Empty()'d

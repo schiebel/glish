@@ -106,8 +106,8 @@ extern int yylex( YYSTYPE * );
 #endif
 
 /* Used for recovery after a ^C */
-extern jmp_buf glish_top_level;
-extern int glish_jmpbuf_set;
+extern jmp_buf glish_top_jmpbuf;
+extern int glish_top_jmpbuf_set;
 
 Sequencer* current_sequencer = 0;
 static IValue *parse_error = 0;
@@ -1048,16 +1048,16 @@ IValue *glish_parser( Stmt *&stmt )
 			cur_stmt = null_stmt;
 
 			IValue *val = 0;
-			if ( setjmp(glish_top_level) == 0 )
+			if ( setjmp(glish_top_jmpbuf) == 0 )
 				{
-				glish_jmpbuf_set = 1;
+				glish_top_jmpbuf_set = 1;
 				stmt_flow_type flow;
 				val = loc_stmt->Exec( 1, flow );
 				if ( flow != FLOW_NEXT )
 					warn->Report("control flow (loop/break/return) ignored" );
 				}
 
-			glish_jmpbuf_set = 0;
+			glish_top_jmpbuf_set = 0;
 
 			if ( current_sequencer->ErrorResult() )
 				{

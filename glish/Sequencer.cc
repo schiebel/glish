@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <iostream.h>
 #include <unistd.h>
+#include <setjmp.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -47,6 +48,9 @@ int system( const char* string );
 void nb_reset_term( int );
 }
 
+/* Used for recovery after a ^C */
+extern jmp_buf glish_include_jmpbuf;
+extern int glish_include_jmpbuf_set;
 
 #include "Npd/npd.h"
 #include "Daemon.h"
@@ -1110,9 +1114,12 @@ void Sequencer::TopLevelReset()
 
 void Sequencer::toplevelreset()
 	{
-	if ( yyin && isatty( fileno( yyin ) ) && 
-			! selector->FindSelectee( fileno( yyin ) ) )
-		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+	if ( stdin_selectee_removed && isatty( fileno( stdin ) ) && 
+			! selector->FindSelectee( fileno( stdin ) ) )
+		{
+		selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
+		stdin_selectee_removed = 0;
+		}
 
 	for ( int len = await_list.length(); len > 0; len-- )
 		{
@@ -1297,6 +1304,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	current_await_done = 0;
 	last_await_info = 0;
 	pending_task = 0;
+	stdin_selectee_removed = 0;
 
 	maximize_num_fds();
 
@@ -2559,17 +2567,16 @@ void Sequencer::PopAwait( )
 void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 			Stmt* arg_except_stmt )
 	{
-	int removed_yyin = 0;
+	int removed_stdin = 0;
 
 	PushAwait( );
 
 	await.set( arg_await_stmt, arg_except_stmt, only_flag );
 
-	if ( yyin && isatty( fileno( yyin ) ) &&
-	     selector->FindSelectee( fileno( yyin ) ) )
+	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
-		selector->DeleteSelectee( fileno( yyin ) );
-		removed_yyin = 1;
+		selector->DeleteSelectee( fileno( stdin ) );
+		stdin_selectee_removed = removed_stdin = 1;
 #if USE_EDITLINE
 		//
 		// reset term so user can see what is typed
@@ -2590,9 +2597,10 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 	current_await_done = 0;
 
-	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+	if ( isatty( fileno( stdin ) ) && removed_stdin )
 		{
-		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+		selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
+		stdin_selectee_removed = 0;
 #if USE_EDITLINE
 		nb_reset_term(0);
 #endif
@@ -2603,13 +2611,12 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 void Sequencer::PagerOutput( char *string, char **argv )
 	{
-	int removed_yyin = 0;
+	int removed_stdin = 0;
 
-	if ( yyin && isatty( fileno( yyin ) ) &&
-	     selector->FindSelectee( fileno( yyin ) ) )
+	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
-		selector->DeleteSelectee( fileno( yyin ) );
-		removed_yyin = 1;
+		selector->DeleteSelectee( fileno( stdin ) );
+		stdin_selectee_removed = removed_stdin = 1;
 #if USE_EDITLINE
 		//
 		// reset term so user can see what is typed
@@ -2665,9 +2672,10 @@ void Sequencer::PagerOutput( char *string, char **argv )
 	selector->DeleteSelectee( status[0] );
 	close( status[0] );
 
-	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+	if ( isatty( fileno( stdin ) ) && removed_stdin )
 		{
-		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+		selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
+		stdin_selectee_removed = 0;
 #if USE_EDITLINE
 		nb_reset_term(0);
 #endif
@@ -2681,17 +2689,16 @@ void Sequencer::PagerOutput( char *string, char **argv )
 IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 				const char* reply_name )
 	{
-	int removed_yyin = 0;
+	int removed_stdin = 0;
 
 	PushAwait( );
 
 	await.set( agent, reply_name );
 
-	if ( yyin && isatty( fileno( yyin ) ) &&
-	     selector->FindSelectee( fileno( yyin ) ) )
+	if ( isatty( fileno( stdin ) ) && selector->FindSelectee( fileno( stdin ) ) )
 		{
-		selector->DeleteSelectee( fileno( yyin ) );
-		removed_yyin = 1;
+		selector->DeleteSelectee( fileno( stdin ) );
+		stdin_selectee_removed = removed_stdin = 1;
 #if USE_EDITLINE
 		//
 		// reset term so user can see what is typed
@@ -2720,9 +2727,10 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 
 	PopAwait();
 
-	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
+	if ( isatty( fileno( stdin ) ) && removed_stdin )
 		{
-		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+		selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
+		stdin_selectee_removed = 0;
 #if USE_EDITLINE
 		nb_reset_term(0);
 #endif
@@ -3258,6 +3266,7 @@ IValue *Sequencer::Parse( FILE* file, const char* filename, int value_needed )
 		{
 		error->Report( "syntax errors parsing input" );
 		SetErrorResult( ret );
+
 		if ( stmts )
 			{
 			stmt_list del;
@@ -3378,10 +3387,34 @@ IValue *Sequencer::Include( const char *file )
 
 	if ( ! ret )
 		{
+		int stack_length = stack.length();
 		stack_type *incst = new stack_type;
 		PushFrames( incst );
-		ret = Exec( 1, 1 );
-		PopFrames( );
+
+		if ( glish_include_jmpbuf_set )
+			{
+			ret = Exec( 1, 1 );
+			PopFrames( );
+			}
+		else 
+			{
+			if ( setjmp(glish_include_jmpbuf) == 0 )
+				{
+				glish_include_jmpbuf_set = 1;
+				ret = Exec( 1, 1 );
+				PopFrames( );
+				}
+			else
+				{
+				// we were interrupted by a ^C
+				ret = 0;
+				while ( stack.length() > stack_length )
+					PopFrames();
+				}
+
+			glish_include_jmpbuf_set = 0;
+			}
+
 		delete incst;
 		if ( ret && ret->Type() != TYPE_FAIL )
 			{

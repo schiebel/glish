@@ -83,8 +83,10 @@ RCSID("@(#) $Id$")
 static Sequencer* s = 0;
 // used to recover from a ^C typed while glish
 // is executing an instruction
-int glish_jmpbuf_set = 0;
-jmp_buf glish_top_level;
+int glish_top_jmpbuf_set = 0;
+jmp_buf glish_top_jmpbuf;
+int glish_include_jmpbuf_set = 0;
+jmp_buf glish_include_jmpbuf;
 int glish_silent = 0;
 int glish_collecting_garbage = 0;
 
@@ -140,13 +142,16 @@ void glish_sigquit( )
 extern void yyrestart( FILE * );
 void glish_sigint( )
 	{
-	if ( glish_jmpbuf_set )
+	if ( glish_include_jmpbuf_set || glish_top_jmpbuf_set )
 		{
 		if ( Sequencer::ActiveAwait() )
 			message->Report( Sequencer::ActiveAwait()->TerminateInfo() );
 		Sequencer::TopLevelReset();
 		unblock_signal(SIGINT);
-		longjmp( glish_top_level, 1 );
+		if ( glish_include_jmpbuf_set )
+			longjmp( glish_include_jmpbuf, 1 );
+		else
+			longjmp( glish_top_jmpbuf, 1 );
 		}
 
 	char answ = 0;

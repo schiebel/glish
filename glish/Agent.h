@@ -55,7 +55,7 @@ class Agent : public GlishObject {
 	Agent( Sequencer* s );
 	virtual ~Agent();
 
-	virtual const char* Name() const { return agent_ID; }
+	virtual const char* Name() const { return agent_ID ? agent_ID : "<agent>"; }
 
 	// Send the given event/value list or pair to the event agent.
 	// If is_request is true then this is a request/response event,
@@ -117,8 +117,8 @@ class Agent : public GlishObject {
 	// agent is not a task.
 	virtual Task* AgentTask();
 
-	const char* AgentID()	{ return agent_ID; }
-	IValue* AgentRecord()	{ return agent_value; }
+	const char* AgentID() const { return agent_ID ? agent_ID : "<agent>"; }
+	IValue* AgentRecord()	    { return agent_value; }
 
 	int Describe( OStream &s, const ioOpt &opt ) const;
 	int Describe( OStream &s ) const
