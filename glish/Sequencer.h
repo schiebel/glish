@@ -152,7 +152,11 @@ public:
 
 	Expr* InstallID( char* id, scope_type scope, int do_warn = 1,
 					int GlobalRef = 0, int FrameOffset = 0 );
-	Expr* LookupID( char* id, scope_type scope, int do_install = 1, int do_warn = 1 );
+	// "local_search_all" is used to indicate if all local scopes should be
+	// searched or if *only* the "most local" scope should be searched. This
+	// is only used if "scope==LOCAL_SCOPE".
+	Expr* LookupID( char* id, scope_type scope, int do_install = 1, int do_warn = 1,
+			int local_search_all=1 );
 
 	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );

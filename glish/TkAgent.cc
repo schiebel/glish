@@ -1,10 +1,14 @@
 // $Header$
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+#ifdef GLISHTK
 #include "TkAgent.h"
 #include "TkCanvas.h"
 
-#ifdef GLISHTK
+#if defined(TKPGPLOT)
+#include "TkPGPLOT.h"
+#endif
+
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
@@ -1047,6 +1051,10 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		val = (*iproc)(s, cmdstr, i, arg, x, y);
 	else if ( iproc1 )
 		val = (*iproc1)(s, cmdstr, param, i, arg, x, y);
+#if defined(TKPGPLOT)
+	else if ( pgproc && pgplot )
+		val = (pgplot->*pgproc)( arg, x, y );
+#endif
 	else
 		return error_ivalue();
 

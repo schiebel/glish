@@ -880,7 +880,8 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 	return result;
 	}
 
-Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_warn )
+Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_warn,
+			   int local_search_all )
 	{
 	Expr *result = 0;
 
@@ -918,14 +919,23 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 			break;
 		case LOCAL_SCOPE:
 			{
-			for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+			if ( local_search_all )
 				{
-				result = (*scopes[cnt])[id];
-				if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
-					break;
+				for ( int cnt = scopes.length()-1; ! result && cnt >= 0; cnt-- )
+					{
+					result = (*scopes[cnt])[id];
+					if ( scopes[cnt]->GetScopeType() != LOCAL_SCOPE )
+						break;
+					}
+				if ( ! result && do_install )
+					return InstallID( id, FUNC_SCOPE, do_warn );
 				}
-			if ( ! result && do_install )
-				return InstallID( id, FUNC_SCOPE, do_warn );
+			else
+				{
+				result = (*scopes[scopes.length()-1])[id];
+				if ( ! result && do_install )
+					return InstallID( id, LOCAL_SCOPE, do_warn );
+				}
 			}
 			break;
 		case FUNC_SCOPE:

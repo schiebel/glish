@@ -372,8 +372,7 @@ local_list:	local_list ',' local_item
 
 local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			{
-			Expr* id =
-				current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
+			Expr* id = current_sequencer->LookupID( $1, LOCAL_SCOPE, 1, 0, 0 );
 
 			Ref(id);
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
@@ -383,7 +382,7 @@ local_item:	TOK_ID TOK_ASSIGN scoped_expr
 			}
 	|	TOK_ID
 			{
-			(void) current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
+			(void) current_sequencer->LookupID( $1, LOCAL_SCOPE, 1, 0, 0 );
 			$$ = null_stmt;
 			}
 	;

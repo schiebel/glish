@@ -16,6 +16,9 @@ extern int TkHaveGui();
 class TkAgent;
 class TkCanvas;
 class TkFrame;
+#if defined(TKPGPLOT)
+class TkPGPLOT;
+#endif
 declare(PList,TkAgent);
 typedef PList(TkAgent) tkagent_list;
 
@@ -75,42 +78,54 @@ typedef char *(*TkEventAgentProc2)(TkAgent*, const char *, const char *, paramet
 typedef char *(*TkEventAgentProc3)(TkAgent*, const char *, const char *, const char *, parameter_list*, int, int);
 typedef IValue *(*TkStrToValProc)( char * );
 
+#if defined(TKPGPLOT)
+#define TKPGI(x) pgproc(x),
+#else
+#define TKPGI(x)
+#endif
+
 class TkProc {
     public:
 	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(p), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(p), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
 	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(p), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(p), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
 				param2(y), convert(cvt), i(0) { }
 	TkProc(const char *c, const char *x, int y, TkTwoIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(p), param(x),
 				param2(0), convert(cvt), i(y) { }
 	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(p), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(p), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(x),
 				param2(0), convert(cvt), i(0) { }
 	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(p), iproc1(0), param(0),
 				param2(0), convert(cvt), i(x) { }
 	TkProc(TkFrame *f, char *(TkFrame::*p)(parameter_list*,int,int), TkStrToValProc cvt = 0)
-			: cmdstr(0), proc(0), proc1(0), proc2(0), fproc(p), frame(f),
+			: cmdstr(0), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(p), frame(f),
 				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
+#if defined(TKPGPLOT)
+	TkProc(TkPGPLOT *f, char *(TkPGPLOT::*p)(parameter_list*,int,int), TkStrToValProc cvt = 0)
+			: cmdstr(0), proc(0), proc1(0), proc2(0), TKPGI(p) fproc(0), pgplot(f),
+				aproc(0), agent(0), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
+				param2(0), convert(cvt), i(0) { }
+#endif
 	TkProc(TkAgent *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(p), agent(a), aproc2(0), aproc3(0), iproc(0), iproc1(0), param(0),
 				param2(0), convert(cvt), i(0) { }
 	TkProc(TkAgent *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(a), aproc2(p), aproc3(0), iproc(0), iproc1(0), param(x),
 				param2(0), convert(cvt), i(0) { }
 	TkProc(TkAgent *a, const char *c, const char *x, const char *y, TkEventAgentProc3 p, TkStrToValProc cvt = 0)
-			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(a), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
 				param2(y), convert(cvt), i(0) { }
 	IValue *operator()(Rivetobj s, parameter_list*arg, int x, int y);
@@ -127,6 +142,10 @@ class TkProc {
 
 	TkFrame *frame;
 	char *(TkFrame::*fproc)(parameter_list*, int, int);
+#if defined(TKPGPLOT)
+	TkPGPLOT *pgplot;
+	char *(TkPGPLOT::*pgproc)(parameter_list*, int, int);
+#endif
 
 	TkAgent *agent;
 	TkEventAgentProc aproc;

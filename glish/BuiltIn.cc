@@ -27,6 +27,9 @@ RCSID("@(#) $Id$")
 #ifdef GLISHTK
 #include "TkAgent.h"
 #include "TkCanvas.h"
+#ifdef TKPGPLOT
+#include "TkPGPLOT.h"
+#endif
 #endif
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
@@ -1527,6 +1530,13 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		agent = TkListbox::Create( sequencer, args_val );
 	else if ( type[0] == 'c' && ! strcmp( type, "canvas" ) )
 		agent = TkCanvas::Create( sequencer, args_val );
+#ifdef TKPGPLOT
+	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
+		agent = TkPGPLOT::Create( sequencer, args_val );
+#else
+	else if ( type[0] == 'p' && ! strcmp( type, "pgplot" ) )
+		return (IValue*) Fail("This Glish was not configured for PGPLOT");
+#endif
 
 	return agent ? agent->AgentRecord() : error_ivalue();
 #else
