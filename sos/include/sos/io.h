@@ -62,6 +62,7 @@ typedef PList(sos_fd_buf_kernel) sos_buf_list;
 class sos_fd_buf {
     public:
 	sos_fd_buf();
+	~sos_fd_buf();
 
 	// used in the "flush" phase
 	sos_fd_buf_kernel *first( ) { return buf[0]; }

@@ -129,6 +129,12 @@ sos_fd_buf::sos_fd_buf( )
 	buf.append( new sos_fd_buf_kernel );
 	}
 
+sos_fd_buf::~sos_fd_buf( )
+	{
+	for ( int i=0; i < buf.length(); ++i )
+		delete buf[i];
+	}
+
 unsigned int sos_fd_buf::total( )
 	{
 	return first( )->total;
