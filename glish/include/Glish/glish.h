@@ -13,6 +13,14 @@
 #define alloc_zero_memory	sos_alloc_zero_memory
 #define realloc_memory		sos_realloc_memory
 #define free_memory		sos_free_memory
+#include "sos/generic.h"
+#define glish_name2		sos_name2
+#define glish_name3		sos_name3
+#define glish_name4		sos_name4
+#define glish_declare		sos_declare
+#define glish_declare2		sos_declare2
+#define glish_implement		sos_implement
+#define glish_implement2	sos_implement2
 
 typedef enum { glish_false, glish_true } glish_bool;
 

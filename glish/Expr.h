@@ -17,8 +17,8 @@ class Sequencer;
 class ParameterPList;
 class Frame;
 
-declare(PList,Expr);
-declare(PDict,Expr);
+glish_declare(PList,Expr);
+glish_declare(PDict,Expr);
 
 typedef PList(Expr) expr_list;
 

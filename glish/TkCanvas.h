@@ -10,7 +10,7 @@
 #include "BuiltIn.h"
 #include "TkAgent.h"
 //
-//  For declare(Dict,int)
+//  For glish_declare(Dict,int)
 //
 #include "Glish/Client.h"
 

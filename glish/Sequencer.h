@@ -62,11 +62,11 @@ class Selector;
 class RemoteDaemon;
 class awaitinfo;
 
-declare(PDict,Task);
-declare(PDict,RemoteDaemon);
-declare(PDict,char);
-declare(PQueue,Notification);
-declare(PList, awaitinfo);
+glish_declare(PDict,Task);
+glish_declare(PDict,RemoteDaemon);
+glish_declare(PDict,char);
+glish_declare(PQueue,Notification);
+glish_declare(PList, awaitinfo);
 
 typedef PDict(Expr) expr_dict;
 typedef PList(awaitinfo) awaitinfo_list;
@@ -85,7 +85,7 @@ private:
 	PDict(char) global_refs;
 };
 
-declare(PList,Scope);
+glish_declare(PList,Scope);
 typedef PList(Scope) scope_list;
 typedef List(int) offset_list;
 
@@ -100,7 +100,7 @@ struct stack_type : GlishRef {
 	int delete_on_spot;
 };
 
-declare(PList,stack_type);
+glish_declare(PList,stack_type);
 typedef PList(stack_type) stack_list;
 
 extern void system_change_function(IValue *, IValue *);

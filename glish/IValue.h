@@ -166,10 +166,10 @@ protected:
 typedef const IValue* const_ivalue;
 #define const_ivalue_to_void void_ptr
 #define void_to_const_ivalue const_ivalue
-declare(List,const_ivalue);
+glish_declare(List,const_ivalue);
 typedef List(const_ivalue) const_ivalue_list;
 
-declare(PList,IValue);
+glish_declare(PList,IValue);
 typedef PList(IValue) ivalue_list;
 
 extern IValue* copy_value( const IValue* value );

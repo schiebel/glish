@@ -19,7 +19,7 @@
 
 class SelectTimer;
 
-declare(PList,SelectTimer);
+glish_declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
 

@@ -33,18 +33,18 @@ struct record_header;	// Needed when dealing with SDS; see AddToSds()
 extern int lookup_print_precision( );
 extern int lookup_print_limit( );
 
-declare(PList,Value);
+glish_declare(PList,Value);
 typedef PList(Value) value_list;
 
 typedef const Value* const_value;
 #define const_value_to_void void_ptr
 #define void_to_const_value const_value
-declare(List,const_value);
+glish_declare(List,const_value);
 typedef List(const_value) const_value_list;
 
 // Classes for subvector references.
 class VecRef;
-#define SubVecRef(type) name2(type,SubVecRef)
+#define SubVecRef(type) glish_name2(type,SubVecRef)
 class SubVecRef(glish_bool);
 class SubVecRef(byte);
 class SubVecRef(short);
@@ -68,7 +68,7 @@ typedef SubVecRef(charptr) charptrref;
 
 // Used to create lists of objects or dynamic memory that should be freed.
 class DelObj;
-declare(PList,DelObj);
+glish_declare(PList,DelObj);
 typedef PList(DelObj) del_list;
 
 

@@ -13,11 +13,11 @@ class stack_type;
 typedef IValue* value_ptr;
 #define value_ptr_to_void void_ptr
 #define void_to_value_ptr value_ptr
-declare(List,value_ptr);
+glish_declare(List,value_ptr);
 typedef List(value_ptr) args_list;
 
 class Parameter;
-declare(PList,Parameter);
+glish_declare(PList,Parameter);
 typedef PList(Parameter) parameter_list;
 
 

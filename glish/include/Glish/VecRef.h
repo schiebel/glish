@@ -105,14 +105,14 @@ type& SubVecRef(type)::operator[]( int index )				\
 
 #define SubVecRefimplement(type) SubVecRefimplement2(type,)
 
-declare(SubVecRef,glish_bool);
-declare(SubVecRef,byte);
-declare(SubVecRef,short);
-declare(SubVecRef,int);
-declare(SubVecRef,float);
-declare(SubVecRef,double);
-declare(SubVecRef,complex);
-declare(SubVecRef,dcomplex);
-declare(SubVecRef,charptr);
+glish_declare(SubVecRef,glish_bool);
+glish_declare(SubVecRef,byte);
+glish_declare(SubVecRef,short);
+glish_declare(SubVecRef,int);
+glish_declare(SubVecRef,float);
+glish_declare(SubVecRef,double);
+glish_declare(SubVecRef,complex);
+glish_declare(SubVecRef,dcomplex);
+glish_declare(SubVecRef,charptr);
 
 #endif

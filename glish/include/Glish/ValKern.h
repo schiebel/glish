@@ -10,7 +10,7 @@
 class Value;
 class VecRef;
 
-declare(PDict,Value);
+glish_declare(PDict,Value);
 typedef PDict(Value)* recordptr;
 
 typedef recordptr attributeptr;

@@ -8,7 +8,7 @@
 
 class EventDesignator;
 
-declare(PList,EventDesignator);
+glish_declare(PList,EventDesignator);
 typedef PList(EventDesignator) event_list;
 
 class Expr;

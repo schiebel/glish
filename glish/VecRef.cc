@@ -12,15 +12,15 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "system.h"
 
-implement(SubVecRef,glish_bool)
-implement(SubVecRef,byte)
-implement(SubVecRef,short)
-implement(SubVecRef,int)
-implement(SubVecRef,float)
-implement(SubVecRef,double)
-implement(SubVecRef,complex)
-implement(SubVecRef,dcomplex)
-implement2(SubVecRef,charptr,strdup)
+glish_implement(SubVecRef,glish_bool)
+glish_implement(SubVecRef,byte)
+glish_implement(SubVecRef,short)
+glish_implement(SubVecRef,int)
+glish_implement(SubVecRef,float)
+glish_implement(SubVecRef,double)
+glish_implement(SubVecRef,complex)
+glish_implement(SubVecRef,dcomplex)
+glish_implement2(SubVecRef,charptr,strdup)
 
 VecRef::TranslateIndex( int index, int* error ) const 
 	{

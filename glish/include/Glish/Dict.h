@@ -10,7 +10,7 @@ class Dictionary;
 class DictEntry;
 class IterCookie;
 
-declare(PList,DictEntry);
+glish_declare(PList,DictEntry);
 
 // Default number of hash buckets in dictionary.  The dictionary will
 // increase the size of the hash table as needed.
@@ -87,8 +87,8 @@ class Dictionary {
 #define NotFound ((void*) 0)
 
 
-#define Dict(type) name2(type,Dict)
-#define PDict(type) name2(type,PDict)
+#define Dict(type) glish_name2(type,Dict)
+#define PDict(type) glish_name2(type,PDict)
 
 #define Dictdeclare(type)						\
 class Dict(type) : public Dictionary {					\

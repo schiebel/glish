@@ -20,11 +20,11 @@ class TkFrame;
 #if defined(TKPGPLOT)
 class TkPgplot;
 #endif
-declare(PList,TkAgent);
+glish_declare(PList,TkAgent);
 typedef PList(TkAgent) tkagent_list;
 
 class TkProc;
-declare(PDict,TkProc);
+glish_declare(PDict,TkProc);
 typedef PDict(TkProc) tkprochash;
 
 //
@@ -157,7 +157,7 @@ class TkProc {
 	};
 
 class glishtk_event;
-declare(PQueue,glishtk_event);
+glish_declare(PQueue,glishtk_event);
 
 class TkAgent : public Agent {
     public:

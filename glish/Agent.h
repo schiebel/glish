@@ -16,10 +16,10 @@ class stack_type;
 
 #define string_to_void void_ptr
 #define void_to_string string
-declare(List,string);
+glish_declare(List,string);
 typedef List(string) string_list;
 
-declare(PList,Agent);
+glish_declare(PList,Agent);
 typedef PList(Agent) agent_list;
 
 class Notifiee {
@@ -35,13 +35,13 @@ class Notifiee {
 	stack_type *stack;
 	};
 
-declare(PList,Notifiee);
+glish_declare(PList,Notifiee);
 typedef PList(Notifiee) notification_list;
 
-declare(PDict,notification_list);
+glish_declare(PDict,notification_list);
 typedef PDict(notification_list) notification_dict;
 
-declare(PDict,agent_list);
+glish_declare(PDict,agent_list);
 typedef PDict(agent_list) agent_dict;
 extern void delete_agent_dict( agent_dict * );
 

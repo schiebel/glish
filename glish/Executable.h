@@ -28,7 +28,7 @@ class Exec {
 };
 
 class ExecMinder;
-declare(PList,ExecMinder);
+glish_declare(PList,ExecMinder);
 
 //
 // look after waiting on children

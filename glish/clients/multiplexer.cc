@@ -20,7 +20,7 @@ RCSID("@(#) $Id$")
 #include <iostream.h>
 #include "Glish/Client.h"
 
-declare(PDict,name_list);
+glish_declare(PDict,name_list);
 typedef PDict(name_list) name_dict;
 
 name_list my_contexts;

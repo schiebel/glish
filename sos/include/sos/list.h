@@ -90,7 +90,7 @@ class BaseListIterator {
 // List.h -- interface for class List
 //	Use:	to get a list of pointers to class foo you should:
 //		1) typedef foo* Pfoo; (the macros don't like explicit pointers)
-//		2) declare(List,Pfoo); (declare an interest in lists of Pfoo's)
+//		2) sos_declare(List,Pfoo); (declare an interest in lists of Pfoo's)
 //		3) variables are declared like:
 //				List(Pfoo) bar;	(bar is of type list of Pfoo's)
 //				ListIterator(Pfoo) next(bar);
@@ -99,12 +99,12 @@ class BaseListIterator {
 
 // InterViews 3.0 defines List ...
 #undef List
-#define List(type)			name2(type,List)
-#define ListIterator(type)	name2(type,ListIterator)
+#define List(type)			sos_name2(type,List)
+#define ListIterator(type)	sos_name2(type,ListIterator)
 
 // For lists of pointers to "type"
-#define PList(type)			name2(type,PList)
-#define PListIterator(type)	name2(type,PListIterator)
+#define PList(type)			sos_name2(type,PList)
+#define PListIterator(type)	sos_name2(type,PListIterator)
 
 #define Listdeclare(type)						\
 struct List(type) : BaseList						\

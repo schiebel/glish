@@ -56,7 +56,7 @@ class sos_source : public sos_status {
 };
 
 struct sos_fd_buf_kernel;
-declare(PList,sos_fd_buf_kernel);
+sos_declare(PList,sos_fd_buf_kernel);
 typedef PList(sos_fd_buf_kernel) sos_buf_list;
 
 class sos_fd_buf {

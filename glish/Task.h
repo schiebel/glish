@@ -13,7 +13,7 @@ class Channel;
 class Selector;
 class GlishEvent;
 
-declare(PList,GlishEvent);
+glish_declare(PList,GlishEvent);
 typedef PList(GlishEvent) glish_event_list;
 
 

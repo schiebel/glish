@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 #include "Glish/Value.h"
-#include "sos/generic.h"
 #include "sos/io.h"
 
 extern "C" {
@@ -64,7 +63,7 @@ protected:
 	int delete_value;
 	};
 
-typedef enum event_src_type { INTERP, I_LINK, STDIO, GLISHD } event_src_type;
+typedef enum event_src_type { INTERP, ILINK, STDIO, GLISHD } event_src_type;
 
 class EventSource : public GlishObject {
     public:
@@ -97,26 +96,26 @@ class EventSource : public GlishObject {
 	event_src_type type;
 	};
 
-declare(List,int);
+glish_declare(List,int);
 
 // Holds information regarding outbound "link" commands.
 class EventLink;
 
-declare(PList,EventLink);
-declare(PDict,EventLink);
+glish_declare(PList,EventLink);
+glish_declare(PDict,EventLink);
 
-declare(PList,EventSource);
-declare(PDict,EventSource);
+glish_declare(PList,EventSource);
+glish_declare(PDict,EventSource);
 
 typedef PList(EventLink) event_link_list;
-declare(PDict,event_link_list);
+glish_declare(PDict,event_link_list);
 
 typedef PDict(event_link_list) event_link_context_list;
-declare(PDict,event_link_context_list);
+glish_declare(PDict,event_link_context_list);
 
-declare(Dict,int);
+glish_declare(Dict,int);
 typedef Dict(int) sink_id_list;
-declare(PDict,sink_id_list);
+glish_declare(PDict,sink_id_list);
 
 class AcceptSocket;
 

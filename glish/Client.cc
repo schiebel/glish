@@ -916,7 +916,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			loop_over_list( event_sources, i )
 				{
 				if ( event_sources[i]->Source().fd() == fd_src.fd() &&
-				    type == I_LINK )
+				    type == ILINK )
 					{
 					RemoveIncomingLink( i );
 					last_event = new GlishEvent( (const char *) "*dummy*",
@@ -977,7 +977,7 @@ GlishEvent* Client::GetEvent( EventSource* source )
 			}
 		}
 
-	if ( ! last_event && multithreaded != NONSHARED && type != I_LINK )
+	if ( ! last_event && multithreaded != NONSHARED && type != ILINK )
 		{
 		// Interpreter context has exited for multithreaded client
 		//
@@ -1296,7 +1296,7 @@ void Client::RendezvousAsResponder( Value* v )
 		free_memory( host );
 		}
 
-	event_sources.append( new EventSource( input_fd, I_LINK, last_context ) );
+	event_sources.append( new EventSource( input_fd, ILINK, last_context ) );
 	FD_Change( input_fd, 1 );
 
 	(*remote_sources).Insert( strdup(source_id), input_fd );
@@ -1397,7 +1397,7 @@ void Client::RemoveInterpreter( EventSource* source )
 	loop_over_list( event_sources, i )
 		{
 		if ( streq( event_sources[i]->Context().id(), context ) &&
-		    event_sources[i]->Type() == I_LINK )
+		    event_sources[i]->Type() == ILINK )
 			{
 			delete event_sources.remove_nth( i-- );
 			}

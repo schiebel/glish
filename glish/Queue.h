@@ -4,12 +4,12 @@
 #ifndef queue_h
 #define queue_h
 
-#include "sos/generic.h"
+#include "Glish/glish.h"
 
 class BaseQueue;
 
-#define Queue(type) name2(type,Queue)
-#define PQueue(type) name2(type,PQueue)
+#define Queue(type) glish_name2(type,Queue)
+#define PQueue(type) glish_name2(type,PQueue)
 
 class QueueElement {
     protected:

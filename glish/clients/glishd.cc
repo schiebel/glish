@@ -103,7 +103,7 @@ class GlishDaemon : public Exec {
 List(int) *GlishDaemon::close_fds = 0;
 static GlishDaemon *current_daemon = 0;
 class dUser;
-declare(PDict,LocalExec);
+glish_declare(PDict,LocalExec);
 
 //
 //  These are the intrepreter connections which talk only
@@ -158,9 +158,9 @@ class Interp {
 	PDict(LocalExec) clients;
 };
 
-declare(PList,Client);
-declare(PDict,Client);
-declare(PList,Interp);
+glish_declare(PList,Client);
+glish_declare(PDict,Client);
+glish_declare(PList,Interp);
 
 //
 //  Daemon which operates on an individual user's behalf.
@@ -226,10 +226,10 @@ class dUser : public GlishDaemon {
 	int pid_;
 };
 
-declare(PDict,dUser);
-declare(PDict,char);
+glish_declare(PDict,dUser);
+glish_declare(PDict,char);
 typedef PDict(char) str_dict;
-declare(PDict,str_dict);
+glish_declare(PDict,str_dict);
 
 //
 //  Master daemon. There is one master daemon per machine,

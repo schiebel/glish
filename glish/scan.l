@@ -70,7 +70,7 @@ protected:
 	};
 
 // List of input buffers associated with included files.
-declare(PList,InputFileInfo);
+glish_declare(PList,InputFileInfo);
 PList(InputFileInfo) file_list;
 
 static int scanner_read( char buf[], int max_size );

@@ -41,7 +41,7 @@ class Frame : public GlishObject {
 	scope_type scope;
 	};
 
-declare(PList,Frame);
+glish_declare(PList,Frame);
 typedef PList(Frame) frame_list;
 
 #endif /* frame_h */

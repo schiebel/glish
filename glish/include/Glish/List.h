@@ -4,6 +4,7 @@
 #ifndef glish_list_h_
 #define glish_list_h_
 
+#include <Glish/glish.h>
 #include <Glish/Object.h>
 
 //
@@ -27,7 +28,7 @@ inline int void_to_int(void *v)
 #include <sos/list.h>
 
 // Popular type of list: list of strings.
-declare(PList,char);
+glish_declare(PList,char);
 typedef PList(char) name_list;
 
 #endif /* glish_list_h_ */

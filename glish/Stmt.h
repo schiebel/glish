@@ -14,10 +14,10 @@ class Agent;
 class Task;
 class Sequencer;
 
-declare(PList,Stmt);
+glish_declare(PList,Stmt);
 typedef PList(Stmt) stmt_list;
 
-declare(PDict,stmt_list);
+glish_declare(PDict,stmt_list);
 typedef PDict(stmt_list) stmt_list_dict;
 
 
