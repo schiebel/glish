@@ -10,12 +10,13 @@ RCSID("@(#) $Id$")
 
 #include <string.h>
 #include <stdlib.h>
-#include "Rivet/rivet.h"
 #include "Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
 
 extern ProxyStore *global_store;
+static char *SP = " ";
+
 
 #define GENERATE_TAG(BUFFER,CANVAS,TYPE) 		\
 	sprintf(BUFFER,"c%x%s%x",CANVAS->CanvasCount(),TYPE,CANVAS->NewItemCount(TYPE));
@@ -255,31 +256,31 @@ Value *glishtk_StrToInt( char *str )
 	return new Value( i );
 	}
 
-char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_heightwidth_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one dim function";
-	char buf[256];
+	static char buf[256];
 
 	if ( args->Type() == TYPE_STRING )
-		rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+		Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, args->StringPtr(0)[0], 0 );
 	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char buf[30];
-		sprintf(buf,"%d",args->IntVal());
-		rivet_set( self, (char*) cmd, (char*) buf );
+		sprintf(buf," %d",args->IntVal());
+		Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, buf, 0 );
 		}
 
-	ret = rivet_va_func(self, (int (*)()) Tk_WinfoCmd, &cmd[1], rivet_path(self), 0);
-	int width = atoi(ret);
-	ret = rivet_va_cmd(self, "cget", "-borderwidth", 0);
-	int bdwidth = atoi(ret);
+	Tcl_VarEval( tcl, "winfo ", &cmd[1], SP, Tk_PathName(self), 0 );
+	int width = atoi(Tcl_GetStringResult(tcl));
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget -borderwidth", 0 );
+	int bdwidth = atoi(Tcl_GetStringResult(tcl));
 	sprintf( buf, "%d", width - 2*bdwidth - 4 );
 	
 	return buf;
 	}
 
-char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, Value *args )
+char *glishtk_oneintlist_query(Tcl_Interp *tcl, Tk_Window self, const char *cmd, int howmany, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -307,16 +308,16 @@ char *glishtk_oneintlist_query(Rivetobj self, const char *cmd, int howmany, Valu
 			EXPR_DONE( v )
 			}
 
-		rivet_set( self, (char*) cmd, buf );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, buf, 0 );
 		*buf = '\0';
 		}
 
-	ret = rivet_get( self, (char*) cmd );
-	return ret;
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+	return Tcl_GetStringResult(tcl);
 	}
 
 
-char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value *args )
+char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, int howmany, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one int list function";
@@ -329,7 +330,7 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 		static char buff[128];
 		int argc = 0;
 
-		Argv[argc++] = 0;
+		Argv[argc++] = Tk_PathName(self);
 		Argv[argc++] = (char*) cmd;
 		EXPRINIT( event_name)
 		for ( int i=0; i < len; i++ )
@@ -340,8 +341,8 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 			EXPR_DONE( v )
 			}
 
-		rivet_cmd( self, argc, Argv );
-		ret = (char*) self->interp->result;
+		tcl_ArgEval( tcl, argc, Argv );
+		ret = Tcl_GetStringResult(tcl);
 
 		for ( int x=0; x < len; x++ )
 			free_memory( Argv[x + 2] );
@@ -349,14 +350,14 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char buf[30];
-		sprintf(buf,"%d",args->IntVal());
-		rivet_va_cmd( self, cmd, buf, 0);
+		sprintf(buf," %d",args->IntVal());
+		Tcl_VarEval( tcl, Tk_PathName(self), SP, buf, 0 );
 		}
 
 	return ret;
 	}
 
-char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
+char *glishtk_canvas_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *subcmd,
 				int howmany, Value *args )
 	{
 	if ( args->Length() <= 0 )
@@ -376,22 +377,26 @@ char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 			const Value *val = rptr->NthEntry( i );
 			if ( val->Type() == TYPE_STRING )
 				if ( subcmd )
-					rivet_va_cmd( self, cmd, str, subcmd, val->StringPtr(0)[0], 0 );
+					Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, str, SP,
+						     subcmd, SP, val->StringPtr(0)[0], 0 );
 				else
-					rivet_va_cmd( self, cmd, str, val->StringPtr(0)[0], 0 );
+					Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, str, SP,
+						     val->StringPtr(0)[0], 0 );
 			}
 		}
 	else if ( args->Type() == TYPE_STRING && args->Length() >= howmany )
 		{
 		charptr *ary = args->StringPtr(0);
 		if ( args->Length() == 1 )
-			rivet_va_cmd( self, cmd, ary[0], 0 );
+			Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0], 0 );
 		else
 			for ( int i=1; i < args->Length(); ++i )
 				if ( subcmd )
-					rivet_va_cmd( self, cmd, ary[0], subcmd, ary[i], 0 );
+					Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0],
+						     SP, subcmd, SP, ary[i], 0 );
 				else
-					rivet_va_cmd( self, cmd, ary[0], ary[i], 0 );
+					Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, ary[0],
+						     SP, ary[i], 0 );
 		}
 
 	return 0;
@@ -539,13 +544,13 @@ else									\
 		Argv[argc++] = Arg_val[x];
 		}
 
-	Argv[0] = 0;
+	Argv[0] = Tk_PathName( agent->Self() );
 	Argv[1] = (char*) cmd;
 	Argv[2] = (char*) param;
 	Argv[argc++] = (char*) "-tag";
 	Argv[argc++] = (char*) tagstr;
 
-	rivet_cmd( agent->Self(), argc, Argv );
+	tcl_ArgEval( agent->Interp(), argc, Argv );
 
 	for (int j=3; j < argc - 2; j++)
 		free_memory( Argv[j] );
@@ -553,7 +558,7 @@ else									\
 	return tag;
 	}
 
-char *glishtk_canvas_delete(Rivetobj self, const char *, Value *args )
+char *glishtk_canvas_delete(Tcl_Interp *tcl, Tk_Window self, const char *, Value *args )
 	{
 	char *event_name = "canvas delete function";
 
@@ -564,25 +569,25 @@ char *glishtk_canvas_delete(Rivetobj self, const char *, Value *args )
 			{
 			const Value *val = rptr->NthEntry( i );
 			if ( val->Type() == TYPE_STRING )
-				rivet_va_cmd( self, "delete", val->StringPtr(0)[0], 0 );
+				Tcl_VarEval( tcl, Tk_PathName(self), " delete ", val->StringPtr(0)[0], 0 );
 			}
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
 		charptr *ary = args->StringPtr(0);
 		for ( int i=0; i < (*args).Length(); ++i )
-			rivet_va_cmd( self, "delete", ary[i], 0 );
+			Tcl_VarEval( tcl, Tk_PathName(self), " delete ", ary[i], 0 );
 		}
 	else
 		{
-		rivet_va_cmd( self, "addtag", "*NUKEM-ALL", "all", 0 );
-		return rivet_va_cmd( self, "delete", "*NUKEM-ALL", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " addtag nukemallll all", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " delete nukemallll", 0 );
 		}
 
 	return 0;
 	}
 
-char *glishtk_canvas_move(Rivetobj self, const char *, Value *args )
+char *glishtk_canvas_move(Tcl_Interp *tcl, Tk_Window self, const char *, Value *args )
 	{
 	char *event_name = "canvas move function";
 	EXPRINIT( event_name)
@@ -591,7 +596,7 @@ char *glishtk_canvas_move(Rivetobj self, const char *, Value *args )
 		EXPRSTR( tag, event_name )
 		EXPRINT2( xshift, event_name )
 		EXPRINT2( yshift, event_name )
-		rivet_va_cmd( self, "move", tag, xshift, yshift, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " move ", tag, SP, xshift, SP, yshift, 0 );
 		EXPR_DONE( yshift )
 		EXPR_DONE( xshift )
 		EXPR_DONE( tag )
@@ -611,7 +616,7 @@ char *glishtk_canvas_move(Rivetobj self, const char *, Value *args )
 			if (is_copy)
 				free_memory( delta );
 			}
-		rivet_va_cmd( self, "move", tag, xshift, yshift, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " move ", tag, SP, xshift, SP, yshift, 0 );
 		EXPR_DONE( off )
 		EXPR_DONE( tag )
 		}
@@ -636,7 +641,7 @@ struct glishtk_canvas_bindinfo
 		}
 	};
 
-int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysym, int)
+int canvas_buttoncb(Tcl_Interp *tcl, Tk_Window canvas, XEvent *xevent, ClientData assoc, int keysym, int)
 	{
 	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) assoc;
 	int dummy;
@@ -650,70 +655,70 @@ int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysy
 	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
 	int *cpt = (int*) alloc_memory( sizeof(int)*2 );
 	sprintf(buff,"%d",xevent->xkey.x);
-	char *ret = (char*) rivet_va_cmd(canvas, "canvasx", buff, 0);
-	cpt[0] = atoi(ret);
+	Tcl_VarEval( tcl, Tk_PathName(canvas), " canvasx ", buff, 0 );
+	cpt[0] = atoi(Tcl_GetStringResult(tcl));
 	sprintf(buff,"%d",xevent->xkey.y);
-	ret = (char*) rivet_va_cmd(canvas, "canvasy", buff, 0);
-	cpt[1] = atoi(ret);
+	Tcl_VarEval( tcl, Tk_PathName(canvas), " canvasy ", buff, 0 );
+	cpt[1] = atoi(Tcl_GetStringResult(tcl));
 	rec->Insert( strdup("cpoint"), new Value( cpt, 2 ) );
-	if ( xevent->type == KeyPress )
-		rec->Insert( strdup("key"), new Value( rivet_expand_event(canvas, "A", xevent, keysym, &dummy) ) );
+// 	if ( xevent->type == KeyPress )
+// 		rec->Insert( strdup("key"), new Value( rivet_expand_event(canvas, "A", xevent, keysym, &dummy) ) );
 	info->canvas->ButtonEvent(info->event_name, new Value( rec ) );
 	return TCL_OK;
 	}
 
 char *glishtk_canvas_bind(TkAgent *agent, const char *, Value *args )
 	{
-	char *event_name = "canvas bind function";
-	EXPRINIT( event_name)
-	if ( args->Length() >= 3 )
-		{
-		EXPRSTR( tag, event_name )
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
-		glishtk_canvas_bindinfo *binfo = 
-			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
+// 	char *event_name = "canvas bind function";
+// 	EXPRINIT( event_name)
+// 	if ( args->Length() >= 3 )
+// 		{
+// 		EXPRSTR( tag, event_name )
+// 		EXPRSTR( button, event_name )
+// 		EXPRSTR( event, event_name )
+// 		glishtk_canvas_bindinfo *binfo = 
+// 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
 
-		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
-					  (ClientData) binfo, 1, 0) == TCL_ERROR )
-			{
-			global_store->Error("Error, binding not created.");
-			delete binfo;
-			}
+// 		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
+// 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
+// 			{
+// 			global_store->Error("Error, binding not created.");
+// 			delete binfo;
+// 			}
 
-		EXPR_DONE( event )
-		EXPR_DONE( button )
-		EXPR_DONE( tag )
-		}
-	else if ( args->Length() >= 2 )
-		{
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
-		glishtk_canvas_bindinfo *binfo = 
-			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
+// 		EXPR_DONE( event )
+// 		EXPR_DONE( button )
+// 		EXPR_DONE( tag )
+// 		}
+// 	else if ( args->Length() >= 2 )
+// 		{
+// 		EXPRSTR( button, event_name )
+// 		EXPRSTR( event, event_name )
+// 		glishtk_canvas_bindinfo *binfo = 
+// 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
 
-		if ( strcmp(button,"<KeyPress>") )
-			{
-			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
-						  (ClientData) binfo, 1, 0) == TCL_ERROR )
-				{
-				global_store->Error("Error, binding not created.");
-				delete binfo;
-				}
-			}
-		else
-			{
-			if ( rivet_create_binding(0, "all", (char*)button, (int (*)()) canvas_buttoncb,
-						  (ClientData) binfo, 1, 0) == TCL_ERROR )
-				{
-				global_store->Error("Error, binding not created.");
-				delete binfo;
-				}
-			}
+// 		if ( strcmp(button,"<KeyPress>") )
+// 			{
+// 			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
+// 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
+// 				{
+// 				global_store->Error("Error, binding not created.");
+// 				delete binfo;
+// 				}
+// 			}
+// 		else
+// 			{
+// 			if ( rivet_create_binding(0, "all", (char*)button, (int (*)()) canvas_buttoncb,
+// 						  (ClientData) binfo, 1, 0) == TCL_ERROR )
+// 				{
+// 				global_store->Error("Error, binding not created.");
+// 				delete binfo;
+// 				}
+// 			}
 
-		EXPR_DONE( event )
-		EXPR_DONE( button )
-		}
+// 		EXPR_DONE( event )
+// 		EXPR_DONE( button )
+// 		}
 
 	return 0;
 	}
@@ -744,7 +749,8 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	EXPRINT2( x, event_name )
 	EXPRINT2( y, event_name )
 	TkFrame *frame = new TkFrame(canvas->seq(),canvas,"flat","top","0","0","0","none","lightgrey","15","10",tag);
-	rivet_va_cmd(canvas->Self(),"create","window",x,y,"-anchor","nw","-tag",tag,"-window",rivet_path(frame->Self()),0);
+	Tcl_VarEval( agent->Interp(), Tk_PathName(canvas->Self()), " create window ", x, SP, y, "- anchor nw -tag ", tag,
+		     " -window ", Tk_PathName(frame->Self()), 0 );
 	EXPR_DONE( y )
 	EXPR_DONE( x )
 
@@ -757,14 +763,14 @@ char *glishtk_canvas_frame(TkAgent *agent, const char *, Value *args )
 	return 0;
 	}
 
-int canvas_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int canvas_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkCanvas*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int canvas_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int canvas_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkCanvas*)assoc)->xScrolled( firstlast );
@@ -780,10 +786,7 @@ void TkCanvas::UnMap()
 		}
 
 	if ( self )
-		{
-		rivet_set( self, "-xscrollcommand", "" );
-		rivet_set( self, "-yscrollcommand", "" );
-		}
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -xscrollcommand \"\"", 0 );
 
 	TkAgent::UnMap();
 	}
@@ -819,8 +822,9 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	if ( region )
 		sprintf(region_str ,"%d %d %d %d", region[0], region[1], region[2], region[3]);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "canvas";
+	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief;
 	argv[c++] = "-width";
@@ -836,15 +840,17 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
-	argv[c++] = "-xscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) canvas_xscrollcb, (ClientData) this, 0);
-	argv[c++] = "-yscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) canvas_yscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-xscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) canvas_xscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-yscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) canvas_yscrollcb, (ClientData) this, 0);
 
 	if ( region_is_copy )
 		free_memory( region );
 
-	self = rivet_create(CanvasClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
 	agent_ID = "<graphic:canvas>";
 
 	if ( ! self )
@@ -882,13 +888,13 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	//
 	// Hack to make sure row 1 column 1 is visible initially.
 	//
-	Scrollbar_notify_data data;
-	data.scrollbar_is_vertical = 1;
-	data.scroll_op = 2;
-	data.newpos = 1;
-	rivet_scrollbar_set_client_view( self, &data );
-	data.scrollbar_is_vertical = 0;
-	rivet_scrollbar_set_client_view( self, &data );
+// 	Scrollbar_notify_data data;
+// 	data.scrollbar_is_vertical = 1;
+// 	data.scroll_op = 2;
+// 	data.newpos = 1;
+// 	rivet_scrollbar_set_client_view( self, &data );
+// 	data.scrollbar_is_vertical = 0;
+// 	rivet_scrollbar_set_client_view( self, &data );
 	}
 
 int TkCanvas::ItemCount(const char *name) const

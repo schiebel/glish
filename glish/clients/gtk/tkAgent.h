@@ -4,11 +4,9 @@
 #ifndef tkagent_h_
 #define tkagent_h_
 
+#include "tk.h"
 #include "Glish/Proxy.h"
 #include "Queue.h"
-
-struct _Rivetstruct;
-typedef struct _Rivetstruct *Rivetobj;
 
 extern int TkHaveGui();
 
@@ -32,6 +30,12 @@ typedef PDict(TkProc) tkprochash;
 //
 extern void glish_event_posted( int );
 
+//###  Function to do Argv Eval
+extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
+
+//###  Function to Make Callbacks
+extern const char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data );
+
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
 extern Value *glishtk_splitnl( char * );
@@ -44,15 +48,15 @@ extern Value *glishtk_splitsp_int( char * );
 extern char **glishtk_splitsp_str_( char *, int & );
 extern Value *glishtk_splitsp_str( char * );
 
-//###  Functions for Invoking Rivet Commands For Callbacks
-extern char *glishtk_nostr(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_onestr(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_onedim(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_oneint(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_onebinary(Rivetobj, const char *cmd, const char *ptrue, const char *pfalse,
+//###  Functions for Invoking Tk Commands For Callbacks
+extern char *glishtk_nostr(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_onestr(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_onedim(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_oneint(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_onebinary(Tcl_Interp*, Tk_Window, const char *cmd, const char *ptrue, const char *pfalse,
 						Value *args);
-extern char *glishtk_onebool(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_oneintlist(Rivetobj, const char *cmd, int howmany, Value *args);
+extern char *glishtk_onebool(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_oneintlist(Tcl_Interp*, Tk_Window, const char *cmd, int howmany, Value *args);
 extern char *glishtk_oneidx(TkAgent *, const char *cmd, Value *args);
 extern char *glishtk_oneortwoidx(TkAgent *, const char *cmd, Value *args);
 extern char *glishtk_strandidx(TkAgent *, const char *cmd, Value *args);
@@ -61,16 +65,16 @@ extern char *glishtk_strwithidx(TkAgent *, const char *cmd, const char *param,
 extern char *glishtk_no2str(TkAgent *, const char *cmd, const char *param,
 						Value *args);
 
-extern char *glishtk_scrolled_update(Rivetobj, const char *cmd, Value *args);
-extern char *glishtk_scrollbar_update(Rivetobj, const char *cmd, Value *args);
+extern char *glishtk_scrolled_update(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
+extern char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window, const char *cmd, Value *args);
 
 
 //###  Callback Procs
-typedef char *(*TkEventProc)(Rivetobj, const char *, Value*);
-typedef char *(*TkOneParamProc)(Rivetobj, const char *, const char *, Value *);
-typedef char *(*TkTwoParamProc)(Rivetobj, const char *, const char *, const char *, Value *);
-typedef char *(*TkOneIntProc)(Rivetobj, const char *, int, Value *);
-typedef char *(*TkTwoIntProc)(Rivetobj, const char *, const char *, int, Value *);
+typedef char *(*TkEventProc)(Tcl_Interp*, Tk_Window, const char *, Value*);
+typedef char *(*TkOneParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, Value *);
+typedef char *(*TkTwoParamProc)(Tcl_Interp*, Tk_Window, const char *, const char *, const char *, Value *);
+typedef char *(*TkOneIntProc)(Tcl_Interp*, Tk_Window, const char *, int, Value *);
+typedef char *(*TkTwoIntProc)(Tcl_Interp*, Tk_Window, const char *, const char *, int, Value *);
 typedef char *(*TkEventAgentProc)(TkAgent*, const char *, Value*);
 typedef char *(*TkEventAgentProc2)(TkAgent*, const char *, const char *, Value*);
 typedef char *(*TkEventAgentProc3)(TkAgent*, const char *, const char *, const char *, Value*);
@@ -126,7 +130,7 @@ class TkProc {
 			: cmdstr(c), proc(0), proc1(0), proc2(0), TKPGI(0) fproc(0), frame(0),
 				aproc(0), agent(a), aproc2(0), aproc3(p), iproc(0), iproc1(0), param(x),
 				param2(y), convert(cvt), i(0) { }
-	Value *operator()(Rivetobj s, Value *arg);
+	Value *operator()(Tcl_Interp*, Tk_Window s, Value *arg);
     protected:
 	const char *cmdstr;
 
@@ -165,12 +169,14 @@ class TkAgent : public Proxy {
 	TkAgent( ProxyStore *s );
 	~TkAgent();
 
+	virtual charptr NewName( Tk_Window parent=0 ) const;
 	virtual charptr IndexCheck( charptr );
 
 	int IsValid() { return self != 0; }
 	virtual void UnMap();
-	Rivetobj Self() { return self; }
-	const Rivetobj Self() const { return self; }
+	Tk_Window Self() { return self; }
+	Tcl_Interp *Interp() { return tcl; }
+	const Tk_Window Self() const { return self; }
 
 	virtual const char **PackInstruction();
 	virtual int CanExpand() const;
@@ -206,7 +212,7 @@ class TkAgent : public Proxy {
 
 	void BindEvent(const char *event, Value *rec);
 
-	virtual Rivetobj TopLevel( );
+	virtual Tk_Window TopLevel( );
 
 	int IsPseudo();
 
@@ -215,9 +221,13 @@ class TkAgent : public Proxy {
 	void ProcessEvent( const char *name, Value *val );
 
     protected:
+	void do_pack( int argc, char **argv)
+		{ Tk_PackCmd( root, tcl, argc, argv ); }
+
 	tkprochash procs;
-	static Rivetobj root;
-	Rivetobj self;
+	static Tk_Window root;
+	static Tcl_Interp *tcl;
+	Tk_Window self;
 	TkFrame *frame;
 
 	static int hold_tk_events;
@@ -311,7 +321,7 @@ class TkFrame : public TkRadioContainer {
 	void Disable( );
 	void Enable( int force = 1 );
 
-	Rivetobj TopLevel();
+	Tk_Window TopLevel();
 
     protected:
 	char *side;
@@ -326,7 +336,7 @@ class TkFrame : public TkRadioContainer {
 	static unsigned long grab;
 
 	char is_tl;
-	Rivetobj pseudo;
+	Tk_Window pseudo;
 
 	unsigned char reject_first_resize;
 
@@ -358,7 +368,7 @@ class TkButton : public TkRadioContainer {
 	void State(unsigned char s);
 
 	TkButton *Parent() { return menu; }
-	Rivetobj Menu() { return type == MENU ? menu_base : menu ? menu->Menu() : 0; }
+	Tk_Window Menu() { return type == MENU ? menu_base : menu ? menu->Menu() : 0; }
 	int IsMenu() { return type == MENU; }
 	int IsMenuEntry() { return menu != 0; }
 
@@ -377,7 +387,7 @@ class TkButton : public TkRadioContainer {
 	void Disable( );
 	void Enable( int force = 1 );
 
-	Rivetobj TopLevel();
+	Tk_Window TopLevel();
 
 	// Enable modification, used to allow glish commands to modify
 	// a widget even if it has been disabled for the user.
@@ -392,7 +402,7 @@ class TkButton : public TkRadioContainer {
 
 	TkButton *menu;
 	TkRadioContainer *radio;
-	Rivetobj menu_base;
+	Tk_Window menu_base;
 	unsigned long next_menu_entry;	// only used for menu buttons
 	tkagent_list entry_list;        // only used for menu buttons
 	const char *menu_index;

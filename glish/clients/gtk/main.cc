@@ -8,7 +8,6 @@ RCSID("@(#) $Id$")
 #include "Glish/Proxy.h"
 #include "tkAgent.h"
 #include "tkCanvas.h"
-#include "Rivet/rivet.h"
 #if defined(TKPGPLOT)
 #include "tkPgplot.h"
 #endif

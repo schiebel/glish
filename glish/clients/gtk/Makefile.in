@@ -1,7 +1,7 @@
 ## $Id$
 ## Copyright (c) 1998 Associated Universities Inc.
 ##
-## Makefile for rtk
+## Makefile for gtk
 ##
 
 GLISH_LIB_SUFFIX = @GLISH_LIB_SUFFIX@
@@ -50,11 +50,11 @@ XINC = @XINCLUDES@
 INCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
 CINCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
 
-CLIENTS = $(BINDIR_P)/rtk
+CLIENTS = $(BINDIR_P)/gtk
 
-INSTALLED_CLIENTS = $(BINDIR)/rtk
+INSTALLED_CLIENTS = $(BINDIR)/gtk
 
-TAR_FILE = rtk.tar
+TAR_FILE = gtk.tar
 
 all: make-bindir_p $(CLIENTS)
 
@@ -81,16 +81,16 @@ malloc.o: $(GLISH_SRC)/malloc.c
 main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
 
-rtk: $(OBJS) $(GLISH_LIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o rtk $(OBJS) $(LIBS) $(XLIB)
+gtk: $(OBJS) $(GLISH_LIBS)
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB)
 
-$(BINDIR_P)/rtk: rtk
-	$(INSTALL_PROGRAM) rtk $(BINDIR_P)
-#	strip $(BINDIR_P)/rtk
+$(BINDIR_P)/gtk: gtk
+	$(INSTALL_PROGRAM) gtk $(BINDIR_P)
+#	strip $(BINDIR_P)/gtk
 
-$(BINDIR)/rtk: rtk
-	$(INSTALL_PROGRAM) rtk $(BINDIR)
-#	strip $(BINDIR)/rtk
+$(BINDIR)/gtk: gtk
+	$(INSTALL_PROGRAM) gtk $(BINDIR)
+#	strip $(BINDIR)/gtk
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

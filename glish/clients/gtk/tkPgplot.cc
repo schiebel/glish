@@ -9,20 +9,15 @@ RCSID("@(#) $Id$")
 
 #include <string.h>
 #include <stdlib.h>
-#include "Rivet/rivet.h"
 #include "Reporter.h"
 #include "system.h"
-//
-// PGPLOT routines et al.
-//
-#ifndef USE_RIVET
-#define USE_RIVET
-#endif
-#include "rvpgplot.h"
+
+#include "tkpgplot.h"
 #include "cpgplot.h"
 
 extern ProxyStore *global_store;
-extern Rivetclass PgplotClass;
+#define SP " "
+
 
 #define InvalidArg( num )						\
 	{								\
@@ -244,9 +239,8 @@ extern Rivetclass PgplotClass;
 								\
 	SETDONE
 
-static int colorcells_available(Rivetobj obj, int needed)
+static int colorcells_available(Tk_Window w, int needed)
 {
-  TkWindow *w = obj->tkwin;
   Colormap  cmap = Tk_Colormap(w);
 
   unsigned long planes[1];
@@ -288,7 +282,7 @@ TkPgplot::~TkPgplot ()
 }
 
 int
-pgplot_yscrollcb (Rivetobj button, XEvent *unused1, ClientData assoc,
+pgplot_yscrollcb (Tk_Window button, XEvent *unused1, ClientData assoc,
 		  ClientData calldata)
 {
   double *firstlast = (double *)calldata;
@@ -299,7 +293,7 @@ pgplot_yscrollcb (Rivetobj button, XEvent *unused1, ClientData assoc,
 }
 
 int
-pgplot_xscrollcb (Rivetobj button, XEvent *unused1, ClientData assoc,
+pgplot_xscrollcb (Tk_Window button, XEvent *unused1, ClientData assoc,
 		  ClientData calldata)
 {
   double *firstlast = (double *)calldata;
@@ -357,16 +351,15 @@ struct glishtk_pgplot_bindinfo
 };
 
 int
-glishtk_pgplot_entercb (Rivetobj pgplot, XEvent *xevent, ClientData assoc,
+glishtk_pgplot_entercb (Tk_Window pgplot, XEvent *xevent, ClientData assoc,
 			int ks, int callbacktype)
 {
-  rivet_set_focus (pgplot);
-
+  Tcl_VarEval( tcl, "focus ", Tk_PathName(pgplot), 0 );
   return TCL_OK;
 }
 
 int
-glishtk_pgplot_buttoncb (Rivetobj pgplot, XEvent *xevent, ClientData assoc,
+glishtk_pgplot_buttoncb (Tk_Window pgplot, XEvent *xevent, ClientData assoc,
 			 int ks, int callbacktype)
 {
   static char *event_names[] =
@@ -470,12 +463,12 @@ glishtk_pgplot_bind (TkAgent *agent, const char *cmd, Value *args)
     glishtk_pgplot_bindinfo *binfo =
       new glishtk_pgplot_bindinfo ((TkPgplot *)agent, event, button);
 
-    if (rivet_create_binding (agent->Self (), 0, (char *)button,
-			      (int (*)())glishtk_pgplot_buttoncb,
-			      (ClientData)binfo, 1, 0) == TCL_ERROR) {
-      global_store->Error( "binding not created." );
-      delete binfo;
-    }
+//     if (rivet_create_binding (agent->Self (), 0, (char *)button,
+// 			      (int (*)())glishtk_pgplot_buttoncb,
+// 			      (ClientData)binfo, 1, 0) == TCL_ERROR) {
+//       global_store->Error( "binding not created." );
+//       delete binfo;
+//     }
     EXPR_DONE (event);
     EXPR_DONE (button);
   }
@@ -489,7 +482,7 @@ glishtk_int (char *sel)
 }
 
 char *
-glishtk_oneornodim (Rivetobj self, const char *cmd, Value *args)
+glishtk_oneornodim (Tk_Window self, const char *cmd, Value *args)
 {
   char *event_name = "one or zero dim function";
 
@@ -497,12 +490,13 @@ glishtk_oneornodim (Rivetobj self, const char *cmd, Value *args)
 
     EXPRINIT(event_name)
     EXPRDIM (dim, event_name);
-    rivet_set (self, (char *)cmd, (char *)dim);
+    Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, dim, 0 );
     EXPR_DONE (dim);
 
     return 0;
   } else {
-    return rivet_va_cmd (self, "cget", (char *)cmd, 0);
+    Tcl_VarEval( tcl, Tk_PathName(self), " cvet ", cmd, 0 );
+    return Tcl_GetStringResult(tcl);
   }
 }
 
@@ -515,7 +509,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
 		TkAgent (s), fill (0)
 {
   frame = frame_;
-  Rivetobj frameSelf = frame->Self ();
+  Tk_Window frameSelf = 0;
   int region_is_copy = 0;
   int axis_is_copy = 0;
   float *region = 0;
@@ -527,26 +521,26 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   agent_ID = "<graphic:pgplot>";
 
   // JAU: Make rivet-less.
-  if (!frame || !frameSelf) {
+  if (!frame || ! (frameSelf = frame->Self())) {
     return;
   }
   // JAU: If in 8-bit mode, check color availability.  If > 8-bit,
   // assume we've got enough.  A bit kludgy; will be refined later.
-  if (cmap_fail && DisplayPlanes (frameSelf->tkwin->display,
-				  frameSelf->tkwin->screenNum) <= 8 &&
+  if (cmap_fail && DisplayPlanes (Tk_Display(frameSelf), Tk_ScreenNumber(frameSelf)) <= 8 &&
       !colorcells_available (frameSelf, mincolors)) {
     SetError ((Value *)generate_error ("Not enough color cells available"));
     frame = 0;
     return;
   }
 
-  int c = 2;
+  int c = 0;
   char *argv[32];
 
   sprintf(maxcolors_str,"%d",maxcolors);
   sprintf(mincolors_str,"%d",mincolors);
 
-  argv[0] = argv[1] = 0;
+  argv[c++] = "pgplot";
+  argv[c++] = NewName(frameSelf);
   argv[c++] = "-width";
   argv[c++] = (char *)width;
   argv[c++] = "-height";
@@ -569,15 +563,16 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   argv[c++] = (char *)maxcolors_str;
   argv[c++] = "-share";
   argv[c++] = cmap_share ? "true" : "false";
-  argv[c++] = "-xscrollcommand";
-  argv[c++] = rivet_new_callback ((int (*)())pgplot_xscrollcb,
-				  (ClientData)this, 0);
-  argv[c++] = "-yscrollcommand";
-  argv[c++] = rivet_new_callback ((int (*)())pgplot_yscrollcb,
-				  (ClientData)this, 0);
+//   argv[c++] = "-xscrollcommand";
+//   argv[c++] = rivet_new_callback ((int (*)())pgplot_xscrollcb,
+// 				  (ClientData)this, 0);
+//   argv[c++] = "-yscrollcommand";
+//   argv[c++] = rivet_new_callback ((int (*)())pgplot_yscrollcb,
+// 				  (ClientData)this, 0);
 
   // JAU: Make rivet-less.
-  self = rivet_create (PgplotClass, frameSelf, c, argv);
+  Tk_VarEval( tcl, c, argv );
+  self = Tk_NameToWindow( tcl, argv[1], root );
 
   if (!self) {
     SetError ((Value *)generate_error ("Rivet creation failed in TkPgplot::TkPgplot"));
@@ -620,8 +615,8 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   // JAU: Make rivet-less.
   frame->AddElement (this);
   frame->Pack ();
-  rivet_create_binding (self, 0, "<Enter>", (int (*)())glishtk_pgplot_entercb,
-			0, 1, 0);
+//   rivet_create_binding (self, 0, "<Enter>", (int (*)())glishtk_pgplot_entercb,
+// 			0, 1, 0);
   // Non-standard routines.
   procs.Insert ("bind", new TkProc (this, "", glishtk_pgplot_bind));
   procs.Insert ("cursor", new TkProc (this, &TkPgplot::Cursor, glishtk_str));
@@ -795,7 +790,8 @@ char *TkPgplot::Cursor (Value *args)
 	else
 		item[0] = args->StringVal();
 
-	rivet_va_cmd (self, "setcursor", item[0], item[1], item[2], item[3], 0);
+	Tk_VarEval( tcl, Tk_PathName(self), " setcursor ", item[0], SP, item[1], SP,
+		    item[2], SP, item[3], 0 );
 	return (char *)item[0];
 	}
 

@@ -15,7 +15,6 @@ RCSID("@(#) $Id$")
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Rivet/rivet.h"
 #include "Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
@@ -23,7 +22,8 @@ RCSID("@(#) $Id$")
 extern ProxyStore *global_store;
 unsigned long TkRadioContainer::count = 0;
 
-Rivetobj TkAgent::root = 0;
+Tk_Window TkAgent::root = 0;
+Tcl_Interp *TkAgent::tcl = 0;
 unsigned long TkFrame::top_created = 0;
 unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::grab = 0;
@@ -34,6 +34,33 @@ Value *TkAgent::last_error = 0;
 Value *TkAgent::bitmap_path = 0;
 
 extern Value *glishtk_valcast( char * );
+#define SP " "
+
+
+int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] )
+	{
+	if ( argc < 1 ) return TCL_ERROR;
+
+	static char buf[1024];
+
+	strcpy( buf, argv[0] );
+	for ( register int i = 1; i < argc; ++i )
+		{
+		strcat( buf, " " );
+		strcat( buf, argv[i] );
+		}
+
+	return Tcl_Eval( interp, buf );
+	}
+
+const char *glishtk_make_callback( Tcl_Interp *tcl, Tcl_CmdProc *cmd, ClientData data )
+	{
+	static int index = 0;
+	static char buf[100];
+	sprintf( buf, "gtkcb%x", ++index );
+	Tcl_CreateCommand( tcl, buf, cmd, data, 0 );
+	return buf;
+	}
 
 class glishtk_event {
     public:
@@ -61,46 +88,46 @@ glishtk_event::~glishtk_event()
 	free_memory( nme );
 	}
 
-static Value *ScrollToValue( Scrollbar_notify_data *data )
-	{
-	recordptr rec = create_record_dict();
+// static Value *ScrollToValue( Scrollbar_notify_data *data )
+// 	{
+// 	recordptr rec = create_record_dict();
 
-	rec->Insert( strdup("vertical"), new Value( data->scrollbar_is_vertical ) );
-	rec->Insert( strdup("op"), new Value( data->scroll_op ) );
-	rec->Insert( strdup("newpos"), new Value( data->newpos ) );
+// 	rec->Insert( strdup("vertical"), new Value( data->scrollbar_is_vertical ) );
+// 	rec->Insert( strdup("op"), new Value( data->scroll_op ) );
+// 	rec->Insert( strdup("newpos"), new Value( data->newpos ) );
 
-	return new Value( rec );
-	}
+// 	return new Value( rec );
+// 	}
 
-static Scrollbar_notify_data *ValueToScroll( const Value *data )
-	{
-	if ( data->Type() != TYPE_RECORD )
-		return 0;
+// static Scrollbar_notify_data *ValueToScroll( const Value *data )
+// 	{
+// 	if ( data->Type() != TYPE_RECORD )
+// 		return 0;
 
-	Value *vertical;
-	Value *op;
-	Value *newpos;
-	if ( ! (vertical = (Value*) (data->HasRecordElement( "vertical" )) ) ||
-	     ! (op = (Value*) (data->HasRecordElement( "op" ) )) ||
-	     ! (newpos = (Value*) (data->HasRecordElement( "newpos" ) )) )
-		return 0;
+// 	Value *vertical;
+// 	Value *op;
+// 	Value *newpos;
+// 	if ( ! (vertical = (Value*) (data->HasRecordElement( "vertical" )) ) ||
+// 	     ! (op = (Value*) (data->HasRecordElement( "op" ) )) ||
+// 	     ! (newpos = (Value*) (data->HasRecordElement( "newpos" ) )) )
+// 		return 0;
 
-	if ( vertical->Type() != TYPE_INT ||
-	     ! vertical->Length() ||
-	     op->Type() != TYPE_INT ||
-	     ! op->Length() ||
-	     newpos->Type() != TYPE_DOUBLE ||
-	     ! newpos->Length() )
-		return 0;
+// 	if ( vertical->Type() != TYPE_INT ||
+// 	     ! vertical->Length() ||
+// 	     op->Type() != TYPE_INT ||
+// 	     ! op->Length() ||
+// 	     newpos->Type() != TYPE_DOUBLE ||
+// 	     ! newpos->Length() )
+// 		return 0;
 
-	Scrollbar_notify_data *ret = new Scrollbar_notify_data;
+// 	Scrollbar_notify_data *ret = new Scrollbar_notify_data;
 
-	ret->scrollbar_is_vertical = vertical->IntVal();
-	ret->scroll_op = op->IntVal();
-	ret->newpos = newpos->DoubleVal();
+// 	ret->scrollbar_is_vertical = vertical->IntVal();
+// 	ret->scroll_op = op->IntVal();
+// 	ret->newpos = newpos->DoubleVal();
 
-	return ret;
-	}
+// 	return ret;
+// 	}
 
 Value *glishtk_splitnl( char *str )
 	{
@@ -207,15 +234,6 @@ Value *glishtk_splitsp_str( char *s )
 	char **str = glishtk_splitsp_str_(s, len);
 	return new Value( (charptr*) str, len, COPY_ARRAY );
 	}
-
-inline void glishtk_pack( Rivetobj root, int argc, char **argv)
-	{
-// 	for (int i=0; i < argc; i++)
-// 		cout << (argv[i] ? argv[i] : "pack") << " ";
-// 	cout << endl;
-	rivet_func(root,(int (*)())Tk_PackCmd,argc,argv);
-	}
-
 
 #define InvalidArg( num )						\
 	{								\
@@ -464,10 +482,9 @@ CLASS::~CLASS( )					\
 	SETDONE
 
 
-#define GEOM_GET(WHAT)									\
-	char *c_##WHAT = (char*) rivet_va_func( tlead, (int (*)()) Tk_WinfoCmd, #WHAT,	\
-						rivet_path(tlead), 0 );			\
-	int WHAT = c_##WHAT ? atoi(c_##WHAT) : 0;
+#define GEOM_GET(WHAT)								\
+	Tcl_VarEval( tcl, "winfo ", #WHAT, SP, Tk_PathName(tlead), 0 );		\
+	int WHAT = atoi(Tcl_GetStringResult(tcl));
 
 
 //                  <-------X/WIDTH-------->
@@ -481,7 +498,7 @@ CLASS::~CLASS( )					\
 //               v  B           4          D            4  ==  's'
 //                                                      D  ==  'se'
 //
-const char *glishtk_popup_geometry( Rivetobj tlead, charptr pos )
+const char *glishtk_popup_geometry( Tcl_Interp *tcl, Tk_Window tlead, charptr pos )
 	{
 	static char geometry[80];
 
@@ -527,27 +544,32 @@ const char *glishtk_popup_geometry( Rivetobj tlead, charptr pos )
 	return geometry;
 	}
 
-char *glishtk_nostr(Rivetobj self, const char *cmd, Value * )
+char *glishtk_nostr( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 	{
-	return rivet_va_cmd( self, cmd, 0 );
+	Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, 0 );
+	return Tcl_GetStringResult(tcl);
 	}
 
-char *glishtk_onestr(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_onestr(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
 	if ( args->Type() == TYPE_STRING )
 		{
 		const char *str = args->StringPtr(0)[0];
-		ret = (char*) rivet_set( self, (char*) cmd, (char*) str );
+		Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, str, 0 );
+		ret = Tcl_GetStringResult(tcl);
 		}
 	else
-		ret = rivet_va_cmd(self, "cget", cmd, 0);
+		{
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
+		}
 
 	return ret;
 	}
 
-char *glishtk_bitmap(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_bitmap(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 	char *event_name = "one string function";
@@ -556,45 +578,50 @@ char *glishtk_bitmap(Rivetobj self, const char *cmd, Value *args )
 		{
 		const char *str = args->StringPtr(0)[0];
 		char *bitmap = (char*) alloc_memory(strlen(str)+2);
-		sprintf(bitmap,"@%s",str);
-		ret = (char*) rivet_set( self, (char*) cmd, bitmap );
+		sprintf(bitmap," @%s",str);
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, bitmap, 0 );
 		free_memory( bitmap );
 		}
 	else
 		{
-		ret = rivet_va_cmd(self, "cget", cmd, 0);
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
 		if ( *ret == '@' ) ++ret;
 		}
 
 	return ret;
 	}
 
-char *glishtk_onedim(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_onedim(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
 	else if ( args->Type() == TYPE_STRING )
-		ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, args->StringPtr(0)[0], 0 );
 	else if ( args->IsNumeric() )
 		{
 		char buf[30];
 		sprintf(buf,"%d",args->IntVal());
-		ret = (char*) rivet_set( self, (char*) cmd, buf );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, SP, buf, 0 );
 		}
 	else
-		ret = rivet_va_cmd(self, "cget", cmd, 0);
+		{
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
+		}
 
 	return ret;
 	}
 
-char *glishtk_winfo(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
-	return (char*) rivet_va_func( self, (int (*)()) Tk_WinfoCmd, (char*) cmd, rivet_path(self), 0 );
+	Tcl_VarEval( tcl, "winfo ", cmd, SP, Tk_PathName(self), 0 );
+	return Tcl_GetStringResult(tcl);
 	}
 
-char *glishtk_oneint(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_oneint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -603,29 +630,32 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, Value *args )
 		if ( args->IsNumeric() )
 			{
 			char buf[30];
-			sprintf(buf,"%d",args->IntVal());
-			ret = (char*) rivet_set( self, (char*) cmd, buf );
+			sprintf(buf," %d",args->IntVal());
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, buf, 0 );
 			}
 		else if ( args->Type() == TYPE_STRING )
-			ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, args->StringPtr(0)[0], 0 );
 		}
 	else
-		ret = rivet_va_cmd(self, "cget", cmd, 0);
+		{
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
+		}
 
 	return ret;
 	}
 
-char *glishtk_width(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_width(Tcl_Interp *, Tk_Window self, const char *cmd, Value *args )
 	{
-	return (char*) new Value( Tk_Width(self->tkwin) );
+	return (char*) new Value( Tk_Width(self) );
 	}
 
-char *glishtk_height(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_height(Tcl_Interp *, Tk_Window self, const char *cmd, Value *args )
 	{
-	return (char*) new Value( Tk_Height(self->tkwin) );
+	return (char*) new Value( Tk_Height(self) );
 	}
 
-char *glishtk_onedouble(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_onedouble(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
@@ -634,19 +664,22 @@ char *glishtk_onedouble(Rivetobj self, const char *cmd, Value *args )
 		if ( args->IsNumeric() )
 			{
 			char buf[30];
-			sprintf(buf,"%f",args->DoubleVal());
-			ret = (char*) rivet_set( self, (char*) cmd, buf );
+			sprintf(buf," %f",args->DoubleVal());
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, buf, 0 );
 			}
 		else if ( args->Type() == TYPE_STRING )
-			ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, args->StringPtr(0)[0], 0 );
 		}
 	else
-		ret = rivet_va_cmd(self, "cget", cmd, 0);
+		{
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget ", cmd, 0 );
+		ret = Tcl_GetStringResult(tcl);
+		}
 
 	return ret;
 	}
 
-char *glishtk_onebinary(Rivetobj self, const char *cmd, const char *ptrue, const char *pfalse,
+char *glishtk_onebinary(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *ptrue, const char *pfalse,
 				Value *args )
 	{
 	char *ret = 0;
@@ -655,33 +688,33 @@ char *glishtk_onebinary(Rivetobj self, const char *cmd, const char *ptrue, const
 		global_store->Error("zero length value");
 
 	else if ( args->IsNumeric() )
-		ret = (char*) rivet_set( self, (char*) cmd, (char*)(args->IntVal() ? ptrue : pfalse) );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure ", cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
 	else
 		global_store->Error("wrong type, numeric expected");
 	
 	return ret;
 	}
 
-char *glishtk_onebool(Rivetobj self, const char *cmd, Value *args )
+char *glishtk_onebool(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args )
 	{
-	return glishtk_onebinary(self, cmd, "true", "false", args);
+	return glishtk_onebinary(tcl, self, cmd, "true", "false", args);
 	}
 
-char *glishtk_oneidx(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_oneidx( TkAgent *a, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
 	else if ( args->Type() == TYPE_STRING )
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " configure ", cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
 	return ret;
 	}
 
-char *glishtk_disable_cb(TkAgent *a, const char *cmd, Value *args )
+char *glishtk_disable_cb( TkAgent *a, const char *cmd, Value *args )
 	{
 	if ( ! *cmd )
 		{
@@ -718,8 +751,7 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, Value *args )
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( start ),
-					     a->IndexCheck( end ), 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
 		a->ExitEnable();
 		EXPR_DONE( end )
 		EXPR_DONE( start )
@@ -727,7 +759,7 @@ char *glishtk_oneortwoidx(TkAgent *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
 		a->ExitEnable();
 		}
 	return ret;
@@ -767,8 +799,10 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 			{
 			EXPRSTR(one, event_name)
 			EXPRSTR(two, event_name)
-			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( one ), a->IndexCheck( two ), 0);
-			if ( s ) ret->ary[ret->len++] = strdup(s);
+			int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+					     a->IndexCheck( one ), SP, a->IndexCheck( two ), 0 );
+			if ( r == TCL_OK )
+				ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
 			EXPR_DONE(one)
 			EXPR_DONE(two)
 			}
@@ -783,21 +817,22 @@ char *glishtk_oneortwoidx_strary(TkAgent *a, const char *cmd, Value *args )
 			charptr *idx = args->StringPtr(0);
 			for ( int i = 0; i+1 < args->Length(); i+=2 )
 				{
-				char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( idx[i] ),
-						       a->IndexCheck( idx[i+1] ),0);
-
-				if ( s ) ret->ary[ret->len++] = strdup(s);
+				int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+						     a->IndexCheck( idx[i] ), SP, a->IndexCheck( idx[i+1] ), 0 );
+				if ( r == TCL_OK )
+					ret->ary[ret->len++] = strdup(Tcl_GetStringResult(a->Interp()));
 				}
 			}
 		else
 			{
-			char *s = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( (args->StringPtr(0))[0] ), 0);
-			if ( s )
+			int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+					     a->IndexCheck( (args->StringPtr(0))[0] ), 0);
+			if ( r == TCL_OK )
 				{
 				ret = new strary_ret;
 			        ret->len = 1;
 				ret->ary = (char**) alloc_memory( sizeof(char*) );
-				ret->ary[0] = strdup(s);
+				ret->ary[0] = strdup(Tcl_GetStringResult(a->Interp()));
 				}
 			}
 		}
@@ -821,17 +856,18 @@ char *glishtk_listbox_select(TkAgent *a, const char *cmd, const char *param,
 		EXPRINIT( event_name)
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
-		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ),
-					     a->IndexCheck( end ), 0);
-		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( end ), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
+			     a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( end ), 0 );
 		EXPR_DONE( end )
 		EXPR_DONE( start )
 		}
 	else if ( args->Type() == TYPE_STRING )
 		{
 		const char *start = args->StringPtr(0)[0];
-		ret = rivet_va_cmd(a->Self(), cmd, param, a->IndexCheck( start ), 0);
-		rivet_va_cmd(a->Self(), "activate", a->IndexCheck( start ), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP,
+			     a->IndexCheck( start ), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " activate ", a->IndexCheck( start ), 0 );
 		}
 
 	return ret;
@@ -851,7 +887,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 		EXPRSTR( str, event_name );
 		EXPRSTR( where, event_name )
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( where ), str, 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( where ), SP, str, 0);
 		a->ExitEnable();
 		EXPR_DONE( where )
 		EXPR_DONE( str )
@@ -859,7 +895,7 @@ char *glishtk_strandidx(TkAgent *a, const char *cmd, Value *args )
 	else if ( args->Type() == TYPE_STRING )
 		{
 		a->EnterEnable();
-		ret = rivet_va_cmd(a->Self(), cmd, a->IndexCheck( "end" ), args->StringPtr(0)[0], 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( "end" ), SP, args->StringPtr(0)[0], 0 );
 		a->ExitEnable();
 		}
 	else
@@ -881,7 +917,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 		EXPRINIT( event_name)
 		char **argv = (char**) alloc_memory(sizeof(char*) * (args->Length()+3));
 		int argc = 0;
-		argv[argc++] = 0;
+		argv[argc++] = Tk_PathName(a->Self());
 		argv[argc++] = (char*) cmd;
 		if ( param ) argv[argc++] = (char*) a->IndexCheck(param);
 		int start = argc;
@@ -901,8 +937,8 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 			argv[3] = argv[2];
 			argv[2] = tmp;
 			}
-		rivet_cmd(a->Self(), argc, argv);
-		if ( param ) rivet_va_cmd(a->Self(), "see", a->IndexCheck(param), 0);
+		tcl_ArgEval( a->Interp(), argc, argv );
+		if ( param ) Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " see ", a->IndexCheck(param), 0 );
 		a->ExitEnable();
 		for ( LOOPDECL i = start; i < argc; ++i )
 			free_memory(argv[i]);
@@ -911,7 +947,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	else if ( args->Type() == TYPE_STRING && param )
 		{
 		char *s = args->StringVal( ' ', 0, 1 );
-		rivet_va_cmd(a->Self(), cmd, param, s, 0);
+		Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, SP, s, 0 );
 		free_memory(s);
 		}
 	else
@@ -920,7 +956,7 @@ char *glishtk_text_append(TkAgent *a, const char *cmd, const char *param,
 	return 0;
 	}
 
-char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
+char *glishtk_text_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *param,
 			   Value *args )
 	{
 	char *event_name = "tag function";
@@ -935,7 +971,7 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 	EXPRSTR(tag, event_name)
 	int argc = 0;
 	char *argv[8];
-	argv[argc++] = 0;
+	argv[argc++] = Tk_PathName(self);
 	argv[argc++] = (char*) cmd;
 	argv[argc++] = (char*) param;
 	argv[argc++] = (char*) tag;
@@ -946,7 +982,7 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 			argv[argc] = (char*)one;
 			EXPRSTR(two, event_name)
 			argv[argc+1] = (char*)two;
-			rivet_cmd(self,argc+2,argv);
+			tcl_ArgEval( tcl, argc+2, argv );
 			EXPR_DONE(one)
 			EXPR_DONE(two)
 			}
@@ -958,14 +994,14 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 		if ( str_v->Length() == 1 )
 			{
 			argv[argc] = (char*)s[0];
-			rivet_cmd(self,argc+1,argv);
+			tcl_ArgEval( tcl, argc+1, argv );
 			}
 		else
 			for ( int i=0; i+1 < str_v->Length(); i+=2 )
 				{
 				argv[argc] = (char*)s[i];
 				argv[argc+1] = (char*)s[i+1];
-				rivet_cmd(self,argc+2,argv);
+				tcl_ArgEval( tcl, argc+2, argv );
 				}
 
 		EXPR_DONE(str_v)
@@ -975,8 +1011,7 @@ char *glishtk_text_tagfunc(Rivetobj self, const char *cmd, const char *param,
 	return 0;
 	}
 
-char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
-			      Value *args )
+char *glishtk_text_configfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *param, Value *args )
 	{
 	char *event_name = "tag function";
 	if ( args->Length() < 2 )
@@ -988,7 +1023,7 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 	char buf[512];
 	int argc = 0;
 	char *argv[8];
-	argv[argc++] = 0;
+	argv[argc++] = Tk_PathName(self);
 	argv[argc++] = (char*) cmd;
 	argv[argc++] = (char*) param;
 	EXPRSTR(tag, event_name)
@@ -1009,14 +1044,14 @@ char *glishtk_text_configfunc(Rivetobj self, const char *cmd, const char *param,
 			else
 				doit = 0;
 			
-			if ( doit ) rivet_cmd(self,argc+2,argv);
+			if ( doit ) tcl_ArgEval( tcl, argc+2, argv );
 			}
 		}
 	EXPR_DONE(tag)
 	return 0;
 	}
 
-char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
+char *glishtk_text_rangesfunc( Tcl_Interp *tcl, Tk_Window self, const char *cmd, const char *param,
 			      Value *args )
 	{
 	char *ret = 0;
@@ -1025,8 +1060,8 @@ char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
 		global_store->Error("zero length value");
 	else if ( args->Type() == TYPE_STRING )
 		{
-		rivet_va_cmd( self, cmd, param, args->StringPtr(0)[0], 0 );
-		ret = self->interp->result;
+		Tcl_VarEval( tcl, Tk_PathName(self), SP, cmd, SP, param, SP, args->StringPtr(0)[0], 0 );
+		ret = Tcl_GetStringResult(tcl);
 		}
 	else
 		global_store->Error("wrong type, string expected");
@@ -1036,7 +1071,8 @@ char *glishtk_text_rangesfunc(Rivetobj self, const char *cmd, const char *param,
 
 char *glishtk_no2str(TkAgent *a, const char *cmd, const char *param, Value * )
 	{
-	return rivet_va_cmd( a->Self(), cmd, param, 0 );
+	Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, param, 0 );
+	return Tcl_GetStringResult(a->Interp());
 	}
 
 char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, Value *str_v, charptr where="end" )
@@ -1048,14 +1084,14 @@ char *glishtk_listbox_insert_action(TkAgent *a, const char *cmd, Value *str_v, c
 	char **argv = (char**) alloc_memory( sizeof(char*)*(len+3) );
 	charptr *strs = str_v->StringPtr(0);
 
-	argv[0] = 0;
+	argv[0] = Tk_PathName(a->Self());
 	argv[1] = (char*) cmd;
 	argv[2] = (char*) a->IndexCheck( where );
 	int c=0;
 	for ( ; c < len; ++c )
 		argv[c+3] = (char *) strs[c];
 		
-	rivet_cmd(a->Self(), c+3, argv);
+	tcl_ArgEval( a->Interp(), c+3, argv );
 	free_memory( argv );
 	return "";
 	}
@@ -1101,9 +1137,12 @@ char *glishtk_listbox_get_int(TkAgent *a, const char *cmd, Value *val )
 	for ( int i=0; i < len; i++ )
 		{
 		sprintf(buf,"%d",index[i]);
-		char *v = rivet_va_cmd(a->Self(), cmd, a->IndexCheck(buf), 0);
-		if ( v )
+		
+		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( buf ), 0 );
+
+		if ( r == TCL_OK )
 			{
+			char *v = Tcl_GetStringResult(a->Interp());
 			int vlen = strlen(v);
 			while ( cnt+vlen+1 >= rlen )
 				{
@@ -1134,12 +1173,19 @@ char *glishtk_listbox_get(TkAgent *a, const char *cmd, Value *args )
 		EXPRINIT( event_name)
 		EXPRSTR( start, event_name )
 		EXPRSTR( end, event_name )
-		ret = rivet_va_cmd( a->Self(), cmd, a->IndexCheck( start ), a->IndexCheck( end ), 0 );
+		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP,
+				     a->IndexCheck( start ), SP, a->IndexCheck( end ), 0 );
+
+		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
+
 		EXPR_DONE( end )
 		EXPR_DONE( val )
 		}
 	else if ( args->Type() == TYPE_STRING )
-		ret = rivet_va_cmd( a->Self(), cmd, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		{
+		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), SP, cmd, SP, a->IndexCheck( args->StringPtr(0)[0] ), 0 );
+		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
+		}
 	else if ( args->Type() == TYPE_INT )
 		ret = glishtk_listbox_get_int( a, (char*) cmd, args );
 	else
@@ -1158,7 +1204,8 @@ char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, Value *args )
 		{
 		char ycoord[30];
 		sprintf(ycoord,"%d", args->IntVal());
-		ret = rivet_va_cmd( a->Self(), "nearest", ycoord, 0 );
+		int r = Tcl_VarEval( a->Interp(), Tk_PathName(a->Self()), " nearest ", ycoord, 0 );
+		if ( r == TCL_OK ) ret = Tcl_GetStringResult(a->Interp());
 		}
 	else
 		global_store->Error("wrong type, numeric expected");
@@ -1167,31 +1214,33 @@ char *glishtk_listbox_nearest(TkAgent *a, const char *cmd, Value *args )
 	}
 
 
-char *glishtk_scrolled_update(Rivetobj self, const char *, Value *data )
+char *glishtk_scrolled_update(Tcl_Interp *tcl, Tk_Window self, const char *, Value *data )
 	{
-	static char ret[5];
-	Scrollbar_notify_data *data_ = ValueToScroll( data );
-	if ( ! data_ ) return 0;
-	rivet_scrollbar_set_client_view( self, data_ );
-	delete data_;
-	ret[0] = (char) 0;
-	return ret;
+// 	static char ret[5];
+// 	Scrollbar_notify_data *data_ = ValueToScroll( data );
+// 	if ( ! data_ ) return 0;
+// 	rivet_scrollbar_set_client_view( self, data_ );
+// 	delete data_;
+// 	ret[0] = (char) 0;
+// 	return ret;
+	return 0;
 	}
 
-char *glishtk_scrollbar_update(Rivetobj self, const char *, Value *val )
+char *glishtk_scrollbar_update(Tcl_Interp*, Tk_Window self, const char *, Value *val )
 	{
-	static char ret[5];
+// 	static char ret[5];
 
-	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
-		{
-		global_store->Error("scrollbar update function");
-		return 0;
-		}
+// 	if ( val->Type() != TYPE_DOUBLE || val->Length() < 2 )
+// 		{
+// 		global_store->Error("scrollbar update function");
+// 		return 0;
+// 		}
 
-	double *firstlast = val->DoublePtr(0);
-	rivet_scrollbar_set( self, firstlast[0], firstlast[1] );
-	ret[0] = (char) 0;
-	return ret;
+// 	double *firstlast = val->DoublePtr(0);
+// 	rivet_scrollbar_set( self, firstlast[0], firstlast[1] );
+// 	ret[0] = (char) 0;
+// 	return ret;
+	return 0;
 	}
 
 char *glishtk_button_state(TkAgent *a, const char *, Value *args )
@@ -1205,8 +1254,6 @@ char *glishtk_button_state(TkAgent *a, const char *, Value *args )
 	return ret;
 	}
 
-extern "C" int rivet_menuentry_set(Rivetobj,char*,char*,char*);
-
 char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 	{
 	TkButton *Self = (TkButton*)a;
@@ -1216,8 +1263,8 @@ char *glishtk_menu_onestr(TkAgent *a, const char *cmd, Value *args )
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
 	else if ( args->Type() == TYPE_STRING )
-		ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(),
-					    (char*) cmd, (char*) args->StringPtr(0)[0], 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
+			     cmd, SP, args->StringPtr(0)[0], 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -1234,8 +1281,8 @@ char *glishtk_menu_onebinary(TkAgent *a, const char *cmd, const char *ptrue, con
 	if ( args->Length() <= 0 )
 		global_store->Error("zero length value");
 	if ( args->IsNumeric() )
-		ret = (char*) rivet_va_cmd( Parent->Menu(), "entryconfigure", Self->Index(),
-					    (char*) cmd, (char*)(args->IntVal() ? ptrue : pfalse), 0 );
+		Tcl_VarEval( a->Interp(), Tk_PathName(Parent->Menu()), " entryconfigure ", Self->Index(), SP,
+			     cmd, SP, (args->IntVal() ? ptrue : pfalse), 0 );
 	else
 		global_store->Error("wrong type, numeric expected");
 
@@ -1260,7 +1307,7 @@ Value *glishtk_strtofloat( char *str )
 	return new Value( atof(str) );
 	}
 
-Value *TkProc::operator()(Rivetobj s, Value *arg)
+Value *TkProc::operator()(Tcl_Interp *tcl, Tk_Window s, Value *arg)
 	{
 	char *val = 0;
 
@@ -1269,11 +1316,11 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 //** 	ProxyStore::ReleaseQueue();
 
 	if ( proc )
-		val = (*proc)(s,cmdstr,arg);
+		val = (*proc)(tcl, s,cmdstr,arg);
 	else if ( proc1 )
-		val = (*proc1)(s,cmdstr,param,arg);
+		val = (*proc1)(tcl, s,cmdstr,param,arg);
 	else if ( proc2 )
-		val = (*proc2)(s,cmdstr,param,param2,arg);
+		val = (*proc2)(tcl, s,cmdstr,param,param2,arg);
 	else if ( fproc != 0 && frame != 0 )
 		val = (frame->*fproc)( arg );
 	else if ( aproc != 0 && agent != 0 )
@@ -1283,9 +1330,9 @@ Value *TkProc::operator()(Rivetobj s, Value *arg)
 	else if ( aproc3 != 0 && agent != 0 )
 		val = (*aproc3)(agent, cmdstr, param, param2, arg);
 	else if ( iproc )
-		val = (*iproc)(s, cmdstr, i, arg);
+		val = (*iproc)(tcl, s, cmdstr, i, arg);
 	else if ( iproc1 )
-		val = (*iproc1)(s, cmdstr, param, i, arg);
+		val = (*iproc1)(tcl, s, cmdstr, param, i, arg);
 #if defined(TKPGPLOT)
 	else if ( pgproc && pgplot )
 		val = (pgplot->*pgproc)( arg);
@@ -1317,7 +1364,7 @@ void TkAgent::ProcessEvent( const char *name, Value *val )
 
 	if ( proc != 0 )
 		{
-		Value *v = (*proc)( self, val );
+		Value *v = (*proc)( tcl, self, val );
 		if ( v && ReplyPending() ) Reply( v );
 		}
 	else
@@ -1443,6 +1490,25 @@ char *glishtk_agent_map(TkAgent *a, const char *cmd, Value *)
 	return 0;
 	}
 
+charptr TkAgent::NewName( Tk_Window parent ) const
+	{
+	static int index = 0;
+	static char buf[50];
+
+	if ( parent )
+		{
+		charptr pp = Tk_PathName(parent);
+		if ( ! pp || pp[0] == '.' && pp[1] == '\0' )
+			sprintf( buf, ".gtk%x", ++index );
+		else
+			sprintf( buf, "%s.gtk%x", pp, ++index );
+		}
+	else
+		sprintf( buf, ".gtk%x", ++index );
+
+	return buf;
+	}
+
 void TkAgent::SetMap( int do_map, int toplevel )
 	{
 	int dont_map_ = do_map ? 0 : 1;
@@ -1452,24 +1518,23 @@ void TkAgent::SetMap( int do_map, int toplevel )
 		if ( ! toplevel )
 			{
 			if ( dont_map )
-				rivet_va_func(self, (int (*)())Tk_PackCmd, "forget", rivet_path(self), 0);
+				Tcl_VarEval( tcl, "pack forget ", Tk_PathName(self), 0 );
 			if ( frame ) frame->Pack();
 			}
 		else
 			{
-			Rivetobj win =  TopLevel();
+			Tk_Window win =  TopLevel();
 			if ( win )
 				{
 				if ( dont_map )
-					rivet_va_func(win, (int(*)()) Tk_WmCmd, "withdraw", rivet_path(win), 0);
+					Tcl_VarEval( tcl, "wm withdraw ", Tk_PathName(win), 0 );
 				else
-					rivet_va_func(win, (int(*)()) Tk_WmCmd, "deiconify", rivet_path(win), 0);
+					Tcl_VarEval( tcl, "wm deiconify ", Tk_PathName(win), 0 );
 				}
 			}
 		}
 	}
 
-extern "C" void rivet_focus_follows_mouse(Rivetobj ref);
 TkAgent::TkAgent( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 	{
 	agent_ID = "<graphic>";
@@ -1483,17 +1548,16 @@ TkAgent::TkAgent( ProxyStore *s ) : Proxy( s ), dont_map( 0 ), disable_count(0)
 
 	if ( ! root )
 		{
-		char *argv[3];
-		argv[0] = "glish";
-		argv[1] = 0;
-
-		if ( (root = rivet_init(1, argv)) )
-			{
-			glishtk_dflt_xioerror_handler = 
-				XSetIOErrorHandler(glishtk_xioerror_handler);
+		tcl = Tcl_CreateInterp();
+		Tcl_Init( tcl );
+		Tk_Init(tcl);
+#if defined(TKPGPLOT)
+		Tkpgplot_Init(tcl);
+#endif
+		root = Tk_MainWindow(tcl);
 		
-			rivet_focus_follows_mouse(root);
-			}
+		glishtk_dflt_xioerror_handler = XSetIOErrorHandler(glishtk_xioerror_handler);
+		Tcl_Eval(tcl, "tk_focusFollowsMouse");
 		}
 
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr, glishtk_str));
@@ -1518,8 +1582,7 @@ void TkAgent::Enable( int force )
 
 void TkAgent::UnMap()
 	{
-	if ( self )
-		rivet_destroy_window( self );
+	if ( self ) Tk_DestroyWindow( self );
 
 	frame = 0;
 	self = 0;
@@ -1555,7 +1618,7 @@ void TkAgent::BindEvent(const char *event, Value *rec)
 	PostTkEvent( event, rec );
 	}
 
-Rivetobj TkAgent::TopLevel()
+Tk_Window TkAgent::TopLevel()
 	{
 	return frame ? frame->TopLevel() : 0;
 	}
@@ -1580,50 +1643,50 @@ struct glishtk_bindinfo
 		}
 	};
 
-int glishtk_bindcb(Rivetobj agent, XEvent *xevent, ClientData assoc, int keysym, int)
+int glishtk_bindcb(Tk_Window agent, XEvent *xevent, ClientData assoc, int keysym, int)
 	{
-	glishtk_bindinfo *info = (glishtk_bindinfo*) assoc;
-	int dummy;
-	recordptr rec = create_record_dict();
+// 	glishtk_bindinfo *info = (glishtk_bindinfo*) assoc;
+// 	int dummy;
+// 	recordptr rec = create_record_dict();
 
-	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
-	wpt[0] = xevent->xkey.x;
-	wpt[1] = xevent->xkey.y;
-	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
-	if ( xevent->type == KeyPress )
-		rec->Insert( strdup("key"), new Value( rivet_expand_event(agent, "A", xevent, keysym, &dummy) ) );
-	info->agent->BindEvent(info->event_name, new Value( rec ) );
+// 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
+// 	wpt[0] = xevent->xkey.x;
+// 	wpt[1] = xevent->xkey.y;
+// 	rec->Insert( strdup("wpoint"), new Value( wpt, 2 ) );
+// 	if ( xevent->type == KeyPress )
+// 		rec->Insert( strdup("key"), new Value( rivet_expand_event(agent, "A", xevent, keysym, &dummy) ) );
+// 	info->agent->BindEvent(info->event_name, new Value( rec ) );
 	return TCL_OK;
 	}
 
 char *glishtk_bind(TkAgent *agent, const char *, Value *args )
 	{
-	char *event_name = "agent bind function";
-	EXPRINIT( event_name)
-	if ( args->Length() >= 2 )
-		{
-		EXPRSTR( button, event_name )
-		EXPRSTR( event, event_name )
-		glishtk_bindinfo *binfo = 
-			new glishtk_bindinfo(agent, event, button);
+// 	char *event_name = "agent bind function";
+// 	EXPRINIT( event_name)
+// 	if ( args->Length() >= 2 )
+// 		{
+// 		EXPRSTR( button, event_name )
+// 		EXPRSTR( event, event_name )
+// 		glishtk_bindinfo *binfo = 
+// 			new glishtk_bindinfo(agent, event, button);
 
-		if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) glishtk_bindcb,
-					  (ClientData) binfo, 1, 0) == TCL_ERROR )
-			{
-			global_store->Error("Error, binding not created.");
-			delete binfo;
-			}
+// 		if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) glishtk_bindcb,
+// 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
+// 			{
+// 			global_store->Error("Error, binding not created.");
+// 			delete binfo;
+// 			}
 
-		EXPR_DONE( event )
-		EXPR_DONE( button )
-		}
+// 		EXPR_DONE( event )
+// 		EXPR_DONE( button )
+// 		}
 
 	return 0;
 	}
 
-int glishtk_delframe_cb(Rivetobj, XEvent *, ClientData assoc, ClientData)
+int glishtk_delframe_cb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	((TkFrame*)assoc)->KillFrame();
+	((TkFrame*)data)->KillFrame();
 	return TCL_OK;
 	}
 
@@ -1686,8 +1749,9 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 
 	if ( top_created )
 		{
-		int c = 2;
-		argv[0] = argv[1] = 0;
+		int c = 0;
+		argv[c++] = "toplevel";
+		argv[c++] = NewName();
 		argv[c++] = "-borderwidth";
 		argv[c++] = "0";
 		argv[c++] = "-width";
@@ -1696,44 +1760,40 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = (char*) height;
 		argv[c++] = "-background";
 		argv[c++] = (char*) background;
-		pseudo = rivet_create(ToplevelClass, root, c, argv);
+		tcl_ArgEval( tcl, c, argv );
+		pseudo = Tk_NameToWindow( tcl, argv[1], root );
 		if ( title && title[0] )
-			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "title",
-				      rivet_path(pseudo), title, 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( pseudo ), SP, title, 0 );
+
 		if ( tlead )
 			{
-			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "transient",
-				      rivet_path(pseudo), rivet_path(tlead->Self()), 0 );
-			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "overrideredirect",
-				      rivet_path(pseudo), "true", 0 );
-			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
-			rivet_va_func(pseudo, (int (*)()) Tk_WmCmd, "geometry",
-				      rivet_path(pseudo), geometry, 0 );
+			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(pseudo), SP,
+				     Tk_PathName(tlead->Self()), 0 );
+			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(pseudo), " true", 0 );
 
-			Rivetobj top = tlead->TopLevel();
-			Tk_CreateEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
-					      glishtk_moveframe_cb, this );
+			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(pseudo), SP, geometry, 0 );
+
+			Tk_Window top = tlead->TopLevel();
+			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
 			}
 		}
 	else
 		{
 		top_created = 1;
 		if ( title && title[0] )
-			rivet_va_func(root, (int (*)()) Tk_WmCmd, "title",
-				      rivet_path(root), title, 0 );
+			Tcl_VarEval( tcl, "wm title ", Tk_PathName( root ), SP, title, 0 );
+
 		if ( tlead )
 			{
-			rivet_va_func(root, (int (*)()) Tk_WmCmd, "transient",
-				      rivet_path(root), rivet_path(tlead->Self()), 0 );
-			rivet_va_func(root, (int (*)()) Tk_WmCmd, "overrideredirect",
-				      rivet_path(root), "true", 0 );
-			const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
-			rivet_va_func(root, (int (*)()) Tk_WmCmd, "geometry",
-				      rivet_path(root), geometry, 0 );
+			Tcl_VarEval( tcl, "wm transient ", Tk_PathName(root), Tk_PathName(tlead->Self()), 0 );
+			Tcl_VarEval( tcl, "wm overrideredirect ", Tk_PathName(root), " true", 0 );
 
-			Rivetobj top = tlead->TopLevel();
-			Tk_CreateEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
-					      glishtk_moveframe_cb, this );
+			const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+			Tcl_VarEval( tcl, "wm geometry ", Tk_PathName(root), geometry, 0 );
+
+			Tk_Window top = tlead->TopLevel();
+			Tk_CreateEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
 			}
 		}
 
@@ -1742,8 +1802,9 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	pady = strdup(pady_);
 	expand = strdup(expand_);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = NewName(pseudo ? pseudo : root);
 
 	if ( new_cmap )
 		{
@@ -1767,14 +1828,14 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		argv[c++] = (char*) cursor;
 		}
 
-	self = rivet_create(FrameClass, pseudo ? pseudo : root, c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
 
-	rivet_va_func(self, (int(*)()) Tk_WmCmd, "protocol", rivet_path((pseudo ? pseudo : root)),
-		      "WM_DELETE_WINDOW",rivet_new_callback( (int (*)()) glishtk_delframe_cb,
-							     (ClientData) this, 0), 0 );
+	Tcl_VarEval( tcl, "wm protocol ", Tk_PathName(pseudo ? pseudo : root), " WM_DELETE_WINDOW ",
+		     glishtk_make_callback( tcl, glishtk_delframe_cb, this ), 0 );
 
 	if ( icon && strlen( icon ) )
 		{
@@ -1782,9 +1843,8 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 		if ( expanded )
 			{
 			char *icon_ = (char*) alloc_memory(strlen(expanded)+2);
-			sprintf(icon_,"@%s",expanded);
-			rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
-				      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+			sprintf(icon_," @%s",expanded);
+			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0);
 			free_memory( expanded );
 			free_memory( icon_ );
 			}
@@ -1795,7 +1855,7 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	// with configuring the widget. When setting the cursor, for
 	// example, the frame & children go crazy resizing themselves.
 	//
-	rivet_clear_frame_dims( self );
+// 	rivet_clear_frame_dims( self );
 	AddElement( this );
 
 	if ( frame )
@@ -1829,10 +1889,10 @@ TkFrame::TkFrame( ProxyStore *s, charptr relief_, charptr side_, charptr borderw
 	procs.Insert("raise", new TkProc( this, &TkFrame::Raise ));
 	procs.Insert("title", new TkProc( this, &TkFrame::Title ));
 
-	Tk_CreateEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
+	Tk_CreateEventHandler( self, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
-	size[0] = self->tkwin->reqWidth;
-	size[1] = self->tkwin->reqHeight;
+	size[0] = Tk_ReqWidth(self);
+	size[1] = Tk_ReqHeight(self);
 	}
 
 TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
@@ -1857,8 +1917,9 @@ TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_
 	pady = strdup(pady_);
 	expand = strdup(expand_);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = NewName(frame->Self());
 
 	if ( new_cmap )
 		{
@@ -1882,7 +1943,8 @@ TkFrame::TkFrame( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_
 		argv[c++] = (char*) cursor;
 		}
 
-	self = rivet_create(FrameClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
@@ -1940,8 +2002,9 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 	pady = strdup(pady_);
 	expand = strdup(expand_);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "frame";
+	argv[c++] = NewName(canvas->Self());
 	argv[c++] = "-relief";
 	argv[c++] = (char*) relief_;
 	argv[c++] = "-borderwidth";
@@ -1953,7 +2016,8 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 	argv[c++] = "-background";
 	argv[c++] = (char*) background;
 
-	self = rivet_create(FrameClass, canvas->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrame::TkFrame")
@@ -1963,8 +2027,7 @@ TkFrame::TkFrame( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr sid
 	// with configuring the widget. When setting the cursor, for
 	// example, the frame & children go crazy resizing themselves.
 	//
-	rivet_clear_frame_dims( self );
-//	AddElement( this );
+// 	rivet_clear_frame_dims( self );
 
 	if ( frame )
 		{
@@ -1998,7 +2061,7 @@ void TkFrame::UnMap()
 
 	if ( RefCount() > 0 ) Ref(this);
 
-	Tk_DeleteEventHandler((Tk_Window)self->tkwin, StructureNotifyMask, glishtk_resizeframe_cb, this );
+	Tk_DeleteEventHandler(self, StructureNotifyMask, glishtk_resizeframe_cb, this );
 
 	if ( grab && grab == Id() )
 		Release();
@@ -2022,9 +2085,9 @@ void TkFrame::UnMap()
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 
 	if ( canvas )
-		rivet_va_cmd( canvas->Self(), "delete", tag, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(canvas->Self()), " delete ", tag, 0 );
 	else if ( self )
-		rivet_destroy_window( self );
+		Tk_DestroyWindow( self );
 
 	canvas = 0;
 	frame = 0;
@@ -2032,19 +2095,18 @@ void TkFrame::UnMap()
 
 	if ( pseudo )
 		{
-		rivet_destroy_window( pseudo );
+		Tk_DestroyWindow( pseudo );
 		pseudo = 0;
 		}
 
 	if ( unmap_root )
-		rivet_unmap_window( root );
+		Tk_UnmapWindow( root );
 
 	if ( tlead )
 		{
-		Rivetobj top = tlead->TopLevel();
+		Tk_Window top = tlead->TopLevel();
 		if ( top )
-			Tk_DeleteEventHandler((Tk_Window)top->tkwin, StructureNotifyMask,
-					      glishtk_moveframe_cb, this );
+			Tk_DeleteEventHandler(top, StructureNotifyMask, glishtk_moveframe_cb, this );
 		Unref( tlead );
 		tlead = 0;
 		}
@@ -2088,9 +2150,8 @@ char *TkFrame::SetIcon( Value *args )
 		if ( icon && strlen(icon) )
 			{
 			char *icon_ = (char*) alloc_memory(strlen(icon)+2);
-			sprintf(icon_,"@%s",icon);
-			rivet_va_func(self, (int(*)()) Tk_WmCmd, "iconbitmap",
-				      rivet_path((pseudo ? pseudo : root)),icon_, 0);
+			sprintf(icon_," @%s",icon);
+			Tcl_VarEval( tcl, "wm iconbitmap ", Tk_PathName(pseudo ? pseudo : root), icon_, 0 );
 			free_memory( icon_ );
 			}
 		}
@@ -2208,9 +2269,9 @@ char *TkFrame::Grab( int global_scope )
 	if ( grab ) return 0;
 
 	if ( global_scope )
-		rivet_va_func(self, (int(*)()) Tk_GrabCmd, "set", "-global", rivet_path(self), 0);
+		Tcl_VarEval( tcl, "grab set -global ", Tk_PathName(self), 0 );
 	else
-		rivet_va_func(self, (int(*)()) Tk_GrabCmd, "set", rivet_path(self), 0);
+		Tcl_VarEval( tcl, "grab set ", Tk_PathName(self), 0 );
 
 	grab = Id();
 	return "";
@@ -2232,10 +2293,9 @@ char *TkFrame::Raise( Value *args )
 	{
 	TkAgent *agent = 0;
 	if ( args->IsAgentRecord( ) && (agent = (TkAgent*) store->GetProxy(args)) )
-		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd,
-			       rivet_path(TopLevel()), rivet_path(agent->TopLevel()), 0 );
+		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), SP, Tk_PathName(agent->TopLevel()), 0 );
 	else
-		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd, rivet_path(TopLevel()), 0 );
+		Tcl_VarEval( tcl, "raise ", Tk_PathName(TopLevel()), 0 );
 
 	return "";
 	}
@@ -2243,11 +2303,7 @@ char *TkFrame::Raise( Value *args )
 char *TkFrame::Title( Value *args )
 	{
 	if ( args->Type() == TYPE_STRING )
-		{
-		Rivetobj top = TopLevel( );
-		rivet_va_func( top, (int (*)()) Tk_WmCmd, "title",
-			       rivet_path(top), args->StringPtr(0)[0], 0 );
-		}
+		Tcl_VarEval( tcl, "wm title ", Tk_PathName(TopLevel( )), SP, args->StringPtr(0)[0], 0 );
 	else
 		global_store->Error("wrong type, string expected");
 
@@ -2261,20 +2317,20 @@ char *TkFrame::FontsCB( Value *args )
 	int len = 0;
 
 	if ( args->Type() == TYPE_STRING )
-		fonts = XListFonts(self->display, args->StringPtr(0)[0], 32768, &len);
+		fonts = XListFonts(Tk_Display(self), args->StringPtr(0)[0], 32768, &len);
 	else if ( args->Length() > 0 && args->IsNumeric() )
-		fonts = XListFonts(self->display, wild, args->IntVal(), &len);
+		fonts = XListFonts(Tk_Display(self), wild, args->IntVal(), &len);
 	else if ( args->Type() == TYPE_RECORD )
 		{
 		EXPRINIT("TkFrame::FontsCB")
 		EXPRSTR( str, "TkFrame::FontsCB" )
 		EXPRINT( l, "TkFrame::FontsCB" )
-		fonts = XListFonts(self->display, str, l, &len);
+		fonts = XListFonts(Tk_Display(self), str, l, &len);
 		EXPR_DONE( str )
 		EXPR_DONE( l )
 		}
 	else
-		fonts = XListFonts(self->display, wild, 32768, &len);
+		fonts = XListFonts(Tk_Display(self), wild, 32768, &len);
 
 	Value *ret = fonts ? new Value( (charptr*) fonts, len, COPY_ARRAY ) : new Value( glish_false );
 	XFreeFontNames(fonts);
@@ -2285,7 +2341,7 @@ char *TkFrame::Release( )
 	{
 	if ( ! grab || grab != Id() ) return 0;
 
-	rivet_va_func(self, (int(*)()) Tk_GrabCmd, "release", rivet_path(self), 0);
+	Tcl_VarEval( tcl, "grap release ", Tk_PathName(self), 0 );
 
 	grab = 0;
 	return "";
@@ -2305,9 +2361,9 @@ void TkFrame::PackSpecial( TkAgent *agent )
 
 	char **argv = (char**) alloc_memory( sizeof(char*)*(cnt+8) );
 
-	int i = 1;
-	argv[0] = 0;
-	argv[i++] = rivet_path( agent->Self() );
+	int i = 0;
+	argv[i++] = "pack";
+	argv[i++] = Tk_PathName( agent->Self() );
 	argv[i++] = "-side";
 	argv[i++] = side;
 	argv[i++] = "-padx";
@@ -2319,7 +2375,7 @@ void TkFrame::PackSpecial( TkAgent *agent )
 	while ( instr[cnt] )
 		argv[i++] = (char*) instr[cnt++];
 
-	glishtk_pack(root,i,argv);
+	do_pack(i,argv);
 	free_memory( argv );
 	}
 
@@ -2351,7 +2407,7 @@ void TkFrame::Pack( )
 			if ( elements[i]->PackInstruction() )
 				PackSpecial( elements[i] );
 			else
-				argv[c++] = rivet_path(elements[i]->Self() );
+				argv[c++] = Tk_PathName(elements[i]->Self());
 			}
 
 		if ( c > 1 )
@@ -2363,7 +2419,7 @@ void TkFrame::Pack( )
 			argv[c++] = "-pady";
 			argv[c++] = pady;
 
-			glishtk_pack(root,c,argv);
+			do_pack(c,argv);
 			}
 
 		if ( frame )
@@ -2394,8 +2450,8 @@ void TkFrame::ResizeEvent( )
 		recordptr rec = create_record_dict();
 
 		rec->Insert( strdup("old"), new Value( size, 2, COPY_ARRAY ) );
-		size[0] = self->tkwin->changes.width;
-		size[1] = self->tkwin->changes.height;
+		size[0] = Tk_Width(self);
+		size[1] = Tk_Height(self);
 		rec->Insert( strdup("new"), new Value( size, 2, COPY_ARRAY ) );
 
 		//
@@ -2416,12 +2472,10 @@ void TkFrame::LeaderMoved( )
 	{
 	if ( ! tlead ) return;
 
-	const char *geometry = glishtk_popup_geometry( tlead->Self(), tpos );
-	rivet_va_func(pseudo ? pseudo : root, (int (*)()) Tk_WmCmd, "geometry",
-		      rivet_path(pseudo ? pseudo : root), geometry, 0 );
+	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
+	Tcl_VarEval( tcl, "geometry ", Tk_PathName(pseudo ? pseudo : root), SP, geometry, 0 );
 	while ( TkAgent::DoOneTkEvent( TK_X_EVENTS | TK_IDLE_EVENTS | TK_DONT_WAIT ) ) ;
-	rivet_va_func( pseudo ? pseudo : root, (int (*)()) Tk_RaiseCmd,
-		       rivet_path(pseudo ? pseudo : root)/*, rivet_path(tlead->TopLevel())*/, 0 );
+	Tcl_VarEval( tcl, "raise ", Tk_PathName(pseudo ? pseudo : root), 0 );
 	}
 
 void TkFrame::Create( ProxyStore *s, Value *args, void * )
@@ -2521,7 +2575,7 @@ int TkFrame::CanExpand() const
 					 ! strcmp(frame->side,"bottom")) );
 	}
 
-Rivetobj TkFrame::TopLevel( )
+Tk_Window TkFrame::TopLevel( )
 	{
 	return frame ? frame->TopLevel() : canvas ? canvas->TopLevel() :
 		pseudo ? pseudo : root;
@@ -2552,25 +2606,25 @@ void TkButton::UnMap()
 		if ( menu )
 			{
 			menu->Remove(this);
-			rivet_va_cmd( Menu(), "delete", Index(), 0 );
+			Tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
 			}
 		else
 			{
-			if ( self ) rivet_set( self, "-postcommand", "" );
-			rivet_destroy_window( self );
+			if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " configure -postcommand \"\"", 0 );
+			Tk_DestroyWindow( self );
 			}
 		}
 
 	else if ( menu )
 		{
 		menu->Remove(this);
-		rivet_va_cmd( Menu(), "delete", Index(), 0 );
+		Tcl_VarEval( tcl, Tk_PathName(Menu()), " delete ", Index(), 0 );
 		}
 
 	else if ( self )
 		{
-		rivet_set( self, "-command", "" );
-		rivet_destroy_window( self );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -command \"\"", 0 );
+		Tk_DestroyWindow( self );
 		}
 
 	menu = 0;
@@ -2602,13 +2656,13 @@ TkButton::~TkButton( )
 
 static unsigned char dont_invoke_button = 0;
 
-int buttoncb(Rivetobj, XEvent *, ClientData assoc, ClientData)
+int buttoncb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	((TkButton*)assoc)->ButtonPressed();
+	((TkButton*)data)->ButtonPressed();
 	return TCL_OK;
 	}
 
-int tk_button_menupost(Rivetobj, XEvent *, ClientData, ClientData)
+int tk_button_menupost(Tk_Window, XEvent *, ClientData, ClientData)
 	{
 	return TCL_OK;
 	}
@@ -2620,9 +2674,9 @@ void TkButton::EnterEnable()
 		{
 		enable_state++;
 		if ( frame )
-			rivet_set( self, "-state", "normal" );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -state normal", 0 );
 		else
-			rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "normal", 0 );
+			Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
 		}
 	}
 
@@ -2630,18 +2684,18 @@ void TkButton::ExitEnable()
 	{
 	if ( enable_state && --enable_state == 0 )
 		if ( frame )
-			rivet_set( self, "-state", "disabled" );
+			Tcl_VarEval( tcl, Tk_PathName(self), " configure -state disabled", 0 );
 		else
-			rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "disabled", 0 );
+			Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
 	}
 
 void TkButton::Disable( )
 	{
 	disable_count++;
 	if ( frame )
-		rivet_set( self, "-state", "disabled" );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -state disabled", 0 );
 	else
-		rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "disabled", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state disabled", 0 );
 	}
 
 void TkButton::Enable( int force )
@@ -2656,10 +2710,9 @@ void TkButton::Enable( int force )
 	if ( disable_count ) return;
 
 	if ( frame )
-		rivet_set( self, "-state", "normal" );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -state normal", 0 );
 	else
-		rivet_va_cmd( Parent()->Menu(), "entryconfigure", Index(), "-state", "normal", 0 );
-		
+		Tcl_VarEval( tcl, Tk_PathName(Parent()->Menu()), " entryconfigure ", Index(), " -state normal", 0 );
 	}
 
 TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_,
@@ -2696,8 +2749,9 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	else if ( type != RADIO )
 		radio = 0;
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = 0;
+	argv[c++] = NewName(frame->Self());
 
 	if ( type == RADIO )
 		{
@@ -2763,30 +2817,40 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label, charptr type_
 	if ( type != MENU )
 		{
 		argv[c++] = "-command";
-		argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
+		argv[c++] = glishtk_make_callback( tcl, buttoncb, this );
 		}
 
 	switch ( type )
 		{
 		case RADIO:
-			self = rivet_create(RadioButtonClass, frame->Self(), c, argv);
+			argv[0] = "radiobutton";
+			tcl_ArgEval( tcl, c, argv );
+			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case CHECK:
-			self = rivet_create(CheckButtonClass, frame->Self(), c, argv);
+			argv[0] = "checkbutton";
+			tcl_ArgEval( tcl, c, argv );
+			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case MENU:
-			self = rivet_create(MenubuttonClass, frame->Self(), c, argv);
+			argv[0] = "menubutton";
+			tcl_ArgEval( tcl, c, argv );
+			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
-			rivet_set(self, "-postcommand", rivet_new_callback( (int (*)()) tk_button_menupost, (ClientData) this, 0));
-			argv[0] = argv[1] = 0;
+//  			rivet_set(self, "-postcommand", rivet_new_callback( (int (*)()) tk_button_menupost, (ClientData) this, 0));
+			argv[0] = "menu";
+			argv[1] = NewName(self);
 			argv[2] = "-tearoff";
 			argv[3] = "0";
-			menu_base = rivet_create(MenuClass, self, 4, argv);
-			rivet_set(self, "-menu", rivet_path(menu_base));
+			tcl_ArgEval( tcl, c, argv );
+			menu_base = Tk_NameToWindow( tcl, argv[1], root );
+			Tcl_VarEval( tcl, Tk_PathName(self), " -menu ", Tk_PathName(menu_base), 0 );
 			break;
 		default:
-			self = rivet_create(ButtonClass, frame->Self(), c, argv);
+			argv[0] = "button";
+			tcl_ArgEval( tcl, c, argv );
+			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		}
 
@@ -2864,8 +2928,9 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 		radio = 0;
 
 	int c = 3;
-	argv[0] = argv[2] = 0;
+	argv[0] = Tk_PathName(Menu());
 	argv[1] = "add";
+	argv[2] = 0;
 
 	if ( type == RADIO )
 		{
@@ -2933,36 +2998,38 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	if ( disabled ) disable_count++;
 
 	argv[c++] = "-command";
-	argv[c++] = rivet_new_callback( (int (*)()) buttoncb, (ClientData) this, 0);
+	argv[c++] = glishtk_make_callback( tcl, buttoncb, this );
 
 	switch ( type )
 		{
 		case RADIO:
 			argv[2] = "radio";
-			rivet_cmd(Menu(), c, argv);
+			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
 			break;
 		case CHECK:
 			argv[2] = "check";
-			rivet_cmd(Menu(), c, argv);
+			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
 			break;
 		case MENU:
 			{
 			argv[2] = "cascade";
 			char *av[10];
-			av[0] = av[1] = 0;
+			av[0] = "menu";
+			av[1] = NewName(menu->Menu());
 			av[2] = "-tearoff";
 			av[3] = "0";
-			self = menu_base = rivet_create(MenuClass, menu->Menu(), 4, av);
+			tcl_ArgEval( tcl, c, argv );
+			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
 			argv[c++] = "-menu";
-			argv[c++] = rivet_path(self);
-			rivet_cmd(menu->Menu(), c, argv);
+			argv[c++] = Tk_PathName(self);
+			tcl_ArgEval( tcl, c, argv );
 			}
 			break;
 		default:
 			argv[2] = "command";
-			rivet_cmd(Menu(), c, argv);
+			tcl_ArgEval( tcl, c, argv);
 			self = Menu();
 			break;
 		}
@@ -2974,7 +3041,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	if ( value ) sequencer->RegisterValue( value );
 #endif
 
-	menu_index = strdup( rivet_va_cmd(menu->Menu(), "index", "last", 0) );
+	Tcl_VarEval( tcl, Tk_PathName(menu->Menu()), " index last", 0 );
+	menu_index = strdup( Tcl_GetStringResult(tcl) );
 
         menu->Add(this);
 
@@ -3088,16 +3156,16 @@ void TkButton::State(unsigned char s)
 		char var_name[256];
 		sprintf(var_name,"radio%lx",radio->Id());
 		radio->RadioID( 0 );
-		Tcl_SetVar( self->interp, var_name, "", TCL_GLOBAL_ONLY );
+		Tcl_SetVar( tcl, var_name, "", TCL_GLOBAL_ONLY );
 		}
 	else
 		{
 		EnterEnable();
 		dont_invoke_button = 1;
 		if ( frame )
-			rivet_va_cmd( self, "invoke", 0 );
+			Tcl_VarEval( tcl, Tk_PathName(self), " invoke", 0 );
 		else if ( menu )
-			rivet_va_cmd( Menu(), "invoke", Index(), 0 );
+			Tcl_VarEval( tcl, Tk_PathName(Menu()), " invoke ", Index(), 0 );
 		ExitEnable();
 		}
 	}
@@ -3143,7 +3211,7 @@ int CLASS::CanExpand() const				\
 STD_EXPAND_PACKINSTRUCTION(TkButton)
 STD_EXPAND_CANEXPAND(TkButton)
 
-Rivetobj TkButton::TopLevel( )
+Tk_Window TkButton::TopLevel( )
 	{
 	return frame ? frame->TopLevel() : menu ? menu->TopLevel() : 0;
 	}
@@ -3152,14 +3220,14 @@ DEFINE_DTOR(TkScale)
 
 void TkScale::UnMap()
 	{
-	if ( self ) rivet_set( self, "-command", "" );
+	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
 	TkAgent::UnMap();
 	}
 
 unsigned int TkScale::scale_count = 0;
-int scalecb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int scalecb( ClientData data, Tcl_Interp *, int argc, char *argv[] )
 	{
-	((TkScale*)assoc)->ValueSet( *((double*) calldata ) );
+	((TkScale*)data)->ValueSet( atof(argv[1]) );
 	return TCL_OK;
 	}
 
@@ -3202,7 +3270,8 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	sprintf(width_,"%d", width);
 
 	int c = 2;
-	argv[0] = argv[1] = 0;
+	argv[0] = "scale";
+	argv[1] = NewName(frame->Self());
 	argv[c++] = "-from";
 	argv[c++] = from_c;
 	argv[c++] = "-to";
@@ -3213,8 +3282,11 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = (char*) resolution_;
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
-	argv[c++] = "-label";
-	argv[c++] = (char*) text;
+	if ( text && *text )
+		{
+		argv[c++] = "-label";
+		argv[c++] = (char*) text;
+		}
 	argv[c++] = "-width";
 	argv[c++] = (char*) width_;
 	if ( font[0] )
@@ -3232,10 +3304,12 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = (char*) background;
 	argv[c++] = "-variable";
 	argv[c++] = var_name;
-	argv[c++] = "-command";
-	argv[c++] = rivet_new_callback((int (*)()) scalecb, (ClientData) this, 0);
 
-	self = rivet_create(ScaleClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	// Can't set command as part of initialization...
+	Tcl_VarEval( tcl, Tk_PathName(self), " configure -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScale::TkScale")
@@ -3254,7 +3328,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		{
 		char val[256];
 		sprintf(val,"%g",value);
-		Tcl_SetVar( self->interp, var_name, val, TCL_GLOBAL_ONLY );
+		Tcl_SetVar( tcl, var_name, val, TCL_GLOBAL_ONLY );
 		}
 
 	procs.Insert("length", new TkProc("-length", glishtk_onedim, glishtk_strtoint));
@@ -3284,7 +3358,7 @@ void TkScale::SetValue( double d )
 		{
 		sprintf(var_name,"ScAlE%d\n",id);
 		sprintf(val,"%g",d);
-		Tcl_SetVar( self->interp, var_name, val, TCL_GLOBAL_ONLY );
+		Tcl_SetVar( tcl, var_name, val, TCL_GLOBAL_ONLY );
 		}
 	}
 
@@ -3334,21 +3408,21 @@ void TkText::UnMap()
 	{
 	if ( self )
 		{
-		rivet_set( self, "-xscrollcommand", "" );
-		rivet_set( self, "-yscrollcommand", "" );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -xscrollcommand \"\"", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -yscrollcommand \"\"", 0 );
 		}
 
 	TkAgent::UnMap();
 	}
 
-int text_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int text_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkText*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int text_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int text_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkText*)assoc)->xScrolled( firstlast );
@@ -3358,23 +3432,31 @@ int text_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
 #define DEFINE_ENABLE_FUNCS(CLASS)				\
 void CLASS::EnterEnable()					\
 	{							\
-	if ( ! enable_state && ! strcmp("disabled", rivet_va_cmd(self, "cget", "-state", 0)) ) \
+	if ( ! enable_state ) 					\
 		{						\
-		enable_state++;					\
-		rivet_set( self, "-state", "normal" );		\
+		Tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 ); \
+		const char *curstate = Tcl_GetStringResult(tcl); \
+		if ( ! strcmp("disabled", curstate ) )		\
+			{					\
+			enable_state++;				\
+			Tcl_VarEval( tcl, Tk_PathName(self),	\
+				     " configure -state normal", 0 ); \
+			}					\
 		}						\
 	}							\
 								\
 void CLASS::ExitEnable()					\
 	{							\
 	if ( enable_state && --enable_state == 0 )		\
-		rivet_set( self, "-state", "disabled" );	\
+		Tcl_VarEval( tcl, Tk_PathName(self),		\
+			     " configure -state disabled", 0 );	\
 	}							\
 								\
 void CLASS::Disable( )						\
 	{							\
 	disable_count++;					\
-	rivet_set( self, "-state", "disabled" );		\
+	Tcl_VarEval( tcl, Tk_PathName(self),			\
+		     " configure -state disabled", 0 );		\
 	}							\
 								\
 void CLASS::Enable( int force )					\
@@ -3388,7 +3470,8 @@ void CLASS::Enable( int force )					\
 								\
 	if ( disable_count ) return;				\
 								\
-	rivet_set( self, "-state", "normal" );			\
+	Tcl_VarEval( tcl, Tk_PathName(self),			\
+		     " configure -state disabled", 0 );		\
 	}
 
 DEFINE_ENABLE_FUNCS(TkText)
@@ -3406,7 +3489,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	if ( ! frame || ! frame->Self() ) return;
 
-	self = rivet_create(TextClass, frame->Self(), 0, 0);
+	const char *nme = NewName(frame->Self());
+	Tcl_VarEval( tcl, "text ", nme, 0 );
+	self = Tk_NameToWindow( tcl, nme, root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkText::TkText")
@@ -3416,8 +3501,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	sprintf(width_,"%d",width);
 	sprintf(height_,"%d",height);
 
-	int c = 2;
-	argv[0] = 0; argv[1] = "config";
+	int c = 0;
+	argv[c++] = Tk_PathName(self);
+	argv[c++] = "config";
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-height";
@@ -3441,15 +3527,15 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		argv[c++] = "-font";
 		argv[c++] = (char*) font;
 		}
-	argv[c++] = "-yscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) text_yscrollcb, (ClientData) this, 0);
-	argv[c++] = "-xscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) text_xscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-yscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) text_yscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-xscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) text_xscrollcb, (ClientData) this, 0);
 
-	rivet_cmd(self, c, argv);
+	tcl_ArgEval( tcl, c, argv );
 
 	if ( text[0] )
-		rivet_va_cmd( self, "insert", "end", text, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " insert end ", text, 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3542,16 +3628,16 @@ DEFINE_DTOR(TkScrollbar)
 
 void TkScrollbar::UnMap()
 	{
-	if ( self ) rivet_set( self, "-command", "" );
+	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " -command \"\"", 0 );
 	TkAgent::UnMap();
 	}
 
-int scrollbarcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
-	{
-	Scrollbar_notify_data *data = (Scrollbar_notify_data*) calldata;
-	((TkScrollbar*)assoc)->Scrolled( ScrollToValue( data ) );
-	return TCL_OK;
-	}
+// int scrollbarcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
+// 	{
+// 	Scrollbar_notify_data *data = (Scrollbar_notify_data*) calldata;
+// 	((TkScrollbar*)assoc)->Scrolled( ScrollToValue( data ) );
+// 	return TCL_OK;
+// 	}
 
 TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 			  int width, charptr foreground, charptr background )
@@ -3567,29 +3653,31 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	char width_[30];
 	sprintf(width_,"%d", width);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "scrollbar";
+	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-orient";
 	argv[c++] = (char*) orient;
 	argv[c++] = "-width";
 	argv[c++] = width_;
-	argv[c++] = "-command";
-	argv[c++] = rivet_new_callback((int (*)()) scrollbarcb, (ClientData) this, 0);
+// 	argv[c++] = "-command";
+// 	argv[c++] = rivet_new_callback((int (*)()) scrollbarcb, (ClientData) this, 0);
 
-	self = rivet_create(ScrollbarClass, frame->Self(), c, argv);
-
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
+	
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScrollbar::TkScrollbar")
 
 	// Setting foreground and background colors at creation
 	// time kills the goose
-	rivet_set( self, "-bg", (char*) background );
-	rivet_set( self, "-fg", (char*) foreground );
+	Tcl_VarEval( tcl, Tk_PathName(self), " -bg ", background, 0 );
+	Tcl_VarEval( tcl, Tk_PathName(self), " -fg ", foreground, 0 );
 
 	frame->AddElement( this );
 	frame->Pack();
 
-	rivet_scrollbar_set( self, 0.0, 1.0 );
+// 	rivet_scrollbar_set( self, 0.0, 1.0 );
 
 	procs.Insert("view", new TkProc("", glishtk_scrollbar_update));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr, glishtk_str));
@@ -3601,7 +3689,8 @@ const char **TkScrollbar::PackInstruction()
 	{
 	static char *ret[7];
 	ret[0] = "-fill";
-	char *orient = rivet_va_cmd(self, "cget", "-orient", 0);
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget -orient", 0 );
+	char *orient = Tcl_GetStringResult(tcl);
 	if ( orient[0] == 'v' && ! strcmp(orient,"vertical") )
 		ret[1] = "y";
 	else
@@ -3677,8 +3766,9 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 
 	sprintf(width,"%d",width_);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "label";
+	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-text";
 	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
@@ -3705,7 +3795,8 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text, charptr justify,
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	self = rivet_create(LabelClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkLabel::TkLabel")
@@ -3771,17 +3862,17 @@ DEFINE_DTOR(TkEntry)
 
 void TkEntry::UnMap()
 	{
-	if ( self ) rivet_set( self, "-xscrollcommand", "" );
+	if ( self ) Tcl_VarEval( tcl, Tk_PathName(self), " configure -xscrollcommand \"\"", 0 );
 	TkAgent::UnMap();
 	}
 
-int entry_returncb(Rivetobj, XEvent *, ClientData assoc, ClientData)
+int entry_returncb(Tk_Window, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkEntry*)assoc)->ReturnHit();
 	return TCL_OK;
 	}
 
-int entry_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int entry_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkEntry*)assoc)->xScrolled( firstlast );
@@ -3806,8 +3897,9 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 	sprintf(width_,"%d",width);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[0] = "entry";
+	argv[1] =  NewName(frame->Self());
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-justify";
@@ -3836,16 +3928,17 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 		}
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
-	argv[c++] = "-xscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) entry_xscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-xscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) entry_xscrollcb, (ClientData) this, 0);
 
-	self = rivet_create(EntryClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
 
-	if ( rivet_create_binding(self, 0, "<Return>", (int (*)()) entry_returncb, (ClientData) this, 1, 0) == TCL_ERROR )
-		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkEntry::TkEntry")
+// 	if ( rivet_create_binding(self, 0, "<Return>", (int (*)()) entry_returncb, (ClientData) this, 1, 0) == TCL_ERROR )
+// 		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkEntry::TkEntry")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -3871,9 +3964,12 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 void TkEntry::ReturnHit( )
 	{
-	if ( strcmp("disabled", rivet_va_cmd(self, "cget", "-state", 0)) )
+	Tcl_VarEval( tcl, Tk_PathName(self), " cget -state", 0 );
+	const char *curstate = Tcl_GetStringResult(tcl);
+	if ( strcmp("disabled", curstate) )
 		{
-		Value *ret = new Value( rivet_va_cmd( self, "get", 0 ) );
+		Tcl_VarEval( tcl, Tk_PathName(self), " get", 0 );
+		Value *ret = new Value( Tcl_GetStringResult(tcl) );
 		PostTkEvent( "return", ret );
 		}
 	}
@@ -3945,7 +4041,8 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	if ( ! frame || ! frame->Self() ) return;
 
 	int c = 2;
-	argv[0] = argv[1] = 0;
+	argv[0] = "message";
+	argv[1] = NewName( frame->Self() );
 	argv[c++] = "-text";
 	argv[c++] = (char*) text;
 	argv[c++] = "-justify";
@@ -3972,7 +4069,8 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text, charptr widt
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
 
-	self = rivet_create(MessageClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkMessage::TkMessage")
@@ -4037,28 +4135,28 @@ void TkListbox::UnMap()
 	{
 	if ( self )
 		{
-		rivet_set( self, "-xscrollcommand", "" );
-		rivet_set( self, "-yscrollcommand", "" );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -xscrollcommand \"\"", 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " configure -yscrollcommand \"\"", 0 );
 		}
 
 	TkAgent::UnMap();
 	}
 
-int listbox_yscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int listbox_yscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkListbox*)assoc)->yScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_xscrollcb(Rivetobj, XEvent *, ClientData assoc, ClientData calldata)
+int listbox_xscrollcb(Tk_Window, XEvent *, ClientData assoc, ClientData calldata)
 	{
 	double *firstlast = (double*)calldata;
 	((TkListbox*)assoc)->xScrolled( firstlast );
 	return TCL_OK;
 	}
 
-int listbox_button1cb(Rivetobj, XEvent *, ClientData assoc, ClientData)
+int listbox_button1cb(Tk_Window, XEvent *, ClientData assoc, ClientData)
 	{
 	((TkListbox*)assoc)->elementSelected();
 	return TCL_OK;
@@ -4081,8 +4179,9 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	sprintf(width_,"%d",width);
 	sprintf(height_,"%d",height);
 
-	int c = 2;
-	argv[0] = argv[1] = 0;
+	int c = 0;
+	argv[c++] = "listbox";
+	argv[c++] = NewName(frame->Self());
 	argv[c++] = "-width";
 	argv[c++] = width_;
 	argv[c++] = "-height";
@@ -4104,18 +4203,19 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = (char*) background;
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
-	argv[c++] = "-yscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) listbox_yscrollcb, (ClientData) this, 0);
-	argv[c++] = "-xscrollcommand";
-	argv[c++] = rivet_new_callback((int (*)()) listbox_xscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-yscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) listbox_yscrollcb, (ClientData) this, 0);
+// 	argv[c++] = "-xscrollcommand";
+// 	argv[c++] = rivet_new_callback((int (*)()) listbox_xscrollcb, (ClientData) this, 0);
 
-	self = rivet_create(ListboxClass, frame->Self(), c, argv);
+	tcl_ArgEval( tcl, c, argv );
+	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
 
-	if ( rivet_create_binding(self, 0, "<ButtonRelease-1>", (int (*)()) listbox_button1cb, (ClientData) this, 1, 0) == TCL_ERROR )
-		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkListbox::TkListbox")
+// 	if ( rivet_create_binding(self, 0, "<ButtonRelease-1>", (int (*)()) listbox_button1cb, (ClientData) this, 1, 0) == TCL_ERROR )
+// 		HANDLE_CTOR_ERROR("Rivet binding creation failed in TkListbox::TkListbox")
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -4192,7 +4292,8 @@ void TkListbox::xScrolled( const double *d )
 
 void TkListbox::elementSelected(  )
 	{
-	PostTkEvent( "select", glishtk_splitsp_int(rivet_va_cmd( self, "curselection", 0 )) );
+	Tcl_VarEval( tcl, Tk_PathName(self), " curselection", 0 );
+	PostTkEvent( "select", glishtk_splitsp_int(Tcl_GetStringResult(tcl)) );
 	}
 
 STD_EXPAND_PACKINSTRUCTION(TkListbox)
