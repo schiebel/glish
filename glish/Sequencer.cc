@@ -1377,8 +1377,10 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	// Process startup parameters
 	for ( ; argc > 0; ++argv, --argc )
 		{
-		if ( ! strcmp( argv[0], "-v" ) )
-			++verbose;
+		if ( argv[0][0] == '-' && argv[0][1] == 'v' &&
+		     argv[0][2] >= '1' && argv[0][2] <= '9' &&
+		     argv[0][3] == '\0' )
+			verbose = argv[0][2] - '0';
 
 		else if ( ! strcmp( argv[0], "-vi" ) )
 			verbose_mask |= VERB_INCL();
@@ -1400,6 +1402,37 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				}
 			else
 				fatal->Report("\"-l\" given with no file to load.");
+
+		else if ( ! strcmp( argv[0], "-version" ) )
+			{
+			message->Report( "Glish version ", GLISH_VERSION, ". " );
+			exit( 0 );
+			}
+
+		else if ( ! strcmp( argv[0], "-info" ) )
+			{
+			message->Report( "Glish version:          ", GLISH_VERSION, ". " );
+			message->Report( "script directory:       ", SCRIPTDIR );
+			message->Report( "site glishrc directory: ", RCDIR );
+			message->Report( "key directory:          ", KEYDIR );
+			exit( 0 );
+			}
+
+		else if ( ! strcmp( argv[0], "-help" ) )
+			{
+			message->Report( "-help        get this output" );
+			message->Report( "-version     get glish version" );
+			message->Report( "-info        get glish directory information" );
+			message->Report( "-l <FILE>    load <FILE> after .glishrc" );
+			message->Report( "-vf          report each \"dropped\" fail value" );
+			message->Report( "-vi          report each included file" );
+			message->Report( "-v[1-9]      set the verbosity level" );
+			message->Report( "-w           report each generated error string" );
+			message->Report( "<FILE>       execute <FILE> rather than running interactively" );
+			message->Report( "<ENV>=<VAL>  export <ENV> to the environment with value <VAL>" );
+			message->Report( "--           end arguments to Glish" );
+			exit( 0 );
+			}
 
 		else if ( strchr( argv[0], '=' ) )
 			putenv( argv[0] );

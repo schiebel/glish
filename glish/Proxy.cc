@@ -145,7 +145,7 @@ void ProxyStore::ProcessEvent( GlishEvent *e )
 						{
 						if ( val->Type() != TYPE_RECORD )
 							{
-							Error( "bad event bundle" );
+							Error( "bad event bundle", id );
 							return;
 							}
 
