@@ -1136,6 +1136,7 @@ LIB_VERSIONS_OK=ok
 SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
 TK_LD_RPATH=""
+RPATH_PREFIX="-L"
 TK_CXX_RPATH=""
 GC_LOW_OPT=""
 GC_MACH_DEP=""
@@ -1169,6 +1170,7 @@ case $host_os in
 	SLIB_SUFFIX=".sl"
 	DL_LIBS="-ldld"
 	LD_FLAGS="-Wl,-E"
+	RPATH_PREFIX="-Wl,+b,"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
@@ -1196,6 +1198,7 @@ case $host_os in
 	SLIB_SUFFIX=".sl"
 	DL_LIBS="-ldld"
 	LD_FLAGS="-Wl,-E"
+	RPATH_PREFIX="-Wl,+b,"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
@@ -1230,6 +1233,7 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-Wl,-rpath,"
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
@@ -1277,6 +1281,7 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-rpath "
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
@@ -1347,6 +1352,7 @@ case $host_os in
 		DL_LIBS="-ldld"
 		LD_FLAGS=""])
 	fi
+	RPATH_PREFIX="-Wl,-rpath,"
 	dnl##
 	dnl## After problems with shared libraries/objects and undefined
 	dnl## symbols (stat and lstat), -lc was added and seems to fix
@@ -1460,6 +1466,7 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-Wl,-rpath,"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
@@ -1481,6 +1488,7 @@ case $host_os in
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-rpath "
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
@@ -1574,6 +1582,7 @@ case $host_os in
 	SLIB_LABEL="-h "
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
+	RPATH_PREFIX="${LDI}-R ${LDI}"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
@@ -1799,6 +1808,7 @@ AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
 AC_SUBST(MAKE_SLIB_expanded)
 AC_SUBST(TK_LD_RPATH)
+AC_SUBST(RPATH_PREFIX)
 AC_SUBST(TK_CXX_RPATH)
 
 AC_SUBST(GLISH_LIBS)

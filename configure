@@ -4113,7 +4113,7 @@ fi
 done
 
 
-if test -n "$no_gettod_decl"; then
+if test ! -z "$no_gettod_decl"; then
 echo $ac_n "checking for gettimeofday declaration (c++)""... $ac_c" 1>&6
 cat > $conftest.$ac_ext <<EOF
 #line 4120 "configure"
@@ -4482,7 +4482,7 @@ else
 fi
 rm -f $conftest*
 
-if test -n "$select_type"; then
+if test ! -z "$select_type"; then
     break;
 fi
 done
@@ -4544,6 +4544,7 @@ LIB_VERSIONS_OK=ok
 SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
 TK_LD_RPATH=""
+RPATH_PREFIX="-L"
 TK_CXX_RPATH=""
 GC_LOW_OPT=""
 GC_MACH_DEP=""
@@ -4572,82 +4573,7 @@ EOF
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	GC_MACH_DEP=rs6000_mach_dep.o
 	;;
-    hpux8.*|hpux9.*)
-	SLIB_CFLAGS="+z"
-	SLIB_LABEL=''
-	SLIB_LD="ld -b"
-	SLIB_LD_LIBS='${LIBS}'
-	SLIB_SUFFIX=".sl"
-	DL_LIBS="-ldld"
-	LD_FLAGS="-Wl,-E"
-
-	if test -z "$static_binary"; then
-	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
-	fi
-
-	TK_LD_RPATH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir"
-        
-    if test -n "$tcl_library"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-Wl,+b,$tcl_library"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$tcl_library"
-        fi
-    fi
-
-        
-    if test -n "$x_libraries"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-Wl,+b,$x_libraries"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$x_libraries"
-        fi
-    fi
-
-        
-    if test -n "$PGPLOTLINKSEARCH"; then
-        if test -z "$TK_LD_RPATH"; then
-            TK_LD_RPATH="-Wl,+b,$PGPLOTLINKSEARCH"
-        else
-            TK_LD_RPATH="$TK_LD_RPATH:$PGPLOTLINKSEARCH"
-        fi
-    fi
-
-
-	if test -n "$TK_LD_RPATH"; then
-	    TK_LD_RPATH="$TK_LD_RPATH:."
-	fi
-	GC_MACH_DEP=mach_dep.o
-	echo "$ac_t""FINDING SHARED VERSION" 1>&6
-	
-    for tmp_index in glish sos npd editline regx; do
-        tmp_suffix=SLIB_SUFFIX
-	tmp_id=`echo ${tmp_index}_${tmp_suffix} | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
-        if test -f "$tmp_index/change.h"; then
-            eval ${tmp_id}="$_cv_version".`cat $tmp_index/change.h | head -1 | sed 's/^[^0-9]*\([0-9][0-9]*\).*/\1/'`
-            eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed -e "s/\.//g" -e "s/$/$SLIB_SUFFIX/" `
-	else
-            eval ${tmp_id}="$_cv_version".0
-            eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed -e "s/\.//g" -e "s/$/$SLIB_SUFFIX/" `
-        fi
-    done
-
-	
-    for tmp_index in glish sos npd editline regx; do
-        tmp_suffix=SLIB_VERSION 
-	tmp_id=`echo ${tmp_index}_${tmp_suffix} | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
-        if test -f "$tmp_index/change.h"; then
-            eval ${tmp_id}="$_cv_version".`cat $tmp_index/change.h | head -1 | sed 's/^[^0-9]*\([0-9][0-9]*\).*/\1/'`
-            eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed -e "s/\.//g"`
-	else
-            eval ${tmp_id}="$_cv_version".0
-            eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed -e "s/\.//g"`
-        fi
-    done
-
-	echo "$ac_t""FINDING SHARED VERSION $GLISH_SLIB_SUFFIX" 1>&6
-	;;
-    hpux10.*)
+    hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"
@@ -4655,6 +4581,7 @@ EOF
 	SLIB_SUFFIX=".sl"
 	DL_LIBS="-ldld"
 	LD_FLAGS="-Wl,-E"
+	RPATH_PREFIX="-Wl,+b,"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
@@ -4713,6 +4640,7 @@ EOF
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-Wl,-rpath,"
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
@@ -4724,7 +4652,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4728 "configure"
+#line 4656 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4810,6 +4738,7 @@ echo "$ac_t""$_cv_sgiabi" 1>&6
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-rpath "
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
@@ -4821,7 +4750,7 @@ else
 SAVED_CFLAGS="$CFLAGS"
 CFLAGS="-show $CFLAGS"
 cat > $conftest.$ac_ext <<EOF
-#line 4825 "configure"
+#line 4754 "configure"
 int main() { return 0; }
 EOF
 if (eval "${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIBS $conftest.$ac_ext") 2>&1 |
@@ -4931,12 +4860,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 4935 "configure"
+#line 4864 "configure"
 #include "$confdefs.h"
 #include <dld.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:4940: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4869: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -4959,6 +4888,7 @@ else
 fi
 
 	fi
+	RPATH_PREFIX="-Wl,-rpath,"
 						DL_LIBS="$DL_LIBS -lc"
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
@@ -5024,12 +4954,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 5028 "configure"
+#line 4958 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:5033: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:4963: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -5121,6 +5051,7 @@ fi
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-Wl,-rpath,"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
@@ -5166,6 +5097,7 @@ fi
 	SLIB_SUFFIX=".so"
 	DL_LIBS=""
 	LD_FLAGS=""
+	RPATH_PREFIX="-rpath "
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-rpath $full_libdir_p$cxx_rpath:$full_libdir"
@@ -5283,6 +5215,7 @@ fi
 	SLIB_LABEL="-h "
 	DL_LIBS="-ldl"
 	LD_FLAGS=""
+	RPATH_PREFIX="${LDI}-R ${LDI}"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
@@ -5366,11 +5299,9 @@ if test -z "$TK_CXX_RPATH"; then
     TK_CXX_RPATH="$TK_LD_RPATH"
 fi
 
-if test -z "$GLISH_SLIB_SUFFIX"; then
-    
+
     for tmp_index in glish sos npd editline regx; do
-        tmp_suffix=SLIB_SUFFIX
-	tmp_id=`echo ${tmp_index}_${tmp_suffix} | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+	tmp_id=`echo ${tmp_index}_SLIB_SUFFIX | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
         if test -f "$tmp_index/change.h"; then
             eval ${tmp_id}="$SLIB_SUFFIX.$_cv_version".`cat $tmp_index/change.h | head -1 | sed 's/^[^0-9]*\([0-9][0-9]*\).*/\1/'`
             
@@ -5380,7 +5311,6 @@ if test -z "$GLISH_SLIB_SUFFIX"; then
         fi
     done
 
-fi
 
 GLISH_LIB_SUFFIX=".a"
 if test "$GLISH_LIB_SUFFIX" = "" ; then
@@ -5414,20 +5344,20 @@ else
     SHARED_BIN=bin_tgt
     STATIC_BIN=
     if test "$enable_gc" = "yes"; then
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc${GLISH_SLIB_VERSION} -lsosgc${SOS_SLIB_VERSION} -leditgc${EDITLINE_SLIB_VERSION} -lregxgc${REGX_SLIB_VERSION} -lgcmem"
+        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc -lsosgc -leditgc -lregxgc -lgcmem"
     else
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
+        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp -lglish -lsos -ledit -lregx"
     fi
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos"
     if test "$do_npd" = "yes"; then
 	if test "$enable_gc" = "yes"; then
-	    GLISH_LIBS="$GLISH_LIBS -lnpdgc${NPD_SLIB_VERSION}"
+	    GLISH_LIBS="$GLISH_LIBS -lnpdgc"
 	else
-	    GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
+	    GLISH_LIBS="$GLISH_LIBS -lnpd"
 	fi
-	CLIENT_LIBS="$CLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
+	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
+	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd"
     fi
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
@@ -5454,7 +5384,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5458 "configure"
+#line 5388 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5462,7 +5392,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5466: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5396: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5485,7 +5415,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5489 "configure"
+#line 5419 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5493,7 +5423,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5497: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5427: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5607,7 +5537,6 @@ fi
 
 
 
-
 #dnl##
 #dnl## $1 => input file
 #dnl## $2 => output file
@@ -5618,7 +5547,6 @@ fi
 #AC_MSG_WARN($subdir:$tosrc)
 #])
 
-echo "$ac_t""creating architecture directories" 1>&6
 $mkhier "gcmem/$ARCH"
 $mkhier "sos/$ARCH/static"
 $mkhier "sos/$ARCH/shared"
@@ -5633,24 +5561,10 @@ $mkhier "glish/$ARCH/shared"
 $mkhier "glish/clients/glishtk/$ARCH/static"
 $mkhier "glish/clients/glishtk/$ARCH/shared"
 
-if test ! -d include; then
-    echo "$ac_t""creating include symbolic links" 1>&6
-    (mkdir include; cd include;
-     ln -s ../sos/include/sos sos;
-     ln -s ../npd/include/Npd Npd;
-     ln -s ../gcmem/include/gcmem gcmem;
-     ln -s ../regx/include/regx regx)
-fi
-
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
 
-if test -n "$SLIB_LABEL"; then
-    label_slib="yes"
-fi
-
-echo "$ac_t""preprocessing template makefiles" 1>&6
 rm -f $ARCH/preprocess.conf
 
 cat > $ARCH/preprocess.conf <<EOF
@@ -5702,7 +5616,6 @@ rm -f $ARCH/preprocess.conf
 cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
 SHARED="yes"
-LABEL_SLIB="$label_slib"
 SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"
 cat <<'!NO!SUBS!'
@@ -5722,31 +5635,6 @@ EOF
 
 rm -f glish/$ARCH/shared.in
 /bin/sh $ARCH/preprocess.conf > glish/$ARCH/shared.in
-
-rm -f $ARCH/preprocess.conf
-
-cat > $ARCH/preprocess.conf <<EOF
-#!/bin/sh
-SHARED="yes"
-LABEL_SLIB="$label_slib"
-SLIB_SYM_LINKS="$make_slib_symlinks"
-cat <<'!NO!SUBS!'
-EOF
-
-sed -e "s/^\#FI/!NO!SUBS!\\
-fi\\
-cat <<'!NO!SUBS!'/" -e "s/^\#ELSE/!NO!SUBS!\\
-else\\
-cat <<'!NO!SUBS!'/" -e "s/^\#IF \([A-Z][_A-Z]*\)/!NO!SUBS!\\
-if test -n \"\$\1\"; then\\
-cat <<'!NO!SUBS!'/" < glish/clients/glishtk/shared.in >> $ARCH/preprocess.conf
-
-cat >> $ARCH/preprocess.conf <<\EOF
-!NO!SUBS!
-EOF
-
-rm -f glish/clients/glishtk/$ARCH/shared.in
-/bin/sh $ARCH/preprocess.conf > glish/clients/glishtk/$ARCH/shared.in
 
 rm -f $ARCH/preprocess.conf
 
@@ -5777,7 +5665,6 @@ cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
 SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
 GC="$enable_gc"
 cat <<'!NO!SUBS!'
 EOF
@@ -5826,7 +5713,6 @@ cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
 SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
 GC="$enable_gc"
 cat <<'!NO!SUBS!'
 EOF
@@ -5875,7 +5761,6 @@ cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
 SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
 GC="$enable_gc"
 cat <<'!NO!SUBS!'
 EOF
@@ -5924,7 +5809,6 @@ cat > $ARCH/preprocess.conf <<EOF
 #!/bin/sh
 SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
-LABEL_SLIB="$label_slib"
 GC="$enable_gc"
 cat <<'!NO!SUBS!'
 EOF
@@ -6032,7 +5916,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in gcmem/$ARCH/config.h:gcmem/config.h.in" | sed "s/:[^ ]*//g"` $conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -6115,6 +5999,7 @@ s%@MAKE_LIB@%$MAKE_LIB%g
 s%@MAKE_SLIB@%$MAKE_SLIB%g
 s%@MAKE_SLIB_expanded@%$MAKE_SLIB_expanded%g
 s%@TK_LD_RPATH@%$TK_LD_RPATH%g
+s%@RPATH_PREFIX@%$RPATH_PREFIX%g
 s%@TK_CXX_RPATH@%$TK_CXX_RPATH%g
 s%@GLISH_LIBS@%$GLISH_LIBS%g
 s%@CLIENT_LIBS@%$CLIENT_LIBS%g
@@ -6131,7 +6016,7 @@ CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in"}
+CONFIG_FILES=\${CONFIG_FILES-"$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
