@@ -117,6 +117,8 @@ class evalOpt {
 	evalOpt( const evalOpt &o ) : mask(o.mask), fcount(o.fcount), backrefs(o.backrefs) { if ( backrefs ) Ref(backrefs); }
 	evalOpt &operator=( const evalOpt &o ) { mask = o.mask & ~0x1e0 | mask & 0x1e0; fcount = o.fcount; return *this; }
 
+	void clear_backrefs( ) { if ( backrefs ) Unref(backrefs); backrefs=0; }
+
 	void set( flowType t ) { mask = mask & ~0x1e0 | 1<<t; }
 	void set( exprType t ) { mask = mask & ~0x1f | 1<<t; }
 

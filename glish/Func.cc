@@ -637,6 +637,8 @@ IValue* UserFuncKernel::DoCall( evalOpt &opt, stack_type *stack )
 		}
 
 	evalOpt flow(opt);
+	flow.clear_backrefs( );
+
 	if ( ! opt.side_effects() ) flow.set(evalOpt::VALUE_NEEDED);
 
 	//
