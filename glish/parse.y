@@ -29,7 +29,7 @@
 %type <id> TOK_ID opt_id
 %type <event_type> TOK_LAST_EVENT
 %type <expr> TOK_CONSTANT expression var function formal_param_default
-%type <expr> scoped_expr opt_scoped_expr scoped_lhs_var
+%type <expr> scoped_expr opt_scoped_expr stand_alone_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
 %type <exprlist> subscript_list
 %type <event> event
@@ -163,10 +163,15 @@ scoped_expr:
 			{ $$ = $$->BuildFrameInfo( SCOPE_UNKNOWN ); }
 	;
 
-opt_scoped_expr:	scoped_expr
+opt_scoped_expr:
+		scoped_expr
 	|
 			{ $$ = 0; }
 	;
+
+stand_alone_expr:
+		scoped_expr
+			{ $$->StandAlone( ); }
 
 
 scoped_lhs_var:
@@ -217,16 +222,6 @@ statement:
 	|	TOK_ACTIVATE scoped_expr ';'
 			{ $$ = new ActivateStmt( $1, $2, current_sequencer ); }
 
-	|	TOK_SEND event '(' actual_param_list ')' ';'
-			{
-			$$ = new ExprStmt( new SendEventExpr( $2, $4, 0 ) );
-			}
-
-	|	event '(' actual_param_list ')' ';'
-			{
-			$$ = new ExprStmt( new SendEventExpr( $1, $3, 0 ) );
-			}
-
 	|	TOK_IF '(' scoped_expr ')' cont statement
 			{ $$ = new IfStmt( $3, $6, 0 ); }
 	|	TOK_IF '(' scoped_expr ')' cont statement TOK_ELSE statement
@@ -264,7 +259,7 @@ statement:
 	|	TOK_FAIL opt_scoped_expr ';'
 			{ $$ = new FailStmt( $2 ); }
 
-	|	scoped_expr ';'
+	|	stand_alone_expr ';'
 			{ $$ = new ExprStmt( $1 ); }
 
 	|	';'
@@ -354,8 +349,10 @@ expression:
 	|	value_type expression	%prec '^'
 			{ $$ = new RefExpr( $2, $1 ); }
 
-	|	TOK_REQUEST event '(' actual_param_list ')'
-			{ $$ = new SendEventExpr( $2, $4, 1 ); }
+	|	event '(' actual_param_list ')'
+			{
+			$$ = new SendEventExpr( $1, $3 );
+			}
 
 	|	TOK_LAST_EVENT
 			{ $$ = new LastEventExpr( current_sequencer, $1 ); }
@@ -807,12 +804,22 @@ event_list:	event_list ',' event
 			}
 	;
 
-event:		scoped_expr TOK_ARROW '[' scoped_expr ']'
-			{ $$ = new EventDesignator( $1, $4 ); }
-	|	scoped_expr TOK_ARROW TOK_ID
-			{ $$ = new EventDesignator( $1, $3 ); }
-	|	scoped_expr TOK_ARROW '*' no_cont
-			{ $$ = new EventDesignator( $1, (Expr*) 0 ); }
+event:	expression TOK_ARROW '[' expression ']'
+			{
+			$1 = $1->BuildFrameInfo( SCOPE_UNKNOWN );	/* necessary? */
+			$4 = $4->BuildFrameInfo( SCOPE_UNKNOWN );	/* necessary? */
+			$$ = new EventDesignator( $1, $4 );
+			}
+	|	expression TOK_ARROW TOK_ID
+			{
+			$1 = $1->BuildFrameInfo( SCOPE_UNKNOWN );	/* necessary? */
+			$$ = new EventDesignator( $1, $3 );
+			}
+	|	expression TOK_ARROW '*' no_cont
+			{
+			$1 = $1->BuildFrameInfo( SCOPE_UNKNOWN );	/* necessary? */
+			$$ = new EventDesignator( $1, (Expr*) 0 );
+			}
 	;
 
 

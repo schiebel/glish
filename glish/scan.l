@@ -37,6 +37,10 @@ int statement_can_end = 0;
 extern int interactive;
 int first_line = 1;
 
+//Transition Variables
+static int request_cnt = 0;
+static int send_cnt = 0;
+
 // When we convert a newline to a ';' we don't bump the line count just
 // yet, as that'll result in the line count being one too high for the
 // statement that ends with that ';'.  So instead we set this flag and
@@ -217,9 +221,33 @@ only		return TOK_ONLY;
 print		return TOK_PRINT;
 fail		statement_can_end = 1; return TOK_FAIL;
 ref		return TOK_REF;
-request		return TOK_REQUEST;
 return		statement_can_end = 1; return TOK_RETURN;
-send		return TOK_SEND;
+request		{
+		if ( interactive && yyin == stdin )
+			{
+			warn->Report("'request' is deprecated (no longer needed)");
+			request_cnt = 1;
+			}
+		if ( ! request_cnt )
+			{
+			warn->Report("'request' is deprecated (no longer needed)");
+			request_cnt = 1;
+			}
+		break;
+		}
+send		{
+		if ( interactive && yyin == stdin )
+			{
+			warn->Report("'send' is deprecated (no longer needed)");
+			send_cnt = 1;
+			}
+		if ( ! send_cnt )
+			{
+			warn->Report("'send' is deprecated (no longer needed)");
+			send_cnt = 1;
+			}
+		break;
+		}
 subseq(uence)?	return TOK_SUBSEQUENCE;
 to		return TOK_TO;
 unlink		return TOK_UNLINK;

@@ -226,7 +226,7 @@ func sort_pair(x, y)
 
 func order(x)	sort_pair(x, 1:len(x))
 
-func sync(ref c)	request c->["*sync*"]()
+func sync(ref c)	{ return c->["*sync*"]() }
 
 func array(init, ...)
 	{

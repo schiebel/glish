@@ -142,6 +142,10 @@ class Expr : public ParseNode {
 	// from the tree as their scope is resolved.
 	Expr *BuildFrameInfo( scope_modifier );
 
+	// Used by SendEventExpr to decide if this is a "send" event or
+	// a "request" event, i.e. is a return value expected.
+	virtual void StandAlone( );
+
 	// This should not be called outside of the Expr hierarchy. Use
 	// BuildFrameInfo() instead.
 	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
@@ -519,11 +523,12 @@ class IncludeExpr : public UnaryExpr {
 
 class SendEventExpr : public Expr {
     public:
-	SendEventExpr( EventDesignator* sender, ParameterPList* args,
-			int is_request_reply );
+	SendEventExpr( EventDesignator* sender, ParameterPList* args );
 
 	IValue* Eval( eval_type etype );
 	IValue* SideEffectsEval();
+
+	void StandAlone( );
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 

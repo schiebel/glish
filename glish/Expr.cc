@@ -96,6 +96,8 @@ Expr *Expr::BuildFrameInfo( scope_modifier m )
 	return ret;
 	}
 
+void Expr::StandAlone( ) { }
+	
 
 Expr *Expr::DoBuildFrameInfo( scope_modifier, expr_list & )
 	{
@@ -1881,6 +1883,11 @@ IValue* IncludeExpr::Eval( eval_type etype )
 	return ret ? ret : new IValue( glish_true );
 	}
 
+void SendEventExpr::StandAlone( )
+	{
+	is_request_reply = 0;
+	}
+
 SendEventExpr::~SendEventExpr()
 	{
 	if ( args )
@@ -1895,12 +1902,11 @@ SendEventExpr::~SendEventExpr()
 	} 
 
 SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
-				parameter_list* arg_args,
-				int arg_is_request_reply ) : Expr("->")
+				parameter_list* arg_args ) : Expr("->")
 	{
 	sender = arg_sender;
 	args = arg_args;
-	is_request_reply = arg_is_request_reply;
+	is_request_reply = 1;
 	}
 
 IValue* SendEventExpr::Eval( eval_type etype )
