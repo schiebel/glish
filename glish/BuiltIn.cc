@@ -22,6 +22,7 @@ RCSID("@(#) $Id$")
 #include "Frame.h"
 #ifdef GLISHTK
 #include "TkAgent.h"
+#include "TkCanvas.h"
 #endif
 
 #if !defined(HUGE) /* this because it's not defined in the vxworks includes */
@@ -1486,6 +1487,8 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 		agent = TkMessage::Create( sequencer, args_val );
 	else if ( type[0] == 'l' && ! strcmp( type, "listbox" ) )
 		agent = TkListbox::Create( sequencer, args_val );
+	else if ( type[0] == 'c' && ! strcmp( type, "canvas" ) )
+		agent = TkCanvas::Create( sequencer, args_val );
 
 	return agent ? agent->AgentRecord() : error_ivalue();
 #else

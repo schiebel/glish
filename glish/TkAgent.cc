@@ -105,7 +105,7 @@ IValue *glishtk_splitsp_int( char *sel )
 		if ( cnt >= len )			\
 			{				\
 			len *= 2;			\
-			ary = (int *) realloc(ary, len);\
+			ary = (int *) realloc(ary, len * sizeof(int));\
 			}
 		EXPAND_ACTION
 		ary[cnt++] = atoi(start);
@@ -120,6 +120,38 @@ IValue *glishtk_splitsp_int( char *sel )
 		}
 
 	return new IValue( ary, cnt, COPY_ARRAY );
+	}
+
+char **glishtk_splitsp_str( char *sel, int &cnt )
+	{
+	char *start = sel;
+	char *end;
+	cnt = 0;
+	static int len = 2;
+	static char **ary = new char*[len];
+
+	while ( *start && (end = strchr(start,' ')) )
+		{
+		*end = (char) 0;
+#define EXPAND_ACTION					\
+		if ( cnt >= len )			\
+			{				\
+			len *= 2;			\
+			ary = (char **) realloc(ary, len * sizeof(char*) );\
+			}
+		EXPAND_ACTION
+		ary[cnt++] = strdup(start);
+		*end++ = ' ';
+		start = end;
+		}
+
+	if ( *start )
+		{
+		EXPAND_ACTION
+		ary[cnt++] = strdup(start);
+		}
+
+	return ary;
 	}
 
 inline void glishtk_pack( Rivetobj root, int argc, char **argv)
@@ -587,6 +619,8 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 		char *val = 0;
 		if ( proc )
 			val = (*proc)(s,cmdstr,arg,x,y);
+		else if ( proc1 )
+			val = (*proc1)(s,cmdstr,param,arg,x,y);
 		else if ( proc2 )
 			val = (*proc2)(s,cmdstr,param,param2,arg,x,y);
 		else if ( fproc != 0 && frame != 0 )

@@ -44,6 +44,7 @@ INTERP_OBJS = \
 	Stmt.o \
 	Task.o \
 	TkAgent.o \
+	TkCanvas.o \
 	TkSelect.o \
 	glish_init.o \
 	parse.o \
@@ -221,6 +222,8 @@ Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Task.cc
 TkAgent.o: $(SRC)/Agent.h $(SRC)/TkAgent.cc $(SRC)/TkAgent.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -w -c $(SRC)/TkAgent.cc
+TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanvas.h
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkCanvas.cc
 TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc
 Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h

@@ -122,6 +122,10 @@ function message ( parent, text='message', width=180, justify='left', font='', p
 function listbox ( parent, width=20, height=6, mode='browse', font='', relief='sunken', borderwidth=2, foreground='black', background='lightgrey', exportselection=T )
 	create_graphic( 'listbox', parent, width, height, mode, font, relief, borderwidth, foreground, background, exportselection )
 
+function canvas ( parent, relief='sunken', borderwidth=2, background='lightgrey', width=200, height=150)
+	create_graphic( 'canvas', parent, relief, width, height, borderwidth, background )
+
+
 function full_type_name( const x )
 	{
 	if ( type_name(x) == "record" )
