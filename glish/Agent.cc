@@ -289,8 +289,16 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 		{
 		Expr* arg_expr = (*args)[0]->Arg();
 		evalOpt opt;
-		return use_refs ? arg_expr->RefEval( opt, VAL_CONST ) :
+
+		IValue *arg_val = use_refs ? arg_expr->RefEval( opt, VAL_CONST ) :
 					arg_expr->CopyEval(opt);
+
+		NodeList *roots = UserFunc::GetRoots( );
+		if ( roots && arg_val && UserFunc::GetRootsLen() > 0 &&
+		     arg_val->PropagateCycles( roots ) > 0 )
+			arg_val->SetUnref( roots );
+
+		return arg_val;
 		}
 
 	// Build up a record.
@@ -314,6 +322,11 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 		evalOpt opt;
 		IValue* arg_val = use_refs ?
 			arg_expr->RefEval( opt, VAL_CONST ) : arg_expr->CopyEval(opt);
+
+		NodeList *roots = UserFunc::GetRoots( );
+		if ( roots && arg_val && UserFunc::GetRootsLen() > 0 &&
+		     arg_val->PropagateCycles( roots ) > 0 )
+			arg_val->SetUnref( roots );
 
 		event_val->AssignRecordElement( index, arg_val );
 
