@@ -840,7 +840,7 @@ case $host_os in
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	;;
-    hpux8.*|hpux9.*|hpux10.*)
+    hpux8.*|hpux9.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"
@@ -862,7 +862,7 @@ case $host_os in
 	    TK_LD_RPATH="$TK_LD_RPATH:."
 	fi
 	;;
-    hpux11.*)
+    hpux10.*|hpux11.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="/usr/ccs/bin/ld -b"
