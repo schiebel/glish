@@ -1,4 +1,4 @@
-/*  $Revision$
+/*  $Id$
 **
 **  Unix system-dependant routines for editline library.
 */

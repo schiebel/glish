@@ -1,4 +1,4 @@
-/*  $Revision$
+/*  $Id$
 **
 **  Internal header file for editline library.
 */

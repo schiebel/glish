@@ -1,4 +1,4 @@
-/*  $Revision$
+/*  $Id$
 **
 **  Editline system header file for Unix.
 */

@@ -1,4 +1,4 @@
-/*  $Revision$
+/*  $Id$
 **
 **  Editline system header file for OS-9 (on 68k).
 */

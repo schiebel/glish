@@ -1,4 +1,4 @@
-/*  $Revision$
+/*  $Id$
 **
 **  Main editing routines for editline library.
 */
