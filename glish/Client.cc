@@ -1533,6 +1533,13 @@ GlishEvent* recv_event( sos_source &in )
 void write_value( sos_out &sos, Value *val, const char *label, char *name, unsigned char flags )
 	{
 	static sos_header head( (char*) alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1 );
+	static Value *empty = empty_value( );
+
+	if ( ! val )
+		{
+		write_value( sos, empty, label, name, flags );
+		return;
+		}
 
 	if ( val->IsVecRef() )
 		{

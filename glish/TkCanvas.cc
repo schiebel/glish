@@ -252,18 +252,18 @@ DEFINE_DTOR(TkCanvas)
 // These variables are made file static to allow them to be shared by
 // the canvas functions. This was done to minimize allocations.
 //
-static int argv_len = 64;
-static char **arg_name = (char**) alloc_memory( sizeof(char*)*argv_len );
-static char **arg_val = (char**) alloc_memory( sizeof(char*)*argv_len );
-static char **argv = (char**) alloc_memory( sizeof(char*)*argv_len );
+static int Argv_len = 0;
+static char **Arg_name = 0;
+static char **Arg_val = 0;
+static char **Argv = 0;
 
 #define CANVAS_FUNC_REALLOC(size)							\
-	if ( size >= argv_len )								\
+	if ( size >= Argv_len )								\
 		{									\
-		while ( size >= argv_len ) argv_len *= 2;				\
-		arg_name = (char**) realloc_memory( arg_name, argv_len * sizeof(char*) );\
-		arg_val = (char**) realloc_memory( arg_val, argv_len * sizeof(char*) );	\
-		argv = (char**) realloc_memory( argv, argv_len * sizeof(char*) );		\
+		while ( size >= Argv_len ) Argv_len *= 2;				\
+		Arg_name = (char**) realloc_memory( Arg_name, Argv_len * sizeof(char*) );\
+		Arg_val = (char**) realloc_memory( Arg_val, Argv_len * sizeof(char*) );	\
+		Argv = (char**) realloc_memory( Argv, Argv_len * sizeof(char*) );		\
 		}
 
 IValue *glishtk_StrToInt( char *str )
@@ -343,22 +343,22 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, parame
 	static char buff[128];
 	int argc = 0;
 
-	argv[argc++] = 0;
-	argv[argc++] = (char*) cmd;
+	Argv[argc++] = 0;
+	Argv[argc++] = (char*) cmd;
 	int c = 0;
 	for ( int i=0; i < len; i++ )
 		{
 		EXPRINT( v, event_name )
 		sprintf(buff,"%d",v);
-		argv[argc++] = strdup(buff);
+		Argv[argc++] = strdup(buff);
 		EXPR_DONE( v )
 		}
 
-	rivet_cmd( self, argc, argv );
+	rivet_cmd( self, argc, Argv );
 	ret = (char*) self->interp->result;
 
 	for ( int x=0; x < len; x++ )
-		free_memory( argv[x + 2] );
+		free_memory( Argv[x + 2] );
 
 	return ret;
 	}
@@ -373,29 +373,29 @@ char *glishtk_canvas_tagfunc(Rivetobj self, const char *cmd, const char *subcmd,
 	int c = 0;
 	EXPRSTRVAL(str_v, event_name)
 	int argc = 0;
-	argv[argc++] = 0;
-	argv[argc++] = (char*) cmd;
-	argv[argc++] = (char*)(str_v->StringPtr(0)[0]);
+	Argv[argc++] = 0;
+	Argv[argc++] = (char*) cmd;
+	Argv[argc++] = (char*)(str_v->StringPtr(0)[0]);
 	if ( subcmd )
-		argv[argc++] = (char*) subcmd;
+		Argv[argc++] = (char*) subcmd;
 	if ( str_v->Length() > 1 && str_v->Length() >= howmany )
 		for ( int i=1; i < str_v->Length(); i++ )
 			{
-			argv[argc] = (char*)(str_v->StringPtr(0)[i]);
-			rivet_cmd(self, argc+1, argv);
+			Argv[argc] = (char*)(str_v->StringPtr(0)[i]);
+			rivet_cmd(self, argc+1, Argv);
 			}
 	else if ( args->length() > 1 && args->length() >= howmany )
 		{
 		for (int i=c; i < args->length(); i++)
 			{
 			EXPRSTR(str, event_name)
-			argv[argc] = (char*)str;
-			rivet_cmd(self, argc+1, argv);
+			Argv[argc] = (char*)str;
+			rivet_cmd(self, argc+1, Argv);
 			EXPR_DONE(str)
 			}
 		}
 	else if ( howmany == 1 )
-		rivet_cmd( self, argc, argv );
+		rivet_cmd( self, argc, Argv );
 
 	EXPR_DONE(str_v)
 	return 0;
@@ -442,11 +442,11 @@ tagstr_cnt += strlen(STR);
 #define POINTFUNC_NAMED_ACTION				 		\
 if ( strcmp((*args)[c]->Name(),"tag") )					\
 	{								\
-	arg_name[name_cnt] = (char*) alloc_memory( 			\
+	Arg_name[name_cnt] = (char*) alloc_memory( 			\
 			sizeof(char)*(strlen((*args)[c]->Name())+2) );	\
-	sprintf(arg_name[name_cnt],"-%s",(*args)[c]->Name());		\
+	sprintf(Arg_name[name_cnt],"-%s",(*args)[c]->Name());		\
 	EXPRSTR( str, event_name )					\
-	arg_val[name_cnt++] = strdup(str);				\
+	Arg_val[name_cnt++] = strdup(str);				\
 	EXPR_DONE( str )						\
 	}								\
 else									\
@@ -466,7 +466,7 @@ else									\
 			else
 				{
 				EXPRINT2( str, event_name )
-				argv[argc++] = strdup(str);
+				Argv[argc++] = strdup(str);
 				EXPR_DONE( str )
 				}
 		}
@@ -484,9 +484,9 @@ else									\
 		for ( i=0; i < rows; i++)
 			{
 			sprintf(buf,"%d",ip[i]);
-			argv[argc++] = strdup(buf);
+			Argv[argc++] = strdup(buf);
 			sprintf(buf,"%d",ip[i+rows]);
-			argv[argc++] = strdup(buf);
+			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
 		for ( i = c; i < (*args).length(); i++)
@@ -508,7 +508,7 @@ else									\
 		for (i=0; i < val->Length(); i++)
 			{
 			sprintf(buf,"%d",ip[i]);
-			argv[argc++] = strdup(buf);
+			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
 		for (i = c; i < (*args).length(); i++)
@@ -532,20 +532,20 @@ else									\
 
 	for ( int x=0; x < name_cnt; x++ )
 		{
-		argv[argc++] = arg_name[x];
-		argv[argc++] = arg_val[x];
+		Argv[argc++] = Arg_name[x];
+		Argv[argc++] = Arg_val[x];
 		}
 
-	argv[0] = 0;
-	argv[1] = (char*) cmd;
-	argv[2] = (char*) param;
-	argv[argc++] = (char*) "-tag";
-	argv[argc++] = (char*) tagstr;
+	Argv[0] = 0;
+	Argv[1] = (char*) cmd;
+	Argv[2] = (char*) param;
+	Argv[argc++] = (char*) "-tag";
+	Argv[argc++] = (char*) tagstr;
 
-	ret = (char*) rivet_cmd( agent->Self(), argc, argv );
+	ret = (char*) rivet_cmd( agent->Self(), argc, Argv );
 
 	for (int j=3; j < argc - 2; j++)
-		free_memory( argv[j] );
+		free_memory( Argv[j] );
 
 	return tag;
 	}
@@ -782,6 +782,14 @@ TkCanvas::TkCanvas( Sequencer *s, TkFrame *frame_, charptr width, charptr height
 
 	int region_is_copy = 0;
 	int *region = 0;
+
+	if ( Argv_len == 0 )
+		{
+		Argv_len = 64;
+		Arg_name = (char**) alloc_memory( sizeof(char*)*Argv_len );
+		Arg_val = (char**) alloc_memory( sizeof(char*)*Argv_len );
+		Argv = (char**) alloc_memory( sizeof(char*)*Argv_len );
+		}
 
 	if ( ! frame || ! frame->Self() ) return;
 
