@@ -592,13 +592,11 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 		top_func_initialized = 0;
 		if ( cycle_roots )
 			{
-			if ( result )
+			if ( result && result->PropagateCycles( cycle_roots ) > 0 )
 				{
 				cycle_roots->set_finalize_handler( list_element_unref );
-				result->PropagateCycles( cycle_roots );
 				result->SetUnref( cycle_roots );
 				}
-
 			Unref( cycle_roots );
 			cycle_roots = 0;
 			}
