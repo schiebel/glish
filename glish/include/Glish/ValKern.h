@@ -163,7 +163,7 @@ class ValueKernel GC_FINAL_CLASS {
 	void ClearUninitialized() { mode &= ~mUNINITIALIZED( ); }
 	int IsUninitialized() const { return mUNINITIALIZED(mode); }
 
-	ValueKernel() : array(0), mode(0) { }
+	ValueKernel() : mode(0), array(0) { }
 	ValueKernel( const ValueKernel &v ) : mode( v.mode & ~ mCONST() ),
 					      array(v.array) { ref(); }
 
