@@ -56,7 +56,7 @@ File::File( const char *str_ ) : in(0), out(0), str(0), desc(0)
 		type_ = ERR;
 	}
 
-char *File::read( )
+char *File::read_line( )
 	{
 	if ( type_ != IN && type_ != PIN && type_ != PBOTH ||
 	     ! in || feof(in) ) return 0;
@@ -81,6 +81,27 @@ char *File::read( )
 		}
 
 	return ret;
+	}
+
+char *File::read_chars( int num )
+	{
+	if ( type_ != IN && type_ != PIN && type_ != PBOTH ||
+	     ! in || feof(in) ) return 0;
+
+
+	char *ret = alloc_memory( num+1 );
+	int len = 0;
+
+	if ( (len = read( fileno(in), ret, num )) > 0 )
+		{
+		ret[len] = '\0';
+		return ret;
+		}
+	else
+		{
+		free_memory( ret );
+		return 0;
+		}
 	}
 
 void File::write( charptr buf )

@@ -11,7 +11,8 @@ class File : public GlishObject {
 	enum Type { IN, OUT, PIN, POUT, PBOTH, ERR };
 	File( const char *str_ );
 	~File( );
-	char *read( );
+	char *read_line( );
+	char *read_chars( int num );
 	void write( charptr buf );
 	void close( Type t=PBOTH );
 	int Describe( OStream& s, const ioOpt &opt ) const;

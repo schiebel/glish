@@ -606,7 +606,7 @@ IValue* GenerateExpr::Eval( eval_type /* etype */ )
 		return (IValue*) Fail( "cannot read from this file" );
 		}
 
-	char *string = file->read();
+	char *string = file->read_line();
 	IValue *result = 0;
 
 	if ( string )

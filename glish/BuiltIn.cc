@@ -1705,12 +1705,14 @@ IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
 
 IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	{
-	if ( args_val->length() < 2 )
-		return (IValue*) Fail( "too few arguments for \"read\"" );
-
 	const IValue *file_val = (*args_val)[0];
 	const IValue *num_val = (*args_val)[1];
+	const IValue *type_val = (*args_val)[2];
 	int num = num_val->IsNumeric() ? num_val->IntVal() : 1;
+	char type = type_val->Type() == TYPE_STRING &&
+		    type_val->Length() == 1 ? type_val->StringPtr(0)[0][0] : 'l';
+
+	num = num >= 1 ? num : 1;
 
 	if ( file_val->Type() != TYPE_FILE )
 		return (IValue*) Fail( "argument to sread is not a file" );
@@ -1722,12 +1724,21 @@ IValue* ReadBuiltIn::DoCall( const_args_list* args_val )
 	     file->type() != File::PBOTH )
 		return (IValue*) Fail( "cannot read from this file" );
 
-	charptr *rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
-
 	int i=1;
-	rstrs[0] = file->read();
-	for (; rstrs[i-1] && i < num; ++i)
-		rstrs[i] = file->read();
+	charptr *rstrs = 0;
+
+	if ( type == 'c' )
+		{
+		rstrs = (charptr*) alloc_memory(sizeof(charptr));
+		rstrs[0] = file->read_chars( num );
+		}
+	else
+		{
+		rstrs = (charptr*) alloc_memory(sizeof(charptr)*num);
+		rstrs[0] = file->read_line();
+		for (; rstrs[i-1] && i < num; ++i)
+			rstrs[i] = file->read_line();
+		}
 
 	IValue *result = 0;
 

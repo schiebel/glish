@@ -103,8 +103,8 @@ func is_asciifile( f, bytes=100 )
 func write( file, ..., sep='\n' )
 	internal_write(file, sep, ' ', ...)
 
-func read( file, num=1 )
-	internal_read(file, num)
+func read( file, num=1, what='l' )
+	internal_read(file, num, what)
 
 func fprintf( file, ... )
 	internal_write( file, '', '', sprintf(...) )
