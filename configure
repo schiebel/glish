@@ -4951,6 +4951,12 @@ if test $ac_cv_prog_gcc = yes; then
     SLIB_CFLAGS='-fPIC'
 fi
 
+echo $ac_n "checking for shared loader""... $ac_c" 1>&6
+echo "$ac_t""$SLIB_LD" 1>&6
+
+MAKE_SLIB="$SLIB_LD -o"
+MAKE_LIB="ar cru"
+
 if test -z "$TK_CXX_RPATH"; then
     TK_CXX_RPATH="$TK_LD_RPATH"
 fi
@@ -4973,9 +4979,6 @@ else
     GLISH_LIB_SUFFIX="`echo $VERSION | tr -d .`.a"
 fi
 fi
-
-MAKE_SLIB="$SLIB_LD -o"
-MAKE_LIB="ar cru"
 
 if test "$static_binary" = "yes"; then
     DYNAMIC_BIN=
@@ -5024,7 +5027,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5028 "configure"
+#line 5031 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5032,7 +5035,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5036: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5039: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5055,7 +5058,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 5059 "configure"
+#line 5062 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -5063,7 +5066,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:5067: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:5070: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -5080,9 +5083,6 @@ ac_link='${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIB
 
 fi
 echo "$ac_t""$SLIB_CXXFLAGS" 1>&6
-
-echo $ac_n "checking for shared loader""... $ac_c" 1>&6
-echo "$ac_t""$SLIB_LD" 1>&6
 
 MAKE_SLIB_expanded=$MAKE_SLIB
 while :
