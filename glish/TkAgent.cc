@@ -2255,6 +2255,10 @@ TkButton::~TkButton( )
 		}
 
 	UnMap();
+
+	if ( radio && (frame && frame != radio ||
+		       menu && menu != radio) )
+		Unref(radio);
 	}
 
 static unsigned char dont_invoke_button = 0;
@@ -2310,6 +2314,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	char *argv[32];
 
 	agent_ID = "<graphic:button>";
+	if ( frame && radio && frame != radio ) Ref( radio );
 
 	if ( ! frame || ! frame->Self() ) return;
 
@@ -2385,6 +2390,8 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 			break;
 		case MENU:
 			self = rivet_create(MenubuttonClass, frame->Self(), c, argv);
+			if ( ! self )
+				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
 			rivet_set(self, "-postcommand", rivet_new_callback( (int (*)()) tk_button_menupost, (ClientData) this, 0));
 			argv[0] = argv[1] = 0;
 			argv[2] = "-tearoff";
@@ -2439,6 +2446,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	frame = 0;
 
 	agent_ID = "<graphic:button>";
+	if ( menu && radio && menu != radio ) Ref( radio );
 
 	if ( ! frame_->IsMenu() )
 		HANDLE_CTOR_ERROR("internal error with creation of menu entry")
