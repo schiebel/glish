@@ -1754,12 +1754,12 @@ case $host_os in
 	SLIB_LABEL=''
 	SLIB_LD="g++ -dynamiclib -single_module"
 	SLIB_LD_LIBS='-L/opt/local/lib ${LIBS}'
-	SLIB_LD_LIBS_sos='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd'
-	SLIB_LD_LIBS_regx=$SLIB_LD_LIBS_sos
-	SLIB_LD_LIBS_edit=$SLIB_LD_LIBS_sos
-	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd'
+	SLIB_LD_LIBS_sos='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libsos$(GSUFFIX)'
+	SLIB_LD_LIBS_regx='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/libregx$(GSUFFIX)'
+	SLIB_LD_LIBS_edit='-L${LIBDIR_P} -L${LIBDIR} ${LIBS} -lnpd -install_name $(LIBDIR)/lib$(NAME)$(GSUFFIX)'
+	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd -install_name $(LIBDIR)/libglish$(GSUFFIX)'
 	SLIB_LD_LIBS_glishp='-L${LIBDIR_P} -L${LIBDIR} -lglish -lregx -ledit -lsos -lnpd'
-	SLIB_LD_LIBS_glishtk='-lX11'
+	SLIB_LD_LIBS_glishtk='-lX11 -install_name $(LIBDIR)/libglishtk$(GSUFFIX)'
 	dnl##
 	dnl## This is recommended by the linker:
 	dnl##
