@@ -44,6 +44,9 @@
 /* Define if you have the <sys/filio.h> header file.  */
 #undef HAVE_SYS_FILIO_H
 
+/* Define if you have the <sys/time.h> header file.  */
+#undef HAVE_SYS_TIME_H
+
 /* Define if you have the <sys/select.h> header file.  */
 #undef HAVE_SYS_SELECT_H
 
@@ -76,3 +79,6 @@
 
 /* Define to be "int" if C++ for loops have local scope.  */
 #undef LOOPDECL
+
+/* Define to be the mask type for select() calls.  */
+#undef SELECT_MASK_TYPE

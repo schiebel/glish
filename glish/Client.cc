@@ -12,8 +12,12 @@ RCSID("@(#) $Id$")
 #include <signal.h>
 #include "Channel.h"
 
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 
 extern "C" {
@@ -462,7 +466,7 @@ GlishEvent* Client::NextEvent()
 	FD_ZERO( &input_fds );
 	AddInputMask( &input_fds );
 
-	while ( select( FD_SETSIZE, &input_fds, 0, 0, 0 ) < 0 )
+	while ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) &input_fds, 0, 0, 0 ) < 0 )
 		{
 		if ( errno != EINTR )
 			{

@@ -17,6 +17,14 @@ RCSID("@(#) $Id$")
 #include <X11/fd.h>
 #endif
 
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #ifdef SOLARIS
 #include <sys/time.h>
 extern "C" int gettimeofday( struct timeval *, struct timezone * );
@@ -288,9 +296,8 @@ int Selector::DoSelection( int CanBlock )
 	fd_set read_mask = *fdset;
 	int status;
 
-	if ( (status =
-	      select( FD_SETSIZE, &read_mask, (fd_set *) 0, (fd_set *) 0,
-		      timeout )) < 0 )
+	if ( (status = select( FD_SETSIZE, (SELECT_MASK_TYPE *) &read_mask,
+			(SELECT_MASK_TYPE *) 0, (SELECT_MASK_TYPE *) 0, timeout )) < 0 )
 		{
 		if ( errno != EINTR )
 			gripe( "error in DoSelection()" );

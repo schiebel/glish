@@ -2784,6 +2784,45 @@ EOF
 fi
 rm -f $conftest*
 
+echo $ac_n "checking select parameters""... $ac_c" 1>&6
+for type in fd_set int long; do
+cat > $conftest.$ac_ext <<EOF
+#line 2791 "configure"
+#include "$confdefs.h"
+#include <sys/types.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+int main() { return 0; }
+int t() {
+$type rm;
+select(0, &rm, 0, 0, 0);
+; return 0; }
+EOF
+if { (eval echo configure:2806: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf $conftest*
+  select_type=$type
+else
+  rm -rf $conftest*
+  select_type=''
+fi
+rm -f $conftest*
+
+if test ! -z "$select_type"; then
+    break;
+fi
+done
+if test -z "$select_type"; then
+    select_type=void
+fi
+echo "$ac_t""$select_type" 1>&6
+cat >> $confdefs.h <<EOF
+#define SELECT_MASK_TYPE $select_type
+EOF
+
 ac_ext=c
 # CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
 ac_cpp='$CPP $CPPFLAGS'

@@ -227,6 +227,34 @@ for ( int i=0; i < 1; i++ ) { ; }
 for ( int i=0; i < 1; i++ ) { ; }
 ],[AC_MSG_RESULT(local); AC_DEFINE(LOOPDECL,int)],
 [AC_MSG_RESULT(non-local); AC_DEFINE(LOOPDECL,)])
+dnl
+dnl On some systems, select() may not take fd_set. Here we assume
+dnl that the type it does take corresponds to fd_set. So we use
+dnl the type found here to do a cast. Later if there are systems
+dnl which do not have this correspondence, more work will be
+dnl required
+dnl
+AC_MSG_CHECKING([select parameters])
+for type in fd_set int long; do
+AC_TRY_COMPILE(
+[#include <sys/types.h>
+#ifdef HAVE_SYS_SELECT_H
+#include <sys/select.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif],
+[$type rm;
+select(0, &rm, 0, 0, 0);], select_type=$type, select_type='')
+if test ! -z "$select_type"; then
+    break;
+fi
+done
+if test -z "$select_type"; then
+    select_type=void
+fi
+AC_MSG_RESULT($select_type)
+AC_DEFINE_UNQUOTED(SELECT_MASK_TYPE,$select_type)
 AC_LANG_C
 
 AC_SUBST(GLISH_FLAGS)
