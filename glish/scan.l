@@ -134,6 +134,14 @@ static char *literal( const char *s = 0, int clear = 0 );
 	break;							\
 	}
 
+#define PRAGMA_ONCE						\
+	{							\
+	current_sequencer->IncludeOnce( );			\
+	++line_num;						\
+	BEGIN(INITIAL);						\
+	break;							\
+	}
+
 #undef YY_BREAK
 // The following makes actions by default fall through to the next
 // action.  We are careful then that every action ends in a "return"
@@ -287,6 +295,7 @@ include		return TOK_INCLUDE;
 pragma{WS}shared{WS}user{OWS}\n		PRAGMA_SHARED(USER)
 pragma{WS}shared{WS}group{OWS}\n	PRAGMA_SHARED(GROUP)
 pragma{WS}shared{WS}world{OWS}\n	PRAGMA_SHARED(WORLD)
+pragma{WS}include{WS}once{OWS}\n	PRAGMA_ONCE
 pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 {ID}		{
@@ -438,7 +447,12 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <INITIAL,RECORD_FIELD,SCAN_EVENT_NAME,INCL,UNKNOWN_PRAGMA,ATTR>{WS}	break; // eat whitespace
 
 <UNKNOWN_PRAGMA>.*	{
-		warn->Report( "unknown pragma found:", yytext );
+		static Dict(int) unknown_pragma;
+		if ( ! unknown_pragma.Lookup(yytext) )
+			{
+			unknown_pragma.Insert(strdup(yytext),1);
+			warn->Report( "unknown pragma found:", yytext );
+			}
 		BEGIN(INITIAL);
 		break;
 		}

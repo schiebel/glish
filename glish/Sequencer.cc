@@ -1242,6 +1242,13 @@ Sequencer::~Sequencer()
 	{
 	shutting_glish_down = 1;
 
+	IterCookie* c = include_once.InitForIteration();
+	int x;
+	const char* key;
+
+	while ( (x = include_once.NextEntry( key, c )) )
+		free_memory((char*)key);
+
 	Unref( last_notification );
 	NodeUnref( stmts );
 
@@ -2781,19 +2788,26 @@ IValue *Sequencer::Include( const char *file )
 	{
 	int orig_scope_len = scopes.length();
 
-	char *expanded_name = which_include( file );
+	expanded_name = which_include( file );
 
 	if ( ! expanded_name )
 		{
 		error->Report( "could not include '", file, "', file not found" );
 		return error_ivalue();
 		}
+	else if ( include_once.Lookup(expanded_name) )
+		{
+		return new IValue( glish_true );
+		}
 
 	FILE *fptr = fopen( expanded_name, "r");
-	free_memory( expanded_name );
 
 	if ( ! fptr )
+		{
+		free_memory( expanded_name );
+		expanded_name = 0;
 		return error_ivalue();
+		}
 
 	Str *old_file_name = file_name;
 	Str new_file_name(file);
@@ -2811,6 +2825,8 @@ IValue *Sequencer::Include( const char *file )
 
 	NodeUnref( stmts );
 	IValue *ret = glish_parser( stmts );
+	free_memory( expanded_name );
+	expanded_name = 0;
 
 	if ( ! ret )
 		{
@@ -2841,6 +2857,12 @@ IValue *Sequencer::Include( const char *file )
 	fclose( fptr );
 	interactive = is_interactive;
 	return ret;
+	}
+
+void Sequencer::IncludeOnce( )
+	{
+	if ( expanded_name && ! include_once.Lookup(expanded_name) )
+		include_once.Insert(strdup(expanded_name), 1);
 	}
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )

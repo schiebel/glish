@@ -303,6 +303,8 @@ public:
 	IValue *Exec( int startup_script = 0, int value_needed = 0 );
 	IValue *Eval( const char* strings[] );
 	IValue *Include( const char* file );
+	// called when "pragma include once" is used
+	void IncludeOnce( );
 
 	static void SetErrorResult( IValue *err );
 	void ClearErrorResult()
@@ -509,6 +511,8 @@ protected:
 	Stmt* last_whenever_executed;
 	Stmt* stmts;
 	PList(Stmt) registered_stmts;
+	Dict(int) include_once;
+	char *expanded_name;
 
 #ifdef GGC
 	ivalue_list registered_values;
