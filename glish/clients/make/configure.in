@@ -347,8 +347,6 @@ dnl##			by SHARED_BIN & STATIC_BIN (so both should not be set)
 dnl##
 dnl##	---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---  ---
 dnl##
-dnl##	DL_LIBS -	Library file(s) to include in tclsh and other base
-dnl##			applications in order for the "load" command to work.
 dnl##	GLISH_LD_SEARCH - Flags to pass to ld, such as "-R /usr/local/tcl/lib",
 dnl##			that tell the run-time dynamic linker where to look
 dnl##			for shared libraries such as libtcl.so.  Depends on
@@ -379,27 +377,20 @@ GC_LOW_OPT=""
 GC_MACH_DEP=""
 case $host_os in
     aix*)
-	DL_LIBS="-lld"
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
-	AC_DEFINE(NO_DLFCN_H)
 	;;
     hpux8.*|hpux9.*|hpux10.*)
-	DL_LIBS="-ldld"
-
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
 	fi
 	;;
     irix4.*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	GC_MACH_DEP=mips_sgi_mach_dep.o
 	;;
     irix5.*)
-	DL_LIBS=""
-
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
 	fi
@@ -430,8 +421,6 @@ case $host_os in
 	fi
 	;;
     irix6.*)
-	DL_LIBS=""
-
 	if test $ac_cv_prog_gcc != yes; then
 	    SGI_ABI	
 	fi
@@ -462,32 +451,22 @@ case $host_os in
 	fi
 	;;
     linux*)
-	if test "$have_dl" = yes; then
-	    DL_LIBS="-ldl"
-	else
-	    AC_CHECK_HEADER(dld.h, [
-		DL_LIBS="-ldld"])
-	fi
 	dnl##
 	dnl## After problems with shared libraries/objects and undefined
 	dnl## symbols (stat and lstat), -lc was added and seems to fix
 	dnl## the problem.
 	dnl##
-	DL_LIBS="$DL_LIBS -lc"
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 	;;
     MP-RAS-02*)
-	DL_LIBS="-ldl"
 	GLISH_LD_SEARCH=""
 	;;
     MP-RAS-*)
-	DL_LIBS="-ldl"
 	GLISH_LD_SEARCH=""
 	;;
     netbsd*|freebsd*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 
 	# FreeBSD doesn't handle version numbers with dots.  Also, have to
@@ -498,26 +477,21 @@ case $host_os in
 	GC_MACH_DEP=mach_dep.o
 	;;
     nextstep*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	GC_MACH_DEP=mach_dep.o
 	;;
     osf1.[[012]])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf1.*)
 	# OSF/1 1.3 from OSF using ELF, and derivatives, including AD2
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	GC_LOW_OPT="-Wo,-notail"
 	;;
     osf3.*)
         # Digital OSF/1
-	DL_LIBS=""
-
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-Wl,-rpath,$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
@@ -534,19 +508,15 @@ case $host_os in
 	GC_LOW_OPT="-Wo,-notail"
 	;;
     riscos*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	;;
     sco_sv3.2*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	;;
      sinix*5.4*)
-	DL_LIBS="-ldl"
 	GLISH_LD_SEARCH=""
 	;;
     sunos4*)
-	DL_LIBS="-ldl"
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
 	fi
@@ -557,18 +527,15 @@ case $host_os in
 	else
 	    LDI=""
 	fi
-	DL_LIBS="-ldl"
 
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="${LDI}-R ${LDI}$full_libdir_p$cxx_rpath:$full_libdir"
 	fi
 	;;
     ultrix4.*)
-	DL_LIBS=""
 	GLISH_LD_SEARCH=""
 	;;
     unix_sv*)
-	DL_LIBS="-ldl"
 	GLISH_LD_SEARCH=""
 	;;
 esac
@@ -580,9 +547,6 @@ if test "$static_binary" = "yes"; then
     CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
 else
     CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos -lnpd"
-    if test -n "$DL_LIBS"; then
-	CLIENT_LIBS="$CLIENT_LIBS $DL_LIBS"
-    fi
 fi
 
 AC_SUBST(top_off)
