@@ -132,7 +132,7 @@
 #f := F
 
 #####
-##### OK
+##### Not OK
 #####
 #func eight( ) {
 #    public := [=]
@@ -150,7 +150,7 @@
 #f := F
 
 #####
-#####  OK *** leave eight() uncommented when using this ***
+#####  Not OK *** leave eight() uncommented when using this ***
 #####
 #func nine( EF, ref Z ) {
 #    EF.frame(Z)
@@ -164,23 +164,23 @@
 #####
 ##### OK
 #####
-#foobar := [=]
-#func ten( ) {
-#    private := [=]
-#    public := [=]
-#    private.xxx := frame()
-#    public.frame := func( ) {
-#        xxx := frame()
-#        ## Test both global and wider references,
-#        ## individually and together...
-#        global foobar
-#        foobar.f :=  func() { print 'hello' }
-#        wider private
-#        private.f := func() { print 'hello' }
-#        return [=]
-#    }
-#    return public
-#}
+foobar := [=]
+func ten( ) {
+    private := [=]
+    public := [=]
+    private.xxx := frame()
+    public.frame := func( ) {
+        xxx := frame()
+        ## Test both global and wider references,
+        ## individually and together...
+        global foobar
+        foobar.f :=  func() { print 'hello' }
+        wider private
+        private.f := func() { print 'hello' }
+        return [=]
+    }
+    return public
+}
 #x := ten()
 #f := x.frame()
 #f := F
@@ -209,6 +209,9 @@
 #f := F
 #foobar := F
 
+#####
+##### OK
+#####
 #func twelve( ) {
 #    public := [=]
 #    private := [=]
@@ -218,6 +221,9 @@
 #}
 #twelve().foo()
 
+#####
+##### OK *** frame doesn't disappear with this one ***
+#####
 #func thirteen( ) {
 #    public := [=]
 #    private := [=]
