@@ -1440,13 +1440,13 @@ IValue* WriteValueBuiltIn::DoCall( const_args_list* args_val )
 	static sos_out sos( FD, 0 );
 
 	if ( (*args_val)[1]->Type() != TYPE_STRING )
-		return (IValue*) Fail( "bad type for filename (argument 1), string expected." );
+		return (IValue*) Fail( "bad type for filename (argument 2), string expected." );
 
 	char* filename = (*args_val)[1]->StringVal();
 	const IValue* v = (*args_val)[0];
 	IValue *result = 0;
 
-	int fd = open(filename,O_WRONLY|O_CREAT,0644);
+	int fd = open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
 
 	FD.setFd( fd );
 
