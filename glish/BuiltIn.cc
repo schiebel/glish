@@ -1698,20 +1698,32 @@ IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	if ( ! str || str->Type() != TYPE_STRING )
 		return (IValue*) Fail( this, " takes 1 string argument" );
 
+	IValue *ret = 0;
 	charptr *strs = str->StringPtr(0);
-	recordptr rptr = create_record_dict();
-	for ( int i = 0; i < str->Length(); i++ )
+
+	if ( str->Length() > 1 )
 		{
-		Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
-		if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
+		recordptr rptr = create_record_dict();
+		for ( int i = 0; i < str->Length(); i++ )
 			{
-			IValue *val = exp->CopyEval();
-			if ( val )
-				rptr->Insert( strdup(strs[i]), val );
+			Expr *exp = sequencer->LookupID( strdup(strs[i]), GLOBAL_SCOPE, 0, 0);
+			if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
+				{
+				IValue *val = exp->CopyEval();
+				if ( val )
+					rptr->Insert( strdup(strs[i]), val );
+				}
 			}
+		ret = new IValue( rptr );
+		}
+	else
+		{
+		Expr *exp = sequencer->LookupID( strdup(strs[0]), GLOBAL_SCOPE, 0, 0);
+		if ( exp && ((VarExpr*)exp)->Access() == USE_ACCESS )
+			ret = exp->CopyEval();
 		}
 
-	return new IValue( rptr );
+	return ret ? ret : empty_ivalue();
 	}
 
 IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
