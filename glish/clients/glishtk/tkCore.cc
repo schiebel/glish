@@ -2069,7 +2069,7 @@ void TkFrameP::ResizeEvent( )
 
 void TkFrameP::LeaderMoved( )
 	{
-	if ( ! tlead ) return;
+	if ( ! tlead || ! tlead->Self() ) return;
 
 	const char *geometry = glishtk_popup_geometry( tcl, tlead->Self(), tpos );
 	tcl_VarEval( tcl, "wm geometry ", Tk_PathName(topwin), SP, geometry, (char *)NULL );
