@@ -2766,6 +2766,12 @@ Value* empty_value()
 	return create_value( &i, 0, COPY_ARRAY );
 	}
 
+Value* empty_bool_value()
+	{
+	glish_bool b = glish_false;
+	return create_value( &b, 0, COPY_ARRAY );
+	}
+
 Value* error_value( )
 	{
 	return create_value( );

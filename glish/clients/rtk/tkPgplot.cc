@@ -822,12 +822,15 @@ TkPgplot::Pgarro (Value *args)
 char *
 TkPgplot::Pgask (Value *args)
 {
-  GETSTART (1);
-  GETBOOLEAN (ask);
+  if ( args->Length() <= 0 )
+    {
+    global_store->Error("bad argument value, boolean expected");
+    return 0;
+    }
+
+  glish_bool ask = args->BoolVal();
   cpgslct (id);
   cpgask (ask);
-  GETDONESINGLE (ask);
-
   return "";
 }
 
@@ -1408,8 +1411,13 @@ TkPgplot::Pgnumb (Value *args)
 char *
 TkPgplot::Pgopen (Value *args)
 {
-  GETSTART (1);
-  GETSTRING (device);
+  if ( args->Type() != TYPE_STRING )
+    {
+    global_store->Error("bad argument value, string expected");
+    return 0;
+    }
+
+  char *device = args->StringVal();
 
   static tk_iarrayRec devno;
 
@@ -1418,7 +1426,7 @@ TkPgplot::Pgopen (Value *args)
   id = cpgopen (device);
   cpgslct (id);
   devno.val[0] = id;
-  GETDONESTRING (device);
+  free_memory(device);
 
   return (char *)&devno;
 }
@@ -1648,8 +1656,12 @@ TkPgplot::Pgqcol (Value *args)
 char *
 TkPgplot::Pgqcr (Value *args)
 {
-  GETSTART (1);
-  GETINT (ci);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int ci = args->IntVal();
 
   static tk_farrayRec qcr;
 
@@ -1657,8 +1669,6 @@ TkPgplot::Pgqcr (Value *args)
   qcr.len = 3;
   cpgslct (id);
   cpgqcr (ci, &qcr.val[0], &qcr.val[1], &qcr.val[2]);
-  GETDONESINGLE (ci);
-
   return (char *)&qcr;
 }
 
@@ -1666,8 +1676,12 @@ TkPgplot::Pgqcr (Value *args)
 char *
 TkPgplot::Pgqcs (Value *args)
 {
-  GETSTART (1);
-  GETINT (units);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int units = args->IntVal();
 
   static tk_farrayRec qcs;
 
@@ -1675,8 +1689,6 @@ TkPgplot::Pgqcs (Value *args)
   qcs.len = 2;
   cpgslct (id);
   cpgqcs (units, &qcs.val[0], &qcs.val[1]);
-  GETDONESINGLE (units);
-
   return (char *)&qcs;
 }
 
@@ -1726,15 +1738,20 @@ TkPgplot::Pgqid (Value *args)
 char *
 TkPgplot::Pgqinf (Value *args)
 {
-  GETSTART (1);
-  GETSTRING (item);
+  if ( args->Type() != TYPE_STRING )
+    {
+    global_store->Error("bad argument value, string expected");
+    return 0;
+    }
+
+  char *item = args->StringVal();
 
   static char value[80];
   int length = 80;
 
   cpgslct (id);
   cpgqinf (item, value, &length);
-  GETDONESTRING (item);
+  free_memory(item);
 
   return (char *)value;
 }
@@ -1839,8 +1856,12 @@ TkPgplot::Pgqtxt (Value *args)
 char *
 TkPgplot::Pgqvp (Value *args)
 {
-  GETSTART (1);
-  GETINT (units);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int units = args->IntVal();
 
   static tk_farrayRec qvp;
 
@@ -1848,8 +1869,6 @@ TkPgplot::Pgqvp (Value *args)
   qvp.len = 4;
   cpgslct (id);
   cpgqvp (units, &qvp.val[0], &qvp.val[1], &qvp.val[2], &qvp.val[3]);
-  GETDONESINGLE (units);
-
   return (char *)&qvp;
 }
 
@@ -1857,8 +1876,12 @@ TkPgplot::Pgqvp (Value *args)
 char *
 TkPgplot::Pgqvsz (Value *args)
 {
-  GETSTART (1);
-  GETINT (units);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int units = args->IntVal();
 
   static tk_farrayRec qvsz;
 
@@ -1866,7 +1889,6 @@ TkPgplot::Pgqvsz (Value *args)
   qvsz.len = 4;
   cpgslct (id);
   cpgqvsz (units, &qvsz.val[0], &qvsz.val[1], &qvsz.val[2], &qvsz.val[3]);
-  GETDONESINGLE (units);
 
   return (char *)&qvsz;
 }
@@ -1974,12 +1996,14 @@ TkPgplot::Pgsave (Value *args)
 char *
 TkPgplot::Pgscf (Value *args)
 {
-  GETSTART (1);
-  GETINT (font);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int font = args->IntVal();
   cpgslct (id);
   cpgscf (font);
-  GETDONESINGLE (font);
-
   return "";
 }
 
@@ -1987,12 +2011,14 @@ TkPgplot::Pgscf (Value *args)
 char *
 TkPgplot::Pgsch (Value *args)
 {
-  GETSTART (1);
-  GETFLOAT (size);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  float size = args->FloatVal();
   cpgslct (id);
   cpgsch (size);
-  GETDONESINGLE (size);
-
   return "";
 }
 
@@ -2000,12 +2026,14 @@ TkPgplot::Pgsch (Value *args)
 char *
 TkPgplot::Pgsci (Value *args)
 {
-  GETSTART (1);
-  GETINT (ci);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int ci = args->IntVal();
   cpgslct (id);
   cpgsci (ci);
-  GETDONESINGLE (ci);
-
   return "";
 }
 
@@ -2067,12 +2095,14 @@ TkPgplot::Pgscrn (Value *args)
 char *
 TkPgplot::Pgsfs (Value *args)
 {
-  GETSTART (1);
-  GETINT (fs);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int fs = args->IntVal();
   cpgslct (id);
   cpgsfs (fs);
-  GETDONESINGLE (fs);
-
   return "";
 }
 
@@ -2116,12 +2146,14 @@ TkPgplot::Pgshs (Value *args)
 char *
 TkPgplot::Pgsitf (Value *args)
 {
-  GETSTART (1);
-  GETINT (itf);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int itf = args->IntVal();
   cpgslct (id);
   cpgsitf (itf);
-  GETDONESINGLE (itf);
-
   return "";
 }
 
@@ -2129,12 +2161,13 @@ TkPgplot::Pgsitf (Value *args)
 char *
 TkPgplot::Pgslct (Value *args)
 {
-  GETSTART (1);
-  GETINT (ID);
-  id = ID;
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  id = args->IntVal();
   cpgslct (id);
-  GETDONESINGLE (ID);
-
   return "";
 }
 
@@ -2142,12 +2175,14 @@ TkPgplot::Pgslct (Value *args)
 char *
 TkPgplot::Pgsls (Value *args)
 {
-  GETSTART (1);
-  GETINT (ls);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int ls = args->IntVal();
   cpgslct (id);
   cpgsls (ls);
-  GETDONESINGLE (ls);
-
   return "";
 }
 
@@ -2155,12 +2190,14 @@ TkPgplot::Pgsls (Value *args)
 char *
 TkPgplot::Pgslw (Value *args)
 {
-  GETSTART (1);
-  GETINT (lw);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int lw = args->IntVal();
   cpgslct (id);
   cpgslw (lw);
-  GETDONESINGLE (lw);
-
   return "";
 }
 
@@ -2168,12 +2205,14 @@ TkPgplot::Pgslw (Value *args)
 char *
 TkPgplot::Pgstbg (Value *args)
 {
-  GETSTART (1);
-  GETINT (tbci);
+  if ( args->Length() <= 0 || ! args->IsNumeric() )
+    {
+    global_store->Error("bad argument value, numeric expected");
+    return 0;
+    }
+  int tbci = args->IntVal();
   cpgslct (id);
   cpgstbg (tbci);
-  GETDONESINGLE (tbci);
-
   return "";
 }
 

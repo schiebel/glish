@@ -261,11 +261,9 @@ char *glishtk_heightwidth_query(Rivetobj self, const char *cmd, Value *args )
 	char *event_name = "one dim function";
 	char buf[256];
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() == TYPE_STRING )
+	if ( args->Type() == TYPE_STRING )
 		rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char buf[30];
 		sprintf(buf,"%d",args->IntVal());
@@ -323,9 +321,7 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 	char *ret = 0;
 	char *event_name = "one int list function";
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() == TYPE_RECORD )
+	if ( args->Type() == TYPE_RECORD )
 		{
 		HASARG( args, > 1 )
 		int len = args->Length() < howmany ? args->Length() : howmany;
@@ -350,7 +346,7 @@ char *glishtk_canvas_1toNint(Rivetobj self, const char *cmd, int howmany, Value 
 		for ( int x=0; x < len; x++ )
 			free_memory( Argv[x + 2] );
 		}
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char buf[30];
 		sprintf(buf,"%d",args->IntVal());

@@ -60,7 +60,7 @@ TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
 void TkStore::Loop( )
 	{
 	while ( ! done )
-		Tk_DoOneEvent( 0 );
+		TkAgent::DoOneTkEvent( );
 	}
 
 ProxyStore *global_store = 0;

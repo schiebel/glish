@@ -262,7 +262,7 @@ int Agent::StickyNotes( ) const
 IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	{
 	if ( args->length() == 0 )
-		return false_ivalue();
+		return empty_bool_ivalue();
 
 	if ( args->length() == 1 && ! (*args)[0]->Name() )
 		{

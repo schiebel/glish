@@ -1610,10 +1610,10 @@ void Sequencer::PushNote( Notification *n )
 
 void Sequencer::PopNote( int doing_func )
 	{
+	Notification *n = 0;
+	notification_list sticky;
 	if ( doing_func )
 		{
-		Notification *n = 0;
-		notification_list sticky;
 		while ( notes_inuse.length() && (n=notes_inuse.remove_nth( notes_inuse.length()-1 )) )
 			{
 			if ( n->type() == Notification::STICKY )
@@ -1621,8 +1621,6 @@ void Sequencer::PopNote( int doing_func )
 			else
 				Unref( n );
 			}
-		for ( int j=sticky.length()-1; j > 0; --j )
-			notes_inuse.append(sticky[j]);
 		}
 	else
 		{
@@ -1635,10 +1633,16 @@ void Sequencer::PopNote( int doing_func )
 			{
 			Notification *n = notes_inuse.remove_nth( notes_inuse.length()-1 );
 			int do_break = n->type() == Notification::WHENEVER;
-			Unref( n );
+			if ( n->type() == Notification::STICKY )
+				sticky.append(n);
+			else
+				Unref( n );
 			if ( do_break ) break;
 			}
 		}
+
+	for ( int j=sticky.length()-1; j >= 0; --j )
+		notes_inuse.append(sticky[j]);
 	}
 
 void Sequencer::PushScope( scope_type s )

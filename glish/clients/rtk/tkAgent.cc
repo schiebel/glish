@@ -577,7 +577,7 @@ char *glishtk_onedim(Rivetobj self, const char *cmd, Value *args )
 		global_store->Error("zero length value");
 	else if ( args->Type() == TYPE_STRING )
 		ret = (char*) rivet_set( self, (char*) cmd, (char*) args->StringPtr(0)[0] );
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->IsNumeric() )
 		{
 		char buf[30];
 		sprintf(buf,"%d",args->IntVal());
@@ -598,9 +598,7 @@ char *glishtk_oneint(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() != TYPE_BOOL )
+	if ( args->Length() > 0 )
 		{
 		if ( args->IsNumeric() )
 			{
@@ -631,9 +629,7 @@ char *glishtk_onedouble(Rivetobj self, const char *cmd, Value *args )
 	{
 	char *ret = 0;
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() != TYPE_BOOL )
+	if ( args->Length() > 0 )
 		{
 		if ( args->IsNumeric() )
 			{
@@ -1202,9 +1198,7 @@ char *glishtk_button_state(TkAgent *a, const char *, Value *args )
 	{
 	char *ret = 0;
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	if ( args->IsNumeric() && args->Length() > 0 )
 		((TkButton*)a)->State( args->IntVal() ? 1 : 0 );
 
 	ret = ((TkButton*)a)->State( ) ? "T" : "F";
@@ -2128,9 +2122,7 @@ char *TkFrame::SetSide( Value *args )
 
 char *TkFrame::SetPadx( Value *args )
 	{
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() == TYPE_STRING )
+	if ( args->Type() == TYPE_STRING )
 		{
 		const char *padx_ = args->StringPtr(0)[0];
 		if ( padx_[0] != padx[0] || strcmp(padx, padx_) )
@@ -2140,7 +2132,7 @@ char *TkFrame::SetPadx( Value *args )
 			Pack();
 			}
 		}
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char padx_[30];
 		sprintf(padx_, "%d", args->IntVal());
@@ -2159,9 +2151,7 @@ char *TkFrame::SetPadx( Value *args )
 
 char *TkFrame::SetPady( Value *args )
 	{
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() == TYPE_STRING )
+	if ( args->Type() == TYPE_STRING )
 		{
 		const char *pady_ = args->StringPtr(0)[0];
 		if ( pady_[0] != pady[0] || strcmp(pady, pady_) )
@@ -2171,7 +2161,7 @@ char *TkFrame::SetPady( Value *args )
 			Pack();
 			}
 		}
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->Length() > 0 && args->IsNumeric() )
 		{
 		char pady_[30];
 		sprintf(pady_, "%d", args->IntVal());
@@ -2270,11 +2260,9 @@ char *TkFrame::FontsCB( Value *args )
 	char **fonts = 0;
 	int len = 0;
 
-	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() == TYPE_STRING )
+	if ( args->Type() == TYPE_STRING )
 		fonts = XListFonts(self->display, args->StringPtr(0)[0], 32768, &len);
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+	else if ( args->Length() > 0 && args->IsNumeric() )
 		fonts = XListFonts(self->display, wild, args->IntVal(), &len);
 	else if ( args->Type() == TYPE_RECORD )
 		{
@@ -3179,8 +3167,8 @@ char *glishtk_scale_value(TkAgent *a, const char *, Value *args )
 	{
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
-	else if ( args->Type() != TYPE_BOOL && args->IsNumeric() )
+		global_store->Error("argument expected");
+	else if ( args->IsNumeric() )
 		((TkScale*)a)->SetValue( args->DoubleVal() );
 
 	return 0;

@@ -83,6 +83,7 @@ extern Value* copy_value( const Value* value );
 
 extern const Value* false_value;
 extern Value* empty_value();
+extern Value* empty_bool_value();
 extern Value* error_value( );
 extern Value* error_value( const char *message );
 extern Value* error_value( const char *message, const char *file, int line );

@@ -102,6 +102,7 @@ listbox := dtk.listbox
 canvas := dtk.canvas
 pgplot := dtk.pgplot
 
+func have_gui( ) { return T }
 tk_hold := dtk.tk_hold
 tk_release := dtk.tk_release
 tk_iconpath := dtk.tk_iconpath
