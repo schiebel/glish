@@ -32,8 +32,9 @@ type div( const type divd, const type dsor )				\
 	if ( y < 1.0 )							\
 		{							\
 		double w = HUGE * y;					\
+		/*** OVERFLOW ***/					\
 		if ( fabs( p ) > w || fabs( q ) > w || y == 0.0 )	\
-			return type( HUGE, HUGE );  /*OVERFLOW*/	\
+			return type( cast(1.0/0.0), cast(1.0/0.0) );	\
 		}							\
 	return type( cast( p / y ), cast( q / y ) );			\
 	}

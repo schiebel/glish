@@ -7,6 +7,9 @@
 
 #include <stdio.h>
 
+#include <math.h>
+#define is_a_nan(x) isnan(x)
+
 #ifdef HAVE_LIBC_H
 #include <libc.h>
 #endif
@@ -137,26 +140,5 @@ extern "C" {
 #ifdef __cplusplus
 	}
 #endif
-
-#ifdef HAVE_NAN
-#ifdef HAVE_NAN_H
-#include <nan.h>
-#endif
-#define is_a_nan(x) NaN(x)
-#else /* HAVE_NAN */
-#ifdef HAVE_IS_NAN
-#ifdef HAVE_FP_H
-#include <fp.h>
-#endif
-#define is_a_nan(x) IS_NAN(x)
-#else /* HAVE_IS_NAN */
-#ifdef HAVE_ISNAN
-#include <math.h>
-#define is_a_nan(x) isnan(x)
-#else /* HAVE_ISNAN */
-#define is_a_nan(x) glish_is_a_nan(x)
-#endif /* HAVE_ISNAN */
-#endif /* HAVE_IS_NAN */
-#endif /* HAVE_NAN */
 
 #endif /* system.h */
