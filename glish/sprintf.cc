@@ -287,6 +287,7 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap, int &index,
 		   int off, int ndyn, int cch, int cty )
 {
+	static char scratch[2048];
 	register char *s;
 	const IValue *val;
 	union {		// four basic conversion types
@@ -322,16 +323,20 @@ static char *doit( dynbuf &outbuf, char *cbuf, char *convp, const_args_list *ap,
 	}
 
 
-#define	PRINTF(what)							\
-if (ndyn == 0) {							\
-	outbuf.size( SPRINTF_ALLOC );					\
-	outbuf.added(sprintf( outbuf.start(), s, what ));		\
-} else if (ndyn == 1) {							\
-	outbuf.size( SPRINTF_ALLOC );					\
-	outbuf.added(sprintf( outbuf.start(), s, a1, what ));		\
-} else {								\
-	outbuf.size( SPRINTF_ALLOC );					\
-	outbuf.added(sprintf( outbuf.start(), s, a1, a2, what ));	\
+#define	PRINTF(what)						\
+{								\
+    int sze = SPRINTF_ALLOC;					\
+								\
+    if (ndyn == 0)						\
+	sze = sprintf( scratch, s, what );			\
+    else if (ndyn == 1)						\
+	sze = sprintf( scratch, s, a1, what );			\
+    else							\
+	sze = sprintf( scratch, s, a1, a2, what );		\
+								\
+    outbuf.size( sze+1 );					\
+    memcpy( outbuf.start(), scratch, sze+1 );			\
+    outbuf.added(sze);						\
 }
 
 	// emit the appropriate conversion
@@ -374,17 +379,7 @@ string:
 	case 'i':
 		INT(arg.i)
 integer:
-if (ndyn == 0) {
-	outbuf.size( SPRINTF_ALLOC );
-	outbuf.added(sprintf( outbuf.start(), s, arg.i ));
-} else if (ndyn == 1) {
-	outbuf.size( SPRINTF_ALLOC );
-	outbuf.added(sprintf( outbuf.start(), s, a1, arg.i ));
-} else {
-	outbuf.size( SPRINTF_ALLOC );
-	outbuf.added(sprintf( outbuf.start(), s, a1, a2, arg.i ));
-}
-//		PRINTF(arg.i)
+		PRINTF(arg.i)
 		break;
 
 	// long integer
