@@ -235,3 +235,32 @@
 #tref.foo()
 #const tref := tref
 #tref.foo()
+
+
+####
+#### Pressing the button should cause the message to
+#### be printed, the frame & button do not disappear
+####
+#func fourteen( ) {
+#  priv   := [=];
+#
+#  priv.createGUI := func( ) {
+#     wider priv;
+#
+#     priv.main := frame( );
+#     priv.submit := button(priv.main, text='Submit');
+#
+#     whenever priv.submit->press do {
+#        print "submit whenever:"
+#        print as_string(priv.sendquery)
+#        priv.sendquery()
+#     }
+#
+#  }
+#
+#  priv.sendquery := func( ) {
+#     print "WE ARE IN SENDQUERY!!!!!!!!!!!!!!!!!"
+#  }
+#
+#  priv.createGUI();
+#}
