@@ -361,3 +361,21 @@ IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 
 	return 0;
 	}
+
+
+void delete_agent_dict( agent_dict *ad )
+	{
+	if ( ad )
+		{
+		IterCookie* c = ad->InitForIteration();
+		agent_list* member;
+		const char* key;
+		while ( (member = ad->NextEntry( key, c )) )
+			{
+			free_memory( (void*) key );
+			delete member;
+			}
+
+		delete ad;
+		}
+	}

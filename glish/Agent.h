@@ -42,6 +42,7 @@ typedef PDict(notification_list) notification_dict;
 
 declare(PDict,agent_list);
 typedef PDict(agent_list) agent_dict;
+extern void delete_agent_dict( agent_dict * );
 
 class Agent : public GlishObject {
     public:

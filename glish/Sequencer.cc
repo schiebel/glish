@@ -281,19 +281,6 @@ awaitinfo::~awaitinfo()
 	if ( value ) Unref( value );
 	if ( agent ) Unref( agent );
 	if ( name )  free_memory( name );
-	if ( ad )
-		{
-		IterCookie* c = ad->InitForIteration();
-		agent_list* member;
-		const char* key;
-		while ( (member = ad->NextEntry( key, c )) )
-			{
-			free_memory( (void*) key );
-			delete member;
-			}
-
-		delete ad;
-		}
 	}
 
 
@@ -1860,8 +1847,9 @@ void Sequencer::PopAwait( )
 		awaitinfo *last = await_list.remove_nth(len-1);
 		if ( last )
 			{
-			await_stmt = last->stmt;
+			if ( await_dict ) delete_agent_dict( await_dict );
 			await_dict = last->ad;
+			await_stmt = last->stmt;
 			except_stmt = last->except;
 			await_only_flag = last->await_only;
 			if ( last->value && last->name && last->agent )
@@ -1876,8 +1864,9 @@ void Sequencer::PopAwait( )
 		}
 	else
 		{
-		await_stmt = except_stmt = 0;
+		if ( await_dict ) delete_agent_dict( await_dict );
 		await_dict = 0;
+		await_stmt = except_stmt = 0;
 		await_only_flag = 0;
 		}
 	}
