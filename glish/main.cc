@@ -50,6 +50,8 @@ RCSID("@(#) $Id$")
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <termio.h>
+
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif
@@ -78,8 +80,15 @@ RCSID("@(#) $Id$")
 #endif
 
 static Sequencer* s = 0;
+// used to recover from a ^C typed while glish
+// is executing an instruction
 int glish_jmpbuf_set = 0;
 jmp_buf glish_top_level;
+// used to start over from the beginning if the
+// user typed ^C, but doesn't really want to quit
+int glish_did_recover = 0;
+jmp_buf glish_recover;
+
 int allwarn = 0;
 static unsigned int error_count = 0;
 
@@ -120,8 +129,15 @@ void NAME( )								\
 DEFINE_SIG_FWD(glish_sighup,"hangup signal",SIGHUP,)
 DEFINE_SIG_FWD(glish_sigterm,"terminate signal",SIGTERM,)
 DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT,)
-DEFINE_SIG_FWD(glish_sigquit,"quit signal",SIGQUIT,)
 
+void glish_sigquit( )
+	{
+	glish_cleanup( );
+	fprintf(stderr,"exiting on quit signal (^\\) ...\n");
+	exit(0);
+	}
+
+extern void yyrestart( FILE * );
 void glish_sigint( )
 	{
 	if ( glish_jmpbuf_set )
@@ -133,9 +149,39 @@ void glish_sigint( )
 		longjmp( glish_top_level, 1 );
 		}
 
-	glish_cleanup( );
-	install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
-	kill(getpid(), SIGINT);
+	if ( ! glish_did_recover )
+		{
+		char answ = 0;
+		struct termio tbuf, tbufsave;
+		int did_ioctl = 0;
+		fprintf(stdout,"\nexit glish (y/n)? ");
+		if ( ioctl( fileno(stdin), TCGETA, &tbuf) != -1 )
+			{
+			tbufsave = tbuf;
+			tbuf.c_lflag &= ~ICANON;
+			tbuf.c_cc[4] = 1;		/* MIN */
+			tbuf.c_cc[5] = 9;		/* TIME */
+			if ( ioctl( fileno(stdin), TCSETAF, &tbuf ) != -1 )
+				did_ioctl = 1;
+			}
+		read( fileno(stdin), &answ, 1 );
+		fputc('\n',stdout);
+		if ( did_ioctl )
+			ioctl( fileno(stdin), TCSETAF, &tbufsave );
+		if ( answ == 'y' || answ == 'Y' )
+			{
+			glish_cleanup( );
+			install_signal_handler( SIGINT, (signal_handler) SIG_DFL );
+			kill(getpid(), SIGINT);
+			}
+		glish_did_recover = 1;
+		}
+
+	Sequencer::TopLevelReset();
+	glish_jmpbuf_set = 0;
+	yyrestart( stdin );
+	unblock_signal(SIGINT);
+	longjmp( glish_recover, 1 );
 	}
 
 class StringReporter : public Reporter {
