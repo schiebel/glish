@@ -16,6 +16,9 @@
 /* Define if your struct stat has st_rdev.  */
 #undef HAVE_ST_RDEV
 
+/*  */
+#undef HAVE_SYS_CDEFS_H
+
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #undef HAVE_SYS_WAIT_H
 
