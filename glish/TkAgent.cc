@@ -1195,7 +1195,29 @@ int glishtk_xioerror_handler(Display *d)
 	return 1;
 	}
 
-TkAgent::TkAgent( Sequencer *s ) : Agent( s )
+char *glishtk_agent_map(TkAgent *a, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "button state function";
+	a->SetMap( *cmd == 'M' ? 1 : 0 );
+	return ret;
+	}
+
+void TkAgent::SetMap( int do_map )
+	{
+	int dont_map_ = do_map ? 0 : 1;
+	if ( dont_map != dont_map_ )
+		{
+		dont_map = dont_map_;
+		if ( dont_map )
+			rivet_va_func(self, (int (*)())Tk_PackCmd, "forget", rivet_path(self), 0);
+
+		if ( frame ) frame->Pack();
+		}
+	}
+
+TkAgent::TkAgent( Sequencer *s ) : Agent( s ), dont_map( 0 )
 	{
 	agent_ID = "<graphic>";
 	enable_state = 0;
@@ -1460,6 +1482,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
+	procs.Insert("map", new TkProc(this, "M", glishtk_agent_map));
+	procs.Insert("unmap", new TkProc(this, "U", glishtk_agent_map));
 	}
 
 TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side_,
@@ -1552,6 +1576,7 @@ void TkFrame::UnMap()
 
 	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 	TkAgent::UnMap();
+	canvas = 0;
 
 	if ( pseudo )
 		{
@@ -1567,6 +1592,8 @@ TkFrame::~TkFrame( )
 	{
 	if ( frame )
 		frame->RemoveElement( this );
+	if ( canvas )
+		canvas->Remove( this );
 
 	UnMap();
 
@@ -1802,10 +1829,13 @@ void TkFrame::Pack( )
 		int c = 1;
 		argv[0] = 0;
 		loop_over_list( elements, i )
+			{
+			if ( elements[i]->DontMap() ) continue;
 			if ( elements[i]->PackInstruction() )
 				PackSpecial( elements[i] );
 			else
 				argv[c++] = rivet_path(elements[i]->Self() );
+			}
 
 		if ( c > 1 )
 			{

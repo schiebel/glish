@@ -206,6 +206,9 @@ class TkAgent : public Agent {
 	static IValue *GetError() { return last_error; }
 	static void SetError(IValue*);
 
+	void SetMap( int do_map );
+	int DontMap( ) const { return dont_map; }
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;
@@ -220,6 +223,8 @@ class TkAgent : public Agent {
 	static IValue *last_error;
 
 	unsigned int enable_state;
+
+	int dont_map;
 	};
 
 class TkFrame : public TkAgent {
