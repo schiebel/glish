@@ -17,6 +17,7 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "Sequencer.h"
 #include "Agent.h"
+#include "Regex.h"
 
 #define AGENT_MEMBER_NAME "*agent*"
 
@@ -49,6 +50,21 @@ void copy_funcs( void *to_, void *from_, unsigned int len )
 void delete_funcs( void *ary_, unsigned int len )
 	{
 	funcptr *ary = (funcptr*) ary_;
+	for (unsigned int i = 0; i < len; i++)
+		Unref(ary[i]);
+	}
+
+void copy_regexs( void *to_, void *from_, unsigned int len )
+	{
+	regexptr *to = (regexptr*) to_;
+	regexptr *from = (regexptr*) from_;
+	copy_array(from,to,(int)len,regexptr);
+	for (unsigned int i = 0; i < len; i++)
+		Ref(to[i]);
+	}
+void delete_regexs( void *ary_, unsigned int len )
+	{
+	regexptr *ary = (regexptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
 		Unref(ary[i]);
 	}
@@ -120,6 +136,19 @@ IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FU
 			 copy_funcs, 0, delete_funcs );
 	}
 
+IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
+	{
+	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
+	copy_array(&value,ary,1,regexptr);
+	kernel.SetArray( (voidptr*) ary, 1, TYPE_REGEX, 0, copy_regexs, 0, delete_regexs );
+	}
+
+IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_REGEX) GGCTOR
+	{
+	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY,
+			 copy_regexs, 0, delete_regexs );
+	}
+
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
 	if ( storage != COPY_ARRAY && storage != PRESERVE_ARRAY )
@@ -174,6 +203,7 @@ type IValue::name( int modify ) const					\
 	}
 
 DEFINE_CONST_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
+DEFINE_CONST_ACCESSOR(RegexPtr,TYPE_REGEX,regexptr*)
 DEFINE_CONST_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 
@@ -189,6 +219,7 @@ type IValue::name( int modify )						\
 	}
 
 DEFINE_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
+DEFINE_ACCESSOR(RegexPtr,TYPE_REGEX,regexptr*)
 DEFINE_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 Agent* IValue::AgentVal() const
@@ -230,6 +261,28 @@ Func* IValue::FuncVal() const
 	}
 
 
+Regex* IValue::RegexVal() const
+	{
+	if ( Type() != TYPE_REGEX )
+		{
+		error->Report( this, " is not a regular expression value" );
+		return 0;
+		}
+
+	if ( Length() == 0 )
+		{
+		error->Report( "empty regular expression array" );
+		return 0;
+		}
+
+	if ( Length() > 1 )
+		warn->Report( "more than one regular expression element in", this,
+				", excess ignored" );
+
+	return RegexPtr(0)[0];
+	}
+
+
 funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) const
 	{
 	if ( Type() != TYPE_FUNC )
@@ -243,6 +296,21 @@ funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) co
 
 	is_copy = 0;
 	return FuncPtr(0);
+	}
+
+regexptr* IValue::CoerceToRegexArray( int& is_copy, int size, regexptr* result ) const
+	{
+	if ( Type() != TYPE_REGEX )
+		fatal->Report( "non regular expression type in CoerceToRegexArray()" );
+
+	if ( size != Length() )
+		fatal->Report( "size != length in CoerceToRegexArray()" );
+
+	if ( result )
+		fatal->Report( "prespecified result in CoerceToRegexArray()" );
+
+	is_copy = 0;
+	return RegexPtr(0);
 	}
 
 
@@ -305,6 +373,8 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray, strdup, free_memory( (void*) lhs[indices[i]-1] );)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
+	CoerceToRegexArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -402,6 +472,8 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_STRING,charptr*,charptr*,StringPtr,
 	CoerceToStringArray,strdup, free_memory( (void*) lhs[i] );)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
+	CoerceToRegexArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -534,6 +606,14 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 				kernel.SetArray( (voidptr*) new_val, length, TYPE_FUNC );
 			break;
 			}
+		case TYPE_REGEX:
+			{
+			int is_copy;
+			regexptr* new_val = CoerceToRegexArray( is_copy, length );
+			if ( is_copy )
+				kernel.SetArray( (voidptr*) new_val, length, TYPE_REGEX );
+			break;
+			}
 		case TYPE_RECORD:
 			if ( length > 1 )
 				warn->Report(
@@ -555,6 +635,12 @@ int IValue::DescribeSelf( OStream& s, charptr prefix ) const
 		// ### what if we're an array of functions?
 		if ( prefix ) s << prefix;
 		FuncVal()->Describe( s );
+		}
+	else if ( Type() == TYPE_REGEX )
+		{
+		// ### what if we're an array of functions?
+		if ( prefix ) s << prefix;
+		RegexVal()->Describe( s );
 		}
 	else
 		return Value::DescribeSelf( s, prefix );
@@ -614,6 +700,7 @@ IValue *copy_value( const IValue *value )
 		case TYPE_STRING:
 		case TYPE_AGENT:
 		case TYPE_FUNC:
+		case TYPE_REGEX:
 		case TYPE_FAIL:
 			copy = new IValue( *value );
 			break;

@@ -12,10 +12,12 @@ extern const char *glish_charptrdummy;
 
 class Agent;
 class Func;
+class Regex;
 class ArithExpr;
 class RelExpr;
 
 typedef Func* funcptr;
+typedef Regex* regexptr;
 typedef Agent* agentptr;
 
 extern void copy_agents( void *to_, void *from_, unsigned long len );
@@ -46,6 +48,7 @@ public:
 	IValue( dcomplex v ) : Value( v ) GGCTOR { }
 	IValue( const char* v ) : Value( v ) GGCTOR { }
 	IValue( funcptr v );
+	IValue( regexptr v );
 
 	// If "storage" is set to "COPY_ARRAY", then the underlying
 	// "Agent" in value will be Ref()ed. Otherwise, if 
@@ -94,6 +97,8 @@ public:
 			Value( value, num_elements, storage ) GGCTOR { }
 	IValue( funcptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
+	IValue( regexptr value[], int num_elements,
+		array_storage_type storage = TAKE_OVER_ARRAY );
 
 	IValue( glish_boolref& value_ref ) : Value( value_ref ) GGCTOR { }
 	IValue( byteref& value_ref ) : Value( value_ref ) GGCTOR { }
@@ -113,6 +118,7 @@ public:
 	// Returns the agent or function corresponding to the Value.
 	Agent* AgentVal( ) const;
 	funcptr FuncVal( ) const;
+	regexptr RegexVal( ) const;
 
 	// The following accessors return pointers to the underlying value
 	// array.  The "const" versions complain with a fatal error if the
@@ -121,9 +127,11 @@ public:
 	// subref, retrieves the complete underlying value, not the
 	// just selected subelements.  (See the XXXRef() functions below.)
 	funcptr* FuncPtr( int modify=1 ) const;
+	regexptr* RegexPtr( int modify=1 ) const;
 	agentptr* AgentPtr( int modify=1 ) const;
 
 	funcptr* FuncPtr( int modify=1 );
+	regexptr* RegexPtr( int modify=1 );
 	agentptr* AgentPtr( int modify=1 );
 
 	// These coercions are very limited: they essentially either
@@ -132,6 +140,8 @@ public:
 	// the given type) or generate a fatal error.
 	funcptr* CoerceToFuncArray( int& is_copy, int size,
 			funcptr* result = 0 ) const;
+	regexptr* CoerceToRegexArray( int& is_copy, int size,
+			regexptr* result = 0 ) const;
 
 	void Polymorph( glish_type new_type );
 

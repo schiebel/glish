@@ -22,6 +22,7 @@
 %left '+' '-'
 %left '*' '/' '%'
 %right '^'
+%nonassoc '~'
 %nonassoc ':'
 %right '!'
 %left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST
@@ -357,6 +358,8 @@ expression:
 			{ $$ = new ModuloExpr( $1, $3 ); }
 	|	expression '^' expression
 			{ $$ = new PowerExpr( $1, $3 ); }
+	|	expression '~' expression
+			{ $$ = new ApplyRegExpr( $1, $3 ); }
 
 	|	'-' expression	%prec '!'
 			{ $$ = new NegExpr( $2 ); }
@@ -1055,6 +1058,7 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs )
 		CMPD('/', DivideExpr);
 		CMPD('%', ModuloExpr);
 		CMPD('^', PowerExpr);
+		CMPD('~', ApplyRegExpr);
 
 		CMPD('|', LogOrExpr);
 		CMPD('&', LogAndExpr);

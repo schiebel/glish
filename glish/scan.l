@@ -16,6 +16,7 @@
 #include "BuiltIn.h"
 #include "Reporter.h"
 #include "Sequencer.h"
+#include "Regex.h"
 #include "input.h"
 #include "y.tab.h"
 #include "system.h"
@@ -178,7 +179,7 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 	statement_can_end = 0;
 
 
-[!:;,|&({[+*/%^=-]	return yytext[0];
+[~!:;,|&({[+*/%^=-]	return yytext[0];
 
 [)\]]		statement_can_end = 1; return yytext[0];
 
@@ -354,7 +355,9 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 					  literal( escape ); break; }
 <QUOTE,REGEX,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
-<QUOTE,REGEX,ATTR_QUOTE>"\\".		literal( &yytext[1] ); break;
+<QUOTE,ATTR_QUOTE>"\\".			literal( &yytext[1] ); break;
+<REGEX>"\\".				literal( yytext ); break;
+
 
 <ATTR>"["	{
 		BEGIN(INITIAL);
@@ -418,8 +421,10 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		if ( is_match_regex || match_regex_portion )
 			{
 			statement_can_end = 1;
-			YYLVAL(expr) = is_match_regex ? new RegExpr( strdup(literal()) ) :
-					new RegExpr( match_regex_portion, strdup(literal()) );
+			IValue *v = new IValue( is_match_regex ? new Regex(strdup(literal())) :
+					new Regex(match_regex_portion, strdup(literal())) );
+			DO_GC_REGISTER
+			YYLVAL(expr) = new ConstExpr( v );
 			BEGIN(INITIAL);
 			return TOK_REGEX;
 			}
@@ -430,7 +435,6 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 			break;
 			}
 		}
-
 
 <QUOTE,REGEX,ATTR_QUOTE>\n	{
 		error->Report( "unmatched quote (",

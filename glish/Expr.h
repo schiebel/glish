@@ -290,21 +290,6 @@ class ConstExpr : public Expr {
 	};
 
 
-class RegExpr : public Expr {
-    public:
-	RegExpr( char *match_, char *subst_ = 0 );
-
-	IValue* Eval( eval_type etype );
-	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
-
-	~RegExpr();
-
-    protected:
-	char *match;
-	char *subst;
-	};
-
-
 class FuncExpr : public Expr {
     public:
 	FuncExpr( UserFunc* f );
@@ -505,6 +490,14 @@ class RefExpr : public UnaryExpr {
 class RangeExpr : public BinaryExpr {
     public:
 	RangeExpr( Expr* op1, Expr* op2 );
+
+	IValue* Eval( eval_type etype );
+	};
+
+
+class ApplyRegExpr : public BinaryExpr {
+    public:
+	ApplyRegExpr( Expr* op1, Expr* op2 );
 
 	IValue* Eval( eval_type etype );
 	};

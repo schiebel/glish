@@ -16,6 +16,7 @@ RCSID("@(#) $Id$")
 #include "Agent.h"
 #include "Func.h"
 #include "Frame.h"
+#include "Regex.h"
 
 int ParseNode::canDelete() const
 	{
@@ -408,30 +409,6 @@ IValue* ConstExpr::Eval( eval_type etype )
 int ConstExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	return const_value->DescribeSelf( s, prefix );
-	}
-
-
-RegExpr::~RegExpr()
-	{
-	if ( match ) free_memory(match);
-	if ( subst ) free_memory(subst);
-	}
-
-RegExpr::RegExpr( char *match_, char *subst_ = 0 ) : Expr("regex"), 
-					match(match_), subst(subst_) { }
-
-IValue* RegExpr::Eval( eval_type )
-	{
-	charptr *ret = (charptr*) alloc_memory( sizeof(charptr) * 2 );
-	ret[0] = strdup(match ? match : "");
-	ret[1] = strdup(subst ? subst : "");
-	return new IValue( ret, 2 );
-	}
-
-int RegExpr::DescribeSelf( OStream &s, charptr prefix ) const
-	{
-	s << prefix << "regex: " << (match ? match : "X") << " : " << (subst ? subst : "X") << endl;
-	return 1;
 	}
 
 
@@ -1797,6 +1774,34 @@ IValue* RangeExpr::Eval( eval_type /* etype */ )
 
 	left->ReadOnlyDone( left_val );
 	right->ReadOnlyDone( right_val );
+
+	return result;
+	}
+
+
+ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2 ) : BinaryExpr(op1, op2, "~")
+	{
+	}
+
+IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
+	{
+	const IValue* left_val = left->ReadOnlyEval();
+	const IValue* right_val = right->ReadOnlyEval();
+
+	IValue* result;
+
+	if ( right_val->Type() != TYPE_REGEX )
+		result = (IValue*) Fail( "right-hand-side is not a regular expression" );
+	else if ( left_val->Type() != TYPE_STRING )
+		result = (IValue*) Fail( "left-hand-side is not a string" );
+	else
+		{
+		regexptr reg = right_val->RegexVal();
+		if ( left_val->Length() == 1 )
+			result = reg->Eval((char*)left_val->StringPtr(0)[0]);
+		else
+			result = reg->Eval((char**)left_val->StringPtr(0),left_val->Length());
+		}
 
 	return result;
 	}

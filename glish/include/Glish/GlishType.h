@@ -23,8 +23,9 @@ typedef enum {
 	TYPE_RECORD,
 	TYPE_COMPLEX,
 	TYPE_DCOMPLEX,
-	TYPE_FAIL
-#define NUM_GLISH_TYPES (((int) TYPE_FAIL) + 1)
+	TYPE_FAIL,
+	TYPE_REGEX
+#define NUM_GLISH_TYPES (((int) TYPE_REGEX) + 1)
 	} glish_type;
 
 /* Given two types, returns the "maximum" one, that is, which of the two

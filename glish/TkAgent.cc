@@ -469,6 +469,7 @@ CLASS::~CLASS( )					\
 
 #define HANDLE_CTOR_ERROR(STR)					\
 		{						\
+		frame = 0;					\
 		SetError( (IValue*) generate_error( STR ) );	\
 		return;						\
 		}

@@ -72,6 +72,7 @@ INTERP_OBJS = \
 	Func.o \
 	Garbage.o \
 	Pager.o \
+	Regex.o \
 	RemoteExec.o \
 	Sequencer.o \
 	Select.o \
@@ -114,6 +115,7 @@ INTERP_OBJS_PROXY = \
 	$(D)Func.o \
 	$(D)Garbage.o \
 	$(D)Pager.o \
+	$(D)Regex.o \
 	$(D)RemoteExec.o \
 	$(D)Sequencer.o \
 	$(D)Select.o \
@@ -318,6 +320,9 @@ $(D)Object.o: $(SRC)/Object.cc $(H)/Object.h
 
 $(D)Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Queue.cc $(T)
+
+$(D)Regex.o: $(SRC)/Regex.cc $(SRC)/Regex.h
+	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Regex.cc $(T)
 
 $(D)RemoteExec.o: $(SRC)/RemoteExec.cc $(SRC)/RemoteExec.h $(SRC)/Executable.h \
 		$(SRC)/Channel.h $(H)/Client.h
