@@ -81,7 +81,7 @@ dcomplex cos( const dcomplex v )
 
 dcomplex sqrt( const dcomplex v )
 	{
-	return pow( v, dcomplex( 0.5 ) );
+	return v.r == 0 && v.i == 0 ? dcomplex(0,0) : pow( v, dcomplex( 0.5 ) );
 	}
 
 dcomplex pow( const dcomplex x, const dcomplex y )
