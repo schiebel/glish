@@ -94,7 +94,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, E
 			error->Report( this,
 				       "must designate exactly one event" );
 
-		result = a->SendEvent( nl[0], arguments, is_request, 1, from_subsequence );
+		result = a->SendEvent( nl[0], arguments, is_request, Agent::mLOG( ), from_subsequence );
 		}
 
 	else if ( a )

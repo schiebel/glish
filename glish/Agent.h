@@ -58,6 +58,10 @@ extern void delete_agent_dict( agent_dict * );
 class Agent : public GlishObject {
     public:
 	enum State { sINITIAL, sACTIVE, sFINISHED };
+
+	static inline u_long mLOG( u_int mask=~((u_long) 0) ) { return mask & 1<<0; }
+	static inline u_long mOVERRIDE( u_int mask=~((u_long) 0) ) { return mask & 1<<1; }
+
 	Agent( Sequencer* s, int DestructLast=0 );
 	virtual ~Agent();
 
@@ -79,15 +83,14 @@ class Agent : public GlishObject {
 	// If log is true and the sequencer is logging events, then
 	// the event is logged.
 	virtual IValue* SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence=0 ) = 0;
+				int is_request, u_long flags, Expr *from_subsequence=0 ) = 0;
 
 	// Returns non-zero on success
 	virtual int BundleEvents( int howmany=0 );
 	virtual int FlushEvents( );
 
 	// Same for an event with just one value.
-	void SendSingleValueEvent( const char* event_name, const IValue* value,
-					int log );
+	void SendSingleValueEvent( const char* event_name, const IValue* value, u_long flags );
 
 	// Creates a event/value pair associated with this agent (the
 	// event is not sent to the associated agent).  Returns true
@@ -213,9 +216,9 @@ class ProxySource : public Agent {
     public:
 	ProxySource( Sequencer *s, int DestructLast ) : Agent( s, DestructLast ) { }
 	virtual IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, const ProxyId &proxy_id ) = 0;
+			int is_request, u_long flags, const ProxyId &proxy_id ) = 0;
 	virtual IValue* SendEvent( const char* event_name, IValue *&event_val,
-			int is_request=0, int log=0,
+			int is_request=0, u_long flags=0,
 			const ProxyId &proxy_id=glish_proxyid_dummy,
 			int is_bundle=0 ) = 0;
 
@@ -238,7 +241,7 @@ class ProxyTask : public Agent {
 	void SetActivity( State );
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence=0 );
+				int is_request, u_long flags, Expr *from_subsequence=0 );
 
 	// Returns non-zero on success
 	int BundleEvents( int howmany=0 );
@@ -260,13 +263,6 @@ class ProxyTask : public Agent {
 	ProxyId id;
 };
 
-class SystemAgent : public Agent {
-    public:
-	SystemAgent( Sequencer *s );
-	IValue* SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence=0 );
-};
-
 class uagent_await_info;
 glish_declare(PList,uagent_await_info);
 typedef PList(uagent_await_info) uagent_await_list;
@@ -279,7 +275,7 @@ class UserAgent : public Agent {
 	// Send an event with the given name and associated values
 	// to the associated user agent.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, Expr *from_subsequence=0 );
+			int is_request, u_long flags, Expr *from_subsequence=0 );
 
 	int IsSubsequence( ) const { return is_subsequence; }
 
@@ -300,6 +296,13 @@ class UserAgent : public Agent {
 	uagent_await_list await;
 	};
 
+
+class SystemAgent : public UserAgent {
+    public:
+	SystemAgent( Sequencer *s );
+	IValue* SendEvent( const char* event_name, parameter_list* args,
+				int is_request, u_long flags, Expr *from_subsequence=0 );
+};
 
 // Agents currently in existence.
 extern agent_list *agents;

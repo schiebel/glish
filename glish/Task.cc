@@ -97,7 +97,7 @@ Task::Task( TaskAttr* task_attrs, Sequencer* s, int DestructLast ) : ProxySource
 void Task::SendTerminate( )
 	{
 	IValue tru(glish_true);
-	SendSingleValueEvent( "terminate", &tru, 1 );
+	SendSingleValueEvent( "terminate", &tru, Agent::mLOG( ) );
 	if ( executable ) executable->Deactivate( );
 	}
 
@@ -122,7 +122,7 @@ Task::~Task()
 	}
 
 IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
-			int is_request, int log, const ProxyId &proxy_id, int is_bundle )
+			int is_request, u_long flags, const ProxyId &proxy_id, int is_bundle )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
@@ -176,7 +176,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 		{
 		sos_fd_sink &sink = channel->Sink();
 
-		if ( log )
+		if ( Agent::mLOG(flags) )
 			sequencer->LogEvent( id, name, event_name, event_val, 0 );
 
 		if ( is_request )
@@ -226,14 +226,14 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 	}
 
 IValue* Task::SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, const ProxyId &proxy_id )
+			int is_request, u_long flags, const ProxyId &proxy_id )
 	{
 	if ( task_error )
 		return is_request ? error_ivalue() : 0;
 
 	IValue* event_val = BuildEventValue( args, 1 );
 
-	IValue* result = SendEvent( event_name, event_val, is_request, log, proxy_id );
+	IValue* result = SendEvent( event_name, event_val, is_request, flags, proxy_id );
 
 	Unref( event_val );
 
@@ -241,14 +241,14 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 	}
 
 IValue *Task::SendEvent( const char* event_name, parameter_list* args,
-			 int is_request, int log, Expr */* from_subsequence */ )
+			 int is_request, u_long flags, Expr */* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{
 		if ( is_request )
 			{
 			FlushEvents( );
-			return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
+			return SendEvent( event_name, args, is_request, flags, glish_proxyid_dummy );
 			}
 		else
 			{
@@ -263,7 +263,7 @@ IValue *Task::SendEvent( const char* event_name, parameter_list* args,
 			}
 		}
 	else
-		return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
+		return SendEvent( event_name, args, is_request, flags, glish_proxyid_dummy );
 	}
 
 int Task::BundleEvents( int howmany )
@@ -287,7 +287,7 @@ int Task::FlushEvents( )
 	if ( bundle && bundle->Length() > 0 )
 		{
 		IValue *val = new IValue( bundle );
-		SendEvent( "event-bundle", val, 0, 1, glish_proxyid_dummy, 1 );
+		SendEvent( "event-bundle", val, 0, Agent::mLOG( ), glish_proxyid_dummy, 1 );
 		Unref( val );
 		bundle = 0;
 		}

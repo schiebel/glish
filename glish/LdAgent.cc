@@ -57,7 +57,7 @@ LoadedProxyStore::LoadedProxyStore( Sequencer *s, int in, int out, GlishLoopFunc
 	}
 
 IValue *LoadedProxyStore::SendEvent( const char *event_name, parameter_list *args,
-			    int is_request, int log, Expr *from_subsequence )
+			    int is_request, u_long flags, Expr *from_subsequence )
 	{
 	return is_request ? new IValue( glish_true ) : 0;
 	}
@@ -380,25 +380,25 @@ LoadedAgent::LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer
 	}
 
 IValue *LoadedAgent::SendEvent( const char *event_name, parameter_list *args,
-				int is_request, int log, Expr */*from_subsequence*/ )
+				int is_request, u_long flags, Expr */*from_subsequence*/ )
 	{
-	return SendEvent( event_name, args, is_request, log, glish_proxyid_dummy );
+	return SendEvent( event_name, args, is_request, flags, glish_proxyid_dummy );
 	}
 
 
 IValue* LoadedAgent::SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, const ProxyId &proxy_id )
+				int is_request, u_long flags, const ProxyId &proxy_id )
 	{
 	IValue* event_val = BuildEventValue( args, 1 );
 
-	IValue* result = SendEvent( event_name, event_val, is_request, log, proxy_id );
+	IValue* result = SendEvent( event_name, event_val, is_request, flags, proxy_id );
 	Unref( event_val );
 
 	return result;
 	}
 
 IValue* LoadedAgent::SendEvent( const char* event_name, IValue *&event_val,
-				int is_request, int log, const ProxyId &proxy_id, int is_bundle )
+				int is_request, u_long flags, const ProxyId &proxy_id, int is_bundle )
 	{
 	char b;
 	IValue *result = 0;

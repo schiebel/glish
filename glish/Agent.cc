@@ -116,15 +116,14 @@ Agent::~Agent()
 int Agent::BundleEvents( int ) { return 0; }
 int Agent::FlushEvents( ) { return 0; }
 
-void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
-					int log )
+void Agent::SendSingleValueEvent( const char* event_name, const IValue* value, u_long flags )
 	{
 	ConstExpr c( value ); Ref( (IValue*) value );
 	Parameter p( VAL_VAL, &c, 0 ); Ref( &c );
 	parameter_list plist;
 	plist.append( &p );
 
-	SendEvent( event_name, &plist, 0, log );
+	SendEvent( event_name, &plist, 0, flags );
 	}
 
 int Agent::CreateEvent( const char* event_name, IValue* event_value,
@@ -500,7 +499,7 @@ ProxyTask::~ProxyTask( )
 		FlushEvents( );
 
 	IValue *val = new IValue(glish_true);
-	task->SendEvent( "terminate", val, 0, 1, id );
+	task->SendEvent( "terminate", val, 0, Agent::mLOG( ), id );
 	Unref( val );
 
 	task->UnregisterProxy(this);
@@ -510,14 +509,14 @@ ProxyTask::~ProxyTask( )
 	}
 
 IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
-			      int is_request, int log, Expr */* from_subsequence */ )
+			      int is_request, u_long flags, Expr */* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{
 		if ( is_request )
 			{
 			FlushEvents( );
-			return task->SendEvent( event_name, args, is_request, log, id );
+			return task->SendEvent( event_name, args, is_request, flags, id );
 			}
 		else
 			{
@@ -532,7 +531,7 @@ IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
 			}
 		}
 	else
-		return task->SendEvent( event_name, args, is_request, log, id );
+		return task->SendEvent( event_name, args, is_request, flags, id );
 	}
 
 int ProxyTask::BundleEvents( int howmany )
@@ -556,7 +555,7 @@ int ProxyTask::FlushEvents( )
 	if ( bundle && bundle->Length() > 0 )
 		{
 		IValue *val = new IValue( bundle );
-		task->SendEvent( "event-bundle", val, 0, 1, id, 1 );
+		task->SendEvent( "event-bundle", val, 0, Agent::mLOG( ), id, 1 );
 		Unref( val );
 		bundle = 0;
 		}
@@ -580,13 +579,15 @@ void ProxyTask::AbnormalExit( int status )
 	}
 
 
-SystemAgent::SystemAgent( Sequencer *s ) : Agent(s) { SetActive( ); }
+SystemAgent::SystemAgent( Sequencer *s ) : UserAgent(s) { }
 
-IValue* SystemAgent::SendEvent( const char* event_name, parameter_list*, int is_request, int, Expr * )
+IValue* SystemAgent::SendEvent( const char* event_name, parameter_list *args,
+				int is_request, u_long flags, Expr *from_subsequence )
 	{
 	if ( ! strcmp( event_name, "memory" ) )
 		{
 		int *ivec = alloc_int( 2 );
+		sequencer->info.Update( );
 		ivec[0] = sequencer->info.MemoryUsed( );
 		ivec[1] = sequencer->info.MemoryFree( );
 		return new IValue( ivec, 2 );
@@ -595,10 +596,16 @@ IValue* SystemAgent::SendEvent( const char* event_name, parameter_list*, int is_
 	if ( ! strcmp( event_name, "swap" ) )
 		{
 		int *ivec = alloc_int( 2 );
+		sequencer->info.Update( );
 		ivec[0] = sequencer->info.SwapUsed( );
 		ivec[1] = sequencer->info.SwapFree( );
 		return new IValue( ivec, 2 );
-		}		
+		}
+
+	if ( Agent::mOVERRIDE(flags) && ! strcmp( event_name, "exit" ) )
+		{
+		return UserAgent::SendEvent( event_name, args, is_request, flags, from_subsequence );
+		}
 
 	return (IValue*) Fail( "unknown event, \"", event_name, "\"" );
 	}
@@ -618,11 +625,11 @@ class uagent_await_info GC_FINAL_CLASS {
 };
 
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence )
+				int is_request, u_long flags, Expr *from_subsequence )
 	{
 	IValue* event_val = BuildEventValue( args, 0 );
 
-	if ( log )
+	if ( Agent::mLOG(flags) )
 		sequencer->LogEvent( "<agent>", "<agent>",
 					event_name, event_val, 0 );
 

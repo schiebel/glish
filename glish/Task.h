@@ -55,11 +55,11 @@ class Task : public ProxySource {
 	// Bundling of events is done with this first SendEvent() to
 	// avoid double bundling of events, i.e. in ProxyTask and Task.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, Expr *from_subsequence=0 );
+			int is_request, u_long flags, Expr *from_subsequence=0 );
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log, const ProxyId &proxy_id );
+			int is_request, u_long flags, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
-			int is_request=0, int log=0,
+			int is_request=0, u_long flags=0,
 			const ProxyId &proxy_id=glish_proxyid_dummy,
 			int is_bundle=0 );
 

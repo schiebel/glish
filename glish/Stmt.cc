@@ -565,7 +565,7 @@ void LinkStmt::MakeLink( Task* src, const char* source_event,
 
 void LinkStmt::LinkAction( Task* src, IValue* v )
 	{
-	src->SendSingleValueEvent( "*link-sink*", v, 1 );
+	src->SendSingleValueEvent( "*link-sink*", v, Agent::mLOG( ) );
 	}
 
 
@@ -584,7 +584,7 @@ UnLinkStmt::UnLinkStmt( event_dsg_list* arg_source, event_dsg_list* arg_sink,
 
 void UnLinkStmt::LinkAction( Task* src, IValue* v )
 	{
-	src->SendSingleValueEvent( "*unlink-sink*", v, 1 );
+	src->SendSingleValueEvent( "*unlink-sink*", v, Agent::mLOG( ) );
 	}
 
 

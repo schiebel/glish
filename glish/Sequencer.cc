@@ -531,7 +531,7 @@ public:
 	ScriptAgent( Sequencer* s, Client* c ) : Agent(s)	{ client = c; }
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int /* is_request */, int /* log */, Expr *from_subsequence=0 )
+			int /* is_request */, u_long /* flags */, Expr *from_subsequence=0 )
 		{
 		IValue* event_val = BuildEventValue( args, 1 );
 		client->PostEvent( event_name, event_val, client->LastContext() );
@@ -4312,7 +4312,7 @@ void Sequencer::LogEvent( const char* gid, const char* id, const GlishEvent* e,
 
 void Sequencer::SystemEvent( const char* name_, const IValue* val_ )
 	{
-	system_agent->SendSingleValueEvent( name_, val_, 1 );
+	system_agent->SendSingleValueEvent( name_, val_, Agent::mLOG() | Agent::mOVERRIDE() );
 	}
 
 
@@ -4344,8 +4344,8 @@ void Sequencer::Rendezvous( const char* event_name, IValue* value )
 	// because it was a lot of work getting it right and we don't want
 	// to have to figure it out again if for some reason we don't
 	// always use sockets.
-	src->SendSingleValueEvent( "*rendezvous-orig*", value, 1 );
-	snk->SendSingleValueEvent( "*rendezvous-resp*", value, 1 );
+	src->SendSingleValueEvent( "*rendezvous-orig*", value, Agent::mLOG( ) );
+	snk->SendSingleValueEvent( "*rendezvous-resp*", value, Agent::mLOG( ) );
 
 	delete source_id;
 	delete sink_id;
@@ -4367,7 +4367,7 @@ void Sequencer::ForwardEvent( const char* event_name, IValue* value )
 		fatal->Report( "no such receipient ID in ", event_name,
 				"internal event:", receipient_id );
 
-	task->SendSingleValueEvent( new_event_name, value, 1 );
+	task->SendSingleValueEvent( new_event_name, value, Agent::mLOG( ) );
 
 	delete receipient_id;
 	delete new_event_name;

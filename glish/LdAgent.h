@@ -19,7 +19,7 @@ class LoadedProxyStore : public ProxyStore {
     public:
 	LoadedProxyStore( Sequencer *s, int in, int out, GlishLoopFunc );
 	IValue *SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log, Expr *from_subsequence=0 );
+				int is_request, u_long flags, Expr *from_subsequence=0 );
 
 	GlishEvent* NextEvent( EventSource* source );
 	GlishEvent* NextEvent(const struct timeval *timeout = 0, int &timedout = glish_timedoutdummy)
@@ -86,11 +86,11 @@ class LoadedAgent : public ProxySource {
     public:
 	LoadedAgent( const_args_list *args, TaskAttr *task_attrs, Sequencer *s );
 	IValue *SendEvent( const char* event_name, parameter_list* args,
-			   int is_request, int log, Expr *from_subsequence=0 );
+			   int is_request, u_long flags, Expr *from_subsequence=0 );
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			   int is_request, int log, const ProxyId &proxy_id );
+			   int is_request, u_long flags, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
-			   int is_request=0, int log=0,
+			   int is_request=0, u_long flags=0,
 			   const ProxyId &proxy_id=glish_proxyid_dummy,
 			   int is_bundle=0 );
 
