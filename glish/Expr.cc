@@ -1832,37 +1832,36 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 
 	if ( rlen < 1 )
 		APPLYREG_BAIL( "zero length regular expression" )
+	if ( slen < 1 )
+		APPLYREG_BAIL( "zero length string" )
 
 	regexptr *regs = regval->RegexPtr();
 	Regex::regex_type type = regs[0]->Type();
+	int splits = regs[0]->Splits() ? 1 : 0;
 	for ( int i = 1; i < rlen; ++i )
+		{
 		if ( regs[i]->Type() != type )
 			APPLYREG_BAIL( "application contains both matches and substitutions" )
-
-	charptr *strs = strval->StringPtr(0);
-	if ( in_place && type == Regex::SUBST )
-		{
-		left->ReadOnlyDone( strval );
-		strval_ref = left->RefEval( VAL_REF );
-		strval = (IValue*) strval_ref->Deref();
-		strs = strval->StringPtr();
+		if ( ! splits ) splits = regs[i]->Splits() ? 1 : 0;
 		}
 
-	if ( type == Regex::MATCH || in_place )
+	charptr *strs = strval->StringPtr(0);
+
+	if ( type == Regex::MATCH )
 		{
 		if ( slen == 1 )
 			{
 			int *ret = (int*) alloc_memory( rlen * sizeof(int) );
 			for ( int i=0; i < rlen; ++i )
-				ret[i] = regs[i]->Eval( (char*&) strs[0], in_place );
+				ret[i] = regs[i]->Eval( (char*&) strs[0] );
 			result = new IValue( ret, rlen );
 			}
-		else if ( slen > 1 )
+		else
 			{
 			int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
 			for ( int row=0; row < slen; ++row )
 				for ( int col=0; col < rlen; ++col )
-					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row], in_place );
+					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row] );
 			result = new IValue( ret, slen * rlen );
 			if ( rlen > 1 )
 				{
@@ -1872,24 +1871,57 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				result->AssignAttribute("shape", new IValue(shape,2));
 				}
 			}
-		else
-			result = (IValue*) Fail( "zero length string" );
 		}
-	else if ( type == Regex::SUBST && slen > 0 )
-		{
-		result = copy_value( strval );
-		charptr *rstrs = result->StringPtr();
 
-		for ( int j=0; j < rlen; ++j )
-			regs[j]->Eval( (char**) rstrs, slen, 1, 0 );
+	else if ( type == Regex::SUBST )
+		{
+		int nlen = slen;
+		charptr *rstrs = 0;
+
+		//
+		// This will allocate space for "rstrs", and fill it from "strs"
+		//
+		regs[0]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1, (char**) strs );
+
+		if ( in_place )
+			{
+			//
+			// get a reference to the underlying value, instead
+			// of a read-only copy
+			//
+			left->ReadOnlyDone( strval );
+			strval_ref = left->RefEval( VAL_REF );
+			strval = (IValue*) strval_ref->Deref();
+
+			int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+			match_count[0] = regs[0]->matchCount();
+
+			for ( int j=1; j < rlen; ++j )
+				{
+				regs[j]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1 );
+				match_count[j] = regs[j]->matchCount();
+				}
+
+			result = new IValue( match_count, rlen );
+			IValue *tmp_val = new IValue( rstrs, nlen );
+			strval->TakeValue( tmp_val );
+			}
+		else
+			{
+			for ( int j=1; j < rlen; ++j )
+				regs[j]->Eval( (char**&) rstrs, nlen, 1, 1, 0, 1 );
+
+			result = new IValue( rstrs, nlen );
+			}
 		}
 	else
-		APPLYREG_BAIL( "bad type or zero length string" )
+		fatal->Report( "bad type in ApplyRegExpr::Eval( )" );
 
 	sequencer->RegexExecuted( regs[rlen-1] );
 
 	right->ReadOnlyDone( regval );
-	if ( in_place && type == Regex::SUBST )
+
+	if ( type == Regex::SUBST && in_place )
 		Unref( strval_ref );
 	else
 		left->ReadOnlyDone( strval );

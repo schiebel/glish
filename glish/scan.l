@@ -249,6 +249,7 @@ FLOAT	(({D}*"."?{D}+)|({D}+"."?{D}*))([eE][-+]?{D}+)?
 
 "~:="		RETURN_COMPOUND(yytext[0]);
 "=~"		RETURN_APPLYRX(yytext[0]);
+"!~"		RETURN_APPLYRX(yytext[0]);
 "~"		RETURN_APPLYRX(0);
 
 activate	RETURN_ACTIVATE(1);

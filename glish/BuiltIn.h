@@ -104,6 +104,7 @@ class name : public BuiltIn {						\
 
 DERIVE_BUILTIN(RealBuiltIn,1,"real",)
 DERIVE_BUILTIN(ImagBuiltIn,1,"imag",)
+DERIVE_BUILTIN(StrlenBuiltIn,1,"strlen",)
 DERIVE_BUILTIN(ComplexBuiltIn,NUM_ARGS_VARIES,"complex",)
 DERIVE_BUILTIN(SumBuiltIn,NUM_ARGS_VARIES,"sum",)
 DERIVE_BUILTIN(ProdBuiltIn,NUM_ARGS_VARIES,"prod",)

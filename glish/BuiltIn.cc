@@ -381,6 +381,23 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.i,
 	return result;
 	}
 
+IValue* StrlenBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue* v = (*args_val)[0];
+
+	if ( ! v->Type() == TYPE_STRING )
+		return (IValue*) Fail( this, " requires a string argument" );
+
+	int len = v->Length();
+	int *ret = (int*) alloc_memory( sizeof(int)*len );
+	charptr *strs = v->StringPtr(0);
+
+	for ( int i=0; i < len; ++i )
+		ret[i] = strlen( strs[i] );
+
+	return new IValue( ret, len );
+	}
+
 IValue* ComplexBuiltIn::DoCall( const_args_list* args_val )
 	{
 	int len = args_val->length();
@@ -1980,9 +1997,6 @@ IValue* as_string_built_in( const IValue* arg )
 		return new IValue( (const char *) sout.str() );
 		}
 
-	if ( ! arg->IsNumeric() )
-		return (IValue*) Fail( "non-numeric argument to as_string()" );
-
 	int len = arg->Length();
 
 	if ( arg->Type() == TYPE_BYTE )
@@ -2001,6 +2015,22 @@ IValue* as_string_built_in( const IValue* arg )
 
 		return result;
 		}
+
+	if ( arg->Type() == TYPE_REGEX )
+		{
+		regexptr *regs = arg->RegexPtr(0);
+		char** s = (char**) alloc_memory( sizeof(char*)*len );
+
+		int i = 0;
+		for ( ; i < len; ++i )
+			s[i] = regs[i]->Description( );;
+
+		IValue* result = new IValue( (charptr*) s, len );
+		return result;
+		}
+
+	if ( ! arg->IsNumeric() && arg->Type() != TYPE_REGEX )
+		return (IValue*) Fail( "non-numeric argument to as_string()" );
 
 	charptr* result = (charptr*) alloc_memory( sizeof(charptr)*len );
 	int i;
@@ -2271,6 +2301,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new RealBuiltIn );
 	s->AddBuiltIn( new ImagBuiltIn );
 	s->AddBuiltIn( new ComplexBuiltIn );
+
+	s->AddBuiltIn( new StrlenBuiltIn );
 
 	s->AddBuiltIn( new SumBuiltIn );
 	s->AddBuiltIn( new ProdBuiltIn );

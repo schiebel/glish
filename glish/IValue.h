@@ -172,6 +172,9 @@ public:
 	void DcomplexOpCompute( const IValue* value, int lhs_len, ArithExpr* expr,
 				const char *&err = glish_charptrdummy );
 
+	// concatenate two strings (this and other)
+	void Concatenate( const IValue *other );
+
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 
 	// Get a description of a non-standard (i.e. interpreter specific) type

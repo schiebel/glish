@@ -115,33 +115,37 @@ IValue *BinOpExpr::Compute( const IValue* lhs, const IValue* rhs, int& lhs_len )
 	}
 
 
+#define ARITHEXPR_EVAL_ACTION						\
+	const char *err_str = 0;					\
+	int lhs_len;							\
+	int element_by_element;						\
+	IValue *err = 0;						\
+	if ( ! ( err = TypeCheck( result, rhs, element_by_element )) &&	\
+	     (! element_by_element ||					\
+	      ! ( err = Compute( result, rhs, lhs_len ) )))		\
+		result = OpCompute( result, rhs, lhs_len, err_str );	\
+									\
+	else								\
+		{							\
+		Unref( result );					\
+		result = err ? err : (IValue*) Fail("ArithExpr::Eval()"); \
+		}							\
+									\
+	right->ReadOnlyDone( rhs );					\
+									\
+	if ( err_str )							\
+		{							\
+		Unref( result );					\
+		return (IValue*) Fail( err_str );			\
+		}
+
+
 IValue* ArithExpr::Eval( eval_type /* etype */ )
 	{
 	IValue* result = left->CopyEval();
 	const IValue* rhs = right->ReadOnlyEval();
 
-	const char *err_str = 0;
-	int lhs_len;
-	int element_by_element;
-	IValue *err = 0;
-	if ( ! ( err = TypeCheck( result, rhs, element_by_element )) &&
-	     (! element_by_element ||
-	      ! ( err = Compute( result, rhs, lhs_len ) )))
-		result = OpCompute( result, rhs, lhs_len, err_str );
-
-	else
-		{
-		Unref( result );
-		result = err ? err : (IValue*) Fail("ArithExpr::Eval()");
-		}
-
-	right->ReadOnlyDone( rhs );
-
-	if ( err_str )
-		{
-		Unref( result );
-		return (IValue*) Fail( err_str );
-		}
+	ARITHEXPR_EVAL_ACTION
 
 	return result;
 	}
@@ -254,6 +258,23 @@ COMPLEX_COMPUTE_OP(name,op,dcomplex,errmsg)		\
 
 DEFINE_SIMPLE_ARITH_EXPR(AddExpr,+=,add_fpe_errmsg)
 DEFINE_SIMPLE_ARITH_EXPR(SubtractExpr,-=,sub_fpe_errmsg)
+
+IValue* AddExpr::Eval( eval_type /* etype */ )
+	{
+	IValue* result = left->CopyEval();
+	const IValue* rhs = right->ReadOnlyEval();
+
+	if ( result->Type() == TYPE_STRING && rhs->Type() == TYPE_STRING )
+		{
+		result->Concatenate( rhs );
+		right->ReadOnlyDone( rhs );
+		return result;
+		}
+
+	ARITHEXPR_EVAL_ACTION
+
+	return result;
+	}
 
 DEFINE_ARITH_EXPR(MultiplyExpr,*=,mul_fpe_errmsg)
 COMPLEX_COMPUTE_MUL_OP(complex,mul_fpe_errmsg)

@@ -544,6 +544,24 @@ DEFINE_XXX_ARITH_OP_COMPUTE(DoubleOpCompute,double,CoerceToDoubleArray,DoublePtr
 DEFINE_XXX_ARITH_OP_COMPUTE(ComplexOpCompute,complex,CoerceToComplexArray,ComplexPtr)
 DEFINE_XXX_ARITH_OP_COMPUTE(DcomplexOpCompute,dcomplex,CoerceToDcomplexArray,DcomplexPtr)
 
+void IValue::Concatenate( const IValue *other )
+	{
+	int olen = other->Length();
+	if ( ! other || Type() != TYPE_STRING ||
+	     other->Type() != TYPE_STRING || ! olen ) return;
+
+	int len = Length();
+
+	if ( ! Grow( olen + len ) ) fatal->Report( "couldn't grow in IValue::Concatenate( const IValue * )" );
+
+	charptr *strs = StringPtr();
+	charptr *nstrs = other->StringPtr(0);
+
+	for ( int i=0; i < olen; ++i )
+		strs[len++] = strdup(nstrs[i]);
+
+	}
+
 //
 // If you change this function check Value::Polymorph
 //

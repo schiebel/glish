@@ -11,23 +11,31 @@ class OStream;
 
 class regxsubst {
     public:
-	regxsubst() : subst(0), reg(0),
-			startp(0), endp(0), pcnt(0), psze(0),
-			refs(0), rcnt(0), rsze(0), bsize(0), err(0) { }
-	regxsubst( char *s ) : subst(s), reg(0),
-			startp(0), endp(0), pcnt(0), psze(0),
-			refs(0), rcnt(0), rsze(0), bsize(0), err(0) { }
+	regxsubst() : subst(0), reg(0),	startp(0), endp(0),
+			pcnt(0), psze(0), refs(0), rcnt(0),
+			rsze(0), splits(0), scnt(0), ssze(0),
+			err(0), split_count(0) { }
+	regxsubst( char *s ) : subst(s), reg(0), startp(0), endp(0),
+			pcnt(0), psze(0), refs(0), rcnt(0),
+			rsze(0), splits(0), scnt(0), ssze(0),
+			err(0), split_count(0) { }
 	regxsubst( const regxsubst &o ) : subst( o.subst ? strdup(o.subst) : 0 ),
 			reg(0), startp(0), endp(0), pcnt(0), psze(0),
-			refs(0), rcnt(0), rsze(0), bsize(0), err(0) { } 
+			refs(0), rcnt(0), rsze(0), splits(0), scnt(0),
+			ssze(0), err(0), split_count(0) { } 
 	~regxsubst();
 	void compile( regexp *reg_ );
 	void compile( regexp *reg_, char *subst_ );
 	char *apply( char *dest );
+	void split( char **dest, const char *src );
 	const char *error( ) const { return err; }
 	const char *str( ) const { return subst; };
 	void setStr( char *s );
 	void setStr( const char *s ) { setStr( (char*)( s ? strdup(s) : 0 ) ); }
+
+	int splitCount( ) const { return split_count; }
+	void splitReset( ) { scnt = 0; }
+
     protected:
 	char *subst;
 	regexp *reg;
@@ -38,8 +46,11 @@ class regxsubst {
 	unsigned short *refs;
 	int rcnt;
 	int rsze;
-	int bsize;
+	char **splits;
+	int scnt;
+	int ssze;
 	char *err;
+	int split_count;
 };
 
 class Regex : public GlishObject {
@@ -60,7 +71,8 @@ class Regex : public GlishObject {
 	// latter two parameters are ONLY used when doing a substitution, i.e. for
 	// matches the number of matches is always returned.
 	//
-	IValue *Eval( char **strs, int len, int in_place = 0, int return_matches = 1 );
+	IValue *Eval( char **&strs, int &len, int in_place = 0, int free_it = 0,
+		      int return_matches = 1, int can_resize = 0, char **alt_src = 0 );
 
 	//
 	// Lower level routines to allow a series of REs to be applied to
@@ -80,6 +92,14 @@ class Regex : public GlishObject {
 	char *Description( char *ret = 0 ) const;
 
 	IValue *GetMatch( );
+
+	//
+	// how many entries is the string going to be split into
+	// with each match?
+	//
+	int Splits() const { return subst.str() ? subst.splitCount() : 0; }
+
+	int matchCount() const { return match_count; }
 
 	~Regex();
 
@@ -102,6 +122,7 @@ class Regex : public GlishObject {
 
 	char divider;
 	unsigned int flags;
+	int match_count;
 };
 
 extern void copy_regexs( void *to_, void *from_, unsigned int len );

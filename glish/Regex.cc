@@ -26,6 +26,8 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 #define memcpy_killbs( to, from, len ) \
 {char last='\0'; int j=0; for (int i=0; i<len; ++i) last=(((to)[j] = (from)[i])=='\\'?(last=='\\'?(++j,'\0'):'\\'):(to)[j++]);len=j;}
 
+#define SPLIT_SIG 65535
+
 #define SIZE_P								\
 	{								\
 	if ( pcnt >= psze )						\
@@ -61,6 +63,23 @@ void init_regex( ) { regxseterror( glish_regx_error_handler ); }
 		}							\
 	}
 
+#define SIZE_S								\
+	{								\
+	if ( scnt >= ssze )						\
+		{							\
+		if (  ssze > 0 )					\
+			{						\
+			ssze *= 2;					\
+			splits = (char**) realloc_memory( splits, ssze * sizeof(char*) ); \
+			}						\
+		else							\
+			{						\
+			ssze = 5;					\
+			splits = (char**) alloc_memory( ssze * sizeof(char*) ); \
+			}						\
+		}							\
+	}
+
 
 void regxsubst::compile( regexp *reg_, char *subst_ )
 	{
@@ -73,13 +92,15 @@ void regxsubst::compile( regexp *reg_ )
 	{
 	reg = reg_;
 
+	split_count = 0;
+
 	if ( ! reg || ! subst )
 		{
 		err = strdup("bad regular expression");
 		return;
 		}
 
-	pcnt = rcnt = bsize = 0;
+	pcnt = rcnt = 0;
 	char digit[24];
 
 	char *dptr = digit;
@@ -108,7 +129,7 @@ void regxsubst::compile( regexp *reg_ )
 				*dptr = '\0';
 				SIZE_R
 				int newdigit =  atoi(digit);
-				if ( newdigit < 0 || newdigit > 65535 )
+				if ( newdigit < 0 || newdigit > 65534 )
 					{
 					sprintf( regx_buffer, "paren reference overflow: %d", newdigit);
 					err = strdup( regx_buffer );
@@ -125,6 +146,24 @@ void regxsubst::compile( regexp *reg_ )
 					}
 
 				dptr = digit;
+				last = ptr;
+				}
+			else if ( *ptr == '$' )
+				{
+				if ( last+1 < ptr )
+					{
+					SIZE_P
+					startp[pcnt] = last;
+					endp[pcnt++] = ptr-1;
+					SIZE_R
+					refs[rcnt++] = 0;
+					}
+
+				SIZE_R
+				refs[rcnt++] = SPLIT_SIG;
+				++split_count;
+				++ptr;
+
 				last = ptr;
 				}
 			break;
@@ -149,7 +188,12 @@ char *regxsubst::apply( char *dest )
 
 	for ( int x = 0; x < rcnt; ++x )
 		{
-		if ( refs[x] )
+		if ( refs[x] == SPLIT_SIG )
+			{
+			SIZE_S
+			splits[scnt++] = dest;
+			}
+		else if ( refs[x] )
 			{
 			int len = reg->endp[refs[x]] - reg->startp[refs[x]];
 			memcpy_killbs( dest, reg->startp[refs[x]], len );
@@ -166,6 +210,32 @@ char *regxsubst::apply( char *dest )
 
 	return dest;
 	}
+
+void regxsubst::split( char **dest, const char *src )
+	{
+	if ( scnt <= 0 ) return;
+
+	if ( splits[0] < src ) fatal->Report( "initial split is before source in regxsubst::split( )" );
+
+	for ( int i=0; i < scnt; ++i, ++dest )
+		{
+		int len = splits[i] - src;
+		if ( len > 0 )
+			{
+			*dest = (char*) alloc_memory(len+1);
+			memcpy( *dest, src, len );
+			(*dest)[len] = '\0';
+			}
+		else
+			*dest = strdup("");
+
+		src = splits[i];
+		}
+
+	*dest = strdup( src );
+	}
+			
+	  
 
 void regxsubst::setStr( char *s )
 	{
@@ -203,7 +273,7 @@ void Regex::compile( )
 Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 				subst( subst_ ), reg(0), match(match_),
 				match_end(0) ,match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider(divider_), flags(flags_)
+				error_string(0), divider(divider_), flags(flags_), match_count(0)
 	{
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
@@ -211,7 +281,7 @@ Regex::Regex( char *match_, char divider_, unsigned int flags_, char *subst_ ) :
 
 Regex::Regex( const Regex &o ) : subst( o.subst ), reg(0), match( o.match ? strdup(o.match) : 0 ),
 				match_end(0), match_val(0), match_res(0), match_len(0), alloc_len(0),
-				error_string(0), divider( o.divider ), flags( o.flags )
+				error_string(0), divider( o.divider ), flags( o.flags ), match_count(0)
 	{
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
 	if ( match ) compile( );
@@ -233,6 +303,7 @@ Regex::Regex( const Regex *o )
 		error_string = 0;
 		divider = o-> divider;
 		flags = o-> flags;
+		match_count = 0;
 		}
 	else
 		{
@@ -245,6 +316,7 @@ Regex::Regex( const Regex *o )
 		error_string = 0;
 		divider = '!';
 		flags = 0;
+		match_count = 0;
 		}
 
 	pm.op_pmflags = FOLD(flags) ? PMf_FOLD : 0;
@@ -344,19 +416,32 @@ else									\
 	if ( GLOBAL(flags) )						\
 		EVAL_LOOP(while, SUBST_ACTION)				\
 	else								\
-		EVAL_LOOP(if, SUBST_ACTION)
+		EVAL_LOOP(if, SUBST_ACTION)				\
+	match_count += count;
 
 
-IValue *Regex::Eval( char **strs, int len, int in_place, int return_matches )
+IValue *Regex::Eval( char **&strs, int &len, int in_place, int free_it,
+		     int return_matches, int can_resize, char **alt_src = 0 )
 	{
 
 	if ( ! reg || ! match )
 		return (IValue*) Fail( "bad regular expression" );
 
+	int swap_io = 0;
+	int resized = 0;
+
+	if ( ! strs )
+		if ( alt_src )
+			swap_io = 1;
+		else
+			return 0;
+
+	int inlen = len;
 	ADJUST_MATCH(*len,)
 
 	IValue *ret = 0;
 
+	match_count = 0;
 	match_len = reg->nparens * len;
 	int count = 0;
 
@@ -365,16 +450,30 @@ IValue *Regex::Eval( char **strs, int len, int in_place, int return_matches )
 		char **outs = strs;
 		int *mret = 0;
 
-		if ( ! in_place )
-			outs = (char**) alloc_memory(sizeof(char*)*len);
-		else if ( return_matches )
-			mret = (int*) alloc_memory(sizeof(int)*len);
+		int splits = subst.splitCount();
 
-		for ( int i=0; i < len; ++i )
+		if ( ! in_place || swap_io )
 			{
-			EVAL_ACTION( strs[i], SUBST_PLACE_ACTION )
+			outs = (char**) alloc_memory(sizeof(char*)*len);
+			if ( swap_io ) strs = alt_src;
+			}
+		else 
+			{
+			if ( return_matches )
+				mret = (int*) alloc_memory(sizeof(int)*len);
+			if ( splits && ! can_resize )
+				{
+				splits = 0;
+				warn->Report( "line splitting requires resizing, can't do it" );
+				}
+			}
 
-			if ( return_matches ) mret[i] = count;
+		for ( int i=0,mc=0; i < len; ++i,++mc )
+			{
+			subst.splitReset();
+			EVAL_ACTION( strs[ in_place && ! swap_io ? i : mc ], SUBST_PLACE_ACTION )
+
+			if ( return_matches ) mret[mc] = count;
 
 			if ( count )
 				{
@@ -384,14 +483,42 @@ IValue *Regex::Eval( char **strs, int len, int in_place, int return_matches )
 					dest += s_end - s;
 					}
 				*dest = '\0';
-				outs[i] = strdup( regx_buffer );
-				}
-			else
-				outs[i] = strdup(strs[i]);
 
-			MATCH_ACTION( count, i+(cnt-1)%reg->nparens*len , index ,	\
-				     register int index = i+cnt%reg->nparens*len )
+				if ( splits )
+					{
+					int xlenx = len;
+					len += count * splits;
+					outs = (char**) realloc_memory(outs, sizeof(char*)*len);
+					if ( in_place && ! swap_io ) strs = outs;
+					resized = 1;
+
+					if ( i+1 < xlenx && in_place && ! swap_io )
+						memmove( &outs[i+count*splits+1], &outs[i+1], (xlenx-i-1)*sizeof(charptr) );
+
+					if ( in_place && free_it && ! swap_io ) free_memory(outs[i]);
+
+					subst.split(&outs[i],regx_buffer);
+					i += count * splits;
+					}
+				else
+					{
+					if ( in_place && free_it && ! swap_io ) free_memory(outs[i]);
+					outs[i] = strdup( regx_buffer );
+					}
+				}
+			else if ( ! in_place || swap_io )
+				{
+				cerr << "------------>   we're here" << endl;
+				if ( free_it ) free_memory(outs[i]);
+				outs[i] = strdup(strs[i]);
+				}
+
+
+			MATCH_ACTION( count, mc+(cnt-1)%reg->nparens*len , index ,	\
+				     register int index = mc+cnt%reg->nparens*len )
 			}
+
+		if ( resized || swap_io ) strs = outs;
 
 		return in_place ? return_matches ? new IValue( mret, len ) : 0 : new IValue(  (charptr*) outs, len );
 		}
@@ -413,7 +540,7 @@ IValue *Regex::Eval( char **strs, int len, int in_place, int return_matches )
 	}
 
 
-int Regex::Eval( char *&string, int in_place = 0 )
+int Regex::Eval( char *&string, int in_place )
 	{
 
 	ADJUST_MATCH(,)
@@ -421,24 +548,28 @@ int Regex::Eval( char *&string, int in_place = 0 )
 	match_len = reg->nparens;
 
 	int count = 0;
-	if ( subst.str() && in_place )
+	if ( subst.str() )
 		{
-		EVAL_ACTION( string, SUBST_PLACE_ACTION )
-
-		if ( count )
+		if ( in_place )
 			{
-			if ( s < s_end )
-				{
-				memcpy( dest, s, s_end - s );
-				dest += s_end - s;
-				}
-			*dest = '\0';
-			register char *tmp = string;
-			string = strdup( regx_buffer );
-			free_memory( tmp );
-			}
+			EVAL_ACTION( string, SUBST_PLACE_ACTION )
 
-		MATCH_ACTION( count , cnt-1 , cnt , )
+			if ( count )
+				{
+				if ( s < s_end )
+					{
+					memcpy( dest, s, s_end - s );
+					dest += s_end - s;
+					}
+				*dest = '\0';
+
+				register char *tmp = string;
+				string = strdup( regx_buffer );
+				free_memory( tmp );
+				}
+
+			MATCH_ACTION( count , cnt-1 , cnt , )
+			}
 		}
 	else
 		{

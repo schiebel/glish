@@ -364,8 +364,14 @@ expression:
 			{ $$ = new ModuloExpr( $1, $3 ); }
 	|	expression '^' expression
 			{ $$ = new PowerExpr( $1, $3 ); }
+
 	|	expression TOK_APPLYRX expression
-			{ $$ = new ApplyRegExpr( $1, $3, current_sequencer, $2 ); }
+			{
+			if ( $2 == '!' )
+				$$ = new NotExpr( new ApplyRegExpr( $1, $3, current_sequencer, $2 ) );
+			else
+				$$ = new ApplyRegExpr( $1, $3, current_sequencer, $2 );
+			}
 
 	|	'-' expression	%prec '!'
 			{ $$ = new NegExpr( $2 ); }
