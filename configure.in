@@ -1159,6 +1159,8 @@ $mkhier "npd/$ARCH/static"
 $mkhier "npd/$ARCH/dynamic"
 $mkhier "editline/$ARCH/static"
 $mkhier "editline/$ARCH/dynamic"
+$mkhier "regexp/$ARCH/static"
+$mkhier "regexp/$ARCH/dynamic"
 $mkhier "glish/$ARCH/static"
 $mkhier "glish/$ARCH/dynamic"
 
@@ -1168,8 +1170,10 @@ PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in)
 PREPROCESS(npd/mkfile.in,npd/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in)
 PREPROCESS(editline/mkfile.in,editline/$ARCH/dynamic.in,[DYNAMIC="yes"])
+PREPROCESS(regexp/mkfile.in,regexp/$ARCH/static.in)
+PREPROCESS(regexp/mkfile.in,regexp/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regexp/$ARCH/static/Makefile:regexp/$ARCH/static.in regexp/$ARCH/dynamic/Makefile:regexp/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in)
 
