@@ -900,6 +900,7 @@ IValue* IValue::ArrayRef( int* indices, int num_indices )
 			return (IValue*) Fail( "index (=", indices[i],
 				") out of range, array length =", kernel.Length() );
 
+	IValue *ret = 0;
 	switch ( Type() )
 		{
 
@@ -915,8 +916,9 @@ IValue* IValue::ArrayRef( int* indices, int num_indices )
 			new_values[i] = copy_func(source_ptr[OFFSET]);	\
 			REF						\
 			}						\
-		return new IValue( new_values, num_indices );		\
-		}
+		ret = new IValue( new_values, num_indices );		\
+		}							\
+		break;
 
 ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,indices[i]-1,,)
 ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr,,indices[i]-1,,)
@@ -969,7 +971,16 @@ ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(ne
 			return 0;
 		}
 
-	return 0;
+	Value *print = 0;
+	if ( ret && attributes && (print = attributes->Field( "print" )) &&
+	     print->Type() == TYPE_RECORD && (print = print->Field("precision")) )
+		{
+		recordptr rptr = create_record_dict( );
+		rptr->Insert( string_dup( "precision" ), copy_value(print) ), 
+		ret->AssignAttribute( "print", new IValue( rptr ) );
+		}
+
+	return ret;
 	}
 
 
