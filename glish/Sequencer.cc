@@ -1649,6 +1649,12 @@ char* Sequencer::RegisterTask( Task* new_task )
 
 	ids_to_tasks.Insert( new_ID, new_task );
 
+	//
+	// Make sure the task stays around at least until we
+	// receive an "establish event"
+	//
+	Ref(new_task);
+
 	return new_ID;
 	}
 
@@ -1918,6 +1924,20 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 		{
 		task->SetProtocol( protocol );
 		AssociateTaskWithChannel( task, connection_channel );
+
+		//
+		// 'task' was Ref'ed so that the establish event
+		// can at least happen before the task is deleted.
+		// here we undo that Ref.
+		//
+		if ( task->RefCount() <= 1 )
+			{
+			Unref(task);
+			return 0;
+			}
+		else
+			Unref(task);
+
 		NewEvent( task, establish_event );
 		}
 
