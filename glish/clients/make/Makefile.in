@@ -201,7 +201,7 @@ lstFirst.o: $(SRC)/lst.lib/lstFirst.c
 lstDatum.o: $(SRC)/lst.lib/lstDatum.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/lst.lib/lstDatum.c
 
-lstForEach.o: $(SRC)/lst.lib/lstForEach.o
+lstForEach.o: $(SRC)/lst.lib/lstForEach.c
 	$(CC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/lst.lib/lstForEach.c
 
 lstMember.o: $(SRC)/lst.lib/lstMember.c
