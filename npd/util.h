@@ -118,12 +118,6 @@ extern void init_log(const char *program_name);
 /* Put an ID stamp in the log, along with the given message. */
 extern void stamp_log( const char *msg );
 
-/* Log a message using the given format.  Logging is done to FILE *log_file,
- * which if not explicitly initialized prior to the first call to log(),
- * defaults to stderr.
- */
-extern int to_log( const char *fmt, ... );
-
 /* Returns the name of the log file. */
 extern const char *npd_log_file();
 

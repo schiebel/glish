@@ -35,6 +35,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <syslog.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -82,16 +83,25 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 	const char *our_username;
 
 	if ( ! create_keyfile() )
-		return to_log( "couldn't create key file" );
+		{
+		fprintf( stderr, "couldn't create key file" );
+		return 0;
+		}
 
 	if ( ! (our_username = get_our_username()) )
-		return to_log( "couldn't get our username" );
+		{
+		fprintf( stderr, "couldn't get our username" );
+		return 0;
+		}
 
 	fprintf( write_, "hello %s %s %d\n", local_host, our_username, NPP_VERSION );
 	fflush( write_ );
 
 	if ( ! (s = get_word_from_peer( read_ )) )
-		return to_log( "peer %s blew us off", remote_host );
+		{
+		fprintf( stderr, "peer %s blew us off", remote_host );
+		return 0;
+		}
 
 	/* Disgusting hack for SunOS systems! */
 	if ( ! strcmp( s, "ld.so:" ) )
@@ -101,12 +111,16 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 		int i;
 		for ( i = 0; i < 8; ++i )
 			if ( ! (s = get_word_from_peer( read_ )) )
-				return to_log(
-"peer %s protocol error, hello expected, problem eating ld.so chud\n",
-					remote_host );
+				{
+				fprintf( stderr, "peer %s protocol error, hello expected, problem eating ld.so chud\n", remote_host );
+				return 0;
+				}
 
 		if ( ! (s = get_word_from_peer( read_ )) )
-			return to_log( "peer %s blew us off", remote_host );
+			{
+			fprintf( stderr, "peer %s blew us off", remote_host );
+			return 0;
+			}
 		}
 
 	if ( strcmp( s, "hello" ) )
@@ -122,28 +136,44 @@ static int authenticate_to_peer( FILE *read_, FILE *write_, const char *local_ho
 
 	if ( ! (s = get_word_from_peer( read_ )) ||
 	     (version = atoi( s )) <= 0 )
-		return to_log( "peer %s protocol error, bad version: got \"%s\"",
-				remote_host, s ? s : "<EOF>" );
+		{
+		fprintf( stderr, "peer %s protocol error, bad version: got \"%s\"",
+			 remote_host, s ? s : "<EOF>" );
+		return 0;
+		}
 
 	if ( ! (s = get_word_from_peer( read_ )) ||
 	     strcmp( s, "challenge" ) )
-		return to_log( "peer %s protocol error, hello expected, got \"%s\"",
-				remote_host, s ? s : "<EOF>" );
+		{
+		fprintf( stderr, "peer %s protocol error, hello expected, got \"%s\"",
+			 remote_host, s ? s : "<EOF>" );
+		return 0;
+		}
 
 	if ( ! (challenge = read_encoded_binary( read_, &challenge_len )) )
-		return to_log( "bad challenge from peer %s - %s", remote_host, errmsg );
+		{
+		fprintf( stderr, "bad challenge from peer %s - %s", remote_host, errmsg );
+		return 0;
+		}
 
 	fprintf( write_, "answer " );
 	if ( ! answer_challenge( (keys_dir ? keys_dir : KEYS_DIR), local_host,
 				 our_username, write_, challenge, challenge_len ) )
-		return to_log( "answering peer %s's challenge failed - %s",
-				remote_host, errmsg );
+		{
+		fprintf( stderr, "answering peer %s's challenge failed - %s",
+			 remote_host, errmsg );
+		return 0;
+		}
+
 	free_memory( challenge );
 	fflush( write_ );
 
 	if ( ! (s = get_word_from_peer( read_ )) ||
 	     strcmp( s, "accepted" ) )
-		return to_log( "answer not accepted by peer %s", remote_host );
+		{
+		fprintf( stderr, "answer not accepted by peer %s", remote_host );
+		return 0;
+		}
 
 	return 1;
 	}
@@ -179,13 +209,13 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 	if ( ! (h = gethostbyaddr( (char *) &peer_addr,
 					sizeof peer_addr, AF_INET )) )
 		{
-		to_log( "could not get peer 0x%X's address", peer_addr );
+		syslog( LOG_ERR, "could not get peer 0x%X's address", peer_addr );
 		return 0;
 		}
 
 	ip_addr = ntohl( sin->sin_addr.s_addr );
 
-	to_log( "npd peer connection from %s (%d.%d.%d.%d.%d)", h->h_name,
+	syslog( LOG_INFO, "npd peer connection from %s (%d.%d.%d.%d.%d)", h->h_name,
 		(ip_addr >> 24) & 0xff, (ip_addr >> 16) & 0xff,
 		(ip_addr >> 8) & 0xff, (ip_addr >> 0) & 0xff,
 		sin->sin_port );
@@ -200,39 +230,39 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 
 	if ( ! h->h_addr_list[i] )
 		{
-		to_log( "peer appears to be spoofing" );
+		syslog( LOG_ERR, "peer appears to be spoofing" );
 		return 0;
 		}
 
 	s = get_word_from_peer( npd_in );
 	if ( ! s || strcmp( s, "hello" ) )
 		{
-		to_log( "peer protocol error, hello expected, got \"%s\"",
+		syslog( LOG_ERR, "peer protocol error, hello expected, got \"%s\"",
 			s ? s : "<EOF>" );
 		return 0;
 		}
 	if ( ! (s = get_word_from_peer( npd_in )) )
 		{
-		to_log( "peer protocol error, hostname expected, got \"%s\"",
+		syslog( LOG_ERR, "peer protocol error, hostname expected, got \"%s\"",
 			s ? s : "<EOF>" );
 		return 0;
 		}
 	if ( strlen( s ) >= sizeof peer_hostname )
 		{
-		to_log( "ridiculously long hostname: \"%s\"", s );
+		syslog( LOG_ERR, "ridiculously long hostname: \"%s\"", s );
 		return 0;
 		}
 	strcpy( peer_hostname, s );
 
 	if ( ! (s = get_word_from_peer( npd_in )) )
 		{
-		to_log( "peer protocol error, username expected, got \"%s\"",
+		syslog( LOG_ERR, "peer protocol error, username expected, got \"%s\"",
 			s ? s : "<EOF>" );
 		return 0;
 		}
 	if ( strlen( s ) >= sizeof peer_username )
 		{
-		to_log( "ridiculously long username: \"%s\"", s );
+		syslog( LOG_ERR, "ridiculously long username: \"%s\"", s );
 		return 0;
 		}
 	strcpy( peer_username, s );
@@ -240,7 +270,7 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 	/* Verify the peer's alleged host name. */
 	if ( ! (h = gethostbyname( peer_hostname )) )
 		{
-		to_log( "can't lookup peer's alleged name: %s", peer_hostname );
+		syslog( LOG_ERR, "can't lookup peer's alleged name: %s", peer_hostname );
 		return 0;
 		}
 
@@ -252,27 +282,27 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 
 	if ( ! h->h_addr_list[i] )
 		{
-		to_log( "peer appears to be spoofing" );
+		syslog( LOG_ERR, "peer appears to be spoofing" );
 		return 0;
 		}
 
 	/* Verify the peer's alleged user name. */
 	if ( ! (uid = get_userid( peer_username )) )
 		{
-		to_log( "peer sent bogus user name" );
+		syslog( LOG_ERR, "peer sent bogus user name" );
 		return 0;
 		}
 
 	/* Prevent access for users who don't have a shell */
 	if ( ! get_user_shell( peer_username ) )
 		{
-		to_log( "peer sent bogus user name" );
+		syslog( LOG_ERR, "peer sent bogus user name" );
 		return 0;
 		}
 
 	if ( ! (s = get_word_from_peer( npd_in )) || (version = atoi( s )) < 1 )
 		{
-		to_log( "peer protocol error, version expected, got \"%s\"",
+		syslog( LOG_ERR, "peer protocol error, version expected, got \"%s\"",
 			s ? s : "<EOF>" );
 		return 0;
 		}
@@ -282,41 +312,41 @@ static char **authenticate_peer( FILE *npd_in, FILE *npd_out, struct sockaddr_in
 				    peer_username, npd_out, &answer_len );
 	if ( ! answer )
 		{
-		to_log( "couldn't compose challenge - %s", errmsg );
+		syslog( LOG_ERR, "couldn't compose challenge - %s", errmsg );
 		return 0;
 		}
 	fflush( npd_out );
 
 	if ( ! (s = get_word_from_peer( npd_in )) || strcmp( s, "answer" ) )
 		{
-		to_log( "peer protocol error, answer expected, got \"%s\"",
+		syslog( LOG_ERR, "peer protocol error, answer expected, got \"%s\"",
 			s ? s : "<EOF>" );
 		return 0;
 		}
 
 	if ( ! (peer_answer = read_encoded_binary( npd_in, &peer_answer_len )) )
 		{
-		to_log( "peer protocol error, couldn't get answer - %s", errmsg );
+		syslog( LOG_ERR, "peer protocol error, couldn't get answer - %s", errmsg );
 		return 0;
 		}
 
 	if ( peer_answer_len != answer_len )
 		{
-		to_log( "peer challenge answer wrong length, %d != %d",
+		syslog( LOG_ERR, "peer challenge answer wrong length, %d != %d",
 			peer_answer_len, answer_len );
 		return 0;
 		}
 
 	if ( ! byte_arrays_equal( peer_answer, answer, answer_len ) )
 		{
-		to_log( "peer answer incorrect" );
+		syslog( LOG_ERR, "peer answer incorrect" );
 		return 0;
 		}
 
 	fprintf( npd_out, "accepted\n" );
 	fflush( npd_out );
 
-	to_log( "peer %s authenticated", peer_hostname );
+	syslog( LOG_INFO, "peer %s authenticated", peer_hostname );
 
 	return OK;
 	}
@@ -330,14 +360,14 @@ char **authenticate_client(int sock)
 
 	if (! (in = fdopen(dup(sock),"r")))
 		{
-		to_log( "could not create FILE* (in)" );
+		syslog( LOG_ERR, "could not create FILE* (in)" );
 		return 0;
 		}
 			    
 	if (! (out = fdopen(dup(sock),"w")))
 		{
 		fclose(in);
-		to_log( "could not create FILE* (out)" );
+		syslog( LOG_ERR, "could not create FILE* (out)" );
 		return 0;
 		}
 
@@ -345,7 +375,7 @@ char **authenticate_client(int sock)
 		{
 		fclose(in);
 		fclose(out);
-		to_log( "could not get peer information (fd: 0x%X)", sock );
+		syslog( LOG_ERR, "could not get peer information (fd: 0x%X)", sock );
 		return 0;
 		}
 
@@ -368,20 +398,23 @@ int authenticate_to_server(int sock)
 
 	if (! (in = fdopen(dup(sock),"r")))
 		{
-		return to_log( "could not create FILE* (in)" );
+		fprintf( stderr, "could not create FILE* (in)" );
+		return 0;
 		}
 			    
 	if (! (out = fdopen(dup(sock),"w")))
 		{
 		fclose(in);
-		return to_log( "could not create FILE* (out)" );
+		fprintf( stderr, "could not create FILE* (out)" );
+		return 0;
 		}
 
 	if ( getsockname( sock, (struct sockaddr*) &sin, &len ) < 0 )
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "could not get host information (0x%X)", sock );
+		fprintf( stderr, "could not get host information (0x%X)", sock );
+		return 0;
 		}
 
 	addr = sin.sin_addr.s_addr;
@@ -390,14 +423,16 @@ int authenticate_to_server(int sock)
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "could not get our information 0x%X's address", addr );
+		fprintf( stderr, "could not get our information 0x%X's address", addr );
+		return 0;
 		}
 
 	if ( strlen(h->h_name) > sizeof(local_host) )
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "ridiculously long hostname: \"%s\"", h->h_name );
+		fprintf( stderr, "ridiculously long hostname: \"%s\"", h->h_name );
+		return 0;
 		}
 
 	strcpy(local_host,h->h_name);
@@ -406,7 +441,8 @@ int authenticate_to_server(int sock)
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "could not get peer information (fd: 0x%X)", sock );
+		fprintf( stderr, "could not get peer information (fd: 0x%X)", sock );
+		return 0;
 		}
 
 	addr = sin.sin_addr.s_addr;
@@ -415,14 +451,16 @@ int authenticate_to_server(int sock)
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "could not get our information 0x%X's address", addr );
+		fprintf( stderr, "could not get our information 0x%X's address", addr );
+		return 0;
 		}
 
 	if ( strlen(h->h_name) > sizeof(remote_host) )
 		{
 		fclose(in);
 		fclose(out);
-		return to_log( "ridiculously long hostname: \"%s\"", h->h_name );
+		fprintf( stderr, "ridiculously long hostname: \"%s\"", h->h_name );
+		return 0;
 		}
 
 	strcpy(remote_host,h->h_name);
