@@ -337,9 +337,8 @@ void TkProxy::SetLoadPath( ProxyStore *, Value *v )
 		load_path = v;
 		Ref( load_path );
 		char *libpath = join_path(load_path->StringPtr(),load_path->Length(),"LD_LIBRARY_PATH=");
-		putenv(libpath);
-		free_memory(libpath);
-		}
+		putenv(libpath);	// here we leak libpath, because putenv
+		}			// depends on it sticking around
 	}
 
 char *TkProxy::which_shared_object( const char* filename )
