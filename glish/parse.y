@@ -29,7 +29,7 @@
 %type <expr> function_head
 %type <event> event
 %type <stmt> statement_list statement local_list local_item func_body
-%type <event_list> event_list
+%type <eventXlist> event_list
 %type <param_list> formal_param_list formal_params
 %type <param_list> actual_param_list actual_params
 %type <param> formal_param actual_param
@@ -67,8 +67,8 @@ Expr* compound_assignment( Expr* lhs, int tok_type, Expr* rhs );
 	Expr* expr;
 	EventDesignator* event;
 	Stmt* stmt;
-	expr_list* expr_list;
-	event_list* event_list;
+	expr_list* exprXlist;
+	event_list* eventXlist;
 	PDict(Expr)* record;
 	parameter_list* param_list;
 	Parameter* param;

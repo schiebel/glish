@@ -7,6 +7,7 @@
 #include <libc.h>
 #endif
 
+#define bool glish_bool
 typedef enum { glish_false, glish_true } bool;
 
 #ifndef iv_defs_h

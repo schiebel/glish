@@ -1,12 +1,13 @@
-setenv ISTKPLACE "/usr/local/src/ISTK"
-setenv CC "gcc"
-setenv CPLUS "g++"
-setenv LEX "flex"
-setenv CFLAGS "-g"
-setenv ARCH "SUN4"
-setenv ISTKBIN $ISTKPLACE/bin/$ARCH
-setenv ISTKLIBS $ISTKPLACE/lib/$ARCH
-setenv AR ar
-setenv RANLIB ranlib
-setenv CP "cp -p"
-setenv MAKE "make"
+ISTKPLACE=`pwd
+CC='gcc --permissive'
+CPLUS='g++ --permissive'
+LEX='flex'
+CFLAGS='-g'
+ARCH='linux'
+ISTKBIN=$ISTKPLACE/bin/$ARCH
+ISTKLIBS=$ISTKPLACE/lib/$ARCH
+AR='ar'
+RANLIB='ranlib'
+CP='cp -p'
+MAKE='make'
+YACC='bison -y'

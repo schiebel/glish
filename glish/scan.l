@@ -91,6 +91,8 @@ static void new_file();
 // compilers don't complain about the zillions of actions that
 // terminate with a "return" followed by a "break".
 #define YY_BREAK
+
+#define yywrap() 1
 %}
 
 %x quote record_field event_name incl
@@ -384,8 +386,8 @@ void restart_yylex( FILE* input_file )
 	{
 	static bool first_call = true;
 
-	if ( yyin != stdin )
-		fclose( yyin );
+/*	if ( yyin != stdin )
+		fclose( yyin );*/
 
 	yyin = input_file;
 

@@ -10,7 +10,7 @@
 #include "Glish/Value.h"
 
 #ifdef __GNUG__
-typedef SignalHandler SigHandler;
+typedef void (*SigHandler)(int);
 #else
 typedef SIG_PF SigHandler;
 #endif

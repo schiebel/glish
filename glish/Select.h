@@ -12,7 +12,7 @@ declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
 
-struct fd_set;
+/* struct fd_set; */
 
 class Selectee {
 public:

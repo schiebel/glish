@@ -25,8 +25,8 @@
 #endif
 
 extern "C" {
-int gethostname( char* name, int namelen );
-char* getcwd( char* buf, int size );
+// int gethostname( char* name, int namelen );
+// char* getcwd( char* buf, int size );
 char* getenv( const char* );
 int isatty( int fd );
 int system( const char* string );

@@ -450,13 +450,14 @@ int Value::IntVal( int n ) const
 			return int( DoublePtr()[n - 1] );
 
 		case TYPE_STRING:
+		  {
 			int result = 0;
 
 			if ( ! text_to_integer( StringPtr()[n - 1], result ) )
 				warn->Report( "string \"", this,
 						"\" converted to integer" );
 			return result;
-
+		  }
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
@@ -504,13 +505,14 @@ double Value::DoubleVal( int n ) const
 			return DoublePtr()[n - 1];
 
 		case TYPE_STRING:
+		  {
 			double result = 0.0;
 
 			if ( ! text_to_double( StringPtr()[n - 1], result ) )
 				warn->Report( "string \"", this,
 						"\" converted to double" );
 			return result;
-
+		  }
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
@@ -809,9 +811,11 @@ bool* Value::CoerceToBoolArray( bool& is_copy, int size, bool* result ) const
 	switch ( type )
 		{
 		case TYPE_BOOL:
+		  {
 			bool* bool_ptr = BoolPtr();
 			for ( i = 0, j = 0; i < size; ++i, j += incr )
 				result[i] = bool_ptr[j];
+		  }
 			break;
 
 #define BOOL_COERCE_ACTION(tag,type,accessor)				\
