@@ -432,6 +432,7 @@ struct glishtk_canvas_bindinfo
 int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysym, int callbacktype)
 	{
 	glishtk_canvas_bindinfo *info = (glishtk_canvas_bindinfo*) assoc;
+	int dummy;
 	recordptr rec = create_record_dict();
 	if ( info->tag )
 		rec->Insert( strdup("tag"), new IValue( info->tag ) );
@@ -448,6 +449,8 @@ int canvas_buttoncb(Rivetobj canvas, XEvent *xevent, ClientData assoc, int keysy
 	ret = (char*) rivet_va_cmd(canvas, "canvasy", buff, 0);
 	cpt[1] = atoi(ret);
 	rec->Insert( strdup("cpoint"), new IValue( cpt, 2 ) );
+	if ( xevent->type == KeyPress )
+		rec->Insert( strdup("key"), new IValue( rivet_expand_event(canvas, "A", xevent, keysym, &dummy) ) );
 	info->canvas->ButtonEvent(info->event_name, new IValue( rec ) );
 	return TCL_OK;
 	}
@@ -464,12 +467,14 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *cmd, parameter_list *args,
 		EXPRSTR( event, event_name )
 		glishtk_canvas_bindinfo *binfo = 
 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button, tag);
+
 		if ( rivet_create_binding(agent->Self(), (char*)tag, (char*)button, (int (*)()) canvas_buttoncb,
 					  (ClientData) binfo, 1, 0) == TCL_ERROR )
 			{
 			error->Report("Error, binding not created.");
 			delete binfo;
 			}
+
 		EXPR_DONE( event )
 		EXPR_DONE( button )
 		EXPR_DONE( tag )
@@ -480,6 +485,7 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *cmd, parameter_list *args,
 		EXPRSTR( event, event_name )
 		glishtk_canvas_bindinfo *binfo = 
 			new glishtk_canvas_bindinfo((TkCanvas*)agent, event, button);
+
 		if ( strcmp(button,"<KeyPress>") )
 			{
 			if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) canvas_buttoncb,
@@ -491,8 +497,8 @@ char *glishtk_canvas_bind(TkAgent *agent, const char *cmd, parameter_list *args,
 			}
 		else
 			{
-			if ( rivet_create_binding(0, agent->Self()->rivet_class->name, (char*)button, (int (*)()) canvas_buttoncb,
-						    (ClientData) binfo, 1, 0) == TCL_ERROR )
+			if ( rivet_create_binding(0, "all", (char*)button, (int (*)()) canvas_buttoncb,
+						  (ClientData) binfo, 1, 0) == TCL_ERROR )
 				{
 				error->Report("Error, binding not created.");
 				delete binfo;
