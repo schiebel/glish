@@ -138,7 +138,6 @@ class WheneverStmt : public Stmt {
 #ifdef GGC
 	void TagGC( );
 #endif
-
     protected:
 	event_list* trigger;
 	Stmt* stmt;
@@ -160,7 +159,7 @@ class WheneverStmtCtor : public Stmt {
 	// proper index.
 	//
 	WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer );
-	void SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc );
+	void SetStmt( Stmt* arg_stmt, ivalue_list *arg_misc = 0 );
 
 	virtual ~WheneverStmtCtor();
 

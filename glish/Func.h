@@ -161,7 +161,7 @@ class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 		  Sequencer* sequencer, Expr* subsequence_expr,
-		  IValue *&err, ivalue_list *misc_values );
+		  IValue *&err, ivalue_list *misc_values = 0 );
 	UserFunc( const UserFunc *f );
 
 	~UserFunc();

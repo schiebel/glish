@@ -30,8 +30,15 @@ extern YYSTYPE yylval;
 #endif
 
 extern Sequencer* current_sequencer;
+#ifdef GGC
 extern int glish_do_gc_register;
 extern void glish_gc_register( IValue * );
+#define DO_GC_REGISTER						\
+	if ( glish_do_gc_register )				\
+		glish_gc_register( v );
+#else
+#define DO_GC_REGISTER
+#endif
 
 // Whether the last token might be the end of a statement.
 int statement_can_end = 0;
@@ -94,8 +101,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 	{							\
 	statement_can_end = 1;					\
 	IValue *v = new IValue( value );			\
-	if ( glish_do_gc_register )				\
-		glish_gc_register( v );				\
+	DO_GC_REGISTER						\
 	YYLVAL(expr) = new ConstExpr( v );			\
 	return TOK_CONSTANT;					\
 	}
@@ -355,8 +361,10 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 				{
 				statement_can_end = 1;
 				IValue *v = isplit( literal());
+#ifdef GGC
 				if ( glish_do_gc_register )
 					glish_gc_register( v );
+#endif
 				YYLVAL(expr) = new ConstExpr( v );
 				return TOK_CONSTANT;
 				}
