@@ -1165,8 +1165,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 	const char *ret = 0;
 	IValue* prev_value;
 
-	if ( scope_offset < 0 )
-		scope = GLOBAL_SCOPE;
+// 	if ( scope_offset < 0 )
+// 		scope = GLOBAL_SCOPE;
 
 	switch ( scope )
 		{

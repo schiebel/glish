@@ -55,7 +55,7 @@ void delete_funcs( void *ary_, unsigned int len )
 extern int interactive;
 IValue::IValue( ) : Value( )
 	{
-	if ( file_name && ! interactive )
+	if ( file_name && file_name->chars() && ! interactive )
 		{
 		AssignAttribute( "file", new IValue( file_name->Chars() ) );
 		if ( line_num > 0 && ! interactive )
