@@ -162,8 +162,22 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 		return RecordStringVal( sep, max_elements, useAttributes, evalable, err );
 	if ( type == TYPE_FAIL )
 		return format_error( kernel.constRecord(), sep, max_elements, useAttributes, prefix );
-	if ( length == 0 )
-		return strdup( "" );
+
+	if ( evalable )
+		{
+		if ( length == 0 )
+			{
+			if ( type == TYPE_STRING )
+				return strdup("\"\"");
+			else 
+				return strdup( "[]" );
+			}
+		else if ( length == 1 && type == TYPE_STRING && ! *StringPtr(0)[0] )
+			return strdup( "''" );
+		}
+	else
+		if ( length == 0 )
+			return strdup( "" );
 
 	char *ns_desc = GetNSDesc( evalable );
 	if ( ns_desc ) return ns_desc;
