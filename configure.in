@@ -321,16 +321,17 @@ AC_DEFUN(ADD_LD_SEARCH,[
     fi]
 )
 
-dnl LIB_VERSION_NUM( BASE_VERSION, LIBRARIES [, SUFFIX_SED_PREPROCESS])
+dnl LIB_VERSION_NUM( BASE_VERSION, LIBRARIES [, SUFFIX_SED_PREPROCESS] [, VARIABLE_SUFFIX ] )
 AC_DEFUN(SLIB_FIND_SUFFIX,[
     for tmp_index in $2; do
-	tmp_id=`echo ${tmp_index}_SLIB_SUFFIX | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+        ifelse([$4], , tmp_suffix=SLIB_SUFFIX, tmp_suffix=$4)
+	tmp_id=`echo ${tmp_index}_${tmp_suffix} | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
         if test -f "$tmp_index/change.h"; then
             eval ${tmp_id}=$1.`cat $tmp_index/change.h | head -1 | sed ['s/^[^0-9]*\([0-9][0-9]*\).*/\1/']`
-            ifelse([$3], , , eval ${tmp_id}=`echo ${tmp_index}_version | sed $1`)
+            ifelse([$3], , , eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed $3`)
 	else
             eval ${tmp_id}=$1.0
-            ifelse([$3], , , eval ${tmp_id}=`echo ${tmp_index}_version | sed $1`)
+            ifelse([$3], , , eval ${tmp_id}=`eval echo \\${${tmp_id}} | sed $3`)
         fi
     done
 ])
@@ -969,7 +970,7 @@ AC_MSG_RESULT($KAI)
 
 AC_CHECK_HEADERS(osfcn.h)
 
-if test ! -z "$no_gettod_decl"; then
+if test -n "$no_gettod_decl"; then
 AC_MSG_CHECKING([for gettimeofday declaration (c++)])
 AC_EGREP_HEADER(gettimeofday, sys/time.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
@@ -1026,7 +1027,7 @@ AC_TRY_COMPILE(
 #endif],
 [$type rm;
 select(0, &rm, 0, 0, 0);], select_type=$type, select_type='')
-if test ! -z "$select_type"; then
+if test -n "$select_type"; then
     break;
 fi
 done
@@ -1160,7 +1161,34 @@ case $host_os in
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	GC_MACH_DEP=rs6000_mach_dep.o
 	;;
-    hpux8.*|hpux9.*|hpux10.*)
+    hpux8.*|hpux9.*)
+	SLIB_CFLAGS="+z"
+	SLIB_LABEL=''
+	SLIB_LD="ld -b"
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".sl"
+	DL_LIBS="-ldld"
+	LD_FLAGS="-Wl,-E"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	TK_LD_RPATH="-Wl,+b,$full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+	GC_MACH_DEP=mach_dep.o
+	echo "$ac_t""FINDING SHARED VERSION" 1>&AC_FD_MSG
+	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g" -e "s/$/$SLIB_SUFFIX/" )
+	SLIB_FIND_SUFFIX( "$_cv_version", glish sos npd editline regx, -e "s/\.//g", SLIB_VERSION )
+	echo "$ac_t""FINDING SHARED VERSION $GLISH_SLIB_SUFFIX" 1>&AC_FD_MSG
+	;;
+    hpux10.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"
@@ -1619,7 +1647,9 @@ fi
 dnl##
 dnl## Set up shared suffix
 dnl##
-SLIB_FIND_SUFFIX( "$SLIB_SUFFIX.$_cv_version", glish sos npd editline regx)
+if test -z "$GLISH_SLIB_SUFFIX"; then
+    SLIB_FIND_SUFFIX( "$SLIB_SUFFIX.$_cv_version", glish sos npd editline regx)
+fi
 
 GLISH_LIB_SUFFIX=".a"
 if test "$GLISH_LIB_SUFFIX" = "" ; then
@@ -1656,20 +1686,20 @@ else
     SHARED_BIN=bin_tgt
     STATIC_BIN=
     if test "$enable_gc" = "yes"; then
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc -lsosgc -leditgc -lregxgc -lgcmem"
+        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishgc${GLISH_SLIB_VERSION} -lsosgc${SOS_SLIB_VERSION} -leditgc${EDITLINE_SLIB_VERSION} -lregxgc${REGX_SLIB_VERSION} -lgcmem"
     else
-        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp -lglish -lsos -ledit -lregx"
+        GLISH_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglishp${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION} -ledit${EDITLINE_SLIB_VERSION} -lregx${REGX_SLIB_VERSION}"
     fi
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos"
-    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk${GLISH_SLIB_VERSION} -lglish${GLISH_SLIB_VERSION} -lsos${SOS_SLIB_VERSION}"
     if test "$do_npd" = "yes"; then
 	if test "$enable_gc" = "yes"; then
-	    GLISH_LIBS="$GLISH_LIBS -lnpdgc"
+	    GLISH_LIBS="$GLISH_LIBS -lnpdgc${NPD_SLIB_VERSION}"
 	else
-	    GLISH_LIBS="$GLISH_LIBS -lnpd"
+	    GLISH_LIBS="$GLISH_LIBS -lnpd${NPD_SLIB_VERSION}"
 	fi
-	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
-	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd"
+	CLIENT_LIBS="$CLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
+	TKCLIENT_LIBS="$TKCLIENT_LIBS -lnpd${NPD_SLIB_VERSION}"
     fi
     if test -n "$DL_LIBS"; then
 	GLISH_LIBS="$GLISH_LIBS $DL_LIBS"
@@ -1758,10 +1788,12 @@ AC_SUBST(SLIB_LD_LIBS)
 AC_SUBST(SLIB_SUFFIX)
 AC_SUBST(LIB_SUFFIX)
 AC_SUBST(GLISH_LIB_SUFFIX)
+
 AC_SUBST(GLISH_SLIB_SUFFIX)
 AC_SUBST(SOS_SLIB_SUFFIX)
 AC_SUBST(NPD_SLIB_SUFFIX)
 AC_SUBST(EDITLINE_SLIB_SUFFIX)
+
 AC_SUBST(REGX_SLIB_SUFFIX)
 AC_SUBST(MAKE_LIB)
 AC_SUBST(MAKE_SLIB)
@@ -1815,7 +1847,6 @@ $mkhier "glish/clients/glishtk/$ARCH/shared"
 if test ! -d include; then
     echo "$ac_t""creating include symbolic links" 1>&AC_FD_MSG
     (mkdir include; cd include;
-     ln -s ../glish/include/Glish Glish;
      ln -s ../sos/include/sos sos;
      ln -s ../npd/include/Npd Npd;
      ln -s ../gcmem/include/gcmem gcmem;
@@ -1826,27 +1857,39 @@ if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
 fi
 
+if test -n "$SLIB_LABEL"; then
+    label_slib="yes"
+fi
+
 echo "$ac_t""preprocessing template makefiles" 1>&AC_FD_MSG
 PREPROCESS(gcmem/mkfile.in,gcmem/$ARCH/Makefile.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(glish/mkfile.in,glish/$ARCH/shared.in,[SHARED="yes"
+LABEL_SLIB="$label_slib"
 SLIB_SYM_LINKS="$make_slib_symlinks"
 GC="$enable_gc"])
+PREPROCESS(glish/clients/glishtk/shared.in,glish/clients/glishtk/$ARCH/shared.in,[SHARED="yes"
+LABEL_SLIB="$label_slib"
+SLIB_SYM_LINKS="$make_slib_symlinks"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(npd/mkfile.in,npd/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+LABEL_SLIB="$label_slib"
 GC="$enable_gc"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(editline/mkfile.in,editline/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+LABEL_SLIB="$label_slib"
 GC="$enable_gc"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(regx/mkfile.in,regx/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+LABEL_SLIB="$label_slib"
 GC="$enable_gc"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in,[GC="$enable_gc"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/shared.in,[SHARED="yes"
 SLIB_SYM_LINKS="$make_slib_symlinks"
+LABEL_SLIB="$label_slib"
 GC="$enable_gc"])
 
-AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/shared/Makefile:npd/$ARCH/shared.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/shared/Makefile:sos/$ARCH/shared.in gcmem/$ARCH/Makefile:gcmem/$ARCH/Makefile.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/shared/Makefile:editline/$ARCH/shared.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/shared/Makefile:regx/$ARCH/shared.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/shared/Makefile:glish/$ARCH/shared.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/glishtk/$ARCH/shared/Makefile:glish/clients/glishtk/$ARCH/shared.in glish/clients/glishtk/$ARCH/static/Makefile:glish/clients/glishtk/static.in $ARCH/glishtk.mak:glish/clients/glishtk/glishtk.mak.in)

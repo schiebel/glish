@@ -23,7 +23,9 @@ RANLIB = :
 LIBTGT = @SHARED_LIB@
 INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+#IF LABEL_SLIB
 LABEL = @SLIB_LABEL@lib$(NAME)$(GSUFFIX)
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -75,7 +77,7 @@ OBJS_PROXY = \
 	$(D)regexec.o \
 	$(D)sv.o
 
-HDRS = $(H)/common.h $(H)/op.h $(H)/regexp.h
+HDRS = $(INCDIR)/regx/common.h $(INCDIR)/regx/op.h $(INCDIR)/regx/regexp.h
 
 TAR_FILE = regx.tar
 
@@ -85,10 +87,7 @@ install: $(INSTALL_LIBTGT)
 
 lib_tgt: $(LIBDIR_P)/lib$(NAME)$(SUFFIX)
 
-INSTALL_lib_tgt: $(LIBDIR)/lib$(NAME)$(SUFFIX)
-	$(MKHIER) $(INCDIR)/regx
-	@rm -f $(INCDIR)/regx/*.h
-	cp $(HDRS) $(INCDIR)/regx
+INSTALL_lib_tgt: $(LIBDIR)/lib$(NAME)$(SUFFIX) $(INCDIR)/regx $(HDRS)
 
 lib$(NAME)$(GSUFFIX): $(OBJS_PROXY)
 	$(RM) lib$(NAME)$(GSUFFIX)
@@ -150,5 +149,23 @@ $(D)regexec.o: $(SRC)/regexec.c $(SRC)/regcomp.h $(SRC)/sv.h $(H)/regexp.h
 
 $(D)sv.o: $(SRC)/sv.c $(SRC)/sv.h $(SRC)/cop.h $(H)/common.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/sv.c $(T)
+
+##
+## Install headers
+##
+$(INCDIR)/regx:
+	$(MKHIER) $(INCDIR)/regx
+
+$(INCDIR)/regx/common.h: $(H)/common.h
+	@rm -f $@
+	cp $(H)/common.h $@
+
+$(INCDIR)/regx/op.h: $(H)/op.h
+	@rm -f $@
+	cp $(H)/op.h $@
+
+$(INCDIR)/regx/regexp.h: $(H)/regexp.h
+	@rm -f $@
+	cp $(H)/regexp.h $@
 
 INSTALL_:

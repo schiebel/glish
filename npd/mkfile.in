@@ -19,8 +19,10 @@ BINTGT =
 INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_BINTGT = 
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+#IF LABEL_SLIB
 LABEL = @SLIB_LABEL@libnpd$(GSUFFIX)
 LABELGC = @SLIB_LABEL@libnpdgc$(GSUFFIX)
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -64,7 +66,7 @@ LIBDIR = @libdir@
 BINDIR = @bindir@
 
 SRC = ../..
-HEADERDIR = $(SRC)/include/Npd
+H = $(SRC)/include/Npd
 INC = -I.. -I$(SRC)/include -I$(INCDIR_P) -I/usr/ucbinclude 
 
 MKHIER = $(top)/config/mkhier
@@ -79,6 +81,8 @@ GCOBJS = gcauth.o gcmd5c.o gcnpd.o gcutil.o
 
 GCOBJS_PROXY = $(D)gcauth.o $(D)gcmd5c.o $(D)gcnpd.o $(D)gcutil.o
 
+HDRS = $(INCDIR)/Npd/npd.h
+
 TAR_FILE = npd.tar
 
 all: $(LIBTGT) $(BINTGT)
@@ -89,7 +93,7 @@ lib_tgt: $(LIBDIR_P)/libnpd$(SUFFIX) $(GCLIB_P)
 
 bin_tgt: $(BINDIR_P)/glishkey
 
-INSTALL_lib_tgt: $(LIBDIR)/libnpd$(SUFFIX) $(GCLIB)
+INSTALL_lib_tgt: $(LIBDIR)/libnpd$(SUFFIX) $(GCLIB) $(INCDIR)/Npd $(HDRS)
 	if test ! -d $(KEYDIR)/hosts; then	\
 	    $(MKHIER) "$(KEYDIR)/hosts";	\
 	    chmod -f 750 "$(KEYDIR)/hosts";	\
@@ -98,9 +102,6 @@ INSTALL_lib_tgt: $(LIBDIR)/libnpd$(SUFFIX) $(GCLIB)
 	    $(MKHIER) "$(KEYDIR)/users";	\
 	    chmod -f 770 "$(KEYDIR)/users";	\
 	fi
-	$(MKHIER) $(INCDIR)/Npd
-	@rm -f $(INCDIR)/Npd/*.h
-	cp $(HEADERDIR)/npd.h $(INCDIR)/Npd
 
 INSTALL_bin_tgt: $(BINDIR)/glishkey
 
@@ -219,5 +220,15 @@ $(D)gcutil.o: $(SRC)/util.c $(SRC)/util.h
 
 genkey.o: $(SRC)/genkey.c $(SRC)/util.h
 	$(CC) $(INC) $(CFLAGS) -c $(SRC)/genkey.c
+
+##
+## Install headers
+##
+$(INCDIR)/Npd:
+	$(MKHIER) $(INCDIR)/Npd
+
+$(INCDIR)/Npd/npd.h: $(H)/npd.h
+	rm -f $@
+	cp $(H)/npd.h $@
 
 INSTALL_:

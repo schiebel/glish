@@ -18,8 +18,10 @@ RANLIB = :
 LIBTGT = @SHARED_LIB@
 INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+#IF LABEL_SLIB
 LABEL = @SLIB_LABEL@libsos$(GSUFFIX)
 LABELGC = @SLIB_LABEL@libsosgc$(GSUFFIX)
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -76,8 +78,9 @@ GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o
 GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
 	$(D)gctypes.o $(D)gclist.o
 
-HDRS = $(H)/io.h $(H)/sos.h $(H)/types.h \
-	$(H)/header.h $(H)/mdep.h $(H)/list.h $(H)/generic.h
+HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
+	$(INCDIR)/sos/header.h $(INCDIR)/sos/mdep.h $(INCDIR)/sos/list.h \
+	$(INCDIR)/sos/generic.h
 
 TAR_FILE = sos.tar
 
@@ -87,10 +90,7 @@ install: $(INSTALL_LIBTGT)
 
 lib_tgt: $(LIBDIR_P)/libsos$(SUFFIX) $(GCLIB_P)
 
-INSTALL_lib_tgt: $(LIBDIR)/libsos$(SUFFIX) $(GCLIB)
-	$(MKHIER) $(INCDIR)/sos
-	@rm -f $(INCDIR)/sos/*.h
-	cp $(HDRS) $(INCDIR)/sos
+INSTALL_lib_tgt: $(LIBDIR)/libsos$(SUFFIX) $(GCLIB) $(INCDIR)/sos $(HDRS)
 
 libsos$(GSUFFIX): $(OBJS_PROXY)
 	$(RM) libsos$(GSUFFIX)
@@ -204,6 +204,40 @@ $(LIBDIR)/libsosgc$(SUFFIX): $(LIBDIR)/libsosgc$(GSUFFIX)
 	rm -f libsosgc$(SUFFIX);	\
 	ln -s libsosgc$(GSUFFIX) libsosgc$(SUFFIX)
 #FI
+
+##
+## Install headers
+##
+$(INCDIR)/sos:
+	$(MKHIER) $(INCDIR)/sos
+
+$(INCDIR)/sos/io.h: $(H)/io.h
+	rm -f $@
+	cp $(H)/io.h $@
+
+$(INCDIR)/sos/sos.h: $(H)/sos.h
+	@rm -f $@
+	cp $(H)/sos.h $@
+
+$(INCDIR)/sos/types.h: $(H)/types.h
+	@rm -f $@
+	cp $(H)/types.h $@
+
+$(INCDIR)/sos/header.h: $(H)/header.h
+	@rm -f $@
+	cp $(H)/header.h $@
+
+$(INCDIR)/sos/mdep.h: $(H)/mdep.h
+	@rm -f $@
+	cp $(H)/mdep.h $@
+
+$(INCDIR)/sos/list.h: $(H)/list.h
+	@rm -f $@
+	cp $(H)/list.h $@
+
+$(INCDIR)/sos/generic.h: $(H)/generic.h
+	@rm -f $@
+	cp $(H)/generic.h $@
 
 INSTALL_:
 

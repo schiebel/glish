@@ -46,6 +46,8 @@ LIBS = $(CLIENT_LIBS) $(TK_LIB) @LIBS@
 
 OBJS = main.o tkCore.o tkCanvas.o @MALLOC@
 
+HDRS = $(INCDIR)/Glish/glishtk.h
+
 DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
@@ -57,11 +59,9 @@ CLIENTS = $(BINDIR_P)/glishtk
 
 SCRIPTS = $(SCRIPTDIR_P)/glishtk.g
 
-HEADERS = $(INCDIR_P)/Glish/glishtk.h
-
 TAR_FILE = glishtk.tar
 
-all: make-bindir_p make-scriptdir_p make-incdir_p $(CLIENTS) $(SCRIPTS) $(HEADERS)
+all: make-bindir_p make-scriptdir_p make-incdir_p $(CLIENTS) $(SCRIPTS)
 
 make-bindir_p:
 	$(MKHIER) $(BINDIR_P)
@@ -81,7 +81,7 @@ make-incdir_p:
 make-incdir:
 	$(MKHIER) $(INCDIR)
 
-install:  make-bindir make-scriptdir make-incdir $(BINDIR)/glishtk $(SCRIPTDIR)/glishtk.g $(INCDIR)/Glish/glishtk.h
+install:  make-bindir make-scriptdir make-incdir $(BINDIR)/glishtk $(SCRIPTDIR)/glishtk.g $(INCDIR)/Glish $(HDRS)
 
 tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
@@ -112,11 +112,14 @@ $(SCRIPTDIR_P)/glishtk.g: $(SRC)/glishtk.g
 $(SCRIPTDIR)/glishtk.g: $(SRC)/glishtk.g
 	$(INSTALL_DATA) $(SRC)/glishtk.g $(SCRIPTDIR)
 
-$(INCDIR_P)/Glish/glishtk.h: $(H)/glishtk.h
-	$(INSTALL_DATA) $(H)/glishtk.h $(INCDIR_P)/Glish
+##
+## Install headers
+##
+$(INCDIR)/Glish:
+	$(MKHIER) $(INCDIR)/Glish
 
 $(INCDIR)/Glish/glishtk.h: $(H)/glishtk.h
-	$(INSTALL_DATA) $(H)/glishtk.h $(INCDIR)/Glish
+	cp $(H)/glishtk.h $@
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files

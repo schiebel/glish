@@ -27,6 +27,9 @@ INCDIR_P = $(top)/include
 LIBDIR_P = $(top)/lib/$(ARCH)
 BINDIR_P = $(top)/bin/$(ARCH)
 SCRIPTDIR_P = $(top)/share/glish
+GLISHTK_SRC = $(SRC)/..
+GLISHTK_INC = $(GLISHTK_SRC)/include
+GLISH_INC = $(GLISHTK_SRC)/../../include
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@
@@ -44,7 +47,7 @@ XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 PGINC = @PGPLOTINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
+INCLUDE = -I. -I$(SRC) -I$(INCDIR_P) -I$(GLISHTK_INC) -I$(GLISH_INC) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
 
 OBJS = tkPgplot.o
 

@@ -17,11 +17,13 @@ MK_LIB = @MAKE_SLIB@
 LD_LIBS = @SLIB_LD_LIBS@
 CFLAGS = @GLISH_FLAGS@ @CFLAGS@ @SLIB_CFLAGS@
 CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@ @SLIB_CXXFLAGS@
+
 GSUFFIX = @GLISH_SLIB_SUFFIX@
 NPD_SUFFIX = @NPD_SLIB_SUFFIX@
 SOS_SUFFIX = @SOS_SLIB_SUFFIX@
 EDIT_SUFFIX = @EDITLINE_SLIB_SUFFIX@
 REGX_SUFFIX = @REGX_SLIB_SUFFIX@
+
 SUFFIX = @SLIB_SUFFIX@
 RANLIB = :
 LIBTGT = @SHARED_LIB@
@@ -30,9 +32,11 @@ INSTALL_LIBTGT = INSTALL_@SHARED_LIB@
 INSTALL_BINTGT = INSTALL_@SHARED_BIN@
 GLISH_LIBS = @GLISH_LIBS@
 INSTALL_LIBRARY = $(INSTALL_PROGRAM)
+#IF LABEL_SLIB
 LABEL = @SLIB_LABEL@libglish$(GSUFFIX)
 LABELGC = @SLIB_LABEL@libglishgc$(GSUFFIX)
 LABELP = @SLIB_LABEL@libglishp$(GSUFFIX)
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -136,9 +140,11 @@ KEYDIR = @KEYDIR@
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-HDRS = $(H)/Dict.h $(H)/Object.h $(H)/Reporter.h $(H)/ValKern.h $(H)/glish.h \
-	$(H)/Client.h $(H)/GlishType.h $(H)/Proxy.h $(H)/Str.h $(H)/Value.h \
-	$(H)/Complex.h $(H)/List.h $(H)/Queue.h $(H)/Stream.h $(H)/VecRef.h
+HDRS = $(INCDIR)/Glish/Dict.h $(INCDIR)/Glish/Object.h $(INCDIR)/Glish/Reporter.h \
+	$(INCDIR)/Glish/ValKern.h $(INCDIR)/Glish/glish.h $(INCDIR)/Glish/Client.h \
+	$(INCDIR)/Glish/GlishType.h $(INCDIR)/Glish/Proxy.h $(INCDIR)/Glish/Str.h \
+	$(INCDIR)/Glish/Value.h $(INCDIR)/Glish/Complex.h $(INCDIR)/Glish/List.h \
+	$(INCDIR)/Glish/Queue.h $(INCDIR)/Glish/Stream.h $(INCDIR)/Glish/VecRef.h
 
 TAR_FILE = glish.tar
 
@@ -150,10 +156,7 @@ lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P)
 
 bin_tgt: $(BINDIR_P)/glish
 
-INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(PLIB) 
-	$(MKHIER) $(INCDIR)/Glish
-	@rm -f $(INCDIR)/Glish/*.h
-	cp $(H)/*.h $(INCDIR)/Glish
+INSTALL_lib_tgt: $(LIBDIR)/libglish$(SUFFIX) $(PLIB) $(INCDIR)/Glish $(HDRS)
 
 INSTALL_bin_tgt: $(BINDIR)/glish
 
@@ -454,6 +457,72 @@ $(D)gcsystem.o: $(SRC)/system.c $(SRC)/system.h
 
 alpha.o: $(SRC)/alpha.c
 	$(ALTCC) $(CINCLUDE) $(CFLAGS) -c $(SRC)/alpha.c
+
+##
+## Install headers
+##
+$(INCDIR)/Glish:
+	$(MKHIER) $(INCDIR)/Glish
+
+$(INCDIR)/Glish/Dict.h: $(H)/Dict.h
+	@rm -f $@
+	cp $(H)/Dict.h $@
+
+$(INCDIR)/Glish/Object.h: $(H)/Object.h
+	@rm -f $@
+	cp $(H)/Object.h $@
+
+$(INCDIR)/Glish/Reporter.h: $(H)/Reporter.h
+	@rm -f $@
+	cp $(H)/Reporter.h $@
+
+$(INCDIR)/Glish/ValKern.h: $(H)/ValKern.h
+	@rm -f $@
+	cp $(H)/ValKern.h $@
+
+$(INCDIR)/Glish/glish.h: $(H)/glish.h
+	@rm -f $@
+	cp $(H)/glish.h $@
+
+$(INCDIR)/Glish/Client.h: $(H)/Client.h
+	@rm -f $@
+	cp $(H)/Client.h $@
+
+$(INCDIR)/Glish/GlishType.h: $(H)/GlishType.h
+	@rm -f $@
+	cp $(H)/GlishType.h $@
+
+$(INCDIR)/Glish/Proxy.h: $(H)/Proxy.h
+	@rm -f $@
+	cp $(H)/Proxy.h $@
+
+$(INCDIR)/Glish/Str.h: $(H)/Str.h
+	@rm -f $@
+	cp $(H)/Str.h $@
+
+ $(INCDIR)/Glish/Value.h:  $(H)/Value.h
+	@rm -f $@
+	cp  $(H)/Value.h $@
+
+$(INCDIR)/Glish/Complex.h: $(H)/Complex.h
+	@rm -f $@
+	cp $(H)/Complex.h $@
+
+$(INCDIR)/Glish/List.h: $(H)/List.h
+	@rm -f $@
+	cp $(H)/List.h $@
+
+$(INCDIR)/Glish/Queue.h: $(H)/Queue.h
+	@rm -f $@
+	cp $(H)/Queue.h $@
+
+$(INCDIR)/Glish/Stream.h: $(H)/Stream.h
+	@rm -f $@
+	cp $(H)/Stream.h $@
+
+$(INCDIR)/Glish/VecRef.h: $(H)/VecRef.h
+	@rm -f $@
+	cp $(H)/VecRef.h $@
 
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libglish$(SUFFIX): $(LIBDIR_P)/libglish$(GSUFFIX)

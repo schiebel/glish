@@ -17,7 +17,7 @@ SHELL = /bin/sh
 SH = $(SHELL)
 
 SRC = ..
-GLISH_SRC = $(SRC)/../..
+GLISH_INC = $(SRC)/../../include
 
 H = $(SRC)/include/Glish
 
@@ -34,7 +34,7 @@ BINDIR = @bindir@
 
 MKHIER = $(top)/config/mkhier
 
-INCLUDE=-I. -I$(SRC) -I$(INCDIR_P) $(PLUSINC)
+INCLUDE=-I. -I$(SRC) -I$(GLISH_INC) -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE=-I. -I$(SRC) -I$(INCDIR_P)
 
 MACHINE=`$(SRC)/machine.sh`
@@ -69,7 +69,7 @@ install:  make-bindir $(INSTALLED_CLIENTS)
 
 #============================================================
 
-make_client.o: $(SRC)/make_client.cc $(GLISH_SRC)/include/Glish/Client.h
+make_client.o: $(SRC)/make_client.cc $(GLISH_INC)/Glish/Client.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/make_client.cc 
 
 make_client: make_client.o $(OBJS) $(LSTOBJS)

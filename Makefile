@@ -32,7 +32,6 @@ distclean:
 include:
 	mkdir include;					\
 	cd include;					\
-	ln -s ../glish/include/Glish Glish;		\
 	ln -s ../sos/include/sos sos;			\
 	ln -s ../npd/include/Npd Npd;			\
 	ln -s ../gcmem/include/gcmem gcmem;		\
