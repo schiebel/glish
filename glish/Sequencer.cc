@@ -52,7 +52,9 @@ void nb_reset_term( int );
 extern jmp_buf glish_include_jmpbuf;
 extern int glish_include_jmpbuf_set;
 
+#if USENPD
 #include "Npd/npd.h"
+#endif
 #include "Daemon.h"
 #include "Glish/Reporter.h"
 #include "Sequencer.h"
@@ -1244,8 +1246,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	Unref(ppid);
 
 	recordptr path = create_record_dict();
+#if USENPD
 	path->Insert( string_dup("key"), new IValue(get_key_directory()) );
-
+#endif
 	char *envpath = getenv( "PATH" );
 	if ( envpath )
 		{
@@ -4050,9 +4053,10 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 	//
 	// update the key directory before using if necessary
 	//
+#if USENPD
 	if ( System().KeyDir() )
 		set_key_directory( System().KeyDir() );
-
+#endif
 	if ( (r = connect_to_daemon( h, err )) )
 		{
 		daemons.Insert( string_dup( host ), r );

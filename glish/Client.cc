@@ -38,7 +38,11 @@ char* strdup( const char* );
 
 #include "Channel.h"
 #include "sos/io.h"
+#if USENPD
 #include "Npd/npd.h"
+#else
+extern int authenticate_to_server( int );
+#endif
 #include "Glish/Client.h"
 
 #include "Daemon.h"
@@ -946,9 +950,10 @@ void Client::ClientInit()
 		{
 		init_reporters();
 		init_values();
-
+#if USENPD
 		// for libnpd
 		init_log( prog_name );
+#endif
 
 #if defined(__alpha) || defined(__alpha__)
 		if ( ! glish_alpha_sigfpe_init )

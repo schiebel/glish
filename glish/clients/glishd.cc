@@ -27,7 +27,16 @@ RCSID("@(#) $Id$")
 #include "Glish/Reporter.h"
 #include "Socket.h"
 #include "LocalExec.h"
+#if USENPD
 #include "Npd/npd.h"
+#else
+extern "C" {
+    int get_userid( const char * );
+    int get_user_group( const char * );
+    const char *get_group_name( int );
+    char **authenticate_client( int );
+};
+#endif
 #include "ports.h"
 
 
@@ -777,17 +786,19 @@ dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
 	// don't let our children inherit the accept socket fd; we want
 	// it to go away when we do.
 	mark_close_on_exec( accept_sock.FD() );
-
+#if USENPD
 	// init for npd and the md5 authentication code
 	init_log(argv[0]);
-
+#endif
 	if ( argc == 2 )
 		{
 		struct stat stat_buf;
 		if ( stat( argv[1], &stat_buf ) < 0 )
 			syslog( LOG_ERR, "couldn't stat key directory \"%s\"", argv[1] );
+#if USENPD
 		else if ( S_ISDIR(stat_buf.st_mode) )
 			set_key_directory(argv[1]);
+#endif
 		else
 			syslog( LOG_ERR, "key directory, \"%s\", invalid", argv[1] );
 		}		
@@ -844,6 +855,7 @@ void dServer::ProcessConnect()
 	mark_close_on_exec( s );
 
 	char **peer = 0;
+
 	if ( (peer = authenticate_client( s )) )
 		{
 		dUser *user = users[peer[0]];

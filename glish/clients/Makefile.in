@@ -38,7 +38,7 @@ MKHIER = $(top)/config/mkhier
 INCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC)/$(ARCH) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P)
 
-GLISH_LIBS = @MALLOC@ $(LIBDIR_P)/libglish$(LIB_SUFFIX) $(LIBDIR_P)/libsos$(LIB_SUFFIX) $(LIBDIR_P)/libnpd$(LIB_SUFFIX)
+GLISH_LIBS = @MALLOC@ @CLIENT_LIBS_DEPEND@
 LIBS = @MALLOC@ $(CLIENT_LIBS) @LIBS@ @EXTRA_LIBS@
 
 CLIENTS = \
@@ -76,13 +76,16 @@ make-bindir:
 
 install:  make-bindir $(INSTALLED_CLIENTS)
 
+npdstubs.o: $(SRC)/npdstubs.c 
+	$(CC) -DUSENPD=@USENPD@ $(INCLUDE) $(CFLAGS) -c $(SRC)/npdstubs.c
+
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
 		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/glishd.cc 
+	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -c $(SRC)/glishd.cc 
 
-glishd: glishd.o $(GLISH_LIBS)
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -o glishd glishd.o $(LIBS)
+glishd: glishd.o npdstubs.o $(GLISH_LIBS)
+	$(CPLUS) -DUSENPD=@USENPD@ $(INCLUDE) $(CXXFLAGS) -o glishd glishd.o npdstubs.o $(LIBS)
 
 $(BINDIR_P)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(BINDIR_P)

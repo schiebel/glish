@@ -13,7 +13,11 @@ RCSID("@(#) $Id$")
 
 #include "Glish/Client.h"
 #include "Daemon.h"
+#if USENPD
 #include "Npd/npd.h"
+#else
+extern int authenticate_to_server( int );
+#endif
 #include "Glish/Reporter.h"
 #include "Channel.h"
 #include "Socket.h"
@@ -154,9 +158,11 @@ Channel *start_local_daemon( )
 
 RemoteDaemon* connect_to_daemon( const char* host, int &err )
 	{
+	err = 0;
+
+#if USENPD
 	static int reported_key_problem = 0;
 	static int created_keyfile = 0;
-	err = 0;
 
 	if ( ! created_keyfile && ! (created_keyfile = create_keyfile()) )
 		{
@@ -167,6 +173,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 			}
 		return 0;
 		}
+#endif
 
 	int daemon_socket = get_tcp_socket();
 

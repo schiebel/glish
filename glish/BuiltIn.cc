@@ -19,7 +19,9 @@ RCSID("@(#) $Id$")
 #include <values.h>
 
 #include "sos/io.h"
+#if USENPD
 #include "Npd/npd.h"
+#endif
 #include "glish_event.h"
 #include "BuiltIn.h"
 #include "Glish/Reporter.h"
@@ -2956,7 +2958,8 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new LastWheneverExecutedBuiltIn( s ) );
 	s->AddBuiltIn( new CurrentWheneverBuiltIn( s ) );
 	s->AddBuiltIn( new EvalBuiltIn( s ) );
-
+#if USENPD
 	// for libnpd
 	init_log( program_name );
+#endif
 	}
