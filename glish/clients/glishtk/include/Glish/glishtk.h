@@ -129,8 +129,7 @@ class TkProxy : public Proxy {
 	char *which_bitmap( const char * );
 
     protected:
-	void do_pack( int argc, char **argv)
-		{ Tk_PackCmd( root, tcl, argc, argv ); }
+	void do_pack( int argc, char **argv);
 
 	static const char *init_tk( int visible_root=1 );
 	tkprochash procs;

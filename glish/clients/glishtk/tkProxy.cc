@@ -755,6 +755,18 @@ const char **TkProxy::PackInstruction()
 	return 0;
 	}
 
+void TkProxy::do_pack( int argc, char **argv)
+	{
+	int set_cmd = 0;
+	if ( argc > 0 && ! argv[0] )
+		{
+		argv[0] = "pack";
+		set_cmd = 1;
+		}
+	tcl_ArgEval( Interp(), argc, argv );
+	if ( set_cmd ) argv[0] = 0;
+	}
+
 charptr TkProxy::IndexCheck( charptr c )
 	{
 	return c;
