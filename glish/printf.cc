@@ -19,15 +19,52 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <BuiltIn.h>
 
+#define IS_PRINTF	(type==1)
+#define IS_FPRINTF	(type==2)
+#define IS_SPRINTF	(type==3)
+
+#define SPRINTF_ALLOC	20
+
+struct dynbuf {
+	dynbuf( int ary_size );
+	void size( int incr ) { if ( scur + incr >= slen ) _size(scur+incr); }
+	void _size( int new_size ); 
+	char *start( ) { return &ary[acur][scur]; }
+	void putch( char c ) { size(1); ary[acur][scur++] = c; ary[acur][scur] = '\0'; }
+	void chars_added( int x ) { slen += x; }
+	void next( ) { ++acur; }
+	int slen;
+	int scur;
+	int alen;
+	int acur;
+	char **ary;
+};
+
+dynbuf::dynbuf( int ary_size ) : slen(20), scur(0), alen(ary_size), acur(0)
+	{
+	ary = (char**) alloc_memory(sizeof(char*)*alen);
+	ary[acur] = (char*) alloc_memory(slen);
+	}
+
+void dynbuf::_size( int new_size )
+	{
+	while ( new_size >= slen ) slen *= 2;
+	ary[acur] = (char*) realloc_memory( ary[acur], slen );
+	}
+
 static char	*ctor(int,int);
-static char	*doit( int, char*, char*, const_args_list*, int&, int, int, int, int);
+static char	*doit( int, char*, char*, const_args_list*, int&, int, int, int, int, dynbuf*, FILE*);
 static void	ctrl( char * );
 static int	digit( char *, int );
 static char	*illfmt( char*, char*, int, char* );
 
-#define T_PRINTF	1
-#define T_FPRINTF	2
-#define T_SPRINTF	3
+#define gputchar(c)			\
+	if ( IS_SPRINTF )		\
+		outbuf->putch(c);	\
+	else if ( IS_FPRINTF )		\
+		putc(c,file);		\
+	else				\
+		putchar(c);
 
 char *_do_gprintf( int type, char *format, const_args_list *args,
 		   int arg_off, FILE *file, char *&buffer )
@@ -39,6 +76,7 @@ char *_do_gprintf( int type, char *format, const_args_list *args,
 	int index;
 	char *err = 0;		// trap errors returned
 	char ebuf[512];
+	dynbuf *outbuf = 0;
 
 	// find the minimum argument length
 	int len = args->length();
@@ -46,6 +84,9 @@ char *_do_gprintf( int type, char *format, const_args_list *args,
 	for ( int i=arg_off+1; i < len; ++i )
 		if ( (*args)[i]->Length() < elemlen )
 			elemlen = (*args)[i]->Length();
+
+	if ( IS_SPRINTF )
+		outbuf = new dynbuf(elemlen);
 
 	// flags
 #define	LONGF	1
@@ -65,7 +106,7 @@ scan:
 		while ((ch = *cp++) != '%') {
 			if (ch == 0)
 				goto loop;
-			(void) putchar(ch);
+			gputchar(ch);
 		}
 
 		ndyn = 0;
@@ -84,7 +125,7 @@ cvt:
 		case 'c': case 's':
 			if (flags)
 				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, ch) )
+			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, ch, outbuf, file) )
 				return err;
 			goto scan;
 
@@ -93,7 +134,7 @@ cvt:
 			if ((flags & (LONGF|SHORTF)) == (LONGF|SHORTF))
 				return illfmt(cbuf, convp, ch, "is both long and short");
 			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch,
-				      flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i') )
+				      flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i', outbuf, file) )
 				return err;
 			goto scan;
 
@@ -101,7 +142,7 @@ cvt:
 		case 'e': case 'E': case 'f': case 'g': case 'G':
 			if (flags)
 				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, 'f') )
+			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, ch, 'f', outbuf, file) )
 				return err;
 			goto scan;
 
@@ -109,12 +150,12 @@ cvt:
 		case 'r': case 'R':
 			if (flags)
 				return illfmt(cbuf, convp, ch, hasmod);
-			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, 's', ch) )
+			if ( err=doit(type, cbuf, convp, args, index, i, ndyn, 's', ch, outbuf, file) )
 				return err;
 			goto scan;
 
 		case '%':	// boring
-			(void) putchar('%');
+			gputchar('%');
 			goto scan;
 
 		// short integers
@@ -219,8 +260,8 @@ static char *illfmt( char *cbuf, char *convp, int ch, char *why ) {
 // Emit a conversion.  cch holds the printf format character for
 // this conversion; cty holds a simplified version (all integer
 // conversions, e.g., are represented as 'i').
-static char *doit( int type, char *cbuf, char *convp, const_args_list *ap,
-		   int &index, int off, int ndyn, int cch, int cty)
+static char *doit( int type, char *cbuf, char *convp, const_args_list *ap, int &index,
+		   int off, int ndyn, int cch, int cty, dynbuf *outbuf, FILE *file )
 {
 	register char *s;
 	const IValue *val;
@@ -257,13 +298,29 @@ static char *doit( int type, char *cbuf, char *convp, const_args_list *ap,
 		}
 	}
 
-#define	PRINTF(what)					\
-	if (ndyn == 0)					\
-		(void) printf(s, what);			\
-	else if (ndyn == 1)				\
-		(void) printf(s, a1, what);		\
-	else						\
-		(void) printf(s, a1, a2, what);
+
+#define GPRINTF(what)							\
+	if ( IS_SPRINTF )						\
+		{							\
+		outbuf->size( SPRINTF_ALLOC );				\
+		outbuf->chars_added(sprintf( outbuf->start(), what ));	\
+		}							\
+	else if ( IS_FPRINTF )						\
+		fprintf( file, what );					\
+	else								\
+		printf( what );
+
+#define ARG1(what) s,what
+#define ARG2(what) s,a1,what
+#define ARG3(what) s,a1,a2,what
+
+#define	PRINTF(what)				\
+	if (ndyn == 0)				\
+		GPRINTF(ARG1(what))		\
+	else if (ndyn == 1)			\
+		GPRINTF(ARG2(what))		\
+	else					\
+		GPRINTF(ARG3(what))
 
 	// emit the appropriate conversion
 	switch (cty) {
@@ -282,13 +339,13 @@ static char *doit( int type, char *cbuf, char *convp, const_args_list *ap,
 		arg.str = ctor(tmpi, cty == 'R');
 		}
 string:
-		PRINTF(arg.str);
+		PRINTF(arg.str)
 		break;
 
 	// floating point
 	case 'f':
 		FLOAT(arg.d)
-		PRINTF(arg.d);
+		PRINTF(arg.d)
 		break;
 
 	// character
@@ -305,13 +362,13 @@ string:
 	case 'i':
 		INT(arg.i)
 integer:
-		PRINTF(arg.i);
+		PRINTF(arg.i)
 		break;
 
 	// long integer
 	case 'l':
 		INT(arg.l)
-		PRINTF(arg.l);
+		PRINTF(arg.l)
 		break;
 	}
 	return 0;
