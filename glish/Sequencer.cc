@@ -65,6 +65,8 @@ extern int allwarn;
 
 // Keeps track of the current sequencer...
 Sequencer *Sequencer::cur_sequencer = 0;
+// Keeps track of if the queue is blocked...
+int Sequencer::hold_queue = 0;
 
 // This is used to indicate that final cleanup is ongoing. Currently
 // this only affects the cleanup of WheneverStmts. Eventaully, these
@@ -989,6 +991,15 @@ void Sequencer::SetErrorResult( IValue *err )
 const Sequencer *Sequencer::CurSeq ( )
 	{
 	return cur_sequencer;
+	}
+void Sequencer::HoldQueue( )
+	{
+	hold_queue += 1;
+	}
+
+void Sequencer::ReleaseQueue( )
+	{
+	hold_queue -= 1;
 	}
 
 const IValue *Sequencer::LookupVal( const char *id )
@@ -2184,9 +2195,10 @@ void Sequencer::EventLoop()
 
 	}
 
-
 void Sequencer::RunQueue()
 	{
+	if ( hold_queue ) return;
+
 	Notification* n;
 
 	while ( (n = notification_queue.DeQueue()) )

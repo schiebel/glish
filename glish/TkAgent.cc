@@ -1015,7 +1015,9 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 	else
 		return error_ivalue();
 
-/*	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ; */
+	Sequencer::HoldQueue();
+	while ( Tk_DoOneEvent( TK_ALL_EVENTS & ~TK_FILE_EVENTS & ~TK_TIMER_EVENTS | TK_DONT_WAIT ) ) ;
+	Sequencer::ReleaseQueue();
 
 	if ( convert && val )
 		return (*convert)(val);

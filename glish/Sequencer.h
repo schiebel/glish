@@ -128,6 +128,13 @@ public:
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
 	static const Sequencer *CurSeq( );
+
+	// In the integration of Tk, the Tk event loop is called in the
+	// process of handling glish events to the Tk widgets. It is
+	// necessary to prevent the Sequencer::RunQueue() from running.
+	static void HoldQueue( );
+	static void ReleaseQueue( );
+
 	// This function attempts to look up a value in the current sequencer.
 	// If the value doesn't exist, null is returned.
 	static const IValue *LookupVal( const char *id );
@@ -392,6 +399,7 @@ protected:
 	// Keeps track of the current sequencer...
 	// Later this may have to be a stack...
 	static Sequencer *cur_sequencer;
+	static int hold_queue;
 
 	// Called from Sequencer::TopLevelReset()
 	void toplevelreset();
