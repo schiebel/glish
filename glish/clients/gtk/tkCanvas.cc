@@ -402,32 +402,6 @@ char *glishtk_canvas_tagfunc(Tcl_Interp *tcl, Tk_Window self, const char *cmd, c
 	return 0;
 	}
 
-char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
-	{
-	char buf[50];
-	int rows;
-	char *event_name = "one string + n int function";
-	TkCanvas *agent = (TkCanvas*)agent_;
-	HASARG( args, > 0 )
-	static char tag[256];
-	static int tagstr_len = 512;
-	static char *tagstr = (char*) alloc_memory( sizeof(char)*tagstr_len );
-	int tagstr_cnt = 0;
-	int name_cnt = 0;
-
-	tagstr[0] = '{';
-	tagstr[1] = '\0';
-	EXPRINIT( event_name)
-	int elements = 0;
-	EXPRVAL(val,event_name)
-	int argc = 3;
-	const Value *shape_val = val->ExistingAttribute( "shape" );
-	if ( (shape_val == false_value || shape_val->Length() == 1 || 
-	     ! shape_val->IsNumeric()) && val->Length() == 1 )
-		{
-	        c = 0;
-		elements = (*args).Length();
-		CANVAS_FUNC_REALLOC(elements*2+argc+2)
 
 #define POINTFUNC_TAG_APPEND(STR)					\
 if ( tagstr_cnt+(int)strlen(STR)+5 >= tagstr_len )			\
@@ -458,6 +432,33 @@ else									\
 	free_memory( str );						\
 	EXPR_DONE( str_v )						\
 	}
+
+char *glishtk_canvas_pointfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
+	{
+	char buf[50];
+	int rows;
+	char *event_name = "one string + n int function";
+	TkCanvas *agent = (TkCanvas*)agent_;
+	HASARG( args, > 0 )
+	static char tag[256];
+	static int tagstr_len = 512;
+	static char *tagstr = (char*) alloc_memory( sizeof(char)*tagstr_len );
+	int tagstr_cnt = 0;
+	int name_cnt = 0;
+
+	tagstr[0] = '{';
+	tagstr[1] = '\0';
+	EXPRINIT( event_name)
+	int elements = 0;
+	EXPRVAL(val,event_name)
+	int argc = 3;
+	const Value *shape_val = val->ExistingAttribute( "shape" );
+	if ( (shape_val == false_value || shape_val->Length() == 1 || 
+	     ! shape_val->IsNumeric()) && val->Length() == 1 )
+		{
+	        c = 0;
+		elements = (*args).Length();
+		CANVAS_FUNC_REALLOC(elements*2+argc+2)
 
 		for (int i = 0; i < (*args).Length(); i++)
 			{
@@ -558,6 +559,188 @@ else									\
 	for (int j=3; j < argc - 2; j++)
 		free_memory( Argv[j] );
 
+	return tag;
+	}
+
+char *glishtk_canvas_textfunc(TkAgent *agent_, const char *cmd, const char *param, Value *args )
+	{
+	if ( args->Type() != TYPE_RECORD )
+		return 0;
+
+	recordptr rptr = args->RecordPtr();
+	TkCanvas *agent = (TkCanvas*)agent_;
+
+	static char tag[256];
+	int tagstr_cnt = 0;
+	static int tagstr_len = 512;
+	static char *tagstr = (char*) alloc_memory( sizeof(char)*tagstr_len );
+
+	Argv[0] = Tk_PathName( agent->Self() );
+	Argv[1] = (char*) cmd;
+	Argv[2] = (char*) param;
+
+	GENERATE_TAG(tag,agent,param)
+
+	const Value *val1 = rptr->NthEntry(0);
+	const Value *shape_val = val1->ExistingAttribute( "shape" );
+	if ( (shape_val == false_value || shape_val->Length() == 1 || 
+	     ! shape_val->IsNumeric()) )
+		{
+		const Value *val2 = rptr->NthEntry(1);
+		const Value *text = (*rptr)["text"];
+		if ( ! text || text == val1 || text == val2 )
+			return 0;
+
+		int max = val1->Length();
+		if ( val2->Length() < max ) max = val2->Length();
+		if ( text->Length() < max ) max = text->Length();
+		if ( max > 1 && rptr->Length() > 2 )
+			{
+			for ( int i=2; i < rptr->Length(); ++i )
+				{
+				int l = rptr->NthEntry(i)->Length();
+				if ( l > 1 && l < max ) max = l;
+				}
+			}
+
+		for ( int i = 0; i < max; ++i )
+			{
+			int name_cnt = 0;
+			int argc = 3;
+			tagstr[0] = '{';
+			tagstr[1] = '\0';
+			for (int j = 0; j < (*rptr).Length(); j++)
+				{
+				const char *key = 0;
+				const Value *val = rptr->NthEntry( j, key );
+				if ( strncmp( key, "arg", 3 ) )
+					{
+					if ( val->Type() == TYPE_STRING )
+						{
+						if ( strcmp( key, "tag" ) )
+							{
+							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
+							Arg_name[name_cnt] = (char*) alloc_memory(sizeof(char)*(strlen(key)+2) );
+							sprintf(Arg_name[name_cnt],"-%s",key);
+							Arg_val[name_cnt] = alloc_memory(strlen(str)+3);
+							sprintf(Arg_val[name_cnt++],"{%s}",str);
+							}
+						else
+							{
+							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
+							POINTFUNC_TAG_APPEND(str)
+							}
+						}
+					}
+				else
+					{
+					if ( val->Type() == TYPE_STRING )
+						Argv[argc++] = strdup(val->StringPtr(0)[i<val->Length()?i:0]);
+					else if ( val->IsNumeric() )
+						{
+						Argv[argc] = (char*) alloc_memory( 30 );
+						sprintf( Argv[argc++], "%d", val->IntVal(i<val->Length()?i+1:1) );
+						}
+					}
+				}
+
+			for ( int x=0; x < name_cnt; x++ )
+				{
+				Argv[argc++] = Arg_name[x];
+				Argv[argc++] = Arg_val[x];
+				}
+
+			POINTFUNC_TAG_APPEND(tag)
+			Argv[argc++] = (char*) "-tag";
+			strcat( tagstr, "}" );
+			Argv[argc++] = (char*) tagstr;
+
+			tcl_ArgEval( agent->Interp(), argc, Argv );
+
+			for (LOOPDECL j=3; j < argc - 2; j++)
+				free_memory( Argv[j] );
+			}
+		}
+	else if ( shape_val != false_value && shape_val->IsNumeric() &&
+		  shape_val->Length() == 2 && shape_val->IntVal(2) == 2 )
+		{
+		int rows = shape_val->IntVal();
+		int max = rows;
+		const Value *text = (*rptr)["text"];
+		if ( ! text || text == val1 )
+			return 0;
+
+		if ( text->Length() < max ) max = text->Length();
+		if ( max > 1 && rptr->Length() > 1 )
+			for ( int i=1; i < rptr->Length(); ++i )
+				{
+				int l = rptr->NthEntry(i)->Length();
+				if ( l > 1 && l < max ) max = l;
+				}
+
+		for ( int i = 0; i < max; ++i )
+			{
+			int name_cnt = 0;
+			int argc = 3;
+			tagstr[0] = '{';
+			tagstr[1] = '\0';
+
+			Argv[argc] = (char*) alloc_memory(30);
+			sprintf( Argv[argc++], "%d", val1->IntVal(i+1) );
+			Argv[argc] = (char*) alloc_memory(30);
+			sprintf( Argv[argc++], "%d", val1->IntVal(i+1+rows) );
+			for (int j = 1; j < (*rptr).Length(); j++)
+				{
+				const char *key = 0;
+				const Value *val = rptr->NthEntry( j, key );
+				if ( strncmp( key, "arg", 3 ) )
+					{
+					if ( val->Type() == TYPE_STRING )
+						{
+						if ( strcmp( key, "tag" ) )
+							{
+							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
+							Arg_name[name_cnt] = (char*) alloc_memory(sizeof(char)*(strlen(key)+2) );
+							sprintf(Arg_name[name_cnt],"-%s",key);
+							Arg_val[name_cnt] = alloc_memory(strlen(str)+3);
+							sprintf(Arg_val[name_cnt++],"{%s}",str);
+							}
+						else
+							{
+							const char *str = val->StringPtr(0)[i<val->Length()?i:0];
+							POINTFUNC_TAG_APPEND(str)
+							}
+						}
+					}
+				else
+					{
+					if ( val->Type() == TYPE_STRING )
+						Argv[argc++] = strdup(val->StringPtr(0)[i<val->Length()?i:0]);
+					else if ( val->IsNumeric() )
+						{
+						Argv[argc] = (char*) alloc_memory( 30 );
+						sprintf( Argv[argc++], "%d", val->IntVal(i<val->Length()?i+1:1) );
+						}
+					}
+				}
+
+			for ( int x=0; x < name_cnt; x++ )
+				{
+				Argv[argc++] = Arg_name[x];
+				Argv[argc++] = Arg_val[x];
+				}
+
+			POINTFUNC_TAG_APPEND(tag)
+			Argv[argc++] = (char*) "-tag";
+			strcat( tagstr, "}" );
+			Argv[argc++] = (char*) tagstr;
+
+			tcl_ArgEval( agent->Interp(), argc, Argv );
+
+			for (LOOPDECL j=3; j < argc - 2; j++)
+				free_memory( Argv[j] );
+			}
+		}
 	return tag;
 	}
 
@@ -871,7 +1054,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	procs.Insert("poly", new TkProc(this, "create", "poly", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("oval", new TkProc(this, "create", "oval", glishtk_canvas_pointfunc,glishtk_str));
 	procs.Insert("arc", new TkProc(this, "create", "arc", glishtk_canvas_pointfunc,glishtk_str));
-	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_pointfunc,glishtk_str));
+	procs.Insert("text", new TkProc(this, "create", "text", glishtk_canvas_textfunc,glishtk_str));
 	procs.Insert("delete", new TkProc("", glishtk_canvas_delete));
 	procs.Insert("view", new TkProc("", glishtk_scrolled_update));
 	procs.Insert("move", new TkProc("", glishtk_canvas_move));
