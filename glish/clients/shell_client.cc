@@ -13,8 +13,12 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include <unistd.h>
 
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 
 #if HAVE_SYS_WAIT_H
@@ -129,7 +133,7 @@ int main( int argc, char** argv )
 		FD_SET( child_exit_fd, &selection_mask );
 		c.AddInputMask( &selection_mask );
 
-		if ( select( FD_SETSIZE, &selection_mask, 0, 0, 0 ) < 0 )
+		if ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) &selection_mask, 0, 0, 0 ) < 0 )
 			{
 			if ( errno != EINTR )
 				{

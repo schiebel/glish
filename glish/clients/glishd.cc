@@ -10,8 +10,12 @@ RCSID("@(#) $Id$")
 #include <signal.h>
 #include <errno.h>
 
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 
 #include "Glish/Dict.h"
@@ -162,7 +166,7 @@ int main( int /* argc */, char** argv )
 			mpcs[i]->AddInputMask( mask );
 			}
 
-		while ( select( FD_SETSIZE, mask, 0, 0, 0 ) < 0 )
+		while ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) mask, 0, 0, 0 ) < 0 )
 			{
 			if ( errno != EINTR )
 				{

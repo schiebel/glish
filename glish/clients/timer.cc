@@ -9,10 +9,13 @@ RCSID("@(#) $Id$")
 #include <osfcn.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <sys/time.h>
 
-#ifdef HAVE_SYS_SELECT_H
+#if HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 
 #include "Glish/Client.h"
@@ -74,8 +77,8 @@ int main( int argc, char** argv )
 		{
 		c.AddInputMask( &selection_mask );
 
-		int status = select( FD_SETSIZE, &selection_mask, 0, 0,
-					timeout );
+		int status = select( FD_SETSIZE, (SELECT_MASK_TYPE *) &selection_mask,
+				     0, 0, timeout );
 
 		if ( status < 0 )
 			{
