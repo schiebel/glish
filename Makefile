@@ -4,16 +4,14 @@
 CWD=.
 SHELL = /bin/sh
 SH = $(SHELL)
-INCLINKS = include/sos include/Npd include/regx
 
-
-all: $(INCLINKS)
+all: include
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi;		 		\
 	$(MAKE) $$FLGS $@_r
 
-install: $(INCLINKS)
+install: include
 	@if test -z "$(ARCH)"; then 			\
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS=""; fi; 				\
@@ -30,6 +28,15 @@ distclean:
 		FLGS="ARCH=`config/architecture`";	\
 	else 	FLGS="";			fi; 	\
 	$(MAKE) $$FLGS $@_r
+
+include:
+	if test ! -d "include"; then			\
+	     mkdir include;				\
+	fi
+	cd include;							\
+	if test ! -h sos; then ln -s ../sos/include/sos sos; fi;	\
+	if test ! -h Npd; then ln -s ../npd/include/Npd Npd; fi;	\
+	if test ! -h regx; then ln -s ../regx/include/regx regx; fi
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
@@ -242,20 +249,6 @@ distclean.npd_r_r: distclean-$(BUILD_NPD)
 
 distclean-BUILD_NPD: 
 	@cd npd; $(MAKE) distclean
-
-##
-## Create include symlinks
-include:
-	mkdir include
-
-include/sos: include
-	cd include; ln -s ../sos/include/sos sos
-
-include/Npd: include
-	cd include; ln -s ../npd/include/Npd Npd
-
-include/regx: include
-	cd include; ln -s ../regx/include/regx regx
 
 ##
 ## Dummy targets
