@@ -583,7 +583,7 @@ JobSaveCommand (cmd, gn)
     ClientData   gn;
 {
     cmd = (ClientData) Var_Subst (NULL, (char *) cmd, (GNode *) gn, FALSE);
-    (void)Lst_AtEnd (postCommands->commands, cmd);
+    Cmd_AtEnd( postCommands, cmd );
     return (0);
 }
 

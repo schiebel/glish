@@ -165,11 +165,16 @@ typedef struct GNode {
 
     Lst             context;   	/* The local variables */
     Lst             commands;  	/* Creation commands */
+    Lst             orig_cmds; 	/* Original creation commands */
 
     struct _Suff    *suffix;	/* Suffix for the node (determined by
 				 * Suff_FindDeps and opaque to everyone
 				 * but the Suff module) */
 } GNode;
+
+#define Cmd_AtEnd( GNODE, CMD )					\
+{	(void) Lst_AtEnd(GNODE->commands,CMD);			\
+	(void) Lst_AtEnd(GNODE->orig_cmds,strdup(CMD)); }
 
 /*
  * Manifest constants 

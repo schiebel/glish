@@ -182,7 +182,7 @@ GlishRunCommand (cmdp, gnp)
     Lst_Replace (cmdNode, (ClientData)cmdStart);
 
     if ((gn->type & OP_SAVE_CMDS) && (gn != ENDNode)) {
-	(void)Lst_AtEnd(ENDNode->commands, (ClientData)cmdStart);
+	Cmd_AtEnd(ENDNode, (ClientData)cmdStart);
 	return(0);
     } else if (strcmp(cmdStart, "...") == 0) {
 	gn->type |= OP_SAVE_CMDS;

@@ -179,6 +179,7 @@ Targ_NewGN (name)
     gn->preds =     	Lst_Init (FALSE);
     gn->context =   	Lst_Init (FALSE);
     gn->commands =  	Lst_Init (FALSE);
+    gn->orig_cmds =  	Lst_Init (FALSE);
     gn->suffix =	NULL;
 
     if (allGNs == NULL)
@@ -219,6 +220,7 @@ TargFreeGN (gnp)
     Lst_Destroy(gn->preds, NOFREE);
     Lst_Destroy(gn->context, NOFREE);
     Lst_Destroy(gn->commands, NOFREE);
+    Lst_Destroy(gn->orig_cmds, NOFREE);
     free((Address)gn);
 }
 

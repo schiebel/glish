@@ -591,9 +591,34 @@ Main_Init(argc, argv)
 	return( 0 );
 }
 
+static int
+MainStrDup( cmdp, lstp )
+    ClientData cmdp;
+    ClientData lstp;
+{
+  Lst lst = (Lst)lstp;
+  Lst_AtEnd( lst, strdup((char*)cmdp) );
+  return(0);
+}
+
+static int
+MainUnmake( gn, dummy )
+    ClientData gn;
+    ClientData dummy;
+{
+    GNode *targ = (GNode*) gn;
+    targ->made = UNMADE;
+    targ->childMade = FALSE;
+    Lst_Destroy(targ->commands, NOFREE);
+    targ->commands = Lst_Init (FALSE);
+    Lst_ForEach( targ->orig_cmds, MainStrDup, (ClientData)targ->commands );
+    return 0;
+}
+
 int
 Main_Make( void )
 {
+	extern void Targ_ForEach __P(( int (*)(ClientData, ClientData), ClientData));
 	Lst targs;	/* target nodes to create -- passed to Make_Init */
 
 	/* print the initial graph, if the user requested it */
@@ -613,6 +638,8 @@ Main_Make( void )
 	Compat_Run(targs);
 
 	Lst_Destroy(targs, NOFREE);
+
+	Targ_ForEach( MainUnmake, (ClientData)NULL );
 
 	return( 0 );
 }
@@ -890,34 +917,22 @@ PrintAddr(a, b)
     return b ? 0 : 0;
 }
 
-static int
-MainUnmake( gn, dummy )
-    ClientData gn;
-    ClientData dummy;
-{
-    GNode *targ = (GNode*) gn;
-    targ->made = UNMADE;
-    targ->childMade = FALSE;
-    return 0;
-}
-
 int main( argc, argv )
      int argc;
      char **argv;
 {
-    extern void Targ_ForEach __P(( int (*)(ClientData, ClientData), ClientData));
 
     int ret = 0;
     ret = Main_Init( argc, argv );
     if ( ret ) return ret;
-    fprintf(stderr,"(1) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
     Targ_PrintGraph(2);
-    fprintf(stderr,"(1) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
     ret = Main_Make( );
+    if ( ret ) return ret;
     fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
     Targ_PrintGraph(2);
     fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
-    Targ_ForEach( MainUnmake, (ClientData)NULL );
     ret = Main_Make( );
     if ( ret ) return ret;
     return Main_Finish( );

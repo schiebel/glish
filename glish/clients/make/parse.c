@@ -1487,7 +1487,7 @@ ParseAddCmd(gnp, cmd)
     GNode *gn = (GNode *) gnp;
     /* if target already supplied, ignore commands */
     if (!(gn->type & OP_HAS_COMMANDS))
-	(void)Lst_AtEnd(gn->commands, cmd);
+	Cmd_AtEnd(gn, cmd);
     return(0);
 }
 
