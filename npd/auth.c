@@ -78,8 +78,8 @@ static unsigned char *get_key( const char *dir, const char *host,
 	int user_len;
 	int n,id;
 
-	static const char from_fmt[] = "%s/hosts/from.%s";
-	static const char to_fmt[] = "%s/hosts/to.%s";
+	static const char from_fmt[] = "%s/hosts/%s";
+	static const char to_fmt[] = "%s/hosts/%s";
 
 	*len_p = 0;
 	n = strlen( to_flag ? to_fmt : from_fmt ) +
