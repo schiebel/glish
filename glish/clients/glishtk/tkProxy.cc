@@ -318,6 +318,7 @@ void TkProxy::ProcessEvent( const char *name, Value *val )
 		static Value *true_result = new Value( glish_true );
 		Value *v = (*proc)( tcl, self, val );
 		if ( ReplyPending() ) Reply( v ? v : true_result );
+		Unref(v);
 		}
 	else
 		Error("unknown event");
