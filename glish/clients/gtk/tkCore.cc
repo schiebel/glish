@@ -2714,7 +2714,8 @@ void TkScale::ValueSet( double d )
 
 void TkScale::SetValue( double d )
 	{
-	if ( d >= from_ && d <= to_ )
+	if ( d >= from_ && d <= to_ ||
+	     d <= from_ && d >= to_ )
 		{
 		char val[256];
 		sprintf(val,"%g",d);
