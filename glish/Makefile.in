@@ -11,9 +11,13 @@ LFLAGS = -s
 YACC = @YACC@
 RANLIB = @RANLIB@
 INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
-SH = /bin/sh
+MKHIER = @top_srcdir@/config/mkhier
+
+SHELL = /bin/sh
+SH = $(SHELL)
 
 SRC = ..
 
@@ -22,8 +26,8 @@ H = $(SRC)/include/Glish
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC)
+INCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC)
 CFLAGS = @GLISH_FLAGS@  @CFLAGS@
 
 INTERP_OBJS = \
@@ -68,31 +72,24 @@ KEY_HEADERS = \
 	$(H)/Object.h $(SRC)/Sequencer.h $(H)/Value.h $(SRC)/IValue.h \
 	$(H)/glish.h
 
-ISTKPLACE = $(SRC)/..
-ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
-ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
+INSTALLDIR = $(SRC)/..
+INCDIR = $(INSTALLDIR)/include
+LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
+BINDIR = $(INSTALLDIR)/bin/$(ARCH)
+
+PFX_INSTALLDIR = @exec_prefix@
+PFX_INCDIR = @prefix@/include
+PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
+PFX_BINDIR = $(PFX_INSTALLDIR)/bin
+
+
 GLISH_HOME = @GLISH_HOME@
 
-LIBS = $(ISTKLIBS)/libsds.a $(ISTKLIBS)/libedit.a $(ISTKLIBS)/libnpd.a
+LIBS = $(LIBDIR)/libsds.a $(LIBDIR)/libedit.a $(LIBDIR)/libnpd.a
 
 TAR_FILE = glish.tar
 
-build:
-	@if [ -d $(ARCH) ]; then \
-		cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile all; \
-		else $(MAKE) $(MFLAGS) -f ../Makefile all; fi;
-
 all: libglish.a libinterp.a glish 
-
-install: $(ISTKLIBS)/libglish.a $(ISTKBIN)/glish
-	@rm -f $(ISTKPLACE)/include/Glish/*.h
-	cp ../include/Glish/*.h $(ISTKPLACE)/include/Glish
-
-install-all:
-	@if [ ! -d $(ARCH) ]; then mkdir $(ARCH); else exit 0; fi;
-	@echo Installing glish ...
-	@cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile install
-	@cd clients; $(MAKE) $(MFLAGS) install-all
 
 glish: main.o libinterp.a libglish.a $(LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
@@ -108,12 +105,62 @@ libinterp.a: $(INTERP_OBJS)
 	ar r libinterp.a $(INTERP_OBJS)
 	$(RANLIB) libinterp.a
 
-$(ISTKBIN)/glish: glish
-	$(INSTALL_PROGRAM) -s glish $(ISTKBIN)
+$(BINDIR)/glish: glish
+	$(MKHIER) $(BINDIR)
+	$(INSTALL_PROGRAM) -s glish $(BINDIR)
 
-$(ISTKLIBS)/libglish.a: libglish.a
-	$(INSTALL) libglish.a $(ISTKLIBS)
-	$(RANLIB) $(ISTKLIBS)/libglish.a
+$(LIBDIR)/libglish.a: libglish.a
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libglish.a $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libglish.a
+
+install: $(LIBDIR)/libglish.a $(BINDIR)/glish
+	$(MKHIER) $(INCDIR)/Glish
+	@rm -f $(INCDIR)/Glish/*.h
+	cp $(H)/*.h $(INCDIR)/Glish
+
+$(PFX_BINDIR)/glish: glish
+	$(MKHIER) $(PFX_BINDIR)
+	$(INSTALL_PROGRAM) -s glish $(PFX_BINDIR)
+
+$(PFX_LIBDIR)/libglish.a: libglish.a
+	$(MKHIER) $(PFX_LIBDIR)
+	$(INSTALL_DATA) libglish.a $(PFX_LIBDIR)
+	$(RANLIB) $(PFX_LIBDIR)/libglish.a
+
+prefix-install: $(PFX_LIBDIR)/libglish.a $(PFX_BINDIR)/glish
+	$(MKHIER) $(PFX_INCDIR)/Glish
+	@rm -f $(PFX_INCDIR)/Glish/*.h
+	cp $(H)/*.h $(PFX_INCDIR)/Glish
+
+tar:
+	@rm -f $(TAR_FILE).Z tar-files
+	@$(MAKE) $(MFLAGS) tar-list >tar-files
+	tar cf $(TAR_FILE) -I tar-files
+	compress $(TAR_FILE)
+	@rm tar-files
+
+tar-list:
+	@echo glish >&2
+	@ls Makefile.in config.h.in \
+		COPYING glish.init mkinit.sh *.c *.cc *.h *.l *.y \
+		*.sed doc/*.ps demos/*.g demos/*.cc demos/*.c \
+		demos/README* include/Glish/*.h | grep -v '^config.h$$'
+	@cd clients; $(MAKE) $(MFLAGS) tar-list | sed 's,^,clients/,'
+
+rcsinfo:
+	@echo glish
+	@rlog -L -S RCS/*,v
+	@echo glish/include/Glish
+	@cd include/Glish; rlog -L -S RCS/*,v
+	@cd clients; $(MAKE) $(MFLAGS) rcsinfo
+
+clean:
+	@rm -f $(CLIENT_OBJS) $(INTERP_OBJS) libinterp.a libglish.a main.o glish errs \
+			parse.cc y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
+
+distclean: clean
+	rm -f config.status config.cache config.h Makefile
 
 Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc
@@ -216,36 +263,3 @@ glish_init.o: glish_init.cc
 system.o: $(SRC)/system.c $(SRC)/system.h
 	$(CC) $(CFLAGS) $(CINCLUDE) -c $(SRC)/system.c
 
-tar:
-	@rm -f $(TAR_FILE).Z tar-files
-	@$(MAKE) $(MFLAGS) tar-list >tar-files
-	tar cf $(TAR_FILE) -I tar-files
-	compress $(TAR_FILE)
-	@rm tar-files
-
-tar-list:
-	@echo glish >&2
-	@ls Makefile.in config.h.in \
-		COPYING glish.init mkinit.sh *.c *.cc *.h *.l *.y \
-		*.sed doc/*.ps demos/*.g demos/*.cc demos/*.c \
-		demos/README* include/Glish/*.h | grep -v '^config.h$$'
-	@cd clients; $(MAKE) $(MFLAGS) tar-list | sed 's,^,clients/,'
-
-rcsinfo:
-	@echo glish
-	@rlog -L -S RCS/*,v
-	@echo glish/include/Glish
-	@cd include/Glish; rlog -L -S RCS/*,v
-	@cd clients; $(MAKE) $(MFLAGS) rcsinfo
-
-clean:
-	@if [ -d $(ARCH) ]; then cd $(ARCH); fi; \
-		rm -f $(CLIENT_OBJS) libinterp.a libglish.a main.o glish errs parse.cc \
-			    y.tab.h glish_init.cc scan.cc ../$(TAR_FILE).Z
-
-clean-all:
-	@$(MAKE) $(MFLAGS) clean
-	@cd clients; $(MAKE) $(MFLAGS) clean-all
-
-distclean: clean
-	rm -f config.status config.cache config.h

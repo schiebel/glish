@@ -9,17 +9,26 @@ INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
+MKHIER = @top_srcdir@/config/mkhier
+
 SHELL = /bin/sh
 
 RM = rm -f
 
 SRC = ..
 HEADERDIR = $(SRC)/include/Npd
-INC = -I$(SRC)/include -I/usr/ucbinclude
+INC = -I. -I$(SRC)/include -I/usr/ucbinclude
 
-ISTKPLACE = $(SRC)/..
-ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
-ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
+INSTALLDIR = $(SRC)/..
+INCDIR = $(INSTALLDIR)/include
+LIBDIR = $(INSTALLDIR)/lib/$(ARCH)
+BINDIR = $(INSTALLDIR)/bin/$(ARCH)
+
+PFX_INSTALLDIR = @exec_prefix@
+PFX_INCDIR = @prefix@/include
+PFX_LIBDIR = $(PFX_INSTALLDIR)/lib
+PFX_BINDIR = $(PFX_INSTALLDIR)/bin
+
 KEYDIR = @KEYDIR@
 ##LOGDIR = /net/kochab/kochab_3/dschieb/glish/glish/log
 
@@ -35,11 +44,6 @@ SINC = $(HEADERDIR)/auth.h \
 
 TAR_FILE = npd.tar
 
-build: make-key-dir
-	@if [ -d $(ARCH) ]; then \
-		cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile libs; \
-		else $(MAKE) $(MFLAGS) -f ../Makefile libs; fi;
-
 libs: libnpd.a genkey
 
 libnpd.a: $(OBJS)
@@ -50,27 +54,33 @@ libnpd.a: $(OBJS)
 genkey: libnpd.a genkey.o
 	$(CC) $(CFLAGS) $(INC) -o genkey genkey.o libnpd.a -lm @LIBS@
 
-$(ISTKLIBS)/libnpd.a:libnpd.a
-	$(INSTALL_DATA) libnpd.a $(ISTKLIBS)
-	$(RANLIB) $(ISTKLIBS)/libnpd.a
+$(LIBDIR)/libnpd.a:libnpd.a
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libnpd.a $(LIBDIR)
+	$(RANLIB) $(LIBDIR)/libnpd.a
 
-$(ISTKBIN)/genkey:genkey
-	$(INSTALL_PROGRAM) -s genkey $(ISTKBIN)
+$(BINDIR)/genkey:genkey
+	$(MKHIER) $(BINDIR)
+	$(INSTALL_PROGRAM) -s genkey $(BINDIR)
 
-install: $(ISTKLIBS)/libnpd.a $(ISTKBIN)/genkey
-	@rm -f $(ISTKPLACE)/include/Npd/*.h
-	cp $(SINC) $(ISTKPLACE)/include/Npd
+install: $(LIBDIR)/libnpd.a $(BINDIR)/genkey
+	$(MKHIER) $(INCDIR)/Npd
+	@rm -f $(INCDIR)/Npd/*.h
+	cp $(SINC) $(INCDIR)/Npd
 
-install-all: make-key-dir
-	@if [ ! -d $(ARCH) ]; then mkdir $(ARCH); else exit 0; fi;
-	@echo Installing npd ...
-	@cd $(ARCH); $(MAKE) $(MFLAGS) -f ../Makefile install
+$(PFX_LIBDIR)/libnpd.a:libnpd.a
+	$(MKHIER) $(PFX_LIBDIR)
+	$(INSTALL_DATA) libnpd.a $(PFX_LIBDIR)
+	$(RANLIB) $(PFX_LIBDIR)/libnpd.a
 
-make-key-dir:
-	@echo "Creating directories (\"File exists\" errors are okay) ..."
-	-@mkdir $(KEYDIR) $(KEYDIR)/users $(KEYDIR)/hosts
-	-@chmod -f 770 $(KEYDIR)/users
-	-@chmod -f 750 $(KEYDIR)/hosts
+$(PFX_BINDIR)/genkey:genkey
+	$(MKHIER) $(PFX_BINDIR)
+	$(INSTALL_PROGRAM) -s genkey $(PFX_BINDIR)
+
+prefix-install: $(PFX_LIBDIR)/libnpd.a $(PFX_BINDIR)/genkey
+	$(MKHIER) $(PFX_INCDIR)/Npd
+	@rm -f $(PFX_INCDIR)/Npd/*.h
+	cp $(SINC) $(PFX_INCDIR)/Npd
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
@@ -90,14 +100,10 @@ rcsinfo:
 	@cd include/Sds;rlog -L RCS/*,v | sed -n -e 's/Working file://p' -e 's/locked by//p'
 
 clean:
-	@if [ -d $(ARCH) ]; then cd $(ARCH); fi; \
-		$(RM) errs *.o *~* $(APPS) core a.out *.a ../$(TAR_FILE).Z
-
-clean-all:
-	@$(MAKE) $(MFLAGS) clean
+	@rm -f errs *.o *~* $(APPS) core a.out *.a ../$(TAR_FILE).Z
 
 distclean: clean
-	rm -f config.status config.cache config.h
+	rm -f config.status config.cache config.h Makefile
 
 auth.o: $(SRC)/auth.c $(HEADERDIR)/md5.h $(HEADERDIR)/util.h $(HEADERDIR)/auth.h
 	$(CC) $(CFLAGS) $(INC) -c $(SRC)/auth.c
