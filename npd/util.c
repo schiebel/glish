@@ -28,7 +28,7 @@
 #include <sys/file.h>
 #endif
 
-#ifdef SYS_V
+#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
 
@@ -124,7 +124,20 @@ static void seed_random_number_generator()
 	if ( ! did_seed )
 		{
 		struct timeval t;
-#ifdef SYS_V
+
+#ifdef HAVE_RANDOM
+		static long state[2];
+		extern char *initstate( unsigned seed, char *state, int n );
+
+		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
+			abort();
+
+		state[0] = (long) t.tv_sec;
+		state[1] = (long) t.tv_usec;
+
+		(void) initstate( (unsigned) getpid(),
+					(char *) state, sizeof state );
+#elif defined(HAVE_LRAND48)
 		static unsigned short state[3];
 		unsigned short int *seed48(unsigned short int seed16v[3]);
 
@@ -137,17 +150,9 @@ static void seed_random_number_generator()
 
 		(void) seed48( state );
 #else
-		static long state[2];
-		extern char *initstate( unsigned seed, char *state, int n );
-
 		if ( gettimeofday( &t, (struct timezone *) 0 ) < 0 )
 			abort();
-
-		state[0] = (long) t.tv_sec;
-		state[1] = (long) t.tv_usec;
-
-		(void) initstate( (unsigned) getpid(),
-					(char *) state, sizeof state );
+		(void) srand( (int) (t.tv_sec + t.tv_usec) );
 #endif
 
 		did_seed = 1;
@@ -191,13 +196,18 @@ unsigned char *random_bytes( int len )
 	seed_random_number_generator();
 
 	for ( n = 0; n < len; ++n )
+
 		{
-#ifdef SYS_V
+
+#ifdef HAVE_RANDOM
+		extern long random();
+		long l = random();
+#elif defined(HAVE_LRAND48)
 		extern long lrand48();
 		long l = lrand48();
 #else
-		extern long random();
-		long l = random();
+		extern int rand();
+		long l = (long) rand();
 #endif
 		/* Take some middle bits of the random number. */
 		b[n] = (unsigned char) ((l & 0xff00) >> 8);
@@ -534,7 +544,17 @@ static void start_log()
 		}
 
 #ifndef NO_LOCKING
-#ifdef SYS_V
+#ifdef HAVE_FLOCK
+	if ( flock( fileno(log_file), LOCK_EX | LOCK_NB ) < 0 )
+		{
+		fprintf( stderr, "%s: can't lock log file %s (%s)\n",
+				prog_name, npd_log,
+				errno == EWOULDBLOCK ?
+					"already locked" :
+					sys_error_desc() );
+		exit( 1 );
+		}
+#elif defined(HAVE_LOCKF)
 	{
 	off_t offset;
 	offset = 0;
@@ -548,16 +568,6 @@ static void start_log()
 		exit( 1 );
 		}
 	}
-#else
-	if ( flock( fileno(log_file), LOCK_EX | LOCK_NB ) < 0 )
-		{
-		fprintf( stderr, "%s: can't lock log file %s (%s)\n",
-				prog_name, npd_log,
-				errno == EWOULDBLOCK ?
-					"already locked" :
-					sys_error_desc() );
-		exit( 1 );
-		}
 #endif
 #else
 	/* NO_LOCKING */
@@ -782,12 +792,10 @@ void init_log( const char *program_name )
 
 void *my_alloc( int size )
 	{
-	extern void *malloc();
 	return (void *) malloc( size );
 	}
 
 void my_free( void *ptr )
 	{
-	extern void free();
 	free( ptr );
 	}
