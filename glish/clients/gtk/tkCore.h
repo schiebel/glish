@@ -6,7 +6,7 @@
 
 #include "tk.h"
 #include "Glish/Proxy.h"
-#include "Queue.h"
+#include "Glish/Queue.h"
 #include "config.h"
 #include "tkAgent.h"
 

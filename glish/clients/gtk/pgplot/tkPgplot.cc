@@ -5,8 +5,6 @@ RCSID("@(#) $Id$")
 #include "tkPgplot.h"
 #include <string.h>
 #include <stdlib.h>
-#include "Reporter.h"
-#include "system.h"
 
 #include "tkpgplot.h"
 #include "cpgplot.h"
@@ -465,7 +463,7 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   // assume we've got enough.  A bit kludgy; will be refined later.
   if (cmap_fail && DisplayPlanes (Tk_Display(frameSelf), Tk_ScreenNumber(frameSelf)) <= 8 &&
       !colorcells_available (frameSelf, mincolors)) {
-    SetError ((Value *)generate_error ("Not enough color cells available"));
+    SetError (new Value("Not enough color cells available"));
     frame = 0;
     return;
   }
@@ -512,7 +510,8 @@ TkPgplot::TkPgplot (ProxyStore *s, TkFrame *frame_, charptr width,
   self = Tk_NameToWindow( tcl, argv[1], root );
 
   if (!self) {
-    SetError ((Value *)generate_error ("Rivet creation failed in TkPgplot::TkPgplot"));
+    frame=0;
+    SetError (new Value("Rivet creation failed in TkPgplot::TkPgplot"));
     return;
   }
   // JAU: Make rivet-less.

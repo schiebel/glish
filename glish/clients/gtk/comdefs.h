@@ -6,7 +6,7 @@
 #define HANDLE_CTOR_ERROR(STR)					\
 		{						\
 		frame = 0;					\
-		SetError( (Value*) generate_error( STR ) );	\
+		SetError( new Value( STR ) );			\
 		return;						\
 		}
 

@@ -4,7 +4,7 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include "Queue.h"
+#include "Glish/Queue.h"
 
 
 BaseQueue::BaseQueue()

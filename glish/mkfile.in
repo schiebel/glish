@@ -323,7 +323,7 @@ $(D)Object.o: $(SRC)/Object.cc $(H)/Object.h
 $(D)Proxy.o: $(SRC)/Proxy.cc $(H)/Proxy.h $(H)/Client.h $(H)/Value.h $(H)/Object.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Proxy.cc $(T)
 
-$(D)Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
+$(D)Queue.o: $(SRC)/Queue.cc $(H)/Queue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Queue.cc $(T)
 
 $(D)Regex.o: $(SRC)/Regex.cc $(SRC)/Regex.h
@@ -340,7 +340,7 @@ $(D)Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Select.cc $(T)
 
 $(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
-    $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
+    $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(H)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h ./Makefile
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DRCDIR=\"$(RCDIR)\" -DKEYDIR=\"$(KEYDIR)\" \
 		-DSCRIPTDIR=\"$(SCRIPTDIR)\" -c $(SRC)/Sequencer.cc $(T)

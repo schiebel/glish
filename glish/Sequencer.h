@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "Glish/Client.h"
 #include "Stmt.h"
-#include "Queue.h"
+#include "Glish/Queue.h"
 #include "Agent.h"
 #include "Regex.h"
 

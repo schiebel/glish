@@ -4,7 +4,8 @@
 ## Makefile for gtk
 ##
 
-GLISH_LIB_SUFFIX = @GLISH_LIB_SUFFIX@
+SUFFIX = @GLISH_SLIB_SUFFIX@
+MK_LIB = @MAKE_SLIB@
 TK_LIB = @TK_LIB@
 CLIENT_LIBS = @TKCLIENT_LIBS@
 
@@ -22,7 +23,8 @@ SHELL = /bin/sh
 SH = $(SHELL)
 
 SRC = ..
-GLISH_SRC = $(SRC)/../..
+GTK_SRC = $(SRC)/..
+GLISH_SRC = $(GTK_SRC)/../..
 
 top = @top_srcdir@@top_off@
 INCDIR_P = $(top)/include
@@ -51,8 +53,10 @@ DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
-CINCLUDE = -I. -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -I$(INCDIR_P) @TK_INCL@ $(XINC)
+INCLUDE = -I. -I$(SRC) -I$(GTK_SRC) -I$(GLISH_SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PLUSINC)
+CINCLUDE = -I. -I$(SRC) -I$(GTK_SRC) -I$(GLISH_SRC) -I$(INCDIR_P) @TK_INCL@ $(XINC)
+
+OBJS = tkPgplot.o
 
 CLIENTS = $(BINDIR_P)/gtk
 
@@ -64,7 +68,7 @@ INSTALLED_SCRIPTS = $(SCRIPTDIR)/gtk.g
 
 TAR_FILE = gtk.tar
 
-all:
+all: gPgplot.$(SUFFIX)
 
 make-bindir_p:
 	$(MKHIER) $(BINDIR_P)
@@ -78,18 +82,9 @@ make-scriptdir_p:
 make-scriptdir:
 	$(MKHIER) $(SCRIPTDIR)
 
-install:  make-bindir make-scriptdir $(INSTALLED_CLIENTS) $(INSTALLED_SCRIPTS)
+install:
 
-tkAgent.o: $(SRC)/tkAgent.cc $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkAgent.cc
-
-tkCore.o: $(SRC)/tkCore.cc $(SRC)/tkCore.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCore.cc
-
-tkCanvas.o: $(SRC)/tkCanvas.cc $(SRC)/tkCanvas.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkCanvas.cc 
-
-tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(SRC)/tkAgent.h $(SRC)/comdefs.h
+tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(GTK_SRC)/tkAgent.h $(GTK_SRC)/comdefs.h
 	@if test -d $(SRC)/tkpgplot; then						\
 	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc; \
 	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -I$(SRC)/tkpgplot -c $(SRC)/tkPgplot.cc;	\
@@ -98,34 +93,14 @@ tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h $(SRC)/tkAgent.h $(SRC)/comdefs
 	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkPgplot.cc;			\
 	fi
 
-malloc.o: $(GLISH_SRC)/malloc.c
-	$(CC) $(CINCLUDE) $(CFLAGS) -c $(GLISH_SRC)/malloc.c
-
-main.o: $(SRC)/main.cc $(SRC)/tkAgent.h
-	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/main.cc 
-
-gtk: $(OBJS) $(GLISH_LIBS)
+gPgplot.$(SUFFIX): $(OBJS)
 	@if test -d $(SRC)/tkpgplot; then							\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    echo $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
+	    $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) -L$(SRC)/tkpgplot/$(ARCH) -ltkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
 	else											\
-	    echo $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);	\
-	    $(CPLUS) $(INCLUDE) $(CXXFLAGS) -o gtk $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
+	    echo $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
+	    $(MK_LIB) gPgplot.$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);			\
 	fi
-
-$(BINDIR_P)/gtk: gtk
-	$(INSTALL_PROGRAM) gtk $(BINDIR_P)
-#	strip $(BINDIR_P)/gtk
-
-$(BINDIR)/gtk: gtk
-	$(INSTALL_PROGRAM) gtk $(BINDIR)
-#	strip $(BINDIR)/gtk
-
-$(SCRIPTDIR_P)/gtk.g: $(SRC)/gtk.g
-	$(INSTALL_DATA) $(SRC)/gtk.g $(SCRIPTDIR_P)
-
-$(SCRIPTDIR)/gtk.g: $(SRC)/gtk.g
-	$(INSTALL_DATA) $(SRC)/gtk.g $(SCRIPTDIR)
 
 tar:
 	@rm -f $(TAR_FILE).Z tar-files
