@@ -1397,6 +1397,7 @@ IValue* IValue::SubRef( const IValue* index, int &err, value_reftype vtype )
 		if ( i == Length( ) + 1 )
 			{
 			ret = (IValue*) create_value( glish_false );
+			ret->MarkUninitialized( );
 			AssignRecordElement( NewFieldName(0), ret );
 			}
 		else
