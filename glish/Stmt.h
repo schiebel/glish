@@ -279,7 +279,6 @@ class ActivateStmt : public Stmt {
 
     protected:
 	int activate;
-	int whenever_index;
 	Expr* expr;
 	Sequencer* sequencer;
 	};

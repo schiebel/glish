@@ -2427,8 +2427,9 @@ Stmt *Sequencer::GetStmt( )
 
 int Sequencer::RegisterStmt( Stmt* stmt )
 	{
+	static int count = 0;
 	registered_stmts.append( stmt );
-	return registered_stmts.length();
+	return ++count;
 	}
 
 void Sequencer::UnregisterStmt( Stmt* stmt )
@@ -2447,10 +2448,13 @@ void Sequencer::NotifieeDone( Notifiee *gone )
 
 Stmt* Sequencer::LookupStmt( int index )
 	{
-	if ( index <= 0 || index > registered_stmts.length() )
-		return 0;
-
-	return registered_stmts[index - 1];
+	for ( register int i=0; i < registered_stmts.length(); ++i )
+		{
+		register Stmt *s = registered_stmts[i];
+		if ( s->Index() == index ) return s;
+		if ( index < s->Index() ) break;
+		}
+	return 0;
 	}
 
 int Sequencer::LocalHost( const char *host )

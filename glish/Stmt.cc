@@ -644,8 +644,6 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 	activate = arg_activate;
 	expr = e;
 	sequencer = arg_sequencer;
-
-	whenever_index = sequencer->CurWheneverIndex();
 	}
 
 IValue* ActivateStmt::DoExec( int /* value_needed */,
@@ -684,16 +682,13 @@ IValue* ActivateStmt::DoExec( int /* value_needed */,
 
 	else
 		{
-		if ( whenever_index < 0 )
+		Notification* n = sequencer->LastNotification();
+
+		if ( ! n )
 			return (IValue*) Fail(
 			"\"activate\"/\"deactivate\" executed without previous \"whenever\"" );
-		Stmt *s = sequencer->LookupStmt( whenever_index );
 
-		if ( ! s )
-			return (IValue*) Fail( whenever_index,
-			"does not designate a valid \"whenever\" statement" );
-
-		s->SetActivity( activate );
+		n->notifiee->stmt()->SetActivity( activate );
 		}
 
 	return 0;
