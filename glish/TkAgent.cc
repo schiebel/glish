@@ -2309,7 +2309,28 @@ char *TkFrame::GrabCB( parameter_list *args, int, int )
 
 char *TkFrame::Raise( parameter_list *args, int, int )
 	{
-	rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd, rivet_path(TopLevel()), 0 );
+	if ( args->length() )
+		{
+		char *event_name = "TkFrame::Raise()";
+		int c = 0;
+		EXPRVAL(arg,event_name)
+		if ( ! arg->IsAgentRecord() )
+			return 0;
+
+		Agent *agent = arg->AgentVal();
+		if ( ! agent ) return 0;
+
+		if ( strncmp( agent->AgentID(), "<graphic:", 9 ) )
+			return 0;
+
+		TkAgent *tkagent = (TkAgent*)agent;
+		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd,
+			       rivet_path(TopLevel()), rivet_path(tkagent->TopLevel()), 0 );
+		EXPR_DONE(arg)
+		}
+	else
+		rivet_va_func( TopLevel(), (int (*)()) Tk_RaiseCmd, rivet_path(TopLevel()), 0 );
+
 	return "";
 	}
 
