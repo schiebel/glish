@@ -122,11 +122,6 @@ extern "C" {
 	 */
 	double get_current_time();
 	/*
-	 * Use the right fork(), without worring about the differences
-	 * between C & C++ includes.
-	 */
-	int fork_process();
-	/*
 	 * Initialize random number generator
 	 */
 	void seed_random_number_generator();

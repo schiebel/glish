@@ -6,12 +6,6 @@
 /* Define to `void*' if <sys/types.h> and <stdlib.h> don't define.  */
 #undef malloc_t
 
-/* Define if you have <vfork.h>.  */
-#undef HAVE_VFORK_H
-
-/* Define vfork as fork if vfork does not work.  */
-#undef vfork
-
 /* Define const to be empty of C compiler does not support it.  */
 #undef const
 

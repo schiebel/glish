@@ -25,16 +25,16 @@ RCSID("@(#) $Id$")
 #include <string.h>
 #include <termio.h>
 
+#if HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
 #ifdef HAVE_SYS_FILIO_H
 #include <sys/filio.h>
 #endif
 
 #ifndef HAVE_GETHOSTNAME
 #include <sys/utsname.h>
-#endif
-
-#ifdef HAVE_VFORK_H
-#include <vfork.h>
 #endif
 
 typedef RETSIGTYPE (*correct_sig_handler)( );
@@ -542,12 +542,6 @@ void pgripe( char msg[] )
 	fprintf( stderr, "system error: " );
 	perror( msg );
 	exit( 1 );
-	}
-
-
-int fork_process()
-	{
-	return (int) vfork();
 	}
 
 

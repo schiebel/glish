@@ -80,5 +80,11 @@
 /* Define to be "int" if C++ for loops have local scope.  */
 #undef LOOPDECL
 
+/* Define if you have <vfork.h>.  */
+#undef HAVE_VFORK_H
+
+/* Define vfork as fork if vfork does not work.  */
+#undef vfork
+
 /* Define to be the mask type for select() calls.  */
 #undef SELECT_MASK_TYPE

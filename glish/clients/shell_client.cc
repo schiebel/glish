@@ -12,6 +12,7 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <wait.h>
 
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -24,6 +25,11 @@ RCSID("@(#) $Id$")
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+
+#ifdef HAVE_VFORK_H
+#include <vfork.h>
+#endif
+
 #ifndef WEXITSTATUS
 #define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
@@ -194,13 +200,7 @@ Channel* CreateChild( char** argv, int& pid )
 			}
 		}
 
-	int input_fd = from_pipe[0];
-	int output_fd = to_pipe[1];
-
-	//
-	// vfork() causes a SEGV with the GNU g++ compiler...
-	//
-	pid = fork();
+	pid = vfork();
 
 	if ( pid == 0 )
 		{ // child
@@ -218,9 +218,9 @@ Channel* CreateChild( char** argv, int& pid )
 			_exit( -1 );
 			}
 
-		close( input_fd );
-		close( output_fd );
 		close( to_pipe[0] );
+		close( to_pipe[1] );
+		close( from_pipe[0] );
 		close( from_pipe[1] );
 
 		execvp( argv[0], &argv[0] );
@@ -233,7 +233,7 @@ Channel* CreateChild( char** argv, int& pid )
 	close( to_pipe[0] );
 	close( from_pipe[1] );
 
-	return new Channel( input_fd, output_fd );
+	return new Channel( from_pipe[0], to_pipe[1] );
 	}
 
 
