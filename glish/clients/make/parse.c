@@ -792,14 +792,8 @@ ParseDoDependency (line)
 			DEFAULT = gn;
 			break;
 		    case NotParallel:
-		    {
-			extern int  maxJobs;
-			
-			maxJobs = 1;
 			break;
-		    }
 		    case SingleShell:
-			compatMake = 1;
 			break;
 		    case Order:
 			predecessor = NILGNODE;
@@ -982,13 +976,6 @@ ParseDoDependency (line)
 		break;
 	}
     } else if (specType == MFlags) {
-	/*
-	 * Call on functions in main.c to deal with these arguments and
-	 * set the initial character to a null-character so the loop to
-	 * get sources won't get anything
-	 */
-	Main_ParseArgLine (line);
-	*line = '\0';
     } else if (specType == ExShell) {
 	if (Job_ParseShell (line) != SUCCESS) {
 	    Parse_Error (PARSE_FATAL, "improper shell specification");
@@ -2201,7 +2188,7 @@ test_char:
 		break;
 	    case '#':
 		if (!ignComment) {
-		    if (compatMake && (lastc != '\\')) {
+		    if (lastc != '\\') {
 			/*
 			 * If the character is a hash mark and it isn't escaped
 			 * (or we're being compatible), the thing is a comment.

@@ -105,11 +105,8 @@ time_t			now;		/* Time at start of make */
 GNode			*DEFAULT;	/* .DEFAULT node */
 Boolean			allPrecious;	/* .PRECIOUS given on line by itself */
 
-static Boolean		noBuiltins;	/* -r flag */
 static Lst		makefiles;	/* ordered list of makefiles to read */
-int			maxJobs;	/* -J argument */
 static int		maxLocal;	/* -L argument */
-Boolean			compatMake;	/* -B argument */
 Boolean			debug;		/* -d flag */
 Boolean			noExecute;	/* -n flag */
 Boolean			keepgoing;	/* -k flag */
@@ -176,11 +173,7 @@ MainParseArgs(argc, argv)
 		argv[0] = "";		/* avoid problems in getopt */
 
 	optind = 1;	/* since we're called more than once */
-#ifdef notyet
-# define OPTFLAGS "BD:I:L:PSd:ef:ij:knqrst"
-#else
-# define OPTFLAGS "D:I:d:ef:ij:knqrst"
-#endif
+# define OPTFLAGS "D:I:d:ef:ij:knt"
 rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		switch(c) {
 		case 'D':
@@ -193,24 +186,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			Var_Append(MAKEFLAGS, "-I", VAR_GLOBAL);
 			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
 			break;
-#ifdef notyet
-		case 'B':
-			compatMake = TRUE;
-			break;
-		case 'L':
-			maxLocal = atoi(optarg);
-			Var_Append(MAKEFLAGS, "-L", VAR_GLOBAL);
-			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
-			break;
-		case 'P':
-			usePipes = FALSE;
-			Var_Append(MAKEFLAGS, "-P", VAR_GLOBAL);
-			break;
-		case 'S':
-			keepgoing = FALSE;
-			Var_Append(MAKEFLAGS, "-S", VAR_GLOBAL);
-			break;
-#endif
 		case 'd': {
 			char *modules = optarg;
 
@@ -277,11 +252,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 			ignoreErrors = TRUE;
 			Var_Append(MAKEFLAGS, "-i", VAR_GLOBAL);
 			break;
-		case 'j':
-			maxJobs = atoi(optarg);
-			Var_Append(MAKEFLAGS, "-j", VAR_GLOBAL);
-			Var_Append(MAKEFLAGS, optarg, VAR_GLOBAL);
-			break;
 		case 'k':
 			keepgoing = TRUE;
 			Var_Append(MAKEFLAGS, "-k", VAR_GLOBAL);
@@ -289,19 +259,6 @@ rearg:	while((c = getopt(argc, argv, OPTFLAGS)) != EOF) {
 		case 'n':
 			noExecute = TRUE;
 			Var_Append(MAKEFLAGS, "-n", VAR_GLOBAL);
-			break;
-		case 'q':
-			queryFlag = TRUE;
-			/* Kind of nonsensical, wot? */
-			Var_Append(MAKEFLAGS, "-q", VAR_GLOBAL);
-			break;
-		case 'r':
-			noBuiltins = TRUE;
-			Var_Append(MAKEFLAGS, "-r", VAR_GLOBAL);
-			break;
-		case 's':
-			beSilent = TRUE;
-			Var_Append(MAKEFLAGS, "-s", VAR_GLOBAL);
 			break;
 		case 't':
 			touchFlag = TRUE;
@@ -406,12 +363,10 @@ Main_ParseArgLine(line)
  *	The program exits when done. Targets are created. etc. etc. etc.
  */
 int
-main(argc, argv)
+Main_Init(argc, argv)
 	int argc;
 	char **argv;
 {
-	Lst targs;	/* target nodes to create -- passed to Make_Init */
-	Boolean outOfDate = TRUE; 	/* FALSE if all targets up to date */
 	struct stat sb, sa;
 	char *p, *p1, *path, *pwd, *getenv(), *getcwd();
 	char mdpath[MAXPATHLEN + 1];
@@ -498,26 +453,18 @@ main(argc, argv)
 
 	create = Lst_Init(FALSE);
 	makefiles = Lst_Init(FALSE);
-	beSilent = FALSE;		/* Print commands as executed */
+	beSilent = TRUE;		/* Print commands as executed */
 	ignoreErrors = FALSE;		/* Pay attention to non-zero returns */
 	noExecute = FALSE;		/* Execute all commands */
 	keepgoing = FALSE;		/* Stop on error */
 	allPrecious = FALSE;		/* Remove targets when interrupted */
 	queryFlag = FALSE;		/* This is not just a check-run */
-	noBuiltins = FALSE;		/* Read the built-in rules */
 	touchFlag = FALSE;		/* Actually update targets */
 	usePipes = TRUE;		/* Catch child output in pipes */
 	debug = 0;			/* No debug verbosity, please. */
 	jobsRunning = FALSE;
 
-	maxJobs = DEFMAXJOBS;		/* Set default max concurrency */
 	maxLocal = DEFMAXLOCAL;		/* Set default local max concurrency */
-#ifdef notyet
-	compatMake = FALSE;		/* No compat mode */
-#else
-	compatMake = TRUE;		/* No compat mode */
-#endif
-    
 
 	/*
 	 * Initialize the parsing, directory and variable modules to prepare
@@ -552,17 +499,6 @@ main(argc, argv)
 	Var_Set("MACHINE_ARCH", MACHINE_ARCH, VAR_GLOBAL);
 #endif
 
-	/*
-	 * First snag any flags out of the MAKE environment variable.
-	 * (Note this is *not* MAKEFLAGS since /bin/make uses that and it's
-	 * in a different format).
-	 */
-#ifdef POSIX
-	Main_ParseArgLine(getenv("MAKEFLAGS"));
-#else
-	Main_ParseArgLine(getenv("MAKE"));
-#endif
-    
 	MainParseArgs(argc, argv);
 
 	/*
@@ -593,25 +529,13 @@ main(argc, argv)
 	} else
 		Var_Set(".TARGETS", "", VAR_GLOBAL);
 
-	/*
-	 * Read in the built-in rules first, followed by the specified makefile,
-	 * if it was (makefile != (char *) NULL), or the default Makefile and
-	 * makefile, in that order, if it wasn't.
-	 */
-	 if (!noBuiltins && !ReadMakefile(_PATH_DEFSYSMK) &&
-	     !ReadMakefile("sys.mk"))
-		Fatal("make: no system rules (%s).", _PATH_DEFSYSMK);
-
 	if (!Lst_IsEmpty(makefiles)) {
 		LstNode ln;
 
 		ln = Lst_Find(makefiles, (ClientData)NULL, ReadMakefile);
 		if (ln != NILLNODE)
 			Fatal("make: cannot open %s.", (char *)Lst_Datum(ln));
-	} else if (!ReadMakefile("makefile"))
-		(void)ReadMakefile("Makefile");
-
-	(void)ReadMakefile(".depend");
+	}
 
 	Var_Append("MFLAGS", Var_Value(MAKEFLAGS, VAR_GLOBAL, &p1), VAR_GLOBAL);
 	if (p1)
@@ -664,6 +588,13 @@ main(argc, argv)
 	 * time to add the default search path to their lists...
 	 */
 	Suff_DoPaths();
+	return( 0 );
+}
+
+int
+Main_Make( void )
+{
+	Lst targs;	/* target nodes to create -- passed to Make_Init */
 
 	/* print the initial graph, if the user requested it */
 	if (DEBUG(GRAPH1))
@@ -679,34 +610,16 @@ main(argc, argv)
 	else
 		targs = Targ_FindList(create, TARG_CREATE);
 
-/*
- * this was original amMake -- want to allow parallelism, so put this
- * back in, eventually.
- */
-	if (!compatMake) {
-		/*
-		 * Initialize job module before traversing the graph, now that
-		 * any .BEGIN and .END targets have been read.  This is done
-		 * only if the -q flag wasn't given (to prevent the .BEGIN from
-		 * being executed should it exist).
-		 */
-		if (!queryFlag) {
-			if (maxLocal == -1)
-				maxLocal = maxJobs;
-			Job_Init(maxJobs, maxLocal);
-			jobsRunning = TRUE;
-		}
+	Compat_Run(targs);
 
-		/* Traverse the graph, checking on all the targets */
-		outOfDate = Make_Run(targs);
-	} else
-		/*
-		 * Compat_Init will take care of creating all the targets as
-		 * well as initializing the module.
-		 */
-		Compat_Run(targs);
-    
 	Lst_Destroy(targs, NOFREE);
+
+	return( 0 );
+}
+
+int
+Main_Finish( void )
+{
 	Lst_Destroy(makefiles, NOFREE);
 	Lst_Destroy(create, (void (*) __P((ClientData))) free);
 
@@ -721,11 +634,7 @@ main(argc, argv)
 	Var_End();
 	Parse_End();
 	Dir_End();
-
-	if (queryFlag && outOfDate)
-		return(1);
-	else
-		return(0);
+	return(0);
 }
 
 /*-
@@ -979,4 +888,37 @@ PrintAddr(a, b)
 {
     printf("%lx ", (unsigned long) a);
     return b ? 0 : 0;
+}
+
+static int
+MainUnmake( gn, dummy )
+    ClientData gn;
+    ClientData dummy;
+{
+    GNode *targ = (GNode*) gn;
+    targ->made = UNMADE;
+    targ->childMade = FALSE;
+    return 0;
+}
+
+int main( argc, argv )
+     int argc;
+     char **argv;
+{
+    extern void Targ_ForEach __P(( int (*)(ClientData, ClientData), ClientData));
+
+    int ret = 0;
+    ret = Main_Init( argc, argv );
+    if ( ret ) return ret;
+    fprintf(stderr,"(1) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    Targ_PrintGraph(2);
+    fprintf(stderr,"(1) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    ret = Main_Make( );
+    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    Targ_PrintGraph(2);
+    fprintf(stderr,"(2) --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---\n");
+    Targ_ForEach( MainUnmake, (ClientData)NULL );
+    ret = Main_Make( );
+    if ( ret ) return ret;
+    return Main_Finish( );
 }

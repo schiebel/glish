@@ -656,3 +656,11 @@ Targ_PrintGraph (pass)
     printf("\n");
     Suff_PrintAll();
 }
+
+void
+Targ_ForEach ( f, d )
+    int (*f)(ClientData, ClientData);
+    ClientData d;
+{
+    Lst_ForEach( allTargets, f, d );
+}
