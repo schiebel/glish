@@ -1354,7 +1354,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			if ( glish_rc_file )
 				{
 				Parse( glish_rc_file, glish_rc_filename );
-				fclose( glish_rc_file );
+// 				fclose( glish_rc_file );
 				}
 			}
 		}
@@ -1372,7 +1372,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 		if ( is_regular_file( GLISH_RC_FILE ) && (glish_rc_file = fopen( GLISH_RC_FILE, "r" )) )
 			{
 			Parse( glish_rc_file, GLISH_RC_FILE );
-			fclose( glish_rc_file );
+// 			fclose( glish_rc_file );
 			}
 
 		else if ( (home = getenv( "HOME" )) )
@@ -1384,7 +1384,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 			if ( is_regular_file(glish_rc_filename) && (glish_rc_file = fopen( glish_rc_filename, "r")) )
 				{
 				Parse( glish_rc_file, glish_rc_filename );
-				fclose( glish_rc_file );
+// 				fclose( glish_rc_file );
 				}
 			}
 		}

@@ -2247,8 +2247,11 @@ void TkButton::UnMap()
 	if ( unmapped ) return;
 	unmapped = 1;
 
+	if ( frame ) frame->RemoveElement( this );
+
 	if ( type == MENU )
 		{
+		if ( RefCount() > 0 ) Ref(this);
 		while ( entry_list.length() )
 			{
 			TkAgent *a = entry_list.remove_nth( 0 );
@@ -2286,6 +2289,7 @@ void TkButton::UnMap()
 	frame = 0;
 	self = 0;
 	menu_base = 0;
+	if ( type == MENU && RefCount() > 0 ) Unref(this);
 	}
 
 TkButton::~TkButton( )
@@ -2304,10 +2308,12 @@ TkButton::~TkButton( )
 		Unref(value);
 		}
 
+	TkAgent *f = frame;
+	TkAgent *m = menu;
+
 	UnMap();
 
-	if ( radio && (frame && frame != radio ||
-		       menu && menu != radio) )
+	if ( type == RADIO && radio && f != radio && m != radio )
 		Unref(radio);
 	}
 
@@ -2365,7 +2371,6 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	char *argv[34];
 
 	agent_ID = "<graphic:button>";
-	if ( frame && radio && frame != radio ) Ref( radio );
 
 	if ( ! frame || ! frame->Self() ) return;
 
@@ -2380,6 +2385,11 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	if ( ! strcmp(type_, "radio") ) type = RADIO;
 	else if ( ! strcmp(type_, "check") ) type = CHECK;
 	else if ( ! strcmp(type_, "menu") ) type = MENU;
+
+	if ( type == RADIO && radio && frame != radio )
+		Ref( radio );
+	else
+		radio = 0;
 
 	int c = 2;
 	argv[0] = argv[1] = 0;
@@ -2500,7 +2510,6 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	frame = 0;
 
 	agent_ID = "<graphic:button>";
-	if ( menu && radio && menu != radio ) Ref( radio );
 
 	if ( ! frame_->IsMenu() )
 		HANDLE_CTOR_ERROR("internal error with creation of menu entry")
@@ -2520,6 +2529,11 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	if ( ! strcmp(type_, "radio") ) type = RADIO;
 	else if ( ! strcmp(type_, "check") ) type = CHECK;
 	else if ( ! strcmp(type_, "menu") ) type = MENU;
+
+	if ( type == RADIO && radio && menu != radio )
+		Ref( radio );
+	else
+		radio = 0;
 
 	int c = 3;
 	argv[0] = argv[2] = 0;
