@@ -361,18 +361,18 @@ void write_value( sos_out &, const Value * );
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 extern GlishEvent* recv_event( sos_source &in );
 
-extern void send_event( sos_sink &out, const char* event_name,
-			const GlishEvent* e );
+extern sos_status *send_event( sos_sink &out, const char* event_name,
+			const GlishEvent* e, int can_suspend = 0 );
 
-inline void send_event( sos_sink &out, const GlishEvent* e )
+inline sos_status *send_event( sos_sink &out, const GlishEvent* e, int can_suspend = 0 )
 	{
-	send_event( out, e->name, e );
+	return send_event( out, e->name, e, can_suspend );
 	}
 
-inline void send_event( sos_sink &out, const char* name, const Value* value )
+inline sos_status *send_event( sos_sink &out, const char* name, const Value* value, int can_suspend = 0 )
 	{
 	GlishEvent e( name, value );
-	send_event( out, name, &e );
+	return send_event( out, name, &e, can_suspend );
 	}
 
 #endif	/* client_h */

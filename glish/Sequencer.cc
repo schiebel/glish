@@ -174,6 +174,19 @@ class LocalClientSelectee : public Selectee {
 	Channel* chan;
 	};
 
+// This selectee is used to continue sending an event which was suspended
+// for some reason (likely the result of the pipe filling up).
+class SendSelectee : public Selectee {
+    public:
+	SendSelectee( Selector *s, sos_status *ss_, Value *v );
+	int NotifyOfSelection();
+
+    protected:
+	Selector *selector;
+	sos_status *ss;
+	Value *val;
+	};
+
 
 // A Selectee corresponding to a new request of a client to connect
 // to the sequencer.
@@ -992,8 +1005,6 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 
 	if ( ! ScriptCreated() )
 		InitScriptClient();
-
-	sos_fd_sink::nonblock_all();
 
 	if ( do_interactive )
 		Parse( stdin );
@@ -2009,6 +2020,12 @@ IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 	}
 
 
+void Sequencer::SendSuspended( sos_status *ss, Value *v )
+	{
+	if ( ! ss ) return;
+	selector->AddSelectee( new SendSelectee( selector, ss, v ) );
+	}
+
 Channel* Sequencer::AddLocalClient( int read_fd, int write_fd )
 	{
 	Channel* c = new Channel( read_fd, write_fd );
@@ -2843,6 +2860,26 @@ LocalClientSelectee::LocalClientSelectee( Sequencer* s, Channel* c )
 int LocalClientSelectee::NotifyOfSelection()
 	{
 	(void) sequencer->NewConnection( chan );
+	return 0;
+	}
+
+
+SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Value *v ) : 
+				Selectee( ss_->fd(), Selectee::WRITE )
+	{
+	selector = s;
+	ss = ss_;
+	val = v;
+	}
+
+int SendSelectee::NotifyOfSelection()
+	{
+	if ( ! ss->resume( ) )
+		{
+		selector->DeleteSelectee( ss->fd() );
+		delete val;
+		}
+
 	return 0;
 	}
 

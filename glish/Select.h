@@ -27,16 +27,20 @@ struct fd_set;
 
 class Selectee {
 public:
-	Selectee( int selectee_fd )	{ fd = selectee_fd; }
+	enum Type { READ, WRITE };
+
+	Selectee( int fd_, Type type__ = READ ) : fd(fd_), type_(type__) { }
 	virtual ~Selectee();
 
 	int FD()	{ return fd; }
+	Type type() 	{ return type_; }
 
 	// returns non-zero if the selection should stop, zero otherwise
 	virtual int NotifyOfSelection()	{ return 0; }
 
 protected:
 	int fd;
+	Type type_;
 	};
 
 
@@ -115,7 +119,8 @@ protected:
 	// If true, delete selectee when notification done.
 	int nuke_current_selectee;
 
-	struct fd_set* fdset;
+	struct fd_set* r_fdset;
+	struct fd_set* w_fdset;
 	timer_list timers;
 
 	int await_done;

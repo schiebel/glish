@@ -1579,19 +1579,22 @@ static void write_value( sos_out &sos, Value *val, const char *label, char *name
                         fatal->Report( "bad type in write_value()" );
  		}
 
-	if ( name ) sos.write( name, strlen(name) );
+	if ( name ) sos.write( name, strlen(name), sos_sink::COPY );
 
 	if ( val->AttributePtr() )
 		write_value( sos, (Value*) val->GetAttributes(), name );
 	}
 
-void send_event( sos_sink &out, const char* name, const GlishEvent* e )
+sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e, int can_suspend )
 	{
 	static sos_out sos;
 	sos.set(&out);
 
 	write_value( sos, e->value, name, (char*) name, e->Flags() );
-	sos.flush();
+	sos_status *ss = sos.flush();
+	if ( ! ss || can_suspend ) return ss;
+	while ( ss = ss->resume( ) );
+	return 0;
 	}
 
 //

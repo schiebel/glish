@@ -299,6 +299,12 @@ public:
 	IValue* AwaitReply( Task* task, const char* event_name,
 				const char* reply_name );
 
+	// In sending an event, the sending was discontinued. Most likely
+	// because the pipe filled up. The fd being written to should be
+	// monitored, and sending resumed when possible. Value is just a
+	// copy (reference counted) and is deleted when the send completes.
+	void SendSuspended( sos_status *, Value * );
+
 	// Inform the sequencer to expect a new, local (i.e., pipe-based)
 	// client communicating via the given fd's.  Returns the channel
 	// used from now on to communicate with the client.

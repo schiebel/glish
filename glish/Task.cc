@@ -163,6 +163,8 @@ void Task::SetChannel( Channel* c, Selector* s )
 	if ( selector )
 		Ref( selector );
 
+	channel->Sink().nonblock( );
+
 	if ( pending_events )
 		{
 		loop_over_list( *pending_events, i )
@@ -885,14 +887,16 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 void Task::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	send_event( fd, event_name, e );
+	if ( sos_status *ss = send_event( fd, event_name, e, 1 ) )
+		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
 
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	send_event( fd, event_name, e );
+	if ( sos_status *ss = send_event( fd, event_name, e, 1 ) )
+		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
 int same_host( Task* t1, Task* t2 )

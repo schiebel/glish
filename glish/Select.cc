@@ -149,8 +149,10 @@ Selector::Selector() : await_done(0), break_selection(0)
 	nuke_current_selectee = 0;
 	selectee_count = 0;
 
-	fdset = new fd_set;
-	FD_ZERO( fdset );
+	r_fdset = new fd_set;
+	FD_ZERO( r_fdset );
+	w_fdset = new fd_set;
+	FD_ZERO( w_fdset );
 	}
 
 Selector::~Selector()
@@ -159,22 +161,35 @@ Selector::~Selector()
 		delete selectees[i];
 
 	free_memory( selectees );
-	delete fdset;
+	delete r_fdset;
+	delete w_fdset;
 	}
 
 void Selector::AddSelectee( Selectee* s )
 	{
 	selectees[s->FD()] = s;
-	FD_SET( s->FD(), fdset );
+
+	if ( s->type() == Selectee::READ )
+		FD_SET( s->FD(), r_fdset );
+	else
+		FD_SET( s->FD(), w_fdset );
+
 	++selectee_count;
 	}
 
 void Selector::DeleteSelectee( int selectee_fd )
 	{
-	if ( ! FD_ISSET( selectee_fd, fdset ) )
+	if ( ! FD_ISSET( selectee_fd, r_fdset ) && ! FD_ISSET( selectee_fd, w_fdset ) )
 		gripe( "non-existent selectee in RemoveSelectee()" );
 
 	Selectee* s = selectees[selectee_fd];
+
+	selectees[selectee_fd] = 0;
+
+	if ( s->type() == Selectee::READ )
+		FD_CLR( selectee_fd, r_fdset );
+	else
+		FD_CLR( selectee_fd, w_fdset );
 
 	if ( s == current_selectee )
 		// Don't delete it right now, while it's in use, just
@@ -184,15 +199,12 @@ void Selector::DeleteSelectee( int selectee_fd )
 	else
 		delete s;
 
-	selectees[selectee_fd] = 0;
-	FD_CLR( selectee_fd, fdset );
-
 	--selectee_count;
 	}
 
 Selectee* Selector::FindSelectee( int selectee_fd ) const
 	{
-	if ( ! FD_ISSET( selectee_fd, fdset ) )
+	if ( ! FD_ISSET( selectee_fd, r_fdset ) && ! FD_ISSET( selectee_fd, w_fdset ) )
 		return 0;
 
 	return selectees[selectee_fd];
@@ -208,8 +220,10 @@ int Selector::AddInputMask( fd_set* mask )
 	int num = selectee_count;
 	int num_added = 0;
 
+	// what should be done about the write fds? For now,
+	// we ignore them, and this should generally be OK.
 	for ( int cnt=0; num && cnt < FD_SETSIZE; ++cnt )
-		if ( FD_ISSET(cnt, fdset ) )
+		if ( FD_ISSET(cnt, r_fdset ) )
 			{
 			if ( ! FD_ISSET( cnt, mask ) )
 				{
@@ -300,11 +314,12 @@ int Selector::DoSelection( int CanBlock )
 		timeout = &noblock;
 		}
 
-	fd_set read_mask = *fdset;
+	fd_set read_mask = *r_fdset;
+	fd_set write_mask = *w_fdset;
 	int status;
 
 	if ( (status = select( FD_SETSIZE, (SELECT_MASK_TYPE *) &read_mask,
-			(SELECT_MASK_TYPE *) 0, (SELECT_MASK_TYPE *) 0, timeout )) < 0 )
+			(SELECT_MASK_TYPE *) &write_mask, (SELECT_MASK_TYPE *) 0, timeout )) < 0 )
 		{
 		if ( errno != EINTR )
 			gripe( "error in DoSelection()" );
@@ -331,7 +346,7 @@ int Selector::DoSelection( int CanBlock )
 
 	for ( int i = 0; status > 0 && i < max_num_fds; ++i )
 		{
-		if ( FD_ISSET( i, &read_mask ) )
+		if ( FD_ISSET( i, &read_mask ) || FD_ISSET( i, &write_mask ) )
 			{
 
 			if ( current_selectee = selectees[i] )
