@@ -1134,7 +1134,7 @@ const Value* Value::VecRefDeref() const
 
 
 #define COERCE_HDR(name, ctype, gtype, type_name, accessor)		\
-	int length = kernel.Length();				\
+	int length = kernel.Length();					\
 									\
 	if ( IsRef() )							\
 		return Deref()->name( is_copy, size, result );		\
