@@ -1513,8 +1513,10 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		}
 
 	else if ( indx_attr && (indx_shape = (const IValue*)((*indx_attr)["shape"])) &&
-	          indx_shape->IsNumeric() && index_val->Type() != TYPE_BOOL )
-		// Single element pick operation
+	          indx_shape->IsNumeric() && index_val->Type() != TYPE_BOOL  &&
+		  array->Type() != TYPE_RECORD )
+		// Single element pick operation...
+		// PickRef() can't handle a record, though...
 		result = (IValue*)array->PickRef( index_val, err );
 	else
 		{
@@ -1529,7 +1531,7 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_reftype val_type )
 		//		- ec->hi(foo[[2,3]])
 		//		warning, event echo_client.hi (2) dropped
 		//
-		// It would be getter to fix SubRef(), but for now this
+		// It would be better to fix SubRef(), but for now this
 		// suffices. It returns a copy rather than a reference, though.
 		//
 		if ( array->Type() == TYPE_RECORD && index_val->Length() > 1 )
