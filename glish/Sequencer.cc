@@ -92,6 +92,17 @@ int Sequencer::hold_queue = 0;
 // will be cleaned up properly, and this can be removed.
 int shutting_glish_down = 0;
 
+await_type::await_type( await_type &o )
+	{
+	stmt_ = o.stmt_;
+	except_ = o.except_;
+	only_ = o.only_;
+	dict_ = o.dict_;
+	o.dict_ = 0;
+	task_ = o.task_;
+	name_ = o.name_;
+	}
+
 void await_type::operator=( await_type &o )
 	{
 	stmt_ = o.stmt_;
@@ -100,14 +111,20 @@ void await_type::operator=( await_type &o )
 	if ( dict_ ) delete_agent_dict( dict_ );
 	dict_ = o.dict_;
 	o.dict_ = 0;
+	task_ = o.task_;
+	name_ = o.name_;
 	}
 
 void await_type::set( )
 	{
+	// await statement members
 	stmt_ = except_ = 0;
 	only_ = 0;
 	if ( dict_ ) delete_agent_dict( dict_ );
 	dict_ = 0;
+	// request/reply members
+	task_ = 0;
+	name_ = 0;
 	}
 
 void await_type::set( Stmt *s, Stmt *e, int o )
@@ -115,6 +132,8 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 	stmt_ = s;
 	except_ = e;
 	only_ = o;
+	task_ = 0;
+	name_ = 0;
 
 	if ( dict_ ) delete_agent_dict( dict_ );
 
@@ -144,6 +163,17 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 
 		(*el)[X]->EventAgentDone();
 		}
+	}
+
+void await_type::set( Task *t, const char *n )
+	{
+	task_ = t;
+	name_ = n;
+	stmt_ = 0;
+	except_ = 0;
+	only_ = 0;
+	if ( dict_ ) delete_agent_dict( dict_ );
+	dict_ = 0;
 	}
 
 // Used to flag changes in the system agent.
@@ -525,8 +555,10 @@ int Notification::Describe( OStream& s, const ioOpt &opt ) const
 
 void Notification::ClearNotifier( )
 	{
+#if defined( GLISHTK )
 	if ( notifier && notifier->IsPseudo() && notifier->RefCount() == 1 )
 		((TkAgent*)notifier)->UnMap();
+#endif
 	}
 
 #define LOG_CLEANUP_ONE(VAR)						\
@@ -2419,7 +2451,8 @@ void Sequencer::PushAwait( )
 	
 	if ( await.active() )
 		{
-		if ( current_await_done && last_await_info && last_await_info->await.stmt() == await.stmt() )
+		if ( await.stmt() && current_await_done && last_await_info &&
+		     last_await_info->await.stmt() == await.stmt() )
 			{
 			await_list.append( last_await_info );
 			last_await_info = 0;
@@ -2579,36 +2612,52 @@ void Sequencer::PagerOutput( char *string, char **argv )
 IValue* Sequencer::AwaitReply( Task* task, const char* event_name,
 				const char* reply_name )
 	{
-	GlishEvent* reply = recv_event( task->GetChannel()->Source() );
-	IValue* result = 0;
+	int removed_yyin = 0;
 
-	if ( ! reply )
+	PushAwait( );
+
+	await.set( task, reply_name );
+
+	if ( yyin && isatty( fileno( yyin ) ) &&
+	     selector->FindSelectee( fileno( yyin ) ) )
+		{
+		selector->DeleteSelectee( fileno( yyin ) );
+		removed_yyin = 1;
+#if USE_EDITLINE
+		//
+		// reset term so user can see what is typed
+		//
+		nb_reset_term(1);
+#endif
+		}
+
+	HoldQueue( );
+	EventLoop( 1 );
+	ReleaseQueue( );
+
+	IValue *result = 0;
+
+	if ( ! last_reply )
 		{
 		warn->Report( task, " terminated without replying to ",
 				event_name, " request" );
 		result = error_ivalue();
 		}
 
-	else if ( ! strcmp( reply->name, reply_name ) )
-		{
-		result = (IValue*) reply->value;
-		Ref( result );
-		}
-
 	else
+		result = last_reply;
+
+	last_reply = 0;
+
+	PopAwait();
+
+	if ( yyin && isatty( fileno( yyin ) ) && removed_yyin )
 		{
-		warn->Report( "expected reply from ", task, " to ",
-				event_name, " request, instead got \"",
-				reply->name, "\"" );
-
-		Ref( reply );	// So NewEvent doesn't throw it away.
-		NewEvent( task, reply );
-
-		result = (IValue*) reply->value;
-		Ref( result );	// So following Unref doesn't discard value.
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
+#if USE_EDITLINE
+		nb_reset_term(0);
+#endif
 		}
-
-	Unref( reply );
 
 	return result;
 	}
@@ -2825,6 +2874,8 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	{
 	if ( await.stmt() && agent->HasRegisteredInterest( await.stmt(), event_name ) )
 		selector->AwaitDone();
+	else if ( await.task() == agent->AgentTask() && ! strcmp( await.name(), event_name ) )
+		selector->AwaitDone();
 	}
 
 #define NEWEVENT_BODY							\
@@ -2832,34 +2883,45 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 	int ignore_event = 0;						\
 	int await_finished = 0;						\
 									\
-	if ( await.stmt() )						\
+	if ( await.active() )						\
 		{							\
-		int found_match = 0;					\
-									\
-		/* Look ahead into queued awaits for future handling */	\
-		loop_over_list( await_list, X )				\
+		/* request/reply takes precedence */			\
+		if ( await.task() && await.task() == agent->AgentTask() && \
+		     ! strcmp( await.name(), event_name ) )		\
 			{						\
-			if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) ) \
-				{					\
-				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
-					break;				\
-				}					\
+			await_finished = 1;				\
+			last_reply = value;				\
+			Ref(last_reply);				\
 			}						\
-									\
-		if ( ! found_match )					\
+		else							\
 			{						\
-			await_finished = agent->HasRegisteredInterest( await.stmt(), event_name ); \
+			int found_match = 0;				\
 									\
-			if ( ! await_finished && await.only( ) && 	\
-			     ! agent->HasRegisteredInterest( await.except(), event_name ) ) \
-				ignore_event = 1;			\
+			/* Look ahead into queued awaits for future handling */	\
+			loop_over_list( await_list, X )			\
+				{					\
+				if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) ) \
+					{				\
+					if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
+						break;			\
+					}				\
+				}					\
+									\
+			if ( ! found_match && await.stmt() )		\
+				{					\
+				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name ); \
+									\
+				if ( ! await_finished && await.only( ) && \
+				     ! agent->HasRegisteredInterest( await.except(), event_name ) ) \
+					ignore_event = 1;		\
+				}					\
 			}						\
 		}							\
 									\
 	if ( ignore_event )						\
 		warn->Report( "event ", agent->Name(), ".", event_name,	\
 			      " ignored due to \"await\"" );		\
-	else								\
+	else if ( ! await.task() || ! await_finished )			\
 		{							\
 		/* We're going to want to keep the event value as a */	\
 		/* field in the agent's AgentRecord.                */	\
@@ -3508,7 +3570,9 @@ void Sequencer::RunQueue()
 		Unref( n );
 		}
 
+#if defined( GLISHTK )
 	if ( last_notification ) last_notification->ClearNotifier( );
+#endif
 	}
 
 int Sequencer::CurWheneverIndex( )

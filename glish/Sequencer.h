@@ -226,21 +226,32 @@ class EnvHolder {
 
 class await_type {
     public:
-	await_type() : stmt_(0), except_(0), only_(0), dict_(0) { }
+	await_type() : stmt_(0), except_(0), only_(0), dict_(0),
+		       task_(0), name_(0) { }
+	await_type( await_type &o );
 	~await_type( ) { set( ); }
 	void operator=( await_type &o );
+	int active( ) { return stmt_ || task_ ? 1 : 0; }
 	void set( );
 	void set( Stmt *s, Stmt *e, int o );
+	void set( Task *t, const char *n );
+
+	// await statement members
 	Stmt *stmt() { return stmt_; }
 	Stmt *except() { return except_; }
 	int only() { return only_; }
 	agent_dict *dict() { return dict_; }
-	int active( ) { return stmt_ ? 1 : 0; }
+
+	// request/reply members
+	Task *task( ) { return task_; }
+	const char *name( ) { return name_; }
     private:
 	Stmt *stmt_;
 	Stmt *except_;
 	int only_;
 	agent_dict *dict_;
+	Task *task_;
+	const char *name_;
 };
 
 class Sequencer {
@@ -601,6 +612,7 @@ protected:
 	awaitinfo_list await_list;
 	awaitinfo *last_await_info;
 	int current_await_done;
+	IValue* last_reply;
 
 	// Task that we interrupted processing because we came across
 	// an "await"-ed upon event; if non-null, should be Empty()'d

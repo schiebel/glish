@@ -101,7 +101,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 		{
 		charptr *stack = value1->StringPtr(0);
 		int l = strlen(stack[--len]);
-		msg[cur] = (char*) alloc_memory( sizeof(char)*(l+10) );
+		msg[cur] = (char*) alloc_memory( sizeof(char)*(l+20) );
 		strcpy(msg[cur],"\tStack:\t");
 		strcat(msg[cur],stack[len]);
 		strcat(msg[cur++],"()");
@@ -119,7 +119,7 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 			}
 		if ( len )
 			{
-			msg[x] = "\t\t...";
+			msg[x] = strdup("\t\t...");
 			cnt += 7;
 			}
 		}

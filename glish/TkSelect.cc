@@ -66,7 +66,8 @@ int TkSelector::DoSelection( int )
 
 	glish_select = 0;
 
-	while ( ! glish_select && ! s->NotificationQueueLength() && ! break_selection )
+	int orig_queue_len = s->NotificationQueueLength();
+	while ( ! glish_select &&  s->NotificationQueueLength() == orig_queue_len && ! break_selection )
 		TkAgent::DoOneTkEvent( );
 
 	if ( break_selection )
