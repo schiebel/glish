@@ -1395,7 +1395,8 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
 						arg->ReadOnlyEval(opt) : 0 );
 				}
 
-			result = (IValue*)(array->SubRef( &val_list ));
+			int err = 0;
+			result = (IValue*)(array->SubRef( &val_list, err ));
 			for ( LOOPDECL i = 0; i < args->length(); ++i )
 				if ( (arg = (*args)[i]) )
 					arg->ReadOnlyDone( (const IValue*)(val_list[i]) );
@@ -1422,6 +1423,7 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
 	const attributeptr indx_attr = index_val->AttributePtr();
 	const IValue* indx_shape;
 
+	int err = 0;
 	if ( index_val->VecRefDeref()->Type() == TYPE_RECORD )
 		{ // Single record element slice operation.
 		const_value_list val_list;
@@ -1432,19 +1434,19 @@ IValue* ArrayRefExpr::RefEval( evalOpt &opt, value_type val_type )
 			val_list.append( (val && val->Length() > 0) ? val : 0 );
 			}
 
-		result = (IValue*)(array->SubRef( &val_list ));
+		result = (IValue*)(array->SubRef( &val_list, err ));
 		}
 
 	else if ( indx_attr && (indx_shape = (const IValue*)((*indx_attr)["shape"])) &&
 	          indx_shape->IsNumeric() && index_val->Type() != TYPE_BOOL )
 		// Single element pick operation
-		result = (IValue*)array->PickRef( index_val );
+		result = (IValue*)array->PickRef( index_val, err );
 	else
-		result = (IValue*)array->SubRef( index_val, val_type );
+		result = (IValue*)array->SubRef( index_val, err, val_type );
 
 	arg->ReadOnlyDone( index_val );
 
-	if ( result->Deref()->Type( ) == TYPE_FAIL )
+	if ( err && result->Deref()->Type( ) == TYPE_FAIL )
 		{
 		Unref( array_ref );
 		return result;

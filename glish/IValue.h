@@ -207,15 +207,15 @@ public:
 
 	// Return a reference to distinct elements from an array.
 	// Returns a newed value
-	IValue* PickRef( const IValue* index );
+	IValue* PickRef( const IValue* index, int &err );
 
 	// Assign to distinct array elements.
 	void PickAssign( const IValue* index, IValue *value );
 
 	// Return a true sub-array reference.
 	// Both of the following return a newed value.
-	IValue* SubRef( const IValue* index, value_type vtype = VAL_REF );
-	IValue* SubRef( const_value_list *args_val, value_type vtype = VAL_REF );
+	IValue* SubRef( const IValue* index, int &err, value_type vtype = VAL_REF );
+	IValue* SubRef( const_value_list *args_val, int &err, value_type vtype = VAL_REF );
 
 	void Polymorph( glish_type new_type );
 

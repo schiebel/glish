@@ -1194,13 +1194,18 @@ PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,string_dup,
 	return result;
 	}
 
-IValue* IValue::PickRef( const IValue *index )
+#define PICK_FAIL_IVAL_ERR(x) {err = 1; return (IValue*) Fail x;}
+IValue* IValue::PickRef( const IValue *index, int &err )
 	{
+	err = 0;
 	if ( ! IsNumeric() && Type() != TYPE_STRING )
+		{
+		err = 1;
 		return (IValue*) Fail( "non-numeric type in subreference operation:",
 				this );
+		}
 
-	PICK_INITIALIZE(PICK_FAIL_IVAL, return this->operator[]( index );)
+	PICK_INITIALIZE(PICK_FAIL_IVAL_ERR, return this->operator[]( index );)
 
 	int* ret = alloc_int( ishape[0] );
 	int cur = 0;
@@ -1212,6 +1217,7 @@ IValue* IValue::PickRef( const IValue *index )
 			cur = indx[i + j * ishape[0]];
 			if ( cur < 1 || cur > shape[j] )
 				{
+				err = 1;
 				PICK_CLEANUP
 				free_memory( ret );
 				return (IValue*) Fail( "index number ", j, " (=",cur,
@@ -1352,8 +1358,9 @@ PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,string_dup,
 	return;
 	}
 
-IValue* IValue::SubRef( const IValue* index, value_type vtype )
+IValue* IValue::SubRef( const IValue* index, int &err, value_type vtype )
 	{
+	err = 0;
 	if ( VecRefDeref()->Type() == TYPE_RECORD )
 		{
 		if ( index->Type() == TYPE_STRING )
@@ -1370,8 +1377,11 @@ IValue* IValue::SubRef( const IValue* index, value_type vtype )
 			ret = (IValue*) NthField( index->IntVal() );
 
 		if ( ! ret )
+			{
+			err = 1;
 			return (IValue*) Fail( "record index (=", index->IntVal(),
 				") out of range (> ", Length(), ")" );
+			}
 
 		return ret;
 		}
@@ -1386,11 +1396,15 @@ IValue* IValue::SubRef( const IValue* index, value_type vtype )
 		return error_ivalue();
 	}
 
-IValue* IValue::SubRef( const_value_list *args_val, value_type )
+IValue* IValue::SubRef( const_value_list *args_val, int &err, value_type VT )
 	{
+	err = 0;
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
+		{
+		err = 1;
 		return (IValue*) Fail( "invalid type in subreference operation:",
 				this );
+		}
 
 	// Collect attributes.
 	const attributeptr ptr = AttributePtr();
@@ -1401,15 +1415,21 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 
 		const IValue* arg = (IValue*) (*args_val)[0];
 		if ( arg )
-			return SubRef( arg );
+			return SubRef( arg, err, VT );
 		else
+			{
+			err = 1;
 			return (IValue*) Fail( "invalid missing argument" );
+			}
 		}
 
 	int shape_len = shape_val->Length();
 	int args_len = (*args_val).length();
 	if ( shape_len != args_len )
+		{
+		err = 1;
 		return (IValue*) Fail( "invalid number of indexes for:", this );
+		}
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
@@ -1426,6 +1446,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 			{
 			if ( ! arg->IsNumeric() )
 				{
+				err = 1;
 				SUBOP_CLEANUP_1
 				return (IValue*) Fail( "index #", i+1, "into", this,
 						"is not numeric");
@@ -1439,6 +1460,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 				int ind = arg->IntVal();
 				if ( ind < 1 || ind > shape[i] )
 					{
+					err = 1;
 					SUBOP_CLEANUP_1
 					return (IValue*) Fail( "index #", i+1, "into",
 						this, "is out of range");
@@ -1464,6 +1486,7 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 	// Check to see if we're valid.
 	if ( cur_factor > Length() )
 		{
+		err = 1;
 		SUBOP_CLEANUP_1
 		return (IValue*) Fail( "\"::shape\"/length mismatch" );
 		}
@@ -1518,13 +1541,18 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 
 				SUBOP_CLEANUP(i)
 				if ( len[i] > 1 )
+					{
+					err = 1;
 					return (IValue*) Fail( "index #", i+1, ",",
 							j+1, " into ", this, 
 							"is out of range.");
+					}
 				else
+					{
+					err = 1;
 					return (IValue*) Fail( "index #", i+1, "into",
 						this, "is out of range.");
-
+					}
 				}
 			}
 		}
