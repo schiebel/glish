@@ -6,39 +6,34 @@
 
 TAR_FILE = editline.tar
 
+BUILD_DIR=$$ARCH
+
+
 all:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libs
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS);		\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing editline ...
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS install
+	else	FLGS=""; fi;					\
+	(cd $(BUILD_DIR)/static; $(MAKE) $$FLGS install);	\
+	(cd $(BUILD_DIR)/dynamic; $(MAKE) $$FLGS install)
 
 build: all
-
-install-all:
-	@echo Installing editline ...
-	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
-		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	if test "$(PFX)" = "1"; then				\
-		cd $$ARCH; $(MAKE) $$FLGS prefix-install;	\
-	else	cd $$ARCH; $(MAKE) $$FLGS install; fi;
 
 libedit.a: $(OBJS)
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS libedit.a
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS libedit.a
 
 
 tar:
@@ -59,17 +54,12 @@ clean:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS clean
-
-clean-all: clean
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS clean
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
 		ARCH=`../config/architecture`;			\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
-	else	FLGS="$(MFLAGS) ARCH=$(ARCH)"; fi;		\
-	cd $$ARCH; $(MAKE) $$FLGS distclean
-
-distclean-all: distclean
-
+	else	FLGS=""; fi;					\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS distclean
