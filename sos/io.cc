@@ -36,6 +36,8 @@ extern "C" int writev(int, const struct iovec *, int);
 #define MAXIOV IOV_MAX
 #elif defined(UIO_MAXIOV)
 #define MAXIOV UIO_MAXIOV
+#elif defined(MAX_IOVEC)
+#define MAXIOV MAX_IOVEC
 #else
 #define MAXIOV 16
 #endif
@@ -94,6 +96,9 @@ sos_fd_buf_kernel::~sos_fd_buf_kernel()
 	reset( );
 	for ( int x = 0; tmp_bufs[x]; x++ )
 		sos_free_memory( tmp_bufs[x] );
+	sos_free_memory( iov );
+	sos_free_memory( status );
+	sos_free_memory( tmp_bufs );
 	}
 
 char *sos_fd_buf_kernel::new_tmp( )
@@ -233,6 +238,10 @@ sos_status *sos_fd_sink::flush( )
 
 			unsigned int cnt;
 			for ( cnt = iov[start].iov_len; cnt < cur; cnt += iov[++start].iov_len );
+
+			// if we've stopped on a bucket boundary (as linux
+			// likes to do), we must bump the start counter
+			if ( cnt == cur ) start++;
 
 			if ( buf_holder && old_start != start )
 				{
