@@ -645,7 +645,7 @@ RANGEBUILTIN_ARG_ACTION(TYPE_INT,int,type,IntPtr,j,,)			\
 				{					\
 				VecRef* ref = val->VecRefPtr();		\
 				IValue* val = (IValue*) ref->Val();	\
-				int len = val->Length();		\
+				int len = ref->Length();		\
 									\
 				switch ( val->Type() )			\
 					{				\

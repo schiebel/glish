@@ -163,6 +163,7 @@ void Value::TakeValue( Value* new_value )
 
 	DeleteValue();
 	kernel = new_value->kernel;
+	AssignAttributes(new_value->TakeAttributes());
 
 	Unref( new_value );
 	}
