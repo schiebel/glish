@@ -29,3 +29,6 @@
 
 /* Define if your system doesn't declare 'writev()'.  */
 #undef WRITEV_NOT_DECLARED
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H

@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,2002 Associated Universities Inc.
 //
 //======================================================================
 #include "sos/sos.h"
@@ -37,7 +37,9 @@ RCSID("@(#) $Id$")
 
 #if !defined(VXWORKS)
 #if !defined(__MSDOS__) 
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <memory.h>
 #else
 #include <alloc.h>
