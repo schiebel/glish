@@ -2423,8 +2423,11 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 
 void TkEntry::ReturnHit( )
 	{
-	IValue *ret = new IValue( rivet_va_cmd( self, "get", 0 ) );
-	glish_event_posted(sequencer->NewEvent( this, "return", ret ));
+	if ( strcmp("disabled", rivet_va_cmd(self, "cget", "-state", 0)) )
+		{
+		IValue *ret = new IValue( rivet_va_cmd( self, "get", 0 ) );
+		glish_event_posted(sequencer->NewEvent( this, "return", ret ));
+		}
 	}
 
 void TkEntry::xScrolled( const double *d )

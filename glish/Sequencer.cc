@@ -2162,6 +2162,7 @@ void Sequencer::RunQueue()
 		last_notification = n;
 
 		Ref( n );
+		Ref(notifier_val);
 		n->notifiee->stmt->Notify( n->notifier );
 
 		if ( n->notifiee->stack )
@@ -2172,6 +2173,7 @@ void Sequencer::RunQueue()
 		if ( n->trigger )
 			n->trigger->NotifyDone( );
 
+		Unref(notifier_val);
 		Unref( n );
 		}
 	}
