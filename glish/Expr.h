@@ -9,6 +9,7 @@
 class Stmt;
 class Expr;
 class Func;
+class UserFunc;
 class EventDesignator;
 class Sequencer;
 class ParameterPList;
@@ -238,6 +239,21 @@ class ConstExpr : public Expr {
 
     protected:
 	const IValue* const_value;
+	};
+
+
+class FuncExpr : public Expr {
+    public:
+	FuncExpr( UserFunc* f );
+
+	IValue* Eval( eval_type etype );
+	void DescribeSelf( ostream& s ) const;
+
+	~FuncExpr();
+	int canDelete() const { return 0; }
+
+    protected:
+	UserFunc* func;
 	};
 
 

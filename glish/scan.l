@@ -189,6 +189,7 @@ in		return TOK_IN;
 link		return TOK_LINK;
 local		return TOK_LOCAL;
 global		return TOK_GLOBAL;
+wider		return TOK_WIDER;
 next|continue	statement_can_end = 1; return TOK_LOOP;
 only		return TOK_ONLY;
 print		return TOK_PRINT;

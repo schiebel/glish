@@ -150,6 +150,65 @@ void FormalParameter::Describe( ostream& s ) const
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			Sequencer* arg_sequencer, Expr* arg_subsequence_expr )
 	{
+	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size,
+				    arg_sequencer, arg_subsequence_expr);
+	sequencer = arg_sequencer;
+	scope_established = 0;
+	local_frames = 0;
+	for (int x=0; x<1000; x++) Ref((GlishObject*)this);
+	}
+
+UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), local_frames(0),
+			scope_established(0), sequencer(f->sequencer)
+	{
+	Ref(kernel);
+	for (int x=0; x<1000; x++) Ref((GlishObject*)this);
+	}
+
+UserFunc::~UserFunc()
+	{
+	Unref(kernel);
+	
+	if ( local_frames )
+		{
+		loop_over_list( *local_frames, j )
+			Unref( (*local_frames)[j] );
+		delete local_frames;
+		}
+	}
+
+IValue* UserFunc::Call( parameter_list* args, eval_type etype )
+	{
+	return kernel->Call(args, etype,local_frames);
+	}
+
+void UserFunc::EstablishScope()
+	{
+	if ( ! scope_established && ! local_frames )
+		{
+		scope_established = 1;
+		local_frames = sequencer->LocalFrames();
+		if ( local_frames )
+			{
+			loop_over_list( *local_frames, i )
+				{
+				if ( (*local_frames)[i] )
+					{
+					Ref( (*local_frames)[i] );
+					}
+				}
+			}
+		}
+	}
+
+void UserFunc::Describe( ostream& s ) const
+	{
+	kernel->Describe(s);
+	}
+
+UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
+			Sequencer* arg_sequencer, Expr* arg_subsequence_expr )
+	{
 	formals = arg_formals;
 	body = arg_body;
 	frame_size = arg_size;
@@ -175,7 +234,7 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 			}
 	}
 
-UserFunc::~UserFunc()
+UserFuncKernel::~UserFuncKernel()
 	{
 	loop_over_list( *formals, i )
 		Unref((*formals)[i]);
@@ -187,7 +246,7 @@ UserFunc::~UserFunc()
 	Unref(body);
 	}
 
-IValue* UserFunc::Call( parameter_list* args, eval_type etype )
+IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames )
 	{
 	if ( ! valid )
 		return error_ivalue();
@@ -436,7 +495,7 @@ IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 		{
 		IValue* missing_val = missing_len > 0 ?
 			new IValue( missing, missing_len, PRESERVE_ARRAY ) : 0;
-		result = DoCall( &args_vals, etype, missing_val );
+		result = DoCall( &args_vals, etype, missing_val, local_frames );
 		// No need to Unref() missing_val, Sequencer::PopFrame did
 		// that for us.
 		}
@@ -454,9 +513,13 @@ IValue* UserFunc::Call( parameter_list* args, eval_type etype )
 	return result;
 	}
 
-IValue* UserFunc::DoCall( args_list* args_vals, eval_type etype, IValue* missing )
+IValue* UserFuncKernel::DoCall( args_list* args_vals, eval_type etype, IValue* missing, PList(Frame)* local_frames )
 	{
 	Frame* call_frame = new Frame( frame_size, missing, FUNC_SCOPE );
+
+	if ( local_frames )
+		sequencer->PushFrame( *local_frames );
+
 	sequencer->PushFrame( call_frame );
 
 	if ( subsequence_expr )
@@ -492,13 +555,16 @@ IValue* UserFunc::DoCall( args_list* args_vals, eval_type etype, IValue* missing
 	if ( sequencer->PopFrame() != call_frame )
 		fatal->Report( "frame inconsistency in UserFunc::DoCall" );
 
+	if ( local_frames )
+		sequencer->PopFrame( local_frames->length() );
+
 	Unref( call_frame );
 
 	return result;
 	}
 
 
-void UserFunc::Describe( ostream& s ) const
+void UserFuncKernel::Describe( ostream& s ) const
 	{
 	s << "function (";
 	describe_parameter_list( formals, s );
@@ -507,7 +573,7 @@ void UserFunc::Describe( ostream& s ) const
 	}
 
 
-IValue* UserFunc::EvalParam( Parameter* p, Expr* actual )
+IValue* UserFuncKernel::EvalParam( Parameter* p, Expr* actual )
 	{
 	value_type param_type = p->ParamType();
 
@@ -524,7 +590,7 @@ IValue* UserFunc::EvalParam( Parameter* p, Expr* actual )
 	}
 
 
-void UserFunc::AddEllipsisArgs( args_list* args_vals,
+void UserFuncKernel::AddEllipsisArgs( args_list* args_vals,
 				Parameter* actual_ellipsis, int& num_args,
 				int num_formals, IValue* formal_ellipsis_value,
 				int& do_call )
@@ -589,7 +655,7 @@ void UserFunc::AddEllipsisArgs( args_list* args_vals,
 	}
 
 
-void UserFunc::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
+void UserFuncKernel::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	{
 	char field_name[256];
 	sprintf( field_name, "%d", ellipsis_value->RecordPtr(0)->Length() );
@@ -602,7 +668,7 @@ void UserFunc::AddEllipsisValue( IValue* ellipsis_value, Expr* arg )
 	}
 
 
-void UserFunc::ArgOverFlow( Expr* arg, int num_args, int num_formals,
+void UserFuncKernel::ArgOverFlow( Expr* arg, int num_args, int num_formals,
 				IValue* ellipsis_value, int& do_call )
 	{
 	if ( ellipsis_value )

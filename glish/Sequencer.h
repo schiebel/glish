@@ -121,6 +121,7 @@ public:
 	// is the only way to get rid of a 'const' value.
 	void DeleteVal( const char* id );
 
+	void DescribeFrames( ostream& s ) const;
 	void PushFrame( Frame* new_frame );
 	void PushFrame( frame_list &new_frame );
 	// Note that only the last frame popped is returned (are the others leaked?).

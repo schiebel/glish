@@ -336,6 +336,32 @@ void ConstExpr::DescribeSelf( ostream& s ) const
 	const_value->DescribeSelf( s );
 	}
 
+
+
+FuncExpr::~FuncExpr()
+	{
+	Unref(func);
+	}
+
+FuncExpr::FuncExpr( UserFunc* f ) : Expr("function")
+	{
+	func = f;
+	}
+
+IValue* FuncExpr::Eval( eval_type etype )
+	{
+	UserFunc *ret = func->clone();
+	ret->EstablishScope();
+	return new IValue( ret );
+	}
+
+void FuncExpr::DescribeSelf( ostream& s ) const
+	{
+	func->Describe( s );
+	}
+
+
+
 UnaryExpr::~UnaryExpr()
 	{
 	NodeUnref( op );

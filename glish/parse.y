@@ -3,7 +3,7 @@
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
-%token TOK_LOCAL TOK_GLOBAL TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
+%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_LOOP TOK_ONLY TOK_PRINT TOK_REF
 %token TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
 %token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE
 
@@ -30,7 +30,7 @@
 %type <exprlist> subscript_list
 %type <event> event
 %type <stmt> statement_list statement func_body block
-%type <stmt> local_list local_item global_list global_item
+%type <stmt> local_list local_item global_list global_item wider_list wider_item
 %type <stmt> whenever_head
 %type <ev_list> event_list
 %type <param_list> formal_param_list formal_params
@@ -178,6 +178,9 @@ statement:
 			{ $$ = $2; }
 
 	|	TOK_GLOBAL global_list ';'
+			{ $$ = $2; }
+
+	|	TOK_WIDER wider_list ';'
 			{ $$ = $2; }
 
 	|	whenever_head TOK_DO statement
@@ -407,6 +410,30 @@ global_item:	TOK_ID TOK_ASSIGN scoped_expr
 	;
 
 
+wider_list:	wider_list ',' wider_item
+			{ $$ = merge_stmts( $1, $3 ); }
+	|	wider_item
+	;
+
+wider_item:	TOK_ID TOK_ASSIGN scoped_expr
+			{
+			Expr* id =
+				current_sequencer->LookupID( $1, ANY_SCOPE, 1, 0 );
+
+			Ref(id);
+			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
+
+			if ( $2 != 0 )
+				warn->Report( "compound assignment in", $$ );
+			}
+	|	TOK_ID
+			{
+			(void) current_sequencer->LookupID( $1, ANY_SCOPE, 1, 0 );
+			$$ = null_stmt;
+			}
+	;
+
+
 block:		block_head statement_list '}'
 			{ 
 			int frame_size = current_sequencer->PopScope();
@@ -426,11 +453,12 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 			{
 			int frame_size = current_sequencer->PopScope();
 
-			Func* func = new UserFunc( $4, $7, frame_size,
+			UserFunc* func = new UserFunc( $4, $7, frame_size,
 							current_sequencer, $1 );
+
 			IValue* func_val = new IValue( func );
 
-			$$ = new ConstExpr( func_val );
+			$$ = new FuncExpr( func );
 
 			if ( $2 )
 				{

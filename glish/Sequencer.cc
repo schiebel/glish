@@ -714,7 +714,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
 
-	Expr* result = CreateVarExpr( id, scope, scope_offset, frame_offset, this );
+	Expr* result = CreateVarExpr( id, GlobalRef ? GLOBAL_SCOPE : scope, scope_offset, frame_offset, this );
 
 	if ( cur_scope->WasGlobalRef( id ) )
 		{
@@ -755,7 +755,21 @@ Expr* Sequencer::LookupID( char* id, scope_type scope, int do_install, int do_wa
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )
+				{
 				scopes[off]->MarkGlobalRef( id );
+				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
+					{
+					Expr *result = CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - off,
+							((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
+					Expr *old = (Expr*) scopes[off]->Insert( id, result );
+					if ( old )
+						{
+						Unref(old);
+						delete id;
+						}
+					return result;
+					}
+				}
 
 			if ( ! result && do_install )
 				return InstallID( id, GLOBAL_SCOPE, do_warn );
@@ -870,7 +884,11 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var )
 				result = (*scopes[cnt])[id];
 
 			if ( off != cnt+1 )
+				{
 				scopes[off]->MarkGlobalRef( id );
+				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
+					return CreateVarExpr( id, LOCAL_SCOPE, cnt+1 - off, ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
+				}
 
 			if ( ! result )
 				return InstallVar( id, GLOBAL_SCOPE, var );
@@ -953,15 +971,48 @@ void Sequencer::DeleteVal( const char* id )
 		}
 	}
 
+void Sequencer::DescribeFrames( ostream& s ) const
+	{
+	if ( frames.length() )
+		{
+		s << "frames:\t\t";
+		loop_over_list(frames, i)
+			if ( frames[i] )
+				s << (void*) frames[i] << "\t";
+			else
+			  	s << "X" << "\t\t";
+		s << endl;
+
+		s << "\t\t";
+		loop_over_list(frames, i)
+			if ( frames[i] )
+				s << frames[i]->Size() << "\t\t";
+			else
+			  	s << "X" << "\t\t";
+		s << endl;
+		}
+	if ( global_frames.length() )
+		{
+		s << "offsets:\t";
+		loop_over_list(global_frames, i)
+			s << global_frames[i] << "\t\t";
+		s << endl;
+		}
+	}
+
+
 void Sequencer::PushFrame( Frame* new_frame )
 	{
+//	cout << "Sequencer::PushFrame( Frame* )" << endl;
 	frames.append( new_frame );
 	if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
 		global_frames.append( frames.length() - 1 );
+//	DescribeFrames(cout);
 	}
 
 void Sequencer::PushFrame( frame_list &new_frames )
 	{
+//	cout << "Sequencer::PushFrame(frame_list)" << endl;
 	loop_over_list( new_frames, i )
 		{
 		Frame *new_frame = new_frames[i];
@@ -970,10 +1021,12 @@ void Sequencer::PushFrame( frame_list &new_frames )
 		if ( new_frame && new_frame->GetScopeType() != LOCAL_SCOPE )
 			global_frames.append( frames.length() - 1 );
 		}
+//	DescribeFrames(cout);
 	}
 
 Frame* Sequencer::PopFrame( unsigned int howmany )
 	{
+//	cout << "Sequencer::PopFrame(" << howmany << ")" << endl;
 	int top_frame_pos = frames.length() - 1;
 	if ( top_frame_pos < howmany - 1 )
 		fatal->Report(
@@ -987,6 +1040,7 @@ Frame* Sequencer::PopFrame( unsigned int howmany )
 			global_frames.remove( i );
 		}
 
+//	DescribeFrames(cout);
 	return top_frame;
 	}
 
@@ -1013,7 +1067,9 @@ frame_list* Sequencer::LocalFrames()
 		pos = global_frames[len];
 
 	while ( pos <= top_frame )
+		{
 		ret->append( frames[pos++] );
+		}
 
 	return ret;
 	}
@@ -1021,8 +1077,8 @@ frame_list* Sequencer::LocalFrames()
 IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 					int frame_offset )
 	{
-	if ( scope_offset < 0 )
-		scope = GLOBAL_SCOPE;
+// 	if ( scope_offset < 0 )
+// 		scope = GLOBAL_SCOPE;
 
 	switch ( scope )
 		{

@@ -5,10 +5,9 @@
 
 #include "Expr.h"
 
-
 class Sequencer;
 class Stmt;
-
+class PList(Frame);
 
 typedef IValue* value_ptr;
 #define value_ptr_to_void void_ptr
@@ -116,15 +115,14 @@ class ActualParameter : public Parameter {
 		}
 	};
 
-
-class UserFunc : public Func {
+class UserFuncKernel : public GlishObject {
     public:
-	UserFunc( parameter_list* formals, Stmt* body, int size,
+	UserFuncKernel( parameter_list* formals, Stmt* body, int size,
 			Sequencer* sequencer, Expr* subsequence_expr );
-	~UserFunc();
+	~UserFuncKernel();
 
-	IValue* Call( parameter_list* args, eval_type etype );
-	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing );
+	IValue* Call( parameter_list* args, eval_type etype, PList(Frame)* local_frames = 0);
+	IValue* DoCall( args_list* args_vals, eval_type etype, IValue* missing, PList(Frame)* local_frames = 0 );
 
 	void Describe( ostream& s ) const;
 
@@ -150,6 +148,28 @@ class UserFunc : public Func {
 	int valid;
 	int has_ellipsis;
 	int ellipsis_position;
+	};
+
+class UserFunc : public Func {
+    public:
+	UserFunc( parameter_list* formals, Stmt* body, int size,
+			Sequencer* sequencer, Expr* subsequence_expr );
+	UserFunc( const UserFunc *f );
+
+	~UserFunc();
+
+	IValue* Call( parameter_list* args, eval_type etype );
+
+	void EstablishScope();
+	UserFunc *clone() { return new UserFunc(this); }
+
+	void Describe( ostream& s ) const;
+
+    protected:
+	Sequencer* sequencer;
+	UserFuncKernel *kernel;
+	int scope_established;
+	PList(Frame)* local_frames;
 	};
 
 
