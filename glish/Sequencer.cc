@@ -198,7 +198,7 @@ static charptr *merge_chars( charptr *one, int onelen, charptr *two, int twolen 
 	return ret;
 	}
 
-static char **split_path( char *path, int &count, int canonic=0 )
+static char **split_path( char *path, int &count )
 	{
 	count = 0;
 	if ( ! path ) return 0;
@@ -219,12 +219,12 @@ static char **split_path( char *path, int &count, int canonic=0 )
 			if ( *ptr == ':' )
 				{
 				*ptr = '\0';
-				ret[count++] = canonic ? canonic_path(cur) : strdup(cur);
+				ret[count++] = strdup(cur);
 				*ptr++ = ':';
 				cur = ptr;
 				}
 			else
-				ret[count++] = canonic ? canonic_path(cur) : strdup(cur);
+				ret[count++] = strdup(cur);
 			}
 		else
 			ret[count++] = strdup(cur);
@@ -1241,7 +1241,7 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 		int ldlen = 0;
 		charptr *ldpath = (charptr*) split_path(envpath,ldlen);
 		int lblen = 0;
-		charptr *lbpath = (charptr*) split_path(libdir,lblen,1);
+		charptr *lbpath = (charptr*) split_path(libdir,lblen);
 		int len = ldlen + lblen;
 		if ( lblen && ldlen )
 			ldpath = merge_chars(ldpath,ldlen,lbpath,lblen);

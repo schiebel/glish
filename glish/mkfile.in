@@ -342,8 +342,9 @@ $(D)Select.o: $(SRC)/Select.cc $(SRC)/Select.h
 $(D)Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(H)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h ./Makefile
+	LIBDIR_P_FULL=`cd $(LIBDIR_P); pwd`; \
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DRCDIR=\"$(RCDIR)\" \
-		-DKEYDIR=\"$(KEYDIR)\" -DLIBDIR=\"$(LIBDIR_P):$(LIBDIR)\" \
+		-DKEYDIR=\"$(KEYDIR)\" -DLIBDIR=\"$$LIBDIR_P_FULL:$(LIBDIR)\" \
 		-DSCRIPTDIR=\"$(SCRIPTDIR)\" -c $(SRC)/Sequencer.cc $(T)
 
 $(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
