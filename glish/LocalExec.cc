@@ -71,11 +71,11 @@ void LocalExec::MakeExecutable( const char** argv )
 
 	if ( pid_ == 0 )
 		{ // child
-		extern char** environ;
+		char** env = ENVIRON;
 #ifndef POSIX
-		execve( executable, (char **)argv, environ );
+		execve( executable, (char **)argv, env );
 #else
-		execve( executable, (char *const*)argv, environ );
+		execve( executable, (char *const*)argv, env );
 #endif
 
 		cerr << "LocalExec::MakeExecutable: couldn't exec ";

@@ -173,6 +173,6 @@ class RegexMatch GC_FINAL_CLASS {
 	IValue *last;
 };
 
-extern void copy_regexs( void *to_, void *from_, unsigned int len );
+extern void copy_regexs( void *to_, void *from_, size_t len );
 
 #endif

@@ -206,6 +206,8 @@ static StringReporter *srpt = 0;
 
 int main( int argc, char** argv )
 	{
+	INIT_ENVIRON
+
 	srpt = new StringReporter( new SOStream );
 
 	install_terminate_handlers();
