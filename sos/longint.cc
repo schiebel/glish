@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 #include "config.h"
 #include "longint.h"
 #include <iostream.h>
+#include <stdio.h>
 
 int sos_big_endian = 1;
 int long_int::LOW = 0;
@@ -40,5 +41,8 @@ long_int_init::long_int_init()
 
 ostream &operator<<(ostream &ios, const long_int &li)
 	{
-	ios.form("0x%08x%08x",li[1],li[0]); return ios;
+	static char buf[32];
+	sprintf(buf,"0x%08x%08x",li[1],li[0]);
+	ios << buf;
+	return ios;
 	}

@@ -1,17 +1,18 @@
-//======================================================================
-// sos/sos.h
-//
-// $Id$
-//
-//======================================================================
+/*======================================================================
+** sos/sos.h
+**
+** $Id$
+**
+**======================================================================
+*/
 #ifndef sos_sos_h
 #define sos_sos_h
 #include "sos/alloc.h"
 typedef unsigned char byte;
 
-//
-// Force insertion of rcsid
-//
+/*
+** Force insertion of rcsid
+*/
 #if ! defined(RCSID)
 #if ! defined(NO_RCSID)
 #if defined(__STDC__) || defined(__ANSI_CPP__) || defined(__hpux)

@@ -1976,10 +1976,12 @@ IValue *TkFrame::Create( Sequencer *s, const_args_list *args_val )
 	else
 		{
 		Agent *agent = parent->AgentVal();
-		if ( ! strcmp("<graphic:frame>", agent->AgentID()) )
+		if ( agent && ! strcmp("<graphic:frame>", agent->AgentID()) )
 			ret =  new TkFrame( s, (TkFrame*)agent, relief,
 					    side, borderwidth, padx, pady, expand, background,
 					    width, height, cursor );
+		else
+			return (IValue*) generate_error("bad parent type");
 		}
 
 	CREATE_RETURN
@@ -2038,7 +2040,13 @@ void TkButton::UnMap()
 			a->UnMap( );
 			}
 
-		rivet_destroy_window( self );
+		if ( menu )
+			{
+			menu->Remove(this);
+			rivet_va_cmd( Menu(), "delete", Index(), 0 );
+			}
+		else
+			rivet_destroy_window( self );
 		}
 
 	else if ( menu )
@@ -2388,11 +2396,10 @@ IValue *TkButton::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( fill )
 
 	Agent *agent = parent->AgentVal();
-
-	if ( ! strcmp( agent->AgentID(), "<graphic:button>") &&
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:button>") &&
 	     ((TkButton*)agent)->IsMenu() )
 		ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val );
-	else if ( ! strcmp( agent->AgentID(), "<graphic:frame>") )
+	else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height, justify, font, relief, borderwidth, foreground, background, disabled, val, fill );
 	else
 		return (IValue*) generate_error("bad parent type");
@@ -2639,7 +2646,11 @@ IValue *TkScale::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETSTR( fill )
 
-	ret = new TkScale( s, (TkFrame*)parent->AgentVal(), start, end, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret = new TkScale( s, (TkFrame*)agent, start, end, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -2782,9 +2793,15 @@ IValue *TkText::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETSTR( fill )
 
-	char *text_str = text->StringVal( ' ', 0, 1 );
-	ret =  new TkText( s, (TkFrame*)parent->AgentVal(), width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill );
-	free_memory( text_str );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		{
+		char *text_str = text->StringVal( ' ', 0, 1 );
+		ret =  new TkText( s, (TkFrame*)agent, width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill );
+		free_memory( text_str );
+		}
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -2904,7 +2921,11 @@ IValue *TkScrollbar::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( foreground )
 	SETSTR( background )
 
-	ret = new TkScrollbar( s, (TkFrame*)parent->AgentVal(), orient, width, foreground, background );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -2999,8 +3020,12 @@ IValue *TkLabel::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETSTR( fill )
 
-	ret =  new TkLabel( s, (TkFrame*)parent->AgentVal(), text, justify, padx, pady, width,
-			    font, relief, borderwidth, foreground, background, fill );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret =  new TkLabel( s, (TkFrame*)agent, text, justify, padx, pady, width,
+				    font, relief, borderwidth, foreground, background, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -3134,9 +3159,13 @@ IValue *TkEntry::Create( Sequencer *s, const_args_list *args_val )
 	SETINT( exp )
 	SETSTR( fill )
 
-	ret =  new TkEntry( s, (TkFrame*)parent->AgentVal(), width, justify,
-			    font, relief, borderwidth, foreground, background,
-			    disabled, show, exp, fill );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret =  new TkEntry( s, (TkFrame*)agent, width, justify,
+				    font, relief, borderwidth, foreground, background,
+				    disabled, show, exp, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -3232,7 +3261,11 @@ IValue *TkMessage::Create( Sequencer *s, const_args_list *args_val )
 	SETSTR( background )
 	SETSTR( fill )
 
-	ret =  new TkMessage( s, (TkFrame*)parent->AgentVal(), text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, fill );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      
@@ -3356,7 +3389,11 @@ IValue *TkListbox::Create( Sequencer *s, const_args_list *args_val )
 	SETINT( exp )
 	SETSTR( fill )
 
-	ret =  new TkListbox( s, (TkFrame*)parent->AgentVal(), width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
+	Agent *agent = parent->AgentVal();
+	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
+		ret =  new TkListbox( s, (TkFrame*)agent, width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
+	else
+		return (IValue*) generate_error("bad parent type");
 
 	CREATE_RETURN
 	}      

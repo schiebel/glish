@@ -27,7 +27,7 @@ public:
 class IterCookie {
 public:
 	IterCookie( int b, int o ) : bucket(b), offset(o) { }
-	Set( int b, int o )
+	void Set( int b, int o )
 		{
 		bucket = b;
 		offset = o;

@@ -887,7 +887,8 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 void Task::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	if ( sos_status *ss = send_event( fd, event_name, e, 1 ) )
+	sos_status *ss = send_event( fd, event_name, e, 1 );
+	if ( ss )
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
@@ -895,7 +896,8 @@ void Task::sendEvent( sos_sink &fd, const char* event_name,
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int sds )
 	{
-	if ( sos_status *ss = send_event( fd, event_name, e, 1 ) )
+	sos_status *ss = send_event( fd, event_name, e, 1 );
+	if ( ss )
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 

@@ -92,3 +92,9 @@
 
 /* Define if gettimeofday is not declared */
 #undef SHMGET_NOT_DECLARED
+
+/* Define if you have the <limits.h> header file.  */
+#undef HAVE_LIMITS_H
+
+/* Define if you have the <float.h> header file.  */
+#undef HAVE_FLOAT_H

@@ -411,6 +411,8 @@ protected:
 	void RunQueue();
 	void RemoveSelectee( Channel* chan );
 
+	void SetupSysValue( IValue * );
+
 	void PushAwait( );
 	void PopAwait();
 	void CurrentAwaitDone();

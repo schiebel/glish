@@ -161,7 +161,8 @@ sos_status *sos_fd_sink::write( const char *cbuf, unsigned int len, buffer_type 
 		{
 		case COPY:
 			{
-			if ( char *t = K.tmp( len ) )
+			char *t = K.tmp( len );
+			if ( t )
 				{
 				memcpy( t, cbuf, len );
 				type = HOLD;

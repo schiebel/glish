@@ -120,6 +120,8 @@ declare(PDict,sink_id_list);
 
 class AcceptSocket;
 
+extern int glish_timedoutdummy;
+
 class Client {
     public:
 	// Client's are constructed by giving them the program's
@@ -138,13 +140,18 @@ class Client {
 	virtual ~Client();
 
 	// Wait for the next event to arrive and return a pointer to 
-	// it.  The GlishEvent will be Unref()'d on the next call to
+	// it.	The GlishEvent will be Unref()'d on the next call to
 	// NextEvent(), so if the caller wishes to keep the GlishEvent
 	// (or its Value) they must Ref() the GlishEvent (or its Value).
 	//
-	// If the interpreter connection has been broken then 0 is returned
-	// (and the caller should terminate).
-	GlishEvent* NextEvent();
+	// If a timeout is specified and no activity has occured during
+	// that period 0 is returned and timedout is set to true.
+	// 
+	// If 0 is otherwise returned, the interpreter connection has been 
+	// broken then 0 is returned (and the caller should terminate).
+	//
+	GlishEvent* NextEvent(const struct timeval *timeout = 0,
+			      int &timedout = glish_timedoutdummy);
 
 	// Another version of NextEvent which can be passed an fd_set
 	// returned by select() to aid in determining from where to

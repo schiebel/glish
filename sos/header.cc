@@ -181,4 +181,6 @@ ostream &operator<< (ostream &ios, const sos_header &h)
 	char *user = (char*) ((sos_header &)h).iBuffer() + 18;
 	for ( int C = 0; C < 6; C++ )
 		ios << (void*) user[C] << " ";
+
+	return ios;
 	}

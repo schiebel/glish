@@ -47,6 +47,10 @@ RCSID("@(#) $Id$")
 #include <setjmp.h>
 #include <strstream.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "input.h"
 #include "glishlib.h"
 #include "Reporter.h"
@@ -130,9 +134,16 @@ void StringReporter::Epilog() { }
 void StringReporter::Prolog() { }
 static StringReporter *srpt = 0;
 
+int glish_can_divide_by_0 = 1;
+static void resolve_divide_by_0( );
+static double TMP_DOUBLE;
+static double ZERO_DOUBLE = 0.0;
+
 int main( int argc, char** argv )
 	{
 	srpt = new StringReporter( new SOStream );
+
+	resolve_divide_by_0( );
 	install_terminate_handlers();
 
 	(void) install_signal_handler( SIGINT, glish_sigint );
@@ -467,6 +478,14 @@ static void glish_dump_core( const char *file )
 		write_value( sos, (Value*) vals[i], "" );
 
 	sos.flush( );
+	}
+
+void glish_check_sigfpe( ) { glish_can_divide_by_0 = 0; }
+
+void resolve_divide_by_0( )
+	{
+	(void) install_signal_handler( SIGFPE, glish_check_sigfpe );
+	TMP_DOUBLE = (double) glish_can_divide_by_0 / ZERO_DOUBLE;
 	}
 
 static char copyright1[]  = "Copyright (c) 1993 The Regents of the University of California.";

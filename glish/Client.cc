@@ -220,6 +220,8 @@ private:
 	};
 
 
+int glish_timedoutdummy = 0;
+
 Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 	last_context( ), useshm(0)
 	{
@@ -488,8 +490,24 @@ Client::~Client()
 
 	}
 
-GlishEvent* Client::NextEvent()
+GlishEvent* Client::NextEvent(const struct timeval *timeout, int &timedout)
 	{
+	// We don't want to use timeout directly because select can
+	// change it, but the caller might want to keep using the
+	// timeval struct without having to change it all the time
+
+	struct timeval timeoutcopy;
+	struct timeval *timeptr = 0;
+	if (timeout)
+		{
+		// We need to keep a copy because in case of error select
+		// can cause timeout to become undefined.
+		timeoutcopy = *timeout;
+		timeptr = &timeoutcopy;
+		}
+
+	timedout = 0;
+
 	if ( no_glish )
 		return 0;
 
@@ -498,8 +516,14 @@ GlishEvent* Client::NextEvent()
 	FD_ZERO( &input_fds );
 	AddInputMask( &input_fds );
 
-	while ( select( FD_SETSIZE, (SELECT_MASK_TYPE *) &input_fds, 0, 0, 0 ) < 0 )
+	int nfound;
+	while ( (nfound=select(FD_SETSIZE, (SELECT_MASK_TYPE *) &input_fds, 
+			       0, 0, timeptr )) < 0 )
 		{
+		// ERROR!
+		// We need to reset timeout. If we wanted to get fancy we
+		// could decrement the timeout by the time already elapsed.
+		if (timeptr) timeoutcopy = *timeout;
 		if ( errno != EINTR )
 			{
 			fprintf( stderr, "%s: ", prog_name );
@@ -508,8 +532,16 @@ GlishEvent* Client::NextEvent()
 			}
 		}
 
-	return NextEvent( &input_fds );
+        if (nfound == 0)
+		{
+		timedout = 1;
+		return 0;
+		}
+	else
+		return NextEvent( &input_fds );
+
 	}
+
 
 GlishEvent* Client::NextEvent( fd_set* mask )
 	{

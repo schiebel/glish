@@ -15,6 +15,14 @@ RCSID("@(#) $Id$")
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif
+#ifdef HAVE_FLOAT_H
+#include <float.h>
+#endif
+
 #include "sos/io.h"
 
 #ifdef HAVE_SIGPROCMASK
@@ -751,6 +759,43 @@ void Sequencer::InitScriptClient()
 	ScriptCreated( 1 );
 	}
 
+
+void Sequencer::SetupSysValue( IValue *sys_val )
+	{
+	IValue *ver = new IValue( GLISH_VERSION );
+	sys_val->SetField( "version", ver );
+	Unref(ver);
+
+	IValue *pid = new IValue( (int) getpid() );
+	sys_val->SetField( "pid", pid );
+	Unref(pid);
+
+	IValue *ppid = new IValue( (int) getppid() );
+	sys_val->SetField( "ppid", ppid );
+	Unref(ppid);
+
+	recordptr max = create_record_dict();
+	max->Insert( strdup("integer"), new IValue( (int) INT_MAX ) );
+	max->Insert( strdup("byte"), new IValue( (int) UCHAR_MAX ) );
+	max->Insert( strdup("short"), new IValue( (int) SHRT_MAX ) );
+	max->Insert( strdup("float"), new IValue( (float) FLT_MAX ) );
+	max->Insert( strdup("double"), new IValue( (double) DBL_MAX ) );
+
+	recordptr min = create_record_dict();
+	min->Insert( strdup("integer"), new IValue( (int) INT_MIN ) );
+	min->Insert( strdup("byte"), new IValue( (int) 0 ) );
+	min->Insert( strdup("short"), new IValue( (int) SHRT_MIN ) );
+	min->Insert( strdup("float"), new IValue( (float) FLT_MAX ) );
+	min->Insert( strdup("double"), new IValue( (double) DBL_MAX ) );
+
+	recordptr limits = create_record_dict();
+	limits->Insert( strdup("max"), new IValue( max ) );
+	limits->Insert( strdup("min"), new IValue( min ) );
+
+	sys_val->SetField( "limits", new IValue( limits ) );
+	}
+
+
 Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0)
 	{
 	cur_sequencer = this;
@@ -836,17 +881,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 	system_expr->SetChangeNotice(system_change_function);
 	system_expr->Assign( sys_val );
 
-	IValue *ver = new IValue( GLISH_VERSION );
-	sys_val->SetField( "version", ver );
-	Unref(ver);
-
-	IValue *pid = new IValue( (int) getpid() );
-	sys_val->SetField( "pid", pid );
-	Unref(pid);
-
-	IValue *ppid = new IValue( (int) getppid() );
-	sys_val->SetField( "ppid", ppid );
-	Unref(ppid);
+	SetupSysValue( sys_val );
 
 #if defined( GLISHTK )
 	IValue *tkversion = new IValue( TK_VERSION );
