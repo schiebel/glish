@@ -3531,6 +3531,9 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	procs.Insert("bind", new TkProc(this, "", glishtk_bind, glishtk_str));
 	procs.Insert("unbind", new TkProc(this, "", glishtk_unbind));
 	procs.Insert("jump", new TkProc("-jump", glishtk_onebool));
+	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
+	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
+	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
 const char **TkScrollbar::PackInstruction()
