@@ -3,16 +3,20 @@ This is Glish version 2.6.0, dated 14Nov97.
 
 Glish is a language, interpreter, and class library for building
 loosely-coupled distributed systems. Glish provides a "software bus"
-to which processes are connected and controlled by the intrepreted
+to which processes are connected and controlled by the interpreted
 Glish scripting language. The Glish C++ class library provides the tools
 necessary to exchange structured binary data among the processes on the
-software bus. If you would like more information, please see URL:
-"http://www.cv.nrao.edu/glish/".
+software bus. If you would like more information, please see the contents
+of URL:                         http://www.cv.nrao.edu/glish/
 
-Glish users are encouraged to make themselves known by sending email to
-drs@nrao.edu; that way we can keep you informed of bug fixes, new
-releases, and the like.  There is also a Glish mailing list - send mail
-to glishers-request@ee.lbl.gov to be added.
+If you have trouble installing glish or have questions, please check the
+URL above; it has information about Glish and who to contact with questions
+or bug reports.
+
+A Glish email exploder list available, and this is probably the best way
+to keep up to date on future Glish releases. You can subscribe to it by
+sending email to:               majordomo@majordomo.cv.nrao.edu
+with the message contents:      subscribe glish
 
 A few introductory papers and the Glish "User Manual" can be found in
 the directory glish/doc.
