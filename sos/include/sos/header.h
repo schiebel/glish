@@ -3,7 +3,7 @@
 //
 // $Id$
 //
-// Copyright (c) 1997 Associated Universities Inc.
+// Copyright (c) 1997,2000 Associated Universities Inc.
 //
 //======================================================================
 #ifndef sos_header_h

@@ -1,6 +1,6 @@
 // $Id$
 // Copyright (c) 1993 The Regents of the University of California.
-// Copyright (c) 1997,1998 Associated Universities Inc.
+// Copyright (c) 1997,1998,2000 Associated Universities Inc.
 #ifndef built_in_h
 #define built_in_h
 

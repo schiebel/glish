@@ -1,6 +1,6 @@
 /* $Id$
 ** Copyright (c) 1993 The Regents of the University of California.
-** Copyright (c) 1997 Associated Universities Inc.
+** Copyright (c) 1997,2000 Associated Universities Inc.
 */
 #ifndef glish_h
 #define glish_h

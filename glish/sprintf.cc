@@ -9,7 +9,7 @@
 // 	see http://www.cv.nrao.edu/glish/ for information about Glish.
 // 
 // Changes since Chris' and Fred's work:
-// Copyright (c) 1998 Associated Universities Inc.
+// Copyright (c) 1998,2000 Associated Universities Inc.
 //
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")

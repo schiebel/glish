@@ -1,4 +1,5 @@
 // $Id$
+// Copyright (c) 1997,1998,2000 Associated Universities Inc.
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")

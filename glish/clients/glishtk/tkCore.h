@@ -1,5 +1,5 @@
 // $Id$
-// Copyright (c) 1997,1998 Associated Universities Inc.
+// Copyright (c) 1997,1998,2000 Associated Universities Inc.
 //
 #ifndef tkcore_h_
 #define tkcore_h_
