@@ -13,15 +13,16 @@
 #    }
 #    return public
 #}
-#x := one()
-#a := x.frame()
-# a := F
-# a := x.frame()
-# a := F
-# x := F
-# x := one()
-# a := x.frame()
-# a := F
+##x := one()
+##a := x.frame()
+## a := F
+## a := x.frame()
+## a := F
+## x := F
+## x := one()
+## a := x.frame()
+## a := F
+
 
 #####
 ##### OK
@@ -38,14 +39,15 @@
 #    }
 #    return public
 #}
-#x := two()
+##x := two()
 ##a := x.frame()
 ##f := a.fun
 ##f()
 ##a := F
 ##f()
 ##f := F
-#
+
+
 #####
 ##### OK
 #####
@@ -59,10 +61,11 @@
 #    }
 #    return public
 #}
-#x := three()
+##x := three()
 ##a := x.frame()
-## a := F
-#
+##a := F
+
+
 #####
 ##### OK
 #####
@@ -72,7 +75,7 @@
 #    return [=]
 #}
 ##x := four()
-#
+
 #####
 ##### OK
 #####
@@ -83,9 +86,10 @@
 #        x := F
 #    return [=]
 #}
-#x := five()
+##x := five()
 ##<RESIZE LAST(??) FRAME>
-#
+
+
 #####
 ##### OK
 #####
@@ -105,13 +109,14 @@
 #        }
 #    return pub
 #}
-#x := six()
-#x
+##x := six()
+##x
 ##<RESIZE FIRST FRAME>
 ##x := F
 ##x := six()
 ##x := F
 ##<RESIZE FIRST FRAME>
+
 
 #####
 ##### OK
@@ -127,9 +132,10 @@
 #    }
 #    return public
 #}
-#x := seven()
-#f := x.frame()
-#f := F
+##x := seven()
+##f := x.frame()
+##f := F
+
 
 #####
 ##### OK
@@ -143,11 +149,12 @@
 #    }
 #    return public
 #}
-#x := eight()
-#f := [=]
-#x.frame(f)
-#f
-#f := F
+##x := eight()
+##f := [=]
+##x.frame(f)
+##f
+##f := F
+
 
 #####
 ##### OK *** leave eight() uncommented when using this ***
@@ -155,11 +162,12 @@
 #func nine( EF, ref Z ) {
 #    EF.frame(Z)
 #}
-#x := eight()
-#f := [=]
-#nine(x,f)
-#f.f()
-#f := F
+##x := eight()
+##f := [=]
+##nine(x,f)
+##f.f()
+##f := F
+
 
 #####
 ##### OK
@@ -181,11 +189,12 @@
 #    }
 #    return public
 #}
-#x := ten()
-#f := x.frame()
-#f := F
-#x := F
-#foobar := F
+##x := ten()
+##f := x.frame()
+##f := F
+##x := F
+##foobar := F
+
 
 #####
 ##### OK *** leave ten() uncommented when using this ***
@@ -202,12 +211,13 @@
 #    }
 #    return public
 #}
-#x := eleven()
-#f := x.frame()
-#f()
-#x := F
-#f := F
-#foobar := F
+##x := eleven()
+##f := x.frame()
+##f()
+##x := F
+##f := F
+##foobar := F
+
 
 #####
 ##### OK
@@ -219,7 +229,8 @@
 #    public.foo := func( ) { print "hello world!" }
 #    return public
 #}
-#twelve().foo()
+##twelve().foo()
+
 
 #####
 ##### OK *** frame doesn't disappear with this one ***
@@ -231,10 +242,10 @@
 #    public.foo := func( ) { print "hello world!" }
 #    return ref public
 #}
-#tref := thirteen( )
-#tref.foo()
-#const tref := tref
-#tref.foo()
+##tref := thirteen( )
+##tref.foo()
+##const tref := tref
+##tref.foo()
 
 
 ####
@@ -264,3 +275,4 @@
 #
 #  priv.createGUI();
 #}
+##x := fourteen( )
