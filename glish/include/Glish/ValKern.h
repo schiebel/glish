@@ -139,6 +139,9 @@ class ValueKernel {
 
 	void SetType( glish_type t, unsigned int l, KernelCopyFunc c=0,
 		      KernelZeroFunc z=0, KernelDeleteFunc d=0 );
+	// This function should be used with caution. It assumes 
+	// sizeof(int) == sizeof(glish_type).
+	void BoolToInt();
 // 	void SetArray( void *storage, unsigned int len, glish_type t, int copy = 0,
 // 		       KernelCopyFunc c=0, KernelZeroFunc z=0, KernelDeleteFunc d=0 );
 	void SetArray( glish_bool vec[], unsigned int len, int copy = 0,
