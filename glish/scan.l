@@ -118,7 +118,6 @@ static char *literal( const char *s = 0, int clear = 0 );
 #define PRAGMA_SHARED(type)					\
 	{							\
 	current_sequencer->MultiClientScript( Client::type );	\
-	fprintf(stderr,"%s\n",#type); \
 	++line_num;						\
 	BEGIN(INITIAL);						\
 	break;							\

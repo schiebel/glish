@@ -47,6 +47,8 @@ void TkSelector::AddSelectee( Selectee *S )
 
 void TkSelector::DeleteSelectee( int selectee_fd )
 	{
+	if ( selectee_fd < 0 )
+		return;
 	Tk_DeleteFileHandler( selectee_fd );
 	Selector::DeleteSelectee( selectee_fd );
 	}
