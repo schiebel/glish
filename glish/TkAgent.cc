@@ -2110,9 +2110,9 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("width", new TkProc("-width", glishtk_oneint));
 	procs.Insert("exportselection", new TkProc("-exportselection", glishtk_onebool));
 	procs.Insert("see", new TkProc(this, "see", glishtk_oneidx));
-	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_no2str));
 	procs.Insert("selection", new TkProc("curselection", glishtk_nostr, glishtk_splitsp_int));
 	procs.Insert("select", new TkProc(this, "select", "set", glishtk_oneortwoidx2str));
+	procs.Insert("clear", new TkProc(this, "select", "clear", glishtk_oneortwoidx2str));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
