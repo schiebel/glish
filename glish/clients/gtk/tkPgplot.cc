@@ -351,7 +351,7 @@ struct glishtk_pgplot_bindinfo
 };
 
 int
-glishtk_pgplot_entercb (Tk_Window pgplot, XEvent *xevent, ClientData assoc,
+glishtk_pgplot_entercb ( Tcl_Interp *tcl, Tk_Window pgplot, XEvent *xevent, ClientData assoc,
 			int ks, int callbacktype)
 {
   Tcl_VarEval( tcl, "focus ", Tk_PathName(pgplot), 0 );
@@ -482,7 +482,7 @@ glishtk_int (char *sel)
 }
 
 char *
-glishtk_oneornodim (Tk_Window self, const char *cmd, Value *args)
+glishtk_oneornodim ( Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value *args)
 {
   char *event_name = "one or zero dim function";
 
