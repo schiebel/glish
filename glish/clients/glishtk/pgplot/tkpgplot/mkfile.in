@@ -28,7 +28,7 @@ DL_LIBS = @DL_LIBS@
 XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 
-CINCLUDE = -I$(SRC) -I$(SRC)/tkpgplot @TK_INCL@ $(XINC)
+CINCLUDE = -I. -I$(SRC) -I$(SRC)/tkpgplot @TK_INCL@ $(XINC)
 
 LIBS = $(XLIB) @LIBS@ $(DL_LIBS)
 

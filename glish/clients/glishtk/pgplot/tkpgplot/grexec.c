@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "config.h"
 
 /*
 ** #if defined(F2C)
@@ -72,7 +73,7 @@ markers; `N' otherwise.
 
 /* The dispatcher for PGPLOT. */
 static int NUMDRIVERS = 6;
-extern int psdriv_(int *ifunc, float *rbuf, int *nbuf, char *chr,
+extern int PSDRIV(int *ifunc, float *rbuf, int *nbuf, char *chr,
 					int *lchr, int *mode, int chr_len);
 extern int tkdriv(int *ifunc, float *rbuf, int *nbuf, char *chr, int *lchr, int len);
 

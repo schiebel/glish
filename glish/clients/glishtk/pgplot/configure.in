@@ -378,27 +378,6 @@ AC_CHECK_LIB(dl, dlopen, have_dl=yes; dl_lib="-ldl", have_dl=no; dl_lib="")
 
 dnl##--------------------------------------------------------------------
 dnl##
-dnl## PGPLOT parameters
-dnl##
-dnl##--------------------------------------------------------------------
-if test -n "$option_pgplot_link_flags"; then
-    PGPLOTINCLUDES="$option_pgplot_incl_flags"
-    PGPLOTLINKFLAGS="$option_pgplot_link_flags"
-    if test -n "$option_pgplot_link_search"; then
-        PGPLOTLINKSEARCH="$option_pgplot_link_search"
-    else
-        PGPLOTLINKSEARCH=""
-    fi
-    TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
-else
-    PGPLOTINCLUDES=""
-    PGPLOTLINKFLAGS=""
-    PGPLOTLINKSEARCH=""
-fi
-
-
-dnl##--------------------------------------------------------------------
-dnl##
 dnl## Configure Tk
 dnl##
 dnl##--------------------------------------------------------------------
@@ -651,6 +630,42 @@ else
     TK_INCL=""
     x_includes=""
     x_libraries=""
+fi
+
+
+dnl##--------------------------------------------------------------------
+dnl##
+dnl## PGPLOT parameters
+dnl##
+dnl##--------------------------------------------------------------------
+if test -n "$option_pgplot_link_flags"; then
+    PGPLOTINCLUDES="$option_pgplot_incl_flags"
+    PGPLOTLINKFLAGS="$option_pgplot_link_flags"
+    if test -n "$option_pgplot_link_search"; then
+        PGPLOTLINKSEARCH="$option_pgplot_link_search"
+    else
+        PGPLOTLINKSEARCH=""
+    fi
+    TK_FLAGS="$TK_FLAGS -DTKPGPLOT"
+
+    SAVED_LIBS=$LIBS
+    LIBS="-L$x_libraries $PGPLOTLINKFLAGS"
+    AC_MSG_CHECKING([for psdriv_])
+    AC_TRY_LINK([extern void psdriv_();],[psdriv_();],[
+                 AC_DEFINE(PSDRIV,psdriv_)
+                 AC_MSG_RESULT(present)],[
+                 AC_MSG_RESULT(missing)
+                 AC_MSG_CHECKING([for psdriv])
+                 AC_TRY_LINK([extern void psdriv();],[psdriv();],[
+                             AC_DEFINE(PSDRIV,psdriv)
+                             AC_MSG_RESULT(present)],[
+                             AC_DEFINE(PSDRIV,psdriv_UNKNOWN_)
+                             AC_MSG_RESULT(not found)])])
+    LIBS=$SAVED_LIBS
+else
+    PGPLOTINCLUDES=""
+    PGPLOTLINKFLAGS=""
+    PGPLOTLINKSEARCH=""
 fi
 
 
@@ -1376,4 +1391,5 @@ $mkhier "tkpgplot/$ARCH"
 
 PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"])
 
+AC_CONFIG_HEADER(tkpgplot/$ARCH/config.h:tkpgplot/config.h.in)
 AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in)
