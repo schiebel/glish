@@ -3555,6 +3555,18 @@ int listbox_button1cb(Rivetobj entry, XEvent *unused1, ClientData assoc, ClientD
 	return TCL_OK;
 	}
 
+extern "C" void listbox_created();
+extern "C" void listbox_deleted();
+
+void TkListbox::UnMap()
+	{
+	if ( self )
+		{
+		listbox_deleted();
+		TkAgent::UnMap();
+		}
+	}
+
 TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, charptr mode,
 		      charptr font, charptr relief, charptr borderwidth,
 		      charptr foreground, charptr background, int exportselection, charptr fill_ )
@@ -3610,6 +3622,8 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
+
+	listbox_created();
 
 	frame->AddElement( this );
 	frame->Pack();

@@ -228,17 +228,13 @@ void Task::CloseChannel()
 	{
 	if ( channel )
 		{
-		if ( channel->ChannelState() == CHAN_IN_USE )
-			// don't delete the channel now; just mark it for
-			// later deletion
-			channel->ChannelState() = CHAN_INVALID;
-
-		else
-			{
-			selector->DeleteSelectee( channel->Source().fd() );
-			Unref( channel );
-			}
-
+		//
+		// this is now just used as a flag
+		// to Sequencer::EmptyTaskChannel
+		//
+		channel->ChannelState() = CHAN_INVALID;
+		selector->DeleteSelectee( channel->Source().fd() );
+		Unref( channel );
 		channel = 0;
 		}
 	}
