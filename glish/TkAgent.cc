@@ -1265,7 +1265,6 @@ void TkAgent::FlushGlishEvents()
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
 	int ret = 0;
-	rivet_hold_destroy();
 
 	if ( hold_tk_events )
 		{
@@ -1275,21 +1274,18 @@ int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	else
 		ret = Tk_DoOneEvent( flags );
 
-	rivet_release_destroy();
 	return ret;
 	}
 
 int TkAgent::DoOneTkEvent( )
 	{
 	int ret = 0;
-	rivet_hold_destroy();
 
 	if ( hold_tk_events )
 		ret = Tk_DoOneEvent( TK_FILE_EVENTS | TK_TIMER_EVENTS );
 	else
 		ret = Tk_DoOneEvent( 0 );
 
-	rivet_release_destroy();
 	return ret;
 	}
 
