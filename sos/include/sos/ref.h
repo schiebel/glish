@@ -23,7 +23,6 @@ typedef unsigned short refmode_t;
 
 class GcRef GC_FINAL_CLASS {
     public:
-	enum cycle_type { NONROOT, ROOT };
 	GcRef() : zero(0), unref(0), mask(0), ref_count(1) { }
 	GcRef( const GcRef & );
 
@@ -43,21 +42,11 @@ class GcRef GC_FINAL_CLASS {
 	void SetUnref( GcRef *r, int propagate_only=0 );
 	void ClearUnref( );
 
-	// Should we carefully carry along a mirror to this
-	// value when it is copied?
-	virtual int MirrorSet( ) const;
-	void MarkMirror( );
-	void ClearMirror( );
-
-	// How this object creates cycles (if it does)
-	virtual cycle_type CycleMode( ) const;
-
-/*     protected: */
+    protected:
 	inline refmode_t mZERO( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<0; }
 	inline refmode_t mZEROLIST( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<1; }
 	inline refmode_t mUNREF( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<2; }
 	inline refmode_t mPROPAGATE( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<3; }
-	inline refmode_t mMIRROR( refmode_t mask=~((refmode_t) 0) ) const { return mask & 1<<4; }
 
 	friend inline void Ref( GcRef* object );
 	friend inline void Unref( GcRef* object );

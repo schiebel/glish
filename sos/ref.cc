@@ -19,26 +19,6 @@ void GcRef::AddCycleRoot( GcRef *root )
 	cycle_roots->append( root );
 	}
 
-int GcRef::MirrorSet( ) const
-	{
-	return mMIRROR(mask);
-	}
-
-void GcRef::MarkMirror( )
-	{
-	mask |= mMIRROR();
-	}
-
-void GcRef::ClearMirror( )
-	{
-	mask &= ~mMIRROR();
-	}
-
-GcRef::cycle_type GcRef::CycleMode( ) const
-	{
-	return NONROOT;
-	}
-
 void GcRef::SetUnref( GcRef *r, int propagate_only )
 	{
 	if ( r )
