@@ -860,6 +860,7 @@ IValue *glish_parser( Stmt *&stmt )
 
 		else
 			{
+			if ( status ) continue;
 			Stmt *loc_stmt = cur_stmt;
 			cur_stmt = null_stmt;
 
