@@ -194,6 +194,7 @@ class TkAgent : public Proxy {
 	static int GlishEventsHeld() { return hold_glish_events; }
 	static void FlushGlishEvents();
 
+	static void Version( ProxyStore *p, Value *v, void *c);
 	static void HaveGui( ProxyStore *p, Value *v, void *c);
 	static void HoldEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events++; }
 	static void ReleaseEvents( ProxyStore *p=0, Value *v=0, void *c=0) { hold_tk_events--; }

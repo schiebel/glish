@@ -1,9 +1,13 @@
 
 func init_gtk( ) {
+    global system
 
     #gtk := client('xgtk')
     #gtk := client('gtk',suspend=T)
     gtk := client('gtk')
+
+    system.tk := gtk->version()
+
     ret := [=]
 
     ret.frame := func ( parent=F, relief='flat', borderwidth=2, side='top', padx=0,

@@ -1375,6 +1375,24 @@ void TkAgent::FlushGlishEvents()
 		}
 	}
 
+void TkAgent::Version( ProxyStore *s, Value *, void *)
+	{
+	Value *tkv = new Value( TK_VERSION );
+	attributeptr tka = tkv->ModAttributePtr();
+        tka->Insert( strdup( "patch" ), new Value(TK_PATCH_LEVEL) );
+	Value *tclv = new Value(TCL_VERSION);
+        tka->Insert( strdup( "tcl" ), tclv );
+	attributeptr tcla = tclv->ModAttributePtr();
+	tcla->Insert( strdup( "patch" ), new Value(TCL_PATCH_LEVEL) );
+
+	if ( s->ReplyPending() )
+		s->Reply( tkv );
+	else
+		s->PostEvent( "version", tkv );
+
+	Unref(tkv);
+	}
+
 void TkAgent::HaveGui( ProxyStore *s, Value *, void *)
 	{
 	if ( s->ReplyPending() )

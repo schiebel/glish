@@ -85,6 +85,7 @@ int main( int argc, char** argv )
 #if defined(TKPGPLOT)
 	stor.Register( "pgplot", TkPgplot::Create );
 #endif
+	stor.Register( "version", TkAgent::Version );
 	stor.Register( "have_gui", TkAgent::HaveGui );
 	stor.Register( "tk_hold", TkAgent::HoldEvents );
 	stor.Register( "tk_release", TkAgent::ReleaseEvents );
