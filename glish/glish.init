@@ -271,7 +271,7 @@ func array(init, ...)
 		value := rep(init, p);
 
 	if ( num_args(...) > 1 )
-		value::shape := [...]
+		value::shape := as_integer([...])
 
 	return value
 	}
