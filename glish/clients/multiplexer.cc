@@ -211,7 +211,7 @@ int main( int argc, char** argv )
 
 			for ( j=0 ; j<l->length() ; ++j )
 				{
-				c.PostEvent( e, EventContext((*l)[j], 0) );
+				c.PostEvent( e, EventContext( 0, (*l)[j] ) );
 				}
 			continue;
 			}
