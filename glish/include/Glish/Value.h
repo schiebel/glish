@@ -102,6 +102,7 @@ public:
 	Value( );
 	Value( const char *message, const char *file, int lineNum );
 	Value( const Value *val, const char *file, int lineNum );
+	void SetFailMessage( Value * );
 
 	Value( const Value &v ) : kernel(v.kernel),
 				attributes( v.CopyAttributePtr() )

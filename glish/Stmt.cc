@@ -1025,8 +1025,7 @@ IValue* FailStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	//
 	// Assign message separately so that the message is preserved.
 	//
-	if ( arg )
-		ret->AssignAttribute( "message", arg->CopyEval() );
+	if ( arg ) ret->SetFailMessage( arg->CopyEval() );
 
 	return ret;
 	}

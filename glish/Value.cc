@@ -123,6 +123,21 @@ Value::Value( const Value *val, const char *xfile, int lineNum )
 		}
 	}
 
+void Value::SetFailMessage( Value *nv )
+	{
+	if ( Type() != TYPE_FAIL )
+		fatal->Report( "Value::SetFailValue called for non fail value" );
+
+	recordptr rptr = kernel.modRecord();
+	Value *v = (*rptr)["message"];
+	if ( v )
+		{
+		Unref(v);
+		rptr->Insert( "message", nv );
+		}
+	else
+		rptr->Insert( strdup("message"), nv );
+	}
 
 #define DEFINE_SINGLETON_CONSTRUCTOR(constructor_type)			\
 Value::Value( constructor_type value )					\

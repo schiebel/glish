@@ -2104,12 +2104,12 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 
 			if ( rstrval->Type() != TYPE_SUBVEC_REF )
 
-				rstrval->ApplyRegx( regs, rlen, match );
+				result = rstrval->ApplyRegx( regs, rlen, match );
 
 			else
 				{
 				VecRef *ref = rstrval->VecRefPtr();
-				((IValue*)rstrval->VecRefDeref())->ApplyRegx( regs, rlen, match, ref->Indices(), ref->Length() );
+				result = ((IValue*)rstrval->VecRefDeref())->ApplyRegx( regs, rlen, match, ref->Indices(), ref->Length() );
 				ref->IndexUpdate( );
 				}
 
