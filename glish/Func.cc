@@ -103,7 +103,7 @@ void Parameter::Describe( OStream& s ) const
 	{
 	if ( name )
 		s << name;
-	else
+	else if ( arg )
 		arg->Describe( s );
 
 	if ( default_value )
