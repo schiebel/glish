@@ -235,9 +235,13 @@ Value *copy_value( const Value *value )
 	return (Value*)copy_value( (const IValue*) value );
 	}
 
-const Value *lookup_sequencer_value( const char *id )
+int lookup_print_precision( )
 	{
-	return Sequencer::LookupVal( id );
+	return Sequencer::CurSeq()->System().PrintPrecision();
+	}
+int lookup_print_limit( )
+	{
+	return Sequencer::CurSeq()->System().PrintLimit();
 	}
 
 class StringReporter : public Reporter {

@@ -220,12 +220,14 @@ Task* Agent::AgentTask()
 	return 0;
 	}
 
-void Agent::DescribeSelf( ostream& s ) const
+int Agent::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	if ( agent_ID )
 		s << agent_ID;
 	else
 		s << "<agent>";
+	return 1;
 	}
 
 IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )

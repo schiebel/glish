@@ -137,7 +137,7 @@ public:
 	void DcomplexOpCompute( const IValue* value, int lhs_len,
 				ArithExpr* expr );
 
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 protected:
 	void DeleteValue();

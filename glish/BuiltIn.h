@@ -43,7 +43,7 @@ class BuiltIn : public Func {
 	void SetFailHandling( int do_fail )
 		{ handle_fail = do_fail; }
 
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
     protected:
 	// returns 0 if everything is OK

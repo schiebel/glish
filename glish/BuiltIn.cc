@@ -172,9 +172,11 @@ void BuiltIn::DoSideEffectsCall( const_args_list* args_vals,
 	Unref( DoCall( args_vals ) );
 	}
 
-void BuiltIn::DescribeSelf( ostream& s ) const
+int BuiltIn::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	s << description << "()";
+	return 1;
 	}
 
 IValue *BuiltIn::AllNumeric( const_args_list* args_vals, glish_type& max_type,

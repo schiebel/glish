@@ -586,7 +586,6 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 	int tmp = 0;
 	const Value *val;
 	const Value *precv;
-	const Value *printv;
 	static char prec[64];
 	if ( attr && (val = (*attr)["print"]) && val->Type() == TYPE_RECORD &&
 			val->HasRecordElement( "precision" ) &&
@@ -594,17 +593,8 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 			precv != false_value && precv->IsNumeric() &&
 			(tmp = precv->IntVal()) >= 0 )
 		limit = tmp;
-	else if ( (val = lookup_sequencer_value( "system" )) && 
-			val->Type() == TYPE_RECORD &&
-			val->HasRecordElement( "print" ) &&
-			(printv = val->ExistingRecordElement( "print" )) &&
-			printv != false_value &&
-			printv->Type() == TYPE_RECORD &&
-			printv->HasRecordElement( "precision" ) &&
-			(precv = printv->ExistingRecordElement("precision")) &&
-			precv != false_value && precv->IsNumeric() &&
-			(tmp = precv->IntVal()) >= 0)
-		limit = tmp;
+	else 
+		limit = lookup_print_precision( );
 
 	if ( limit >= 0 )
 		sprintf(prec,"%%.%df",limit);
@@ -1010,7 +1000,6 @@ unsigned int Value::PrintLimit( ) const
 	int tmp = 0;
 	const attributeptr attr = AttributePtr();
 	const Value *val;
-	const Value *printv;
 	const Value *limitv;
 	if ( attr && (val = (*attr)["print"]) && val->Type() == TYPE_RECORD &&
 	     		val->HasRecordElement( "limit" ) && 
@@ -1018,17 +1007,8 @@ unsigned int Value::PrintLimit( ) const
 			limitv != false_value && limitv->IsNumeric() &&
 			(tmp = limitv->IntVal()) > 0 )
 		limit = tmp;
-	else if ( (val = lookup_sequencer_value( "system" )) &&
-			val->Type() == TYPE_RECORD &&
-			val->HasRecordElement( "print" ) && 
-			(printv = val->ExistingRecordElement( "print" )) &&
-			printv != false_value &&
-			printv->Type() == TYPE_RECORD &&
-			printv->HasRecordElement( "limit" ) &&
-			(limitv = printv->ExistingRecordElement("limit")) &&
-			limitv != false_value && limitv->IsNumeric() &&
-			(tmp = limitv->IntVal()) > 0 )
-		limit = tmp;
+	else 
+		limit = lookup_print_limit();
 
 	return limit;
 	}
@@ -4128,25 +4108,25 @@ int Value::Grow( unsigned int new_size )
 	}
 
 
-void Value::DescribeSelf( ostream& s ) const
+int Value::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	if ( IsRef() )
 		{
 		if ( IsConst() )
 			s << "const ";
-
 		else
 			s << "ref ";
 
 		RefPtr()->DescribeSelf( s );
 		}
-
 	else
 		{
 		char* desc = StringVal( ' ', PrintLimit() , 1 );
 		s << desc;
 		delete desc;
 		}
+	return 1;
 	}
 
 int Value::Bytes( int addPerValue ) const

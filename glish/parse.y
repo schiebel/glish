@@ -872,24 +872,8 @@ IValue *glish_parser( Stmt *&stmt )
 
 		else
 			{
-			const IValue *sys = Sequencer::LookupVal( "system" );
-			const IValue *dbgv;
-			const IValue *echov;
-
 			Stmt *loc_stmt = cur_stmt;
 			cur_stmt = null_stmt;
-
-			if ( sys && sys->Type() == TYPE_RECORD &&
-			     sys->HasRecordElement( "debug" ) &&
-			     (dbgv = (const IValue*)(sys->ExistingRecordElement( "debug" ))) &&
-			     dbgv != false_value && dbgv->Type() == TYPE_RECORD &&
-			     dbgv->HasRecordElement( "echo" ) &&
-			     (echov = (const IValue*)(dbgv->ExistingRecordElement("echo"))) &&
-			     echov != false_value && echov->Type() == TYPE_BOOL &&
-			     echov->BoolVal() == glish_true )
-				{
-				message->Report( "\te> ", loc_stmt );
-				}
 
 			IValue *val = 0;
 			if ( setjmp(glish_top_level) == 0 )

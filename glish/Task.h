@@ -70,7 +70,7 @@ class Task : public Agent {
 
 	Task* AgentTask();
 
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	virtual void sendEvent( int fd, const char* event_name,
 			const GlishEvent* e, int sds = -1 );

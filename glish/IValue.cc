@@ -548,15 +548,18 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 		}
 	}
 
-void IValue::DescribeSelf( ostream& s ) const
+int IValue::DescribeSelf( ostream& s, charptr prefix ) const
 	{
 	if ( Type() == TYPE_FUNC )
 		{
 		// ### what if we're an array of functions?
+		if ( prefix ) s << prefix;
 		FuncVal()->Describe( s );
 		}
 	else
-		Value::DescribeSelf( s );
+		return Value::DescribeSelf( s, prefix );
+
+	return 1;
 	}
 
 IValue *copy_value( const IValue *value )

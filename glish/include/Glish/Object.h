@@ -18,6 +18,8 @@ class RMessage;
 extern RMessage EndMessage;
 extern Str glish_errno;
 
+typedef const char* charptr;
+
 class GlishRef {
     public:
 	GlishRef() : ref_count(1) 	{ }
@@ -36,7 +38,10 @@ class GlishObject : public GlishRef {
     public:
 	GlishObject() : file( file_name && file_name->chars() ?
 			      new Str(*file_name) : 0 ),
-			line(line_num) { }
+			line(line_num), description(0) { }
+	GlishObject(const char *d) : file( file_name && file_name->chars() ?
+			      new Str(*file_name) : 0 ),
+			line(line_num), description(d) { }
 	virtual ~GlishObject()	{ if ( file ) delete file; }
 
 	int Line()		{ return line; }
@@ -47,8 +52,9 @@ class GlishObject : public GlishRef {
 	virtual void Describe( ostream& ) const;
 
 	// Generate a short description of the object to the
-	// given stream.
-	virtual void DescribeSelf( ostream& ) const;
+	// given stream. Returns non-zero if something was actually
+	// written to the stream.
+	virtual int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	// Non-virtual, non-const versions of Describe() and DescribeSelf().
 	// We add it here so that if when deriving a subclass of GlishObject we
@@ -57,8 +63,8 @@ class GlishObject : public GlishRef {
 	// we're shadowing a non-virtual function.
 	void Describe( ostream& stream )
 		{ ((const GlishObject*) this)->Describe( stream ); }
-	void DescribeSelf( ostream& stream )
-		{ ((const GlishObject*) this)->DescribeSelf( stream ); }
+	int DescribeSelf( ostream& stream, charptr prefix = 0 )
+		{ return ((const GlishObject*) this)->DescribeSelf( stream, prefix ); }
 	// Get a quick (minimal) description of the object. This is
 	// used in CallExpr::Eval() to get the name of the function.
 	// Getting it via a stream is just too much overhead.

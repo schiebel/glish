@@ -73,6 +73,12 @@ int Sequencer::hold_queue = 0;
 // will be cleaned up properly, and this can be removed.
 int shutting_glish_down = 0;
 
+// Used to flag changes in the system agent.
+void system_change_function(IValue *o, IValue *n)
+	{
+	Sequencer::CurSeq()->System().SetVal(n);
+	}
+
 stack_type::stack_type( )
 	{
 	frames = new frame_list;
@@ -314,6 +320,86 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+void SystemInfo::SetVal(IValue *v)
+	{
+	if ( val ) Unref( val );
+	val=v;
+	if ( val ) Ref(val);
+	update = ~((unsigned int) 0);
+	}
+
+void SystemInfo::update_trace( )
+	{
+	const IValue *v1;
+	const IValue *v2;
+
+	trace = 0;
+	if ( val && val->Type() == TYPE_RECORD &&
+	     val->HasRecordElement( "output" ) &&
+	     (v1 = (const IValue*)(val->ExistingRecordElement( "output" ))) &&
+	     v1 != false_value && v1->Type() == TYPE_RECORD &&
+	     v1->HasRecordElement( "trace" ) &&
+	     (v2 = (const IValue*)(v1->ExistingRecordElement("trace"))) &&
+	     v2 != false_value && v2->Type() == TYPE_BOOL &&
+	     v2->BoolVal() == glish_true )
+		trace = 1;
+
+	update &= ~TRACE();
+	}
+
+void SystemInfo::update_print( )
+	{
+	const IValue *v1;
+	const IValue *v2;
+	int tmp;
+
+	printlimit = 0;
+	printprecision = -1;
+	if ( val && val->Type() == TYPE_RECORD &&
+	     val->HasRecordElement( "print" ) && 
+	     (v1 = (IValue*) val->ExistingRecordElement( "print" )) &&
+	     v1 != false_value && v1->Type() == TYPE_RECORD )
+		{
+		if ( v1->HasRecordElement( "limit" ) &&
+		     (v2 = (IValue*) v1->ExistingRecordElement("limit")) &&
+		     v2 != false_value && v2->IsNumeric() &&
+		     (tmp = v2->IntVal()) > 0 )
+			printlimit = tmp;
+
+		if ( v1->HasRecordElement( "precision" ) &&
+		     (v2 = (IValue*) v1->ExistingRecordElement("precision")) &&
+		     v2 != false_value && v2->IsNumeric() &&
+		     (tmp = v2->IntVal()) >= 0)
+			printprecision = tmp;
+		}
+
+	update &= ~PRINTLIMIT();
+	update &= ~PRINTPRECISION();
+	}
+
+void SystemInfo::update_include( )
+	{
+	const IValue *v1;
+	const IValue *v2;
+
+	include = 0;
+	includelen = 0;
+	if ( val && val->Type() == TYPE_RECORD &&
+	     val->HasRecordElement( "path" ) &&
+	     (v1 = (const IValue*)(val->ExistingRecordElement( "path" ))) &&
+	     v1 != false_value && v1->Type() == TYPE_RECORD &&
+	     v1->HasRecordElement( "include" ) &&
+	     (v2 = (const IValue*)(v1->ExistingRecordElement("include"))) &&
+	     v2 != false_value && v2->Type() == TYPE_STRING &&
+	     v2->Length() )
+		{
+		include = v2->StringPtr(0);
+		includelen = v2->Length();
+		}
+
+	update &= ~INCLUDE();
+	}
+
 void Sequencer::TopLevelReset()
 	{
 	if ( cur_sequencer )
@@ -448,6 +534,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	sys_val = system_agent->AgentRecord();
 
 	Expr* system_expr = InstallID( strdup( "system" ), GLOBAL_SCOPE );
+	system_expr->SetChangeNotice(system_change_function);
 	system_expr->Assign( sys_val );
 
 	IValue *ver = new IValue( GLISH_VERSION );
@@ -988,7 +1075,7 @@ void Sequencer::SetErrorResult( IValue *err )
 	cur_sequencer->error_result = err;
 	}
 
-const Sequencer *Sequencer::CurSeq ( )
+Sequencer *Sequencer::CurSeq ( )
 	{
 	return cur_sequencer;
 	}
@@ -1199,7 +1286,7 @@ IValue* Sequencer::FrameElement( scope_type scope, int scope_offset,
 	}
 
 const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
-					int frame_offset, IValue* value )
+					int frame_offset, IValue* value, change_var_notice f )
 	{
 	const char *ret = 0;
 	IValue* prev_value;
@@ -1266,6 +1353,8 @@ const char *Sequencer::SetFrameElement( scope_type scope, int scope_offset,
 				prev_value = global_frame.replace( frame_offset, prev_value );
 				ret = "'const' values cannot be modified.";
 				}
+			else
+				if ( f ) (*f)(prev_value,value);
 			}
 			break;
 		default:
@@ -1950,7 +2039,10 @@ IValue *Sequencer::Include( const char *file )
 	char *expanded_name = which_include( file );
 
 	if ( ! expanded_name )
+		{
+		error->Report( "could not include '", file, "', file not found" );
 		return error_ivalue();
+		}
 
 	FILE *fptr = fopen( expanded_name, "r");
 
@@ -2480,22 +2572,8 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 
 char* which_include( const char* filename )
 	{
-	const IValue *val;
-	const IValue *pathv;
-	const IValue *inclv;
-	charptr *paths = 0;
-
-	if ( (val = Sequencer::LookupVal( "system" )) && 
-			val->Type() == TYPE_RECORD &&
-			val->HasRecordElement( "path" ) &&
-			(pathv = (const IValue*)(val->ExistingRecordElement( "path" ))) &&
-			pathv != false_value &&
-			pathv->Type() == TYPE_RECORD &&
-			pathv->HasRecordElement( "include" ) &&
-			(inclv = (const IValue*)(pathv->ExistingRecordElement("include"))) &&
-			inclv != false_value && inclv->Type() == TYPE_STRING &&
-			inclv->Length() )
-		paths = inclv->StringPtr(0);
+	charptr *paths = Sequencer::CurSeq()->System().Include();
+	int len = Sequencer::CurSeq()->System().IncludeLen();
 
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
@@ -2507,7 +2585,7 @@ char* which_include( const char* filename )
 
 	char directory[1024];
 
-	for ( int i = 0; i < inclv->Length(); i++ )
+	for ( int i = 0; i < len; i++ )
 		if ( paths[i] && strlen(paths[i]) )
 			{
 			sprintf( directory, "%s/%s", paths[i], filename );

@@ -101,7 +101,7 @@ class Agent : public GlishObject {
 	const char* AgentID()	{ return agent_ID; }
 	IValue* AgentRecord()	{ return agent_value; }
 
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
     protected:
 	IValue* BuildEventValue( parameter_list* args, int use_refs );

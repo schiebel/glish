@@ -197,11 +197,12 @@ Task* Task::AgentTask()
 	return this;
 	}
 
-void Task::DescribeSelf( ostream& s ) const
+int Task::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	s << "task " << Name();
+	return 1;
 	}
-
 
 const char** Task::CreateArgs( const char* prog, int num_args, int& argc )
 	{

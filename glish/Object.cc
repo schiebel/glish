@@ -16,9 +16,11 @@ void GlishObject::Describe( ostream& s ) const
 	DescribeSelf( s );
 	}
 
-void GlishObject::DescribeSelf( ostream& s ) const
+int GlishObject::DescribeSelf( ostream& s, charptr prefix ) const
 	{
-	s << description;
+	if ( prefix ) s << prefix;
+	s << (description ? description : "<*unknown*>");
+	return 1;
 	}
 
 Value *GlishObject::Fail( const RMessage& m0,

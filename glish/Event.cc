@@ -172,8 +172,9 @@ name_list* EventDesignator::EventNames()
 	return result;
 	}
 
-void EventDesignator::DescribeSelf( ostream& s ) const
+int EventDesignator::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	EventAgentExpr()->DescribeSelf( s );
 	s << "->";
 
@@ -182,13 +183,14 @@ void EventDesignator::DescribeSelf( ostream& s ) const
 		s << "[";
 		event_name_expr->Describe( s );
 		s << "]";
-		}
+	}
 
 	else if ( event_name_str )
 		s << "." << event_name_str;
 
 	else
 		s << "*";
+	return 1;
 	}
 
 

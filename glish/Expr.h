@@ -23,6 +23,8 @@ extern int shutting_glish_down;
 
 class ParseNode : public GlishObject {
     public:
+	ParseNode() { }
+	ParseNode( const char *desc ) : GlishObject(desc) { }
 	virtual int canDelete() const;
 	};
 
@@ -71,10 +73,10 @@ typedef enum { SCOPE_UNKNOWN, SCOPE_LHS, SCOPE_RHS } scope_modifier;
 typedef enum { EVAL_COPY, EVAL_READ_ONLY, EVAL_SIDE_EFFECTS } eval_type;
 
 
+typedef void (*change_var_notice)(IValue*,IValue*);
 class Expr : public ParseNode {
     public:
-	Expr( const char* desc )
-		{ description = desc; }
+	Expr( const char* desc ) : ParseNode( desc ) { }
 
 	// Returns a copy of the present value of the event expression.
 	// The caller is responsible for deleting the copy when done
@@ -99,6 +101,9 @@ class Expr : public ParseNode {
 	// returned; otherwise, a read-only copy.
 	virtual IValue* Eval( eval_type etype ) = 0;
 
+	// Returns true if this expression is going to do an echo of itself
+	// AS PART OF EVALUATION, I.E. "Eval()", if trace is turned on.
+	virtual int DoesTrace( ) const;
 
 	// Evaluates the Expr just for side-effects.
 	virtual IValue *SideEffectsEval();
@@ -148,6 +153,12 @@ class Expr : public ParseNode {
 	virtual Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
 	virtual ~Expr();
+
+	// Where it is important, these functions allow a notify function
+	// to be set which will be called when the Expr is modified.
+	virtual void SetChangeNotice(change_var_notice);
+	virtual void ClearChangeNotice( );
+
     protected:
 	// Return either a copy of the given value, or a reference to
 	// it, depending on etype.  If etype is EVAL_SIDE_EFFECTS, a
@@ -183,6 +194,9 @@ class VarExpr : public Expr {
 	// Used by Sequencer::DeleteVal (and in turn by 'symbol_delete()')
 	void change_id( char * );
 
+	void SetChangeNotice(change_var_notice);
+	void ClearChangeNotice( );
+
     protected:
 	char* id;
 	scope_type scope;
@@ -190,6 +204,7 @@ class VarExpr : public Expr {
 	int scope_offset;
 	Sequencer* sequencer;
 	access_type access;
+	change_var_notice func;
 	};
 
 
@@ -234,7 +249,7 @@ class ConstExpr : public Expr {
 	ConstExpr( const IValue* const_value );
 
 	IValue* Eval( eval_type etype );
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~ConstExpr();
 
@@ -248,7 +263,7 @@ class FuncExpr : public Expr {
 	FuncExpr( UserFunc* f );
 
 	IValue* Eval( eval_type etype );
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~FuncExpr();
 
@@ -262,7 +277,7 @@ class UnaryExpr : public Expr {
 	UnaryExpr( Expr* operand, const char* desc );
 
 	IValue* Eval( eval_type etype ) = 0;
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -278,7 +293,7 @@ class BinaryExpr : public Expr {
 	BinaryExpr( Expr* op1, Expr* op2, const char* desc );
 
 	IValue* Eval( eval_type etype ) = 0;
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -340,7 +355,7 @@ class ConstructExpr : public Expr {
 	ConstructExpr( ParameterPList* args );
 
 	IValue* Eval( eval_type etype );
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~ConstructExpr();
 
@@ -376,7 +391,7 @@ class ArrayRefExpr : public UnaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~ArrayRefExpr();
 
@@ -395,7 +410,7 @@ class RecordRefExpr : public UnaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~RecordRefExpr();
 
@@ -415,7 +430,7 @@ class AttributeRefExpr : public BinaryExpr {
 
 	IValue *Assign( IValue* new_value );
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	Expr *DoBuildFrameInfo( scope_modifier, expr_list & );
 
@@ -433,7 +448,7 @@ class RefExpr : public UnaryExpr {
 	IValue* Eval( eval_type etype );
 	IValue *Assign( IValue* new_value );
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
     protected:
 	value_type type;
@@ -454,8 +469,9 @@ class CallExpr : public UnaryExpr {
 
 	IValue* Eval( eval_type etype );
 	IValue *SideEffectsEval();
+	int DoesTrace( ) const;
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~CallExpr();
 
@@ -481,7 +497,7 @@ class SendEventExpr : public Expr {
 	IValue* Eval( eval_type etype );
 	IValue* SideEffectsEval();
 
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~SendEventExpr();
 
@@ -500,7 +516,7 @@ class LastEventExpr : public Expr {
 
 	IValue* Eval( eval_type etype );
 	IValue* RefEval( value_type val_type );
-	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
     protected:
 	Sequencer* sequencer;

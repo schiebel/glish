@@ -29,9 +29,8 @@ struct record_header;	// Needed when dealing with SDS; see AddToSds()
 
 // also declared in Sequencer.h
 // stubbed for Clients
-extern const Value *lookup_sequencer_value( const char *id );
-
-typedef const char* charptr;
+extern int lookup_print_precision( );
+extern int lookup_print_limit( );
 
 declare(PList,Value);
 typedef PList(Value) value_list;
@@ -620,7 +619,7 @@ public:
 		return a;
 		}
 
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	// Provide the rudiments of copy on write... i.e. it copies
 	// when necessary.

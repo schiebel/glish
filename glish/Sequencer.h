@@ -26,7 +26,8 @@ extern char* which_include( const char* file_name );
 
 // Attempt to retrieve the value associated with id. Returns 0 if the
 // value is not found.
-extern const Value *lookup_sequencer_value( const char *id );
+extern int lookup_print_precision( );
+extern int lookup_print_limit( );
 
 // This is used for notification of when an event has been handled, i.e.
 // completion of a notification.
@@ -101,6 +102,35 @@ struct stack_type : GlishRef {
 declare(PList,stack_type);
 typedef PList(stack_type) stack_list;
 
+extern void system_change_function(IValue *, IValue *);
+class SystemInfo {
+public:
+	inline unsigned int TRACE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<0; }
+	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
+	inline unsigned int PRINTPRECISION( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
+	inline unsigned int INCLUDE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
+
+	int Trace() { if ( TRACE(update) ) update_trace( ); return trace; }
+	int PrintLimit() { if ( PRINTLIMIT(update) ) update_print( ); return printlimit; }
+	int PrintPrecision() { if ( PRINTPRECISION(update) ) update_print( ); return printprecision; }
+	charptr *Include() { if ( INCLUDE(update) ) update_include( ); return include; }
+	int IncludeLen() { if ( INCLUDE(update) ) update_include( ); return includelen; }
+	SystemInfo() : val(0), update( ~((unsigned int) 0) ) { }
+	void SetVal(IValue *v);
+private:
+	void update_trace( );
+	void update_print( );
+	void update_include( );
+	IValue *val;
+	int trace;
+	int printlimit;
+	int printprecision;
+	charptr *include;
+	int includelen;
+	unsigned int update;
+};
+	
+
 class Sequencer {
 public:
 	Sequencer( int& argc, char**& argv );
@@ -127,7 +157,9 @@ public:
 	Expr* InstallVar( char* id, scope_type scope, VarExpr *var );
 	Expr* LookupVar( char* id, scope_type scope, VarExpr *var );
 
-	static const Sequencer *CurSeq( );
+	static Sequencer *CurSeq( );
+
+	SystemInfo &System() { return system; }
 
 	// In the integration of Tk, the Tk event loop is called in the
 	// process of handling glish events to the Tk widgets. It is
@@ -167,7 +199,7 @@ public:
 	IValue* FrameElement( scope_type scope, int scope_offset, int frame_offset );
 	// returns error message
 	const char *SetFrameElement( scope_type scope, int scope_offset,
-				     int frame_offset, IValue* value );
+				     int frame_offset, IValue* value, change_var_notice f=0 );
 
 	// The last notification processed, or 0 if none received yet.
 	Notification* LastNotification()	{ return last_notification; }
@@ -332,6 +364,7 @@ protected:
 	int verbose;
 	int my_id;
 
+	SystemInfo system;
 	UserAgent* system_agent;
 
 	Expr *script_expr;

@@ -52,6 +52,9 @@ class Stmt : public ParseNode {
 	// if there is none, and in "flow" returns a stmt_flow_type
 	// indicating control flow information.
 	virtual IValue* Exec( int value_needed, stmt_flow_type& flow );
+	// Returns true if this statement is going to do an echo of itself
+	// AS PART OF EVALUATION, I.E. "DoExec()", if trace is turned on.
+	virtual int DoesTrace( ) const;
 
 	// Called when an event we've expressed interest in has arrived.
 	// The argument specifies the Agent associated with the
@@ -98,6 +101,7 @@ class SeqStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	~SeqStmt();
 
@@ -223,6 +227,7 @@ class IfStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	~IfStmt();
 
@@ -242,6 +247,7 @@ class ForStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~ForStmt();
 
@@ -281,6 +287,7 @@ class PrintStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	~PrintStmt();
 
@@ -338,8 +345,10 @@ class ExprStmt : public Stmt {
 		{ expr = arg_expr; description = "expression"; }
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
+	int DoesTrace( ) const;
+
 	void Describe( ostream& s ) const;
-	void DescribeSelf( ostream& s ) const;
+	int DescribeSelf( ostream &s, charptr prefix = 0 ) const;
 
 	~ExprStmt();
 
@@ -399,6 +408,7 @@ class ReturnStmt : public Stmt {
 
 	IValue* DoExec( int value_needed, stmt_flow_type& flow );
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	~ReturnStmt();
 
@@ -414,6 +424,7 @@ class StmtBlock : public Stmt {
 	IValue *DoExec( int value_needed, stmt_flow_type &flow );
 
 	void Describe( ostream& s ) const;
+	int DescribeSelf( ostream&, charptr prefix = 0 ) const;
 
 	~StmtBlock();
 

@@ -36,11 +36,20 @@ IValue* Stmt::Exec( int value_needed, stmt_flow_type& flow )
 	line_num = Line();
 	flow = FLOW_NEXT;
 
+	if ( Sequencer::CurSeq()->System().Trace() )
+		if ( ! DoesTrace() && DescribeSelf(cout, "\t|-> ") )
+			cout << endl;
+
 	IValue* result = DoExec( value_needed, flow );
 
 	line_num = prev_line_num;
 
 	return result;
+	}
+
+int Stmt::DoesTrace( ) const
+	{
+	return 0;
 	}
 
 void Stmt::Notify( Agent* /* agent */ )
@@ -106,6 +115,10 @@ void SeqStmt::Describe( ostream& s ) const
 	s << "}\n";
 	}
 
+int SeqStmt::DescribeSelf( ostream &, charptr ) const
+	{
+	return 0;
+	}
 
 WheneverStmt::WheneverStmt( event_list* arg_trigger, Sequencer* arg_sequencer )
 	{
@@ -604,6 +617,14 @@ void IfStmt::Describe( ostream& s ) const
 		}
 	}
 
+int IfStmt::DescribeSelf( ostream &s, charptr prefix ) const
+	{
+	if ( prefix ) s << prefix;
+	s << "if ";
+	expr->Describe( s );
+	return 1;
+	}
+
 
 ForStmt::~ForStmt()
 	{
@@ -679,6 +700,17 @@ void ForStmt::Describe( ostream& s ) const
 	range->Describe( s );
 	s << " ) ";
 	body->Describe( s );
+	}
+
+int ForStmt::DescribeSelf( ostream& s, charptr prefix ) const
+	{
+	if ( prefix ) s << prefix;
+	s << "for ( ";
+	index->Describe( s );
+	s << " in ";
+	range->Describe( s );
+	s << " )";
+	return 1;
 	}
 
 WhileStmt::~WhileStmt()
@@ -784,6 +816,13 @@ void PrintStmt::Describe( ostream& s ) const
 	}
 
 
+int PrintStmt::DescribeSelf( ostream &s, charptr prefix ) const
+	{
+	if ( prefix ) s << prefix;
+	Describe(s);
+	return 1;
+	}
+
 FailStmt::~FailStmt()
 	{
 	if ( arg ) NodeUnref( arg );
@@ -874,15 +913,22 @@ IValue* ExprStmt::DoExec( int value_needed, stmt_flow_type& /* flow */ )
 		return expr->SideEffectsEval();
 	}
 
+int ExprStmt::DoesTrace( ) const
+	{
+	return expr->DoesTrace();
+	}
+
 void ExprStmt::Describe( ostream& s ) const
 	{
 	expr->Describe( s );
 	s << ";";
 	}
 
-void ExprStmt::DescribeSelf( ostream& s ) const
+int ExprStmt::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	expr->DescribeSelf( s );
+	return 1;
 	}
 
 ExitStmt::~ExitStmt() { }
@@ -963,6 +1009,14 @@ void ReturnStmt::Describe( ostream& s ) const
 		}
 	}
 
+int ReturnStmt::DescribeSelf( ostream &s, charptr prefix ) const
+	{
+	if ( prefix ) s << prefix;
+	Describe(s);
+	return 1;
+	}
+
+
 StmtBlock::~StmtBlock()
 	{
 	NodeUnref( stmt );
@@ -1020,6 +1074,11 @@ void StmtBlock::Describe( ostream& s ) const
 	s << "{{ ";
 	stmt->Describe( s );
 	s << " }}";
+	}
+
+int StmtBlock::DescribeSelf( ostream &, charptr ) const
+	{
+	return 0;
 	}
 
 

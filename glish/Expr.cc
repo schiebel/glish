@@ -77,6 +77,11 @@ int Expr::Invisible() const
 	return 0;
 	}
 
+int Expr::DoesTrace( ) const
+	{
+	return 0;
+	}
+
 Expr *Expr::BuildFrameInfo( scope_modifier m )
 	{
 	expr_list dl;
@@ -123,6 +128,9 @@ IValue* Expr::CopyOrRefValue( const IValue* value, eval_type etype )
 		}
 	}
 
+void Expr::SetChangeNotice(change_var_notice) { }
+void Expr::ClearChangeNotice( ) { }
+
 VarExpr::~VarExpr()
 	{
 	//
@@ -156,6 +164,7 @@ VarExpr::VarExpr( char* var_id, scope_type var_scope, int var_scope_offset,
 	frame_offset = var_frame_offset;
 	scope_offset = var_scope_offset;
 	sequencer = var_sequencer;
+	func = 0;
 	}
 
 VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
@@ -165,6 +174,7 @@ VarExpr::VarExpr( char* var_id, Sequencer* var_sequencer ) :
 	sequencer = var_sequencer;
 	scope = ANY_SCOPE;
 	scope_offset = 0;
+	func = 0;
 	}
 
 void VarExpr::set( scope_type var_scope, int var_scope_offset,
@@ -208,6 +218,9 @@ IValue* VarExpr::RefEval( value_type val_type )
 						frame_offset, var );
 		}
 
+	if ( func )
+		(*func)( var, var );
+
 	if ( val_type == VAL_VAL || val_type == VAL_CONST )
 		return copy_value( var );
 
@@ -218,7 +231,7 @@ IValue *VarExpr::Assign( IValue* new_value )
 	{
 	access = USE_ACCESS;
 	const char *err = sequencer->SetFrameElement( scope, scope_offset,
-						      frame_offset, new_value );
+						      frame_offset, new_value, func );
 	return err ? (IValue*) Fail(err) : 0;
 	}
 
@@ -261,6 +274,15 @@ Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
 	return ret;
 	}
 
+void VarExpr::SetChangeNotice(change_var_notice nf)
+	{
+	func = nf;
+	}
+
+void VarExpr::ClearChangeNotice( )
+	{
+	func = 0;
+	}
 
 ScriptVarExpr::~ScriptVarExpr() { }
 
@@ -342,11 +364,10 @@ IValue* ConstExpr::Eval( eval_type etype )
 	return CopyOrRefValue( const_value, etype );
 	}
 
-void ConstExpr::DescribeSelf( ostream& s ) const
+int ConstExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
-	const_value->DescribeSelf( s );
+	return const_value->DescribeSelf( s, prefix );
 	}
-
 
 
 FuncExpr::~FuncExpr()
@@ -366,12 +387,12 @@ IValue* FuncExpr::Eval( eval_type etype )
 	return new IValue( ret );
 	}
 
-void FuncExpr::DescribeSelf( ostream& s ) const
+int FuncExpr::DescribeSelf( ostream& s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	func->Describe( s );
+	return 1;
 	}
-
-
 
 UnaryExpr::~UnaryExpr()
 	{
@@ -383,10 +404,11 @@ UnaryExpr::UnaryExpr( Expr* operand, const char* desc ) : Expr(desc)
 	op = operand;
 	}
 
-void UnaryExpr::Describe( ostream& s ) const
+int UnaryExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
-	DescribeSelf( s );
+	GlishObject::DescribeSelf( s, prefix );
 	op->Describe( s );
+	return 1;
 	}
 
 Expr *UnaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
@@ -409,15 +431,17 @@ BinaryExpr::BinaryExpr( Expr* op1, Expr* op2, const char* desc )
 	}
 
 
-void BinaryExpr::Describe( ostream& s ) const
+int BinaryExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	s << "(";
 	left->Describe( s );
 	s << " ";
-	DescribeSelf( s );
+	GlishObject::DescribeSelf( s );
 	s << " ";
 	right->Describe( s );
 	s << ")";
+	return 1;
 	}
 
 Expr *BinaryExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
@@ -636,8 +660,9 @@ IValue* ConstructExpr::Eval( eval_type /* etype */ )
 		return BuildRecord();
 	}
 
-void ConstructExpr::Describe( ostream& s ) const
+int ConstructExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	s << "[";
 
 	if ( args )
@@ -646,6 +671,7 @@ void ConstructExpr::Describe( ostream& s ) const
 		s << "=";
 
 	s << "]";
+	return 1;
 	}
 
 IValue* ConstructExpr::BuildArray()
@@ -1286,13 +1312,15 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-void ArrayRefExpr::Describe( ostream& s ) const
+int ArrayRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	op->Describe( s );
 	s << "[";
 	if ( args )
 		describe_expr_list( args, s );
 	s << "]";
+	return 1;
 	}
 
 RecordRefExpr::~RecordRefExpr()
@@ -1378,10 +1406,12 @@ IValue *RecordRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-void RecordRefExpr::Describe( ostream& s ) const
+int RecordRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	op->Describe( s );
 	s << "." << field;
+	return 1;
 	}
 
 AttributeRefExpr::~AttributeRefExpr()
@@ -1556,8 +1586,9 @@ IValue *AttributeRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
-void AttributeRefExpr::Describe( ostream& s ) const
+int AttributeRefExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	left->Describe( s );
 
 	if ( field )
@@ -1569,6 +1600,7 @@ void AttributeRefExpr::Describe( ostream& s ) const
 		right->Describe( s );
 		s << "]";
 		}
+	return 1;
 	}
 
 Expr *AttributeRefExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
@@ -1631,8 +1663,9 @@ IValue *RefExpr::Assign( IValue* new_value )
 	return ret ? (IValue*) Fail( ret ) : 0 ;
 	}
 
-void RefExpr::Describe( ostream& s ) const
+int RefExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	if ( type == VAL_CONST )
 		s << "const ";
 	else if ( type == VAL_REF )
@@ -1641,6 +1674,7 @@ void RefExpr::Describe( ostream& s ) const
 		s << "val ";
 
 	op->Describe( s );
+	return 1;
 	}
 
 
@@ -1717,6 +1751,10 @@ IValue* CallExpr::Eval( eval_type etype )
 	const IValue* func = op->ReadOnlyEval();
 	Func* func_val = func->FuncVal();
 
+	if ( Sequencer::CurSeq()->System().Trace() )
+		if ( DescribeSelf(cout, "\t|-> ") )
+			cout << endl;
+
 	IValue* result = 0;
 
 	sequencer->PushFuncName( strdup(op->Description()) );
@@ -1732,6 +1770,12 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	return result;
 	}
+
+int CallExpr::DoesTrace( ) const
+	{
+	return 1;
+	}
+
 
 IValue *CallExpr::SideEffectsEval()
 	{
@@ -1749,8 +1793,9 @@ IValue *CallExpr::SideEffectsEval()
 	return 0;
 	}
 
-void CallExpr::Describe( ostream& s ) const
+int CallExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
+	if ( prefix ) s << prefix;
 	op->Describe( s );
 	s << "(";
 	loop_over_list( *args, i )
@@ -1760,7 +1805,9 @@ void CallExpr::Describe( ostream& s ) const
 
 		(*args)[i]->Describe( s );
 		}
+
 	s << ")";
+	return 1;
 	}
 
 
@@ -1836,7 +1883,7 @@ IValue *SendEventExpr::SideEffectsEval()
 	return 0;
 	}
 
-void SendEventExpr::Describe( ostream& s ) const
+int SendEventExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
 	if ( is_request_reply )
 		s << "request ";
@@ -1845,6 +1892,7 @@ void SendEventExpr::Describe( ostream& s ) const
 	s << "->(";
 	describe_parameter_list( args, s );
 	s << ")";
+	return 1;
 	}
 
 
@@ -1930,19 +1978,21 @@ IValue* LastEventExpr::RefEval( value_type val_type )
 	return result;
 	}
 
-void LastEventExpr::Describe( ostream& s ) const
+int LastEventExpr::DescribeSelf( ostream &s, charptr prefix ) const
 	{
-	if ( type == EVENT_AGENT )
-		s << "$agent";
+	if ( prefix ) s << prefix;
 
-	else if ( type == EVENT_NAME )
-		s << "$name";
-
-	else if ( type == EVENT_VALUE )
-		s << "$value";
-
-	else
-		s << "$weird";
+	switch( type )
+		{
+		case EVENT_AGENT: s << "$agent";
+			break;
+		case EVENT_NAME:  s << "$name";
+			break;
+		case EVENT_VALUE: s << "$value";
+			break;
+		default:          s << "$weird";
+		}
+	return 1;
 	}
 
 
