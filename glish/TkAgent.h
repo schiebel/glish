@@ -22,6 +22,8 @@ typedef PDict(TkProc) tkprochash;
 //###  Functions for Converting Between Strings to Values
 // Split a string up into an array of strings with each newline character
 extern IValue *glishtk_splitnl( char * );
+// turn the string into a value
+extern IValue *glishtk_str( char * );
 // Split a string up into an array of ints with each space character
 extern IValue *glishtk_splitsp_int( char * );
 // Split a string up into an array of strings with each space character
@@ -36,6 +38,8 @@ extern char *glishtk_oneint(Rivetobj, const char *cmd, parameter_list *args, int
 extern char *glishtk_onebinary(Rivetobj, const char *cmd, const char *ptrue, const char *pfalse,
 						parameter_list *args, int, int);
 extern char *glishtk_onebool(Rivetobj, const char *cmd, parameter_list *args, int, int);
+extern char *glishtk_oneintlist(Rivetobj, const char *cmd, int howmany, parameter_list *args,
+						int, int );
 extern char *glishtk_oneidx(TkAgent *, const char *cmd, parameter_list *args, int, int);
 extern char *glishtk_oneortwoidx(TkAgent *, const char *cmd, parameter_list *args, int, int);
 extern char *glishtk_strandidx(TkAgent *, const char *cmd, parameter_list *args, int, int);
@@ -51,6 +55,7 @@ extern char *glishtk_scrollbar_update(Rivetobj, const char *cmd, parameter_list 
 //###  Callback Procs
 typedef char *(*TkEventProc)(Rivetobj, const char *, parameter_list*, int, int);
 typedef char *(*TkOneParamProc)(Rivetobj, const char *, const char *, parameter_list *, int, int);
+typedef char *(*TkOneIntProc)(Rivetobj, const char *, int, parameter_list *, int, int);
 typedef char *(*TkTwoParamProc)(Rivetobj, const char *, const char *, const char *, parameter_list *, int, int);
 typedef char *(*TkEventAgentProc)(TkAgent*, const char *, parameter_list*, int, int);
 typedef char *(*TkEventAgentProc2)(TkAgent*, const char *, const char *, parameter_list*, int, int);
@@ -60,36 +65,42 @@ class TkProc {
     public:
 	TkProc(const char *c, TkEventProc p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(p), proc1(0), proc2(0), fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), param(0), param2(0),
-				convert(cvt) { }
+				aproc(0), agent(0), aproc2(0), iproc(0), param(0), param2(0),
+				convert(cvt), i(0) { }
 	TkProc(const char *c, const char *x, const char *y, TkTwoParamProc p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(p), fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), param(x), param2(y),
-				convert(cvt) { }
+				aproc(0), agent(0), aproc2(0), iproc(0), param(x), param2(y),
+				convert(cvt), i(0) { }
 	TkProc(const char *c, const char *x, TkOneParamProc p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(p), proc2(0), fproc(0), frame(0),
-				aproc(0), agent(0), aproc2(0), param(x), param2(0),
-				convert(cvt) { }
+				aproc(0), agent(0), aproc2(0), iproc(0), param(x), param2(0),
+				convert(cvt), i(0) { }
+	TkProc(const char *c, int x, TkOneIntProc p, TkStrToValProc cvt = 0)
+			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
+				aproc(0), agent(0), aproc2(0), iproc(p), param(0), param2(0),
+				convert(cvt), i(x) { }
 	TkProc(TkFrame *f, char *(TkFrame::*p)(parameter_list*,int,int), TkStrToValProc cvt = 0)
 			: cmdstr(0), proc(0), proc1(0), proc2(0), fproc(p), frame(f),
-				aproc(0), agent(0), aproc2(0), param(0), param2(0),
-				convert(cvt) { }
+				aproc(0), agent(0), aproc2(0), iproc(0), param(0), param2(0),
+				convert(cvt), i(0) { }
 	TkProc(TkAgent *a, const char *c, TkEventAgentProc p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
-				aproc(p), agent(a), aproc2(0), param(0), param2(0),
-				convert(cvt) { }
+				aproc(p), agent(a), aproc2(0), iproc(0), param(0), param2(0),
+				convert(cvt), i(0) { }
 	TkProc(TkAgent *a, const char *c, const char *x, TkEventAgentProc2 p, TkStrToValProc cvt = 0)
 			: cmdstr(c), proc(0), proc1(0), proc2(0), fproc(0), frame(0),
-				aproc(0), agent(a), aproc2(p), param(x), param2(0),
-				convert(cvt) { }
+				aproc(0), agent(a), aproc2(p), iproc(0), param(x), param2(0),
+				convert(cvt), i(0) { }
 	IValue *operator()(Rivetobj s, parameter_list*arg, int x, int y);
     protected:
 	const char *cmdstr;
 	const char *param;
 	const char *param2;
+	int i;
 	TkEventProc proc;
 	TkOneParamProc proc1;
 	TkTwoParamProc proc2;
+	TkOneIntProc iproc;
 
 	TkFrame *frame;
 	char *(TkFrame::*fproc)(parameter_list*, int, int);

@@ -90,6 +90,11 @@ IValue *glishtk_splitnl( char *str )
 	return new IValue( (const char **) ary, nls );
 	}
 
+IValue *glishtk_str( char *str )
+	{
+	return new IValue(strdup(str));
+	}
+
 IValue *glishtk_splitsp_int( char *sel )
 	{
 	char *start = sel;
@@ -345,6 +350,38 @@ char *glishtk_onedim(Rivetobj self, const char *cmd, parameter_list *args,
 	EXPRDIM( dim, event_name )
 	ret = (char*) rivet_set( self, (char*) cmd, (char*) dim );
 	EXPR_DONE( dim )
+	return ret;
+	}
+
+char *glishtk_oneintlist(Rivetobj self, const char *cmd, int howmany, parameter_list *args,
+				int is_request, int log )
+	{
+	char *ret = 0;
+	char *event_name = "one int list function";
+	HASARG( args, >= howmany )
+	static int len = 4;
+	static char *buf = new char[len*128];
+	char *ptr = buf;
+
+	if ( ! howmany )
+		howmany = args->length();
+
+	while ( howmany > len )
+		{
+		len *= 2;
+		buf = (char *) realloc(buf, len * sizeof(char) * 128);
+		}
+
+	int c = 0;
+	for ( int x=0; x < howmany; x++ )
+		{
+		EXPRINT( v, event_name )
+		ptr += sprintf(ptr,"%d ",v);
+		EXPR_DONE( v )
+		}
+	*--ptr = '\0';
+
+	ret = (char*) rivet_set( self, (char*) cmd, buf );
 	return ret;
 	}
 
@@ -623,12 +660,14 @@ IValue *TkProc::operator()(Rivetobj s, parameter_list*arg, int x, int y)
 			val = (*proc1)(s,cmdstr,param,arg,x,y);
 		else if ( proc2 )
 			val = (*proc2)(s,cmdstr,param,param2,arg,x,y);
-		else if ( fproc != 0 && frame != 0 )
+		else if ( fproc && frame )
 			val = (frame->*fproc)( arg, x, y );
-		else if ( aproc != 0 && agent != 0 )
+		else if ( aproc && agent )
 			val = (*aproc)(agent, cmdstr, arg, x, y);
-		else if ( aproc2 != 0 && agent != 0 )
+		else if ( aproc2 && agent )
 			val = (*aproc2)(agent, cmdstr, param, arg, x, y);
+		else if ( iproc )
+			val = (*iproc)(s, cmdstr, i, arg, x, y);
 		else
 			return error_ivalue();
 
