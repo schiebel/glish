@@ -182,6 +182,21 @@ int byte_arrays_equal( unsigned char *b1, unsigned char *b2, int len )
 	return 1;
 	}
 
+long random_long( )
+	{
+#ifdef HAVE_RANDOM
+	extern long random();
+	long l = random();
+#elif defined(HAVE_LRAND48)
+	extern long lrand48();
+	long l = lrand48();
+#else
+	extern int rand();
+	long l = (long) rand();
+#endif
+	return l;
+	}
+
 /* Returns a heap pointer to an array of len random bytes, or nil if not
  * enough memory available.
  */
@@ -198,17 +213,8 @@ unsigned char *random_bytes( int len )
 	for ( n = 0; n < len; ++n )
 
 		{
+		long l = random_long();
 
-#ifdef HAVE_RANDOM
-		extern long random();
-		long l = random();
-#elif defined(HAVE_LRAND48)
-		extern long lrand48();
-		long l = lrand48();
-#else
-		extern int rand();
-		long l = (long) rand();
-#endif
 		/* Take some middle bits of the random number. */
 		b[n] = (unsigned char) ((l & 0xff00) >> 8);
 		}

@@ -12,6 +12,8 @@ extern "C" {
 	int create_keyfile();
 	void init_log(const char *program_name);
 
+	long random_long();
+
 #ifdef __cplusplus
 	}
 #endif
