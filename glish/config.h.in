@@ -141,6 +141,9 @@
 /* Define if you're running 4.3 BSD Reno */
 #undef HAVE_BSD_RENO
 
+/* Define if you have <sys/uio.h>.  */
+#undef HAVE_SYS_UIO_H
+
 /* If your version of TCL defines Tcl_GetSetringResult().  */
 #undef HAVE_TCL_GETSTRINGRESULT
 
