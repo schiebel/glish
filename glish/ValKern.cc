@@ -26,7 +26,8 @@ glish_typeinfo_t glish_typeinfo[NUM_GLISH_TYPES] =
 	  { sizeof(int), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_INT */
 	  { sizeof(float), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_FLOAT */
 	  { sizeof(double), 0, 0, 0, alloc_memory_atomic_func, 0 },		/* TYPE_DOUBLE */
-	  { sizeof(charptr), copy_strings, 0, 0, alloc_memory_func, 0 },	/* TYPE_STRING */
+	  { sizeof(charptr), glish_copy_strings, glish_delete_strings, 0, alloc_memory_func, 0 },
+										/* TYPE_STRING */
 	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_AGENT */
 	  { sizeof(void*), 0, 0, 0, 0, 0 },					/* TYPE_FUNC */
 	  { 0, 0, 0, 0, 0, 0 },							/* TYPE_RECORD */
@@ -595,7 +596,7 @@ recordptr copy_record_dict( recordptr rptr )
 	return new_record;
 	}
 
-void copy_strings(void *tgt, void *src, unsigned int len)
+void glish_copy_strings(void *tgt, void *src, unsigned int len)
 	{
 	charptr *from = (charptr*)src;
 	charptr *to = (charptr*)tgt;
@@ -603,9 +604,11 @@ void copy_strings(void *tgt, void *src, unsigned int len)
 		*to++ = string_dup(*from++);
 	}
 
-void delete_strings(void *src, unsigned int len)
+#if ! defined(ENABLE_GC)
+void glish_delete_strings(void *src, unsigned int len)
 	{
 	char **ary = (char**)src;
 	for ( unsigned int i=0; i < len; i++ )
 		free_memory( *ary++ );
 	}
+#endif

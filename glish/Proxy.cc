@@ -165,9 +165,9 @@ const ProxyId ProxyStore::getId( )
 	{
 	static Value *v =  create_value(glish_true);
 	GlishEvent *save_last = last_event;
+	last_event = 0;
 	char *rname = pending_reply;
 	pending_reply = 0;
-	Ref(save_last);
 
 	GlishEvent e( (const char*) PXGETID, (const Value*) v );
 	e.SetIsProxy( );
@@ -178,8 +178,8 @@ const ProxyId ProxyStore::getId( )
 	GlishEvent *reply = Client::NextEvent( );
 	while ( strcmp(reply->Name(),PXGETID) )
 		{
-		Ref(reply);
 		equeue.append(new event_queue_item(reply,pending_reply));
+		last_event = 0;
 		reply = Client::NextEvent( );
 		}
 
