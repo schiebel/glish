@@ -1434,21 +1434,7 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 	// Process startup parameters
 	for ( ; argc > 0; ++argv, --argc )
 		{
-		if ( argv[0][0] == '-' && argv[0][1] == 'v' &&
-		     argv[0][2] >= '1' && argv[0][2] <= '9' &&
-		     argv[0][3] == '\0' )
-			verbose = argv[0][2] - '0';
-
-		else if ( ! strcmp( argv[0], "-vi" ) )
-			verbose_mask |= VERB_INCL();
-
-		else if ( ! strcmp( argv[0], "-vf" ) )
-			verbose_mask |= VERB_FAIL();
-
-		else if ( ! strcmp( argv[0], "-w" ) )
-			++allwarn;
-
-		else if ( ! strcmp( argv[0], "-l" ) )
+		if ( ! strcmp( argv[0], "-l" ) )
 			if ( argc > 1 )
 				{
 				++argv; --argc;
@@ -1459,6 +1445,23 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				}
 			else
 				fatal->Report("\"-l\" given with no file to load.");
+
+		else if ( ! strcmp( argv[0], "-tk" ) )
+			load_list->append( "glishtk.g" );
+
+		else if ( argv[0][0] == '-' && argv[0][1] == 'v' &&
+			  argv[0][2] >= '1' && argv[0][2] <= '9' &&
+			  argv[0][3] == '\0' )
+			verbose = argv[0][2] - '0';
+
+		else if ( ! strcmp( argv[0], "-vi" ) )
+			verbose_mask |= VERB_INCL();
+
+		else if ( ! strcmp( argv[0], "-vf" ) )
+			verbose_mask |= VERB_FAIL();
+
+		else if ( ! strcmp( argv[0], "-w" ) )
+			++allwarn;
 
 		else if ( ! strcmp( argv[0], "-version" ) )
 			{

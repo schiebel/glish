@@ -1,6 +1,6 @@
 pragma include once
 
-if ( include 'gtk.g' ) {
+if ( include 'glishtk.g' ) {
     local pginit := func ( gtk, ref rec ) {
 	global pgplot
 	pgplot := func ( parent=spaste('"/tmp/pgplot',system.pid,'.ps"/PS'), width=200, height=150,

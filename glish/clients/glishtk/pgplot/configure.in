@@ -1036,12 +1036,12 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lgtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="$TK_LD_SEARCH -L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi

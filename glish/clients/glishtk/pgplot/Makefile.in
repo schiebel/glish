@@ -1,7 +1,7 @@
 ## $Id$
 ## Copyright (c) 1998 Associated Universities Inc.
 ##
-## Makefile for gtk
+## Makefile for glishtk
 ##
 
 SUFFIX = @GLISH_SLIB_SUFFIX@

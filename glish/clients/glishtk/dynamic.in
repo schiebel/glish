@@ -1,7 +1,7 @@
 ## $Id$
 ## Copyright (c) 1998 Associated Universities Inc.
 ##
-## Makefile for gtk
+## Makefile for glishtk
 ##
 
 MK_LIB = @MAKE_SLIB@
@@ -50,7 +50,7 @@ INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -
 
 OBJS = tkProxy.o
 
-all: make-libdir_p $(LIBDIR_P)/libgtk$(LIB_SUFFIX)
+all: make-libdir_p $(LIBDIR_P)/libglishtk$(LIB_SUFFIX)
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -58,21 +58,21 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(LIBDIR)/libgtk$(LIB_SUFFIX)
+install:  make-libdir $(LIBDIR)/libglishtk$(LIB_SUFFIX)
 
-libgtk$(LIB_SUFFIX): $(OBJS)
-	rm -f libgtk$(LIB_SUFFIX)
-	$(MK_LIB) libgtk$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
+libglishtk$(LIB_SUFFIX): $(OBJS)
+	rm -f libglishtk$(LIB_SUFFIX)
+	$(MK_LIB) libglishtk$(LIB_SUFFIX) $(OBJS) $(LD_LIBS)
 
-$(LIBDIR_P)/libgtk$(LIB_SUFFIX): libgtk$(LIB_SUFFIX)
+$(LIBDIR_P)/libglishtk$(LIB_SUFFIX): libglishtk$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR_P)
-	$(INSTALL_LIBRARY) libgtk$(LIB_SUFFIX) $(LIBDIR_P)
+	$(INSTALL_LIBRARY) libglishtk$(LIB_SUFFIX) $(LIBDIR_P)
 
-$(LIBDIR)/libgtk$(LIB_SUFFIX): libgtk$(LIB_SUFFIX)
+$(LIBDIR)/libglishtk$(LIB_SUFFIX): libglishtk$(LIB_SUFFIX)
 	$(MKHIER) $(LIBDIR)
-	$(INSTALL_LIBRARY) libgtk$(LIB_SUFFIX) $(LIBDIR)
+	$(INSTALL_LIBRARY) libglishtk$(LIB_SUFFIX) $(LIBDIR)
 
-tkProxy.o: $(SRC)/tkProxy.cc $(H)/gtk.h $(SRC)/comdefs.h
+tkProxy.o: $(SRC)/tkProxy.cc $(H)/glishtk.h $(SRC)/comdefs.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/tkProxy.cc
 
 tar:

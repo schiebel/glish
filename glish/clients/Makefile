@@ -17,7 +17,7 @@ all:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS all
-	(cd gtk; $(MAKE) $$FLGS)
+	(cd glishtk; $(MAKE) $$FLGS)
 
 install:
 	@echo Installing glish clients ...
@@ -26,7 +26,7 @@ install:
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
-	(cd gtk; $(MAKE) $$FLGS install)
+	(cd glishtk; $(MAKE) $$FLGS install)
 
 build: all
 

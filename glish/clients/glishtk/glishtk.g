@@ -1,9 +1,9 @@
 pragma include once
 
-func init_gtk( ) {
+func init_glishtk( ) {
     global system
 
-    gtk := client('gtk')
+    gtk := client('glishtk')
 
     system.tk := gtk->version()
 
@@ -94,7 +94,7 @@ func init_gtk( ) {
     return ref ret
 }
 
-dgtk := init_gtk( )
+dgtk := init_glishtk( )
 
 frame := dgtk.frame
 button := dgtk.button
