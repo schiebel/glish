@@ -200,7 +200,7 @@ void Selector::DeleteSelectee( int selectee_fd )
 		return;
 
 	if ( ! FD_ISSET( selectee_fd, r_fdset ) && ! FD_ISSET( selectee_fd, w_fdset ) )
-		gripe( "non-existent selectee in RemoveSelectee()" );
+		return;
 
 	Selectee* s = selectees[selectee_fd];
 

@@ -182,7 +182,7 @@ RemoteDaemon* connect_to_daemon( const char* host, int &err )
 
 		if ( ! authenticate_to_server( daemon_socket ) )
 			{
-			delete daemon_channel;
+			Unref( daemon_channel );
 			close( daemon_socket );
 			err = 1;
 			error->Report("Daemon creation failed, not authorized.");

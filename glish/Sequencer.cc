@@ -2885,6 +2885,12 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 
 		c->ChannelState() = CHAN_IN_USE;
 
+		//
+		// Must protect channel, because it can be Unref'ed
+		// as part of the call to NewEvent()
+		//
+		Ref( task );
+		Ref( c );
 		if ( force_read )
 			status = NewEvent( task, recv_event( c->Source() ) );
 
@@ -2898,7 +2904,8 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 		if ( c->ChannelState() == CHAN_INVALID )
 			{ // This happens iff the given task has exited
 			selector->DeleteSelectee( c->Source().fd() );
-			delete c;
+
+			task->CloseChannel( );
 
 			while ( reap_terminated_process() )
 				;
@@ -2908,6 +2915,9 @@ int Sequencer::EmptyTaskChannel( Task* task, int force_read )
 
 		else
 			c->ChannelState() = old_state;
+
+		Unref( c );
+		Unref( task );
 		}
 
 	return status;

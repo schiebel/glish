@@ -236,7 +236,7 @@ void Task::CloseChannel()
 		else
 			{
 			selector->DeleteSelectee( channel->Source().fd() );
-			delete channel;
+			Unref( channel );
 			}
 
 		channel = 0;

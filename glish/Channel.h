@@ -27,11 +27,13 @@
 //
 // The state is initialized to CHAN_VALID.
 
+#include <Glish/Object.h>
+
 typedef enum { CHAN_VALID, CHAN_IN_USE, CHAN_INVALID } ChanState;
 
-
-class Channel {
+class Channel : public GlishRef {
     public:
+
 	// Create a new Channel with the given input and output fd's.
 	Channel( int rfd, int wfd ) : source(rfd), sink(wfd)
 		{ state = CHAN_VALID; }
