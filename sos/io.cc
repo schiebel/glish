@@ -206,10 +206,8 @@ sos_status *sos_fd_sink::flush( )
 	{
 	sos_fd_buf_kernel *K = buf.first();
 
-	if ( K->cnt == 0 ) return 0;
-
 	int done = 0;
-	while ( K )
+	while ( K && K->cnt > 0 )
 		{
 		done += 1;
 		struct iovec *iov = K->iov;
