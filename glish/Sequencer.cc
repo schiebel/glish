@@ -443,7 +443,7 @@ NotifyTrigger::~NotifyTrigger() { }
 
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    IValue* arg_value, Notifiee* arg_notifiee,
-			    NotifyTrigger *t )
+			    NotifyTrigger *t ) : valid(1)
 	{
 	notifier = arg_notifier;
 	field = strdup( arg_field );
@@ -2249,6 +2249,15 @@ void Sequencer::UnregisterStmt( Stmt* stmt )
 	registered_stmts.remove( stmt );
 	}
 
+void Sequencer::NotifieeDone( Notifiee *gone )
+	{
+	Notification *n = 0;
+	notification_queue.InitForIteration();
+	while( n = notification_queue.Next() )
+		if ( n->notifiee == gone )
+			n->invalid( );
+	}
+
 Stmt* Sequencer::LookupStmt( int index )
 	{
 	if ( index <= 0 || index > registered_stmts.length() )
@@ -3407,6 +3416,12 @@ void Sequencer::RunQueue()
 
 	while ( (n = notification_queue.DeQueue()) )
 		{
+		if ( ! n->valid )
+			{
+			Unref( n );
+			continue;
+			}
+
 		if ( verbose > 1 )
 			message->Report( "doing", n );
 

@@ -24,9 +24,9 @@ typedef PList(Agent) agent_list;
 
 class Notifiee : public GlishRef {
     public:
-	Notifiee( Stmt* arg_stmt );
-	Notifiee( Stmt* arg_stmt, Frame* arg_frame );
-	Notifiee( Stmt* arg_stmt, stack_type *arg_stack );
+	Notifiee( Stmt* arg_stmt, Sequencer* );
+	Notifiee( Stmt* arg_stmt, Frame* arg_frame, Sequencer* );
+	Notifiee( Stmt* arg_stmt, stack_type *arg_stack, Sequencer* );
 	~Notifiee();
 	Stmt *stmt() { return stmt_; }
 	Frame *frame() { return frame_; }
@@ -37,6 +37,7 @@ class Notifiee : public GlishRef {
 	Stmt* stmt_;
 	Frame* frame_;
 	stack_type *stack_;
+	Sequencer *sequencer;
 	};
 
 glish_declare(PList,Notifiee);

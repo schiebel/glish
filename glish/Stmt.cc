@@ -250,7 +250,7 @@ void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *a
 
 	stack = sequencer->LocalFrames();
 
-	Notifiee *note = new Notifiee( this, stack );
+	Notifiee *note = new Notifiee( this, stack, sequencer );
 	loop_over_list( *trigger, i )
 		{
 		(*trigger)[i]->Register( note );
@@ -572,12 +572,12 @@ AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 	{
 	loop_over_list( *await_list, i )
-		(*await_list)[i]->Register( new Notifiee( this ) );
+		(*await_list)[i]->Register( new Notifiee( this, sequencer ) );
 
 	if ( except_list )
 		loop_over_list( *except_list, j )
 			(*except_list)[j]->Register(
-					new Notifiee( except_stmt ) );
+					new Notifiee( except_stmt, sequencer ) );
 
 	sequencer->Await( this, only_flag, except_stmt );
 

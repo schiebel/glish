@@ -44,11 +44,14 @@ public:
 
 	void Describe( OStream& s ) const;
 
+	void invalid( ) { valid = 0; }
+
 	Agent* notifier;
 	char* field;
 	IValue* value;
 	Notifiee* notifiee;
 	NotifyTrigger *trigger;
+	int valid;
 
 #ifdef GGC
 	void TagGC( ) { if ( value ) value->TagGC(); }
@@ -325,6 +328,10 @@ public:
 	// Indexes are small positive integers.
 	int RegisterStmt( Stmt* stmt );
 	void UnregisterStmt( Stmt* stmt );
+
+	// Notifiee has been deleted, tag queued events
+	// for this notifiee
+	void NotifieeDone( Notifiee * );
 
 	// Returns 0 if the index is invalid.
 	Stmt* LookupStmt( int index );
