@@ -169,6 +169,9 @@ glish_declare(PDict,EventSource);
 typedef PList(EventLink) event_link_list;
 glish_declare(PDict,event_link_list);
 
+glish_declare(PList,GlishEvent);
+typedef PList(GlishEvent) event_list;
+
 typedef PDict(event_link_list) event_link_context_list;
 glish_declare(PDict,event_link_context_list);
 
@@ -223,17 +226,16 @@ class Client {
 	// If 0 is otherwise returned, the interpreter connection has been 
 	// broken then 0 is returned (and the caller should terminate).
 	//
-	GlishEvent* NextEvent(const struct timeval *timeout = 0,
-			      int &timedout = glish_timedoutdummy);
+	virtual GlishEvent* NextEvent(const struct timeval *timeout = 0,
+				      int &timedout = glish_timedoutdummy);
 
 	// Another version of NextEvent which can be passed an fd_set
 	// returned by select() to aid in determining from where to
 	// read the next event.
-	GlishEvent* NextEvent( fd_set* mask );
+	virtual GlishEvent* NextEvent( fd_set* mask );
 
 	// Returns the next event from the given event source.
-	GlishEvent* NextEvent( EventSource* source )
-		{ return GetEvent( source ); }
+	virtual GlishEvent* NextEvent( EventSource* source );
 
 	// Called by the main program (or whoever called NextEvent()) when
 	// the current event is unrecognized.
@@ -326,6 +328,8 @@ class Client {
 	// access to the event sources this client is managing
 	source_list &EventSources( ) { return event_sources; }
 
+	static const char *Name( ) { return initial_name; }
+
     protected:
 
 	void Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file );
@@ -407,7 +411,9 @@ class Client {
 	void RemoveIncomingLink( int dead_event_source );
 	void RemoveInterpreter( EventSource* source );
 
-	const char* initial_client_name;
+	const char *initial_client_name;
+	// name that us used e.g. by FatalReporter...
+	static const char *initial_name;
 	int have_interpreter_connection;
 	int no_glish;	// if true, no event source whatsoever
 

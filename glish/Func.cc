@@ -156,10 +156,10 @@ int FormalParameter::Describe( OStream& s, const ioOpt &opt ) const
 
 UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 		    Sequencer* arg_sequencer, Expr* arg_subsequence_expr,
-		    IValue *&err, ivalue_list *misc_values )
+		    IValue *&err, const IValue *attributes, ivalue_list *misc_values )
 	{
-	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size,
-				    arg_sequencer, arg_subsequence_expr, err);
+	kernel = new UserFuncKernel(arg_formals, arg_body, arg_size, arg_sequencer,
+				    arg_subsequence_expr, attributes, err);
 	sequencer = arg_sequencer;
 	misc = misc_values;
 	scope_established = 0;
@@ -265,13 +265,19 @@ void UserFunc::TagGC( )
 #endif
 
 UserFuncKernel::UserFuncKernel( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
-			Sequencer* arg_sequencer, Expr* arg_subsequence_expr, IValue *&err )
+				Sequencer* arg_sequencer, Expr* arg_subsequence_expr,
+				const IValue *attributes, IValue *&err )
 	{
 	formals = arg_formals;
 	body = arg_body;
 	frame_size = arg_size;
 	sequencer = arg_sequencer;
 	subsequence_expr = arg_subsequence_expr;
+
+	const Value *tmp = 0;
+	reflect_events = subsequence_expr && attributes && attributes->Type() == TYPE_RECORD &&
+				(tmp=attributes->HasRecordElement("reflect")) &&
+				tmp->IsNumeric() && tmp->IntVal();
 
 	valid = 1;
 	err = 0;
@@ -580,7 +586,8 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 			fatal->Report( "frame inconsistency in UserFunc::DoCall" );
 
 		if ( stack )
-			sequencer->PopFrames( );
+			if ( sequencer->PopFrames( ) != stack )
+				fatal->Report( "stack inconsistency in UserFunc::DoCall" );
 
 		//
 		// Pop off down to the NULL we pushed on...
@@ -604,9 +611,11 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	{
 	if ( subsequence_expr )
 		{
-		UserAgent* self = new UserAgent( sequencer );
+		UserAgent* self = new UserAgent( sequencer, 1 );
 		subsequence_expr->Assign( new IValue( self->AgentRecord(),
 							VAL_REF ) );
+		if ( reflect_events )
+			self->SetReflect( );
 		}
 
 	int value_needed = etype != EVAL_SIDE_EFFECTS;
@@ -623,17 +632,23 @@ IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	if ( subsequence_expr )
 		{
 		Str err;
-		if ( result &&
-		     (result->Type() != TYPE_BOOL || result->BoolVal(1,err)) )
+		if ( result )
 			{
-			if ( err.chars() )
+			if ( result->Type() == TYPE_FAIL )
+				return result;
+
+			if ( result->Type() != TYPE_BOOL || result->BoolVal(1,err) )
 				{
-				Unref( result );
-				return (IValue*) Fail(err.chars());
+				if ( err.chars() )
+					{
+					Unref( result );
+					return (IValue*) Fail(err.chars());
+					}
+
+				warn->Report( "value (", result,
+					      ") returned from subsequence replaced by ref self" );
 				}
 
-			warn->Report( "value (", result,
-			") returned from subsequence replaced by ref self" );
 			Unref( result );
 			}
 

@@ -21,6 +21,8 @@ RCSID("@(#) $Id$")
 IValue *FailStmt::last_fail = 0;
 Stmt* null_stmt;
 unsigned int WheneverStmt::notify_count = 0;
+extern Expr *glish_current_subsequence;
+
 
 Stmt::~Stmt() { }
 
@@ -60,7 +62,7 @@ void Stmt::Notify( Agent* /* agent */ )
 	}
 
 int Stmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
-			IValue* /* value */ ) const
+		       IValue* /* value */, int /* from_subsequence */ ) const
 	{
 	return 1;
 	}
@@ -139,7 +141,7 @@ const char *WheneverStmtCtor::Description() const
 	return "whenever";
 	}
 
-WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequencer )
+WheneverStmtCtor::WheneverStmtCtor( event_dsg_list* arg_trigger, Sequencer* arg_sequencer )
 	{
 	trigger = arg_trigger;
 	stmt = 0;
@@ -147,6 +149,7 @@ WheneverStmtCtor::WheneverStmtCtor( event_list* arg_trigger, Sequencer* arg_sequ
 	cur = 0;
 	sequencer = arg_sequencer;
 	sequencer->RegisterWhenever(this);
+	in_subsequence = glish_current_subsequence;
 	}
 
 int WheneverStmtCtor::Index( )
@@ -193,10 +196,10 @@ IValue* WheneverStmtCtor::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
 	if ( ! cur )
-		new WheneverStmt( trigger, stmt, sequencer, misc );
+		new WheneverStmt( trigger, stmt, sequencer, misc, in_subsequence );
 	else
 		{
-		cur->Init( trigger, stmt, misc );
+		cur->Init( trigger, stmt, misc, in_subsequence );
 		cur = 0;
 		}
 
@@ -226,25 +229,28 @@ unsigned int WheneverStmt::NotifyCount()
 	}
 
 WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
-						 active(0), stack(0), misc(0)
+						 active(0), stack(0), misc(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 	}
 
-WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
-			    ivalue_list *arg_misc ) : trigger(0), sequencer(arg_seq),
-						      active(0), stack(0), misc(0)
+WheneverStmt::WheneverStmt( event_dsg_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
+			    ivalue_list *arg_misc, Expr *arg_in_subsequence ) : trigger(0),
+						sequencer(arg_seq), active(0), stack(0),
+						misc(0), in_subsequence(0)
 	{
 	index = sequencer->RegisterStmt( this );
 
-	Init( arg_trigger, arg_stmt, arg_misc );
+	Init( arg_trigger, arg_stmt, arg_misc, arg_in_subsequence );
 	}
 
-void WheneverStmt::Init( event_list* arg_trigger, Stmt *arg_stmt, ivalue_list *arg_misc )
+void WheneverStmt::Init( event_dsg_list* arg_trigger, Stmt *arg_stmt,
+			 ivalue_list *arg_misc, Expr *arg_in_subsequence )
 	{
 	trigger = arg_trigger; Ref(trigger);
 	stmt = arg_stmt; Ref(stmt);
 	misc = arg_misc; if ( misc ) Ref(misc);
+	in_subsequence = arg_in_subsequence;
 
 	stack = sequencer->LocalFrames();
 
@@ -286,7 +292,15 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 	stmt_flow_type flow;
 
 	notify_count += 1;
+
+	//
+	// need to set "file_name" for errors during execution
+	//
+	unsigned short old_file_name = file_name;
+	file_name = file;
 	Unref( stmt->Exec( 0, flow ) );
+	file_name = old_file_name;
+
 	notify_count -= 1;
 
 	if ( flow != FLOW_NEXT )
@@ -294,10 +308,33 @@ void WheneverStmt::Notify( Agent* /* agent */ )
 				this );
 	}
 
-int WheneverStmt::IsActiveFor( Agent* /* agent */, const char* /* field */,
-			       IValue* /* value */ ) const
+int WheneverStmt::IsActiveFor( Agent *agent, const char* /* field */,
+			       IValue* /* value */, int from_subsequence ) const
 	{
-	return active;
+	int ret = active;
+
+	if ( agent->IsSubsequence() )
+		{
+		if ( from_subsequence && in_subsequence && ! agent->ReflectEvents() )
+			{
+			IValue *agent_ref = in_subsequence->RefEval( VAL_REF );
+			IValue *agent_val = (IValue*)(agent_ref->Deref());
+
+			if ( agent_val->IsAgentRecord() )
+				{
+				Agent *sub = agent_val->AgentVal();
+				if ( from_subsequence && agent == sub )
+					ret = 0;
+				}
+
+			Unref(agent_ref);
+			}
+
+		else if ( ! from_subsequence && ! in_subsequence  && agent->IsSubsequence() )
+			ret = 0;
+		}
+
+	return ret;
 	}
 
 void WheneverStmt::SetActivity( int activate )
@@ -378,7 +415,7 @@ LinkStmt::~LinkStmt()
 		}
 	}
 
-LinkStmt::LinkStmt( event_list* arg_source, event_list* arg_sink,
+LinkStmt::LinkStmt( event_dsg_list* arg_source, event_dsg_list* arg_sink,
 			Sequencer* arg_sequencer )
 	{
 	source = arg_source;
@@ -509,7 +546,7 @@ const char *UnLinkStmt::Description() const
 
 UnLinkStmt::~UnLinkStmt() { }
 
-UnLinkStmt::UnLinkStmt( event_list* arg_source, event_list* arg_sink,
+UnLinkStmt::UnLinkStmt( event_dsg_list* arg_source, event_dsg_list* arg_sink,
 			Sequencer* arg_sequencer )
 : LinkStmt( arg_source, arg_sink, arg_sequencer )
 	{
@@ -559,8 +596,8 @@ void AwaitStmt::CollectUnref( stmt_list &del_list )
 		}
 	}
 
-AwaitStmt::AwaitStmt( event_list* arg_await_list, int arg_only_flag,
-			event_list* arg_except_list, Sequencer* arg_sequencer )
+AwaitStmt::AwaitStmt( event_dsg_list* arg_await_list, int arg_only_flag,
+		      event_dsg_list* arg_except_list, Sequencer* arg_sequencer )
 	{
 	await_list = arg_await_list;
 	only_flag = arg_only_flag;

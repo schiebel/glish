@@ -25,7 +25,7 @@
 %left '*' '/' '%'
 %right '^'
 %left TOK_APPLYRX
-%nonassoc ':'
+%left ':'
 %right '!'
 %left '.' '[' ']' '(' ')' TOK_ARROW TOK_ATTR TOK_REQUEST
 
@@ -36,6 +36,7 @@
 %type <expr> TOK_CONSTANT expression var function formal_param_default TOK_REGEX
 %type <expr> scoped_expr opt_scoped_expr stand_alone_expr scoped_lhs_var
 %type <expr> function_head block_head subscript
+%type <expr> func_attributes
 %type <exprlist> subscript_list
 %type <event> event
 %type <stmt> statement_list statement func_body block
@@ -82,7 +83,7 @@
 	expr_list* exprlist;
 	EventDesignator* event;
 	Stmt* stmt;
-	event_list* ev_list;
+	event_dsg_list* ev_list;
 	PDict(Expr)* record;
 	parameter_list* param_list;
 	Parameter* param;
@@ -96,6 +97,7 @@ extern "C" {
 	void yyerror( char msg[] );
 }
 
+Expr *glish_current_subsequence = 0;
 /* reset glish state after an error */
 static void error_reset( );
 
@@ -567,9 +569,12 @@ block_head:	'{'
 			}
 	;
 
-function:	function_head opt_id '(' formal_param_list ')' cont func_body
+function:	function_head opt_id '(' formal_param_list ')' cont func_attributes func_body
 		no_cont
 			{
+			IValue *attributes = $7 ? $7->CopyEval() : 0;
+			Unref($7);
+
 			int frame_size = current_sequencer->PopScope();
 			IValue *err = 0;
 
@@ -596,12 +601,12 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 					gc_list->append( (*gc_registry)[off] );
 				}
 #endif
-			UserFunc* ufunc = new UserFunc( $4, $7, frame_size, current_sequencer,
-							$1, err, gc_list );
+			UserFunc* ufunc = new UserFunc( $4, $8, frame_size, current_sequencer,
+							$1, err, attributes, gc_list );
 
 			if ( ! err )
 				{
-				$$ = new FuncExpr( ufunc );
+				$$ = new FuncExpr( ufunc, attributes );
 
 				if ( $2 )
 					{
@@ -613,6 +618,7 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 							$2, LOCAL_SCOPE );
 
 						IValue* ref = new IValue( ufunc );
+						if ( attributes ) ref->AssignAttributes(copy_value(attributes));
 						/* keep ufunc from being deleted with $$ */
 						Ref(ufunc);
 
@@ -637,6 +643,8 @@ function:	function_head opt_id '(' formal_param_list ')' cont func_body
 				Ref(err);
 				Unref( ufunc );
 				}
+
+			glish_current_subsequence = 0;
 			}
 	;
 
@@ -653,14 +661,24 @@ function_head:	TOK_FUNCTION
 	|	TOK_SUBSEQUENCE
 			{
 			current_sequencer->PushScope( FUNC_SCOPE );
-			$$ = current_sequencer->InstallID( strdup( "self" ),
-								LOCAL_SCOPE );
+			$$ = glish_current_subsequence = current_sequencer->InstallID( strdup( "self" ), LOCAL_SCOPE );
+
 #ifdef GGC
 			gc_registry_offset->append( gc_registry->length() );
 			++glish_do_gc_register;
 #endif
 			Ref($$);
 			}
+	;
+
+
+func_attributes: ':' '[' { current_sequencer->StashScope(); } array_record_ctor_list ']'
+			{
+			$$ = new ConstructExpr( $4 );
+			current_sequencer->RestoreScope();
+			}
+	|
+			{ $$ = 0; }
 	;
 
 formal_param_list:
@@ -946,7 +964,7 @@ event_list:	event_list ',' event
 			{ $$->append( $3 ); }
 	|	event
 			{
-			$$ = new event_list;
+			$$ = new event_dsg_list;
 			$$->append( $1 );
 			}
 	;

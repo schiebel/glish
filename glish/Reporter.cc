@@ -9,6 +9,7 @@ RCSID("@(#) $Id$")
 #include <string.h>
 
 #include "Reporter.h"
+#include "Glish/Client.h"
 #include "Glish/Stream.h"
 #include "input.h"
 #include "system.h"
@@ -305,8 +306,15 @@ void FatalReporter::Prolog( const ioOpt &opt )
 	{
 	show_glish_stack( stream );
 	Reporter::Prolog(opt);
-	stream << "fatal internal error, ";
-	if ( do_log ) *sout << "fatal internal error, ";
+	stream << "fatal internal error";
+	if ( do_log ) *sout << "fatal internal error";
+	if ( Client::Name() )
+		{
+		stream << " (" << Client::Name() << ")";
+		if ( do_log ) *sout << " (" << Client::Name() << ")";
+		}
+	stream << ", ";
+	if ( do_log ) *sout << ", ";
 	}
 
 void FatalReporter::Epilog( const ioOpt &opt )

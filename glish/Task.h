@@ -14,12 +14,8 @@ class Selector;
 class GlishEvent;
 class ProxyTask;
 
-glish_declare(PList,GlishEvent);
-typedef PList(GlishEvent) glish_event_list;
-
 glish_declare(PList,ProxyTask);
 typedef PList(ProxyTask) proxytask_list;
-
 
 class TaskAttr {
     public:
@@ -64,7 +60,7 @@ class Task : public Agent {
 	// Bundling of events is done with this first SendEvent() to
 	// avoid double bundling of events, i.e. in ProxyTask and Task.
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log );
+			int is_request, int log, int from_subsequence=0 );
 	IValue* SendEvent( const char* event_name, parameter_list* args,
 			int is_request, int log, const ProxyId &proxy_id );
 	IValue* SendEvent( const char* event_name, IValue *&event_val,
@@ -146,7 +142,7 @@ class Task : public Agent {
 
 	// Events that we haven't been able to send out yet because
 	// our associated task hasn't yet connected to the interpreter.
-	glish_event_list* pending_events;
+	event_list* pending_events;
 
 	Executable* executable;
 	int task_error;	// true if any problems occurred
@@ -244,7 +240,7 @@ class ProxyTask : public Agent {
 	~ProxyTask( );
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log );
+				int is_request, int log, int from_subsequence );
 
 	// Returns non-zero on success
 	int BundleEvents( int howmany=0 );

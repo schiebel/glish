@@ -9,7 +9,7 @@
 class EventDesignator;
 
 glish_declare(PList,EventDesignator);
-typedef PList(EventDesignator) event_list;
+typedef PList(EventDesignator) event_dsg_list;
 
 class Expr;
 class Notifiee;
@@ -26,7 +26,8 @@ public:
 	// called already knows what the event name is.  If is_request is
 	// true than this is a request/response event, and the value of
 	// the response is returned; otherwise the function returns nil.
-	IValue* SendEvent( ParameterPList* arguments, int is_request );
+	IValue* SendEvent( ParameterPList* arguments, int is_request,
+			   int from_subsequence=0 );
 
 	// Used to register a "notifiee" (i.e., an event statement plus
 	// an associated Frame) as wanting to be notified of occurrences
@@ -71,6 +72,6 @@ protected:
 
 extern void delete_name_list( name_list* nl );
 
-extern void describe_event_list( const event_list* list, OStream& s );
+extern void describe_event_list( const event_dsg_list* list, OStream& s );
 
 #endif /* event_h */

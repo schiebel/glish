@@ -130,7 +130,8 @@ class ActualParameter : public Parameter {
 class UserFuncKernel : public GlishObject {
     public:
 	UserFuncKernel( parameter_list* formals, Stmt* body, int size,
-			Sequencer* sequencer, Expr* subsequence_expr, IValue *&err );
+			Sequencer* sequencer, Expr* subsequence_expr,
+			const IValue *attributes, IValue *&err );
 	~UserFuncKernel();
 
 	IValue* Call( parameter_list* args, eval_type etype, stack_type *stack = 0);
@@ -161,6 +162,7 @@ class UserFuncKernel : public GlishObject {
 	int frame_size;
 	Sequencer* sequencer;
 	Expr* subsequence_expr;
+	int reflect_events;
 	int valid;
 	int has_ellipsis;
 	int ellipsis_position;
@@ -170,7 +172,8 @@ class UserFunc : public Func {
     public:
 	UserFunc( parameter_list* formals, Stmt* body, int size,
 		  Sequencer* sequencer, Expr* subsequence_expr,
-		  IValue *&err, ivalue_list *misc_values = 0 );
+		  IValue *&err, const IValue *attributes=0,
+		  ivalue_list *misc_values = 0 );
 	UserFunc( const UserFunc *f );
 
 	~UserFunc();

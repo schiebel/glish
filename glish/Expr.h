@@ -314,7 +314,7 @@ class ConstExpr : public Expr {
 
 class FuncExpr : public Expr {
     public:
-	FuncExpr( UserFunc* f );
+	FuncExpr( UserFunc* f, IValue *attr=0 );
 
 	IValue* Eval( eval_type etype );
 	int Describe( OStream &s, const ioOpt &opt ) const;
@@ -327,6 +327,7 @@ class FuncExpr : public Expr {
 
     protected:
 	UserFunc* func;
+	IValue *attributes;
 	};
 
 
@@ -632,6 +633,7 @@ class SendEventExpr : public Expr {
 	EventDesignator* sender;
 	ParameterPList* args;
 	int is_request_reply;
+	Expr *in_subsequence;
 	};
 
 

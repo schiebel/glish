@@ -68,6 +68,7 @@ Agent::Agent( Sequencer* s )
 
 	agent_value = new IValue( create_record_dict(), this );
 	(*agents).append( this );
+	preserve_events = 0;
 	}
 
 void Agent::Done()
@@ -121,12 +122,12 @@ void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,
 	}
 
 int Agent::CreateEvent( const char* event_name, IValue* event_value,
-			NotifyTrigger *t )
+			NotifyTrigger *t, int preserve, int from_subsequence )
 	{
 	if ( ! agent_value )
 		return 0;
 
-	return NotifyInterestedParties( event_name, event_value, t );
+	return NotifyInterestedParties( event_name, event_value, t, preserve, from_subsequence );
 	}
 
 void Agent::RegisterInterest( Notifiee* notifiee, const char* field,
@@ -304,8 +305,8 @@ IValue* Agent::BuildEventValue( parameter_list* args, int use_refs )
 	return event_val;
 	}
 
-int Agent::NotifyInterestedParties( const char* field, IValue* value,
-				    NotifyTrigger *t )
+int Agent::NotifyInterestedParties( const char* field, IValue* value, NotifyTrigger *t,
+				    int preserve, int from_subsequence )
 	{
 	notifiee_list* interested = interested_parties[field];
 	int there_is_interest = 0;
@@ -318,7 +319,7 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value,
 			// we consider that the Notifiee exists, even if not
 			// active, sufficient to consider that there was
 			// interest in this event.
-			(void) DoNotification( (*interested)[i], field, value, t );
+			(void) DoNotification( (*interested)[i], field, value, t, from_subsequence );
 			}
 
 		there_is_interest = 1;
@@ -329,12 +330,13 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value,
 	if ( interested )
 		{
 		loop_over_list( *interested, i )
-			(void) DoNotification( (*interested)[i], field, value, t );
+			(void) DoNotification( (*interested)[i], field, value, t, from_subsequence );
 
 		there_is_interest = 1;
 		}
 
-	if ( agent_value && ! there_is_interest && agent_value->Type() == TYPE_RECORD )
+	if ( (preserve_events || preserve) && agent_value &&
+	     ! there_is_interest && agent_value->Type() == TYPE_RECORD )
 		{
 		// We have to assign the corresponding field in the agent
 		// record right here, ourselves, since the sequencer isn't
@@ -349,11 +351,11 @@ int Agent::NotifyInterestedParties( const char* field, IValue* value,
 	}
 
 int Agent::DoNotification( Notifiee* n, const char* field, IValue* value,
-			   NotifyTrigger *t )
+			   NotifyTrigger *t, int from_subsequence )
 	{
 	Stmt* s = n->stmt();
 
-	if ( s->IsActiveFor( this, field, value ) )
+	if ( s->IsActiveFor( this, field, value, from_subsequence ) )
 		{
 		if ( t ) Ref(t);
 
@@ -403,7 +405,7 @@ int Agent::IsPseudo( ) const
 	}
 
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
-				int /* is_request */, int log )
+				int /* is_request */, int log, int from_subsequence )
 	{
 	IValue* event_val = BuildEventValue( args, 0 );
 
@@ -413,7 +415,7 @@ IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,
 
 	sequencer->CheckAwait( this, event_name );
 
-	CreateEvent( event_name, event_val );
+	CreateEvent( event_name, event_val, 0, 0, from_subsequence );
 
 	return 0;
 	}

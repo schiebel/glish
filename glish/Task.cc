@@ -156,7 +156,7 @@ IValue* Task::SendEvent( const char* event_name, IValue *&event_val,
 	if ( ! channel )
 		{
 		if ( ! pending_events )
-			pending_events = new glish_event_list;
+			pending_events = new event_list;
 
 		GlishEvent *e = new GlishEvent( strdup(event_name), copy_value(event_val) );
 
@@ -243,7 +243,7 @@ IValue* Task::SendEvent( const char* event_name, parameter_list* args,
 	}
 
 IValue *Task::SendEvent( const char* event_name, parameter_list* args,
-			int is_request, int log )
+			 int is_request, int log, int /* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{
@@ -503,7 +503,7 @@ void Task::Exec( const char** argv )
 void Task::SetActivity( int is_active )
 	{
 	active = is_active;
-	CreateEvent( "active", new IValue( is_active ) );
+	CreateEvent( "active", new IValue( is_active ), 0, 1 );
 
 	if ( ! is_active )
 		CloseChannel();
@@ -1111,9 +1111,8 @@ IValue *CreateTaskBuiltIn::CheckTaskStatus( Task* task )
 void Task::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, can_suspend, proxy_id );
-	if ( ss )
-		sequencer->SendSuspended( ss, copy_value(e->value) );
+	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id );
+	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
 ProxyTask *Task::GetProxy( const ProxyId &proxy_id )
@@ -1127,9 +1126,8 @@ ProxyTask *Task::GetProxy( const ProxyId &proxy_id )
 void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		      const GlishEvent* e, int can_suspend, const ProxyId &proxy_id )
 	{
-	sos_status *ss = send_event( fd, event_name, e, can_suspend, proxy_id );
-	if ( ss )
-		sequencer->SendSuspended( ss, copy_value(e->value) );
+	sos_status *ss = send_event( fd, event_name, e, 1, proxy_id );
+	if ( ss ) sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
 ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), bundle(0), bundle_size(0),
@@ -1175,7 +1173,7 @@ ProxyTask::~ProxyTask( )
 	}
 
 IValue *ProxyTask::SendEvent( const char* event_name, parameter_list* args,
-				int is_request, int log )
+			      int is_request, int log, int /* from_subsequence */ )
 	{
 	if ( bundle_size )
 		{

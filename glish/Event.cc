@@ -59,7 +59,7 @@ void EventDesignator::EventAgentDone()
 	event_agent_ref = 0;
 	}
 
-IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
+IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request, int from_subsequence )
 	{
 	Agent* a = EventAgent( VAL_REF );
 
@@ -80,7 +80,7 @@ IValue* EventDesignator::SendEvent( parameter_list* arguments, int is_request )
 			error->Report( this,
 				       "must designate exactly one event" );
 
-		result = a->SendEvent( nl[0], arguments, is_request, 1 );
+		result = a->SendEvent( nl[0], arguments, is_request, 1, from_subsequence );
 		}
 
 	else
@@ -217,7 +217,7 @@ void delete_name_list( name_list* nl )
 	}
 
 
-void describe_event_list( const event_list* list, OStream& s )
+void describe_event_list( const event_dsg_list* list, OStream& s )
 	{
 	if ( list )
 		loop_over_list( *list, i )

@@ -19,6 +19,8 @@ RCSID("@(#) $Id$")
 #include "Regex.h"
 #include "File.h"
 
+extern Expr *glish_current_subsequence;
+
 int ParseNode::canDelete() const
 	{
 	return 1;
@@ -465,6 +467,7 @@ int ConstExpr::Describe( OStream &s, const ioOpt &opt ) const
 FuncExpr::~FuncExpr()
 	{
 	Unref(func);
+	Unref(attributes);
 	}
 
 const char *FuncExpr::Description() const
@@ -472,16 +475,19 @@ const char *FuncExpr::Description() const
 	return "function";
 	}
 
-FuncExpr::FuncExpr( UserFunc* f )
+FuncExpr::FuncExpr( UserFunc* f, IValue *attr )
 	{
 	func = f;
+	attributes = attr;
 	}
 
 IValue* FuncExpr::Eval( eval_type )
 	{
 	UserFunc *ret = func->clone();
 	ret->EstablishScope();
-	return new IValue( ret );
+	IValue *retval = new IValue( ret );
+	if ( attributes ) retval->AssignAttributes(copy_value(attributes));
+	return retval;
 	}
 
 int FuncExpr::Describe( OStream& s, const ioOpt &opt ) const
@@ -2174,7 +2180,7 @@ IValue* CallExpr::Eval( eval_type etype )
 
 	sequencer->PushFuncName( strdup(op->Description()) );
 
-	if ( ! func_val || ! (result = func_val->Call( args, etype )) )
+	if ( ! func_val || ! (result = func_val->Call(args,etype)) )
 		{
 		if ( etype != EVAL_SIDE_EFFECTS )
 			result = false_ivalue();
@@ -2280,11 +2286,12 @@ SendEventExpr::SendEventExpr( EventDesignator* arg_sender,
 	sender = arg_sender;
 	args = arg_args;
 	is_request_reply = 1;
+	in_subsequence = glish_current_subsequence;
 	}
 
 IValue* SendEventExpr::Eval( eval_type etype )
 	{
-	IValue* result = sender->SendEvent( args, is_request_reply );
+	IValue* result = sender->SendEvent( args, is_request_reply, in_subsequence != 0 );
 
 	if ( etype == EVAL_SIDE_EFFECTS )
 		{

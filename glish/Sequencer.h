@@ -116,7 +116,8 @@ class stack_type : public GlishRef {
 	offset_list *offsets() { return offsets_; }
 	const offset_list *offsets() const { return offsets_; }
 	int offset_len() const { return olen; }
-	int delete_on_spot() const { return delete_on_spot_; }
+	// returns the stack which this copy was cloned from, or 0
+	const stack_type *delete_on_spot() const { return delete_on_spot_; }
 
 #ifdef GGC
 	void TagGC( );
@@ -128,7 +129,7 @@ class stack_type : public GlishRef {
 	int flen;
 	offset_list *offsets_;
 	int olen;
-	int delete_on_spot_;
+	const stack_type *delete_on_spot_;
 };
 
 glish_declare(PList,stack_type);
@@ -276,6 +277,10 @@ public:
 
 	void PushScope( scope_type s = LOCAL_SCOPE );
 	int PopScope();		// returns size of frame corresponding to scope
+
+	void StashScope();
+	void RestoreScope();
+
 	scope_type GetScopeType( ) const;
 	// For now returns the "global" scope. Later this may be modified
 	// to take a "scope_type" parameter.
@@ -320,7 +325,7 @@ public:
 	void PushFrames( stack_type *new_stack );
 	// Note that only the last frame popped is returned (are the others leaked?).
 	Frame* PopFrame( );
-	void PopFrames( );
+	const stack_type *PopFrames( );
 
 	// This trio of functions supports keeping track of the
 	// function call stack. This is used in error reporting.
@@ -445,11 +450,11 @@ public:
 	void AssociateTaskWithChannel( Task* task, Channel *chan );
 
 	int NewEvent( Task* task, GlishEvent* event, int complain_if_no_interest = 0,
-		      NotifyTrigger *t=0 );
+		      NotifyTrigger *t=0, int preserve=0 );
 	int NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_interest = 0,
-		      NotifyTrigger *t=0 );
+		      NotifyTrigger *t=0, int preserve=0 );
 	int NewEvent( Agent* agent, const char* event_name, IValue* value,
-		      int complain_if_no_interest = 0, NotifyTrigger *t=0 );
+		      int complain_if_no_interest = 0, NotifyTrigger *t=0, int preserve=0 );
 
 	// Returns true if tasks associated with the given nam should
 	// have an implicit "<suspend>" attribute, false otherwise.
@@ -592,6 +597,7 @@ protected:
 
 	scope_list scopes;
 	offset_list global_scopes;
+	static Scope *stashed_scope;
 
 	stack_list stack;
 	const frame_list &frames() const { return *(stack[stack.length()-1]->frames()); }

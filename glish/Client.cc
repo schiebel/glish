@@ -57,6 +57,8 @@ extern int glish_alpha_sigfpe_init;
 
 typedef RETSIGTYPE (*SigHandler)( );
 
+const char *Client::initial_name = 0;
+static const char *strip_path( const char * );
 static Client* current_client;
 static const char* prog_name = "glish-interpreter";
 
@@ -276,6 +278,9 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 	multithreaded = arg_multithreaded;
 	int useshm_ = 0;
 
+	if ( ! initial_name && argv[0] )
+		initial_name = strdup(strip_path(argv[0]));
+
 	prog_name = argv[0];
 	--argc, ++argv;	// remove program name from argument list
 
@@ -333,6 +338,7 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 		{
 		have_interpreter_connection = 1;
 		initial_client_name = argv[1];
+
 		argc -= 2, argv += 2;
 
 		if ( argc < 2 ||
@@ -457,6 +463,9 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	{
 	initial_client_name = prog_name = name;
 
+	if ( ! initial_name && name )
+		initial_name = strdup(name);
+
 	useshm = 0;
 	script_client = script_file;
 	multithreaded = NONSHARED;
@@ -490,6 +499,9 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name,
 	{
 	// BUG HERE -- name (argument) could go away...
 	initial_client_name = prog_name = name;
+
+	if ( ! initial_name && name )
+		initial_name = strdup(name);
 
 	useshm = 0;
 	script_client = script_file;
@@ -549,7 +561,7 @@ Client::~Client()
 	finalize_reporters();
 	}
 
-GlishEvent* Client::NextEvent(const struct timeval *timeout, int &timedout)
+GlishEvent *Client::NextEvent(const struct timeval *timeout, int &timedout)
 	{
 	// We don't want to use timeout directly because select can
 	// change it, but the caller might want to keep using the
@@ -597,12 +609,12 @@ GlishEvent* Client::NextEvent(const struct timeval *timeout, int &timedout)
 		return 0;
 		}
 	else
-		return NextEvent( &input_fds );
+		return Client::NextEvent( &input_fds );
 
 	}
 
 
-GlishEvent* Client::NextEvent( fd_set* mask )
+GlishEvent *Client::NextEvent( fd_set* mask )
 	{
 	if ( no_glish )
 		return 0;
@@ -618,6 +630,11 @@ GlishEvent* Client::NextEvent( fd_set* mask )
 	PostEvent( "error", "bad call to Client::NextEvent" );
 
 	return 0;
+	}
+
+GlishEvent *Client::NextEvent( EventSource* source )
+	{
+	return GetEvent( source );
 	}
 
 void Client::Unrecognized( const ProxyId &proxy_id )
@@ -1842,4 +1859,14 @@ ostream &operator <<(ostream &o, const ProxyId &id)
 	{
 	o << id.interp() << ":" << id.task() << ":" << id.id();
 	return o;
+	}
+
+const char *strip_path( const char *path )
+	{
+	if ( ! path ) return 0;
+
+	const char *l = path;
+	for ( const char *p=path; *p; ++p )
+		if ( *p == '/' ) l = p+1;
+	return l;
 	}

@@ -83,6 +83,7 @@ extern void init_regex();
 Sequencer *Sequencer::cur_sequencer = 0;
 // Keeps track of if the queue is blocked...
 int Sequencer::hold_queue = 0;
+Scope *Sequencer::stashed_scope = 0;
 
 // This is used to indicate that final cleanup is ongoing. Currently
 // this only affects the cleanup of WheneverStmts. Eventaully, these
@@ -135,7 +136,7 @@ void await_type::set( Stmt *s, Stmt *e, int o )
 	if ( dict_ ) delete_agent_dict( dict_ );
 
 	dict_ = new agent_dict( ORDERED );
-	event_list *el = ((AwaitStmt*)stmt_)->AwaitList();
+	event_dsg_list *el = ((AwaitStmt*)stmt_)->AwaitList();
 	loop_over_list ( *el, X )
 		{
 		name_list &nl = (*el)[X]->EventNames();
@@ -244,9 +245,9 @@ static char *join_path( const char **path, int len, const char *var_name = 0 )
 stack_type::stack_type( )
 	{
 	frames_ = new frame_list;
-	flen = -1;
+	flen = 0;
 	offsets_ = new offset_list;
-	olen = -1;
+	olen = 0;
 	delete_on_spot_ = 0;
 	}
 
@@ -269,26 +270,30 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 		offsets_->append((*other.offsets())[i]);
 	olen = len;
 
-	delete_on_spot_ = delete_on_spot_arg;
+	delete_on_spot_ = delete_on_spot_arg ? &other : 0;
 	}
 
 stack_type::~stack_type( )
 	{
 	static frame_list been_there;
-	for ( int i=frames_->length()-1;i >= 0; i-- )
+
+	if ( ! delete_on_spot_ )
 		{
-		Frame *cur = frames_->remove_nth(i);
-		if ( cur && cur->RefCount() > 1 &&
-		     ! been_there.is_member( cur ) &&
-		     cur->CountRefs(cur)+1 == cur->RefCount() )
+		for ( int i=frames_->length()-1;i >= 0; i-- )
 			{
-			been_there.append(cur);
-			cur->clear();
-			Unref(cur);
-			been_there.remove(cur);
+			Frame *cur = frames_->remove_nth(i);
+			if ( cur && cur->RefCount() > 1 &&
+			     ! been_there.is_member( cur ) &&
+			     cur->CountRefs(cur)+1 == cur->RefCount() )
+				{
+				been_there.append(cur);
+				cur->clear();
+				Unref(cur);
+				been_there.remove(cur);
+				}
+			else
+				Unref(cur);
 			}
-		else
-			Unref(cur);
 		}
 
 	Unref( frames_ );
@@ -452,7 +457,7 @@ public:
 	ScriptAgent( Sequencer* s, Client* c ) : Agent(s)	{ client = c; }
 
 	IValue* SendEvent( const char* event_name, parameter_list* args,
-			int /* is_request */, int /* log */ )
+			int /* is_request */, int /* log */, int from_subsequence=0 )
 		{
 		IValue* event_val = BuildEventValue( args, 1 );
 		client->PostEvent( event_name, event_val, client->LastContext() );
@@ -634,7 +639,7 @@ const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 
 	return outbuf;
 	}
-		  
+
 
 void SystemInfo::DoLog( int input, const Value *v )
 	{
@@ -690,7 +695,7 @@ void SystemInfo::DoLog( int input, const char *orig_buf, int len )
 		}
 #define DOLOG_FIXBUF buf = prefix_buf("#",buf);
 
-	DOLOG_ACTION(log, if (!input) DOLOG_FIXBUF ) 
+	DOLOG_ACTION(log, if (!input) DOLOG_FIXBUF )
 	if ( ! done )
 		if ( input )
 			{
@@ -847,7 +852,7 @@ void SystemInfo::update_print( )
 	printlimit = 0;
 	printprecision = -1;
 	if ( val && val->Type() == TYPE_RECORD &&
-	     val->HasRecordElement( "print" ) && 
+	     val->HasRecordElement( "print" ) &&
 	     (v1 = (IValue*) val->ExistingRecordElement( "print" )) &&
 	     v1 != false_value && v1->Type() == TYPE_RECORD )
 		{
@@ -1012,7 +1017,7 @@ void Sequencer::UpdateRemotePath( )
 					{
 					if ( path->HasRecordElement( daemon->Host() ) &&
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
-					     v1 != false_value && v1->Type() == TYPE_STRING ) 
+					     v1 != false_value && v1->Type() == TYPE_STRING )
 						daemon->UpdateBinPath( v1 );
 					else if ( dflt )
 						daemon->UpdateBinPath( dflt );
@@ -1118,7 +1123,7 @@ void Sequencer::TopLevelReset()
 
 void Sequencer::toplevelreset()
 	{
-	if ( stdin_selectee_removed && isatty( fileno( stdin ) ) && 
+	if ( stdin_selectee_removed && isatty( fileno( stdin ) ) &&
 			! selector->FindSelectee( fileno( stdin ) ) )
 		{
 		selector->AddSelectee( new UserInputSelectee( fileno( stdin ) ) );
@@ -1721,6 +1726,35 @@ int Sequencer::PopScope()
 	return frame_size;
 	}
 
+void Sequencer::StashScope( )
+	{
+	int top_scope_pos = scopes.length() - 1;
+
+	if ( stashed_scope )
+		fatal->Report( "stashed scope overflow in Sequencer::StashScope" );
+
+	if ( top_scope_pos < 0 )
+		fatal->Report( "scope underflow in Sequencer::StashScope" );
+
+	stashed_scope = scopes[top_scope_pos];
+	scopes.remove( stashed_scope );
+
+	if ( stashed_scope->GetScopeType() != LOCAL_SCOPE )
+		global_scopes.remove( top_scope_pos );
+	}
+
+void Sequencer::RestoreScope( )
+	{
+	if ( ! stashed_scope )
+		fatal->Report( "stashed scope underflow in Sequencer::RestoreScope" );
+
+	scopes.append( stashed_scope );
+	if ( stashed_scope->GetScopeType() != LOCAL_SCOPE )
+		global_scopes.append( scopes.length() - 1 );
+
+	stashed_scope = 0;
+	}
+
 scope_type Sequencer::GetScopeType() const
 	{
 	int s_index = scopes.length() - 1;
@@ -1782,7 +1816,7 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn,
 		}
 
 	Scope *cur_scope = scopes[scope_index];
-	
+
 	scope = cur_scope->GetScopeType();
 
 	int frame_offset = GlobalRef ? FrameOffset : cur_scope->Length();
@@ -1979,8 +2013,8 @@ Expr *Sequencer::LookupVar( char* id, scope_type scope, VarExpr *var, int &creat
 				if ( result && scopes[cnt+1]->GetScopeType() != GLOBAL_SCOPE )
 					{
 					created = 1;
-					return CreateVarExpr( id, ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 && 
-								    ((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE ) 
+					return CreateVarExpr( id, ( ((VarExpr*)((*scopes[cnt+1])[id]))->soffset() < 0 &&
+								    ((VarExpr*)((*scopes[cnt+1])[id]))->Scope() == GLOBAL_SCOPE )
 								    ? GLOBAL_SCOPE : LOCAL_SCOPE,
 							      cnt+1 - goff + ((VarExpr*)((*scopes[cnt+1])[id]))->soffset(),
 							      ((VarExpr*)((*scopes[cnt+1])[id]))->offset(), this );
@@ -2054,11 +2088,17 @@ char *Sequencer::NAME( const char *host, const char *var_str )		\
 									\
 	if ( pv->Type() == TYPE_STRING )				\
 		string = join_path( pv->StringPtr(0), pv->Length() );	\
-	else if ( pv->Type() == TYPE_RECORD &&				\
-		  pv->HasRecordElement( host ) &&			\
-		  ( v = (const IValue*)(pv->ExistingRecordElement( host ))) && \
-		  v != false_value && v->Type() == TYPE_STRING && v->Length() ) \
-		string = join_path( v->StringPtr(0), v->Length(), var_str ); \
+	else if ( pv->Type() == TYPE_RECORD )				\
+		{							\
+		if ( pv->HasRecordElement( host ) &&			\
+		     ( v = (const IValue*)(pv->ExistingRecordElement( host ))) && \
+		     v != false_value && v->Type() == TYPE_STRING && v->Length() ) \
+			string = join_path( v->StringPtr(0), v->Length(), var_str ); \
+		else if ( pv->HasRecordElement( "default" ) &&		\
+			  ( v = (const IValue*)(pv->ExistingRecordElement( "default" ))) && \
+			  v != false_value && v->Type() == TYPE_STRING && v->Length() ) \
+			string = join_path( v->StringPtr(0), v->Length(), var_str ); \
+		}							\
 									\
 	return string;							\
 	}
@@ -2182,6 +2222,7 @@ Frame* Sequencer::PopFrame( )
 	int howmany = 1;
 
 	int top_frame_pos = frames().length() - 1;
+
 	if ( top_frame_pos < howmany - 1 )
 		fatal->Report(
 			"local frame stack underflow in Sequencer::PopFrame" );
@@ -2197,13 +2238,16 @@ Frame* Sequencer::PopFrame( )
 	return top_frame;
 	}
 
-void Sequencer::PopFrames( )
+const stack_type *Sequencer::PopFrames( )
 	{
 	stack_type *ns = stack.remove_nth(stack.length()-1);
-	if ( ns->delete_on_spot() )
+	const stack_type *ret = 0;
+	if ( (ret = ns->delete_on_spot()) )
 		delete ns;
 	else
 		Unref(ns);
+
+	return ret ? ret : ns;
 	}
 
 Frame* Sequencer::CurrentFrame()
@@ -2437,7 +2481,7 @@ void Sequencer::UnhandledFail( const IValue *val )
 		cerr << str << endl;
 		free_memory(str);
 		}
-	}		
+	}
 
 char* Sequencer::RegisterTask( Task* new_task, int &idi )
 	{
@@ -2534,7 +2578,7 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 		if ( ! d )
 			d = OpenDaemonConnection( "localhost", err );
 		}
-	else 
+	else
 		{
 		d = daemons[host];
 		if ( ! d )
@@ -2542,7 +2586,7 @@ Channel* Sequencer::GetHostDaemon( const char* host, int &err )
 		if ( ! d )
 			err = 1;
 		}
-		
+
 	return d ? d->DaemonChannel() : 0;
 	}
 
@@ -2597,15 +2641,17 @@ void Sequencer::CurrentAwaitDone()
 
 void Sequencer::PushAwait( )
 	{
-	
 	if ( await.active() )
 		{
-		if ( await.stmt() && current_await_done && last_await_info &&
-		     last_await_info->await.stmt() == await.stmt() )
-			{
-			await_list.append( last_await_info );
-			last_await_info = 0;
-			}
+		if ( current_await_done && last_await_info )
+			if ( await.stmt() && last_await_info->await.stmt() == await.stmt() ||
+			     await.agent() && last_await_info->await.agent() == await.agent() )
+				{
+				await_list.append( last_await_info );
+				last_await_info = 0;
+				}
+			else
+				await_list.append( new awaitinfo(await) );
 		else
 			await_list.append( new awaitinfo(await) );
 		}
@@ -2662,7 +2708,7 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 	if ( current_await_done && last_await_info )
 		{
 		PushNote( new Notification( last_await_info->agent, last_await_info->name,
-					    last_await_info->value, 0, 0, Notification::AWAIT ) );
+				            last_await_info->value, 0, 0, Notification::AWAIT ) );
 		delete last_await_info;
 		last_await_info = 0;
 		}
@@ -2754,13 +2800,15 @@ void Sequencer::PagerOutput( char *string, char **argv )
 		}
 
 	reap_terminated_process();
-
 	}
 
 
 IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 				const char* reply_name )
 	{
+	// should look at this to see why a copy is required!
+	event_name = strdup(event_name);
+	reply_name = strdup(reply_name);
 	int removed_stdin = 0;
 
 	PushAwait( );
@@ -2779,13 +2827,20 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 #endif
 		}
 
-	HoldQueue( );
 	EventLoop( 1 );
-	ReleaseQueue( );
 
 	IValue *result = 0;
 
-	if ( ! last_reply )
+	if ( current_await_done && last_await_info )
+		{
+		result = last_await_info->value;
+		// save result from last_await_info deletion
+		Ref(result);
+		delete last_await_info;
+		last_await_info = 0;
+		}
+
+	else if ( ! last_reply )
 		{
 		warn->Report( agent, " terminated without replying to ",
 				event_name, " request" );
@@ -2808,6 +2863,8 @@ IValue* Sequencer::AwaitReply( Agent* agent, const char* event_name,
 #endif
 		}
 
+	free_memory((char*)event_name);
+	free_memory((char*)reply_name);
 	return result;
 	}
 
@@ -2925,7 +2982,7 @@ Task* Sequencer::NewConnection( Channel* connection_channel )
 		else
 			Unref(task);
 
-		NewEvent( task, establish_event );
+		NewEvent( task, establish_event, 0, 0, 1 );
 		}
 
 	free_memory( task_id );
@@ -2954,7 +3011,7 @@ void Sequencer::RemoveSelectee( Channel* chan )
 
 
 int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_interest,
-			 NotifyTrigger *t )
+			 NotifyTrigger *t, int preserve )
 	{
 	if ( ! event )
 		{ // task termination
@@ -3059,7 +3116,7 @@ int Sequencer::NewEvent( Task* task, GlishEvent* event, int complain_if_no_inter
 	else
 		if ( ! event->IsQuiet() ) complain_if_no_interest = 1;
 
-	if ( NewEvent( agent, event, complain_if_no_interest, t ) )
+	if ( NewEvent( agent, event, complain_if_no_interest, t, preserve ) )
 		{
 		pending_task = task;
 
@@ -3084,70 +3141,84 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 		selector->AwaitDone();
 	}
 
-#define NEWEVENT_BODY							\
-									\
-	int ignore_event = 0;						\
-	int await_finished = 0;						\
-									\
-	if ( await.active() )						\
-		{							\
-		/* request/reply takes precedence */			\
-		if ( await.agent() && await.agent() == agent &&		\
-		     ! strcmp( await.name(), event_name ) )		\
-			{						\
-			await_finished = 1;				\
-			last_reply = value;				\
-			Ref(last_reply);				\
-			}						\
-		else							\
-			{						\
-			int found_match = 0;				\
-									\
-			/* Look ahead into queued awaits for future handling */	\
-			loop_over_list( await_list, X )			\
-				{					\
-				if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) ) \
-					{				\
-					if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
-						break;			\
-					}				\
-				}					\
-									\
-			if ( ! found_match && await.stmt() )		\
-				{					\
+#define NEWEVENT_BODY								\
+										\
+	int ignore_event = 0;							\
+	int reply_event = 0;							\
+	int await_finished = 0;							\
+										\
+	if ( await.active() )							\
+		{								\
+		int found_match = 0;						\
+										\
+		/* Look ahead into queued awaits for future handling */		\
+		loop_over_list( await_list, X )					\
+			{							\
+			Agent *la = 0;						\
+			if ( (la=await_list[X]->await.agent()) && la == agent && \
+			     ! strcmp( await_list[X]->await.name(), event_name ) ) \
+				{						\
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
+					{					\
+					reply_event = 1;			\
+					break;					\
+					}					\
+				}						\
+			else if ( agent->HasRegisteredInterest( await_list[X]->await.stmt(), event_name ) ) \
+				{						\
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
+					break;					\
+				}						\
+			}							\
+										\
+		if ( ! found_match )						\
+			{							\
+			if ( await.agent() && await.agent() == agent &&		\
+			     ! strcmp( await.name(), event_name ) )		\
+				{						\
+				reply_event = 1;				\
+				await_finished = 1;				\
+				last_reply = value;				\
+				Ref(last_reply);				\
+				}						\
+			else if ( await.stmt() )				\
+				{						\
 				await_finished = agent->HasRegisteredInterest( await.stmt(), event_name ); \
-									\
-				if ( ! await_finished && await.only( ) && \
+										\
+				if ( ! await_finished && await.only( ) && 	\
 				     ! agent->HasRegisteredInterest( await.except(), event_name ) ) \
-					ignore_event = 1;		\
-				}					\
-			}						\
-		}							\
-									\
-	if ( ignore_event )						\
-		warn->Report( "event ", agent->Name(), ".", event_name,	\
-			      " ignored due to \"await\"" );		\
-	else if ( ! await.agent() || ! await_finished )			\
-		{							\
-		/* We're going to want to keep the event value as a */	\
-		/* field in the agent's AgentRecord.                */	\
-		Ref( value );						\
-									\
-		int was_interest = agent->CreateEvent( event_name,	\
-						       value, t );	\
-									\
-		if ( ! was_interest && complain_if_no_interest )	\
-			warn->Report( "event ", agent->Name(), ".",	\
-				      event_name, " (", value, 		\
-				      ") dropped" );			\
-									\
-		/* process effects of CreateEvent() */			\
-		RunQueue( await_finished );				\
+					ignore_event = 1;			\
+				}						\
+			}							\
+		}								\
+										\
+	if ( ! reply_event )							\
+		{								\
+		if ( ignore_event )						\
+			warn->Report( "event ", agent->Name(), ".", event_name,	\
+				      " ignored due to \"await\"" );		\
+		else if ( ! await.agent() || ! await_finished )			\
+			{							\
+			/* We're going to want to keep the event value as a */	\
+			/* field in the agent's AgentRecord.                */	\
+			Ref( value );						\
+										\
+			int was_interest = agent->CreateEvent( event_name,	\
+							       value, t, preserve ); \
+										\
+			if ( ! was_interest && complain_if_no_interest )	\
+				warn->Report( "event ", agent->Name(), ".",	\
+					      event_name, " (", value, 		\
+					      ") dropped" );			\
+										\
+			/* process effects of CreateEvent() */			\
+			RunQueue( await_finished );				\
+			}							\
 		}
 
 
 int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
-			 int complain_if_no_interest, NotifyTrigger *t )
+			 int complain_if_no_interest, NotifyTrigger *t, int preserve )
 	{
 	NEWEVENT_BODY
 
@@ -3156,7 +3227,7 @@ int Sequencer::NewEvent( Agent* agent, const char* event_name, IValue* value,
 	}
 
 int Sequencer::NewEvent( Agent* agent, GlishEvent* event, int complain_if_no_interest,
-			 NotifyTrigger *t )
+			 NotifyTrigger *t, int preserve )
 	{
 	const char* event_name = event->name;
 	IValue* value = (IValue*)event->value;
@@ -3466,15 +3537,18 @@ IValue *Sequencer::Include( const char *file )
 		if ( glish_include_jmpbuf_set )
 			{
 			ret = Exec( 1, 1 );
-			PopFrames( );
+			const stack_type *xsx = 0;
+			if ( (xsx = PopFrames( )) != incst )
+				fatal->Report("stack inconsistency in Sequencer::Include");
 			}
-		else 
+		else
 			{
 			if ( setjmp(glish_include_jmpbuf) == 0 )
 				{
 				glish_include_jmpbuf_set = 1;
 				ret = Exec( 1, 1 );
-				PopFrames( );
+				if ( PopFrames( ) != incst )
+					fatal->Report("stack inconsistency in Sequencer::Include");
 				}
 			else
 				{
@@ -3494,7 +3568,7 @@ IValue *Sequencer::Include( const char *file )
 			ret = 0;
 			}
 		}
-	else 
+	else
 		{
 		if ( include_once.Lookup(expanded_name) )
 			free_memory( include_once.Remove(expanded_name) );
@@ -3710,8 +3784,12 @@ int Sequencer::EventLoop( int in_await )
 		pending_task = 0;
 		}
 
+	if ( in_await && current_await_done )
+		return ActiveClients();
+
 	while ( (doing_pager || ActiveClients()) && ! selector->DoSelection() )
 		{
+		if ( in_await && current_await_done ) break;
 		RunQueue();
 		if ( in_await && current_await_done ) break;
 		}
@@ -3749,7 +3827,8 @@ void Sequencer::RunQueue( int await_ended )
 			continue;
 			}
 
-		if ( notifier_val->Type() == TYPE_RECORD &&
+		if ( n->notifier->PreserveEvents() &&
+		     notifier_val->Type() == TYPE_RECORD &&
 		     notifier_val->HasRecordElement( n->field ) != n->value )
 			// Need to assign the event value.
 			notifier_val->AssignRecordElement( n->field, n->value );
@@ -3773,7 +3852,10 @@ void Sequencer::RunQueue( int await_ended )
 		n->notifiee->stmt()->Notify( n->notifier );
 
 		if ( n->notifiee->stack() )
-			(void) PopFrames( );
+			{
+			if ( n->notifiee->stack() != PopFrames( ) )
+				fatal->Report( "stack inconsistency in Sequencer::RunQueue" );
+			}
 		else if ( n->notifiee->frame() )
 			(void) PopFrame();
 
@@ -3860,7 +3942,7 @@ int LocalClientSelectee::NotifyOfSelection()
 	}
 
 
-SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Selectee *old_ ) : 
+SendSelectee::SendSelectee( Selector *s, sos_status *ss_, Selectee *old_ ) :
 				Selectee( ss_->fd(), Selectee::WRITE )
 	{
 	selector = s;
