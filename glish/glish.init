@@ -250,13 +250,14 @@ func array(init, ...)
 		return F
 		}
 
-	if ( min(...) <= 0 )
+	shape := as_integer([...])
+	if ( min(shape) <= 0 )
 		{
 		print "error 0 or negative parameter"
 		return F
 		}
 
-	p := prod(...)
+	p := prod(shape)
 	value := []
 
 	if ( length(init) > 0 )
@@ -270,8 +271,8 @@ func array(init, ...)
 	else
 		value := rep(init, p);
 
-	if ( num_args(...) > 1 )
-		value::shape := as_integer([...])
+	if ( len(shape) > 1 )
+		value::shape := shape
 
 	return value
 	}
