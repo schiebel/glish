@@ -34,7 +34,6 @@ RCSID("@(#) $Id$")
 //
 Channel *start_remote_daemon( const char *host )
 	{
-	char *argv[10];
 	char command_line[1024];
 	char *binpath = Sequencer::BinPath( host, "PATH" );
 	char *ldpath = Sequencer::LdPath( host, "LD_LIBRARY_PATH" );

@@ -210,7 +210,7 @@ void Reporter::Report( const RMessage& m0,
 	messages[16] = &m16;
 	messages[11] = &EndMessage;
 
-	if ( do_log = loggable && do_output_log() )
+	if ( (do_log = loggable && do_output_log()) )
 		sout->reset();
 
 	Prolog();

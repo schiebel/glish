@@ -8,6 +8,8 @@ TAR_FILE = glish-clients.tar
 
 BUILD_DIR=$$ARCH
 
+SHELL = /bin/sh
+SH = $(SHELL)
 
 all:
 	@if test -z "$(ARCH)"; then 				\

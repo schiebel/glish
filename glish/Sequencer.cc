@@ -372,8 +372,8 @@ protected:
 class awaitinfo {
 public:
 	awaitinfo( Stmt *stmt_arg, Stmt *except_arg, int await_only_arg, agent_dict *ad_ ) :
-		stmt(stmt_arg), except(except_arg), await_only(await_only_arg), ad(ad_),
-		value(0), name(0), agent(0) {}
+		stmt(stmt_arg), except(except_arg), await_only(await_only_arg),
+		value(0), agent(0), name(0), ad(ad_) {}
 	~awaitinfo();
 	int SetValue( Agent *agent_, const char *name_, IValue *val );
 
@@ -897,7 +897,7 @@ void Sequencer::UpdateRemotePath( )
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
-				while ( daemon = daemons.NextEntry( key, c ) )
+				while ( (daemon = daemons.NextEntry( key, c )) )
 					daemon->UpdateBinPath( path );
 				}
 			else if ( path && path->Type() == TYPE_RECORD )
@@ -912,7 +912,7 @@ void Sequencer::UpdateRemotePath( )
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
-				while ( daemon = daemons.NextEntry( key, c ) )
+				while ( (daemon = daemons.NextEntry( key, c )) )
 					{
 					if ( path->HasRecordElement( daemon->Host() ) &&
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
@@ -934,7 +934,7 @@ void Sequencer::UpdateRemotePath( )
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
-				while ( daemon = daemons.NextEntry( key, c ) )
+				while ( (daemon = daemons.NextEntry( key, c )) )
 					daemon->UpdateLdPath( string );
 				}
 			else if ( path && path->Type() == TYPE_RECORD )
@@ -954,7 +954,7 @@ void Sequencer::UpdateRemotePath( )
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
 				IterCookie* c = daemons.InitForIteration();
-				while ( daemon = daemons.NextEntry( key, c ) )
+				while ( (daemon = daemons.NextEntry( key, c )) )
 					{
 					if ( path->HasRecordElement( daemon->Host() ) &&
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
@@ -1164,10 +1164,9 @@ void Sequencer::SetupSysValue( IValue *sys_value )
 	}
 
 
-Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), script_client(0),
-							system(this), system_change_count(1),
-							run_file(0), doing_pager(0), expanded_name(0),
-							verbose_mask(0)
+Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change_count(1),
+				system(this), script_client(0), script_client_active(0),
+				expanded_name(0), run_file(0), doing_pager(0)
 	{
 	cur_sequencer = this;
 
@@ -1383,9 +1382,9 @@ Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0), scrip
 		{
 		loop_over_list( *load_list, i )
 			{
-			char *expanded_name = which_include((*load_list)[i]);
-			if ( expanded_name )
-				load_list->replace(i,expanded_name);
+			char *exp_name = which_include((*load_list)[i]);
+			if ( exp_name )
+				load_list->replace(i,exp_name);
 			else
 				fatal->Report("Can't include file \"",
 						      (*load_list)[i],"\".");
@@ -1973,7 +1972,7 @@ void Sequencer::PushFrames( stack_type *new_stack )
 
 Frame* Sequencer::PopFrame( )
 	{
-	unsigned int howmany = 1;
+	int howmany = 1;
 
 	int top_frame_pos = frames().length() - 1;
 	if ( top_frame_pos < howmany - 1 )
@@ -2348,7 +2347,7 @@ void Sequencer::PushAwait( )
 void Sequencer::PopAwait( )
 	{
 	int len = 0;
-	if ( len = await_list.length() )
+	if ( (len = await_list.length()) )
 		{
 		awaitinfo *last = await_list.remove_nth(len-1);
 		if ( last )
@@ -2806,7 +2805,7 @@ void Sequencer::CheckAwait( Agent* agent, const char* event_name )
 			{						\
 			if ( agent->HasRegisteredInterest( await_list[X]->stmt, event_name ) ) \
 				{					\
-				if ( found_match = await_list[X]->SetValue( agent, event_name, value ) ) \
+				if ( (found_match = await_list[X]->SetValue( agent, event_name, value )) ) \
 					break;				\
 				}					\
 			}						\
@@ -3215,7 +3214,7 @@ RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 	if ( System().KeyDir() )
 		set_key_directory( System().KeyDir() );
 
-	if (r = connect_to_daemon( h, err ) )
+	if ( (r = connect_to_daemon( h, err )) )
 		{
 		daemons.Insert( strdup( host ), r );
 		selector->AddSelectee(new DaemonSelectee( r, selector, this ) );

@@ -248,7 +248,7 @@ void* Dictionary::Insert( DictEntry* new_entry )
 	return 0;
 	}
 
-int Dictionary::Hash( const register char* str, int hash_size ) const
+int Dictionary::Hash( register const char* str, int hash_size ) const
 	{
 	register unsigned int hashval = 1;
 

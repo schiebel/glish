@@ -66,9 +66,9 @@ class ValueKernel {
 			}
 		void clear();
 
-		array_t() : type(TYPE_ERROR), length(0), alloc_bytes(0),
-				type_bytes(0), values(0), ref_count(1),
-				zero(0), copy(0) { DIAG2((void*)this,"\t\tarray_t alloc") }
+		array_t() : type(TYPE_ERROR), type_bytes(0), length(0),
+				alloc_bytes(0), ref_count(1), values(0), 
+				copy(0), zero(0) { DIAG2((void*)this,"\t\tarray_t alloc") }
 		~array_t();
 	};
 

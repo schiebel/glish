@@ -22,7 +22,7 @@ RCSID("@(#) $Id$")
 agent_list *agents;
 
 
-Notifiee::Notifiee( Stmt* arg_stmt ) : stack_(0), frame_(0)
+Notifiee::Notifiee( Stmt* arg_stmt ) : frame_(0), stack_(0)
 	{
 	stmt_ = arg_stmt;
 	Ref( stmt_ );
@@ -367,7 +367,7 @@ void Agent::RegisterUnref( Stmt *s )
 
 void Agent::UnRegisterUnref( Stmt *s )
 	{
-	Stmt *stmt = unref_stmts.remove(s);
+	unref_stmts.remove(s);
 	}
 
 IValue* UserAgent::SendEvent( const char* event_name, parameter_list* args,

@@ -38,6 +38,7 @@ T = @TOUCH_PROXY@
 MINSPACE_RM = @MINSPACE_RM@
 
 SHELL = /bin/sh
+SH = $(SHELL)
 
 RM = rm -f
 

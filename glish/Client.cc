@@ -440,7 +440,7 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	}
 
 void Client::Init( int client_read_fd, int client_write_fd, const char* name,
-	const EventContext &arg_context, ShareType arg_multithreaded, const char *script_file )
+	const EventContext &, ShareType arg_multithreaded, const char *script_file )
 	{
 	// BUG HERE -- name (argument) could go away...
 	initial_client_name = prog_name = name;
@@ -1308,7 +1308,7 @@ void Client::RendezvousAsResponder( Value* v )
 	(*remote_sources).Insert( strdup(source_id), input_fd );
 	}
 
-void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &context_arg )
+void Client::SendEvent( const GlishEvent* e, int, const EventContext &context_arg )
 	{
 	const EventContext &context = &context_arg == &glish_ec_dummy ? default_context : context_arg;
 
@@ -1384,7 +1384,7 @@ void Client::RemoveIncomingLink( int dead_event_source )
 		const char* key;
 		int this_fd;
 
-		while ( this_fd = remote_sources->NextEntry( key, c ) )
+		while ( (this_fd = remote_sources->NextEntry( key, c )) )
 			{
 			if ( this_fd == read_fd )
 				{
@@ -1432,7 +1432,7 @@ static Value *read_record( sos_in &sos, unsigned int len, int is_fail = 0 )
 
 	recordptr nr = create_record_dict();
 
-	for ( int cnt = 0; cnt < len; cnt++ )
+	for ( unsigned int cnt = 0; cnt < len; cnt++ )
 		{
 		char *dummy;
 		unsigned char f;
@@ -1644,7 +1644,7 @@ sos_status *send_event( sos_sink &out, const char* name, const GlishEvent* e, in
 	write_value( sos, e->value, name, (char*) name, e->Flags() );
 	sos_status *ss = sos.flush();
 	if ( ! ss || can_suspend ) return ss;
-	while ( ss = ss->resume( ) );
+	while ( (ss = ss->resume( )) );
 	return 0;
 	}
 

@@ -27,13 +27,13 @@ void copy_agents( void *to_, void *from_, unsigned int len )
 	agentptr *to = (agentptr*) to_;
 	agentptr *from = (agentptr*) from_;
 	copy_array(from,to,(int)len,agentptr);
-	for (int i = 0; i < len; i++)
+	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
 void delete_agents( void *ary_, unsigned int len )
 	{
 	agentptr *ary = (agentptr*) ary_;
-	for (int i = 0; i < len; i++)
+	for (unsigned int i = 0; i < len; i++)
 		if ( (*agents).is_member( ary[i] ) )
 			Unref( ary[i] );
 	}
@@ -43,13 +43,13 @@ void copy_funcs( void *to_, void *from_, unsigned int len )
 	funcptr *to = (funcptr*) to_;
 	funcptr *from = (funcptr*) from_;
 	copy_array(from,to,(int)len,funcptr);
-	for (int i = 0; i < len; i++)
+	for (unsigned int i = 0; i < len; i++)
 		Ref(to[i]);
 	}
 void delete_funcs( void *ary_, unsigned int len )
 	{
 	funcptr *ary = (funcptr*) ary_;
-	for (int i = 0; i < len; i++)
+	for (unsigned int i = 0; i < len; i++)
 		Unref(ary[i]);
 	}
 
@@ -57,7 +57,7 @@ extern int interactive;
 IValue::IValue( ) : Value( ) GGCTOR
 	{
 	const IValue *other = 0;
-	if ( other = FailStmt::GetFail() )
+	if ( (other = FailStmt::GetFail()) )
 		{
 		Unref( attributes );
 		kernel = other->kernel;

@@ -49,7 +49,7 @@ public:
 		if ( s.kernel != kernel )
 			{
 			if ( kernel && ! kernel->unref() ) delete kernel;
-			if ( kernel = s.kernel ) kernel->ref();
+			if ( (kernel = s.kernel) ) kernel->ref();
 			}
 		return *this;
 		}

@@ -9,6 +9,11 @@ RCSID("@(#) $Id$")
 #include <signal.h>
 #include <ctype.h>
 #include <sys/time.h>
+#include <sys/types.h>
+
+#if defined(HAVE_UNISTD_H)
+#include <unistd.h>
+#endif
 
 #if defined(_AIX)
 #include <sys/select.h>
@@ -1000,6 +1005,7 @@ editinput()
 	    case CSmove:
 		reposition();
 		break;
+	    case CSnodata:
 	    case CSdispatch:
 	    case CSstay:
 		break;
@@ -1055,6 +1061,7 @@ nb_editinput()
 	    case CSmove:
 		reposition();
 		break;
+	    case CSnodata:
 	    case CSdispatch:
 	    case CSstay:
 		break;

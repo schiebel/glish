@@ -749,7 +749,7 @@ const char* CreateTaskBuiltIn::ExpandScript( int start, const_args_list &argv )
 	++args;					// step past the interpreter
 						// to the first argument
 	const char *arg;
-	for ( ; arg = args.get(); ++args )
+	for ( ; (arg = args.get()); ++args )
 		{
 		if ( ! strcmp( arg, "-v" ) || ! strcmp( arg, "-w" ) || strchr( arg, '=' ) )
 			continue;
@@ -953,7 +953,7 @@ IValue* CreateTaskBuiltIn::CreateAsyncShell( const_args_list* args )
 	Task* task = new ShellTask( args, attrs, sequencer );
 
 	IValue *err = 0;
-	if ( err = CheckTaskStatus( task ) )
+	if ( (err = CheckTaskStatus( task )) )
 		{
 		Unref( task );
 		return err;
@@ -980,7 +980,7 @@ IValue* CreateTaskBuiltIn::CreateClient( const_args_list* args, int shm_flag )
 	Task* task = new ClientTask( args, attrs, sequencer, shm_flag );
 
 	IValue *err = 0;
-	if ( err = CheckTaskStatus( task ) )
+	if ( (err = CheckTaskStatus( task )) )
 		{
 		Unref( task );
 		return err;

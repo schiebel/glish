@@ -26,7 +26,7 @@ glish_implement(SubVecRef,complex)
 glish_implement(SubVecRef,dcomplex)
 glish_implement2(SubVecRef,charptr,strdup)
 
-VecRef::TranslateIndex( int index, int* error ) const 
+int VecRef::TranslateIndex( int index, int* error ) const 
 	{
 	if ( error )
 		*error = 0;

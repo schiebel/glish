@@ -421,7 +421,7 @@ FuncExpr::FuncExpr( UserFunc* f ) : Expr("function")
 	func = f;
 	}
 
-IValue* FuncExpr::Eval( eval_type etype )
+IValue* FuncExpr::Eval( eval_type )
 	{
 	UserFunc *ret = func->clone();
 	ret->EstablishScope();
@@ -1935,7 +1935,7 @@ IValue *SendEventExpr::SideEffectsEval()
 	return 0;
 	}
 
-int SendEventExpr::DescribeSelf( OStream &s, charptr prefix ) const
+int SendEventExpr::DescribeSelf( OStream &s, charptr ) const
 	{
 	if ( is_request_reply )
 		s << "request ";

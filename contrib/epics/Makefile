@@ -6,6 +6,8 @@
 
 EPICS_INC = -IepicsH
 EPICS_LIB = -Lepics_lib -lca -lCom -lUnix
+SHELL = /bin/sh
+SH = $(SHELL)
 
 RM = rm -f
 

@@ -90,7 +90,7 @@ unsigned int sos_fd_buf_kernel::tmp_cnt = 16;
 unsigned int sos_fd_buf_kernel::tmp_size = 256;
 unsigned int sos_fd_buf_kernel::size = MAXIOV;
 
-sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), tmp_cur(0), total(0)
+sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), total(0), tmp_cur(0)
 	{
 	iov = (struct iovec*) sos_alloc_memory( size * sizeof( struct iovec ) );
 	status = (sos_sink::buffer_type*) sos_alloc_memory( size * sizeof( sos_sink::buffer_type ) );
@@ -116,7 +116,7 @@ char *sos_fd_buf_kernel::new_tmp( )
 
 void sos_fd_buf_kernel::reset( )
 	{
-	for ( int x = 0; x < cnt; x++ )
+	for ( int x = 0; (unsigned int) x < cnt; x++ )
 		if ( status[x] == sos_sink::FREE )
 			sos_free_memory( iov[x].iov_base );
 	cnt = 0;
@@ -161,7 +161,7 @@ sos_fd_buf_kernel *sos_fd_buf::add( )
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-sos_fd_sink::sos_fd_sink( int fd__ ) : fd_(fd__), start(0), buf_holder(0), sent(0) { }
+sos_fd_sink::sos_fd_sink( int fd__ ) : sent(0), start(0), buf_holder(0), fd_(fd__) { }
 
 void sos_fd_sink::setFd( int fd__ )
 	{
@@ -216,7 +216,7 @@ void sos_fd_sink::reset( )
 		}
 
 	start = sent = 0;
-	while ( K = buf.next() );
+	while ( (K = buf.next()) );
 	}
 
 sos_status *sos_fd_sink::flush( )
@@ -232,7 +232,7 @@ sos_status *sos_fd_sink::flush( )
 		unsigned int buckets = K->cnt - start;
 		int cur = 0;
 
-		if ( (cur = writev( fd_, &iov[start], buckets )) < needed  || cur < 0 )
+		if ( (cur = writev( fd_, &iov[start], buckets )) < (int) needed  || cur < 0 )
 			{
 			if ( cur < 0 )
 				{
@@ -247,14 +247,14 @@ sos_status *sos_fd_sink::flush( )
 				return 0;
 				}
 
-			int old_start = start;
+			unsigned int old_start = start;
 
 			unsigned int cnt;
-			for ( cnt = iov[start].iov_len; cnt < cur; cnt += iov[++start].iov_len );
+			for ( cnt = iov[start].iov_len; (int) cnt < cur; cnt += iov[++start].iov_len );
 
 			// if we've stopped on a bucket boundary (as linux
 			// likes to do), we must bump the start counter
-			if ( cnt == cur ) start++;
+			if ( (int) cnt == cur ) start++;
 
 			if ( buf_holder && old_start != start )
 				{
@@ -262,7 +262,7 @@ sos_status *sos_fd_sink::flush( )
 				buf_holder = 0;
 				}
 
-			if ( cnt > cur )
+			if ( (int) cnt > cur )
 				{
 				if ( ! buf_holder ) buf_holder = iov[start].iov_base;
 				iov[start].iov_base = (char *)(iov[start].iov_base +
@@ -446,7 +446,7 @@ PUTCHAR(unsigned char)
 									\
 	if ( type == sos_sink::FREE )					\
 		{							\
-		for ( int X = 0; X < len; X++ )				\
+		for ( unsigned int X = 0; X < len; X++ )		\
 			sos_free_memory( (char*) s[X] );		\
 		sos_free_memory( s );					\
 		}							\
@@ -555,8 +555,9 @@ sos_status *sos_out::put_record_start( unsigned int l, sos_header &h )
 
 sos_out::~sos_out() { if ( not_integral ) sos_free_memory(not_integral); }
 
-sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : in(in_), use_str(use_str_),
-			head((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1), not_integral(integral_header ? 0 : 1)
+sos_in::sos_in( sos_source *in_, int use_str_, int integral_header ) : 
+			head((char*) sos_alloc_memory(SOS_HEADER_SIZE), 0, SOS_UNKNOWN, 1),
+			use_str(use_str_), not_integral(integral_header ? 0 : 1), in(in_)
 	{
 	}
 

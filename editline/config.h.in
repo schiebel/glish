@@ -7,6 +7,9 @@
 /* custom config.h template - do not recreate using autoheader */
 /***************************************************************/
 
+/* Define if you have <unistd.h>.  */
+#undef HAVE_UNISTD_H
+
 /* Define if you have <stdlib.h>.  */
 #undef HAVE_STDLIB_H
 

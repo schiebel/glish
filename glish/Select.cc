@@ -375,7 +375,7 @@ int Selector::DoSelection( int CanBlock )
 		if ( FD_ISSET( i, &read_mask ) || FD_ISSET( i, &write_mask ) )
 			{
 
-			if ( current_selectee = selectees[i] )
+			if ( (current_selectee = selectees[i]) )
 				{
 				nuke_current_selectee = 0;
 

@@ -430,7 +430,7 @@ int ValueKernel::Bytes( int addPerValue ) const
 		else
 			{
 			int cnt = addPerValue;
-			for ( int i = 0; i < array->length; i++ )
+			for ( unsigned int i = 0; i < array->length; i++ )
 				cnt += strlen(((char**)array->values)[i])+1;
 			return cnt;
 			}

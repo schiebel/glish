@@ -119,7 +119,6 @@ void SeqStmt::CollectUnref( stmt_list &del_list )
 		}
 	}
 
-static int cnt = 0;
 void SeqStmt::Describe( OStream& s ) const
 	{
 	s << "{\n";
@@ -216,16 +215,16 @@ unsigned int WheneverStmt::NotifyCount()
 	return notify_count;
 	}
 
-WheneverStmt::WheneverStmt(Sequencer *arg_seq) : sequencer(arg_seq), active(0),
-						 trigger(0), stack(0), misc(0)
+WheneverStmt::WheneverStmt(Sequencer *arg_seq) : trigger(0), sequencer(arg_seq),
+						 active(0), stack(0), misc(0)
 	{
 	index = sequencer->RegisterStmt( this );
 	description = "whenever";
 	}
 
 WheneverStmt::WheneverStmt( event_list* arg_trigger, Stmt *arg_stmt, Sequencer* arg_seq,
-			    ivalue_list *arg_misc ) : sequencer(arg_seq), active(0),
-						      trigger(0), stack(0), misc(0)
+			    ivalue_list *arg_misc ) : trigger(0), sequencer(arg_seq),
+						      active(0), stack(0), misc(0)
 	{
 	index = sequencer->RegisterStmt( this );
 
@@ -312,7 +311,7 @@ void WheneverStmt::Describe( OStream& s ) const
 	stmt->Describe( s );
 	}
 
-IValue* WheneverStmt::DoExec( int value_needed, stmt_flow_type& flow )
+IValue* WheneverStmt::DoExec( int, stmt_flow_type& )
 	{
 	return 0;
 	}
@@ -631,7 +630,6 @@ ActivateStmt::ActivateStmt( int arg_activate, Expr* e,
 IValue* ActivateStmt::DoExec( int /* value_needed */,
 				stmt_flow_type& /* flow */ )
 	{
-	IValue *result = 0;
 	if ( expr )
 		{
 		IValue* index_value = expr->CopyEval();

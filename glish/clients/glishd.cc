@@ -294,7 +294,7 @@ GlishDaemon::GlishDaemon( ) : valid(1)
 	if ( close_fds == 0 ) close_fds = new List(int);
 	}
 
-GlishDaemon::GlishDaemon( int &argc, char **&argv ) : valid(0)
+GlishDaemon::GlishDaemon( int &, char **&argv ) : valid(0)
 	{
 	if ( close_fds == 0 ) close_fds = new List(int);
 
@@ -388,13 +388,13 @@ void GlishDaemon::FatalError() { }
 
 GlishDaemon::~GlishDaemon() { }
 
-dUser::pid( )
+int dUser::pid( )
 	{
 	return pid_;
 	}
 
-dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0), pid_(0),
-						fd_pipe(0), master(0), slave(0)
+dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), master(0), slave(0),
+						count(0), fd_pipe(0), pid_(0)
 	{
 	// it is assumed that GlishDaemon will set valid if all is OK
 	if ( ! valid ) return;
@@ -402,8 +402,8 @@ dUser::dUser( int &argc, char **&argv ) : GlishDaemon(argc, argv), count(0), pid
 	interps.append( new Interp( new Client( argc, argv )) );
 	}
 
-dUser::dUser( int sock, const char *user, const char *host ) : count(0), master(0), fd_pipe(0),
-							       slave(0), lexpid(this), pid_(0)
+dUser::dUser( int sock, const char *user, const char *host ) : master(0), slave(0),
+						lexpid(this), count(0), fd_pipe(0), pid_(0)
 	{
 	// it is assumed that GlishDaemon will set valid if all is OK
 	if ( ! valid ) return;
@@ -496,33 +496,33 @@ Client *dUser::LookupClient( const char *s )
 
 int dUser::AddInputMask( fd_set* mask )
 	{
-	int count = GlishDaemon::AddInputMask( mask );
+	int cnt = GlishDaemon::AddInputMask( mask );
 	loop_over_list( transition, i)
-		count += transition[i]->AddInputMask( mask );
+		cnt += transition[i]->AddInputMask( mask );
 
 	loop_over_list( interps, j)
-		count += interps[j]->AddInputMask( mask );
+		cnt += interps[j]->AddInputMask( mask );
 
 	const char *key = 0;
 	Client *client = 0;
 	IterCookie* c = clients.InitForIteration();
-	while ( client = clients.NextEntry( key, c ) )
-		count += client->AddInputMask( mask );
+	while ( (client = clients.NextEntry( key, c )) )
+		cnt += client->AddInputMask( mask );
 
 	if ( master )
 		{
-		count += master->AddInputMask( mask );
+		cnt += master->AddInputMask( mask );
 		if ( fd_pipe > 0 && ! FD_ISSET( fd_pipe, mask ) )
 			{
 			FD_SET( fd_pipe, mask );
-			++count;
+			++cnt;
 			}
 		}
 
 	if ( slave )
-		count += slave->AddInputMask( mask );
+		cnt += slave->AddInputMask( mask );
 
-	return count;
+	return cnt;
 	}
 
 void dUser::loop( )
@@ -533,7 +533,6 @@ void dUser::loop( )
 	// must do this for SIGHUP to work properly
 	current_daemon = this;
 
-	Client *c;
 	while ( valid && (interps.length() || clients.Length() || transition.length()) )
 		{
 		FD_ZERO( mask );
@@ -589,8 +588,8 @@ void dUser::ProcessTransitions( fd_set *mask )
 			// perisitent client registering itself
 			if ( ! strcmp( e->name, "*register-persistent*" ) )
 				{
-				char *name = strdup(e->value->StringPtr(0)[0]);
-				clients.Insert( name, transition.remove_nth( i-- ) );
+				char *nme = strdup(e->value->StringPtr(0)[0]);
+				clients.Insert( nme, transition.remove_nth( i-- ) );
 
 				const char *type = e->value->StringPtr(0)[1];
 				if ( master && (! strcmp( type, "GROUP") || ! strcmp( type, "WORLD" )) )
@@ -620,7 +619,6 @@ void dUser::ProcessTransitions( fd_set *mask )
 
 void dUser::ProcessInterps( fd_set *mask )
 	{
-	Client *c = 0;
 	GlishEvent *e = 0;
 
 	for ( int i = 0; i < interps.length(); ++i )
@@ -652,7 +650,7 @@ void dUser::ProcessClients( fd_set *mask )
 	Client *client = 0;
 	IterCookie* c = clients.InitForIteration();
 
-	while ( client = clients.NextEntry( key, c ) )
+	while ( (client = clients.NextEntry( key, c )) )
 		if ( client->HasClientInput( mask ) )
 			{
 			GlishEvent *e = client->NextEvent( mask );
@@ -698,14 +696,14 @@ void dUser::ProcessMaster( fd_set *mask )
 			}
 		else
 			{
-			const Value *name = 0;
-			if ( ! strcmp( e->name, "client" ) && (name = e->value->HasRecordElement( "name" )) )
+			const Value *nme = 0;
+			if ( ! strcmp( e->name, "client" ) && (nme = e->value->HasRecordElement( "name" )) )
 				{
-				Client *client = clients[name->StringPtr(0)[0]];
+				Client *client = clients[nme->StringPtr(0)[0]];
 				if ( client )
 					client->PostEvent( "client", e->value );
 				else
-					syslog( LOG_ERR, "bad client event: %s", name->StringPtr(0)[0] );
+					syslog( LOG_ERR, "bad client event: %s", nme->StringPtr(0)[0] );
 				}
 			}
 		}
@@ -714,12 +712,12 @@ void dUser::ProcessMaster( fd_set *mask )
 
 void dUser::ProcessInternalReq( GlishEvent* event )
 	{
-	const char* name = event->name;
+	const char* nme = event->name;
 
-	if ( streq( name, "*terminate-daemon*" ) )
+	if ( streq( nme, "*terminate-daemon*" ) )
 		exit( 0 );
 	else
-		syslog( LOG_ERR,"bad internal event, \"%s\"", name );
+		syslog( LOG_ERR,"bad internal event, \"%s\"", nme );
 	}
 
 
@@ -743,7 +741,7 @@ dUser::~dUser( )
 	const char *key = 0;
 	Client *client = 0;
 	IterCookie* c = clients.InitForIteration();
-	while ( client = clients.NextEntry( key, c ) )
+	while ( (client = clients.NextEntry( key, c )) )
 		{
 		// free key
 		free_memory( clients.Remove( key ) );
@@ -755,9 +753,9 @@ dUser::~dUser( )
 
 char *dUser::new_name( )
 	{
-	char *name = (char*) alloc_memory(strlen(id)+20);
-	sprintf(name, "%s #%d", id, count++);
-	return name;
+	char *nme = (char*) alloc_memory(strlen(id)+20);
+	sprintf(nme, "%s #%d", id, count++);
+	return nme;
 	}
 
 dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
@@ -849,7 +847,7 @@ void dServer::ProcessConnect()
 	mark_close_on_exec( s );
 
 	char **peer = 0;
-	if ( peer = authenticate_client( s ) )
+	if ( (peer = authenticate_client( s )) )
 		{
 		dUser *user = users[peer[0]];
 		if ( user )
@@ -877,7 +875,7 @@ void dServer::clear_clients_registered_to( const char *user )
 	char *val = 0;
 	IterCookie* c = world_clients.InitForIteration();
 
-	while ( val = world_clients.NextEntry( key, c ) )
+	while ( (val = world_clients.NextEntry( key, c )) )
 		{
 		if ( ! strcmp(user, val) )
 			{
@@ -887,10 +885,10 @@ void dServer::clear_clients_registered_to( const char *user )
 		}
 
 	c = group_clients.InitForIteration();
-	while ( map = group_clients.NextEntry( key, c ) )
+	while ( (map = group_clients.NextEntry( key, c )) )
 		{
 		IterCookie *c2 = (*map).InitForIteration();
-		while ( val = (*map).NextEntry( key2, c2 ) )
+		while ( (val = (*map).NextEntry( key2, c2 )) )
 			{
 			if ( ! strcmp(user, val) )
 				{
@@ -910,20 +908,20 @@ void dServer::clear_clients_registered_to( const char *user )
 void dServer::CreateClient( Value *value, const char *user_name )
 	{
 	const Value *name_val = value->HasRecordElement( "name" );
-	const char *name = name_val ? name_val->StringPtr(0)[0] : 0;
+	const char *nme = name_val ? name_val->StringPtr(0)[0] : 0;
 
-	if ( ! name ) return;
+	if ( ! nme ) return;
 
 	char *registered_user = 0;
 	const char *group = get_group_name( get_user_group( user_name ) );
 	str_dict *map = group_clients[group];
-	if ( map && (registered_user = (*map)[name]) )
+	if ( map && (registered_user = (*map)[nme]) )
 		{
 		users[registered_user]->PostEvent( "client", value );
 		return;
 		}
 
-	if ( registered_user = world_clients[name] )
+	if ( (registered_user = world_clients[nme]) )
 		{
 		users[registered_user]->PostEvent( "client", value );
 		return;
@@ -932,11 +930,11 @@ void dServer::CreateClient( Value *value, const char *user_name )
 
 void dServer::Register( Value *value, const char *user_name )
 	{
-	const char *name = value->StringPtr(0)[0];
+	const char *nme = value->StringPtr(0)[0];
 	const char *type = value->StringPtr(0)[1];
 
 	if ( ! strcmp( type, "WORLD" ) )
-		world_clients.Insert( strdup(name), strdup(user_name) );
+		world_clients.Insert( strdup(nme), strdup(user_name) );
 	else if ( ! strcmp( type, "GROUP" ) )
 		{
 		const char *group = get_group_name( get_user_group( user_name ) );
@@ -948,14 +946,14 @@ void dServer::Register( Value *value, const char *user_name )
 			}
 		else
 			{
-			char *u = (*map)[name];
+			char *u = (*map)[nme];
 			if ( u )
 				{
-				free_memory((*map).Remove(name));
+				free_memory((*map).Remove(nme));
 				free_memory(u);
 				}
 			}
-		(*map).Insert( strdup(name), strdup(user_name));
+		(*map).Insert( strdup(nme), strdup(user_name));
 		}
 	}
 
@@ -985,7 +983,7 @@ void dServer::ClientRunning( Value* client, const char *user_name, dUser *user )
 		return;
 		}
 
-	if ( registering_user = world_clients[name_str] )
+	if ( (registering_user = world_clients[name_str]) )
 		{
 		Value true_value( glish_true );
 		user->PostEvent( "client-up-reply", &true_value );
@@ -1001,7 +999,7 @@ void dServer::ProcessUsers( fd_set *mask)
 	dUser *user = 0;
 	IterCookie* c = users.InitForIteration();
 
-	while ( user = users.NextEntry( key, c ) )
+	while ( (user = users.NextEntry( key, c )) )
 		if ( user->HasClientInput( mask ) )
 			{
 			GlishEvent *e = user->NextEvent( mask );
@@ -1033,7 +1031,7 @@ int dServer::AddInputMask( fd_set *mask )
 	dUser *user = 0;
 	IterCookie* c = users.InitForIteration();
 
-	while ( user = users.NextEntry( key, c ) )
+	while ( (user = users.NextEntry( key, c )) )
 		count += user->AddInputMask( mask );
 
 	if ( accept_sock.FD() > 0 && ! FD_ISSET( accept_sock.FD(), mask ) )
@@ -1052,7 +1050,7 @@ dServer::~dServer()
 	const char *key = 0;
 	dUser *user = 0;
 	IterCookie* c = users.InitForIteration();
-	while ( user = users.NextEntry( key, c ) )
+	while ( (user = users.NextEntry( key, c )) )
 		{
 		// free key
 		free_memory( users.Remove( key ) );
@@ -1076,7 +1074,7 @@ Interp::~Interp( )
 	const char *key = 0;
 	LocalExec *client = 0;
 	IterCookie* c = clients.InitForIteration();
-	while ( client = clients.NextEntry( key, c ) )
+	while ( (client = clients.NextEntry( key, c )) )
 		{
 		// free key
 		free_memory( clients.Remove( key ) );

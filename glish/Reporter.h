@@ -46,7 +46,7 @@ extern RMessage EndMessage;
 class Reporter {
     public:
 	Reporter( OStream *reporter_stream );
-	~Reporter( );
+	virtual ~Reporter( );
 
 	virtual void Report( const RMessage&,
 			     const RMessage& = EndMessage, const RMessage& = EndMessage,

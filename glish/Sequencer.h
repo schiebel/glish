@@ -152,12 +152,12 @@ public:
 	int IncludeLen() { if ( PATH(update) ) update_path( ); return includelen; }
 	const IValue *BinPath() { if ( PATH(update) ) update_path( ); return binpath; }
 	const IValue *LdPath() { if ( PATH(update) ) update_path( ); return ldpath; }
-	SystemInfo( Sequencer *s ) : val(0), update( ~((unsigned int) 0) ), 
-			log(0), log_val(0), log_file(0), log_name(0), ilog(0), ilog_val(0),
-			ilog_file(0), ilog_name(0), olog(0), olog_val(0), olog_file(0), olog_name(0),
-			printlimit(0), printprecision(-1), include(0), includelen(0), keydir(0),
-			binpath(0), ldpath(0), pager_limit(0), pager_exec(0), pager_exec_len(0),
-			sequencer(s) { }
+	SystemInfo( Sequencer *s ) : val(0), log(0), log_val(0), log_file(0), log_name(0),
+			ilog(0), ilog_val(0), ilog_file(0), ilog_name(0),
+			olog(0), olog_val(0), olog_file(0), olog_name(0),
+			pager_limit(0), pager_exec(0), pager_exec_len(0),
+			printlimit(0), printprecision(-1), include(0), includelen(0),
+			binpath(0), ldpath(0), keydir(0), update( ~((unsigned int) 0) ), sequencer(s) { }
 	void SetVal(IValue *v);
 	~SystemInfo();
 	void AbortOccurred();
@@ -175,14 +175,14 @@ private:
 	IValue *log_val;
 	FILE *log_file;
 	char *log_name;
-	int olog;
-	IValue *olog_val;
-	FILE *olog_file;
-	char *olog_name;
 	int ilog;
 	IValue *ilog_val;
 	FILE *ilog_file;
 	char *ilog_name;
+	int olog;
+	IValue *olog_val;
+	FILE *olog_file;
+	char *olog_name;
 
 	int pager_limit;
 	charptr *pager_exec;

@@ -313,7 +313,6 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 			{
 			VecRef* ref = v->VecRefPtr();
 			IValue* theVal = (IValue*) ref->Val();
-			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
 				{
@@ -330,8 +329,8 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,)
 			sub-vector reference may be bad");	\
 		}
 
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.r,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.r,RE_IM_BUILTIN_ACTION_XLATE)
 
 				default:
 					result = copy_value(v);
@@ -363,13 +362,12 @@ RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,)
 			{
 			VecRef* ref = v->VecRefPtr();
 			IValue* theVal = (IValue*) ref->Val();
-			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
 				{
 
-RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,i,.i,RE_IM_BUILTIN_ACTION_XLATE)
-RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,i,.i,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_COMPLEX,complex,float,CoerceToComplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
+RE_IM_BUILTIN_ACTION(TYPE_DCOMPLEX,dcomplex,double,CoerceToDcomplexArray,off,.i,RE_IM_BUILTIN_ACTION_XLATE)
 
 				default:
 					result = copy_value(v);
@@ -1222,7 +1220,6 @@ IValue* name::DoCall( const_args_list* args_vals )			\
 	loop_over_list( *args_vals, x )					\
 		{							\
 		const IValue *arg = (*args_vals)[x];			\
-		int arg_len = arg->Length();				\
 		const attributeptr attr = arg->AttributePtr();		\
 		const IValue *shape_v;					\
 		int shape_len;						\
@@ -1444,6 +1441,7 @@ case tag:						\
 				ISNAN_ACTION(TYPE_DOUBLE,double,DoublePtr,)
 				ISNAN_ACTION(TYPE_COMPLEX,complex,ComplexPtr, ISNAN_ACTION_CPX_EXTRA)
 				ISNAN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr, ISNAN_ACTION_CPX_EXTRA)
+				default: break;
 				}
 
 			return new IValue(ret, len);
@@ -1578,9 +1576,9 @@ IValue* CreateAgentBuiltIn::DoCall( const_args_list* /* args_val */ )
 	}
 
 
+#ifdef GLISHTK
 IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 	{
-#ifdef GLISHTK
 	int len = args_val->length();
 
 	const IValue* arg = (*args_val)[0];
@@ -1623,14 +1621,10 @@ IValue* CreateGraphicBuiltIn::DoCall( const_args_list* args_val )
 #endif
 
 	return agent ? agent : error_ivalue();
-#else
-	return (IValue*) Fail("This Glish was not configured for graphic clients");
-#endif
 	}
 
 IValue* TkBuiltIns::DoCall( const_args_list* args_val )
 	{
-#ifdef GLISHTK
 	int len = args_val->length();
 
 	if ( args_val->length() != 1 )
@@ -1657,11 +1651,13 @@ IValue* TkBuiltIns::DoCall( const_args_list* args_val )
 		}
 
 	return ret ? ret : new IValue( glish_true );
-#else
-	return new IValue( glish_false );
-#endif
 	}
-
+#else
+IValue* CreateGraphicBuiltIn::DoCall( const_args_list* )
+	{ return (IValue*) Fail("This Glish was not configured for graphic clients"); }
+IValue* TkBuiltIns::DoCall( const_args_list* )
+	{ return new IValue( glish_false ); }
+#endif
 
 IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 	{
@@ -1719,7 +1715,6 @@ IValue* SymbolNamesBuiltIn::DoCall( const_args_list *args_val )
 
 IValue* SymbolValueBuiltIn::DoCall( const_args_list *args_val )
 	{
-	int len = args_val->length();
 	const IValue *str = (*args_val)[0];
 
 	if ( ! str || str->Type() != TYPE_STRING )
@@ -1793,7 +1788,6 @@ IValue* SymbolSetBuiltIn::DoCall( const_args_list *args_val )
 
 IValue* SymbolDeleteBuiltIn::DoCall( const_args_list *args_val )
 	{
-	int len = args_val->length();
 	const IValue *str = (*args_val)[0];
 
 	if ( ! str || str->Type() != TYPE_STRING )

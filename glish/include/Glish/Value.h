@@ -100,8 +100,8 @@ public:
 	Value( );
 	Value( const char *message, const char *file, int lineNum );
 
-	Value( const Value &v ) : kernel(v.kernel), attributes( v.CopyAttributePtr() ),
-				value_manager(0)
+	Value( const Value &v ) : value_manager(0), kernel(v.kernel),
+				attributes( v.CopyAttributePtr() )
 		{
 		DIAG2( (void*) this, "Value( const Value& )" )
 		description = 0;
@@ -217,7 +217,7 @@ public:
 	// are used for determining its shape (as a n-D array).
 	//
 	// Returns a new string, which should be delete'd when done with.
-	char* StringVal( char sep = ' ', unsigned int max_elements = 0, 
+	char* StringVal( char sep = ' ', int max_elements = 0, 
 			 int use_attr = 0, Str &err = glish_errno ) const;
 
 	// Returns the limit on the number elements to be printed given
@@ -677,7 +677,7 @@ protected:
 	int IndexRange( int* indices, int num_indices, int& max_index ) const;
 
 	// returns a new string
-	char* RecordStringVal( char sep = ' ', unsigned int max_elements = 0, 
+	char* RecordStringVal( char sep = ' ', int max_elements = 0, 
 			int use_attr = 0, Str &err = glish_errno ) const;
 
 	// Increase array size from present value to given size.

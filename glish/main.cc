@@ -284,7 +284,7 @@ static int fmt_readline_str( char* to_buf, int max_size, char* from_buf )
 		while ( isspace(*from_buf_start) )
 			++from_buf_start;
 
-		if ( strlen( from_buf_start ) <= max_size )
+		if ( (int) strlen( from_buf_start ) <= max_size )
 			to_buf = strcpy( to_buf, from_buf_start );
 		else
 			{
@@ -516,7 +516,7 @@ static void glish_dump_core( const char *file )
 
 	c = scope->InitForIteration( );
 
-	unsigned int alen = 0;
+	int alen = 0;
 	while ( (member = scope->NextEntry( key, c )) )
 		{
 		if ( key && key[0] == '*' && key[strlen(key)-1] == '*' )
@@ -570,7 +570,7 @@ int glish_alpha_sigfpe_init = 0;
 //  Catch integer division exception to prevent "1 % 0" from
 //  crashing glish...
 //
-void glish_sigfpe( int sig, siginfo_t *sip, ucontext_t *uap )
+void glish_sigfpe( int, siginfo_t *, ucontext_t *uap )
 	{
 	glish_sigfpe_trap = 1;
 	/*

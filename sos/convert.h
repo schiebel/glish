@@ -133,12 +133,10 @@ class vax_double {
     public:
 	enum {D_BIAS=0x81, G_BIAS=0x401};
 
-	vax_double(double *f, char type='D' ) : buf((unsigned int*)f),
-		exp_mask(type == 'D' ? 0x00007f80 : 0x00007ff0),
+	vax_double(double *f, char type='D' ) : exp_mask(type == 'D' ? 0x00007f80 : 0x00007ff0),
+		exp_off(type == 'D' ? 7 : 4), exp_max(type == 'D' ? 0xff : 0x7ff),
 		mantissa_mask(type == 'D' ? 0x7f : 0xf),
-		exp_off(type == 'D' ? 7 : 4),
-		exp_max(type == 'D' ? 0xff : 0x7ff),
-		mantissa_max(type == 'D' ? 0x7fffff : 0xfffff) { }
+		mantissa_max(type == 'D' ? 0x7fffff : 0xfffff), buf((unsigned int*)f) { }
 	vax_double &operator++() { ++buf; return *this; }
 	vax_double &operator++(int) { ++buf; return *this; }
 

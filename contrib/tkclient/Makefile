@@ -33,6 +33,9 @@ INCLUDES     = $(TK_INCLUDE) $(TCL_INCLUDE) $(X_INCLUDE)
 CC_SWITCHES  = $(CFLAGS) $(DEFINES) $(INCLUDES)
 LIBRARIES    = $(GLISH_LIB) $(TK_LIB) $(TCL_LIB) $(X_LIB) $(EXTRA_LIBS)
 
+SHELL = /bin/sh
+SH = $(SHELL)
+
 OBJS =	main.o TK_Client.o
 
 tkclient: $(OBJS)

@@ -109,7 +109,7 @@ float *vax2ieee_single(float *f, unsigned int len)
 	ieee_single ieee(f);
 	vax_single  vax(&tmp);
 
-	for (int i=0; i < len; ++i, ++ieee)
+	for (int i=0; (unsigned int) i < len; ++i, ++ieee)
 		{
 		tmp = *ieee;
 		if ( vax.exp() == vax.maxExp() && vax.mantissa() == vax.maxMantissa() )
@@ -133,7 +133,7 @@ float *ieee2vax_single(float *f, unsigned int len)
 	vax_single  vax(f);
 	ieee_single ieee(&tmp);
 
-	for (int i=0; i < len; ++i, ++vax)
+	for (int i=0; (unsigned int) i < len; ++i, ++vax)
 		{
 		tmp = *vax;
 		if ( ieee.exp() == ieee.maxExp() && ieee.mantissa() == ieee.maxMantissa() )
@@ -158,7 +158,7 @@ double *vax2ieee_double(double *f, unsigned int len,char op)
 	ieee_double ieee(f);
 	vax_double  vax(&tmp,op);
 
-	for (int i=0; i < len; ++i, ++ieee)
+	for (int i=0; (unsigned int) i < len; ++i, ++ieee)
 		{
 		tmp = *ieee;
 		if ( vax.exp() == vax.maxExp() && vax.mantissa() == vax.maxMantissa() )
@@ -182,7 +182,7 @@ double *ieee2vax_double(double *f, unsigned int len, char op)
 	vax_double  vax(f,op);
 	ieee_double ieee(&tmp);
 
-	for (int i=0; i < len; ++i, ++vax)
+	for (int i=0; (unsigned int) i < len; ++i, ++vax)
 		{
 		tmp = *vax;
 		if ( ieee.exp() == ieee.maxExp() && ieee.mantissa() == ieee.maxMantissa() )

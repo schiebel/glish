@@ -73,17 +73,17 @@ typedef enum event_src_type { INTERP, ILINK, STDIO, GLISHD } event_src_type;
 class EventSource : public GlishObject {
     public:
 	EventSource( int read_fd, int write_fd, event_src_type type_ = INTERP ) :
-		context( ), source( read_fd ), sink( write_fd ), type(type_) { }
+		source( read_fd ), sink( write_fd ), context( ), type(type_) { }
 
 	EventSource( int read_fd, int write_fd, event_src_type type_,
-		const EventContext &context_ ) : context(context_), source( read_fd ),
-		sink( write_fd ), type(type_) { }
+		const EventContext &context_ ) : source( read_fd ),
+		sink( write_fd ), context(context_), type(type_) { }
 
 	EventSource( int fd, event_src_type type_ = INTERP ) : 
-	    context( ), source( fd ), sink( fd ), type(type_) { }
+	    source( fd ), sink( fd ), context( ), type(type_) { }
 
 	EventSource( int fd, event_src_type type_, const EventContext &context_ ) :
-			context( context_ ), source( fd ), sink( fd ), type(type_) { }
+			source( fd ), sink( fd ), context( context_ ), type(type_) { }
 
 	// destructor closes the fds
 	~EventSource() { }

@@ -25,12 +25,12 @@ typedef SosRef GlishRef;
 
 class GlishObject : public GlishRef {
     public:
-	GlishObject() : file( file_name && file_name->chars() ?
-			      new Str(*file_name) : 0 ),
-			line(line_num), description(0) { }
-	GlishObject(const char *d) : file( file_name && file_name->chars() ?
-			      new Str(*file_name) : 0 ),
-			line(line_num), description(d) { }
+	GlishObject() : description(0), line(line_num),
+			file( file_name && file_name->chars() ?
+			      new Str(*file_name) : 0 )	{ }
+	GlishObject(const char *d) : description(d), line(line_num),
+			file( file_name && file_name->chars() ?
+			      new Str(*file_name) : 0 ) { }
 	virtual ~GlishObject()	{ if ( file ) delete file; }
 
 	int Line()		{ return line; }

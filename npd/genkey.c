@@ -6,6 +6,11 @@
 #include <stdio.h>
 #include "config.h"
 #include "util.h"
+
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 RCSID("@(#) $Id$")
 
 void usage()

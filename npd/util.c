@@ -582,7 +582,7 @@ int get_file_owner( const char *filename )
 int is_regfile_protected( const char *filename )
 	{
 	struct stat rec;
-	int result = stat(filename, &rec);
+	stat(filename, &rec);
 	return ( ! S_ISREG(rec.st_mode) ||
 	         ( S_IRGRP | S_IWGRP | S_IXGRP |
 		   S_IROTH | S_IWOTH | S_IXOTH ) & rec.st_mode ) ? 0 : 1;
@@ -822,7 +822,6 @@ void init_log( const char *program_name )
 	{
 	static unsigned int init = 0;
 	static char name[512];
-	char message[512];
 	char *ptr;
 	int len;
 

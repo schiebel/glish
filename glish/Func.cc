@@ -164,8 +164,8 @@ UserFunc::UserFunc( parameter_list* arg_formals, Stmt* arg_body, int arg_size,
 	stack = 0;
 	}
 
-UserFunc::UserFunc( const UserFunc *f ) : kernel(f->kernel), stack(0),
-			scope_established(0), sequencer(f->sequencer), misc(f->misc)
+UserFunc::UserFunc( const UserFunc *f ) : sequencer(f->sequencer), kernel(f->kernel),
+			scope_established(0), stack(0), misc(f->misc)
 	{
 	Ref(kernel);
 	if ( misc ) Ref(misc);
@@ -544,10 +544,8 @@ IValue* UserFuncKernel::Call( parameter_list* args, eval_type etype, stack_type 
 	return result;
 	}
 
-IValue* UserFuncKernel::DoCall( eval_type etype, stack_type *stack )
+IValue* UserFuncKernel::DoCall( eval_type etype, stack_type * )
 	{
-	int local_pushed = 0;
-
 	if ( subsequence_expr )
 		{
 		UserAgent* self = new UserAgent( sequencer );

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "md5.h"
 #include "util.h"
@@ -39,7 +40,7 @@ int create_userkeyfile( const char *dir )
 
 	sprintf( key_file, user_fmt, dir, get_our_username() );
 
-	if ( owner = get_file_owner( key_file ) )
+	if ( (owner = get_file_owner( key_file )) )
 		return owner == get_our_userid() ? 1 : 0;
 
 	(void) umask( 077 );

@@ -70,15 +70,15 @@ Value::Value( glish_type )
 	INIT_VALUE_ACTION
 	}
 
-Value::Value( const char *message, const char *file, int lineNum )
+Value::Value( const char *message, const char *xfile, int lineNum )
 	{
 	DIAG4( (void*) this, "Value(", " ",")" )
 	INIT_VALUE_ACTION
 	kernel.SetFail( );
 
-	if ( file && file[0] )
+	if ( xfile && xfile[0] )
 		{
-		AssignAttribute( "file", create_value( file ));
+		AssignAttribute( "file", create_value( xfile ));
 		if ( lineNum > 0 )
 			AssignAttribute( "line", create_value( lineNum ));
 		}
@@ -586,8 +586,8 @@ const char *print_decimal_prec( const attributeptr attr, const char *default_fmt
 	return default_fmt;
 	}
 
-static char *format_error_message( const Value *, char, unsigned int, int );
-char* Value::StringVal( char sep, unsigned int max_elements,
+static char *format_error_message( const Value *, char, int, int );
+char* Value::StringVal( char sep, int max_elements,
 			int useAttributes, Str &err ) const
 	{
 	glish_type type = Type();
@@ -995,7 +995,7 @@ unsigned int Value::PrintLimit( ) const
 	return limit;
 	}
 
-char* Value::RecordStringVal( char sep, unsigned int max_elements, 
+char* Value::RecordStringVal( char sep, int max_elements, 
 			int use_attr, Str &err ) const
 	{
 	static value_list been_there;
@@ -1566,8 +1566,6 @@ Value* Value::operator []( const_value_list* args_val ) const
 	SUBOP_CLEANUP_2(length)						\
 	free_memory( len );
 
-	int length = kernel.Length();
-
 	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
 		return Fail( "invalid type in n-D array operation:", this );
 
@@ -1768,7 +1766,6 @@ SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
 				{
@@ -1852,7 +1849,6 @@ Value* Value::Pick( const Value *index ) const
 									\
 	if ( ! ishape_len )						\
 		{							\
-		Value *err = 0;						\
 		if ( ishape_val )					\
 			ERR_RET(("error in the array \"::shape\": ",	\
 				ishape_val))				\
@@ -1871,7 +1867,7 @@ Value* Value::Pick( const Value *index ) const
 		}							\
 									\
 	if ( ishape_len > 2 )						\
-		ERR_RET(("invalid index of dimension (=", ishape_len, \
+		ERR_RET(("invalid index of dimension (=", ishape_len,	\
 				") greater than 2"))			\
 									\
 	int shape_is_copy = 0;						\
@@ -1963,7 +1959,6 @@ Value* Value::Pick( const Value *index ) const
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
 				{
@@ -2899,7 +2894,6 @@ void Value::AssignRecordElements( const Value* index, Value* value )
 		return;
 		}
 
-	recordptr lhs_rptr = RecordPtr();
 	recordptr rhs_rptr = value->RecordPtr(0);
 	charptr* indices = index->StringPtr(0);
 
@@ -3294,7 +3288,6 @@ void Value::AssignArrayElements( const_value_list* args_val, Value* value )
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
-	Value* op_val = (*ptr)["op[]"];
 
 	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;
@@ -3542,7 +3535,6 @@ ASSIGN_ARY_ELEMENTS_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,off
 			{
 			VecRef* ref = VecRefPtr();
 			Value* theVal = ref->Val();
-			int theLen = theVal->Length();
 
 			switch ( theVal->Type() )
 				{
@@ -3820,7 +3812,6 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 
 void Value::VecRefPolymorph( glish_type new_type )
 	{
-	glish_type type = Type();
 	int length = kernel.Length();
 
 	if ( IsVecRef() )
@@ -3829,7 +3820,6 @@ void Value::VecRefPolymorph( glish_type new_type )
 		return;
 		}
 
-	VecRef* ref = VecRefPtr();
 	switch ( new_type )
 		{
 #define VECREF_POLYMORPH_ACTION(tag,type,ref_type,ref_func,copy_func)	\
@@ -4066,26 +4056,6 @@ Value* create_record()
 	return create_value( create_record_dict() );
 	}
 
-static charptr* make_string_array( char* heap, int len, int& result_len )
-	{
-	result_len = 0;
-	char* heap_ptr = heap;
-	for ( ; heap_ptr < &heap[len]; ++heap_ptr )
-		if ( *heap_ptr == '\0' )
-			++result_len;
-
-	charptr* result = (charptr*) alloc_memory( sizeof(charptr)*result_len );
-
-	heap_ptr = heap;
-	for ( int i = 0; i < result_len; ++i )
-		{
-		result[i] = strdup( heap_ptr );
-		heap_ptr += strlen( heap_ptr ) + 1;
-		}
-
-	return result;
-	}
-
 int compatible_types( const Value* v1, const Value* v2, glish_type& max_type )
 	{
 	max_type = v1->VecRefDeref()->Type();
@@ -4275,8 +4245,7 @@ glish_type max_numeric_type( glish_type t1, glish_type t2 )
 	}
 
 static char *format_error_message( const Value *val, char sep, 
-				   unsigned int max_elements,
-				   int useAttributes )
+				   int max_elements, int useAttributes )
 	{
 	if ( ! val || val->Type() != TYPE_FAIL )
 		return 0;

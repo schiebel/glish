@@ -46,7 +46,7 @@ BaseList::BaseList(int size, PFC handler)
 	else
 		{
 		num_entries = 0;
-		if ( entry = (ent*) sos_alloc_memory(sizeof(ent) * chunk_size) )
+		if ( (entry = (ent*) sos_alloc_memory(sizeof(ent) * chunk_size)) )
 			max_entries = chunk_size;
 		else
 			max_entries = 0;
