@@ -16,6 +16,11 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Glish/Reporter.h"
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif

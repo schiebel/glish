@@ -14,6 +14,11 @@ RCSID("@(#) $Id$")
 #include <stdlib.h>
 #include <unistd.h>
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 #if defined(HAVE_SYS_UIO_H)
 #include <sys/uio.h>
 #endif

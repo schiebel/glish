@@ -17,6 +17,11 @@ RCSID("@(#) $Id$")
 #include "Pager.h"
 #include <pthread.h>
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif

@@ -350,7 +350,15 @@ dnl##
 dnl## Checks for programs.
 dnl##
 AC_PROG_CC
+
 HAVE_AIX
+dnl##
+dnl## Used to mix-in the AIZ portions of the makefile
+dnl##
+if test "$AIX" '=' 'yes'; then
+    AIXpp="$AIX"
+fi
+
 HAVE_ALPHA
 AC_C_CONST
 AC_PROG_CXX
@@ -484,7 +492,7 @@ if test -z "$NO_TK"; then
     dnl##
     if test -z "$option_tcl_libraries"; then
 
-        AC_CHECK_PROGS(TCLSH,tclsh tcl expect moat tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4,tclsh)
+        AC_CHECK_PROGS(TCLSH, tclsh tclsh8.4 tclsh8.3 tclsh8.2 tclsh8.1 tclsh8.0 tclsh7.6 tclsh7.5 tclsh7.4 tclsh7.3 tcl expect moat )
         if test -n "$TCLSH"; then
             AC_MSG_CHECKING(for tcl version)
             tcl_ext=`echo 'puts stdout [[info tclversion]]' | $TCLSH`
@@ -744,6 +752,21 @@ for ( int i=0; i < 1; i++ ) { ; }
 [AC_MSG_RESULT(non-local); AC_DEFINE(LOOPDECL,)])
 
 dnl##
+dnl## If the TCL/Tk version is < 8.4, then we need a dummy CONST84
+dnl## because as of TCL/Tk 8.4 the signature of Tcl_CmdProc changed
+dnl##
+saved_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$tcl_incl"
+AC_MSG_CHECKING([for const argv in Tcl_CmdProc])
+AC_TRY_COMPILE(
+[#include <tcl.h>],
+[extern void foo( Tcl_CmdProc* );
+extern int foocb( ClientData, Tcl_Interp *, int, char *[] );
+foo(foocb);
+], [AC_MSG_RESULT(non const); AC_DEFINE(NEED_EMPTY_CONST84,)], AC_MSG_RESULT(const))
+CPPFLAGS="$saved_CPPFLAGS"
+
+dnl##
 dnl## Set flag for EGCS g++ compiler
 dnl##
 if test "$ac_cv_prog_egcs_gxx" = yes; then
@@ -831,13 +854,61 @@ SLIB_CXXFLAGS=""
 GLISH_LD_SEARCH=""
 TK_LD_RPATH=""
 TK_CXX_RPATH=""
+
+LINK_LIBGLISHTK="-lglishtk"
+LINK_LIBGLISH="-lglish"
+LINK_LIBSOS="-lsos"
+LINK_LIBNPD="-lnpd"
+
+PGDRV_LIBS="-lgtkpgdrv"
+
 case $host_os in
     aix*)
 	SLIB_CFLAGS=""
-	SLIB_LD="\$(top)/config/ldAix /bin/ld -bhalt:4 -bM:SRE -bE:lib.exp -H512 -T512"
-	SLIB_LD_LIBS='${LIBS}'
+	SLIB_LD="\$(top)/config/ldAix g77 -shared -Wl,-bhalt:4 -Wl,-bM:SRE -Wl,-bE:lib.exp -Wl,-H512 -Wl,-T512 -Wl,-bnoentry"
+	SLIB_LD_LIBS='${LIBS} -lX11'
 	SLIB_SUFFIX=".so"
+
+	LINK_LIBGLISHTK='-Wl,-bI:${LIBDIR_P}/libglishtk.exp'
+	LINK_LIBGLISH='-Wl,-bI:${LIBDIR_P}/libglish.exp'
+	LINK_LIBSOS='-Wl,-bI:${LIBDIR_P}/libsos.exp'
+	LINK_LIBNPD='-Wl,-bI:${LIBDIR_P}/libnpd.exp'
+	PGDRV_LIBS="-Wl,-bI:\${LIBDIR_P}/libgtkpgdrv.exp"
+
+	SLIB_LABEL=''
+
+	dnl##
+	dnl## Seemingly, AIX does not support shared library version numbers
+	dnl##
+	GLISH_SLIB_SUFFIX=".so"
+	SOS_SLIB_SUFFIX=".so"
+	NPD_SLIB_SUFFIX=".so"
+	EDITLINE_SLIB_SUFFIX=".so"
+	REGX_SLIB_SUFFIX=".so"
+
+	tclXlib="$tcl_lib"
+
+	if test -n "$tcl_lib"; then
+	    tklib=[`echo $tcl_lib | sed 's/.*-ltk\([0-9.]*\).*/tk\1/'`]
+	    tcllib=[`echo $tcl_lib | sed 's/.*-ltcl\([0-9.]*\).*/tcl\1/'`]
+	fi
+
+	tclXpath=`echo $tcl_path | sed 's/\//\\\\\//g'`
+	if test -f "$tcl_path/lib$tcllib.exp"; then
+	    tcl_lib=[`echo $tcl_lib | sed "s/-l$tcllib[^ ]*/-Wl,-bI:$tclXpath\/lib$tcllib.exp/"`]
+	fi
+	if test -f "$tcl_path/lib$tklib.exp"; then
+	    tcl_lib=[`echo $tcl_lib | sed "s/-l$tklib[^ ]*/-Wl,-bI:$tclXpath\/lib$tklib.exp/"`]
+	fi
+
+	if test "$tclXlib" != "$tcl_lib"; then
+	    TK_LIB="$tcl_lib"
+	fi
+
+	LIBS="$LIBS -lstdc++"
+
 	DL_LIBS="-lld"
+
 	LD_FLAGS=""
 	if test -z "$static_binary"; then
 	    GLISH_LD_SEARCH="-L$full_libdir_p $cxx_lpath -L$full_libdir"
@@ -1321,10 +1392,19 @@ if test "$static_binary" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
 else
-    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath -lglishtk -lglish -lsos -lnpd"
+    TKCLIENT_LIBS="-L\${LIBDIR_P} $cxx_lpath $LINK_LIBGLISHTK $LINK_LIBGLISH $LINK_LIBSOS $LINK_LIBNPD"
     if test "$do_tk" = "yes"; then
 	TKCLIENT_LIBS="$TKCLIENT_LIBS $PGPLOTLINKFLAGS"
     fi
+fi
+
+dnl##
+dnl## AIX needs to to pull pgplot stuff off by itself (for pgplot driver)
+dnl##
+if test -n "$PGPLOTLINKFLAGS"; then
+    PGPLOT_LIBS="$PGPLOTLINKFLAGS"
+else
+    PGPLOT_LIBS=
 fi
 
 dnl## Note:  in the following variable, it's important to use the absolute
@@ -1393,7 +1473,15 @@ AC_SUBST(TK_LD_RPATH)
 AC_SUBST(TK_CXX_RPATH)
 
 AC_SUBST(TKCLIENT_LIBS)
+AC_SUBST(PGPLOT_LIBS)
+AC_SUBST(PGDRV_LIBS)
 AC_SUBST(EXTRA_LIBS)
+
+dnl##
+dnl## with TCL/Tk 8.4+, the argv parameter for Tcl_CmdProc's is "CONST84 char *[]"
+dnl## we define NEED_EMPTY_CONST84 for the older TCL/Tk versions
+dnl## 
+AC_SUBST(NEED_EMPTY_CONST84)
 
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then
     make_slib_symlinks="yes"
@@ -1401,7 +1489,13 @@ fi
 
 $mkhier "tkpgplot/$ARCH"
 
-PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"])
+if test -n "$SLIB_LABEL"; then
+    label_slib="yes"
+fi
 
-AC_CONFIG_HEADER(tkpgplot/$ARCH/config.h:tkpgplot/config.h.in)
+PREPROCESS(tkpgplot/mkfile.in,tkpgplot/$ARCH/Makefile.in,[SLIB_SYM_LINKS="$make_slib_symlinks"
+AIX="$AIXpp"
+LABEL_SLIB="$label_slib"])
+
+AC_CONFIG_HEADER($ARCH/config.h:config.h.in tkpgplot/$ARCH/config.h:tkpgplot/config.h.in)
 AC_OUTPUT($ARCH/Makefile:Makefile.in $ARCH/pgplot.g:pgplot.g.in tkpgplot/$ARCH/Makefile:tkpgplot/$ARCH/Makefile.in)

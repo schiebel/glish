@@ -47,7 +47,7 @@ XLIB = @XLIBSW@
 XINC = @XINCLUDES@
 PGINC = @PGPLOTINCLUDES@
 
-INCLUDE = -I. -I$(SRC) -I$(GLISHTK_INC) -I$(GLISH_INC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
+INCLUDE = -I. -I$(SRC) -I$(GLISHTK_INC) -I$(GLISHTK_SRC)/$(ARCH) -I$(GLISH_INC) -I$(INCDIR_P) @TK_INCL@ $(XINC) $(PGINC) $(PLUSINC)
 
 OBJS = tkPgplot.o
 
@@ -86,8 +86,8 @@ tkPgplot.o: $(SRC)/tkPgplot.cc $(SRC)/tkPgplot.h
 
 gPgplot$(SUFFIX): $(OBJS)
 	@if test -d $(SRC)/tkpgplot; then						\
-	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) -lgtkpgdrv $(LIBS) $(XLIB) $(DL_LIBS); \
-	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) -lgtkpgdrv $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100; \
+	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @PGDRV_LIBS@ $(LIBS) $(XLIB) $(DL_LIBS); \
+	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) -L$(LIBDIR_P) @PGDRV_LIBS@ $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100; \
 	else										\
 	    echo $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS);		\
 	    $(MK_LIB) gPgplot$(SUFFIX) $(OBJS) $(LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100; \

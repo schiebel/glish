@@ -11,6 +11,11 @@ RCSID("@(#) $Id$")
 #include <errno.h>
 #include <sys/types.h>
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 #if HAVE_OSFCN_H
 #include <osfcn.h>
 #endif

@@ -45,6 +45,11 @@ BINDIR = @bindir@
 SCRIPTDIR = @SCRIPTDIR@
 SCRIPTDIRTCL = @SCRIPTDIRTCL@
 
+#IF AIX
+AIXSYM = $(LIBDIR)/libglishtk.exp
+AIXSYM_P = $(LIBDIR_P)/libglishtk.exp
+#FI
+
 MKHIER = $(top)/config/mkhier
 
 RCDIR = @RCDIR@
@@ -58,7 +63,7 @@ INCLUDE = -I.. -I$(SRC)/include -I$(SRC) -I$(GLISH_SRC) -I$(GLISH_SRC)/include -
 OBJS = tkProxy.o tkUtil.o
 LOBJS = GlishTk.o tkCore.o tkCanvas.o mkWidgets.o
 
-all: make-libdir_p $(LIBDIR_P)/libglishtk$(SUFFIX) $(LIBDIR_P)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL_P)/mkWidgets/pkgIndex.tcl
+all: make-libdir_p $(AIXSYM_P) $(LIBDIR_P)/libglishtk$(SUFFIX) $(LIBDIR_P)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL_P)/mkWidgets/pkgIndex.tcl
 
 make-libdir_p:
 	$(MKHIER) $(LIBDIR_P)
@@ -66,7 +71,7 @@ make-libdir_p:
 make-libdir:
 	$(MKHIER) $(LIBDIR)
 
-install:  make-libdir $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl
+install:  make-libdir $(AIXSYM) $(LIBDIR)/libglishtk$(SUFFIX) $(LIBDIR)/GlishTk$(SUFFIX) $(SCRIPTDIRTCL)/mkWidgets/pkgIndex.tcl
 
 libglishtk$(GSUFFIX): $(OBJS)
 	rm -f libglishtk$(GSUFFIX)
@@ -79,6 +84,16 @@ $(LIBDIR_P)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 $(LIBDIR)/libglishtk$(GSUFFIX): libglishtk$(GSUFFIX)
 	$(MKHIER) $(LIBDIR)
 	$(INSTALL_LIBRARY) libglishtk$(GSUFFIX) $(LIBDIR)
+
+#IF AIX
+$(LIBDIR_P)/libglishtk.exp: libglishtk$(GSUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libglishtk.exp $(LIBDIR_P)
+
+$(LIBDIR)/libglishtk.exp: libglishtk$(GSUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libglishtk.exp $(LIBDIR)
+#FI
 
 GlishTk$(SUFFIX): $(LOBJS)
 	$(MK_LIB) GlishTk$(SUFFIX) $(LOBJS) $(LDOBJ_LIBS) $(XLIB) $(DL_LIBS) 2>&1 | head -100

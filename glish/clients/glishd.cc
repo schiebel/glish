@@ -18,6 +18,11 @@ RCSID("@(#) $Id$")
 #include <errno.h>
 #include <string.h>
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 #if HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif

@@ -22,6 +22,10 @@ INSTALL_LIBRARY = $(INSTALL_PROGRAM)
 LABEL = @SLIB_LABEL@libsos$(GSUFFIX)
 LABELGC = @SLIB_LABEL@libsosgc$(GSUFFIX)
 #FI
+#IF AIX
+AIXSYM = $(LIBDIR)/libsos.exp
+AIXSYM_P = $(LIBDIR_P)/libsos.exp
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -70,13 +74,13 @@ MKHIER = $(top)/config/mkhier
 
 INCLUDE = -I.. -I$(SRC) -I$(SRC)/include -I$(INCDIR_P)
 
-OBJS = convert.o header.o io.o longint.o types.o list.o ref.o
+OBJS = convert.o header.o io.o longint.o types.o list.o ref.o alloc.o
 OBJS_PROXY = $(D)convert.o $(D)header.o $(D)io.o $(D)longint.o \
-	$(D)types.o $(D)list.o $(D)ref.o
+	$(D)types.o $(D)list.o $(D)ref.o $(D)alloc.o
 
-GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o
+GCOBJS = gcconvert.o gcheader.o gcio.o gclongint.o gctypes.o gclist.o gcref.o gcalloc.o
 GCOBJS_PROXY = $(D)gcconvert.o $(D)gcheader.o $(D)gcio.o $(D)gclongint.o \
-	$(D)gctypes.o $(D)gclist.o $(D)gcref.o
+	$(D)gctypes.o $(D)gclist.o $(D)gcref.o $(D)gcalloc.o
 
 HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
 	$(INCDIR)/sos/header.h $(INCDIR)/sos/mdep.h $(INCDIR)/sos/list.h \
@@ -84,9 +88,9 @@ HDRS = $(INCDIR)/sos/io.h $(INCDIR)/sos/sos.h $(INCDIR)/sos/types.h \
 
 TAR_FILE = sos.tar
 
-all: $(LIBTGT)
+all: $(AIXSYM_P) $(LIBTGT)
 
-install: $(INSTALL_LIBTGT)
+install: $(AIXSYM) $(INSTALL_LIBTGT)
 
 lib_tgt: $(LIBDIR_P)/libsos$(SUFFIX) $(GCLIB_P)
 
@@ -189,6 +193,12 @@ $(D)ref.o: $(SRC)/ref.cc $(H)/ref.h
 $(D)gcref.o: $(SRC)/ref.cc $(H)/ref.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcref.o $(SRC)/ref.cc $(T)
 
+$(D)alloc.o: $(SRC)/alloc.c $(H)/alloc.h
+	$(CC) $(INCLUDE) $(CFLAGS) -c $(SRC)/alloc.c $(T)
+
+$(D)gcalloc.o: $(SRC)/alloc.c $(H)/alloc.h
+	$(CC) $(INCLUDE) $(CFLAGS) -DENABLE_GC -c -o gcalloc.o $(SRC)/alloc.c $(T)
+
 #IF SLIB_SYM_LINKS
 $(LIBDIR_P)/libsos$(SUFFIX): $(LIBDIR_P)/libsos$(GSUFFIX)
 	cd $(LIBDIR_P);			\
@@ -252,6 +262,16 @@ $(INCDIR)/sos/ref.h: $(H)/ref.h
 $(INCDIR)/sos/alloc.h: $(H)/alloc.h
 	@rm -f $@
 	cp $(H)/alloc.h $@
+
+#IF AIX
+$(LIBDIR_P)/libsos.exp: libsos$(GSUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libsos.exp $(LIBDIR_P)
+
+$(LIBDIR)/libsos.exp: libsos$(GSUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libsos.exp $(LIBDIR)
+#FI
 
 INSTALL_:
 

@@ -26,6 +26,11 @@ INSTALL_LIBRARY = $(INSTALL_PROGRAM)
 #IF LABEL_SLIB
 LABEL = @SLIB_LABEL@lib$(NAME)$(GSUFFIX)
 #FI
+#IF AIX
+AIXSYM = $(LIBDIR)/libedit.exp
+AIXSYM_P = $(LIBDIR_P)/libedit.exp
+AIXSLIBS = -Wl,-bI:$(LIBDIR_P)/libsos.exp
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -76,9 +81,9 @@ OBJS_PROXY = \
 
 TAR_FILE = editline.tar
 
-all: $(LIBTGT)
+all: $(AIXSYM_P) $(LIBTGT)
 
-install: $(INSTALL_LIBTGT)
+install: $(AIXSYM) $(INSTALL_LIBTGT)
 
 lib_tgt: $(LIBDIR_P)/lib$(NAME)$(SUFFIX)
 
@@ -86,7 +91,7 @@ INSTALL_lib_tgt: $(LIBDIR)/lib$(NAME)$(SUFFIX)
 
 lib$(NAME)$(GSUFFIX): $(OBJS_PROXY)
 	$(RM) lib$(NAME)$(GSUFFIX)
-	$(MK_LIB) lib$(NAME)$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS)
+	$(MK_LIB) lib$(NAME)$(GSUFFIX) $(LABEL) $(OBJS) $(LD_LIBS) $(AIXSLIBS)
 	$(RANLIB) lib$(NAME)$(GSUFFIX)
 	$(MINSPACE_RM) $(OBJS)
 
@@ -141,5 +146,15 @@ $(D)complete.o: $(SRC)/complete.c
 
 $(D)sysunix.o: $(SRC)/sysunix.c
 	$(CC) $(INC) $(CFLAGS) $(LOCAL_CFLAGS) -c $(SRC)/sysunix.c $(T)
+
+#IF AIX
+$(LIBDIR_P)/libedit.exp: libedit$(GSUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libedit.exp $(LIBDIR_P)
+
+$(LIBDIR)/libedit.exp: libedit$(GSUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libedit.exp $(LIBDIR)
+#FI
 
 INSTALL_:

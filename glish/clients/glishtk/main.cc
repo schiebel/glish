@@ -9,6 +9,11 @@ RCSID("@(#) $Id$")
 #include "Glish/Reporter.h"
 #include "tkUtil.h"
 
+#if defined(_AIX)
+// for bzero()
+#include <strings.h>
+#endif
+
 class TkStore : public ClientProxyStore {
     public:
 	TkStore( int &argc, char **argv, ProxyStore::ShareType multithreaded = NONSHARED );

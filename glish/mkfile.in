@@ -37,6 +37,11 @@ LABEL = @SLIB_LABEL@libglish$(GSUFFIX)
 LABELGC = @SLIB_LABEL@libglishgc$(GSUFFIX)
 LABELP = @SLIB_LABEL@libglishp$(GSUFFIX)
 #FI
+#IF AIX
+AIXSYM = $(LIBDIR)/libglish.exp
+AIXSYM_P = $(LIBDIR_P)/libglish.exp
+AIXSLIBS = -Wl,-bI:$(LIBDIR_P)/libregx.exp -Wl,-bI:$(LIBDIR_P)/libedit.exp -Wl,-bI:$(LIBDIR_P)/libnpd.exp -Wl,-bI:$(LIBDIR_P)/libsos.exp
+#FI
 #ELSE
 MK_LIB = @MAKE_LIB@
 LD_LIBS = 
@@ -58,14 +63,26 @@ INSTALL_LIBRARY = $(INSTALL_DATA)
 #FI
 
 #IF GC
+#IF AIX
+#IF SHARED
+PLIB_P = $(INTERP_OBJS_PROXY)
+#FI
+#ELSE
 PLIB_P = $(LIBDIR_P)/libglishgc$(SUFFIX)
 PLIB = $(LIBDIR)/libglishgc$(SUFFIX)
+#FI
 GLIBS = $(LIBDIR_P)/libsosgc$(SOS_SUFFIX) $(LIBDIR_P)/libeditgc$(EDIT_SUFFIX) $(LIBDIR_P)/libregxgc$(REGX_SUFFIX) @NPD_LIB@
 GCFLAG = -DENABLE_GC
 MALLIB =
 #ELSE
+#IF AIX
+#IF SHARED
+PLIB_P = $(INTERP_OBJS)
+#FI
+#ELSE
 PLIB_P = $(LIBDIR_P)/libglishp$(SUFFIX)
 PLIB = $(LIBDIR)/libglishp$(SUFFIX)
+#FI
 GLIBS = $(LIBDIR_P)/libsos$(SOS_SUFFIX) $(LIBDIR_P)/libedit$(EDIT_SUFFIX) $(LIBDIR_P)/libregx$(REGX_SUFFIX) @NPD_LIB@
 GCFLAG =
 MALLIB = @MALLOC@
@@ -148,9 +165,9 @@ HDRS = $(INCDIR)/Glish/Dict.h $(INCDIR)/Glish/Object.h $(INCDIR)/Glish/Reporter.
 
 TAR_FILE = glish.tar
 
-all: $(LIBTGT) $(BINTGT)
+all: $(AIXSYM_P) $(LIBTGT) $(BINTGT)
 
-install: $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
+install: $(AIXSYM) $(INSTALL_LIBTGT) $(INSTALL_BINTGT)
 
 lib_tgt: $(LIBDIR_P)/libglish$(SUFFIX) $(PLIB_P)
 
@@ -165,13 +182,13 @@ glish: main.o $(MALLIB) $(LIBDIR_P)/libglish$(GSUFFIX) $(PLIB_P) $(GLIBS)
 
 libglish$(GSUFFIX): $(CLIENT_OBJS_PROXY)
 	rm -f libglish$(GSUFFIX)
-	$(MK_LIB) libglish$(GSUFFIX) $(LABEL) $(CLIENT_OBJS) $(LD_LIBS)
+	$(MK_LIB) libglish$(GSUFFIX) $(LABEL) $(CLIENT_OBJS) $(LD_LIBS) $(AIXSLIBS)
 	$(RANLIB) libglish$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_OBJS)
 
 libglishgc$(GSUFFIX): $(CLIENT_GCOBJS_PROXY) $(INTERP_OBJS_PROXY)
 	rm -f libglishgc$(GSUFFIX)
-	$(MK_LIB) libglishgc$(GSUFFIX) $(LABELGC) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS)
+	$(MK_LIB) libglishgc$(GSUFFIX) $(LABELGC) $(CLIENT_GCOBJS) $(INTERP_OBJS) $(LD_LIBS) $(AIXSLIBS)
 	$(RANLIB) libglishgc$(GSUFFIX)
 	$(MINSPACE_RM) $(CLIENT_GCOBJS) $(INTERP_OBJS)
 
@@ -563,6 +580,16 @@ $(LIBDIR)/libglishgc$(SUFFIX): $(LIBDIR)/libglishgc$(GSUFFIX)
 	cd $(LIBDIR);			\
 	rm -f libglishgc$(SUFFIX);	\
 	ln -s libglishgc$(GSUFFIX) libglishgc$(SUFFIX)
+#FI
+
+#IF AIX
+$(LIBDIR_P)/libglish.exp: libglish$(GSUFFIX)
+	$(MKHIER) $(LIBDIR_P)
+	$(INSTALL_DATA) libglish.exp $(LIBDIR_P)
+
+$(LIBDIR)/libglish.exp: libglish$(GSUFFIX)
+	$(MKHIER) $(LIBDIR)
+	$(INSTALL_DATA) libglish.exp $(LIBDIR)
 #FI
 
 INSTALL_:
