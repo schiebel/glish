@@ -192,6 +192,7 @@ class TkFrame : public TkAgent {
 	char *Release( );
 	char *GrabCB( parameter_list *, int, int );
 	char *ReleaseCB( parameter_list *, int, int );
+	char *FontsCB( parameter_list *, int, int );
 
 	void Pack();
 	void PackSpecial( TkAgent * );

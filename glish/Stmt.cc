@@ -658,6 +658,8 @@ IValue* ForStmt::DoExec( int /* value_needed */, stmt_flow_type& flow )
 	{
 	IValue* range_value = range->CopyEval();
 
+	if ( ! range_value ) return 0;
+
 	IValue* result = 0;
 
 	if ( ! range_value->IsNumeric() && range_value->Type() != TYPE_STRING )

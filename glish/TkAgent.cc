@@ -22,6 +22,8 @@ unsigned long TkFrame::tl_count = 0;
 unsigned long TkFrame::frame_count = 0;
 unsigned long TkFrame::grab = 0;
 
+extern IValue *glishtk_valcast( char * );
+
 class ScrollbarTrigger : public NotifyTrigger {
     public:
 	void NotifyDone( );
@@ -1197,6 +1199,7 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
@@ -1260,6 +1263,7 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("expand", new TkProc( this, &TkFrame::SetExpand ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
@@ -1320,6 +1324,7 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	procs.Insert("tag", new TkProc( this, &TkFrame::GetTag, glishtk_str ));
 	procs.Insert("side", new TkProc( this, &TkFrame::SetSide ));
 	procs.Insert("grab", new TkProc( this, &TkFrame::GrabCB ));
+	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	}
@@ -1482,6 +1487,37 @@ char *TkFrame::GrabCB( parameter_list *args, int, int )
 		}
 
 	return Grab( global_scope );
+	}
+
+char *TkFrame::FontsCB( parameter_list *args, int, int )
+	{
+	char *wild = "-*-*-*-*-*-*-*-*-*-*-*-*-*-*";
+	char **fonts = 0;
+	int len = 0;
+	int c = 0;
+	if ( args->length() == 1 )
+		{
+		EXPRVAL( val, "TkFrame::FontsCB" )
+		if ( val->Type() == TYPE_STRING && val->Length() > 0 )
+			fonts = XListFonts(self->display, val->StringPtr(0)[0], 32768, &len);
+		else if ( val->Type() == TYPE_INT && val->Length() > 0 )
+			fonts = XListFonts(self->display, wild, val->IntVal(), &len);
+		EXPR_DONE( val )
+		}
+	else if ( args->length() >= 2 )
+		{
+		EXPRSTR( str, "TkFrame::FontsCB" )
+		EXPRINT( l, "TkFrame::FontsCB" )
+		fonts = XListFonts(self->display, str, l, &len);
+		EXPR_DONE( str )
+		EXPR_DONE( l )
+		}
+	else
+		fonts = XListFonts(self->display, wild, 32768, &len);
+
+	IValue *ret = fonts ? new IValue( (charptr*) fonts, len, COPY_ARRAY ) : false_ivalue();
+	XFreeFontNames(fonts);
+	return (char*) ret;
 	}
 
 char *TkFrame::Release( )

@@ -369,6 +369,7 @@ protected:
 
 	Expr *script_expr;
 	ScriptClient* script_client;
+	int script_client_active;
 
 	scope_list scopes;
 	offset_list global_scopes;

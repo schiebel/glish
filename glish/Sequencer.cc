@@ -442,6 +442,10 @@ void Sequencer::InitScriptClient()
 		// Include ourselves as an active process; otherwise
 		// we'll exit once our child processes are gone.
 		++num_active_processes;
+
+		// Used to determine if "Sequencer::~Sequencer()" should
+		// specifically delete "script_client".
+		script_client_active = 1;
 		}
 
 	else
@@ -455,7 +459,7 @@ void Sequencer::InitScriptClient()
 	ScriptCreated( 1 );
 	}
 
-Sequencer::Sequencer( int& argc, char**& argv )
+Sequencer::Sequencer( int& argc, char**& argv ) : script_client_active(0)
 	{
 	cur_sequencer = this;
 
@@ -719,7 +723,9 @@ Sequencer::~Sequencer()
 	for ( int k=stack.length()-1; k >= 0; k-- )
 		Unref( stack.remove_nth(k) );
 
-	delete script_client;
+	if ( ! script_client_active )
+		delete script_client;
+
 	delete interpreter_tag;
 	delete connection_socket;
 	delete connection_port;
