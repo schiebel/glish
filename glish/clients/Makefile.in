@@ -7,7 +7,7 @@ CPLUS = @CXX@
 INSTALL = @INSTALL@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 
-CFLAGS = @CFLAGS@
+CFLAGS = -DAUTHENTICATE @CFLAGS@
 
 SRC = ..
 GLISH_SRC = ../..
@@ -15,13 +15,15 @@ GLISH_SRC = ../..
 ISTKPLACE = $(GLISH_SRC)/..
 ISTKLIBS = $(ISTKPLACE)/lib/$(ARCH)
 ISTKBIN = $(ISTKPLACE)/bin/$(ARCH)
+ISTKINC = $(ISTKPLACE)/include
 
 INCLUDE = -I$(GLISH_SRC) -I$(GLISH_SRC)/include $(PLUSINC)
 CINCLUDE = -I$(GLISH_SRC) -I$(GLISH_SRC)/include
 
 SDS_LIB = $(ISTKLIBS)/libsds.a
-GLISH_LIBS = $(GLISH_SRC)/$(ARCH)/libglish.a
-LIBS = $(GLISH_LIBS) $(SDS_LIB) @LIBS@ -lm
+NPD_LIB = $(ISTKLIBS)/libnpd.a
+GLISH_LIBS = $(GLISH_SRC)/$(ARCH)/libglish.a $(SDS_LIB) $(NPD_LIB)
+LIBS = $(GLISH_LIBS) @LIBS@ -lm 
 
 CLIENTS = \
 	echo_client \
@@ -65,10 +67,11 @@ $(GLISH_SRC)/$(ARCH)/libglish.a:
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
 		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/glishd.cc 
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -I$(ISTKINC) -c $(SRC)/glishd.cc 
 
 glishd: glishd.o $(GLISH_LIBS)
 	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glishd glishd.o $(LIBS)
+
 $(ISTKBIN)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(ISTKBIN)
 #	strip $(ISTKBIN)/glishd
