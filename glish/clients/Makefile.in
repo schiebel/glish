@@ -11,7 +11,8 @@ MKHIER = @top_srcdir@/config/mkhier
 
 SHELL = /bin/sh
 
-CFLAGS = -DAUTHENTICATE @CFLAGS@
+CFLAGS = @GLISH_FLAGS@ @CFLAGS@
+CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
 
 SRC = ..
 GLISH_SRC = ../..
@@ -89,10 +90,10 @@ $(GLISH_SRC)/$(ARCH)/libglish.a:
 glishd.o: $(SRC)/glishd.cc $(GLISH_SRC)/Executable.h \
 		$(GLISH_SRC)/include/Glish/Client.h $(GLISH_SRC)/Channel.h \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -I$(INCDIR) -c $(SRC)/glishd.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I$(INCDIR) -c $(SRC)/glishd.cc 
 
 glishd: glishd.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glishd glishd.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glishd glishd.o $(LIBS)
 
 $(BINDIR)/glishd: glishd
 	$(INSTALL_PROGRAM) glishd $(BINDIR)
@@ -103,10 +104,10 @@ $(PFX_BINDIR)/glishd: glishd
 #	strip $(PFX_BINDIR)/glishd
 
 echo_client.o: $(SRC)/echo_client.cc $(GLISH_SRC)/include/Glish/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/echo_client.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/echo_client.cc 
 
 echo_client: echo_client.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o echo_client echo_client.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o echo_client echo_client.o $(LIBS)
 
 $(BINDIR)/echo_client: echo_client
 	$(INSTALL_PROGRAM) echo_client $(BINDIR)
@@ -117,10 +118,10 @@ $(PFX_BINDIR)/echo_client: echo_client
 #	strip $(PFX_BINDIR)/echo_client
 
 echo_mclient.o: $(SRC)/echo_mclient.cc $(GLISH_SRC)/include/Glish/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/echo_mclient.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/echo_mclient.cc 
 
 echo_mclient: echo_mclient.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o echo_mclient echo_mclient.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o echo_mclient echo_mclient.o $(LIBS)
 
 $(BINDIR)/echo_mclient: echo_mclient
 	$(INSTALL_PROGRAM) echo_mclient $(BINDIR)
@@ -132,10 +133,10 @@ $(PFX_BINDIR)/echo_mclient: echo_mclient
 
 shell_client.o: $(SRC)/shell_client.cc $(GLISH_SRC)/include/Glish/Client.h \
 		$(GLISH_SRC)/Channel.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/shell_client.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/shell_client.cc 
 
 shell_client: shell_client.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o shell_client shell_client.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o shell_client shell_client.o $(LIBS)
 
 $(BINDIR)/shell_client: shell_client
 	$(INSTALL_PROGRAM) shell_client $(BINDIR)
@@ -147,10 +148,10 @@ $(PFX_BINDIR)/shell_client: shell_client
 
 tell_glishd.o: $(SRC)/tell_glishd.cc $(GLISH_SRC)/include/Glish/Client.h  \
 		$(GLISH_SRC)/ports.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -I$(INCDIR) -c $(SRC)/tell_glishd.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I$(INCDIR) -c $(SRC)/tell_glishd.cc 
 
 tell_glishd: tell_glishd.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o tell_glishd tell_glishd.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o tell_glishd tell_glishd.o $(LIBS)
 
 $(BINDIR)/tell_glishd: tell_glishd
 	$(INSTALL_PROGRAM) tell_glishd $(BINDIR)
@@ -161,10 +162,10 @@ $(PFX_BINDIR)/tell_glishd: tell_glishd
 #	strip $(BINDIR)/tell_glishd
 
 test_client.o: $(SRC)/test_client.cc $(GLISH_SRC)/include/Glish/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/test_client.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/test_client.cc 
 
 test_client: test_client.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o test_client test_client.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o test_client test_client.o $(LIBS)
 
 $(BINDIR)/test_client: test_client
 	$(INSTALL_PROGRAM) test_client $(BINDIR)
@@ -175,10 +176,10 @@ $(PFX_BINDIR)/test_client: test_client
 #	strip $(PFX_BINDIR)/test_client
 
 timer.o: $(SRC)/timer.cc $(GLISH_SRC)/include/Glish/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/timer.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/timer.cc 
 
 timer: timer.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o timer timer.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o timer timer.o $(LIBS)
 
 $(BINDIR)/timer: timer
 	$(INSTALL_PROGRAM) timer $(BINDIR)
@@ -189,10 +190,10 @@ $(PFX_BINDIR)/timer: timer
 #	strip $(PFX_BINDIR)/timer
 
 multiplexer.o: $(SRC)/multiplexer.cc $(GLISH_SRC)/include/Glish/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/multiplexer.cc 
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/multiplexer.cc 
 
 multiplexer: multiplexer.o $(GLISH_LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o multiplexer multiplexer.o $(LIBS)
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o multiplexer multiplexer.o $(LIBS)
 
 $(BINDIR)/multiplexer: multiplexer
 	$(INSTALL_PROGRAM) multiplexer $(BINDIR)

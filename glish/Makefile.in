@@ -28,7 +28,8 @@ XINC = @XINCLUDES@
 
 INCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC) $(PLUSINC)
 CINCLUDE = -I. -I$(SRC) -I$(SRC)/include -I../../include @GLISH_INCL@ $(XINC)
-CFLAGS = @GLISH_FLAGS@  @CFLAGS@
+CFLAGS = @GLISH_FLAGS@ @CFLAGS@
+CXXFLAGS = @GLISH_FLAGS@ @CXXFLAGS@
 
 INTERP_OBJS = \
 	IValue.o \
@@ -98,7 +99,7 @@ TAR_FILE = glish.tar
 all: libglish.a libinterp.a glish 
 
 glish: main.o libinterp.a libglish.a $(LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -o glish main.o libinterp.a libglish.a \
 		$(LIBS) @GLISH_LIB@ $(XLIB) -lm @LIBS@
 
 libglish.a: $(CLIENT_OBJS)
@@ -169,78 +170,78 @@ distclean: clean
 	rm -f config.status config.cache config.h config_p.h Makefile
 
 Agent.o: $(SRC)/Agent.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/Reporter.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Agent.cc
 BinOpExpr.o: $(SRC)/BinOpExpr.cc $(SRC)/BinOpExpr.h $(KEY_HEADERS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/BinOpExpr.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/BinOpExpr.cc
 BuiltIn.o: $(SRC)/BuiltIn.cc $(SRC)/BuiltIn.h $(SRC)/TkAgent.h $(KEY_HEADERS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/BuiltIn.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/BuiltIn.cc
 Client.o: $(SRC)/Client.cc $(H)/Client.h $(H)/Value.h $(H)/Object.h \
 		$(SRC)/Reporter.h $(SRC)/ports.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Client.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Client.cc
 Complex.o: $(SRC)/Complex.cc $(H)/Complex.h $(H)/glish.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Complex.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Complex.cc
 Daemon.o: $(SRC)/Daemon.cc $(SRC)/Daemon.h $(H)/Client.h
-	$(CPLUS) '-DRSH="@RSH@"' $(CFLAGS) $(INCLUDE) -c $(SRC)/Daemon.cc
+	$(CPLUS) '-DRSH="@RSH@"' $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Daemon.cc
 Dict.o: $(SRC)/Dict.cc $(H)/Dict.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Dict.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Dict.cc
 Event.o: $(SRC)/Event.cc $(KEY_HEADERS) $(SRC)/Event.h $(SRC)/Reporter.h \
 		$(SRC)/Task.h $(SRC)/Agent.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Event.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Event.cc
 Executable.o: $(SRC)/Executable.cc $(SRC)/Executable.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Executable.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Executable.cc
 Expr.o: $(SRC)/Expr.cc $(KEY_HEADERS) $(SRC)/Reporter.h $(SRC)/Task.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Expr.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Expr.cc
 Frame.o: $(SRC)/Frame.cc $(SRC)/Frame.h $(H)/Object.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Frame.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Frame.cc
 Func.o: $(SRC)/Func.cc $(SRC)/Func.h $(SRC)/Stmt.h $(KEY_HEADERS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Func.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Func.cc
 List.o: $(SRC)/List.cc $(H)/List.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/List.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/List.cc
 LocalExec.o: $(SRC)/LocalExec.cc $(SRC)/LocalExec.h $(SRC)/Executable.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/LocalExec.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/LocalExec.cc
 Object.o: $(SRC)/Object.cc $(H)/Object.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Object.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Object.cc
 Queue.o: $(SRC)/Queue.cc $(SRC)/Queue.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Queue.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Queue.cc
 RemoteExec.o: $(SRC)/RemoteExec.cc $(SRC)/RemoteExec.h $(SRC)/Executable.h \
 		$(SRC)/Channel.h $(H)/Client.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/RemoteExec.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/RemoteExec.cc
 Reporter.o: $(SRC)/Reporter.cc $(SRC)/Reporter.h $(H)/Object.h $(SRC)/input.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Reporter.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Reporter.cc
 Select.o: $(SRC)/Select.cc $(SRC)/Select.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Select.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Select.cc
 Sequencer.o: $(SRC)/Sequencer.cc $(SRC)/Sequencer.h $(KEY_HEADERS) \
     $(SRC)/Task.h $(SRC)/Stmt.h $(SRC)/Channel.h $(SRC)/Queue.h \
     $(SRC)/Frame.h $(SRC)/ports.h $(SRC)/version.h $(H)/Client.h
-	$(CPLUS) $(CFLAGS) -DGLISHROOT=\"$(GLISHROOT)\" $(INCLUDE) \
+	$(CPLUS) $(CXXFLAGS) -DGLISHROOT=\"$(GLISHROOT)\" $(INCLUDE) \
 				-c $(SRC)/Sequencer.cc
 Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Socket.cc
 Stmt.o: $(SRC)/Stmt.cc $(SRC)/Stmt.h $(KEY_HEADERS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Stmt.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Stmt.cc
 Task.o:	$(SRC)/Task.cc $(SRC)/Task.h $(KEY_HEADERS) $(SRC)/Channel.h \
     $(SRC)/BuiltIn.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Task.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Task.cc
 TkAgent.o: $(SRC)/Agent.h $(SRC)/TkAgent.cc $(SRC)/TkAgent.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -w -c $(SRC)/TkAgent.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -w -c $(SRC)/TkAgent.cc
 TkCanvas.o: $(SRC)/Agent.h $(SRC)/TkAgent.h $(SRC)/TkCanvas.cc $(SRC)/TkCanvas.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkCanvas.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/TkCanvas.cc
 TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/TkSelect.cc
 ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/ValKern.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/ValKern.cc
 Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/Value.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/Value.cc
 IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
 				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
 			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/IValue.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/IValue.cc
 VecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(KEY_HEADERS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/VecRef.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/VecRef.cc
 glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/glishlib.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/glishlib.cc
 main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h $(SRC)/IValue.h
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c $(SRC)/main.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c $(SRC)/main.cc
 
 y.tab.h parse.o: $(SRC)/parse.y
 
@@ -256,19 +257,19 @@ parse.cc: $(SRC)/parse.y
 parse.o: parse.cc $(KEY_HEADERS) $(SRC)/Stmt.h $(SRC)/BinOpExpr.h
 	@sed -f $(SRC)/fix_yyparse.sed < parse.cc > parse.cc.fixed
 	@mv parse.cc.fixed parse.cc
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -I. -DYYDEBUG -c parse.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I. -DYYDEBUG -c parse.cc
 
 scan.o: $(SRC)/scan.l y.tab.h $(KEY_HEADERS)
 	@rm -f scan.cc
 	flex $(LFLAGS) $(SRC)/scan.l
 	@mv lex.yy.c scan.cc
 	@-chmod g+w scan.cc
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -I. -c scan.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -I. -c scan.cc
 
 glish_init.cc: $(SRC)/glish.init $(SRC)/mkinit.sh
 	$(SH) $(SRC)/mkinit.sh $(SRC)/glish.init >glish_init.cc
 glish_init.o: glish_init.cc
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -c glish_init.cc
+	$(CPLUS) $(CXXFLAGS) $(INCLUDE) -c glish_init.cc
 
 system.o: $(SRC)/system.c $(SRC)/system.h
 	$(CC) $(CFLAGS) $(CINCLUDE) -c $(SRC)/system.c
