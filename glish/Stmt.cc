@@ -1352,7 +1352,7 @@ IValue* StmtBlock::DoExec( evalOpt &flow )
 
 	if ( frame_size )
 		{
-		Frame* call_frame = new Frame( frame_size, 0, LOCAL_SCOPE );
+		Frame* call_frame = new Frame( frame_size, 0, 0, LOCAL_SCOPE );
 
 		sequencer->PushFrame( call_frame );
 
