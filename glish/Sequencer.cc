@@ -2861,6 +2861,17 @@ void Sequencer::RunQueue()
 		Ref(notifier_val);
 		n->notifiee->stmt->Notify( n->notifier );
 
+		// This extra check is necessary because a 'whenever' stmt which
+		// is set for the same event as a "current" 'await' stmt could
+		// result in the last notification being changed. This causes
+		// the 'await' to end up with the wrong "$name" and "$value".
+		if ( last_notification != n )
+			{
+			Ref( n );
+			Unref( last_notification );
+			last_notification = n;
+			}
+
 		if ( n->notifiee->stack )
 			(void) PopFrames( );
 		else if ( n->notifiee->frame )
