@@ -28,6 +28,8 @@ int system( const char* string );
 }
 
 
+#include "Npd/npd.h"
+#include "Daemon.h"
 #include "Reporter.h"
 #include "Sequencer.h"
 #include "Frame.h"
@@ -180,40 +182,6 @@ protected:
 	};
 
 
-// A RemoteDaemon keeps track of a glishd running on a remote host.
-// This includes the Channel used to communicate with the daemon and
-// modifiable state indicating whether we're currently waiting for
-// a probe response from the daemon.
-
-// Possible states a daemon can be in.
-typedef enum
-	{
-	DAEMON_OK,	// all is okay
-	DAEMON_REPLY_PENDING,	// we're waiting for reply to last probe
-	DAEMON_LOST	// we've lost connectivity
-	} daemon_states;
-
-class RemoteDaemon {
-public:
-	RemoteDaemon( const char* daemon_host, Channel* channel )
-		{
-		host = daemon_host;
-		chan = channel;
-		SetState( DAEMON_OK );
-		}
-
-	const char* Host()		{ return host; }
-	Channel* DaemonChannel()	{ return chan; }
-	daemon_states State()		{ return state; }
-	void SetState( daemon_states s )	{ state = s; }
-
-protected:
-	const char* host;
-	Channel* chan;
-	daemon_states state;
-	};
-
-
 Notification::Notification( Agent* arg_notifier, const char* arg_field,
 			    Value* arg_value, Notifiee* arg_notifiee )
 	{
@@ -252,7 +220,7 @@ Sequencer::Sequencer( int& argc, char**& argv )
 	// Create the global scope.
 	scopes.append( new expr_dict );
 
-	create_built_ins( this );
+	create_built_ins( this, argv[0] );
 
 	null_stmt = new NullStmt;
 
@@ -341,11 +309,24 @@ Sequencer::Sequencer( int& argc, char**& argv )
 		}
 
 	name = argv[0];
+	name_list *load_list = new name_list;
 
 	for ( ++argv, --argc; argc > 0; ++argv, --argc )
 		{
 		if ( ! strcmp( argv[0], "-v" ) )
 			++verbose;
+
+		else if ( ! strcmp( argv[0], "-l" ) )
+			if ( argc > 1 )
+				{
+				++argv; --argc;
+				if ( argv[0] && strlen(argv[0]) )
+					load_list->append( argv[0] );
+				else
+					fatal->Report("bad file name with \"-l\".");
+				}
+			else
+				fatal->Report("\"-l\" given with no file to load.");
 
 		else if ( strchr( argv[0], '=' ) )
 			putenv( argv[0] );
@@ -390,6 +371,30 @@ Sequencer::Sequencer( int& argc, char**& argv )
 				Parse( glish_rc_filename );
 				}
 			}
+		}
+
+
+	if ( load_list->length() )
+		{
+		// Handle the .glishrc startup so that we can use any include
+		// path which might be specified in there.
+		Exec( 1 );
+		loop_over_list( *load_list, i )
+			{
+			char *expanded_name = which_include((*load_list)[i]);
+			if ( expanded_name )
+				load_list->replace(i,expanded_name);
+			else
+				fatal->Report("Can't include file \"",
+						      (*load_list)[i],"\".");
+			}
+
+		// Prevent re-executing the .glishrc statements
+		stmts = null_stmt;
+		loop_over_list( *load_list, j )
+			Parse( (*load_list)[j] );
+
+		delete_name_list( load_list );
 		}
 
 	int do_interactive = 1;
@@ -626,23 +631,42 @@ Stmt* Sequencer::LookupStmt( int index )
 	return registered_stmts[index - 1];
 	}
 
-Channel* Sequencer::GetHostDaemon( const char* host )
+int Sequencer::LocalHost( const char *host )
 	{
 	if ( ! host ||
 	     ! strcmp( host, ConnectionHost() ) ||
 	     ! strcmp( host, "localhost" ) )
-		// request is for local host
+		return 1;
+	else
 		return 0;
+	}
 
-	RemoteDaemon* d = daemons[host];
-	if ( ! d )
-		d = CreateDaemon( host );
+Channel* Sequencer::GetHostDaemon( const char* host, int &err )
+	{
+	err = 0;
+	RemoteDaemon* d;
 
-	return d->DaemonChannel();
+	if ( LocalHost( host ) )
+		{
+		// Check to see if a daemon is running
+		d = daemons["localhost"];
+		if ( ! d )
+			d = OpenDaemonConnection( "localhost", err );
+		}
+	else 
+		{
+		d = daemons[host];
+		if ( ! d )
+			d = CreateDaemon( host );
+		if ( ! d )
+			err = 1;
+		}
+		
+	return d ? d->DaemonChannel() : 0;
 	}
 
 
-void Sequencer::Exec()
+void Sequencer::Exec( int startup_script )
 	{
 	if ( interactive )
 		return;
@@ -656,7 +680,8 @@ void Sequencer::Exec()
 	stmt_flow_type flow;
 	Unref( stmts->Exec( 0, flow ) );
 
-	EventLoop();
+	if ( ! startup_script )
+		EventLoop();
 	}
 
 
@@ -671,7 +696,13 @@ void Sequencer::Await( Stmt* arg_await_stmt, int only_flag,
 	await_only_flag = only_flag;
 	except_stmt = arg_except_stmt;
 
+	if ( yyin && isatty( fileno( yyin ) ) )
+		selector->DeleteSelectee( fileno( yyin ) );
+
 	EventLoop();
+
+	if ( yyin && isatty( fileno( yyin ) ) )
+		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
 
 	await_stmt = hold_await_stmt;
 	await_only_flag = only_flag;
@@ -1058,7 +1089,7 @@ void Sequencer::Parse( FILE* file, const char* filename )
 		// We're about to enter the "interactive" loop, so
 		// first execute any statements we've seen so far due
 		// to .glishrc files.
-		Exec();
+		Exec( 1 );
 
 		// And add a special Selectee for detecting user input.
 		selector->AddSelectee( new UserInputSelectee( fileno( yyin ) ) );
@@ -1097,7 +1128,9 @@ void Sequencer::Parse( const char* strings[] )
 
 RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	{
-	RemoteDaemon* rd = OpenDaemonConnection( host );
+	int err = 0;
+	RemoteDaemon* rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 
 	if ( rd )
 		// We're all done, the daemon was already running.
@@ -1106,60 +1139,37 @@ RemoteDaemon* Sequencer::CreateDaemon( const char* host )
 	// Have to start up the daemon.
 	message->Report( "activating Glish daemon on ", host );
 
-	char daemon_cmd[1024];
-	sprintf( daemon_cmd, "%s %s -n glishd &", RSH, host );
-	system( daemon_cmd );
+	start_remote_daemon( host );
 
-	rd = OpenDaemonConnection( host );
+	rd = OpenDaemonConnection( host, err );
+	if ( err ) return 0;
 	while ( ! rd )
 		{
 		message->Report( "waiting for daemon ..." );
 		sleep( 1 );
-		rd = OpenDaemonConnection( host );
+		rd = OpenDaemonConnection( host, err );
+		if ( err ) return 0;
 		}
 
 	return rd;
 	}
 
-RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host )
+RemoteDaemon* Sequencer::OpenDaemonConnection( const char* host, int &err )
 	{
-	int daemon_socket = get_tcp_socket();
+	RemoteDaemon *r = 0;
+	err = 0;
+	const char *h = host;
 
-	if ( remote_connection( daemon_socket, host, DAEMON_PORT ) )
-		{ // Connected.
-		mark_close_on_exec( daemon_socket );
+	if ( ! strcmp(h,"localhost") )
+		h = ConnectionHost();
 
-		Channel* daemon_channel =
-			new Channel( daemon_socket, daemon_socket );
-
-		RemoteDaemon* r = new RemoteDaemon( host, daemon_channel );
-		daemons.Insert( strdup( host ), r );
-
-		// Read and discard daemon's "establish" event.
-		GlishEvent* e = recv_event( daemon_channel->ReadFD() );
-		Unref( e );
-
-		// Tell the daemon which directory we want to work out of.
-		char work_dir[MAXPATHLEN];
-
-		if ( ! getcwd( work_dir, sizeof( work_dir ) ) )
-			fatal->Report( "problems getting cwd:", work_dir );
-
-		Value work_dir_value( work_dir );
-		send_event( daemon_channel->WriteFD(), "setwd",
-				&work_dir_value );
-
-		selector->AddSelectee(
-			new DaemonSelectee( r, selector, this ) );
-
-		return r;
-		}
-
-	else
+	if (r = connect_to_daemon( h, err ) )
 		{
-		close( daemon_socket );
-		return 0;
+		daemons.Insert( strdup( host ), r );
+		selector->AddSelectee(new DaemonSelectee( r, selector, this ) );
 		}
+
+	return r;
 	}
 
 
@@ -1532,6 +1542,12 @@ void ScriptClient::SetInterface( Selector* s, Agent* a )
 	{
 	selector = s;
 	agent = a;
+	int read_fd = fileno( stdin );
+	loop_over_list( event_sources, i )
+		{
+		if ( ! strcmp( event_sources[i]->Context().id(), interpreter_tag ) )
+			read_fd = event_sources[i]->Read_FD();
+		}
 	selector->AddSelectee( new ScriptSelectee( this, agent, read_fd ) );
 	}
 
@@ -1544,4 +1560,45 @@ void ScriptClient::FD_Change( int fd, int add_flag )
 		selector->AddSelectee( new ScriptSelectee( this, agent, fd ) );
 	else
 		selector->DeleteSelectee( fd );
+	}
+
+char* which_include( const char* file_name )
+	{
+	const Value *val;
+	const Value *pathv;
+	const Value *inclv;
+	charptr *paths = 0;
+
+	if ( (val = Sequencer::LookupVal( "system" )) && 
+			val->Type() == TYPE_RECORD &&
+			val->HasRecordElement( "path" ) &&
+			(pathv = val->ExistingRecordElement( "path" )) &&
+			pathv != false_value &&
+			pathv->Type() == TYPE_RECORD &&
+			pathv->HasRecordElement( "include" ) &&
+			(inclv = pathv->ExistingRecordElement("include")) &&
+			inclv != false_value && inclv->Type() == TYPE_STRING &&
+			inclv->Length() )
+		paths = inclv->StringPtr();
+
+	if ( ! paths || file_name[0] == '/' || file_name[0] == '.' )
+		{
+		if ( access( file_name, R_OK ) == 0 )
+			return strdup( file_name );
+		else
+			return 0;
+		}
+
+	char directory[1024];
+
+	for ( int i = 0; i < inclv->Length(); i++ )
+		if ( paths[i] && strlen(paths[i]) )
+			{
+			sprintf( directory, "%s/%s", paths[i], file_name );
+
+			if ( access( directory, R_OK ) == 0 )
+				return strdup( directory );
+			}
+
+	return 0;
 	}
