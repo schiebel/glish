@@ -1,53 +1,62 @@
 # $Header$
 
+CWD=.
 
 all:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX= $@_r
+	else 	FLGS=""; fi;		 			\
+	$(MAKE) $$FLGS $@_r
 
 install:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
 	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX=1 all_r
+	$(MAKE) $$FLGS $@_r
 	
 clean:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
 	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX= $@_r
+	$(MAKE) $$FLGS $@_r
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
 	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX= $@_r
+	$(MAKE) $$FLGS $@_r
 
 all_r: 
 	@echo "Building Glish for $(ARCH)"
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) build.sds
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) build.editline
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) build.npd
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) build.tk
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) build.glish
+	@$(MAKE) build.sds
+	@$(MAKE) build.editline
+	@$(MAKE) build.npd
+	@$(MAKE) build.tk
+	@$(MAKE) build.glish
+
+install_r: 
+	@echo "Installing Glish for $(ARCH)"
+	@$(MAKE) ARCH=$(ARCH) install.sds
+	@$(MAKE) ARCH=$(ARCH) install.editline
+	@$(MAKE) ARCH=$(ARCH) install.npd
+	@$(MAKE) ARCH=$(ARCH) install.tk
+	@$(MAKE) ARCH=$(ARCH) install.glish
 
 clean_r:
 	@echo "Cleaning Glish for $(ARCH)"
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) clean.sds
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) clean.editline
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) clean.npd
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) clean.tk
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) clean.glish
+	@$(MAKE) ARCH=$(ARCH) clean.sds
+	@$(MAKE) ARCH=$(ARCH) clean.editline
+	@$(MAKE) ARCH=$(ARCH) clean.npd
+	@$(MAKE) ARCH=$(ARCH) clean.tk
+	@$(MAKE) ARCH=$(ARCH) clean.glish
 
 distclean_r:
 	@echo "Removing Everything for $(ARCH)"
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) distclean.sds
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) distclean.editline
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) distclean.npd
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) distclean.tk
-	@$(MAKE) ARCH=$(ARCH) PFX=$(PFX) distclean.glish
+	@$(MAKE) ARCH=$(ARCH) distclean.sds
+	@$(MAKE) ARCH=$(ARCH) distclean.editline
+	@$(MAKE) ARCH=$(ARCH) distclean.npd
+	@$(MAKE) ARCH=$(ARCH) distclean.tk
+	@$(MAKE) ARCH=$(ARCH) distclean.glish
 	@rm -rf $(ARCH)
 
 ##
@@ -56,20 +65,26 @@ distclean_r:
 build.sds:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd sds; $(MAKE) $$FLGS PFX=$(PFX) install-all
+	else 	FLGS="";  fi;			 		\
+	cd sds; $(MAKE) $$FLGS
+
+install.sds:
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	cd sds; $(MAKE) $$FLGS install
 
 clean.sds:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd sds; $(MAKE) $$FLGS PFX=$(PFX) clean-all
+	else 	FLGS=""; fi;			 		\
+	cd sds; $(MAKE) $$FLGS clean
 
 distclean.sds:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd sds; $(MAKE) $$FLGS PFX=$(PFX) distclean-all
+	else 	FLGS=""; fi;			 		\
+	cd sds; $(MAKE) $$FLGS distclean
 
 ##
 ## Building Editline
@@ -77,20 +92,26 @@ distclean.sds:
 build.editline:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd editline; $(MAKE) $$FLGS PFX=$(PFX) install-all
+	else 	FLGS=""; fi;			 		\
+	cd editline; $(MAKE) $$FLGS
+
+install.editline:
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	cd editline; $(MAKE) $$FLGS install
 
 clean.editline:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd editline; $(MAKE) $$FLGS PFX=$(PFX) clean-all
+	else 	FLGS=""; fi;			 		\
+	cd editline; $(MAKE) $$FLGS clean
 
 distclean.editline:
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd editline; $(MAKE) $$FLGS PFX=$(PFX) distclean-all
+	else 	FLGS=""; fi;			 		\
+	cd editline; $(MAKE) $$FLGS distclean
 
 ##
 ## Building Glish
@@ -98,20 +119,26 @@ distclean.editline:
 build.glish: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd glish; $(MAKE) $$FLGS PFX=$(PFX) install-all
+	else 	FLGS=""; fi;			 		\
+	cd glish; $(MAKE) $$FLGS
+
+install.glish: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	cd glish; $(MAKE) $$FLGS install
 
 clean.glish: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd glish; $(MAKE) $$FLGS PFX=$(PFX) clean-all
+	else 	FLGS=""; fi;			 		\
+	cd glish; $(MAKE) $$FLGS clean
 
 distclean.glish: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	cd glish; $(MAKE) $$FLGS PFX=$(PFX) distclean-all
+	else 	FLGS=""; fi;			 		\
+	cd glish; $(MAKE) $$FLGS distclean
 
 ##
 ## Building NPD
@@ -119,53 +146,70 @@ distclean.glish:
 build.npd: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
 
 build.npd_r: 
-	@if test -z "$(GLISH_NPD)"; then 			\
-		FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=`head -1 $(ARCH)/glish.options`"; \
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=$(GLISH_NPD)"; fi;	\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	@if test -z "$(BUILD_NPD)"; then 			\
+		FLGS="$(MFLAGS) BUILD_NPD=`head -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
 
-build.npd_r_r: $(GLISH_NPD)
+build.npd_r_r: $(BUILD_NPD)
 
-GLISH_NPD: 
-	@cd npd; $(MAKE) $(MFLAGS) ARCH=$(ARCH) PFX=$(PFX) install-all
+BUILD_NPD: 
+	@cd npd; $(MAKE) $(MFLAGS) ARCH=$(ARCH)
+
+install.npd: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi; 					\
+	$(MAKE) $$FLGS $@_r
+
+install.npd_r: 
+	@if test -z "$(BUILD_NPD)"; then 			\
+		FLGS="$(MFLAGS) BUILD_NPD=`head -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+install.npd_r_r: install-$(BUILD_NPD)
+
+install-BUILD_NPD:
+	@cd npd; $(MAKE) install
 
 clean.npd: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
 
 clean.npd_r: 
-	@if test -z "$(GLISH_NPD)"; then 			\
-		FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=`head -1 $(ARCH)/glish.options`"; \
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=$(GLISH_NPD)"; fi;	\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	@if test -z "$(BUILD_NPD)"; then 			\
+		FLGS="$(MFLAGS) BUILD_NPD=`head -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;	\
+	$(MAKE) $$FLGS $@_r
 
-clean.npd_r_r: clean-$(GLISH_NPD)
+clean.npd_r_r: clean-$(BUILD_NPD)
 
-clean-GLISH_NPD: 
-	@cd npd; $(MAKE) $(MFLAGS) ARCH=$(ARCH) PFX=$(PFX) clean-all
+clean-BUILD_NPD: 
+	@cd npd; $(MAKE) clean
 
 distclean.npd: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
 
 distclean.npd_r: 
-	@if test -z "$(GLISH_NPD)"; then 			\
-		FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=`head -1 $(ARCH)/glish.options`"; \
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_NPD=$(GLISH_NPD)"; fi;	\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	@if test -z "$(BUILD_NPD)"; then 			\
+		FLGS="$(MFLAGS) BUILD_NPD=`head -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
 
-distclean.npd_r_r: distclean-$(GLISH_NPD)
+distclean.npd_r_r: distclean-$(BUILD_NPD)
 
-distclean-GLISH_NPD: 
-	@cd npd; $(MAKE) $(MFLAGS) ARCH=$(ARCH) PFX=$(PFX) distclean-all
+distclean-BUILD_NPD: 
+	@cd npd; $(MAKE) distclean
 
 ##
 ## Building TK
@@ -173,30 +217,76 @@ distclean-GLISH_NPD:
 build.tk: 
 	@if test -z "$(ARCH)"; then 				\
 		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH)";	fi; 		\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
 
 build.tk_r: 
-	@if test -z "$(GLISH_TK)"; then 				\
-		FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_TK=`tail -1 $(ARCH)/glish.options`"; \
-	else 	FLGS="$(MFLAGS) ARCH=$(ARCH) GLISH_TK=$(GLISH_TK)"; fi;	\
-	$(MAKE) $$FLGS PFX=$(PFX) $@_r
+	@if test -z "$(BUILD_TK)"; then 				\
+		FLGS="$(MFLAGS) BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;						\
+	$(MAKE) $$FLGS $@_r
 
-build.tk_r_r: $(GLISH_TK)
+build.tk_r_r: $(BUILD_TK)
 
-GLISH_TK: 
-	@if test -z "$(PFX)"; then			\
-		config/mkhier include/Rivet ;		\
-	fi
-	@cd rivet; $(MAKE) $(MFLAGS) ARCH=$(ARCH) PFX=$(PFX) install-all
+BUILD_TK: 
+	@cd rivet; $(MAKE)
 
-clean.tk:
+install.tk: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
 
-distclean.tk:
+install.tk_r: 
+	@if test -z "$(BUILD_TK)"; then 			\
+		FLGS="$(MFLAGS) BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+install.tk_r_r: install-$(BUILD_TK)
+
+install-BUILD_TK: 
+	@cd rivet; $(MAKE) install
+
+clean.tk: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS="";	fi; 		\
+	$(MAKE) $$FLGS $@_r
+
+clean.tk_r: 
+	@if test -z "$(BUILD_TK)"; then 			\
+		FLGS="$(MFLAGS) BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+clean.tk_r_r: clean-$(BUILD_TK)
+
+clean-BUILD_TK: 
+	@cd tk; $(MAKE) clean
+
+distclean.tk: 
+	@if test -z "$(ARCH)"; then 				\
+		FLGS="$(MFLAGS) ARCH=`config/architecture`";	\
+	else 	FLGS=""; fi;			 		\
+	$(MAKE) $$FLGS $@_r
+
+distclean.tk_r: 
+	@if test -z "$(BUILD_TK)"; then 			\
+		FLGS="$(MFLAGS) BUILD_TK=`tail -1 $(CWD)/$(ARCH)/glish.options`"; \
+	else 	FLGS=""; fi;					\
+	$(MAKE) $$FLGS $@_r
+
+distclean.tk_r_r: distclean-$(BUILD_TK)
+
+distclean-BUILD_TK: 
+	@cd rivet; $(MAKE) distclean
 
 ##
 ## Dummy targets
 ##
+install-:
+
 clean-:
 
 distclean-:
