@@ -1575,17 +1575,17 @@ void write_value( sos_out &sos, Value *val, const char *label, char *name, unsig
 			head.usetc( val->AttributePtr() ? 1 : 0, 1 );
 		case TYPE_RECORD:
 			{
-			unsigned int len = val->Length();
+			int len = val->Length();
 			recordptr rec = val->RecordPtr( 0 );
 			const Value* member;
 
 			sos.put_record_start( len, head );
 
 			char **fields = (char**) alloc_memory( sizeof(char*) * len );
-			unsigned int i = 0;
+			int i = 0;
 
 			for ( i = 0; i < len; ++i )
-				member = rec->NthEntry( i, fields[i] );
+				member = rec->NthEntry( i, (const char *) fields[i] );
 
 			sos.put( fields, len );
 			free_memory( fields );

@@ -145,6 +145,7 @@ extern "C" {
 #if defined(__alpha) || defined(__alpha__)
 void glish_fdiv( float *, float *, int, int );
 void glish_ddiv( double *, double *, int, int );
+void glish_func_loop( double (*)( double ), double*, double*, int );
 #endif
 
 #ifdef __cplusplus

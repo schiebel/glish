@@ -519,7 +519,7 @@ void glish_fpe_enter( )
 	{
 	sigfpe_trap = 0;
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-	sigfpe(FPE_INTDIV, glish_sigfpe_intdiv);
+	sigfpe(FPE_INTDIV, (void(*)()) glish_sigfpe_intdiv);
 #else
 	(void) install_signal_handler( SIGFPE, glish_sigfpe_recover );
 #endif
@@ -530,7 +530,7 @@ int glish_fpe_exit( )
 	int ret = sigfpe_trap;
 	sigfpe_trap = 0;
 #if defined(HAVE_SIGFPE) && defined(HAVE_FPE_INTDIV)
-	sigfpe(FPE_INTDIV, SIGFPE_DEFAULT);
+	sigfpe(FPE_INTDIV, (void(*)()) SIGFPE_DEFAULT);
 #else
 	(void) install_signal_handler( SIGFPE, glish_sigfpe );
 #endif

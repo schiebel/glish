@@ -18,4 +18,11 @@ void NAME( TYPE *lhs, TYPE *rhs, int lhs_len, int rhs_incr )		\
 DIV(glish_fdiv,float)
 DIV(glish_ddiv,double)
 
+void glish_func_loop( double (*fn)( double ), double *lhs, double *arg, int len )
+	{
+	int i;
+	for ( i=0; i < len; i++ )
+		lhs[i] = (*fn)( arg[i] );
+	}
+
 #endif

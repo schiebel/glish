@@ -232,14 +232,17 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	int len = arg->Length();
 	glish_type type = arg->Type();
 
+#define NUMERIC_BUILTIN_ACTION_LOOP(fn)				\
+	for ( int i = 0; i < len; ++i )				\
+		stor[i] = (*fn)( args_vec[i] );
+				
 #define NUMERIC_BUILTIN_ACTION(type,accessor,fn)		\
 	{							\
 	int is_copy;						\
 	type* args_vec = arg->accessor( is_copy, len );		\
 	type* stor = (type*) alloc_memory( sizeof(type)*len );	\
 								\
-	for ( int i = 0; i < len; ++i )				\
-		stor[i] = (*fn)( args_vec[i] );			\
+	NUMERIC_BUILTIN_ACTION_LOOP(fn)				\
 								\
 	if ( is_copy )						\
 		free_memory( args_vec );			\
@@ -251,6 +254,11 @@ IValue* NumericVectorBuiltIn::DoCall( const_args_list* args_val )
 	if ( type == TYPE_COMPLEX || type == TYPE_DCOMPLEX )
 		NUMERIC_BUILTIN_ACTION(dcomplex,CoerceToDcomplexArray,cfunc)
 	else
+#if defined(__alpha) || defined(__alpha__)
+#undef NUMERIC_BUILTIN_ACTION_LOOP
+#define NUMERIC_BUILTIN_ACTION_LOOP(fn)				\
+	glish_func_loop( fn, stor, args_vec, len );
+#endif
 		NUMERIC_BUILTIN_ACTION(double,CoerceToDoubleArray,func)
 
 	return result;
