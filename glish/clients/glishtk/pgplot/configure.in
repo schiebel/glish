@@ -329,10 +329,10 @@ dnl## loadable shared objects
 dnl##
 if test -z "$option_load_dir"; then
     LOADPATH="$libdir"
-    loaddir = "$libdir"
+    loaddir="$libdir"
 else
     LOADPATH="$option_load_dir:$libdir"
-    loaddir = "$option_load_dir"
+    loaddir="$option_load_dir"
 fi
 AC_SUBST(LOADPATH)
 AC_SUBST(loaddir)
@@ -444,7 +444,7 @@ if test -z "$NO_TK"; then
     	fi
         fi
     fi
-    
+
     if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
         AC_MSG_CHECKING(for X11 header files)
         XINCLUDES="# no special path needed"
@@ -472,7 +472,7 @@ if test -z "$NO_TK"; then
       AC_MSG_WARN(couldn't find any X11 include files.)
       XINCLUDES="# no include files found"
     fi
-    
+
     if test "$no_x" = yes; then
         AC_MSG_CHECKING(for X11 libraries)
         XLIBSW=nope
@@ -523,7 +523,7 @@ if test -z "$NO_TK"; then
         tcl_path="$option_tcl_libraries"
         AC_MSG_RESULT($tcl_path)
 
-    fi        
+    fi
 
     ##
     ## Find libraries, first try the path we got from tclsh (or command line flag)
@@ -1008,7 +1008,7 @@ case $host_os in
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
-	    SGI_ABI	
+	    SGI_ABI
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	fi
 
@@ -1053,7 +1053,7 @@ case $host_os in
 	MAKE_LIB="/bin/ar cru"
 
 	if test $ac_cv_prog_gcc != yes; then
-	    SGI_ABI	
+	    SGI_ABI
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	    case $_cv_sgiabi in
 		-o32)
@@ -1144,7 +1144,7 @@ case $host_os in
 	if test -n "$PGPLOTLINKFLAGS"; then
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
 	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
-	else		
+	else
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
@@ -1364,7 +1364,7 @@ case $host_os in
 	if test -n "$PGPLOTLINKFLAGS"; then
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
 	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
-	else		
+	else
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
@@ -1577,7 +1577,7 @@ AC_SUBST(EXTRA_LIBS)
 dnl##
 dnl## with TCL/Tk 8.4+, the argv parameter for Tcl_CmdProc's is "CONST84 char *[]"
 dnl## we define NEED_EMPTY_CONST84 for the older TCL/Tk versions
-dnl## 
+dnl##
 AC_SUBST(NEED_EMPTY_CONST84)
 
 if test "$GLISH_SLIB_SUFFIX" != "$SLIB_SUFFIX"; then

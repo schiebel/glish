@@ -896,10 +896,10 @@ full_libdir_p="$full_libdir_p/lib/$ARCH"
 
 if test -z "$option_load_dir"; then
     LOADPATH="$libdir"
-    loaddir = "$libdir"
+    loaddir="$libdir"
 else
     LOADPATH="$option_load_dir:$libdir"
-    loaddir = "$option_load_dir"
+    loaddir="$option_load_dir"
 fi
 
 
@@ -1955,7 +1955,7 @@ rm -f $conftest*
     	fi
         fi
     fi
-    
+
     if test "$no_x" = "yes" -o "$not_really_there" = "yes"; then
         echo $ac_n "checking for X11 header files""... $ac_c" 1>&6
         XINCLUDES="# no special path needed"
@@ -1998,7 +1998,7 @@ rm -f $conftest*
       echo "configure: warning: couldn't find any X11 include files." 1>&2
       XINCLUDES="# no include files found"
     fi
-    
+
     if test "$no_x" = yes; then
         echo $ac_n "checking for X11 libraries""... $ac_c" 1>&6
         XLIBSW=nope
@@ -2114,7 +2114,7 @@ done
         tcl_path="$option_tcl_libraries"
         echo "$ac_t""$tcl_path" 1>&6
 
-    fi        
+    fi
 
     ##
     ## Find libraries, first try the path we got from tclsh (or command line flag)
@@ -2977,7 +2977,7 @@ fi
 fi
 
 echo "$ac_t""$_cv_sgiabi" 1>&6
-	
+
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	fi
 
@@ -3072,7 +3072,7 @@ fi
 fi
 
 echo "$ac_t""$_cv_sgiabi" 1>&6
-	
+
 	    SLIB_LD="$SLIB_LD $_cv_sgiabi"
 	    case $_cv_sgiabi in
 		-o32)
@@ -3235,7 +3235,7 @@ fi
 	if test -n "$PGPLOTLINKFLAGS"; then
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
 	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
-	else		
+	else
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
@@ -3557,7 +3557,7 @@ fi
 	if test -n "$PGPLOTLINKFLAGS"; then
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS $PGPLOTLINKFLAGS"
 	    LDOBJ_LIBS="$LDOBJ_LIBS $PGPLOTLINKFLAGS"
-	else		
+	else
 	    SLIB_LD_LIBS="$SLIB_LD_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	    LDOBJ_LIBS="$LDOBJ_LIBS -lcpgplot -lpgplot $TK_LIB -L/usr/X11R6/lib -lX11"
 	fi
