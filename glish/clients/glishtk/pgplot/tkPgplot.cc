@@ -2673,6 +2673,11 @@ int TkPgplot::CanExpand( ) const {
 
 extern "C" int Gpgplot_Init(Tcl_Interp *tcl)
 	{
+	//
+	// if PGPLOT_BUFFER is set to TRUE it causes grief, "unsetenv()"
+	// isn't available everywhere, but this seems to work...
+	//
+	putenv("PGPLOT_BUFFER=");
 	GlishTk_Register( "pgplot", TkPgplot::Create );
 	Tkpgplot_Init(tcl);
 	return TCL_OK;
