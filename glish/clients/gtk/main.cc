@@ -37,10 +37,24 @@ void TkStore::fileproc( ClientData data, int )
 	{
 	TkStore *stor = (TkStore*) data;
 	GlishEvent *e = stor->NextEvent();
+
 	if ( ! e )
 		stor->done = 1;
 	else
 		stor->ProcessEvent( e );
+
+	while ( stor->QueuedEvents() )
+		{
+		e = stor->NextEvent();
+
+		if ( e )
+			stor->ProcessEvent( e );
+		else
+			{
+			stor->done = 1;
+			break;
+			}
+		}
 	}
 
 TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :

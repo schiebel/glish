@@ -179,7 +179,7 @@ class TkButton : public TkFrame {
 	int IsMenuEntry() { return menu != 0; }
 
 	void Add(TkButton *item) {  entry_list.append(item); }
-	void Remove(TkButton *item) { entry_list.remove(item); }
+	void Remove(TkButton *item);
 	const char *Index( ) const { return menu_index ? menu_index : ""; }
 
 	void ButtonPressed( );
@@ -211,6 +211,7 @@ class TkButton : public TkFrame {
 	Tk_Window menu_base;
 	unsigned long next_menu_entry;	// only used for menu buttons
 	tkagent_list entry_list;        // only used for menu buttons
+	void update_menu_index( int );
 	const char *menu_index;
 
 	char *fill;

@@ -7,7 +7,6 @@ RCSID("@(#) $Id$")
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
 #include "tkCore.h"

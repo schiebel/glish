@@ -10,7 +10,6 @@ RCSID("@(#) $Id$")
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
-#include "Reporter.h"
 #include "Glish/Value.h"
 #include "system.h"
 #include "comdefs.h"
@@ -356,8 +355,6 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 		HASARG( args, >= 2 )
 		EXPRINIT( event_name )
 
-		strary_ret *ret = 0;
-
 		ret = new strary_ret;
 		ret->ary = (char**) alloc_memory( sizeof(char*)*((int)(args->Length()/2)) );
 		ret->len = 0;
@@ -404,7 +401,7 @@ char *glishtk_oneortwoidx_strary(TkProxy *a, const char *cmd, Value *args )
 		}
 	else
 		global_store->Error("wrong type");
-			
+
 	return (char*) ret;
 	}
 
@@ -676,7 +673,7 @@ char *glishtk_listbox_insert(TkProxy *a, const char *cmd, Value *args )
 	char *event_name = "listbox insert function";
 
 	if ( args->Length() <= 0 )
-		global_store->Error("zero length value");
+		return "";
 	else if ( args->Type() == TYPE_RECORD )
 		{
 		HASARG( args, > 1 )
@@ -2426,6 +2423,28 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label, charptr type
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
 
+void TkButton::update_menu_index( int i )
+	{
+	char buf[64];
+	sprintf(buf,"%d",i);
+	free_memory((char*)menu_index);
+	menu_index = strdup(buf);
+	}
+
+void TkButton::Remove( TkButton *item )
+	{
+	int do_update = 0;
+	loop_over_list( entry_list, i )
+		{
+		if ( do_update )
+			((TkButton*)entry_list[i])->update_menu_index(i-1);
+		else if ( entry_list[i] == item )
+			do_update = 1;
+		}
+
+	entry_list.remove(item);
+	}
+
 void TkButton::ButtonPressed( )
 	{
 	if ( type == RADIO )
@@ -2836,7 +2855,7 @@ void CLASS::Enable( int force )					\
 	if ( disable_count ) return;				\
 								\
 	Tcl_VarEval( tcl, Tk_PathName(self),			\
-		     " config -state disabled", 0 );		\
+		     " config -state normal", 0 );		\
 	}
 
 DEFINE_ENABLE_FUNCS(TkText)
@@ -2902,7 +2921,7 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 	tcl_ArgEval( tcl, c, argv );
 
 	if ( text[0] )
-		Tcl_VarEval( tcl, Tk_PathName(self), " insert end ", text, 0 );
+		Tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
