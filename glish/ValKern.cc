@@ -308,6 +308,11 @@ DEFINE_ARRAY_SET(complex,TYPE_COMPLEX)
 DEFINE_ARRAY_SET(dcomplex,TYPE_DCOMPLEX)
 DEFINE_ARRAY_SET(charptr,TYPE_STRING)
 
+void ValueKernel::Replace( charptr vec[], unsigned int len )
+	{
+	array->SetStorage( vec, len );
+	}
+
 void ValueKernel::SetArray( voidptr vec[], unsigned int len, glish_type t, int copy )
 	{
 	DIAG2( (void*) this, "\tValueKernel::SetArray void*")

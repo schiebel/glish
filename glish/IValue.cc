@@ -22,6 +22,9 @@ RCSID("@(#) $Id$")
 
 #define AGENT_MEMBER_NAME "*agent*"
 
+#define move_ptrs(to,from,count)					\
+{for( int XIX=count-1; XIX>=0; --XIX ) (to)[XIX]=(from)[XIX];}
+
 const char *glish_charptrdummy = 0;
 
 void copy_agents( void *to_, void *from_, unsigned int len )
@@ -678,6 +681,133 @@ SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
 		}
 
 	SUBOP_CLEANUP_2(shape_len)
+	return result;
+	}
+
+IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match )
+	{
+
+	// Here we assume everything has been checked out by
+	// ApplyRegExpr::Eval before we were ever called...
+
+	if ( Type() == TYPE_FAIL )
+		return (IValue*) Fail( );
+
+	if ( Type() != TYPE_STRING )
+		return (IValue*) Fail( "bad type for regular expression application" );
+
+	charptr *strs = StringPtr();
+	int len = Length();
+
+	int global = rptr[0]->Global();
+	IValue *result = 0;
+
+	if ( global )
+		{
+		int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+
+		for ( int j=0; j < rlen; ++j )
+			{
+			int tlen = len;
+			IValue *err = 0;
+			rptr[j]->Eval( (char**&) strs, len, &match, 0, tlen, &err, 1 );
+			match_count[j] = rptr[j]->matchCount();
+			}
+
+		result = new IValue( match_count, rlen );
+		}
+	else
+		{
+		glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+
+		for ( int j=0; j < rlen; ++j )
+			{
+			int tlen = len;
+			IValue *err = 0;
+			rptr[j]->Eval( (char**&) strs, len, &match, 0, tlen, &err, 1 );
+			match_count[j] = rptr[j]->matchCount() ? glish_true : glish_false;
+			}
+
+		result = new IValue( match_count, rlen );
+		}
+
+
+	kernel.Replace( strs, len );
+	return result;
+	}
+
+IValue *IValue::ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&indices, int &ilen )
+	{
+
+	// Here we assume everything has been checked out by
+	// ApplyRegExpr::Eval before we were ever called...
+
+	if ( Type() == TYPE_FAIL )
+		return (IValue*) Fail( );
+
+	if ( Type() != TYPE_STRING || ilen <= 0 )
+		return (IValue*) Fail( "bad type for regular expression application" );
+
+	charptr *strs = StringPtr();
+	int len = Length();
+
+	int global = rptr[0]->Global();
+	IValue *result = 0;
+
+	if ( global )
+		{
+		int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
+		for ( int j=0; j < rlen; ++j )
+			{
+			int count = 0;
+			for ( int k=0; k < ilen; ++k )
+				{
+				int tlen = 1;
+				IValue *err = 0;
+				rptr[j]->Eval( (char**&) strs, len, &match, indices[k]-1, tlen, &err, 1 );
+				count += rptr[j]->matchCount();
+				if ( tlen > 1 )
+					{
+					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
+					move_ptrs( &indices[k+tlen-1], &indices[k+1], ilen-k-1 );
+					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
+					ilen += tlen-1;
+					k += tlen-1;
+					}
+				}
+			match_count[j] = count;
+			}
+
+		result = new IValue( match_count, rlen );
+		}
+	else
+		{
+		glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+		for ( int j=0; j < rlen; ++j )
+			{
+			int count = 0;
+			for ( int k=0; k < ilen; ++k )
+				{
+				int tlen = 1;
+				IValue *err = 0;
+				rptr[j]->Eval( (char**&) strs, len, &match, indices[k]-1, tlen, &err, 1 );
+				count += rptr[j]->matchCount();
+				if ( tlen > 1 )
+					{
+					indices = (int*) realloc_memory( indices, sizeof(int*)*(ilen+tlen-1) );
+					move_ptrs( &indices[k+tlen-1], &indices[k+1], ilen-k-1 );
+					for ( int X=1; X<tlen; ++X ) indices[k+X] = indices[k] + X;
+					ilen += tlen-1;
+					k += tlen-1;
+					}
+				}
+			match_count[j] = count ? glish_true : glish_false;
+			}
+
+		result = new IValue( match_count, rlen );
+		}
+
+	kernel.Replace( strs, len );
 	return result;
 	}
 

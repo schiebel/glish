@@ -177,6 +177,8 @@ class ValueKernel {
 	void SetArray( const char* vec[], unsigned int len, int copy = 0 );
 	void SetArray( voidptr vec[], unsigned int len, glish_type t, int copy = 0 );
 
+	void Replace( const char* vec[], unsigned int len );
+
 	void Grow( unsigned int len );
 
 	// May return 0 if Type() == TYPE_ERROR

@@ -372,6 +372,129 @@ Regex::Regex( const Regex *o )
 	match_count += count;
 
 
+int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, int &len, 
+		 IValue **error, int free_it, char **alt_src, int alt_len )
+	{
+
+	if ( &len == &glish_dummy_int )
+		len = 1;
+
+	if ( ! reg || ! match )
+		{
+		if ( error ) *error = (IValue*) Fail( "bad regular expression" );
+		return -1;
+		}
+
+	int swap_io = 0;
+	int resized = 0;
+
+	if ( ! root )
+		if ( alt_src )
+			swap_io = 1;
+		else
+			{
+			if ( error ) *error = (IValue*) Fail( "no source strings" );
+			return -1;
+			}
+
+	match_count = 0;
+	int count = 0;
+
+	if ( subst.str() )
+		{
+		char **outs = root;
+		int outs_len = root_len;
+		int outs_off = offset;
+		int *mret = 0;
+
+		int splits = subst.splitCount();
+
+		if ( swap_io )
+			{
+			outs = (char**) alloc_memory(sizeof(char*)*len);
+			outs_len = len;
+			outs_off = 0;
+			root = alt_src;
+			root_len = alt_len;
+			}
+
+		for ( int i=0,mc=0; i < len; ++i,++mc )
+			{
+			char *free_str = 0;
+			subst.splitReset();
+			char *dest = regx_buffer;
+			EVAL_ACTION( root[ offset + (swap_io ? mc : i) ], SUBST_PLACE_ACTION )
+
+			if ( subst.err() )
+				{
+				if ( free_str ) free_memory( free_str );
+				if ( error ) *error = (IValue*) Fail( subst.err() );
+				return -1;
+				}
+
+			if ( count )
+				{
+				if ( s < s_end )
+					{
+					memcpy( dest, s, s_end - s );
+					dest += s_end - s;
+					}
+				*dest = '\0';
+
+				if ( splits )
+					{
+					int xlenx = len;
+					len += count * splits;
+					outs_len += count * splits;
+					outs = (char**) realloc_memory(outs, sizeof(char*)*(outs_len+1));
+					if (! swap_io ) { root = outs; root_len = outs_len; }
+					resized = 1;
+
+					if ( i+1 < xlenx && ! swap_io )
+						move_ptrs( &outs[outs_off+i+count*splits+1], &outs[outs_off+i+1], xlenx-i );
+
+					if ( free_it && ! swap_io ) free_str = outs[outs_off+i];
+
+					subst.split(&outs[outs_off+i],regx_buffer);
+					i += count * splits;
+					}
+				else
+					{
+					if ( free_it && ! swap_io ) free_memory(outs[outs_off+i]);
+					outs[outs_off+i] = strdup( regx_buffer );
+					}
+				}
+			else if ( swap_io )
+				{
+				if ( free_it && ! swap_io ) free_str = outs[outs_off+i];
+				outs[outs_off+i] = strdup(root[ offset + (swap_io ? mc : i) ]);
+				}
+
+			if ( free_str ) free_memory( free_str );
+			}
+
+		if ( resized || swap_io ) { root = outs; root_len = outs_len; }
+
+		return match_count;
+		}
+	else
+		{
+		if ( swap_io )
+			{
+			root = alt_src;
+			root_len = alt_len;
+			}
+
+		for ( int i=0; i < len; ++i )
+			{
+			EVAL_ACTION( root[offset+i], )
+			}
+
+		return match_count;
+		}
+	}
+
+#if 0
 IValue *Regex::Eval( char **&strs, int &len, RegexMatch *XMATCH, int in_place, int free_it,
 		     int can_resize, char **alt_src )
 	{
@@ -521,6 +644,7 @@ int Regex::Eval( char *&string, RegexMatch *XMATCH, int in_place )
 
 	return count;
 	}
+#endif
 
 void Regex::Describe( OStream& s ) const
 	{

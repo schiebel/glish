@@ -9,6 +9,8 @@
 class IValue;
 class OStream;
 
+extern int glish_dummy_int;
+
 class regxsubst {
     public:
 	regxsubst() : subst(0), reg(0),	startp(0), endp(0),
@@ -69,6 +71,7 @@ class Regex : public GlishObject {
 	Regex( const Regex &oth );
 	Regex( const Regex *oth );
 
+#if 0
 	//
 	// The latter two parameters are ONLY used when doing a substitution. Currently,
 	// this function is only used for substitutions; for it to be used for matches,
@@ -82,7 +85,12 @@ class Regex : public GlishObject {
 	// each string. The latter allocates memory which must be freed.
 	//
 	int Eval( char *&string, RegexMatch *match=0, int in_place = 0 );
-
+#endif
+	//
+	// Always in_place and can_resize!! Returns (total) number of matches.
+	//
+	int Eval( char **&root, int &root_len, RegexMatch *match=0, int offset=0, int &len=glish_dummy_int,
+		  IValue **error=0, int free_it=0, char **alt_src=0, int alt_len=0 );
 
 	//
 	// Is this a "global" regular expression?

@@ -13,6 +13,7 @@ extern const char *glish_charptrdummy;
 class Agent;
 class Func;
 class Regex;
+class RegexMatch;
 class File;
 class ArithExpr;
 class RelExpr;
@@ -168,6 +169,9 @@ public:
 	// Both of the following return a newed value.
 	IValue* operator[]( const IValue* index ) const;
 	IValue* operator[]( const_value_list *index ) const;
+
+	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match );
+	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match, int *&indices, int &ilen );
 
 	// Return a new value holding the specified subelement(s).
 	IValue* ArrayRef( int* indices, int num_indices ) const;

@@ -72,6 +72,11 @@ IValue *Expr::Assign( IValue* /* new_value */ )
 	return (IValue*) Fail( this, "is not a valid target for assignment" );
 	}
 
+IValue *Expr::ApplyRegx( regexptr* /* ptr */, int /*len*/, RegexMatch & /* match */ )
+	{
+	return (IValue*) Fail( this, "is not a valid target for regex application" );
+	}
+
 int Expr::Invisible() const
 	{
 	return 0;
@@ -273,6 +278,34 @@ IValue *VarExpr::Assign( IValue* new_value )
 						  frame_offset, new_value, func );
 
 	return err ? (IValue*) Fail(err) : 0;
+	}
+
+IValue *VarExpr::ApplyRegx( regexptr* rptr, int rlen, RegexMatch &match )
+	{
+	access = USE_ACCESS;
+
+	IValue *value = 0;
+	int len = frames.length();
+	if ( len && ! hold_frames )
+		value = frames[len-1]->FrameElement( frame_offset );
+	else
+		value = sequencer->FrameElement( scope, scope_offset,
+						 frame_offset );
+
+	if ( ! value )
+		{
+		warn->Report( "uninitialized ",
+				scope == GLOBAL_SCOPE ? "global" : "local",
+				" variable", this, "used" );
+		value = false_ivalue();
+		sequencer->SetFrameElement( scope, scope_offset, 
+						frame_offset, value );
+
+		return (IValue*) Fail( "bad type for regular expression application" );
+		}
+
+	value = (IValue*) value->Deref();
+	return value->ApplyRegx( rptr, rlen, match );
 	}
 
 Expr *VarExpr::DoBuildFrameInfo( scope_modifier m, expr_list &dl )
@@ -1432,6 +1465,11 @@ IValue *ArrayRefExpr::Assign( IValue* new_value )
 	return 0;
 	}
 
+IValue *ArrayRefExpr::ApplyRegx( regexptr* /* ptr */, int /*len*/, RegexMatch & /* match */ )
+	{
+	return (IValue*) Fail( this, "is not a valid target for regex application" );
+	}
+
 int ArrayRefExpr::DescribeSelf( OStream &s, charptr prefix ) const
 	{
 	if ( prefix ) s << prefix;
@@ -1878,7 +1916,7 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) 
 IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	{
 	IValue* strval_ref = 0;
-	IValue* strval = (IValue*) left->ReadOnlyEval();
+	const IValue* strval = left->ReadOnlyEval();
 	const IValue* regval = right->ReadOnlyEval();
 
 	IValue* result = 0;
@@ -1895,7 +1933,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 			{
 			register const IValue* rtmp = regval;
 			regval = strval;
-			strval = (IValue*) rtmp;
+			strval = rtmp;
 			register Expr* etmp = left;
 			left = right;
 			right = etmp;
@@ -1912,10 +1950,6 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	if ( slen < 1 )
 		APPLYREG_BAIL( "zero length string" )
 
-	RegexMatch &match = sequencer->GetMatch();
-
-	match.clear();
-
 	regexptr *regs = regval->RegexPtr(0);
 	Regex::regex_type type = regs[0]->Type();
 	int splits = regs[0]->Splits() ? 1 : 0;
@@ -1929,6 +1963,9 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		if ( ! global ) global = regs[i]->Global();
 		}
 
+	RegexMatch &match = sequencer->GetMatch();
+	match.clear();
+
 	charptr *strs = strval->StringPtr(0);
 
 	if ( type == Regex::MATCH )
@@ -1940,14 +1977,14 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				   // number of applications
 				int *ret = (int*) alloc_memory( rlen * sizeof(int) );
 				for ( int i=0; i < rlen; ++i )
-					ret[i] = regs[i]->Eval( (char*&) strs[0], &match );
+					ret[i] = regs[i]->Eval( (char**&) strs, slen, &match );
 				result = new IValue( ret, rlen );
 				}
 			else
 				{
 				glish_bool *ret = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
 				for ( int i=0; i < rlen; ++i )
-					ret[i] = regs[i]->Eval( (char*&) strs[0], &match ) ? glish_true : glish_false;
+					ret[i] = regs[i]->Eval( (char**&) strs, slen, &match ) ? glish_true : glish_false;
 				result = new IValue( ret, rlen );
 				}
 			}
@@ -1959,7 +1996,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				for ( int row=0; row < slen; ++row )
 					for ( int col=0; col < rlen; ++col )
 						ret[row + col % rlen * slen] =
-							regs[col]->Eval( (char*&) strs[row], &match );
+							regs[col]->Eval( (char**&) strs, slen, &match, row );
 				result = new IValue( ret, slen * rlen );
 				if ( rlen > 1 )
 					{
@@ -1975,7 +2012,7 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 				for ( int row=0; row < slen; ++row )
 					for ( int col=0; col < rlen; ++col )
 						ret[row + col % rlen * slen] =
-							regs[col]->Eval( (char*&) strs[row], &match ) ?
+							regs[col]->Eval( (char**&) strs, slen, &match, row ) ?
 							glish_true : glish_false;
 				result = new IValue( ret, slen * rlen );
 				if ( rlen > 1 )
@@ -1991,75 +2028,54 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		}
 
 	else if ( type == Regex::SUBST )
-		{
-		int nlen = slen;
-		charptr *rstrs = 0;
 
-		//
-		// This will allocate space for "rstrs", and fill it from "strs"
-		//
-		IValue *err = regs[0]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1, (char**) strs );
-
-		if ( err ) return err;
-
-		if ( in_place )
+		if ( ! in_place )
 			{
+			int nlen = slen;
+			charptr *rstrs = 0;
+
 			//
-			// get a reference to the underlying value, instead
-			// of a read-only copy
+			// This will allocate space for "rstrs", and fill it from "strs"
 			//
-			left->ReadOnlyDone( strval );
-			strval_ref = left->RefEval( VAL_REF );
-			strval = (IValue*) strval_ref->Deref();
+			int tlen = nlen;
+			IValue *err = 0;
+			regs[0]->Eval( (char**&) rstrs, nlen, &match, 0, tlen, &err, 0, (char**) strs, slen );
 
-			if ( global )
-				{
-				int *match_count = (int*) alloc_memory( rlen * sizeof(int) );
-				match_count[0] = regs[0]->matchCount();
+			if ( err ) return err;
 
-				for ( int j=1; j < rlen; ++j )
-					{
-					regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
-					match_count[j] = regs[j]->matchCount();
-					}
-
-				result = new IValue( match_count, rlen );
-				}
-			else
-				{
-				glish_bool *match_count = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
-				match_count[0] = regs[0]->matchCount() ? glish_true : glish_false;
-
-				for ( int j=1; j < rlen; ++j )
-					{
-					regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
-					match_count[j] = regs[j]->matchCount() ? glish_true : glish_false;
-					}
-
-				result = new IValue( match_count, rlen );
-				}
-
-
-			IValue *tmp_val = new IValue( rstrs, nlen );
-			strval->TakeValue( tmp_val );
-			}
-		else
-			{
 			for ( int j=1; j < rlen; ++j )
-				regs[j]->Eval( (char**&) rstrs, nlen, &match, 1, 1, 1 );
+				{
+				tlen = nlen;
+				regs[j]->Eval( (char**&) rstrs, nlen, &match, 0, tlen, &err, 0, (char**) strs, slen );
+				}
 
 			result = new IValue( rstrs, nlen );
 			}
-		}
+		else
+			{
+			IValue* strval_ref = left->RefEval( VAL_REF );
+			IValue* rstrval = (IValue*) strval_ref->Deref();
+
+			if ( rstrval->Type() != TYPE_SUBVEC_REF )
+
+				rstrval->ApplyRegx( regs, rlen, match );
+
+			else
+				{
+				VecRef *ref = rstrval->VecRefPtr();
+				((IValue*)rstrval->VecRefDeref())->ApplyRegx( regs, rlen, match, ref->Indices(), ref->Length() );
+				ref->IndexUpdate( );
+				}
+
+			Unref( strval_ref );
+			}
+
+
 	else
 		fatal->Report( "bad type in ApplyRegExpr::Eval( )" );
 
 	right->ReadOnlyDone( regval );
-
-	if ( type == Regex::SUBST && in_place )
-		Unref( strval_ref );
-	else
-		left->ReadOnlyDone( strval );
+	left->ReadOnlyDone( strval );
 
 	return result;
 	}

@@ -143,3 +143,12 @@ SUBVEC_SUBSCRIPT_ACTION(DoubleRef,double,TYPE_DOUBLE,DoublePtr)
 SUBVEC_SUBSCRIPT_ACTION(ComplexRef,complex,TYPE_COMPLEX,ComplexPtr)
 SUBVEC_SUBSCRIPT_ACTION(DcomplexRef,dcomplex,TYPE_DCOMPLEX,DcomplexPtr)
 SUBVEC_SUBSCRIPT_ACTION(StringRef,charptr,TYPE_STRING,StringPtr)
+
+// Called after someone has twiddled with our indices
+void VecRef::IndexUpdate( )
+	{
+	max_index = 0;
+	for ( int i = 0; i < len; ++i )
+		if ( indices[i] >= 1 && indices[i] > max_index )
+			max_index = indices[i];
+	}

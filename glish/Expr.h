@@ -7,6 +7,7 @@
 #include "Glish/Dict.h"
 #include "IValue.h"
 #include "Frame.h"
+#include "Regex.h"
 
 class Stmt;
 class Expr;
@@ -126,6 +127,11 @@ class Expr : public ParseNode {
 	// subsequent assignment to the formal parameters).
 	virtual IValue *Assign( IValue* new_value );
 
+	// Applies a regular expression to the expression. This is done
+	// here because the regular expression lilely modifies the value
+	// beneath the regular expression.
+	virtual IValue *ApplyRegx( regexptr *ptr, int len, RegexMatch &match );
+
 	// Returns true if, when evaluated as a statement, this expression's
 	// value should be "invisible" - i.e., the statement's value is "no
 	// value" (false).
@@ -222,6 +228,8 @@ class VarExpr : public Expr {
 	void PopFrame( );
 
 	IValue *Assign( IValue* new_value );
+	IValue *ApplyRegx( regexptr *rptr, int rlen, RegexMatch &match );
+
 	// This Assignment forces VarExpr to use 'f' instead of going
 	// to the 'sequencer'. This result in a 'PushFrame(f)' too.
 	IValue *Assign( IValue* new_value, Frame *f )
@@ -441,6 +449,7 @@ class ArrayRefExpr : public UnaryExpr {
 	IValue* RefEval( value_type val_type );
 
 	IValue *Assign( IValue* new_value );
+	IValue *ApplyRegx( regexptr *ptr, int len, RegexMatch &match );
 
 	int DescribeSelf( OStream &s, charptr prefix = 0 ) const;
 

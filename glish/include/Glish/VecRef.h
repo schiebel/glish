@@ -13,6 +13,13 @@ class VecRef : public GlishObject {
 
 	Value* Val()		{ return val; }
 	int Length() const 	{ return len; }
+	int &Length()		{ return len; }
+
+	int *&Indices()		{ return indices; }
+	int *Indices() const	{ return indices; }
+
+	void IndexUpdate( );
+
 	glish_type Type() const		// SGI's DCC thinks the type of
 					// this ternary expression is int
 		{ return glish_type(is_subvec_ref ? subtype : val->Type()); }
