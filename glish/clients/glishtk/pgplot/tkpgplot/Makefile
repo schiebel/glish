@@ -1,7 +1,7 @@
 ## $Id$
 ##
 
-ROOT = ../..
+ROOT = ../../../../..
 
 BUILD_DIR=$$ARCH
 
