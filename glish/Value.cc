@@ -229,6 +229,15 @@ void Value::TakeValue( Value* new_value, Str &err )
 		}
 
 	DeleteValue();
+
+	//
+	// Do this to postpone (possible) deletion of the old kernel until
+	// this value is back in good shape because the deletion of a value
+	// can cause events to be generated (in the case of an agent) which
+	// may involve this value.
+	//
+	ValueKernel tmp = kernel;
+
 	kernel = new_value->kernel;
 	AssignAttributes(new_value->TakeAttributes());
 
