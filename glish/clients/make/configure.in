@@ -179,6 +179,13 @@ rm -f $conftest*
 
 dnl##--------------------------------------------------------------------
 dnl##
+dnl## Configure authentication
+dnl##
+dnl##--------------------------------------------------------------------
+do_npd='no'
+
+dnl##--------------------------------------------------------------------
+dnl##
 dnl## Initialize basic variables
 dnl##
 dnl##--------------------------------------------------------------------
@@ -551,9 +558,15 @@ dnl##
 dnl## Select the binary to build
 dnl##
 if test "$static_binary" = "yes"; then
-    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+    CLIENT_LIBS="\${LIBDIR_P}/libglish$GLISH_LIB_SUFFIX \${LIBDIR_P}/libsos$GLISH_LIB_SUFFIX"
+    if test "$do_npd" = "yes"; then
+	CLIENT_LIBS="$CLIENT_LIBS \${LIBDIR_P}/libnpd$GLISH_LIB_SUFFIX"
+    fi
 else
-    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos -lnpd"
+    CLIENT_LIBS="$GLISH_LD_SEARCH -L\${LIBDIR_P} $cxx_lpath -lglish -lsos"
+    if test "$do_npd" = "yes"; then
+	CLIENT_LIBS="$CLIENT_LIBS -lnpd"
+    fi
 fi
 
 AC_SUBST(top_off)

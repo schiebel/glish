@@ -3501,7 +3501,8 @@ EOF
 # Ultrix sh set writes to stderr and can't be redirected directly,
 # and sets the high bit in the cache file unless we assign to the vars.
 (set) 2>&1 |
-  sed -n -e "s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\$'\(.*\)'/\1=\2/" \
+  sed -n -e "s/\\\\t/ /g" \
+         -e "s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\$'\(.*\)'/\1=\2/" \
          -e "s/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\(.*\)/\1=\${\1='\2'}/p" \
   >> $confcache
 if cmp -s $cache_file $confcache; then
