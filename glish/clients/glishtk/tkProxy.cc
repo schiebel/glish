@@ -4,12 +4,13 @@
 
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
-#include "tkCore.h"
-#include "tkCanvas.h"
+#include <X11/Xlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include "Glish/Value.h"
 #include "system.h"
+#include "tkCore.h"
+#include "tkCanvas.h"
 #include "comdefs.h"
 
 extern ProxyStore *global_store;
@@ -130,7 +131,7 @@ char *glishtk_winfo(Tcl_Interp *tcl, Tk_Window self, const char *cmd, Value * )
 class glishtk_event {
     public:
 	glishtk_event( TkProxy *a_, const char *n_, Value *v_ ) :
-			agent(a_), nme(n_ ? string_dup(n_) : string_dup(" ")), val(v_)
+			agent(a_), nme(n_ ? strdup(n_) : strdup(" ")), val(v_)
 			{ Ref(agent); Ref(val); }
 	void Post();
 	~glishtk_event();
@@ -310,8 +311,6 @@ void TkProxy::ProcessEvent( const char *name, Value *val )
 
 	TkProc *proc = procs[name];
 
-	if ( proc == NULL_TkProc ) return;
-
 	if ( proc != 0 )
 		{
 		static Value *true_result = new Value( glish_true );
@@ -351,6 +350,9 @@ void TkProxy::FlushGlishEvents()
 		hold_glish_events = 0;
 		while ( (e = tk_queue->DeQueue()) )
 			{
+#ifdef GGC
+			ProxyStore::CurSeq()->UnregisterValue(e->value());
+#endif
 			e->Post();
 			delete e;
 			}
@@ -362,13 +364,13 @@ void TkProxy::Version( ProxyStore *s, Value * )
 	Value *tkv = new Value( TK_VERSION );
 	attributeptr tka = tkv->ModAttributePtr();
 #if defined(TK_PATCH_LEVEL)
-        tka->Insert( string_dup( "patch" ), new Value(TK_PATCH_LEVEL) );
+        tka->Insert( strdup( "patch" ), new Value(TK_PATCH_LEVEL) );
 #endif
 	Value *tclv = new Value(TCL_VERSION);
-        tka->Insert( string_dup( "tcl" ), tclv );
+        tka->Insert( strdup( "tcl" ), tclv );
 #if defined(TCL_PATCH_LEVEL)
 	attributeptr tcla = tclv->ModAttributePtr();
-	tcla->Insert( string_dup( "patch" ), new Value(TCL_PATCH_LEVEL) );
+	tcla->Insert( strdup( "patch" ), new Value(TCL_PATCH_LEVEL) );
 #endif
 
 	if ( s->ReplyPending() )
@@ -471,7 +473,7 @@ char *TkProxy::which_shared_object( const char* filename )
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
 		if ( access( filename, R_OK ) == 0 )
-			return string_dup( filename );
+			return strdup( filename );
 		else
 			return 0;
 		}
@@ -484,19 +486,19 @@ char *TkProxy::which_shared_object( const char* filename )
 				{
 				sprintf( directory, "%s/%s.so", paths[i], filename );
 				if ( access( directory, R_OK ) == 0 )
-					return string_dup( directory );
+					return strdup( directory );
 				else
 					{
 					sprintf( directory, "%s/lib%s.so", paths[i], filename );
 					if ( access( directory, R_OK ) == 0 )
-						return string_dup( directory );
+						return strdup( directory );
 					}
 				}
 			else
 				{
 				sprintf( directory, "%s/%s", paths[i], filename );
 				if ( access( directory, R_OK ) == 0 )
-					return string_dup( directory );
+					return strdup( directory );
 				}
 
 	return 0;
@@ -548,7 +550,7 @@ char *TkProxy::which_bitmap( const char* filename )
 	if ( ! paths || filename[0] == '/' || filename[0] == '.' )
 		{
 		if ( access( filename, R_OK ) == 0 )
-			return string_dup( filename );
+			return strdup( filename );
 		else
 			return 0;
 		}
@@ -561,7 +563,7 @@ char *TkProxy::which_bitmap( const char* filename )
 			sprintf( directory, "%s/%s", paths[i], filename );
 
 			if ( access( directory, R_OK ) == 0 )
-				return string_dup( directory );
+				return strdup( directory );
 			}
 
 	return 0;
@@ -681,7 +683,7 @@ TkProxy::~TkProxy( )
 	TkProc* member;
 	const char* key;
 	while ( (member = procs.NextEntry( key, c )) )
-		if ( member != NULL_TkProc ) delete member;
+		delete member;
 	}
 
 void TkProxy::BindEvent(const char *event, Value *rec)

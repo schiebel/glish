@@ -3,7 +3,9 @@
 //
 #include "Glish/glish.h"
 RCSID("@(#) $Id$")
+
 #include "tkCanvas.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include "Glish/Reporter.h"
@@ -139,7 +141,7 @@ char *glishtk_canvas_1toNint(Tcl_Interp *tcl, Tk_Window self, const char *cmd, i
 			{
 			EXPRINT( v, event_name )
 			sprintf(buff,"%d",v);
-			Argv[argc++] = string_dup(buff);
+			Argv[argc++] = strdup(buff);
 			EXPR_DONE( v )
 			}
 
@@ -297,7 +299,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 					global_store->Error("bad value: one string + n int function");
 					return 0;
 					}
-				Argv[argc++] = string_dup(str);
+				Argv[argc++] = strdup(str);
 				}
 			}
 		}
@@ -315,9 +317,9 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 		for ( i=0; i < rows; i++)
 			{
 			sprintf(buf,"%d",ip[i]);
-			Argv[argc++] = string_dup(buf);
+			Argv[argc++] = strdup(buf);
 			sprintf(buf,"%d",ip[i+rows]);
-			Argv[argc++] = string_dup(buf);
+			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
@@ -342,7 +344,7 @@ char *glishtk_canvas_pointfunc(TkProxy *agent_, const char *cmd, const char *par
 		for (i=0; i < val->Length(); i++)
 			{
 			sprintf(buf,"%d",ip[i]);
-			Argv[argc++] = string_dup(buf);
+			Argv[argc++] = strdup(buf);
 			}
 		Unref(newval);
 		for (i = c; i < (*args).Length(); i++)
@@ -464,7 +466,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 				else
 					{
 					if ( val->Type() == TYPE_STRING )
-						Argv[argc++] = string_dup(val->StringPtr(0)[i<val->Length()?i:0]);
+						Argv[argc++] = strdup(val->StringPtr(0)[i<val->Length()?i:0]);
 					else if ( val->IsNumeric() )
 						{
 						Argv[argc] = (char*) alloc_memory( 30 );
@@ -544,7 +546,7 @@ char *glishtk_canvas_textfunc(TkProxy *agent_, const char *cmd, const char *para
 				else
 					{
 					if ( val->Type() == TYPE_STRING )
-						Argv[argc++] = string_dup(val->StringPtr(0)[i<val->Length()?i:0]);
+						Argv[argc++] = strdup(val->StringPtr(0)[i<val->Length()?i:0]);
 					else if ( val->IsNumeric() )
 						{
 						Argv[argc] = (char*) alloc_memory( 30 );
@@ -644,8 +646,8 @@ struct glishtk_canvas_bindinfo
 	char *tk_event_name;
 	char *tag;
 	glishtk_canvas_bindinfo( TkCanvas *c, const char *event, const char *tk_event, const char *tag_arg=0 ) :
-			canvas(c), event_name(string_dup(event)), tk_event_name(string_dup(tk_event))
-			{ tag = tag_arg ? string_dup(tag_arg) : 0; }
+			canvas(c), event_name(strdup(event)), tk_event_name(strdup(tk_event))
+			{ tag = tag_arg ? strdup(tag_arg) : 0; }
 	~glishtk_canvas_bindinfo()
 		{
 		free_memory( tag );
@@ -661,27 +663,27 @@ int glishtk_canvas_bindcb( ClientData data, Tcl_Interp *tcl, int, char *argv[] )
 	Tk_Window self = info->canvas->Self();
 
 	if ( info->tag )
-		rec->Insert( string_dup("tag"), new Value( info->tag ) );
+		rec->Insert( strdup("tag"), new Value( info->tag ) );
 
 	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
 	tcl_VarEval( tcl, Tk_PathName(self), " canvasx ", argv[1], 0 );
 	wpt[0] = atoi(Tcl_GetStringResult(tcl));
 	tcl_VarEval( tcl, Tk_PathName(self), " canvasy ", argv[2], 0 );
 	wpt[1] = atoi(Tcl_GetStringResult(tcl));
-	rec->Insert( string_dup("world"), new Value( wpt, 2 ) );
+	rec->Insert( strdup("world"), new Value( wpt, 2 ) );
 
 	int *dpt = (int*) alloc_memory( sizeof(int)*2 );
 	dpt[0] = atoi(argv[1]);
 	dpt[1] = atoi(argv[2]);
-	rec->Insert( string_dup("device"), new Value( dpt, 2 ) );
+	rec->Insert( strdup("device"), new Value( dpt, 2 ) );
 
-	rec->Insert( string_dup("code"), new Value(atoi(argv[3])) );
+	rec->Insert( strdup("code"), new Value(atoi(argv[3])) );
 
 	if ( argv[4][0] != '?' )
 		{
 		// KeyPress/Release event
-		rec->Insert( string_dup("sym"), new Value(argv[4]) );
-		rec->Insert( string_dup("key"), new Value(argv[5]) );
+		rec->Insert( strdup("sym"), new Value(argv[4]) );
+		rec->Insert( strdup("key"), new Value(argv[5]) );
 		}
 
 	info->canvas->BindEvent( info->event_name, new Value( rec ) );
@@ -870,7 +872,7 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	count++;
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
-		fill = string_dup(fill_);
+		fill = strdup(fill_);
 
 	frame->AddElement( this );
 	frame->Pack();

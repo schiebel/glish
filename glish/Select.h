@@ -23,8 +23,8 @@ class SelectTimer;
 glish_declare(PList,SelectTimer);
 typedef PList(SelectTimer) timer_list;
 
-#define alloc_Selecteeptr( num ) (Selectee**) GC_malloc( sizeof(Selectee*) * (num) )
-#define realloc_Selecteeptr( ptr, num ) (Selectee**) GC_malloc( ptr, sizeof(Selectee*) * (num) )
+#define alloc_Selecteeptr( num ) (Selectee**) alloc_memory( sizeof(Selectee*) * (num) )
+#define realloc_Selecteeptr( ptr, num ) (Selectee**) realloc_memory( ptr, sizeof(Selectee*) * (num) )
 
 class Selectee GC_FINAL_CLASS {
 public:

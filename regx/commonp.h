@@ -42,7 +42,7 @@ extern "C" {
 #define isALNUM_LC(c)   (isalpha((unsigned char)(c)) || isdigit((unsigned char)(c)) || (char)(c) == '_')
 
 #define Safefree free_memory
-#define safemalloc GC_malloc
+#define safemalloc alloc_memory
 #define STRLEN int
 #define IV int
 #define UV unsigned int
@@ -99,7 +99,7 @@ typedef union {
 EXT I32 savestack_max;
 any_value *savestack;	/* to save non-local values on */
 #define INIT_SAVESTACK	{ savestack_max = 8;					\
-			  savestack = (any_value*) GC_malloc(savestack_max*sizeof(any_value)); }
+			  savestack = (any_value*) alloc_memory(savestack_max*sizeof(any_value)); }
 #define SAVEt_REGCONTEXT 21
 #define SSPUSHINT(i) (savestack[savestack_ix++].any_i32 = (I32)(i))
 #define SSPUSHPTR(p) (savestack[savestack_ix++].any_ptr = (void*)(p))

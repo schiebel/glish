@@ -1636,10 +1636,15 @@ IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
 IValue* AllocInfoBuiltIn::DoCall( const_args_list* )
 	{
 	recordptr rec = create_record_dict();
+#if defined(ENABLE_GC)
 	rec->Insert(string_dup("used"),new IValue((double)GC_get_heap_size()));
 	rec->Insert(string_dup("unused"),new IValue(0));
+#else
+	struct mallinfo info = mallinfo();
+	rec->Insert(strdup("used"),new IValue(info.uordblks + info.usmblks + info.hblkhd));
+	rec->Insert(strdup("unused"),new IValue(info.fordblks + info.fsmblks));
+#endif
 	return new IValue( rec );
-	return new IValue( glish_false );
 	}
 
 IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
@@ -2329,6 +2334,7 @@ IValue* MissingBuiltIn::DoCall( const_args_list* /* args_val */ )
 	return copy_value( cur->Missing() );
 	}
 
+#if defined(ENABLE_GC)
 IValue* CollectGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
 	GC_gcollect( );
@@ -2341,6 +2347,7 @@ IValue* DumpGarbageBuiltIn::DoCall( const_args_list* /* args_val */ )
 	GC_dump( );
 	return new IValue( glish_true );
 	}
+#endif
 
 IValue* CurrentWheneverBuiltIn::DoCall( const_args_list* /* args_val */ )
 	{
@@ -2838,8 +2845,10 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	s->AddBuiltIn( new TrBuiltIn );
 	s->AddBuiltIn( new MissingBuiltIn( s ) );
 
+#if defined(ENABLE_GC)
 	s->AddBuiltIn( new CollectGarbageBuiltIn( s ) );
 	s->AddBuiltIn( new DumpGarbageBuiltIn( s ) );
+#endif
 
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );

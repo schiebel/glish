@@ -111,7 +111,7 @@ glish_declare(PDict,LocalExec);
 //
 class Interp {
     public:
-	Interp( Client *c ) : interpreter( c ), work_dir(string_dup("/")), binpath(0), ldpath(0) {  }
+	Interp( Client *c ) : interpreter( c ), work_dir(strdup("/")), binpath(0), ldpath(0) {  }
 	~Interp();
 
 	// Read and act on the next interpreter request.  Returns 0 to
@@ -338,7 +338,7 @@ GlishDaemon::GlishDaemon( int &, char **&argv ) : valid(0)
 	current_daemon = this;
 
 	// store away our name
-	if ( ! name ) name = string_dup(argv[0]);
+	if ( ! name ) name = strdup(argv[0]);
 
 	// signals to children that all is OK
 	valid = 1;
@@ -408,7 +408,7 @@ dUser::dUser( int sock, const char *user, const char *host ) : master(0), slave(
 	// it is assumed that GlishDaemon will set valid if all is OK
 	if ( ! valid ) return;
 
-	if ( ! hostname ) hostname = string_dup(local_host_name());
+	if ( ! hostname ) hostname = strdup(local_host_name());
 	id = (char*) alloc_memory( strlen(hostname) + strlen(name) + strlen(user) + strlen(host) + 35 );
 	sprintf( id, "%s @ %s [%d] (%s@%s)", name, hostname, int( getpid() ), user, host );
 
@@ -588,7 +588,7 @@ void dUser::ProcessTransitions( fd_set *mask )
 			// perisitent client registering itself
 			if ( ! strcmp( e->name, "*register-persistent*" ) )
 				{
-				char *nme = string_dup(e->value->StringPtr(0)[0]);
+				char *nme = strdup(e->value->StringPtr(0)[0]);
 				clients.Insert( nme, transition.remove_nth( i-- ) );
 
 				const char *type = e->value->StringPtr(0)[1];
@@ -764,7 +764,7 @@ dServer::dServer( int &argc, char **&argv ) : GlishDaemon( argc, argv ), id(0),
 	// it is assumed that GlishDaemon will set valid if all is OK
 	if ( ! valid ) return;
 
-	if ( ! hostname ) hostname = string_dup(local_host_name());
+	if ( ! hostname ) hostname = strdup(local_host_name());
 	id = (char*) alloc_memory( strlen(hostname) + strlen(name) + 30 );
 	sprintf( id, "%s @ %s [%d]", name, hostname, int( getpid() ) );
 
@@ -859,7 +859,7 @@ void dServer::ProcessConnect()
 			{
 			dUser *user = new dUser( s, peer[0], peer[1] );
 			if ( user && user->IsValid() )
-				users.Insert( string_dup(peer[0]), user );
+				users.Insert( strdup(peer[0]), user );
 			else
 				delete user;
 			}
@@ -934,7 +934,7 @@ void dServer::Register( Value *value, const char *user_name )
 	const char *type = value->StringPtr(0)[1];
 
 	if ( ! strcmp( type, "WORLD" ) )
-		world_clients.Insert( string_dup(nme), string_dup(user_name) );
+		world_clients.Insert( strdup(nme), strdup(user_name) );
 	else if ( ! strcmp( type, "GROUP" ) )
 		{
 		const char *group = get_group_name( get_user_group( user_name ) );
@@ -942,7 +942,7 @@ void dServer::Register( Value *value, const char *user_name )
 		if ( ! map )
 			{
 			map = new str_dict;
-			group_clients.Insert(string_dup(group), map);
+			group_clients.Insert(strdup(group), map);
 			}
 		else
 			{
@@ -953,7 +953,7 @@ void dServer::Register( Value *value, const char *user_name )
 				free_memory(u);
 				}
 			}
-		(*map).Insert( string_dup(nme), string_dup(user_name));
+		(*map).Insert( strdup(nme), strdup(user_name));
 		}
 	}
 

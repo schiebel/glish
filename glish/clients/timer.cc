@@ -117,13 +117,13 @@ void TimeList::add_time( double val, const char *id )
 	if ( count >= times.length() )
 		{
 		times.append( new TimeDesc( val ) );
-		times[times.length()-1]->names().append(string_dup(id));
+		times[times.length()-1]->names().append(strdup(id));
 		}
 	else
 		{
 		if ( times[count]->delay() > val )
 			times.insert_nth( count, new TimeDesc( val ) );
-		times[count]->names().append(string_dup(id));
+		times[count]->names().append(strdup(id));
 		}
 	}
 
@@ -494,7 +494,7 @@ int main( int argc, char** argv )
 						{
 						sprintf( tag, "tmr%x", ++tag_cnt );
 						tlist.add_time( times[i], tag );
-						tags[i] = string_dup(tag);
+						tags[i] = strdup(tag);
 						++len;
 						}
 

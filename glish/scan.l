@@ -806,7 +806,7 @@ char *literal( const char *new_str, int clear )
 	return string;
 	}
 
-struct flex_buf : gc {
+struct flex_buf GC_FREE_CLASS {
 	flex_buf( YY_BUFFER_STATE buf_, int putback_ ) : buf(buf_), putback(putback_) { }
 	YY_BUFFER_STATE buf;
 	int putback;

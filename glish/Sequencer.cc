@@ -270,6 +270,7 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 	frames_ = new frame_list;
 	offsets_ = new offset_list;
 
+#if defined(ENABLE_GC)
 	// This allows the garbage collector to NIL out the frame list pointer
 	// allowing it to collect cycles created when a record contains a function
 	// whose stack references the record, e.g. :
@@ -282,6 +283,7 @@ stack_type::stack_type( const stack_type &other, int clip, int delete_on_spot_ar
 	//     root := test()
 	//
 	GC_register_disappearing_link((void**)&frames_);
+#endif
 
 	int len = clip && other.frame_len() >= 0 ? other.frame_len() : other.frames()->length();
 	for ( int i = 0; i < len; i++ )
@@ -1334,11 +1336,14 @@ Sequencer::Sequencer( int& argc, char**& argv ) : verbose_mask(0), system_change
 				system(this), script_client(0), script_client_active(0),
 				expanded_name(0), run_file(0), doing_pager(0)
 	{
+
+#if defined(ENABLE_GC)
 	/* We try to make sure that we allocate at 	*/
 	/* least N/GC_free_space_divisor bytes between	*/
 	/* collections, where N is the heap size plus	*/
 	/* a rough estimate of the root set size.	*/
 	GC_free_space_divisor = 2;
+#endif
 
 	cur_sequencer = this;
 

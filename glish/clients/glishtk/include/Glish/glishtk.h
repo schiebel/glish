@@ -3,9 +3,8 @@
 //
 #ifndef tkagent_h_
 #define tkagent_h_
-#define GC XGC
+
 #include "tk.h"
-#undef GC
 #include "Glish/Proxy.h"
 #include "Glish/Queue.h"
 #ifdef DEBUGTK
@@ -159,7 +158,7 @@ class TkProxy : public Proxy {
 	int is_graphic;
 	};
 
-class TkProc GC_FINAL_CLASS {
+class TkProc {
     public:
 
 	TkProc( TkProxy *a, TkStrToValProc cvt = 0 );

@@ -174,8 +174,10 @@ class name : public BuiltIn {						\
 DERIVE_SEQUENCER_BUILTIN(CreateAgentBuiltIn,0,"create_agent")
 DERIVE_SEQUENCER_BUILTIN(MissingBuiltIn,0,"missing")
 
+#if defined(ENABLE_GC)
 DERIVE_SEQUENCER_BUILTIN(CollectGarbageBuiltIn,0,"collect_garbage")
 DERIVE_SEQUENCER_BUILTIN(DumpGarbageBuiltIn,0,"dump_garbage")
+#endif
 
 DERIVE_SEQUENCER_BUILTIN(SymbolNamesBuiltIn,NUM_ARGS_VARIES,"symbol_names")
 DERIVE_SEQUENCER_BUILTIN(SymbolValueBuiltIn,1,"symbol_value")
