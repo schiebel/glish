@@ -52,6 +52,7 @@ static const char* prog_name = "glish-interpreter";
 
 static int did_init = 0;
 
+static int suspend = 0;
 
 inline streq( const char* s1, const char* s2 )
 	{
@@ -222,7 +223,6 @@ Client::Client( int& argc, char** argv, int arg_multithreaded ) :
 
 	ClientInit();
 
-	int suspend = 0;
 	int read_fd;
 	int write_fd;
 
