@@ -46,11 +46,12 @@ class BaseList : public SosRef {
 	BaseList(int = 0, PFC = 0);
 	BaseList(BaseList&);
 
-	void insert(ent);	// add at head of list
-	void append(ent);	// add to end of list
-	ent remove(ent);	// delete entry from list
-	ent remove_nth(int);	// delete nth entry from list
-	ent get();		// return and remove ent at end of list
+	void insert(ent);	  // add at head of list
+	void append(ent);	  // add to end of list
+	ent remove(ent);	  // delete entry from list
+	void insert_nth(int,ent); // add at nth slot in list
+	ent remove_nth(int);	  // delete nth entry from list
+	ent get();		  // return and remove ent at end of list
 
 	// Return 0 if ent is not in the list, ent otherwise.
 	ent is_member(ent) const;
@@ -121,6 +122,8 @@ struct List(type) : BaseList						\
 	void append(type a)	{ BaseList::append(PASTE(type,_to_void)(a)); } \
 	type remove(type a)						\
 			{ return PASTE(void_to_,type)(BaseList::remove(PASTE(type,_to_void)(a))); } \
+	void insert_nth(int n, type a)					\
+				{ BaseList::insert_nth(n,PASTE(type,_to_void)(a)); } \
 	type remove_nth(int n)	{ return PASTE(void_to_,type)(BaseList::remove_nth(n)); } \
 	type get()		{ return PASTE(void_to_,type)(BaseList::get()); } \
 	type replace(int i, type new_type)				\
@@ -168,6 +171,8 @@ struct PList(type) : BaseList						\
 	void append(type* a)	{ BaseList::append(ent(a)); }		\
 	type* remove(type* a)						\
 		{ return (type*)BaseList::remove(ent(a)); }		\
+	void insert_nth(int n, type* a)					\
+				{ BaseList::insert_nth(n,ent(a)); }	\
 	type* remove_nth(int n)	{ return (type*)(BaseList::remove_nth(n)); }\
 	type* get()		{ return (type*)BaseList::get(); }	\
 	type* operator[](int i) const					\

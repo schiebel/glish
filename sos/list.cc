@@ -113,6 +113,26 @@ void BaseList::insert(ent a)
 	entry[0] = a;
 	}
 
+void BaseList::insert_nth(int off, ent a)
+	{
+	if ( num_entries == max_entries )
+		{
+		resize(max_entries+chunk_size);	// make more room
+		chunk_size *= 2;
+		}
+
+	if ( off > num_entries )
+		off = num_entries + 1;
+
+	if ( off < 0 ) off = 0;
+
+	for ( int i = num_entries; i > off; i-- )	
+		entry[i] = entry[i-1];	// move all pointers up one
+
+	num_entries++;
+	entry[off] = a;
+	}
+
 ent BaseList::remove(ent a)
 	{
 	int i = 0;
