@@ -42,7 +42,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <kvm.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>
 #include <sys/swap.h>
@@ -70,10 +69,6 @@ static kstat_ctl_t *kc = NULL;
 static int pageshift;
 static int (*p_pagetok) (int);
 #define pagetok(size) ((*p_pagetok)(size))
-
-/* useful externals */
-extern int gettimeofday ();
-extern void perror ();
 
 #ifndef USE_ANONINFO
 void get_swapinfo(int *total, int *fr);
@@ -226,8 +221,8 @@ void get_swapinfo(int *total, int *fr)
     *total = anon.ani_max;
     *fr = anon.ani_max - anon.ani_resv;
 #else
-    register int cnt, i;
-    register int t, f;
+    int cnt, i;
+    int t, f;
     struct swaptable *swt;
     struct swapent *ste;
     static char path[256];
