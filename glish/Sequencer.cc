@@ -2087,7 +2087,10 @@ Expr* Sequencer::InstallID( char* id, scope_type scope, int do_warn, int bool_in
 		{
 		global_frame.append( 0 );
 		if ( GetScopeType() != GLOBAL_SCOPE && ! GlobalRef )
-			InstallID( id, LOCAL_SCOPE, do_warn, bool_initial, 1, frame_offset );
+			// a "string_dup()" is required here because this current
+			// invocation of InstallID() will free/use this copy, but
+			// this next invocation will also do the same...
+			InstallID( string_dup( id ), LOCAL_SCOPE, do_warn, bool_initial, 1, frame_offset );
 		}
 
 	if ( old )
