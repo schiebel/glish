@@ -3171,7 +3171,7 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 		   charptr text_, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
 		   charptr fill_, charptr hlcolor, charptr hlbackground, charptr hlthickness )
-			: TkProxy( s ), fill(0), from_(from), to_(to), discard_event(1), last_value(value)
+			: TkProxy( s ), fill(0), from_(from), to_(to), last_value(value)
 	{
 	char var_name[256];
 	frame = frame_;
@@ -3308,26 +3308,23 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 
 void TkScale::ValueSet( double d )
 	{
-	if ( ! discard_event && d != last_value )
+	if ( d != last_value )
 		{
 		Value *v = new Value( d );
 		PostTkEvent( "value", v );
 		Unref(v);
 		last_value = d;
 		}
-	discard_event = 0;
 	}
 
 void TkScale::SetValue( double d )
 	{
-	discard_event = 1;
 	if ( d >= from_ && d <= to_ ||
 	     d <= from_ && d >= to_ )
 		{
 		char val[256];
 		sprintf(val,"%g",d);
 		tcl_VarEval( this, Tk_PathName(self), " set ", val, (char *)NULL );
-		last_value = d;
 		}
 	}
 

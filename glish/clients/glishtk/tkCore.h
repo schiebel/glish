@@ -257,7 +257,6 @@ class TkScale : public TkProxy {
 	unsigned int id;
 	static unsigned int scale_count;
 	double from_, to_;
-	int discard_event;
 	double last_value;
 	};
 
