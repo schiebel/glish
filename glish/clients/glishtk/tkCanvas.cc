@@ -1106,6 +1106,9 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 		free_memory( region );
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);

@@ -1268,6 +1268,9 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		}
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	topwin = Tk_NameToWindow( tcl, argv[1], root );
 	if ( title && title[0] )
 		tcl_VarEval( tcl, "wm title ", Tk_PathName( topwin ), " {", title, "}", (char *)NULL );
@@ -1334,6 +1337,9 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		}
 
 	tcl_ArgEval( tcl, c, argv );
+	ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
@@ -1475,6 +1481,9 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 		}
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
@@ -1556,6 +1565,9 @@ TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr s
 	argv[c++] = (char*) background_;
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
@@ -2391,21 +2403,28 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 		argv[c++] = glishtk_make_callback( tcl, buttoncb, this );
 		}
 
+	char *ctor_error = 0;
 	switch ( type )
 		{
 		case RADIO:
 			argv[0] = "radiobutton";
 			tcl_ArgEval( tcl, c, argv );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case CHECK:
 			argv[0] = "checkbutton";
 			tcl_ArgEval( tcl, c, argv );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		case MENU:
 			argv[0] = "menubutton";
 			tcl_ArgEval( tcl, c, argv );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! self )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2414,6 +2433,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 			argv[2] = "-tearoff";
 			argv[3] = "0";
 			tcl_ArgEval( tcl, 4, argv );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			menu_base = Tk_NameToWindow( tcl, argv[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2422,6 +2443,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 		default:
 			argv[0] = "button";
 			tcl_ArgEval( tcl, c, argv );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Tk_NameToWindow( tcl, argv[1], root );
 			break;
 		}
@@ -2601,18 +2624,23 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, buttoncb, this );
 
+	char *ctor_error = 0;
 	switch ( type )
 		{
 		case RADIO:
 			argv[0] = Tk_PathName(Menu());
 			argv[2] = "radio";
 			tcl_ArgEval( tcl, c, argv);
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Menu();
 			break;
 		case CHECK:
 			argv[0] = Tk_PathName(Menu());
 			argv[2] = "check";
 			tcl_ArgEval( tcl, c, argv);
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Menu();
 			break;
 		case MENU:
@@ -2623,6 +2651,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 			av[2] = "-tearoff";
 			av[3] = "0";
 			tcl_ArgEval( tcl, 4, av );
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = menu_base = Tk_NameToWindow( tcl, av[1], root );
 			if ( ! menu_base )
 				HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2637,6 +2667,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 			argv[0] = Tk_PathName(Menu());
 			argv[2] = "command";
 			tcl_ArgEval( tcl, c, argv);
+			ctor_error = Tcl_GetStringResult(tcl);
+			if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
 			self = Menu();
 			break;
 		}
@@ -3059,6 +3091,9 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = var_name;
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( text ) free_memory(text);
@@ -3224,6 +3259,9 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	const char *nme = NewName(frame->Self());
 	tcl_VarEval( tcl, "text ", nme, (char *)NULL );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, (char*) nme, root );
 
 	if ( ! self )
@@ -3505,6 +3543,9 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(hlcolor_);
@@ -3673,6 +3714,9 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify
 		}
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( text ) free_memory(text);
@@ -3844,6 +3888,9 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 	argv[c++] = glishtk_make_callback( tcl, entry_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
@@ -4016,6 +4063,9 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr wid
 		}
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	if ( text ) free_memory(text);
@@ -4194,6 +4244,9 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = glishtk_make_callback( tcl, listbox_xscrollcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
+	char *ctor_error = Tcl_GetStringResult(tcl);
+	if ( ctor_error && *ctor_error && *ctor_error != '.' ) HANDLE_CTOR_ERROR(ctor_error);
+
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
