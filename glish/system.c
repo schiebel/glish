@@ -8,6 +8,10 @@
 RCSID("@(#) $Id$")
 #include "system.h"
 
+#if defined(__sgi) && ! defined(SCM_RIGHTS)
+#define SCM_RIGHTS 0x1
+#endif
+
 #include <stdio.h>
 #include <netdb.h>
 #include <errno.h>
@@ -327,17 +331,18 @@ char *canonic_path( const char *path_in )
 			{
 			len = readlink( newpath, scratch, 2048 );
 			scratch[len] = '\0';
-			// if link is relative, fill it out (since it is relative
-			// to newpath not the current working directory)
+			/* if link is relative, fill it out (since it is relative
+			** to newpath not the current working directory)
+			*/
 			if ( *scratch == '.' )
 				{
 				sptr = scratch;
-				// trim off link portion
+				/*** trim off link portion ***/
 				llen = nptr-newpath;
 				memcpy( backup, newpath, nptr-newpath );
 				lptr = &backup[llen];
 				while ( lptr != backup && *--lptr != '/' );
-				// interpret relative path in link target
+				/*** interpret relative path in link target ***/
 				while ( *sptr )
 					{
 					if ( sptr[0] == '.' )
@@ -368,7 +373,7 @@ char *canonic_path( const char *path_in )
 				len = strlen(scratch);
 				}
 
-			// check the new path
+			/*** check the new path ***/
 			if ( lstat( scratch, &stat_buf ) < 0 ) return 0;
 			if ( ! S_ISREG(stat_buf.st_mode) )
 				{
