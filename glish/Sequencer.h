@@ -64,9 +64,6 @@ public:
 #endif
 	};
 
-glish_declare(PList,Notification);
-typedef PList(Notification) notification_list;
-
 class Task;
 class BuiltIn;
 class AcceptSocket;

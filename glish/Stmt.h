@@ -14,6 +14,9 @@ class Task;
 class Sequencer;
 class Notification;
 
+glish_declare(PList,Notification);
+typedef PList(Notification) notification_list;
+
 glish_declare(PList,Stmt);
 typedef PList(Stmt) stmt_list;
 
@@ -271,7 +274,7 @@ class AwaitStmt : public Stmt {
 	event_dsg_list* except_list;
 	Sequencer* sequencer;
 	Stmt* except_stmt;
-	Notification *cached_note;
+	notification_list cached_notes;
 	};
 
 

@@ -595,7 +595,6 @@ AwaitStmt::AwaitStmt( event_dsg_list* arg_await_list, int arg_only_flag,
 	sequencer = arg_sequencer;
 //	except_stmt = null_stmt;
 	except_stmt = this;
-	cached_note = 0;
 	}
 
 IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
@@ -610,12 +609,12 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 	sequencer->Await( this, only_flag, except_stmt );
 
-	if ( cached_note && cached_note != sequencer->LastNotification() )
+	Notification *cached_note = 0;
+	int len = cached_notes.length();
+	if ( len && (cached_note=cached_notes.remove_nth(len-1)) != sequencer->LastNotification() )
 		sequencer->PushNote(cached_note);
 	else
 		Unref(cached_note);
-
-	cached_note=0;
 
 	loop_over_list( *await_list, k )
 		(*await_list)[k]->UnRegister( this );
@@ -629,14 +628,17 @@ IValue* AwaitStmt::DoExec( int /* value_needed */, stmt_flow_type& /* flow */ )
 
 void AwaitStmt::Notify( Agent* /* agent */ )
 	{
-	cached_note = sequencer->LastNotification();
-	Ref(cached_note);
+	Notification *note = sequencer->LastNotification();
+	Ref(note);
+	cached_notes.append(note);
 	}
 
 void AwaitStmt::ClearCachedNote()
 	{
-	Unref(cached_note);
-	cached_note = 0;
+	Notification *cached_note = 0;
+	int len = cached_notes.length();
+	if ( len && (cached_note=cached_notes.remove_nth(len-1)) )
+		Unref(cached_note);
 	}
 
 const char *AwaitStmt::TerminateInfo() const
