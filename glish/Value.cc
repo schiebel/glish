@@ -2358,9 +2358,10 @@ void Value::Negate()
 
 	switch ( Type() )
 		{
-#define NEGATE_ACTION(tag,type,accessor,func)				\
+#define NEGATE_ACTION(tag,type,accessor,func,POLYMORPH)			\
 	case tag:							\
 		{							\
+		POLYMORPH						\
 		type* ptr = accessor();					\
 		for ( int i = 0; i < length; ++i )			\
 			ptr[i] = func(ptr[i]);				\
@@ -2379,12 +2380,12 @@ void Value::Negate()
 		break;							\
 		}
 
-NEGATE_ACTION(TYPE_BOOL,glish_bool,BoolPtr,(glish_bool) ! (int))
-NEGATE_ACTION(TYPE_BYTE,byte,BytePtr,-)
-NEGATE_ACTION(TYPE_SHORT,short,ShortPtr,-)
-NEGATE_ACTION(TYPE_INT,int,IntPtr,-)
-NEGATE_ACTION(TYPE_FLOAT,float,FloatPtr,-)
-NEGATE_ACTION(TYPE_DOUBLE,double,DoublePtr,-)
+NEGATE_ACTION(TYPE_BOOL,int,IntPtr,-,Polymorph(TYPE_INT);)
+NEGATE_ACTION(TYPE_INT, int,IntPtr,-,)
+NEGATE_ACTION(TYPE_BYTE,byte,BytePtr,-,)
+NEGATE_ACTION(TYPE_SHORT,short,ShortPtr,-,)
+NEGATE_ACTION(TYPE_FLOAT,float,FloatPtr,-,)
+NEGATE_ACTION(TYPE_DOUBLE,double,DoublePtr,-,)
 COMPLEX_NEGATE_ACTION(TYPE_COMPLEX,complex,ComplexPtr,-)
 COMPLEX_NEGATE_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,-)
 

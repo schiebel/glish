@@ -148,6 +148,18 @@ static char *format_error( const recordptr attr, char sep, int max_elements,
 	}
 
 
+static void check_for_decimal( char *buf )
+	{
+	if ( ! buf || ! *buf ) return;
+	while ( *buf && *buf != '.' && *buf != 'e' && *buf != 'E' ) ++buf;
+	if ( ! *buf )
+		{
+		*buf++ = '.';
+		*buf++ = '0';
+		*buf++ = '\0';
+		}
+	}
+
 char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 			int evalable, const char *prefix, Str &err ) const
 	{
@@ -311,20 +323,24 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 									\
 	case TYPE_FLOAT:						\
 		sprintf( buffer, FLOAT_PRECISION, float_ptr[indx] );	\
+		if ( evalable ) check_for_decimal( buffer );		\
 		break;							\
 									\
 	case TYPE_DOUBLE:						\
 		sprintf( buffer, FLOAT_PRECISION, double_ptr[indx] );	\
+		if ( evalable ) check_for_decimal( buffer );		\
 		break;							\
 									\
 	case TYPE_COMPLEX:						\
 		{							\
 		char t[64];						\
 		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].r );	\
+		if ( evalable ) check_for_decimal( t );			\
 		strcpy( buffer, t);					\
 		if ( complex_ptr[indx].i >= 0.0 ) 			\
 			strcat( buffer, "+" );				\
 		sprintf( t, FLOAT_PRECISION, complex_ptr[indx].i );	\
+		if ( evalable ) check_for_decimal( t );			\
 		strcat( t, "i");					\
 		strcat( buffer, t);					\
 		}							\
@@ -334,10 +350,12 @@ char* CLASS::StringVal( char sep, int max_elements, int useAttributes,
 		{							\
 		char t[64];						\
 		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].r );	\
+		if ( evalable ) check_for_decimal( t );			\
 		strcpy( buffer, t);					\
 		if ( dcomplex_ptr[indx].i >= 0.0 ) 			\
 			strcat( buffer, "+" );				\
 		sprintf( t, FLOAT_PRECISION, dcomplex_ptr[indx].i );	\
+		if ( evalable ) check_for_decimal( t );			\
 		strcat( t, "i");					\
 		strcat( buffer, t);					\
 		}							\

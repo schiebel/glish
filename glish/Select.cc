@@ -351,7 +351,12 @@ int Selector::DoSelection( int CanBlock )
 	if ( (status = gc_select( FD_SETSIZE, (SELECT_MASK_TYPE *) &read_mask,
 			(SELECT_MASK_TYPE *) &write_mask, (SELECT_MASK_TYPE *) 0, timeout )) < 0 )
 		{
-		if ( errno != EINTR )
+		//
+		// If a client dies between the time we set up the masks and the
+		// call to select(), we get a EBADF (bad file descriptor). We get
+		// a EINTR when a signal occurs while waiting in the select().
+		//
+		if ( errno != EINTR && errno != EBADF )
 			gripe( "error in DoSelection()" );
 
 		return 0;
