@@ -1961,7 +1961,6 @@ ApplyRegExpr::ApplyRegExpr( Expr* op1, Expr* op2, Sequencer *s, int in_place_ ) 
 
 IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 	{
-	IValue* strval_ref = 0;
 	const IValue* strval = left->ReadOnlyEval();
 	const IValue* regval = right->ReadOnlyEval();
 

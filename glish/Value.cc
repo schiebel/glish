@@ -91,7 +91,7 @@ Value::Value( const char *message, const char *xfile, int lineNum )
 		rptr->Insert( strdup("message"), create_value( message ) );
 	}
 
-Value::Value( const Value *val, const char *xfile, int lineNum )
+Value::Value( const Value *val, const char *, int )
 	{
 	DIAG2( (void*) this, "Value( const Value *, const char *, int )" )
 	INIT_VALUE_ACTION

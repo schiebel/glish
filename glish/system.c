@@ -604,7 +604,7 @@ static pid_t *dual_popen_children = 0;
 int dual_popen( const char *command, FILE **in, FILE **out )
 	{
 	pid_t pid;
-	int i, infd[2], outfd[2];
+	int infd[2], outfd[2];
 	int num_fds = max_fds();
 
 	if ( ! out && ! in )

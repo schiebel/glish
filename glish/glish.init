@@ -90,8 +90,8 @@ func ind(x) { if ( len(x) > 0 ) 1:len(x); else [] }
 func paste(...,sep=' ')
 	internal_paste(sep, ...)
 
-func stat( file, bytes=100 )
-	internal_stat( file, bytes )
+func stat( file, bytes=100, follow=F )
+	internal_stat( file, bytes, follow )
 
 func is_asciifile( f, bytes=100 )
 	{

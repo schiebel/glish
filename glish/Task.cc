@@ -1125,8 +1125,9 @@ void ClientTask::sendEvent( sos_sink &fd, const char* event_name,
 		sequencer->SendSuspended( ss, copy_value(e->value) );
 	}
 
-ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), task(t), id(id_),
-								    bundle(0), bundle_size(0)
+ProxyTask::ProxyTask( const ProxyId &id_, Task *t, Sequencer *s ) : Agent(s), bundle(0), bundle_size(0),
+								    task(t), id(id_)
+								    
 	{
 	char buf[128];
 	sprintf(buf, "<proxy:%d>", id.id());

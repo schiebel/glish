@@ -106,7 +106,7 @@ Agent::~Agent()
 		}	
 	}
 
-int Agent::BundleEvents( int howmany ) { return 0; }
+int Agent::BundleEvents( int ) { return 0; }
 int Agent::FlushEvents( ) { return 0; }
 
 void Agent::SendSingleValueEvent( const char* event_name, const IValue* value,

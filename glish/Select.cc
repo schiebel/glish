@@ -383,7 +383,7 @@ int Selector::DoSelection( int CanBlock )
 				{
 				nuke_current_selectee = 0;
 
-				int static count = 0;
+				static int count = 0;
 				int last = ++count;
 				int selectee_value =
 					current_selectee->NotifyOfSelection();

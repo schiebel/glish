@@ -13,7 +13,7 @@ RCSID("@(#) $Id$")
 #include "Glish/Stream.h"
 
 
-File::File( const char *str_ ) : in(0), out(0), str(0), desc(0)
+File::File( const char *str_ ) : str(0), desc(0), in(0), out(0)
 	{
 	if ( !str_ || !str_[0] ) return;
 
@@ -109,7 +109,7 @@ void File::write( charptr buf )
 	if ( type_ != OUT && type_ != POUT && type_ != PBOTH || ! out ) return;
 
 	fwrite( buf, 1, strlen(buf), out );
-	if ( type_ == PBOTH ) fflush( out );
+	fflush( out );
 	}
 
 void File::close( Type t )

@@ -135,7 +135,7 @@ DERIVE_BUILTIN(WriteBuiltIn,NUM_ARGS_VARIES,"internal_write",)
 DERIVE_BUILTIN(ReadBuiltIn,3,"internal_read",)
 DERIVE_BUILTIN(SprintfBuiltIn,NUM_ARGS_VARIES,"sprintf",)
 DERIVE_BUILTIN(PrintfBuiltIn,1,"internal_printf",)
-DERIVE_BUILTIN(StatBuiltIn,2,"internal_stat",)
+DERIVE_BUILTIN(StatBuiltIn,3,"internal_stat",)
 
 DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)

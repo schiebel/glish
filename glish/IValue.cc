@@ -478,7 +478,6 @@ IValue* IValue::operator []( const_value_list* args_val ) const
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
-	Value* op_val = (*ptr)["op[]"];
 
 	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;
@@ -1349,7 +1348,6 @@ IValue* IValue::SubRef( const_value_list *args_val, value_type )
 
 	int shape_is_copy;
 	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
-	Value* op_val = (*ptr)["op[]"];
 
 	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
 	int cur_factor = 1;

@@ -1836,12 +1836,14 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 	{
 	const IValue *file_val = (*args_val)[0];
 	const IValue *bytes_val = (*args_val)[1];
+	const IValue *follow_val = (*args_val)[2];
 
 	if ( file_val->Type() != TYPE_STRING )
 		return (IValue*) Fail( "non-string argument to \"stat\" for file" );
 
 	charptr *files = file_val->StringPtr( );
 	int bytes = bytes_val->IsNumeric() ? bytes_val->IntVal() : 20;
+	int follow = follow_val->IsNumeric() ? follow_val->IntVal() : 0;
 	bytes = bytes < 0 ? 0 : bytes > 2048 ? 2048 : bytes;
 	char *buf = 0;
 
@@ -1853,7 +1855,7 @@ IValue* StatBuiltIn::DoCall( const_args_list* args_val )
 	recordptr cur = 0;
 	for ( int i=0; i < length; ++i )
 		{
-		if ( lstat( files[i], &sbuf ) < 0 )
+		if ( (follow ? stat( files[i], &sbuf ) : lstat( files[i], &sbuf )) < 0 )
 			{
 			cur = create_record_dict( );
 			if ( rec ) rec->Insert( strdup(files[i]), new IValue(cur) );

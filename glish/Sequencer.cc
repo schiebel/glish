@@ -602,14 +602,14 @@ const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	char *pp = 0;
 	char *optr = outbuf;
 
-	for (pp=(char*)prefix; *pp; *pp++)
+	for (pp=(char*)prefix; *pp; pp++)
 		*optr++ = *pp;
 
 	for (ptr = (char*)buf; *ptr; ptr++)
 		{
 		*optr++ = *ptr;
 		if ( *ptr == '\n' )
-			for (pp=(char*)prefix; *pp; *pp++)
+			for (pp=(char*)prefix; *pp; pp++)
 				*optr++ = *pp;
 		}
 
@@ -2440,7 +2440,7 @@ void Sequencer::NotifieeDone( Notifiee *gone )
 	{
 	Notification *n = 0;
 	notification_queue.InitForIteration();
-	while( n = notification_queue.Next() )
+	while( (n = notification_queue.Next()) )
 		if ( n->notifiee == gone )
 			n->invalid( );
 	}

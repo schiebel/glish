@@ -405,7 +405,6 @@ int Regex::Eval( char **&root, int &root_len, RegexMatch *XMATCH, int offset, in
 		char **outs = root;
 		int outs_len = root_len;
 		int outs_off = offset;
-		int *mret = 0;
 
 		int splits = subst.splitCount();
 

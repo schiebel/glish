@@ -257,7 +257,7 @@ void Reporter::report( const ioOpt &opt, const RMessage& m0,
 	++count;
 	}
 
-void Reporter::Prolog( const ioOpt &opt )
+void Reporter::Prolog( const ioOpt & )
 	{
 	if ( ! interactive )
 		{

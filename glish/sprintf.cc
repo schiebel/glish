@@ -136,7 +136,7 @@ cvt:
 				error = illfmt(cbuf, convp, ch, hasmod);
 				return 0;
 				}
-			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, ch) )
+			if ( (error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, ch)) )
 				return 0;
 			goto scan;
 
@@ -147,8 +147,8 @@ cvt:
 				error = illfmt(cbuf, convp, ch, "is both long and short");
 				return 0;
 				}
-			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch,
-					flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i') )
+			if ( (error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch,
+					flags & LONGF ? 'l' : flags & SHORTF ? 'h' : 'i')) )
 				return 0;
 			goto scan;
 
@@ -159,7 +159,7 @@ cvt:
 				error = illfmt(cbuf, convp, ch, hasmod);
 				return 0;
 				}
-			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, 'f') )
+			if ( (error=doit(outbuf, cbuf, convp, args, index, i, ndyn, ch, 'f')) )
 				return 0;
 			goto scan;
 
@@ -170,7 +170,7 @@ cvt:
 				error = illfmt(cbuf, convp, ch, hasmod);
 				return 0;
 				}
-			if ( error=doit(outbuf, cbuf, convp, args, index, i, ndyn, 's', ch) )
+			if ( (error=doit(outbuf, cbuf, convp, args, index, i, ndyn, 's', ch)) )
 				return 0;
 			goto scan;
 
