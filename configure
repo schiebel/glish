@@ -3601,7 +3601,16 @@ else
 fi
 
 	fi
-	LD_SEARCH_FLAGS=""
+	if test -z "$static_binary"; then
+	    LD_SEARCH_FLAGS="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	fi
+        if test -n "$x_libraries"; then
+	    if test -z "$LD_SEARCH_FLAGS"; then
+		LD_SEARCH_FLAGS="-Xlinker -rpath -Xlinker $x_libraries"
+	    else
+		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
+	    fi
+	fi
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -3629,12 +3638,12 @@ if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > $conftest.$ac_ext <<EOF
-#line 3633 "configure"
+#line 3642 "configure"
 #include "$confdefs.h"
 #include <dlfcn.h>
 EOF
 ac_try="$ac_cpp $conftest.$ac_ext >/dev/null 2>$conftest.out"
-{ (eval echo configure:3638: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:3647: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' $conftest.out`
 if test -z "$ac_err"; then
   rm -rf $conftest*
@@ -3684,7 +3693,7 @@ fi
 	LD_FLAGS=""
 	LD_SEARCH_FLAGS=""
 	;;
-    osf1.012)
+    osf1.[012])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
 	SLIB_CFLAGS=""
 	# Hack: make package name same as library name
@@ -3705,7 +3714,7 @@ fi
 	LD_FLAGS=""
 	LD_SEARCH_FLAGS=""
 	;;
-    osf3.*)
+    osf[34].*)
         # Digital OSF/1
 	SLIB_CFLAGS=""
 	SLIB_LD='ld -shared -expect_unresolved "*"'
@@ -3902,7 +3911,7 @@ if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3906 "configure"
+#line 3915 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3910,7 +3919,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3914: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3923: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3933,7 +3942,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3937 "configure"
+#line 3946 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3941,7 +3950,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3945: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3954: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*

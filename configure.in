@@ -688,7 +688,16 @@ case $host_os in
 		DL_LIBS="-ldld"
 		LD_FLAGS=""])
 	fi
-	LD_SEARCH_FLAGS=""
+	if test -z "$static_binary"; then
+	    LD_SEARCH_FLAGS="-Xlinker -rpath -Xlinker $full_libdir_p:$full_libdir"
+	fi
+        if test -n "$x_libraries"; then
+	    if test -z "$LD_SEARCH_FLAGS"; then
+		LD_SEARCH_FLAGS="-Xlinker -rpath -Xlinker $x_libraries"
+	    else
+		LD_SEARCH_FLAGS="$LD_SEARCH_FLAGS:$x_libraries"
+	    fi
+	fi
 	;;
     MP-RAS-02*)
 	SLIB_CFLAGS="-K PIC"
@@ -741,7 +750,7 @@ case $host_os in
 	LD_FLAGS=""
 	LD_SEARCH_FLAGS=""
 	;;
-    osf1.[012])
+    osf1.[[012]])
 	# OSF/1 1.[012] from OSF, and derivatives, including Paragon OSF/1
 	SLIB_CFLAGS=""
 	# Hack: make package name same as library name
@@ -762,7 +771,7 @@ case $host_os in
 	LD_FLAGS=""
 	LD_SEARCH_FLAGS=""
 	;;
-    osf3.*)
+    osf[[34]].*)
         # Digital OSF/1
 	SLIB_CFLAGS=""
 	SLIB_LD='ld -shared -expect_unresolved "*"'
