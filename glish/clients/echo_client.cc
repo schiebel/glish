@@ -1,13 +1,25 @@
+// $Header$
+//
+// Glish "echo" client - echoes back any event sent to it.
+
 #include "Glish/glish.h"
+RCSID("@(#) $Id$")
 #include "Glish/Client.h"
 
 int main( int argc, char** argv )
 	{
-	Value ret( glish_true );
 	Client c( argc, argv );
 
-	for ( GlishEvent* e; (e = c.NextEvent()); ) ;
+	if ( argc > 1 )
+		{
+		// First echo our arguments.
+		Value v( (charptr*) argv, argc, PRESERVE_ARRAY );
 
-	c.PostEvent( "dtor", &ret );
+		c.PostEvent( "echo_args", &v );
+		}
+
+	for ( GlishEvent* e; (e = c.NextEvent()); )
+		c.PostEvent( e );
+
 	return 0;
 	}
