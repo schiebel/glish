@@ -316,26 +316,6 @@ public:
 	charptr* CoerceToStringArray( int& is_copy, int size,
 			charptr* result = 0 ) const;
 
-	// Both of the following return a newed value.
-	Value* operator[]( const Value* index ) const;
-	Value* operator[]( const_value_list *index ) const;
-
-	// Pick distinct elements from an array.
-	// Returns a newed value
-	Value* Pick( const Value* index ) const;
-
-	// Return a reference to distinct elements from an array.
-	// Returns a newed value
-	Value* PickRef( const Value* index );
-
-	// Assign to distinct array elements.
-	void PickAssign( const Value* index, Value *value );
-
-	// Return a true sub-array reference.
-	// Both of the following return a newed value.
-	Value* SubRef( const Value* index );
-	Value* SubRef( const_value_list *args_val );
-
 	// Returns a newed value
 	Value* RecordRef( const Value* index ) const;
 
@@ -628,12 +608,6 @@ protected:
 	int* GenerateIndices( const Value* index, int& num_indices,
 				int& indices_are_copy,
 				int check_size = 1 ) const;
-
-	// Return a new value holding the specified subelement(s).
-	Value* ArrayRef( int* indices, int num_indices ) const;
-
-	// Return a new value holding a reference the specified subelement(s).
-	Value* TrueArrayRef( int* indices, int num_indices, int take_indices = 0 ) const;
 
 	// Returns a slice of a record at the given indices.
 	Value* RecordSlice( int* indices, int num_indices ) const;

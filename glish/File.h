@@ -9,15 +9,19 @@
 class File : public GlishObject {
     public:
 	enum Type { IN, OUT, PIN, POUT, PBOTH, ERR };
-	File( char *str_ );
+	File( const char *str_ );
 	~File( );
 	char *read( );
 	void write( charptr buf );
 	void close( Type t=PBOTH );
+	void Describe( OStream& s ) const;
+	const char *Description( ) const;
+	Type type( ) { return type_; }
     private:
 	char *clean_string( );
-	Type type;
+	Type type_;
 	char *str;
+	char *desc;
 	FILE *in;
 	FILE *out;
 };

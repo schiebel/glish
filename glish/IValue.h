@@ -13,11 +13,13 @@ extern const char *glish_charptrdummy;
 class Agent;
 class Func;
 class Regex;
+class File;
 class ArithExpr;
 class RelExpr;
 
 typedef Func* funcptr;
 typedef Regex* regexptr;
+typedef File* fileptr;
 typedef Agent* agentptr;
 
 extern void copy_agents( void *to_, void *from_, unsigned long len );
@@ -49,6 +51,7 @@ public:
 	IValue( const char* v ) : Value( v ) GGCTOR { }
 	IValue( funcptr v );
 	IValue( regexptr v );
+	IValue( fileptr v );
 
 	// If "storage" is set to "COPY_ARRAY", then the underlying
 	// "Agent" in value will be Ref()ed. Otherwise, if 
@@ -99,6 +102,8 @@ public:
 		array_storage_type storage = TAKE_OVER_ARRAY );
 	IValue( regexptr value[], int num_elements,
 		array_storage_type storage = TAKE_OVER_ARRAY );
+	IValue( fileptr value[], int num_elements,
+		array_storage_type storage = TAKE_OVER_ARRAY );
 
 	IValue( glish_boolref& value_ref ) : Value( value_ref ) GGCTOR { }
 	IValue( byteref& value_ref ) : Value( value_ref ) GGCTOR { }
@@ -119,6 +124,7 @@ public:
 	Agent* AgentVal( ) const;
 	funcptr FuncVal( ) const;
 	regexptr RegexVal( ) const;
+	fileptr FileVal( ) const;
 
 	// Returns the entire value converted to a single string, with
 	// "sep" used to separate array elements.  "max_elements" allows
@@ -140,10 +146,12 @@ public:
 	// just selected subelements.  (See the XXXRef() functions below.)
 	funcptr* FuncPtr( int modify=1 ) const;
 	regexptr* RegexPtr( int modify=1 ) const;
+	fileptr* FilePtr( int modify=1 ) const;
 	agentptr* AgentPtr( int modify=1 ) const;
 
 	funcptr* FuncPtr( int modify=1 );
 	regexptr* RegexPtr( int modify=1 );
+	fileptr* FilePtr( int modify=1 );
 	agentptr* AgentPtr( int modify=1 );
 
 	// These coercions are very limited: they essentially either
@@ -154,6 +162,34 @@ public:
 			funcptr* result = 0 ) const;
 	regexptr* CoerceToRegexArray( int& is_copy, int size,
 			regexptr* result = 0 ) const;
+	fileptr* CoerceToFileArray( int& is_copy, int size,
+			fileptr* result = 0 ) const;
+
+	// Both of the following return a newed value.
+	IValue* operator[]( const IValue* index ) const;
+	IValue* operator[]( const_value_list *index ) const;
+
+	// Return a new value holding the specified subelement(s).
+	IValue* ArrayRef( int* indices, int num_indices ) const;
+
+	// Return a new value holding a reference the specified subelement(s).
+	IValue* TrueArrayRef( int* indices, int num_indices, int take_indices = 0 ) const;
+
+	// Pick distinct elements from an array.
+	// Returns a newed value
+	IValue* Pick( const IValue* index ) const;
+
+	// Return a reference to distinct elements from an array.
+	// Returns a newed value
+	IValue* PickRef( const IValue* index );
+
+	// Assign to distinct array elements.
+	void PickAssign( const IValue* index, IValue *value );
+
+	// Return a true sub-array reference.
+	// Both of the following return a newed value.
+	IValue* SubRef( const IValue* index );
+	IValue* SubRef( const_value_list *args_val );
 
 	void Polymorph( glish_type new_type );
 

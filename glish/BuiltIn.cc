@@ -26,6 +26,7 @@ RCSID("@(#) $Id$")
 #include "Task.h"
 #include "Sequencer.h"
 #include "Frame.h"
+#include "File.h"
 
 #include "Glish/Stream.h"
 #include "glishlib.h"
@@ -1656,6 +1657,55 @@ case tag:						\
 	return new IValue( glish_false );
 	}
 
+IValue* OpenBuiltIn::DoCall( const_args_list* args_val )
+	{
+	int len = args_val->length();
+	if ( len == 0 )
+		return (IValue*) Fail( "open() invoked with no arguments" );
+
+	fileptr *ret = (fileptr*) alloc_memory( sizeof(fileptr) * len );
+	loop_over_list( *args_val, i )
+		{
+		char* filename = (*args_val)[i]->StringVal();
+		ret[i] = new File( filename );
+		if ( ret[i]->type() == File::ERR )
+			{
+			for ( int x=0; x <= i; ++x )
+				delete ret[i];
+			delete ret;
+			IValue *fail = (IValue*) Fail( "couldn't create file \"", filename, "\"" );
+			free_memory( filename );
+			return fail;
+			}
+		free_memory( filename );
+		}
+
+	return new IValue( ret, len );
+	}
+
+IValue* SReadBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const IValue *file_val = (*args_val)[0];
+
+	if ( file_val->Type() != TYPE_FILE )
+		return (IValue*) Fail( "argument to sread is not a file" );
+
+	fileptr file = file_val->FileVal();
+
+	if ( file->type() != File::IN &&
+	     file->type() != File::PIN &&
+	     file->type() != File::PBOTH )
+		return (IValue*) Fail( "cannot read from this file" );
+
+	return empty_ivalue();
+	}
+
+IValue* SWriteBuiltIn::DoCall( const_args_list* args_val )
+	{
+	return empty_ivalue();
+	}
+
+
 IValue* ReadValueBuiltIn::DoCall( const_args_list* args_val )
 	{
 	static sos_fd_source FD;
@@ -2511,6 +2561,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new IsNaNBuiltIn );
 
+	s->AddBuiltIn( new OpenBuiltIn );
 	s->AddBuiltIn( new ReadValueBuiltIn );
 	s->AddBuiltIn( new WriteValueBuiltIn );
 

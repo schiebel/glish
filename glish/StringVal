@@ -189,6 +189,7 @@ char* CLASS::StringVal( char sep, int max_elements,
 	const char *flt_prec = 0;
 #ifdef DOIVAL
 	regexptr* regex_ptr = 0;
+	fileptr* file_ptr = 0;
 #endif
 
 	switch ( VecRefDeref()->Type() )
@@ -210,13 +211,19 @@ char* CLASS::StringVal( char sep, int max_elements,
 		ASSIGN_PTR(TYPE_STRING,string_ptr,StringPtr,)
 #ifdef DOIVAL
 		ASSIGN_PTR(TYPE_REGEX,regex_ptr,RegexPtr,)
+		ASSIGN_PTR(TYPE_FILE,file_ptr,FilePtr,)
 
 #define PLACE_REGEX(indx, str_buffer)					\
 	case TYPE_REGEX:						\
 		str_buffer = regex_ptr[ indx ]->Description( );		\
 		break;
+#define PLACE_FILE(indx, str_buffer)					\
+	case TYPE_FILE:							\
+		str_buffer = file_ptr[ indx ]->Description( );		\
+		break;
 #else
 #define PLACE_REGEX(x,y)
+#define PLACE_FILE(x,y)
 #endif
 
 		default:
@@ -279,7 +286,8 @@ char* CLASS::StringVal( char sep, int max_elements,
 	case TYPE_STRING:						\
 		str_buffer = string_ptr[ indx ];			\
 		break;							\
-	PLACE_REGEX(indx, str_buffer)
+	PLACE_REGEX(indx, str_buffer)					\
+	PLACE_FILE(indx, str_buffer)
 
 // Generate text for an element, translating subref indices if needed.
 #define PLACE_ELEMENT(buffer,str_buffer,indx,alloced)			\

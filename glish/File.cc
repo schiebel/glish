@@ -8,22 +8,25 @@ RCSID("@(#) $Id$")
 #include "Reporter.h"
 #include "File.h"
 #include <ctype.h>
+#include "Glish/Stream.h"
 
 
-File::File( char *str_ ) : in(0), out(0), str(str_)
+File::File( const char *str_ ) : in(0), out(0), str(0), desc(0)
 	{
-	if ( !str || !str[0] ) return;
+	if ( !str_ || !str_[0] ) return;
+
+	str = strdup(str_);
 
 	int len = strlen(str);
 
 	if ( str[0] == '<' )
 		{
-		type = IN;
+		type_ = IN;
 		in = fopen( clean_string( ), "r" );
 		}
 	else if ( str[0] == '>' )
 		{
-		type = OUT;
+		type_ = OUT;
 		if ( str[1] == '>' )
 			out = fopen( clean_string( ), "a" );
 		else
@@ -33,27 +36,27 @@ File::File( char *str_ ) : in(0), out(0), str(str_)
 		{
 		if ( str[len-1] == '|' )
 			{
-			type = PBOTH;
+			type_ = PBOTH;
 			dual_popen( clean_string( ), &in, &out ); 
 			}
 		else
 			{
-			type = POUT;
+			type_ = POUT;
 			out = popen( clean_string( ), "w" );
 			}
 		}
 	else if ( str[len-1] == '|' )
 		{
-		type = PIN;
+		type_ = PIN;
 		in = popen( clean_string( ), "r" );
 		}
 	else
-		type = ERR;
+		type_ = ERR;
 	}
 
 char *File::read( )
 	{
-	if ( type != IN && type != PIN && type != PBOTH ||
+	if ( type_ != IN && type_ != PIN && type_ != PBOTH ||
 	     ! in || feof(in) ) return 0;
 
 	char buf[1025];
@@ -80,15 +83,15 @@ char *File::read( )
 
 void File::write( charptr buf )
 	{
-	if ( type != OUT && type != POUT && type != PBOTH || ! out ) return;
+	if ( type_ != OUT && type_ != POUT && type_ != PBOTH || ! out ) return;
 
 	fwrite( buf, 1, strlen(buf), out );
-	if ( type == PBOTH ) fflush( out );
+	if ( type_ == PBOTH ) fflush( out );
 	}
 
 void File::close( Type t )
 	{
-	switch ( type )
+	switch ( type_ )
 	    {
 	    case IN:
 		if ( in ) fclose( in );
@@ -121,7 +124,11 @@ void File::close( Type t )
 	    }
 	}
 	
-File::~File( ) { close(); }
+File::~File( )
+	{
+	if ( str ) free_memory( str );
+	close();
+	}
 
 char *File::clean_string( )
 	{
@@ -157,4 +164,20 @@ char *File::clean_string( )
 	buffer[ret_len] = '\0';
 
 	return buffer;
+	}
+
+void File::Describe( OStream& s ) const
+	{
+	s << "<FILE: " << str << ">";
+	}
+
+const char *File::Description( ) const
+	{
+	if ( desc ) return desc;
+
+	((File*)this)->desc = (char*) alloc_memory( strlen(str) + 9);
+
+	sprintf(((File*)this)->desc, "<FILE: %s>", str);
+
+	return desc;
 	}

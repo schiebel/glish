@@ -373,10 +373,10 @@ $(D)TkSelect.o: $(SRC)/Select.h $(SRC)/TkSelect.cc $(SRC)/TkSelect.h
 $(D)ValKern.o: $(SRC)/ValKern.cc $(H)/ValKern.h $(H)/glish.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/ValKern.cc $(T)
 
-$(D)Value.o: $(SRC)/Value.cc $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
+$(D)Value.o: $(SRC)/Value.cc $(SRC)/StringVal $(H)/Value.h $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Value.cc $(T)
 
-$(D)IValue.o: $(SRC)/Value.cc $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
+$(D)IValue.o: $(SRC)/Value.cc $(SRC)/StringVal $(H)/Value.h $(SRC)/IValue.cc $(SRC)/IValue.h \
 				 $(SRC)/Expr.h $(SRC)/BinOpExpr.h \
 			 $(H)/Object.h $(H)/glish.h $(H)/ValKern.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/IValue.cc $(T)

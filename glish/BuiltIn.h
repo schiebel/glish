@@ -132,6 +132,10 @@ DERIVE_BUILTIN(AllocInfoBuiltIn,0,"alloc_info",)
 
 DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
 
+DERIVE_BUILTIN(OpenBuiltIn,NUM_ARGS_VARIES,"open",)
+DERIVE_BUILTIN(SWriteBuiltIn,NUM_ARGS_VARIES,"swrite",)
+DERIVE_BUILTIN(SReadBuiltIn,1,"sread",)
+
 DERIVE_BUILTIN(ReadValueBuiltIn,1,"read_value",)
 DERIVE_BUILTIN(WriteValueBuiltIn,2,"write_value",side_effects_call_okay = 1;)
 

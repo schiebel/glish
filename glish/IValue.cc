@@ -18,6 +18,7 @@ RCSID("@(#) $Id$")
 #include "Sequencer.h"
 #include "Agent.h"
 #include "Regex.h"
+#include "File.h"
 
 #define AGENT_MEMBER_NAME "*agent*"
 
@@ -65,6 +66,21 @@ void copy_regexs( void *to_, void *from_, unsigned int len )
 void delete_regexs( void *ary_, unsigned int len )
 	{
 	regexptr *ary = (regexptr*) ary_;
+	for (unsigned int i = 0; i < len; i++)
+		Unref(ary[i]);
+	}
+
+void copy_files( void *to_, void *from_, unsigned int len )
+	{
+	fileptr *to = (fileptr*) to_;
+	fileptr *from = (fileptr*) from_;
+	copy_array(from,to,(int)len,fileptr);
+	for (unsigned int i = 0; i < len; i++)
+		Ref(to[i]);
+	}
+void delete_files( void *ary_, unsigned int len )
+	{
+	fileptr *ary = (fileptr*) ary_;
 	for (unsigned int i = 0; i < len; i++)
 		Unref(ary[i]);
 	}
@@ -135,6 +151,7 @@ IValue::IValue( funcptr value[], int len, array_storage_type s ) : Value(TYPE_FU
 	kernel.SetArray( (voidptr*) value, len, TYPE_FUNC, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
 
+
 IValue::IValue( regexptr value ) : Value(TYPE_REGEX) GGCTOR
 	{
 	regexptr *ary = (regexptr*) alloc_memory( sizeof(regexptr) );
@@ -146,6 +163,20 @@ IValue::IValue( regexptr value[], int len, array_storage_type s ) : Value(TYPE_R
 	{
 	kernel.SetArray( (voidptr*) value, len, TYPE_REGEX, s == COPY_ARRAY || s == PRESERVE_ARRAY );
 	}
+
+
+IValue::IValue( fileptr value ) : Value(TYPE_FILE) GGCTOR
+	{
+	fileptr *ary = (fileptr*) alloc_memory( sizeof(fileptr) );
+	copy_array(&value,ary,1,fileptr);
+	kernel.SetArray( (voidptr*) ary, 1, TYPE_FILE, 0 );
+	}
+
+IValue::IValue( fileptr value[], int len, array_storage_type s ) : Value(TYPE_FILE) GGCTOR
+	{
+	kernel.SetArray( (voidptr*) value, len, TYPE_FILE, s == COPY_ARRAY || s == PRESERVE_ARRAY );
+	}
+
 
 IValue::IValue( agentptr value, array_storage_type storage ) : Value(TYPE_AGENT) GGCTOR
 	{
@@ -202,6 +233,7 @@ type IValue::name( int modify ) const					\
 
 DEFINE_CONST_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
 DEFINE_CONST_ACCESSOR(RegexPtr,TYPE_REGEX,regexptr*)
+DEFINE_CONST_ACCESSOR(FilePtr,TYPE_FILE,fileptr*)
 DEFINE_CONST_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 
@@ -218,6 +250,7 @@ type IValue::name( int modify )						\
 
 DEFINE_ACCESSOR(FuncPtr,TYPE_FUNC,funcptr*)
 DEFINE_ACCESSOR(RegexPtr,TYPE_REGEX,regexptr*)
+DEFINE_ACCESSOR(FilePtr,TYPE_FILE,fileptr*)
 DEFINE_ACCESSOR(AgentPtr,TYPE_AGENT,agentptr*)
 
 Agent* IValue::AgentVal() const
@@ -281,6 +314,28 @@ Regex* IValue::RegexVal() const
 	}
 
 
+File* IValue::FileVal() const
+	{
+	if ( Type() != TYPE_FILE )
+		{
+		error->Report( this, " is not a file value" );
+		return 0;
+		}
+
+	if ( Length() == 0 )
+		{
+		error->Report( "empty file array" );
+		return 0;
+		}
+
+	if ( Length() > 1 )
+		warn->Report( "more than one file element in", this,
+				", excess ignored" );
+
+	return FilePtr(0)[0];
+	}
+
+
 funcptr* IValue::CoerceToFuncArray( int& is_copy, int size, funcptr* result ) const
 	{
 	if ( Type() != TYPE_FUNC )
@@ -311,6 +366,993 @@ regexptr* IValue::CoerceToRegexArray( int& is_copy, int size, regexptr* result )
 	return RegexPtr(0);
 	}
 
+fileptr* IValue::CoerceToFileArray( int& is_copy, int size, fileptr* result ) const
+	{
+	if ( Type() != TYPE_FILE )
+		fatal->Report( "non file type in CoerceToFileArray()" );
+
+	if ( size != Length() )
+		fatal->Report( "size != length in CoerceToFileArray()" );
+
+	if ( result )
+		fatal->Report( "prespecified result in CoerceToFileArray()" );
+
+	is_copy = 0;
+	return FilePtr(0);
+	}
+
+
+IValue* IValue::operator []( const IValue* index ) const
+	{
+	if ( index->Type() == TYPE_STRING )
+		return (IValue*) RecordRef( index );
+
+	int indices_are_copy;
+	int num_indices;
+	int* indices = GenerateIndices( index, num_indices, indices_are_copy );
+
+	if ( indices )
+		{
+		IValue* result = ArrayRef( indices, num_indices );
+
+		if ( indices_are_copy )
+			free_memory( indices );
+
+		return result;
+		}
+
+	else
+		return error_ivalue();
+	}
+
+
+IValue* IValue::operator []( const_value_list* args_val ) const
+	{
+
+// These are a bunch of macros for cleaning up the dynamic memory used
+// by this routine (and Value::SubRef) prior to exit.
+#define SUBOP_CLEANUP_1							\
+	if ( shape_is_copy )						\
+		free_memory( shape );					\
+	free_memory( factor );
+
+#define SUBOP_CLEANUP_2(length)						\
+	{								\
+	SUBOP_CLEANUP_1							\
+	for ( int x = 0; x < length; ++x )				\
+		if ( index_is_copy[x] )					\
+			free_memory( index[x] );			\
+									\
+	free_memory( index );						\
+	free_memory( index_is_copy );					\
+	free_memory( cur );						\
+	}
+
+#define SUBOP_CLEANUP(length)						\
+	SUBOP_CLEANUP_2(length)						\
+	free_memory( len );
+
+	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
+		return (IValue*) Fail( "invalid type in n-D array operation:", this );
+
+	// Collect attributes.
+	int args_len = args_val->length();
+	const attributeptr ptr = AttributePtr();
+	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
+	if ( ! shape_val || ! shape_val->IsNumeric() )
+		{
+		warn->Report( "invalid or non-existant \"shape\" attribute" );
+
+		if ( args_len >= 1 )
+			return operator[]( (IValue*) (*args_val)[0] );
+		else
+			return copy_value( this );
+		}
+
+	int shape_len = shape_val->Length();
+	if ( shape_len != args_len )
+		return (IValue*) Fail( "invalid number of indexes for:", this );
+
+	int shape_is_copy;
+	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
+	Value* op_val = (*ptr)["op[]"];
+
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
+	int cur_factor = 1;
+	int offset = 0;
+	int max_len = 0;
+	for ( int i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+
+		if ( arg )
+			{
+			if ( ! arg->IsNumeric() )
+				{
+				SUBOP_CLEANUP_1
+				return (IValue*) Fail( "index #", i+1, "into", this,
+						       "is not numeric");
+				}
+
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
+
+			if ( max_len == 1 )
+				{
+				int ind = arg->IntVal();
+				if ( ind < 1 || ind > shape[i] )
+					{
+					SUBOP_CLEANUP_1
+					return (IValue*) Fail( "index #", i+1,
+						"into", this, "is out of range");
+					}
+
+				offset += cur_factor * (ind - 1);
+				}
+			}
+		else
+			{ // Missing subscript.
+			if ( shape[i] > max_len )
+				max_len = shape[i];
+
+			if ( max_len == 1 )
+				offset += cur_factor * (shape[i] - 1);
+			}
+
+		factor[i] = cur_factor;
+		cur_factor *= shape[i];
+		}
+
+	// Check to see if we're valid.
+	if ( cur_factor > Length() )
+		{
+		SUBOP_CLEANUP_1
+		return (IValue*) Fail( "\"::shape\"/length mismatch" );
+		}
+
+	if ( max_len == 1 ) 
+		{
+		SUBOP_CLEANUP_1
+		++offset;
+		// Should separate ArrayRef to get a single value??
+		return ArrayRef( &offset, 1 );
+		}
+
+	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
+	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
+	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
+	int vecsize = 1;
+	int is_element = 1;
+	int spoof_dimension = 0;
+	for ( LOOPDECL i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+		if ( arg )
+			{
+			index[i] = GenerateIndices( arg, len[i],
+						index_is_copy[i], 0 );
+			spoof_dimension = 0;
+			}
+
+		else
+			{ // Spoof entire dimension.
+			len[i] = shape[i];
+			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
+			for ( int j = 0; j < len[i]; j++ )
+				index[i][j] = j+1;
+			index_is_copy[i] = 1;
+			spoof_dimension = 1;
+			}
+
+		if ( is_element && len[i] > 1 )
+			is_element = 0;
+
+		vecsize *= len[i];
+		cur[i] = 0;
+
+		if ( ! spoof_dimension )
+			{
+			for ( int j = 0; j < len[i]; ++j )
+				{
+				if ( index[i][j] >= 1 &&
+				     index[i][j] <= shape[i] )
+					continue;
+
+				SUBOP_CLEANUP(i)
+				if ( len[i] > 1 )
+					return (IValue*) Fail( "index #", i+1, ",",
+							j+1, " into ", this, 
+							"is out of range.");
+				else
+					return (IValue*) Fail( "index #", i+1, "into",
+						this, "is out of range.");
+
+				}
+			}
+		}
+
+	// Loop through filling resultant vector.
+	IValue* result;
+	switch ( Type() )
+		{
+#define SUBSCRIPT_OP_ACTION(tag,type,accessor,LEN,OFFSET,copy_func,ERROR)	\
+	case tag:								\
+		{								\
+		type* vec = accessor;						\
+		type* ret = (type*) alloc_memory( sizeof(type)*vecsize );	\
+										\
+		for ( int v = 0; v < vecsize; ++v )				\
+			{							\
+			/**** Calculate offset ****/				\
+			offset = 0;						\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )		\
+				offset += factor[i] *				\
+						(index[i][cur[i]]-1);		\
+			/**** Set Value ****/					\
+			ERROR							\
+			ret[v] = copy_func( vec[OFFSET] );			\
+			/****  Advance counters ****/				\
+			for ( LOOPDECL i = 0; i < shape_len; ++i )		\
+				if ( ++cur[i] < len[i] )			\
+					break;					\
+				else						\
+					cur[i] = 0;				\
+			}							\
+										\
+		result = new IValue( ret, vecsize );				\
+		if ( ! is_element )						\
+			{							\
+			int z = 0;						\
+			for ( int x = 0; x < shape_len; ++x )			\
+				if ( len[x] > 1 )				\
+					len[z++] = len[x];			\
+										\
+			result->AssignAttribute( "shape",			\
+						new IValue( len, z ) );	\
+			if ( op_val )						\
+				result->AssignAttribute( "op[]", op_val );	\
+			}							\
+		else								\
+			free_memory( len );					\
+		}								\
+		break;
+
+SUBSCRIPT_OP_ACTION(TYPE_BOOL,glish_bool,BoolPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_BYTE,byte,BytePtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_SHORT,short,ShortPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_INT,int,IntPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_FLOAT,float,FloatPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_DOUBLE,double,DoublePtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_COMPLEX,complex,ComplexPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr(),length,offset,,)
+SUBSCRIPT_OP_ACTION(TYPE_STRING,charptr,StringPtr(),length,offset,strdup,)
+
+		case TYPE_SUBVEC_REF:
+			{
+			VecRef* ref = VecRefPtr();
+			Value* theVal = ref->Val();
+
+			switch ( theVal->Type() )
+				{
+
+#define SUBSCRIPT_OP_ACTION_XLATE(EXTRA_ERROR)		\
+	int err;					\
+	int off = ref->TranslateIndex( offset, &err );	\
+	if ( err )					\
+		{					\
+		EXTRA_ERROR				\
+		free_memory( ret );			\
+		SUBOP_CLEANUP(shape_len)		\
+		return error_ivalue();			\
+		}
+
+SUBSCRIPT_OP_ACTION(TYPE_BOOL, glish_bool, theVal->BoolPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_BYTE, byte, theVal->BytePtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_SHORT, short, theVal->ShortPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_INT, int, theVal->IntPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_FLOAT, float, theVal->FloatPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_DOUBLE, double, theVal->DoublePtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_COMPLEX, complex, theVal->ComplexPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_DCOMPLEX, dcomplex, theVal->DcomplexPtr(),
+	theLen, off,,SUBSCRIPT_OP_ACTION_XLATE(;))
+SUBSCRIPT_OP_ACTION(TYPE_STRING, charptr, theVal->StringPtr(),
+	theLen, off,strdup,SUBSCRIPT_OP_ACTION_XLATE(for(int X=0;X<v;X++) free_memory((void*)ret[X]);))
+
+				default:
+					fatal->Report(
+				"bad subref type in Value::operator[]" );
+				}
+			}
+			break;
+
+		default:
+			fatal->Report( "bad type in Value::operator[]" );
+		}
+
+	SUBOP_CLEANUP_2(shape_len)
+	return result;
+	}
+
+
+IValue* IValue::ArrayRef( int* indices, int num_indices )
+		const
+	{
+
+	if ( IsRef() )
+		return ((IValue*) Deref())->ArrayRef( indices, num_indices );
+
+	if ( Type() == TYPE_FAIL )
+		return (IValue*) Fail( );
+
+	if ( Type() == TYPE_FUNC )
+		return (IValue*) Fail( "bad type in array access" );
+
+	if ( Type() == TYPE_RECORD )
+		return (IValue*) RecordSlice( indices, num_indices );
+
+	for ( int i = 0; i < num_indices; ++i )
+		if ( indices[i] < 1 || indices[i] > kernel.Length() )
+			return (IValue*) Fail( "index (=", indices[i],
+				") out of range, array length =", kernel.Length() );
+
+	switch ( Type() )
+		{
+
+#define ARRAY_REF_ACTION(tag,type,accessor,copy_func,OFFSET,XLATE,REF)	\
+	case tag:							\
+		{							\
+		type* source_ptr = accessor(0);				\
+		type* new_values = (type*) alloc_memory(		\
+					sizeof(type)*num_indices );	\
+									\
+		for ( LOOPDECL i = 0; i < num_indices; ++i )		\
+			{						\
+			XLATE						\
+			new_values[i] = copy_func(source_ptr[OFFSET]);	\
+			REF						\
+			}						\
+		return new IValue( new_values, num_indices );		\
+		}
+
+ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,indices[i]-1,,)
+ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,indices[i]-1,,Ref(new_values[i]);)
+ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,indices[i]-1,,Ref(new_values[i]);)
+
+		case TYPE_SUBVEC_REF:
+			{
+			VecRef *ref = VecRefPtr();
+			switch ( ref->Type() )
+				{
+#define ARRAY_REF_ACTION_XLATE(EXTRA_ERROR)		\
+	int err;					\
+	int off = ref->TranslateIndex( indices[i]-1, &err );\
+	if ( err )					\
+		{					\
+		EXTRA_ERROR				\
+		free_memory( new_values );		\
+		return (IValue*) Fail("invalid index (=",indices[i],"), sub-vector reference may be bad");\
+		}
+
+ARRAY_REF_ACTION(TYPE_BOOL,glish_bool,BoolPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_BYTE,byte,BytePtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_SHORT,short,ShortPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_INT,int,IntPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_FLOAT,float,FloatPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_DOUBLE,double,DoublePtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_COMPLEX,complex,ComplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,,off,ARRAY_REF_ACTION_XLATE(;),)
+ARRAY_REF_ACTION(TYPE_STRING,charptr,StringPtr,strdup,off,ARRAY_REF_ACTION_XLATE(for(int X=0; X<i; X++) free_memory( (void*) new_values[X] );),)
+ARRAY_REF_ACTION(TYPE_REGEX,regexptr,RegexPtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
+ARRAY_REF_ACTION(TYPE_FILE,fileptr,FilePtr,,off,ARRAY_REF_ACTION_XLATE(;),Ref(new_values[i]);)
+
+		default:
+			fatal->Report( "bad type in Value::ArrayRef()" );
+			return 0;
+		}
+	}
+			break;
+
+		default:
+			fatal->Report( "bad type in Value::ArrayRef()" );
+			return 0;
+		}
+
+	return 0;
+	}
+
+
+IValue* IValue::TrueArrayRef( int* indices, int num_indices, int take_indices ) const
+	{
+	if ( IsRef() )
+		return ((IValue*) Deref())->TrueArrayRef( indices, num_indices );
+
+	if ( VecRefDeref()->Type() == TYPE_RECORD )
+		return (IValue*) RecordSlice( indices, num_indices );
+
+	for ( int i = 0; i < num_indices; ++i )
+		if ( indices[i] < 1 || indices[i] > kernel.Length() )
+			{
+			if ( take_indices )
+				free_memory( indices );
+
+			return (IValue*) Fail( "index (=", indices[i],
+				") out of range, array length =", kernel.Length() );
+			}
+
+	return new IValue( (IValue*) this, indices, num_indices, VAL_REF, take_indices );
+	}
+
+
+
+IValue* IValue::Pick( const IValue *index ) const
+	{
+#define PICK_CLEANUP				\
+	if ( shape_is_copy )			\
+		free_memory( shape );		\
+	if ( ishape_is_copy )			\
+		free_memory( ishape );		\
+	if ( indx_is_copy )			\
+		free_memory( indx );		\
+	free_memory( factor );
+
+#define PICK_INITIALIZE(ERR_RET,SHORT)					\
+	const attributeptr attr = AttributePtr();			\
+	const attributeptr iattr = index->AttributePtr();		\
+	const IValue* shape_val = 0;					\
+	const IValue* ishape_val = 0;					\
+	int shape_len = 0;						\
+	int ishape_len = 0;						\
+									\
+	if ( attr && (shape_val = (IValue*) (*attr)["shape"]) &&	\
+	     shape_val->IsNumeric() )					\
+		shape_len = shape_val->Length();			\
+	if ( iattr && (ishape_val = (IValue*) (*iattr)["shape"]) &&	\
+	     ishape_val->IsNumeric() )					\
+		ishape_len = ishape_val->Length();			\
+									\
+	/* Neither has a shape so pick from the vector. */		\
+	if ( ishape_len <= 1 && shape_len <= 1 )			\
+		{							\
+		SHORT							\
+		}							\
+									\
+	if ( ! ishape_len )						\
+		{							\
+		if ( ishape_val )					\
+			ERR_RET(("error in the array \"::shape\": ",	\
+				ishape_val))				\
+		else							\
+			ERR_RET(("no \"::shape\" for ", index,		\
+				" but the array has \"::shape\""))	\
+		}							\
+	if ( ! shape_len )						\
+		{							\
+		if ( shape_val )					\
+			ERR_RET(("error in the array \"::shape\": ",	\
+				shape_val))				\
+		else							\
+			ERR_RET(("no \"::shape\" for ", this,		\
+				" but the index has \"::shape\""))	\
+		}							\
+									\
+	if ( ishape_len > 2 )						\
+		ERR_RET(("invalid index of dimension (=", ishape_len,	\
+				") greater than 2"))			\
+									\
+	int shape_is_copy = 0;						\
+	int ishape_is_copy = 0;						\
+	int indx_is_copy = 0;						\
+	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );\
+	int* ishape =							\
+		ishape_val->CoerceToIntArray( ishape_is_copy, ishape_len );\
+	int ilen = index->Length();					\
+	int len = Length();						\
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );	\
+	int offset = 1;							\
+	int* indx = index->CoerceToIntArray( indx_is_copy, ilen );	\
+	IValue* result = 0;						\
+									\
+	if ( ishape[1] != shape_len )					\
+		{							\
+		PICK_CLEANUP						\
+		ERR_RET(("wrong number of columns in index (=",		\
+			ishape[1], ") expected ", shape_len))		\
+		}							\
+	if ( ilen < ishape[0] * ishape[1] )				\
+		{							\
+		PICK_CLEANUP						\
+		ERR_RET(("Index \"::shape\"/length mismatch"))		\
+		}							\
+	for ( int i = 0; i < shape_len; ++i )				\
+		{							\
+		factor[i] = offset;					\
+		offset *= shape[i];					\
+		}							\
+									\
+	if ( len < offset )						\
+		{							\
+		PICK_CLEANUP						\
+		ERR_RET(("Array \"::shape\"/length mismatch"))		\
+		}
+
+#define PICK_FAIL_IVAL(x) return (IValue*) Fail x;
+#define PICK_FAIL_VOID(x) { error->Report x; return; }
+
+	PICK_INITIALIZE( PICK_FAIL_IVAL, return this->operator[]( index );)
+
+	switch ( Type() )
+		{
+#define PICK_ACTION_CLEANUP for(int X=0;X<i;X++) free_memory((void*)ret[X]);
+#define PICK_ACTION(tag,type,accessor,OFFSET,COPY_FUNC,XLATE,CLEANUP)	\
+	case tag:							\
+		{							\
+		type* ptr = accessor();					\
+		type* ret = (type*) alloc_memory( sizeof(type)*ishape[0] );\
+		int cur = 0;						\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
+			{						\
+			offset = 0;					\
+			int j = 0;					\
+			for ( ; j < ishape[1]; ++j )			\
+				{					\
+				cur = indx[i + j * ishape[0]];		\
+				if ( cur < 1 || cur > shape[j] )	\
+					{				\
+					PICK_CLEANUP			\
+					CLEANUP				\
+					free_memory( ret );		\
+					return (IValue*) Fail( "index number ", j,\
+					" (=", cur, ") is out of range" );\
+					}				\
+				offset += factor[j] * (cur-1);		\
+				}					\
+			XLATE						\
+			ret[i] = COPY_FUNC( ptr[ OFFSET ] );		\
+			}						\
+		result = new IValue( ret, ishape[0] );			\
+		}							\
+		break;
+
+		PICK_ACTION(TYPE_BOOL,glish_bool,BoolPtr,offset,,,)
+		PICK_ACTION(TYPE_BYTE,byte,BytePtr,offset,,,)
+		PICK_ACTION(TYPE_SHORT,short,ShortPtr,offset,,,)
+		PICK_ACTION(TYPE_INT,int,IntPtr,offset,,,)
+		PICK_ACTION(TYPE_FLOAT,float,FloatPtr,offset,,,)
+		PICK_ACTION(TYPE_DOUBLE,double,DoublePtr,offset,,,)
+		PICK_ACTION(TYPE_COMPLEX,complex,ComplexPtr,offset,,,)
+		PICK_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,offset,,,)
+		PICK_ACTION(TYPE_STRING,charptr,StringPtr,offset,strdup,,
+			PICK_ACTION_CLEANUP)
+
+		case TYPE_SUBVEC_REF:
+			{
+			VecRef* ref = VecRefPtr();
+			IValue* theVal = (IValue*) ref->Val();
+
+			switch ( theVal->Type() )
+				{
+
+#define PICK_ACTION_XLATE(CLEANUP)					\
+	int err;							\
+	int off = ref->TranslateIndex( offset, &err );			\
+	if ( err )							\
+		{							\
+		CLEANUP							\
+		free_memory( ret );					\
+		return (IValue*) Fail( "index number ", j, " (=",cur,	\
+			") is out of range. Sub-vector reference may be invalid" );\
+		}
+
+PICK_ACTION(TYPE_BOOL,glish_bool,theVal->BoolPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_BYTE,byte,theVal->BytePtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_SHORT,short,theVal->ShortPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_INT,int,theVal->IntPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_FLOAT,float,theVal->FloatPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_DOUBLE,double,theVal->DoublePtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_COMPLEX,complex,theVal->ComplexPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_DCOMPLEX,dcomplex,theVal->DcomplexPtr,off,,PICK_ACTION_XLATE(;),)
+PICK_ACTION(TYPE_STRING,charptr,theVal->StringPtr,off,strdup,
+	PICK_ACTION_XLATE(PICK_ACTION_CLEANUP),PICK_ACTION_CLEANUP)
+
+				default:
+					fatal->Report(
+					"bad subref type in Value::Pick" );
+				}
+			}
+			break;
+
+		default:
+			fatal->Report( "bad subref type in Value::Pick" );
+		}
+
+	PICK_CLEANUP
+	return result;
+	}
+
+IValue* IValue::PickRef( const IValue *index )
+	{
+	if ( ! IsNumeric() && Type() != TYPE_STRING )
+		return (IValue*) Fail( "non-numeric type in subreference operation:",
+				this );
+
+	PICK_INITIALIZE(PICK_FAIL_IVAL, return this->operator[]( index );)
+
+	int* ret = (int*) alloc_memory( sizeof(int)*ishape[0] );
+	int cur = 0;
+	for ( LOOPDECL i = 0; i < ishape[0]; ++i )
+		{
+		offset = 0;
+		for ( int j = 0; j < ishape[1]; ++j )
+			{
+			cur = indx[i + j * ishape[0]];
+			if ( cur < 1 || cur > shape[j] )
+				{
+				PICK_CLEANUP
+				free_memory( ret );
+				return (IValue*) Fail( "index number ", j, " (=",cur,
+						") is out of range" );
+				}
+			offset += factor[j] * (cur-1);
+			}
+		ret[i] = offset + 1;
+		}
+
+	result = new IValue((IValue*)this,ret,ishape[0],VAL_REF,1);
+
+	const attributeptr cap = result->AttributePtr();
+	if ( (*cap)["shape"] )
+		{
+		if ( cap->Length() == 1 )
+			result->DeleteAttributes();
+		else
+			{
+			attributeptr ap = result->ModAttributePtr();
+			delete ap->Remove( "shape" );
+			}
+		}
+
+	PICK_CLEANUP
+	return result;
+	}
+
+void IValue::PickAssign( const IValue* index, IValue* value )
+	{
+#define PICKASSIGN_SHORT		\
+	AssignElements( index, value );	\
+	return;
+
+	PICK_INITIALIZE(PICK_FAIL_VOID, PICKASSIGN_SHORT)
+
+	switch ( Type() )
+		{
+#define PICKASSIGN_ACTION(tag,type,to_accessor,from_accessor,COPY_FUNC,XLATE)\
+	case tag:							\
+		{							\
+		int cur = 0;						\
+		int* offset_vec = (int*) alloc_memory( sizeof(int)*ishape[0] );\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
+			{						\
+			offset_vec[i] = 0;				\
+			int j = 0;					\
+			for ( ; j < ishape[1]; ++j )			\
+				{					\
+				cur = indx[i + j * ishape[0]];		\
+				if ( cur < 1 || cur > shape[j] )	\
+					{				\
+					PICK_CLEANUP			\
+					free_memory( offset_vec );	\
+					error->Report("index number ", i,\
+							" (=", cur,	\
+							") is out of range");\
+					return;				\
+					}				\
+				offset_vec[i] += factor[j] * (cur-1);	\
+				}					\
+			XLATE						\
+			}						\
+									\
+		int is_copy;						\
+		type* vec = value->from_accessor( is_copy, ishape[0] );	\
+		type* ret = to_accessor();				\
+		for ( LOOPDECL i = 0; i < ishape[0]; ++i )		\
+			ret[ offset_vec[i] ] = COPY_FUNC( vec[i] );	\
+		free_memory( offset_vec );				\
+		if ( is_copy )						\
+			free_memory( vec );				\
+		}							\
+		break;
+
+PICKASSIGN_ACTION(TYPE_BOOL,glish_bool,BoolPtr,CoerceToBoolArray,,)
+PICKASSIGN_ACTION(TYPE_BYTE,byte,BytePtr,CoerceToByteArray,,)
+PICKASSIGN_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,,)
+PICKASSIGN_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,,)
+PICKASSIGN_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,,)
+PICKASSIGN_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,,)
+PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,)
+PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,)
+PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,)
+
+		case TYPE_SUBVEC_REF:
+			{
+			VecRef* ref = VecRefPtr();
+			Value* theVal = ref->Val();
+
+			switch ( theVal->Type() )
+				{
+
+#define PICKASSIGN_ACTION_XLATE						\
+	int err;							\
+	offset_vec[i] = ref->TranslateIndex( offset_vec[i], &err );	\
+	if ( err )							\
+		{							\
+		PICK_CLEANUP						\
+		free_memory( offset_vec );				\
+		error->Report( "index number ", j, " (=",cur,		\
+			") is out of range. Sub-vector reference may be invalid" );\
+		return;							\
+		}
+
+
+PICKASSIGN_ACTION(TYPE_BOOL,glish_bool,BoolPtr,CoerceToBoolArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_BYTE,byte,BytePtr,CoerceToByteArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_SHORT,short,ShortPtr,CoerceToShortArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_INT,int,IntPtr,CoerceToIntArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_FLOAT,float,FloatPtr,CoerceToFloatArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_DOUBLE,double,DoublePtr,CoerceToDoubleArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_COMPLEX,complex,ComplexPtr,CoerceToComplexArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_DCOMPLEX,dcomplex,DcomplexPtr,CoerceToDcomplexArray,,
+	PICKASSIGN_ACTION_XLATE)
+PICKASSIGN_ACTION(TYPE_STRING,charptr,StringPtr,CoerceToStringArray,strdup,
+	PICKASSIGN_ACTION_XLATE)
+
+				default:
+					fatal->Report(
+					"bad type in Value::PickAssign" );
+				}
+			}
+			break;
+
+		default:
+			fatal->Report( "bad type in Value::PickAssign" );
+		}
+
+	PICK_CLEANUP
+	return;
+	}
+
+IValue* IValue::SubRef( const IValue* index )
+	{
+	if ( VecRefDeref()->Type() == TYPE_RECORD )
+		{
+		if ( index->Type() == TYPE_STRING )
+			return (IValue*) GetOrCreateRecordElement( index );
+
+		IValue* ret = (IValue*) NthField( index->IntVal() );
+		if ( ! ret )
+			return (IValue*) Fail( "record index (=", index->IntVal(),
+				") out of range (> ", Length(), ")" );
+
+		return ret;
+		}
+
+	int indices_are_copy;
+	int num_indices;
+	int* indices = GenerateIndices( index, num_indices, indices_are_copy );
+
+	if ( indices )
+		return TrueArrayRef( indices, num_indices, indices_are_copy );
+	else
+		return error_ivalue();
+	}
+
+IValue* IValue::SubRef( const_value_list *args_val )
+	{
+	if ( ! IsNumeric() && VecRefDeref()->Type() != TYPE_STRING )
+		return (IValue*) Fail( "invalid type in subreference operation:",
+				this );
+
+	// Collect attributes.
+	const attributeptr ptr = AttributePtr();
+	const Value* shape_val = ptr ? (*ptr)["shape"] : 0;
+	if ( ! shape_val || ! shape_val->IsNumeric() )
+		{
+		warn->Report( "invalid or non-existant \"shape\" attribute" );
+
+		const IValue* arg = (IValue*) (*args_val)[0];
+		if ( arg )
+			return SubRef( arg );
+		else
+			return (IValue*) Fail( "invalid missing argument" );
+		}
+
+	int shape_len = shape_val->Length();
+	int args_len = (*args_val).length();
+	if ( shape_len != args_len )
+		return (IValue*) Fail( "invalid number of indexes for:", this );
+
+	int shape_is_copy;
+	int* shape = shape_val->CoerceToIntArray( shape_is_copy, shape_len );
+	Value* op_val = (*ptr)["op[]"];
+
+	int* factor = (int*) alloc_memory( sizeof(int)*shape_len );
+	int cur_factor = 1;
+	int offset = 0;
+	int max_len = 0;
+	for ( int i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+
+		if ( arg )
+			{
+			if ( ! arg->IsNumeric() )
+				{
+				SUBOP_CLEANUP_1
+				return (IValue*) Fail( "index #", i+1, "into", this,
+						"is not numeric");
+				}
+
+			if ( arg->Length() > max_len )
+				max_len = arg->Length();
+
+			if ( max_len == 1 )
+				{
+				int ind = arg->IntVal();
+				if ( ind < 1 || ind > shape[i] )
+					{
+					SUBOP_CLEANUP_1
+					return (IValue*) Fail( "index #", i+1, "into",
+						this, "is out of range");
+					}
+
+				offset += cur_factor * (ind - 1);
+				}
+			}
+
+		else
+			{ // Missing subscript.
+			if ( shape[i] > max_len )
+				max_len = shape[i];
+
+			if ( max_len == 1 )
+				offset += cur_factor * (shape[i] - 1);
+			}
+
+		factor[i] = cur_factor;
+		cur_factor *= shape[i];
+		}
+
+	// Check to see if we're valid.
+	if ( cur_factor > Length() )
+		{
+		SUBOP_CLEANUP_1
+		return (IValue*) Fail( "\"::shape\"/length mismatch" );
+		}
+
+	if ( max_len == 1 ) 
+		{
+		SUBOP_CLEANUP_1
+		++offset;
+		return new IValue( (IValue*) this, &offset, 1, VAL_REF );
+		}
+
+	int* index_is_copy = (int*) alloc_memory( sizeof(int)*shape_len );
+	int** index = (int**) alloc_memory( sizeof(int*)*shape_len );
+	int* cur = (int*) alloc_memory( sizeof(int)*shape_len );
+	int* len = (int*) alloc_memory( sizeof(int)*shape_len );
+	int vecsize = 1;
+	int is_element = 1;
+	int spoof_dimension = 0;
+	for ( LOOPDECL i = 0; i < args_len; ++i )
+		{
+		const Value* arg = (*args_val)[i];
+		if ( arg )
+			{
+			index[i] = GenerateIndices( arg, len[i],
+						index_is_copy[i], 0 );
+			spoof_dimension = 0;
+			}
+
+		else
+			{ // Spoof entire dimension.
+			len[i] = shape[i];
+			index[i] = (int*) alloc_memory( sizeof(int)*len[i] );
+			for ( int j = 0; j < len[i]; j++ )
+				index[i][j] = j+1;
+			index_is_copy[i] = 1;
+			spoof_dimension = 1;
+			}
+
+		if ( is_element && len[i] > 1 )
+			is_element = 0;
+
+		vecsize *= len[i];
+		cur[i] = 0;
+
+		if ( ! spoof_dimension )
+			{
+			for ( int j = 0; j < len[i]; ++j )
+				{
+				if ( index[i][j] >= 1 &&
+				     index[i][j] <= shape[i] )
+					continue;
+
+				SUBOP_CLEANUP(i)
+				if ( len[i] > 1 )
+					return (IValue*) Fail( "index #", i+1, ",",
+							j+1, " into ", this, 
+							"is out of range.");
+				else
+					return (IValue*) Fail( "index #", i+1, "into",
+						this, "is out of range.");
+
+				}
+			}
+		}
+
+	// Loop through filling resultant vector.
+
+	int* ret = (int*) alloc_memory( sizeof(int)*vecsize );
+	for ( int v = 0; v < vecsize; ++v )
+		{
+		// Calculate offset.
+		offset = 0;
+		for ( LOOPDECL i = 0; i < shape_len; ++i )
+			offset += factor[i] * (index[i][cur[i]] - 1);
+
+		// Set value.
+		ret[v] = offset + 1;
+
+		// Advance counters.
+		for ( LOOPDECL i = 0; i < shape_len; ++i )
+			if ( ++cur[i] < len[i] )
+				break;
+			else
+				cur[i] = 0;
+		}
+
+	IValue* result = new IValue((IValue*) this, ret, vecsize, VAL_REF, 1 );
+	if ( ! is_element )
+		{
+		int z = 0;
+		for ( int x = 0; x < shape_len; ++x )
+			if ( len[x] > 1 )
+				len[z++] = len[x];
+
+		Value* len_v = create_value( len, z );
+		result->AssignAttribute( "shape", len_v );
+
+		if ( op_val )
+			result->AssignAttribute( "op[]", op_val );
+		}
+	else
+		free_memory( len );
+
+	SUBOP_CLEANUP_2(shape_len)
+	return result;
+	}
 
 
 void IValue::AssignArrayElements( int* indices, int num_indices, Value* value,
@@ -384,6 +1426,8 @@ ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
 	CoerceToRegexArray,,)
+ASSIGN_ARRAY_ELEMENTS_ACTION(TYPE_FILE,fileptr*,fileptr*,FilePtr,
+	CoerceToFileArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -483,6 +1527,8 @@ ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FUNC,funcptr*,funcptr*,FuncPtr,
 	CoerceToFuncArray,,)
 ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_REGEX,regexptr*,regexptr*,RegexPtr,
 	CoerceToRegexArray,,)
+ASSIGN_ARRAY_VALUE_ELEMENTS_ACTION(TYPE_FILE,fileptr*,fileptr*,FilePtr,
+	CoerceToFileArray,,)
 
 		case TYPE_SUBVEC_REF:
 			switch ( VecRefPtr()->Type() )
@@ -623,6 +1669,14 @@ POLYMORPH_ACTION(TYPE_STRING,charptr,CoerceToStringArray)
 				kernel.SetArray( (voidptr*) new_val, length, TYPE_REGEX );
 			break;
 			}
+		case TYPE_FILE:
+			{
+			int is_copy;
+			fileptr* new_val = CoerceToFileArray( is_copy, length );
+			if ( is_copy )
+				kernel.SetArray( (voidptr*) new_val, length, TYPE_FILE );
+			break;
+			}
 		case TYPE_RECORD:
 			if ( length > 1 )
 				warn->Report(
@@ -701,6 +1755,7 @@ void init_ivalues( )
 	init_values( );
 	register_type_funcs( TYPE_FUNC, copy_funcs, delete_funcs );
 	register_type_funcs( TYPE_REGEX, copy_regexs, delete_regexs );
+	register_type_funcs( TYPE_FILE, copy_files, delete_files );
 	register_type_funcs( TYPE_AGENT, copy_agents, delete_agents );
 	}
 
@@ -724,6 +1779,7 @@ IValue *copy_value( const IValue *value )
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_REGEX:
+		case TYPE_FILE:
 		case TYPE_FAIL:
 			copy = new IValue( *value );
 			break;
