@@ -825,7 +825,7 @@ case $host_os in
 	AC_DEFINE(NO_DLFCN_H)
 ##	GLISH_SLIB_SUFFIX='${VERSION}.a'
 	;;
-    hpux8.*|hpux9.*|hpux10.*|hpux11.*)
+    hpux8.*|hpux9.*|hpux10.*)
 	SLIB_CFLAGS="+z"
 	SLIB_LABEL='+h '
 	SLIB_LD="ld -b"
@@ -842,6 +842,28 @@ case $host_os in
         ADD_LD_SEARCH([-Wl,+b,],$tcl_library,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$x_libraries,TK_LD_RPATH)
         ADD_LD_SEARCH([-Wl,+b,],$PGPLOTLINKSEARCH,TK_LD_RPATH)
+
+	if test -n "$TK_LD_RPATH"; then
+	    TK_LD_RPATH="$TK_LD_RPATH:."
+	fi
+	;;
+    hpux11.*)
+	SLIB_CFLAGS="+z"
+	SLIB_LABEL='+h '
+	SLIB_LD="/usr/ccs/bin/ld -b"
+	SLIB_LD_LIBS='${LIBS}'
+	SLIB_SUFFIX=".sl"
+	DL_LIBS="-ldld"
+	LD_FLAGS="-E"
+
+	if test -z "$static_binary"; then
+	    GLISH_LD_SEARCH="+b $full_libdir_p$cxx_rpath:$full_libdir:."
+	fi
+
+	TK_LD_RPATH="+b $full_libdir_p$cxx_rpath:$full_libdir"
+        ADD_LD_SEARCH([+b ],$tcl_library,TK_LD_RPATH)
+        ADD_LD_SEARCH([+b ],$x_libraries,TK_LD_RPATH)
+        ADD_LD_SEARCH([+b ],$PGPLOTLINKSEARCH,TK_LD_RPATH)
 
 	if test -n "$TK_LD_RPATH"; then
 	    TK_LD_RPATH="$TK_LD_RPATH:."
