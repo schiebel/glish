@@ -3197,12 +3197,31 @@ fi
 	;;
 esac
 
-if test -z "$TK_CXX_RPATH"; then
-    TK_CXX_RPATH="$TK_LD_RPATH"
-fi
-
 if test -z "$SLIB_$CXXFLAGS"; then
     SLIB_CXXFLAGS="$SLIB_CFLAGS"
+fi
+
+if test $ac_cv_prog_gxx = yes; then
+    SLIB_CXXFLAGS='-fPIC'
+    SLIB_LD="$CXX -shared"
+else
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_LD="$CC -shared"
+fi
+fi
+
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_CFLAGS='-fPIC'
+fi
+
+echo $ac_n "checking for shared loader""... $ac_c" 1>&6
+echo "$ac_t""$SLIB_LD" 1>&6
+
+MAKE_SLIB="$SLIB_LD -o"
+MAKE_LIB="ar cru"
+
+if test -z "$TK_CXX_RPATH"; then
+    TK_CXX_RPATH="$TK_LD_RPATH"
 fi
 
 GLISH_SLIB_SUFFIX=$SLIB_SUFFIX
@@ -3214,9 +3233,6 @@ else
     GLISH_SLIB_SUFFIX="`echo $VERSION | tr -d .`$SLIB_SUFFIX"
 fi
 fi
-
-MAKE_SLIB="$SLIB_LD -o"
-MAKE_LIB="ar cru"
 
 if test "$static_binary" = "yes"; then
     TKCLIENT_LIBS="-L\${LIBDIR_P} -lglishtk -lglish -lsos -lnpd"
@@ -3238,20 +3254,12 @@ else
     TCL_LIB_SPEC="-L${exec_prefix}/lib -ltcl`echo ${VERSION} | tr -d .`"
 fi
 
-if test $ac_cv_prog_gcc = yes; then
-    SLIB_CFLAGS='-fPIC'
-fi
-
-if test $ac_cv_prog_gxx = yes; then
-    SLIB_CXXFLAGS='-fPIC'
-fi
-
 echo $ac_n "checking shared flags for $CC""... $ac_c" 1>&6
 if test -n "$SLIB_CFLAGS"; then
     SAVED_CFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS $SLIB_CFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3255 "configure"
+#line 3263 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3259,7 +3267,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3263: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3271: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3282,7 +3290,7 @@ ac_link='${CXX-g++} -o $conftest $CXXFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext 
     SAVED_CXXFLAGS="$CXXFLAGS"
     CXXFLAGS="$CXXFLAGS $SLIB_CXXFLAGS"
     cat > $conftest.$ac_ext <<EOF
-#line 3286 "configure"
+#line 3294 "configure"
 #include "$confdefs.h"
 
 int main() { return 0; }
@@ -3290,7 +3298,7 @@ int t() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:3294: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:3302: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   :
 else
   rm -rf $conftest*
@@ -3307,9 +3315,6 @@ ac_link='${CC-cc} -o $conftest $CFLAGS $CPPFLAGS $LDFLAGS $conftest.$ac_ext $LIB
 
 fi
 echo "$ac_t""$SLIB_CXXFLAGS" 1>&6
-
-echo $ac_n "checking for shared loader""... $ac_c" 1>&6
-echo "$ac_t""$SLIB_LD" 1>&6
 
 
 

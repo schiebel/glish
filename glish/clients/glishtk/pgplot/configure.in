@@ -1076,19 +1076,44 @@ case $host_os in
 esac
 
 dnl##
-dnl## These will typically be the same
-dnl##
-if test -z "$TK_CXX_RPATH"; then
-    TK_CXX_RPATH="$TK_LD_RPATH"
-fi
-
-dnl##
 dnl## If SLIB_CXXFLAGS is not set, set it to the same as SLIB_CFLAGS.
 dnl## This may need more work in the future since the C++ compilers
 dnl## are probably less uniform then the C compilers...
 dnl##
 if test -z "$SLIB_$CXXFLAGS"; then
     SLIB_CXXFLAGS="$SLIB_CFLAGS"
+fi
+
+dnl##
+dnl## Override C/CXXFLAGS if we are using GNU compilers
+dnl##
+if test $ac_cv_prog_gxx = yes; then
+    SLIB_CXXFLAGS='-fPIC'
+    SLIB_LD="$CXX -shared"
+else
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_LD="$CC -shared"
+fi
+fi
+
+if test $ac_cv_prog_gcc = yes; then
+    SLIB_CFLAGS='-fPIC'
+fi
+
+AC_MSG_CHECKING(for shared loader)
+AC_MSG_RESULT($SLIB_LD)
+
+dnl##
+dnl## Setup the command to create the libraries
+dnl##
+MAKE_SLIB="$SLIB_LD -o"
+MAKE_LIB="ar cru"
+
+dnl##
+dnl## These will typically be the same
+dnl##
+if test -z "$TK_CXX_RPATH"; then
+    TK_CXX_RPATH="$TK_LD_RPATH"
 fi
 
 dnl##
@@ -1103,12 +1128,6 @@ else
     GLISH_SLIB_SUFFIX="`echo $VERSION | tr -d .`$SLIB_SUFFIX"
 fi
 fi
-
-dnl##
-dnl## Setup the command to create the libraries
-dnl##
-MAKE_SLIB="$SLIB_LD -o"
-MAKE_LIB="ar cru"
 
 dnl##
 dnl## Select the binary to build
@@ -1138,17 +1157,6 @@ else
 fi
 
 dnl##
-dnl## Override C/CXXFLAGS if we are using GNU compilers
-dnl##
-if test $ac_cv_prog_gcc = yes; then
-    SLIB_CFLAGS='-fPIC'
-fi
-
-if test $ac_cv_prog_gxx = yes; then
-    SLIB_CXXFLAGS='-fPIC'
-fi
-
-dnl##
 dnl## Sanity check to make sure we can compile a simple
 dnl## program with our choosen flags
 dnl##
@@ -1171,9 +1179,6 @@ if test -n "$SLIB_CXXFLAGS"; then
     AC_LANG_C
 fi
 AC_MSG_RESULT($SLIB_CXXFLAGS)
-
-AC_MSG_CHECKING(for shared loader)
-AC_MSG_RESULT($SLIB_LD)
 
 AC_SUBST(LOOPDECL)
 
