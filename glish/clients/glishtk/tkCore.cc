@@ -1077,16 +1077,19 @@ void TkFrameP::Enable( int force )
 	}
 
 TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth, charptr padx_,
-		  charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
-		  charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_ ) :
+		    charptr pady_, charptr expand_, charptr background, charptr width, charptr height,
+		    charptr cursor, charptr title, charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
+		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) :
 		  TkFrame( s ), side(0), padx(0), pady(0), expand(0), tag(0), canvas(0),
 		  topwin( 0 ), reject_first_resize(1), tlead(tlead_), tpos(0), unmapped(0),
 		  icon(0)
 
 	{
-	char *argv[17];
+	char *argv[20];
 
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:frame>";
 
@@ -1160,11 +1163,28 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 		argv[c++] = "-cursor";
 		argv[c++] = (char*) cursor;
 		}
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
@@ -1232,16 +1252,19 @@ TkFrameP::TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borde
 	}
 
 TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
-		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, charptr cursor, int new_cmap ) : TkFrame( s ),
+		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		    charptr width, charptr height, charptr cursor, int new_cmap,
+		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) : TkFrame( s ),
 		  side(0), padx(0), pady(0), expand(0), tag(0), canvas(0), topwin( 0 ),
 		  reject_first_resize(0), tlead(0), tpos(0), unmapped(0), icon(0)
 
 	{
-	char *argv[16];
+	char *argv[22];
 	frame = frame_;
 
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:frame>";
 
@@ -1280,11 +1303,28 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 		argv[c++] = "-cursor";
 		argv[c++] = (char*) cursor;
 		}
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
 
 	free_memory(background_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkFrameP::TkFrameP")
@@ -1319,8 +1359,8 @@ TkFrameP::TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr sid
 	}
 
 TkFrameP::TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
-		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
-		  charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
+		    charptr borderwidth, charptr padx_, charptr pady_, charptr expand_, charptr background,
+		    charptr width, charptr height, const char *tag_ ) : TkFrame( s ), side(0),
 		  padx(0), pady(0), expand(0), topwin( 0 ), reject_first_resize(0),
 		  tlead(0), tpos(0), unmapped(0), icon(0)
 
@@ -1799,8 +1839,8 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	{
 	TkFrameP *ret = 0;
 
-	if ( args->Length() != 16 )
-		InvalidNumberOfArgs(16);
+	if ( args->Length() != 19 )
+		InvalidNumberOfArgs(19);
 
 	SETINIT
 	SETVAL( parent, parent->Type() == TYPE_BOOL || parent->IsAgentRecord() )
@@ -1819,6 +1859,9 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 	SETINT( new_cmap )
 	SETVAL( tlead, tlead->Type() == TYPE_BOOL || tlead->IsAgentRecord() )
 	SETSTR( tpos )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	if ( parent->Type() == TYPE_BOOL )
 		{
@@ -1832,15 +1875,17 @@ void TkFrameP::Create( ProxyStore *s, Value *args )
 			}
 
 		ret =  new TkFrameP( s, relief, side, borderwidth, padx, pady, expand, background,
-				    width, height, cursor, title, icon, new_cmap, (TkProxy*) tl, tpos );
+				     width, height, cursor, title, icon, new_cmap, (TkProxy*) tl, tpos,
+				     hlcolor, hlbackground, hlthickness );
 		}
 	else
 		{
 		TkProxy *agent = (TkProxy*)global_store->GetProxy(parent);
 		if ( agent && ! strcmp("<graphic:frame>", agent->AgentID()) )
 			ret =  new TkFrameP( s, (TkFrame*)agent, relief,
-					    side, borderwidth, padx, pady, expand, background,
-					    width, height, cursor, new_cmap );
+					     side, borderwidth, padx, pady, expand, background,
+					     width, height, cursor, new_cmap,
+					     hlcolor, hlbackground, hlthickness );
 		else
 			{
 			SETDONE
@@ -2057,16 +2102,19 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 		    charptr padx, charptr pady, int width, int height, charptr justify,
 		    charptr font, charptr relief, charptr borderwidth, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr anchor,
-		    charptr fill_, charptr bitmap_, TkFrame *group )
+		    charptr fill_, charptr bitmap_, TkFrame *group,
+		    charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkFrame( s ), value(0), state(0), menu(0), radio(group),
 			  menu_base(0),  next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
 	type = PLAIN;
 	frame = frame_;
-	char *argv[34];
+	char *argv[44];
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:button>";
 
@@ -2164,6 +2212,22 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
 
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
+
 	if ( type != MENU )
 		{
 		argv[c++] = "-command";
@@ -2209,6 +2273,8 @@ TkButton::TkButton( ProxyStore *s, TkFrame *frame_, charptr label_, charptr type
 	if ( label ) free_memory(label);
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkButton::TkButton")
@@ -2244,7 +2310,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 		    charptr /*padx*/, charptr /*pady*/, int width, int height, charptr /*justify*/,
 		    charptr font, charptr /*relief*/, charptr /*borderwidth*/, charptr foreground,
 		    charptr background, int disabled, const Value *val, charptr bitmap_,
-		    TkFrame *group )
+		    TkFrame *group, charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkFrame( s ), value(0), state(0), radio(group),
 			  menu_base(0), next_menu_entry(0), menu_index(0), fill(0), unmapped(0)
 	{
@@ -2260,7 +2326,7 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 
 	if ( ! menu || ! menu->Self() ) return;
 
-	char *argv[38];
+	char *argv[44];
 
 	char width_[30];
 	char height_[30];
@@ -2271,6 +2337,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	sprintf(width_,"%d", width);
 	sprintf(height_,"%d", height);
@@ -2361,6 +2429,17 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 	argv[c++] = disabled ? "disabled" : "normal";
 	if ( disabled ) disable_count++;
 
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-activeforeground";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-activebackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, buttoncb, this );
 
@@ -2417,6 +2496,8 @@ TkButton::TkButton( ProxyStore *s, TkButton *frame_, charptr label_, charptr typ
 
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
         menu->Add(this);
 
@@ -2481,8 +2562,8 @@ void TkButton::Create( ProxyStore *s, Value *args )
 	{
 	TkButton *ret=0;
 
-	if ( args->Length() != 19 )
-		InvalidNumberOfArgs(19);
+	if ( args->Length() != 22 )
+		InvalidNumberOfArgs(22);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2504,7 +2585,9 @@ void TkButton::Create( ProxyStore *s, Value *args )
 	SETSTR( fill )
 	SETSTR( bitmap )
 	SETVAL( group, group->IsAgentRecord() )
-
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	TkProxy *grp = (TkProxy*) (global_store->GetProxy(group));
@@ -2517,11 +2600,12 @@ void TkButton::Create( ProxyStore *s, Value *args )
 				ret =  new TkButton( s, (TkButton*)agent, label, type, padx, pady,
 						     width, height, justify, font, relief, borderwidth,
 						     foreground, background, disabled, val, bitmap,
-						     (TkFrame*) grp );
+						     (TkFrame*) grp, hlcolor, hlbackground, hlthickness );
 		else if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 			ret =  new TkButton( s, (TkFrame*)agent, label, type, padx, pady, width, height,
 					     justify, font, relief, borderwidth, foreground, background,
-					     disabled, val, anchor, fill, bitmap, (TkFrame*) grp );
+					     disabled, val, anchor, fill, bitmap, (TkFrame*) grp,
+					     hlcolor, hlbackground, hlthickness );
 		}
 	else
 		{
@@ -2729,12 +2813,12 @@ DEFINE_ENABLE_FUNCS(TkScale)
 TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, double value, charptr len,
 		   charptr text_, double resolution, charptr orient, int width, charptr font,
 		   charptr relief, charptr borderwidth, charptr foreground, charptr background,
-		   charptr fill_ )
+		   charptr fill_, charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkProxy( s ), fill(0), from_(from), to_(to), discard_event(1)
 	{
 	char var_name[256];
 	frame = frame_;
-	char *argv[30];
+	char *argv[36];
 	char from_c[40];
 	char to_c[40];
 	char resolution_[40];
@@ -2744,6 +2828,8 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:scale>";
 
@@ -2791,6 +2877,25 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	argv[c++] = (char*) foreground_;
 	argv[c++] = "-bg";
 	argv[c++] = (char*) background_;
+
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-activebackground";
+		argv[c++] = hlcolor_;
+		argv[c++] = "-highlightcolor";
+		argv[c++] = hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = hlbackground_;
+		}
+ 	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
+
 	argv[c++] = "-variable";
 	argv[c++] = var_name;
 
@@ -2800,12 +2905,14 @@ TkScale::TkScale ( ProxyStore *s, TkFrame *frame_, double from, double to, doubl
 	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
-
-	// Can't set command as part of initialization...
-	tcl_VarEval( tcl, Tk_PathName(self), " config -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScale::TkScale")
+
+	// Can't set command as part of initialization...
+	tcl_VarEval( tcl, Tk_PathName(self), " config -command ", glishtk_make_callback( tcl, scalecb, this ), 0 );
 
 	if ( fill_ && fill_[0] && strcmp(fill_,"none") )
 		fill = strdup(fill_);
@@ -2863,8 +2970,8 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	{
 	TkScale *ret;
 
-	if ( args->Length() != 15 )
-		InvalidNumberOfArgs(15);
+	if ( args->Length() != 18 )
+		InvalidNumberOfArgs(18);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -2882,10 +2989,13 @@ void TkScale::Create( ProxyStore *s, Value *args )
 	SETSTR( foreground )
 	SETSTR( background )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill );
+		ret = new TkScale( s, (TkFrame*)agent, start, end, value, len, text, resolution, orient, width, font, relief, borderwidth, foreground, background, fill, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE
@@ -2936,14 +3046,16 @@ DEFINE_ENABLE_FUNCS(TkText)
 TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr wrap,
 		charptr font, int disabled, charptr text, charptr relief,
 		charptr borderwidth, charptr foreground, charptr background,
-		charptr fill_ )
+		charptr fill_, charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:text>";
 
@@ -2988,6 +3100,22 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 		argv[c++] = (char*) font;
 		}
 
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
+
 	char ys[100];
 	argv[c++] = "-yscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, text_yscrollcb, this, ys );
@@ -2998,6 +3126,8 @@ TkText::TkText( ProxyStore *s, TkFrame *frame_, int width, int height, charptr w
 
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( text[0] )
 		tcl_VarEval( tcl, Tk_PathName(self), " insert end {", text, "}", 0 );
@@ -3033,8 +3163,8 @@ void TkText::Create( ProxyStore *s, Value *args )
 	{
 	TkText *ret;
 
-	if ( args->Length() != 12 )
-		InvalidNumberOfArgs(12);
+	if ( args->Length() != 15 )
+		InvalidNumberOfArgs(15);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3049,12 +3179,15 @@ void TkText::Create( ProxyStore *s, Value *args )
 	SETSTR( foreground )
 	SETSTR( background )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		{
 		char *text_str = text->StringVal( ' ', 0, 1 );
-		ret =  new TkText( s, (TkFrame*)agent, width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill );
+		ret =  new TkText( s, (TkFrame*)agent, width, height, wrap, font, disabled, text_str, relief, borderwidth, foreground, background, fill, hlcolor, hlbackground, hlthickness );
 		free_memory( text_str );
 		}
 	else
@@ -3131,17 +3264,21 @@ int scrollbarcb( ClientData data, Tcl_Interp *tcl, int argc, char *argv[] )
 	}
 
 TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
-			  int width, charptr foreground, charptr background, int jump )
+			  int width, charptr foreground, charptr background, int jump,
+			  charptr hlcolor, charptr hlbackground, charptr hlthickness )
 				: TkProxy( s )
 	{
 	frame = frame_;
-	char *argv[10];
+	char *argv[16];
+
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:scrollbar>";
 
 	if ( ! frame || ! frame->Self() ) return;
 
-	char width_[30];
+	char width_[14];
 	sprintf(width_,"%d", width);
 
 	int c = 0;
@@ -3151,16 +3288,37 @@ TkScrollbar::TkScrollbar( ProxyStore *s, TkFrame *frame_, charptr orient,
 	argv[c++] = (char*) orient;
 	argv[c++] = "-width";
 	argv[c++] = width_;
+
 	if ( jump )
 		{
 		argv[c++] = "-jump";
 		argv[c++] = "true";
 		}
+
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
+
 	argv[c++] = "-command";
 	argv[c++] = glishtk_make_callback( tcl, scrollbarcb, this );
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
+
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 	
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkScrollbar::TkScrollbar")
@@ -3216,8 +3374,8 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	{
 	TkScrollbar *ret;
 
-	if ( args->Length() != 6 )
-		InvalidNumberOfArgs(6);
+	if ( args->Length() != 9 )
+		InvalidNumberOfArgs(9);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3226,10 +3384,14 @@ void TkScrollbar::Create( ProxyStore *s, Value *args )
 	SETSTR( foreground )
 	SETSTR( background )
 	SETINT( jump )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground, background, jump );
+		ret = new TkScrollbar( s, (TkFrame*)agent, orient, width, foreground,
+				       background, jump, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE
@@ -3251,16 +3413,19 @@ DEFINE_DTOR(TkLabel,)
 TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify,
 		  charptr padx, charptr pady, int width_, charptr font, charptr relief,
 		  charptr borderwidth, charptr foreground, charptr background,
-		  charptr anchor, charptr fill_ )
+		  charptr anchor, charptr fill_, charptr hlcolor, charptr hlbackground,
+		  charptr hlthickness )
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 	char width[30];
 	char *text = 0;
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:label>";
 
@@ -3297,6 +3462,21 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify
 	argv[c++] = width;
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
@@ -3304,6 +3484,8 @@ TkLabel::TkLabel( ProxyStore *s, TkFrame *frame_, charptr text_, charptr justify
 	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkLabel::TkLabel")
@@ -3330,8 +3512,8 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 	{
 	TkLabel *ret;
 
-	if ( args->Length() != 13 )
-		InvalidNumberOfArgs(13);
+	if ( args->Length() != 16 )
+		InvalidNumberOfArgs(16);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3347,11 +3529,15 @@ void TkLabel::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( anchor )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkLabel( s, (TkFrame*)agent, text, justify, padx, pady, width,
-				    font, relief, borderwidth, foreground, background, anchor, fill );
+				    font, relief, borderwidth, foreground, background,
+				    anchor, fill, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE
@@ -3392,17 +3578,20 @@ int entry_xscrollcb( ClientData data, Tcl_Interp *, int, char *argv[] )
 DEFINE_ENABLE_FUNCS(TkEntry)
 
 TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
-		 charptr justify, charptr font, charptr relief, 
-		 charptr borderwidth, charptr foreground, charptr background,
-		 int disabled, int show, int exportselection, charptr fill_ )
+		  charptr justify, charptr font, charptr relief, 
+		  charptr borderwidth, charptr foreground, charptr background,
+		  int disabled, int show, int exportselection, charptr fill_,
+		  charptr hlcolor, charptr hlbackground, charptr hlthickness)
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 	char width_[30];
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:entry>";
 
@@ -3441,6 +3630,21 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 		}
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 	argv[c++] = "-xscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, entry_xscrollcb, this );
 
@@ -3449,6 +3653,8 @@ TkEntry::TkEntry( ProxyStore *s, TkFrame *frame_, int width,
 
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkEntry::TkEntry")
@@ -3500,8 +3706,8 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 	{
 	TkEntry *ret;
 
-	if ( args->Length() != 12 )
-		InvalidNumberOfArgs(12);
+	if ( args->Length() != 15 )
+		InvalidNumberOfArgs(15);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3516,12 +3722,16 @@ void TkEntry::Create( ProxyStore *s, Value *args )
 	SETINT( show )
 	SETINT( exp )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
 		ret =  new TkEntry( s, (TkFrame*)agent, width, justify,
 				    font, relief, borderwidth, foreground, background,
-				    disabled, show, exp, fill );
+				    disabled, show, exp, fill, hlcolor, hlbackground,
+				    hlthickness );
 	else
 		{
 		SETDONE
@@ -3547,15 +3757,18 @@ DEFINE_DTOR(TkMessage,)
 
 TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr width, charptr justify,
 		      charptr font, charptr padx, charptr pady, charptr relief, charptr borderwidth,
-		      charptr foreground, charptr background, charptr anchor, charptr fill_ )
+		      charptr foreground, charptr background, charptr anchor, charptr fill_,
+		      charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 	char *text = 0;
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:message>";
 
@@ -3590,6 +3803,21 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr wid
 	argv[c++] = (char*) background_;
 	argv[c++] = "-anchor";
 	argv[c++] = (char*) anchor;
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 
 	tcl_ArgEval( tcl, c, argv );
 	self = Tk_NameToWindow( tcl, argv[1], root );
@@ -3597,6 +3825,8 @@ TkMessage::TkMessage( ProxyStore *s, TkFrame *frame_, charptr text_, charptr wid
 	if ( text ) free_memory(text);
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkMessage::TkMessage")
@@ -3621,8 +3851,8 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 	{
 	TkMessage *ret;
 
-	if ( args->Length() != 13 )
-		InvalidNumberOfArgs(13);
+	if ( args->Length() != 16 )
+		InvalidNumberOfArgs(16);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3638,10 +3868,14 @@ void TkMessage::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETSTR( anchor )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth, foreground, background, anchor, fill );
+		ret =  new TkMessage( s, (TkFrame*)agent, text, width, justify, font, padx, pady, relief, borderwidth,
+				      foreground, background, anchor, fill, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE
@@ -3694,16 +3928,19 @@ int listbox_button1cb( ClientData data, Tcl_Interp*, int, char *[] )
 
 TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, charptr mode,
 		      charptr font, charptr relief, charptr borderwidth,
-		      charptr foreground, charptr background, int exportselection, charptr fill_ )
+		      charptr foreground, charptr background, int exportselection, charptr fill_,
+		      charptr hlcolor, charptr hlbackground, charptr hlthickness )
 			: TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[24];
+	char *argv[30];
 	char width_[40];
 	char height_[40];
 
 	char *foreground_ = glishtk_quote_string(foreground);
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:listbox>";
 
@@ -3737,6 +3974,22 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 	argv[c++] = "-exportselection";
 	argv[c++] = exportselection ? "true" : "false";
 
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
+
 	char ys[100];
 	argv[c++] = "-yscrollcommand";
 	argv[c++] = glishtk_make_callback( tcl, listbox_yscrollcb, this, ys );
@@ -3748,6 +4001,8 @@ TkListbox::TkListbox( ProxyStore *s, TkFrame *frame_, int width, int height, cha
 
 	free_memory(background_);
 	free_memory(foreground_);
+	free_memory(hlcolor_);
+	free_memory(hlbackground_);
 
 	if ( ! self )
 		HANDLE_CTOR_ERROR("Rivet creation failed in TkListbox::TkListbox")
@@ -3781,8 +4036,8 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 	{
 	TkListbox *ret;
 
-	if ( args->Length() != 11 )
-		InvalidNumberOfArgs(11);
+	if ( args->Length() != 14 )
+		InvalidNumberOfArgs(14);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -3796,10 +4051,14 @@ void TkListbox::Create( ProxyStore *s, Value *args )
 	SETSTR( background )
 	SETINT( exp )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*)(global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret =  new TkListbox( s, (TkFrame*)agent, width, height, mode, font, relief, borderwidth, foreground, background, exp, fill );
+		ret =  new TkListbox( s, (TkFrame*)agent, width, height, mode, font, relief, borderwidth,
+				      foreground, background, exp, fill, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE

@@ -16,7 +16,8 @@ typedef Dict(int) canvas_item_count;
 class TkCanvas : public TkProxy {
     public:
 	TkCanvas( ProxyStore *, TkFrame *, charptr width, charptr height, const Value *region_,
-		  charptr relief, charptr borderwidth, charptr background, charptr fill );
+		  charptr relief, charptr borderwidth, charptr background, charptr fill,
+		  charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	void UnMap();
 

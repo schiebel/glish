@@ -806,13 +806,16 @@ void TkCanvas::BindEvent( const char *event, Value *rec )
 	}
 
 TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr height, const Value *region_,
-		    charptr relief, charptr borderwidth, charptr background, charptr fill_ ) : TkProxy( s ), fill(0)
+		    charptr relief, charptr borderwidth, charptr background, charptr fill_,
+		    charptr hlcolor, charptr hlbackground, charptr hlthickness ) : TkProxy( s ), fill(0)
 	{
 	frame = frame_;
-	char *argv[18];
+	char *argv[24];
 	static char region_str[512];
 
 	char *background_ = glishtk_quote_string(background);
+	char *hlcolor_ = glishtk_quote_string(hlcolor,0);
+	char *hlbackground_ = glishtk_quote_string(hlbackground,0);
 
 	agent_ID = "<graphic:canvas>";
 
@@ -853,6 +856,21 @@ TkCanvas::TkCanvas( ProxyStore *s, TkFrame *frame_, charptr width, charptr heigh
 	argv[c++] = (char*) borderwidth;
 	argv[c++] = "-background";
 	argv[c++] = (char*) background_;
+	if ( hlcolor_ && *hlcolor_ )
+		{
+		argv[c++] = "-highlightcolor";
+		argv[c++] = (char*) hlcolor_;
+		}
+	if ( hlbackground_ && *hlbackground_ )
+		{
+		argv[c++] = "-highlightbackground";
+		argv[c++] = (char*) hlbackground_;
+		}
+	if ( hlthickness && *hlthickness )
+		{
+		argv[c++] = "-highlightthickness";
+		argv[c++] = (char*) hlthickness;
+		}
 
 	char ys[100];
 	argv[c++] = "-yscrollcommand";
@@ -972,8 +990,8 @@ void TkCanvas::Create( ProxyStore *s, Value *args )
 	{
 	TkCanvas *ret;
 
-	if ( args->Length() != 8 )
-		InvalidNumberOfArgs(8);
+	if ( args->Length() != 11 )
+		InvalidNumberOfArgs(11);
 
 	SETINIT
 	SETVAL( parent, parent->IsAgentRecord() )
@@ -984,10 +1002,14 @@ void TkCanvas::Create( ProxyStore *s, Value *args )
 	SETDIM( borderwidth )
 	SETSTR( background )
 	SETSTR( fill )
+	SETSTR( hlcolor )
+	SETSTR( hlbackground )
+	SETDIM( hlthickness )
 
 	TkProxy *agent = (TkProxy*) (global_store->GetProxy(parent));
 	if ( agent && ! strcmp( agent->AgentID(), "<graphic:frame>") )
-		ret = new TkCanvas( s, (TkFrame*)agent, width, height, region, relief, borderwidth, background, fill );
+		ret = new TkCanvas( s, (TkFrame*)agent, width, height, region, relief, borderwidth,
+				    background, fill, hlcolor, hlbackground, hlthickness );
 	else
 		{
 		SETDONE

@@ -29,9 +29,9 @@ int TkProxy::widget_index = 0;
 
 unsigned long TkFrame::count = 0;
 
-char *glishtk_quote_string( charptr str )
+char *glishtk_quote_string( charptr str, int quote_empty_string )
 	{
-	if ( ! str ) return 0;
+	if ( ! str || ! quote_empty_string && ! *str ) return 0;
 	char *ret = (char*) alloc_memory(strlen(str)+3);
 	sprintf(ret,"{%s}", str);
 	return ret;
@@ -674,6 +674,9 @@ TkProxy::TkProxy( ProxyStore *s, int init_graphic ) : Proxy( s ), dont_map( 0 ),
 		procs.Insert("borderwidth", new TkProc("-borderwidth", glishtk_onedim, glishtk_strtoint));
 		procs.Insert("pixelwidth", new TkProc("width",glishtk_winfo, glishtk_strtoint));
 		procs.Insert("pixelheight", new TkProc("height",glishtk_winfo, glishtk_strtoint));
+		procs.Insert("hlcolor", new TkProc("-highlightcolor", glishtk_onestr, glishtk_str));
+		procs.Insert("hlbackground", new TkProc("-highlightbackground", glishtk_onestr, glishtk_str));
+		procs.Insert("hlthickness", new TkProc("-highlightthickness", glishtk_onedim, glishtk_strtoint));
 		}
 	}
 

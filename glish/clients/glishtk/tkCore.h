@@ -52,11 +52,12 @@ class TkFrameP : public TkFrame {
 	TkFrameP( ProxyStore *s, charptr relief_, charptr side_, charptr borderwidth,
 		  charptr padx_, charptr pady_, charptr expand_, charptr background,
 		  charptr width, charptr height, charptr cursor, charptr title,
-		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_ );
+		  charptr icon, int new_cmap, TkProxy *tlead_, charptr tpos_,
+		  charptr hlcolor, charptr hlbackground, charptr hlthickness );
 	TkFrameP( ProxyStore *s, TkFrame *frame_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, charptr cursor,
-		  int new_cmap );
+		  int new_cmap, charptr hlcolor, charptr hlbackground, charptr hlthickness );
 	TkFrameP( ProxyStore *s, TkCanvas *canvas_, charptr relief_, charptr side_,
 		  charptr borderwidth, charptr padx_, charptr pady_, charptr expand_,
 		  charptr background, charptr width, charptr height, const char *tag_ );
@@ -156,12 +157,13 @@ class TkButton : public TkFrame {
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const Value *val, charptr anchor,
-		  charptr fill, charptr bitmap, TkFrame *group );
+		  charptr fill, charptr bitmap, TkFrame *group,
+		  charptr hlcolor, charptr hlbackground, charptr hlthickness );
 	TkButton( ProxyStore *, TkButton *, charptr label, charptr type_, charptr padx,
 		  charptr pady, int width, int height, charptr justify, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground,
 		  charptr background, int disabled, const Value *val, charptr bitmap,
-		  TkFrame *group );
+		  TkFrame *group, charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	void UnMap();
 
@@ -218,7 +220,7 @@ class TkScale : public TkProxy {
 	TkScale ( ProxyStore *, TkFrame *, double from, double to, double value, charptr len,
 		  charptr text, double resolution, charptr orient, int width, charptr font,
 		  charptr relief, charptr borderwidth, charptr foreground, charptr background,
-		  charptr fill );
+		  charptr fill, charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	// value was set, so generate an event
 	void ValueSet( double );
@@ -253,7 +255,7 @@ class TkText : public TkProxy {
 	TkText( ProxyStore *, TkFrame *, int width, int height, charptr wrap,
 		charptr font, int disabled, charptr text, charptr relief,
 		charptr borderwidth, charptr foreground, charptr background,
-		charptr fill);
+		charptr fill, charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	charptr IndexCheck( charptr );
 	const char **PackInstruction();
@@ -281,7 +283,8 @@ class TkText : public TkProxy {
 class TkScrollbar : public TkProxy {
     public:
 	TkScrollbar( ProxyStore *, TkFrame *, charptr orient, int width,
-		     charptr foreground, charptr background, int jump );
+		     charptr foreground, charptr background, int jump,
+		     charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	const char **PackInstruction();
 	int CanExpand() const;
@@ -298,7 +301,8 @@ class TkLabel : public TkProxy {
 	TkLabel( ProxyStore *, TkFrame *, charptr text,
 		 charptr justify, charptr padx, charptr pady, int width,
 		 charptr font, charptr relief, charptr borderwidth,
-		 charptr foreground, charptr background, charptr anchor, charptr fill );
+		 charptr foreground, charptr background, charptr anchor, charptr fill,
+		 charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	static void Create( ProxyStore *, Value * );
 	~TkLabel();
@@ -315,7 +319,8 @@ class TkEntry : public TkProxy {
 	TkEntry( ProxyStore *, TkFrame *, int width,
 		 charptr justify, charptr font, charptr relief, 
 		 charptr borderwidth, charptr foreground, charptr background,
-		 int disabled, int show, int exportselection, charptr fill );
+		 int disabled, int show, int exportselection, charptr fill,
+		 charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	static void Create( ProxyStore *, Value * );
 
@@ -347,7 +352,8 @@ class TkMessage : public TkProxy {
 	TkMessage( ProxyStore *, TkFrame *, charptr text, charptr width,
 		   charptr justify, charptr font, charptr padx, charptr pady,
 		   charptr relief, charptr borderwidth,
-		   charptr foreground, charptr background, charptr anchor, charptr fill );
+		   charptr foreground, charptr background, charptr anchor, charptr fill,
+		   charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	static void Create( ProxyStore *, Value * );
 
@@ -365,7 +371,8 @@ class TkListbox : public TkProxy {
     public:
 	TkListbox( ProxyStore *, TkFrame *, int width, int height, charptr mode,
 		   charptr font, charptr relief, charptr borderwidth,
-		  charptr foreground, charptr background, int exportselection, charptr fill );
+		  charptr foreground, charptr background, int exportselection, charptr fill,
+		   charptr hlcolor, charptr hlbackground, charptr hlthickness );
 
 	charptr IndexCheck( charptr );
 

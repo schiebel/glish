@@ -38,7 +38,7 @@ typedef PDict(TkProc) tkprochash;
 extern int tcl_ArgEval( Tcl_Interp *interp, int argc, char *argv[] );
 
 //###  Quote the string and return an alloc'ed string
-extern char *glishtk_quote_string( charptr );
+extern char *glishtk_quote_string( charptr, int quote_empty_string=1 );
 
 //###  Function to Make Callbacks
 extern char *glishtk_make_callback( Tcl_Interp*, Tcl_CmdProc*, ClientData data, char *out=0 );
@@ -101,7 +101,7 @@ class TkProxy : public Proxy {
 	virtual void EnterEnable();
 	virtual void ExitEnable();
 
-	static Value *GetError() { return last_error; }
+	static Value *GetError() { Value *ret = last_error; last_error = 0; return ret; }
 	static void SetError(Value*);
 
 	void SetMap( int do_map, int toplevel );
