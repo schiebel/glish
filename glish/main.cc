@@ -84,6 +84,7 @@ static Sequencer* s = 0;
 // is executing an instruction
 int glish_jmpbuf_set = 0;
 jmp_buf glish_top_level;
+int glish_silent = 0;
 
 int allwarn = 0;
 static unsigned int error_count = 0;
@@ -129,7 +130,7 @@ DEFINE_SIG_FWD(glish_sigabrt,"abort signal",SIGABRT,)
 void glish_sigquit( )
 	{
 	glish_cleanup( );
-	fprintf(stderr,"exiting on quit signal (^\\) ...\n");
+	fprintf(stderr,"exiting on ^\\ ...\n");
 	fflush(stderr);
 	exit(0);
 	}
@@ -483,6 +484,7 @@ void show_glish_stack( OStream &s )
 
 static void glish_dump_core( const char *file )
 	{
+	glish_silent = 1;
 	int fd = open(file,O_WRONLY|O_CREAT|O_TRUNC,0600);
 	if ( fd < 0 ) return;
 

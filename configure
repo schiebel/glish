@@ -685,7 +685,7 @@ if test -n "$tmp_prefix_rel_path"; then
 esac
 
     tmp_prefix_end=`echo ${tmp_prefix} | sed 's/^\([\.\/]*\)//'`
-    tmp_prefix="$tmp_prefix_root/$tmp_prefix_end"
+    tmp_prefix=`echo "$tmp_prefix_root/$tmp_prefix_end" | sed 's/\/$//'`
 fi
 
 if test "$prefix" != "$tmp_prefix"; then
@@ -731,7 +731,7 @@ if test -n "$RCDIR_rel_path"; then
 esac
 
     RCDIR_end=`echo ${RCDIR} | sed 's/^\([\.\/]*\)//'`
-    RCDIR="$RCDIR_root/$RCDIR_end"
+    RCDIR=`echo "$RCDIR_root/$RCDIR_end" | sed 's/\/$//'`
 fi
 
 else
@@ -759,7 +759,7 @@ if test -n "$full_libdir_rel_path"; then
 esac
 
     full_libdir_end=`echo ${full_libdir} | sed 's/^\([\.\/]*\)//'`
-    full_libdir="$full_libdir_root/$full_libdir_end"
+    full_libdir=`echo "$full_libdir_root/$full_libdir_end" | sed 's/\/$//'`
 fi
 
 
@@ -2706,7 +2706,7 @@ if test -n "$KEYDIR_rel_path"; then
 esac
 
     KEYDIR_end=`echo ${KEYDIR} | sed 's/^\([\.\/]*\)//'`
-    KEYDIR="$KEYDIR_root/$KEYDIR_end"
+    KEYDIR=`echo "$KEYDIR_root/$KEYDIR_end" | sed 's/\/$//'`
 fi
 
     else

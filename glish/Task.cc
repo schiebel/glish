@@ -592,9 +592,16 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 	if ( err )
 		return (IValue*) Fail( "remote task creation failed" );
 
+	// If the following values are changed, be sure to also change
+	// them in CreateTaskBuiltIn::DoSideEffectsCall().
+	int client_flag = args[2]->IntVal();
+	int async_flag = args[3]->IntVal();
+	int ping_flag = args[4]->IntVal();
+	int suspend_flag = args[5]->IntVal();
+
 	int shm_flag = 1;
 	const char *script_name = 0;
-	if ( sequencer->LocalHost( hostname ) && channel )
+	if ( client_flag && sequencer->LocalHost( hostname ) && channel )
 		{
 		shm_flag = 0;
 		sequencer->UpdateBinPath( );
@@ -605,33 +612,30 @@ IValue* CreateTaskBuiltIn::DoCall( const_args_list* args_val )
 		while ( ptr != ptr_base && *ptr != '/' ) --ptr;
 		char *exe = which_executable( ptr );
 
-		script_name = ! strcmp( exe, sequencer->Path() ) ?
-				 ExpandScript( task_args_start, args ) : 0;
-		IValue val( script_name ? script_name : client );
-		send_event( channel->Sink(),  "client-up", &val );
-		GlishEvent* e = recv_event( channel->Source() );
-		if ( e && e->value->IsNumeric() && e->value->BoolVal() )
+		if ( exe )
 			{
-			if ( hostname )
-				free_memory( hostname );
-			hostname = strdup( "localhost" );
+			script_name = ! strcmp( exe, sequencer->Path() ) ?
+				      ExpandScript( task_args_start, args ) : 0;
+			IValue val( script_name ? script_name : client );
+			send_event( channel->Sink(),  "client-up", &val );
+			GlishEvent* e = recv_event( channel->Source() );
+			if ( e && e->value->IsNumeric() && e->value->BoolVal() )
+				{
+				if ( hostname )
+					free_memory( hostname );
+				hostname = strdup( "localhost" );
+				}
+			else
+				{
+				if ( hostname )
+					free_memory( hostname );
+				hostname = 0;
+				channel = 0;
+				}
+			Unref( e );
 			}
-		else
-			{
-			if ( hostname )
-				free_memory( hostname );
-			hostname = 0;
-			channel = 0;
-			}
-		Unref( e );
 		}
 
-	// If the following values are changed, be sure to also change
-	// them in CreateTaskBuiltIn::DoSideEffectsCall().
-	int client_flag = args[2]->IntVal();
-	int async_flag = args[3]->IntVal();
-	int ping_flag = args[4]->IntVal();
-	int suspend_flag = args[5]->IntVal();
 	IValue* input = 0;
 
 	if ( args[6]->Type() != TYPE_BOOL || args[6]->BoolVal() )

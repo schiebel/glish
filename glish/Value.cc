@@ -23,7 +23,7 @@ const char* type_names[NUM_GLISH_TYPES] =
 	"error", "ref", "subref",
 	"boolean", "byte", "short", "integer",
 	"float", "double", "string", "agent", "function", "record",
-	"complex", "dcomplex", "fail", "opaque",
+	"complex", "dcomplex", "fail",
 	};
 
 const Value* false_value;
@@ -319,7 +319,6 @@ int Value::IsNumeric() const
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
-		case TYPE_OPAQUE:
 		case TYPE_FAIL:
 			return 0;
 
@@ -489,7 +488,6 @@ val_type Value::name( int n, Str &err ) const				\
 		case TYPE_AGENT:					\
 		case TYPE_FUNC:						\
 		case TYPE_RECORD:					\
-		case TYPE_OPAQUE:					\
 			err = strFail( "bad type", type_names[type],	\
 				"converted to ", type_name, ":", this );\
 			return zero;					\
@@ -598,8 +596,6 @@ char* Value::StringVal( char sep, unsigned int max_elements,
 		return strdup( "<agent>" );
 	if ( type == TYPE_FUNC )
 		return strdup( "<function>" );
-	if ( type == TYPE_OPAQUE )
-		return strdup( "<opaque>" );
 	if ( type == TYPE_FAIL )
 		return format_error_message( this, sep, max_elements, useAttributes );
 	if ( length == 0 )
@@ -3891,7 +3887,6 @@ int Value::Grow( unsigned int new_size )
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
-		case TYPE_OPAQUE:
 			error->Report( "cannot increase array of",
 					type_names[Type()], "via assignment" );
 			return 0;

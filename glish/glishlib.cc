@@ -157,3 +157,5 @@ int do_output_log() { return 0; }
 void show_glish_stack( OStream& ) { }
 
 void glish_cleanup( ) { }
+
+int glish_silent = 0;

@@ -218,6 +218,7 @@ private:
 
 
 int glish_timedoutdummy = 0;
+EventContext glish_ec_dummy;
 
 void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
 	{
@@ -394,6 +395,8 @@ void Client::Init( int& argc, char** argv, ShareType arg_multithreaded, const ch
 	// set useshm last so that all handshaking happens
 	// outside of shared memory.
 	useshm = useshm_;
+
+	default_context = EventContext( initial_client_name, interpreter_tag );
 	}
 
 
@@ -425,6 +428,8 @@ void Client::Init( int client_read_fd, int client_write_fd, const char* name, co
 	SendEstablishedEvent( last_context );
 
 	CreateSignalHandler();
+
+	default_context = EventContext( initial_client_name, interpreter_tag );
 	}
 
 void Client::Init( int client_read_fd, int client_write_fd, const char* name,
@@ -639,13 +644,6 @@ void Client::Reply( const Value* event_value )
 		free_memory( pending_reply );
 		pending_reply = 0;
 		}
-	}
-
-void Client::PostOpaqueSDS_Event( const char* event_name, int sds,
-    const EventContext &context )
-	{
-	GlishEvent e( event_name, (const Value*) 0 );
-	SendEvent( &e, sds, context );
 	}
 
 int Client::AddInputMask( fd_set* mask )
@@ -1302,8 +1300,10 @@ void Client::RendezvousAsResponder( Value* v )
 	(*remote_sources).Insert( strdup(source_id), input_fd );
 	}
 
-void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &context )
+void Client::SendEvent( const GlishEvent* e, int sds, const EventContext &context_arg )
 	{
+	const EventContext &context = &context_arg == &glish_ec_dummy ? default_context : context_arg;
+
 	if ( no_glish )
 		return;
 

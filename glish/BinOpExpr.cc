@@ -494,7 +494,6 @@ IValue* RelExpr::OpCompute( const IValue* lhs, const IValue* rhs, int lhs_len )
 		case TYPE_AGENT:
 		case TYPE_FUNC:
 		case TYPE_RECORD:
-		case TYPE_OPAQUE:
 			if ( op == OP_EQ )
 				return new IValue( glish_bool( lhs == rhs ) );
 

@@ -20,6 +20,7 @@ SOStream *Reporter::sout = 0;
 extern void show_glish_stack( OStream& );
 extern void log_output( const char * );
 extern int do_output_log();
+extern int glish_silent;
 
 class WarningReporter : public Reporter {
     public:
@@ -184,6 +185,9 @@ void Reporter::Report( const RMessage& m0,
 		       const RMessage& m15, const RMessage& m16
 		     )
 	{
+
+	if ( glish_silent ) return;
+
 	const int max_messages = 50;
 	const RMessage* messages[max_messages];
 

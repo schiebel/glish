@@ -6,6 +6,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "Glish/Value.h"
 #include "sos/io.h"
@@ -28,6 +29,10 @@ public:
 	const char *id() const { return context; }
 	const char *name() const { return client_name; }
 	~EventContext();
+	int operator==(const EventContext &c) const
+			{ return strcmp( context, c.context ) ? 0 : 1; }
+	int operator!=(const EventContext &c) const
+			{ return strcmp( context, c.context ) ? 1 : 0; }
 private:
 	char *context;
 	char *client_name;
@@ -105,6 +110,7 @@ glish_declare(PList,EventLink);
 glish_declare(PDict,EventLink);
 
 glish_declare(PList,EventSource);
+typedef PList(EventSource) source_list;
 glish_declare(PDict,EventSource);
 
 typedef PList(EventLink) event_link_list;
@@ -120,6 +126,7 @@ glish_declare(PDict,sink_id_list);
 class AcceptSocket;
 
 extern int glish_timedoutdummy;
+extern EventContext glish_ec_dummy;
 
 class Client {
     public:
@@ -183,57 +190,30 @@ class Client {
 	void Error( const char* msg );
 	void Error( const char* fmt, const char* arg );
 
-
 	// Sends an event with the given name and value.
-	void PostEvent( const GlishEvent* event, const EventContext &context );
-	void PostEvent( const GlishEvent* event ) 
-		{ PostEvent( event, EventContext( initial_client_name, interpreter_tag ) ); }
+	void PostEvent( const GlishEvent* event, const EventContext &context = glish_ec_dummy );
 	void PostEvent( const char* event_name, const Value* event_value,
-		const EventContext &context );
-	void PostEvent( const char* event_name, const Value* event_value )
-		{ PostEvent( event_name, event_value, 
-			     EventContext(initial_client_name, interpreter_tag) ); }
+			const EventContext &context = glish_ec_dummy );
 
 	// Sends an event with the given name and character string value.
 	void PostEvent( const char* event_name, const char* event_value,
-		const EventContext &context );
-	void PostEvent( const char* event_name, const char* event_value )
-		{ PostEvent( event_name, event_value,
-			     EventContext(initial_client_name, interpreter_tag) ); }
+			const EventContext &context = glish_ec_dummy );
 
 	// Sends an event with the given name, using a printf-style format
 	// and an associated string argument.  For example,
 	//
 	//	client->PostEvent( "error", "couldn't open %s", file_name );
 	//
-	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* event_arg, const EventContext &context );
-	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* event_arg )
-		{ PostEvent( event_name, event_fmt, event_arg, 
-			     EventContext(initial_client_name, interpreter_tag) ); }
-	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* arg1, const char* arg2,
-				const EventContext &context );
-	void PostEvent( const char* event_name, const char* event_fmt,
-				const char* arg1, const char* arg2 )
-		{ PostEvent( event_name, event_fmt, arg1, arg2,
-			     EventContext(initial_client_name, interpreter_tag) ); }
+	void PostEvent( const char* event_name, const char* event_fmt, const char* event_arg,
+			const EventContext &context = glish_ec_dummy );
+	void PostEvent( const char* event_name, const char* event_fmt, const char* arg1,
+			const char* arg2, const EventContext &context = glish_ec_dummy );
 
 	// Reply to the last received event.
 	void Reply( const Value* event_value );
 
 	// True if the Client is expecting a reply, false otherwise.
 	int ReplyPending() const	{ return pending_reply != 0; }
-
-	// Post an event with an "opaque" SDS value - one that we won't
-	// try to convert to a Glish record.
-	void PostOpaqueSDS_Event( const char* event_name, int sds,
-		const EventContext &context );
-	void PostOpaqueSDS_Event( const char* event_name, int sds )
-		{ PostOpaqueSDS_Event( event_name, sds, 
-				       EventContext(initial_client_name, interpreter_tag) ); }
-
 
 	// For any file descriptors this Client might read events from,
 	// sets the corresponding bits in the passed fd_set.  The caller
@@ -250,23 +230,18 @@ class Client {
 	int HasInterpreterConnection()
 		{ return int(have_interpreter_connection); }
 
-	int HasSequencerConnection()	// deprecated
-		{ return HasInterpreterConnection(); }
-
 	// Returns true if the client has *some* event source, either
 	// the interpreter or stdin; false if not.
 	int HasEventSource()	{ return ! int(no_glish); }
 
-	// Register with glishd if multithreaded, adding event_source
-	// that corresponds to the glishd.  Returns nonzero if connection
-	// failed for any reason (eg no glishd).
-	int ReRegister( char* registration_name = 0 );
-
-	// 1 if multithreaded, 0 if not
-	ShareType Multithreaded() { return multithreaded; }
+	// Returns the shared type.
+	ShareType Shared() { return multithreaded; }
 
 	// return context of last event received
 	const EventContext &LastContext() { return last_context; }
+
+	// access to the event sources this client is managing
+	source_list &EventSources( ) { return event_sources; }
 
     protected:
 
@@ -277,6 +252,11 @@ class Client {
 
 	Client( int& argc, char** argv, ShareType arg_multithreaded, const char *script_file )
 		{ Init( argc, argv, arg_multithreaded, script_file ); }
+
+	// Register with glishd if multithreaded, adding event_source
+	// that corresponds to the glishd.  Returns nonzero if connection
+	// failed for any reason (eg no glishd).
+	int ReRegister( char* registration_name = 0 );
 
 	friend void Client_signal_handler( );
 
@@ -336,7 +316,7 @@ class Client {
 
 	// Sends the given event.  If sds is non-negative, the event's value
 	// is taken from the SDS "sds".
-	void SendEvent( const GlishEvent* e, int sds, const EventContext &context );
+	void SendEvent( const GlishEvent* e, int sds, const EventContext &context_arg );
 	void SendEvent( const GlishEvent* e, int sds = -1 )
 		{ SendEvent( e, sds, last_context ); }
 
@@ -351,7 +331,7 @@ class Client {
 	char* pending_reply;	// the name of the pending reply, if any
 
 	// All EventSources, keyed by context and typed
-	PList(EventSource) event_sources;
+	source_list event_sources;
 
 	// Maps interpreter contexts to output link lists
 	//
@@ -380,6 +360,7 @@ class Client {
 
 	// Context of last received event
 	EventContext last_context;
+	EventContext default_context;
 
 	// Multithreaded or not?
 	ShareType multithreaded;

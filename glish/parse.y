@@ -6,7 +6,7 @@
 %token TOK_ACTIVATE TOK_ATTR TOK_AWAIT TOK_BREAK TOK_CONST TOK_CONSTANT
 %token TOK_DO TOK_ELLIPSIS TOK_ELSE TOK_EXCEPT TOK_EXIT TOK_FOR
 %token TOK_FUNCTION TOK_ID TOK_IF TOK_IN TOK_LAST_EVENT TOK_LINK
-%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_LOOP TOK_ONLY TOK_PRINT TOK_FAIL
+%token TOK_LOCAL TOK_GLOBAL TOK_WIDER TOK_NEXT TOK_ONLY TOK_PRINT TOK_FAIL
 %token TOK_REF TOK_REQUEST TOK_RETURN TOK_SEND TOK_SUBSEQUENCE TOK_TO
 %token TOK_UNLINK TOK_VAL TOK_WHENEVER TOK_WHILE TOK_INCLUDE
 %token NULL_TOK
@@ -172,6 +172,7 @@ opt_scoped_expr:
 stand_alone_expr:
 		scoped_expr
 			{ $$->StandAlone( ); }
+	;
 
 
 scoped_lhs_var:
@@ -235,7 +236,7 @@ statement:
 	|	TOK_WHILE '(' scoped_expr ')' cont statement
 			{ $$ = new WhileStmt( $3, $6 ); }
 
-	|	TOK_LOOP ';'	/* "next" statement; "loop" is historical */
+	|	TOK_NEXT ';'
 			{ $$ = new LoopStmt; }
 
 	|	TOK_BREAK ';'
@@ -463,6 +464,7 @@ block:		block_head statement_list '}'
 
 			$$ = new StmtBlock( frame_size, $2, current_sequencer );
 			}
+	;
 
 block_head:	'{'
 			{

@@ -224,7 +224,7 @@ link		return TOK_LINK;
 local		return TOK_LOCAL;
 global		return TOK_GLOBAL;
 wider		return TOK_WIDER;
-next|continue	statement_can_end = 1; return TOK_LOOP;
+next|continue	statement_can_end = 1; return TOK_NEXT;
 only		return TOK_ONLY;
 print		return TOK_PRINT;
 fail		statement_can_end = 1; return TOK_FAIL;
@@ -330,6 +330,9 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <QUOTE,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
 <QUOTE,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
 <QUOTE,ATTR_QUOTE>"\\f"		literal( "\f" ); break;
+<QUOTE,ATTR_QUOTE>"\\v"		literal( "\v" ); break;
+<QUOTE,ATTR_QUOTE>"\\e"		literal( "\e" ); break;
+<QUOTE,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
 <QUOTE,ATTR_QUOTE>"\\"\n{OWS}	++line_num; break;
 <QUOTE,ATTR_QUOTE>"\\".		literal( &yytext[1] ); break;
 

@@ -212,6 +212,8 @@ class TkAgent : public Agent {
 	virtual void Disable( );
 	virtual void Enable( int force = 1 );
 
+	void BindEvent(const char *event, IValue *rec);
+
     protected:
 	tkprochash procs;
 	static Rivetobj root;

@@ -848,7 +848,7 @@ void Sequencer::InitScriptClient( )
 	// Create "script" global.
 	script_client = new ScriptClient( argc_, argv_, MultiClientScript(), run_file );
 
-	if ( script_client->HasSequencerConnection() )
+	if ( script_client->HasInterpreterConnection() )
 		{
 		// Set up script agent to deal with incoming and outgoing
 		// events.

@@ -87,7 +87,6 @@ class ValueKernel {
 	inline unsigned int RECORD( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 	inline unsigned int VALUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
 	inline unsigned int REF( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
-	inline unsigned int OPAQUE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 	inline unsigned int CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<5; }
 	inline unsigned int MOD_CONST( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<6; }
 	inline unsigned int FAIL( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<7; }
@@ -97,7 +96,6 @@ class ValueKernel {
 		record_t *record;
 		Value *value;
 		VecRef *vecref;
-		void *opaque;
 	};
 	unsigned int mode;
 
@@ -198,9 +196,6 @@ class ValueKernel {
 
 	void SetVecRef( VecRef *v );
 	VecRef *GetVecRef() const { return vecref; }
-
-	void SetOpaque( void *v );
-	void *GetOpaque() const { return opaque; }
 
 	glish_type Type() const
 		{

@@ -89,7 +89,7 @@ if test -n "$[$1]_rel_path"; then
     [$1]_root=`cd $[$1]_rel_path; pwd`
     STRIP_AUTOMOUNT([$1]_root)
     [$1]_end=`echo ${$1} | sed ['s/^\([\.\/]*\)//'`]
-    $1="$[$1]_root/$[$1]_end"
+    $1=`echo "$[$1]_root/$[$1]_end" | sed ['s/\/$//']`
 fi
 ])
 

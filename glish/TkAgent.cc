@@ -1306,6 +1306,7 @@ void TkAgent::SetMap( int do_map )
 		}
 	}
 
+extern "C" void rivet_focus_follows_mouse(Rivetobj ref);
 TkAgent::TkAgent( Sequencer *s ) : Agent( s ), dont_map( 0 ), disable_count(0)
 	{
 	agent_ID = "<graphic>";
@@ -1326,6 +1327,8 @@ TkAgent::TkAgent( Sequencer *s ) : Agent( s ), dont_map( 0 ), disable_count(0)
 		root = rivet_init(1, argv);
 		glishtk_dflt_xioerror_handler = 
 			XSetIOErrorHandler(glishtk_xioerror_handler);
+		
+		rivet_focus_follows_mouse(root);
 		}
 
 	procs.Insert("background", new TkProc("-bg", glishtk_onestr));
@@ -1402,6 +1405,70 @@ TkAgent::~TkAgent( )
 	const char* key;
 	while ( (member = procs.NextEntry( key, c )) )
 		delete member;
+	}
+
+void TkAgent::BindEvent(const char *event, IValue *rec)
+	{
+	PostTkEvent( event, rec );
+	}
+
+
+struct glishtk_bindinfo
+	{
+	TkAgent *agent;
+	char *event_name;
+	char *tk_event_name;
+	glishtk_bindinfo( TkAgent *c, const char *event, const char *tk_event ) :
+			tk_event_name(strdup(tk_event)),
+			event_name(strdup(event)),
+			agent(c) { }
+	~glishtk_bindinfo()
+		{
+		free_memory( tk_event_name );
+		free_memory( event_name );
+		}
+	};
+
+int glishtk_bindcb(Rivetobj agent, XEvent *xevent, ClientData assoc, int keysym, int callbacktype)
+	{
+	glishtk_bindinfo *info = (glishtk_bindinfo*) assoc;
+	int dummy;
+	recordptr rec = create_record_dict();
+
+	int *wpt = (int*) alloc_memory( sizeof(int)*2 );
+	wpt[0] = xevent->xkey.x;
+	wpt[1] = xevent->xkey.y;
+	rec->Insert( strdup("wpoint"), new IValue( wpt, 2 ) );
+	if ( xevent->type == KeyPress )
+		rec->Insert( strdup("key"), new IValue( rivet_expand_event(agent, "A", xevent, keysym, &dummy) ) );
+	info->agent->BindEvent(info->event_name, new IValue( rec ) );
+	return TCL_OK;
+	}
+
+char *glishtk_bind(TkAgent *agent, const char *cmd, parameter_list *args,
+				int is_request, int log )
+	{
+	char *event_name = "agent bind function";
+	int c = 0;
+	if ( args->length() >= 2 )
+		{
+		EXPRSTR( button, event_name )
+		EXPRSTR( event, event_name )
+		glishtk_bindinfo *binfo = 
+			new glishtk_bindinfo(agent, event, button);
+
+		if ( rivet_create_binding(agent->Self(), 0, (char*)button, (int (*)()) glishtk_bindcb,
+					  (ClientData) binfo, 1, 0) == TCL_ERROR )
+			{
+			error->Report("Error, binding not created.");
+			delete binfo;
+			}
+
+		EXPR_DONE( event )
+		EXPR_DONE( button )
+		}
+
+	return 0;
 	}
 
 int glishtk_delframe_cb(Rivetobj frame, XEvent *unused1, ClientData assoc, ClientData unused2)
@@ -1543,6 +1610,8 @@ TkFrame::TkFrame( Sequencer *s, charptr relief_, charptr side_, charptr borderwi
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	procs.Insert("icon", new TkProc( this, &TkFrame::SetIcon ));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 
@@ -1618,6 +1687,8 @@ TkFrame::TkFrame( Sequencer *s, TkFrame *frame_, charptr relief_, charptr side_,
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
 	procs.Insert("map", new TkProc(this, "M", glishtk_agent_map));
 	procs.Insert("unmap", new TkProc(this, "U", glishtk_agent_map));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
@@ -1689,6 +1760,8 @@ TkFrame::TkFrame( Sequencer *s, TkCanvas *canvas_, charptr relief_, charptr side
 	procs.Insert("fonts", new TkProc( this, &TkFrame::FontsCB, glishtk_valcast ));
 	procs.Insert("release", new TkProc( this, &TkFrame::ReleaseCB ));
 	procs.Insert("cursor", new TkProc("-cursor", glishtk_onestr));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
+
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
 	procs.Insert("enable", new TkProc( this, "0", glishtk_disable_cb ));
 	}
@@ -2335,6 +2408,7 @@ TkButton::TkButton( Sequencer *s, TkFrame *frame_, charptr label, charptr type_,
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -2472,6 +2546,7 @@ TkButton::TkButton( Sequencer *s, TkButton *frame_, charptr label, charptr type_
 	procs.Insert("background", new TkProc(this, "-background", glishtk_menu_onestr));
 	procs.Insert("foreground", new TkProc(this, "-foreground", glishtk_menu_onestr));
 	procs.Insert("state", new TkProc(this, "", glishtk_button_state, glishtk_strtobool));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -2736,6 +2811,7 @@ TkScale::TkScale ( Sequencer *s, TkFrame *frame_, double from, double to, charpt
 	procs.Insert("resolution", new TkProc("-resolution", glishtk_onedouble));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim));
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 void TkScale::ValueSet( double d )
@@ -2924,6 +3000,7 @@ TkText::TkText( Sequencer *s, TkFrame *frame_, int width, int height, charptr wr
 	procs.Insert("deltag", new TkProc("tag", "delete", glishtk_text_rangesfunc));
 	procs.Insert("config", new TkProc("tag", "configure", glishtk_text_configfunc));
 	procs.Insert("ranges", new TkProc("tag", "ranges", glishtk_text_rangesfunc, glishtk_splitsp_str));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -3034,6 +3111,7 @@ TkScrollbar::TkScrollbar( Sequencer *s, TkFrame *frame_, charptr orient,
 	procs.Insert("view", new TkProc("", glishtk_scrollbar_update));
 	procs.Insert("orient", new TkProc("-orient", glishtk_onestr));
 	procs.Insert("width", new TkProc("-width", glishtk_onedim));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 const char **TkScrollbar::PackInstruction()
@@ -3155,6 +3233,7 @@ TkLabel::TkLabel( Sequencer *s, TkFrame *frame_, charptr text, charptr justify,
 	procs.Insert("justify", new TkProc("-justify", glishtk_onestr));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 IValue *TkLabel::Create( Sequencer *s, const_args_list *args_val )
@@ -3281,6 +3360,7 @@ TkEntry::TkEntry( Sequencer *s, TkFrame *frame_, int width,
 	procs.Insert("get", new TkProc("get", glishtk_nostr, glishtk_splitnl));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_strandidx));
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 
 	procs.Insert("disabled", new TkProc(this, "", glishtk_disable_cb));
 	procs.Insert("disable", new TkProc( this, "1", glishtk_disable_cb ));
@@ -3401,6 +3481,7 @@ TkMessage::TkMessage( Sequencer *s, TkFrame *frame_, charptr text, charptr width
 	procs.Insert("font", new TkProc("-font", glishtk_onestr));
 	procs.Insert("padx", new TkProc("-padx", glishtk_onedim));
 	procs.Insert("pady", new TkProc("-pady", glishtk_onedim));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 IValue *TkMessage::Create( Sequencer *s, const_args_list *args_val )
@@ -3530,6 +3611,7 @@ TkListbox::TkListbox( Sequencer *s, TkFrame *frame_, int width, int height, char
 	procs.Insert("delete", new TkProc(this, "delete", glishtk_oneortwoidx));
 	procs.Insert("insert", new TkProc(this, "insert", glishtk_listbox_insert));
 	procs.Insert("get", new TkProc(this, "get", glishtk_listbox_get, glishtk_splitnl));
+	procs.Insert("bind", new TkProc(this, "", glishtk_bind));
 	}
 
 IValue *TkListbox::Create( Sequencer *s, const_args_list *args_val )

@@ -101,14 +101,19 @@ Channel *start_local_daemon( )
 
 RemoteDaemon* connect_to_daemon( const char* host, int &err )
 	{
+	static int reported_key_problem = 0;
+	static int created_keyfile = 0;
 	err = 0;
 
-	if ( ! create_keyfile() )
+	if ( ! created_keyfile && ! (created_keyfile = create_keyfile()) )
 		{
-		err = 1;
-		error->Report("Daemon creation failed, couldn't create key file.");
+		if ( ! reported_key_problem )
+			{
+			reported_key_problem = 1;
+			warn->Report("couldn't create key file.");
+			}
 		return 0;
-	}
+		}
 
 	int daemon_socket = get_tcp_socket();
 

@@ -61,7 +61,7 @@ void ValueKernel::SetFail( )
 	{
 	unref(1);
 	mode = FAIL();
-	opaque = 0;
+	array = 0;
 	}
 
 void ValueKernel::SetVecRef( VecRef *v )
@@ -72,21 +72,12 @@ void ValueKernel::SetVecRef( VecRef *v )
 	refOthers();
 	}
 
-void ValueKernel::SetOpaque( void *v )
-	{
-	unref(1);
-	mode = OPAQUE();
-	opaque = v;
-	}
-
 glish_type ValueKernel::otherType() const
 	{
 	if ( VALUE(mode) )
 		return TYPE_REF;
 	else if ( REF(mode) )
 		return TYPE_SUBVEC_REF;
-	else if ( OPAQUE(mode) )
-		return TYPE_OPAQUE;
 	else if ( FAIL(mode) )
 		return TYPE_FAIL;
 	else
@@ -99,8 +90,6 @@ unsigned int ValueKernel::otherLength() const
 		return value->Length();
 	else if ( REF(mode) )
 		return vecref->Length();
-	else if ( OPAQUE(mode) )
-		return 1;
 	else
 		return 0;
 	}
