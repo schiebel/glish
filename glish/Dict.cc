@@ -119,6 +119,20 @@ void* Dictionary::NthEntry( int n, const char*& key ) const
 	return entry->value;
 	}
 
+int Dictionary::Sizeof( ) const
+	{
+	int size = 0;
+	
+	for ( int i = 0; i < num_buckets; ++i )
+		{
+		PList(DictEntry) *chain = tbl[i];
+		if ( chain ) size += sizeof(BaseList) +
+			       chain->curlen() * sizeof(void*);
+		}
+
+	return sizeof(Dictionary) + (order ? sizeof(BaseList) + order->curlen() * sizeof(void*) : 0);
+	}
+
 
 char* Dictionary::Remove( const char* key )
 	{

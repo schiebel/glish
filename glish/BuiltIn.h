@@ -122,6 +122,7 @@ DERIVE_BUILTIN(IsModifiableBuiltIn,1,"is_modifiable",)
 
 DERIVE_BUILTIN(PasteBuiltIn,NUM_ARGS_VARIES,"internal_paste",)
 DERIVE_BUILTIN(SplitBuiltIn,NUM_ARGS_VARIES,"split",)
+DERIVE_BUILTIN(SizeofBuiltIn,1,"sizeof",)
 
 DERIVE_BUILTIN(IsNaNBuiltIn,1,"is_nan",)
 

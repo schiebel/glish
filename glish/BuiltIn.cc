@@ -1431,6 +1431,13 @@ IValue* SplitBuiltIn::DoCall( const_args_list* args_val )
 	}
 
 
+IValue* SizeofBuiltIn::DoCall( const_args_list* args_val )
+	{
+	const Value* val = (*args_val)[0];
+	return new IValue( val->Sizeof() );
+	}
+
+
 IValue* IsNaNBuiltIn::DoCall( const_args_list* args_val )
 	{
 	const Value* val = (*args_val)[0];
@@ -2325,6 +2332,7 @@ void create_built_ins( Sequencer* s, const char *program_name )
 
 	s->AddBuiltIn( new PasteBuiltIn );
 	s->AddBuiltIn( new SplitBuiltIn );
+	s->AddBuiltIn( new SizeofBuiltIn );
 
 	s->AddBuiltIn( new IsNaNBuiltIn );
 

@@ -39,6 +39,7 @@ class BaseList : public SosRef {
 
 	void clear();		// remove all entries
 	int length() const	{ return num_entries; }
+	int curlen() const	{ return max_entries; }
 	int resize(int = 0);	// 0 => size to fit current number of entries
 
     protected:

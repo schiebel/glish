@@ -56,6 +56,8 @@ class Dictionary {
 	int Length() const
 		{ return num_entries; }
 
+	int Sizeof( ) const;
+
 	// To iterate through the dictionary, first call InitForIteration()
 	// to get an "iteration cookie".  The cookie can then be handed
 	// to NextEntry() to get the next entry in the iteration and update

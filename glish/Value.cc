@@ -3494,6 +3494,12 @@ int Value::DescribeSelf( OStream& s, charptr prefix ) const
 	return 1;
 	}
 
+int Value::Sizeof( ) const
+	{
+	return kernel.Sizeof( ) + sizeof( GlishObject ) + 4 + (attributes ? attributes->Sizeof() : 0);
+	}
+		  
+
 int Value::Bytes( int addPerValue ) const
 	{
 	return kernel.Bytes( addPerValue ) + 

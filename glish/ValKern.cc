@@ -22,6 +22,19 @@ void ValueKernel::record_t::clear()
 	ref_count = 1;
 	}
 
+int ValueKernel::record_t::Sizeof( ) const
+	{
+	int size = 0;
+	IterCookie* c = record->InitForIteration();
+
+	Value* member;
+	const char* key;
+
+	while ( (member = record->NextEntry( key, c )) )
+		size += strlen(key) + 1 + member->Sizeof( );
+	return size + record->Sizeof() + sizeof(ValueKernel);
+	}
+
 int ValueKernel::record_t::bytes( int addPerValue ) const
 	{
 	int size = addPerValue;
@@ -97,6 +110,17 @@ unsigned int ValueKernel::otherLength() const
 	else
 		return 0;
 	}
+
+int ValueKernel::otherSizeof( ) const
+	{
+	if ( VALUE(mode) )
+		return sizeof(ValueKernel) + value->Sizeof( );
+	else if ( REF(mode) )
+		return sizeof(ValueKernel) + vecref->Sizeof( );
+	else
+		return 0;
+	}
+
 
 unsigned int ValueKernel::otherBytes(int addPerValue) const
 	{
@@ -420,6 +444,27 @@ void ValueKernel::unrefOthers()
 	else if ( REF(mode) )
 		Unref( vecref );
 	}
+
+int ValueKernel::Sizeof( ) const
+	{
+	if ( ARRAY(mode) )
+		{
+		if ( Type() != TYPE_STRING )
+			return (int) array->bytes() + sizeof(ValueKernel);
+		else
+			{
+			int cnt = 0;
+			for ( unsigned int i = 0; i < array->length; i++ )
+				cnt += strlen(((char**)array->values)[i])+1;
+			return cnt + array->bytes() + sizeof(ValueKernel);
+			}
+		}
+	else if ( RECORD(mode) )
+		return record->Sizeof( );
+	else
+		return otherSizeof();
+	}
+
 
 int ValueKernel::Bytes( int addPerValue ) const
 	{

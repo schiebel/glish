@@ -32,6 +32,7 @@ class VecRef : public GlishObject {
 	charptrref* StringRef();
 
 	int Bytes() const { return val->Bytes() / val->Length() * len; }
+	int Sizeof() const { return len * sizeof(int) + sizeof(VecRef); }
 
     protected:
 	// Constructor used by SubVecRef classes.

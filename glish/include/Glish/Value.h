@@ -589,6 +589,7 @@ public:
 			}
 		}
 
+	int Sizeof( ) const;
 	int Bytes( int addPerValue = sizeof(ValueKernel::header) ) const;
 	int ToMemBlock(char *memory, int offset = 0) const;
 
