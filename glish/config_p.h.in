@@ -1,4 +1,11 @@
-/* custom config_p.h template - do not recreate using autoheader */
+/* $Id$
+** Copyright (c) 1993 The Regents of the University of California.
+** Copyright (c) 1997 Associated Universities Inc.
+*/
+
+/***************************************************************/
+/* custom config.h template - do not recreate using autoheader */
+/***************************************************************/
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef pid_t

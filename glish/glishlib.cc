@@ -157,3 +157,4 @@ void report_error( const char * /*file*/, int /*line*/,
 void log_output( const char * ) { }
 int do_output_log() { return 0; }
 void show_glish_stack( OStream& ) { }
+void glish_cleanup( ) { }

@@ -1,4 +1,11 @@
+/* $Id$
+** Copyright (c) 1993 The Regents of the University of California.
+** Copyright (c) 1997 Associated Universities Inc.
+*/
+
+/***************************************************************/
 /* custom config.h template - do not recreate using autoheader */
+/***************************************************************/
 
 /* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
 #undef HAVE_SYS_WAIT_H

@@ -1,7 +1,9 @@
-# $Header$
-
-# Note: Glish requires flex version 2.4.6 or greater.  Flex is available
-# from ftp.ee.lbl.gov.
+## $Id$
+## Copyright (c) 1993 The Regents of the University of California.
+## Copyright (c) 1997 Associated Universities Inc.
+##
+## Note: Glish requires flex version 2.4.6 or greater.  Flex is available
+## from ftp.ee.lbl.gov.
 
 TAR_FILE = glish.tar
 
