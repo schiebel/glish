@@ -23,7 +23,7 @@ CINCLUDE = -I$(GLISH_SRC) -I$(GLISH_SRC)/include
 SDS_LIB = $(ISTKLIBS)/libsds.a
 NPD_LIB = $(ISTKLIBS)/libnpd.a
 GLISH_LIBS = $(GLISH_SRC)/$(ARCH)/libglish.a $(SDS_LIB) $(NPD_LIB)
-LIBS = $(GLISH_LIBS) @LIBS@ -lm 
+LIBS = $(GLISH_LIBS) -lm @LIBS@
 
 CLIENTS = \
 	echo_client \

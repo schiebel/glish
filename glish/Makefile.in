@@ -87,7 +87,7 @@ install-all:
 	@cd clients; $(MAKE) $(MFLAGS) install-all
 
 glish: main.o libglish.a $(LIBS)
-	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libglish.a $(LIBS) @LIBS@ -lm
+	$(CPLUS) $(CFLAGS) $(INCLUDE) -o glish main.o libglish.a $(LIBS) -lm @LIBS@
 
 libglish.a: $(GLISH_OBJS)
 	rm -f libglish.a
