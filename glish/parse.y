@@ -418,7 +418,15 @@ wider_list:	wider_list ',' wider_item
 wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 			{
 			Expr* id =
-				current_sequencer->LookupID( $1, ANY_SCOPE, 1, 0 );
+				current_sequencer->LookupID( strdup($1), ANY_SCOPE, 0, 0 );
+
+			if ( ! id )
+				{
+				warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
+				id = current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
+				}
+			else
+				delete $1;
 
 			Ref(id);
 			$$ = new ExprStmt( compound_assignment( id, $2, $3 ) );
@@ -428,7 +436,17 @@ wider_item:	TOK_ID TOK_ASSIGN scoped_expr
 			}
 	|	TOK_ID
 			{
-			(void) current_sequencer->LookupID( $1, ANY_SCOPE, 1, 0 );
+			Expr* id =
+				current_sequencer->LookupID( strdup($1), ANY_SCOPE, 0, 0 );
+
+			if ( ! id )
+				{
+				warn->Report( "\"",$1,"\" ", "not found in 'wider', non-global scope; defaults to 'local'");
+				id = current_sequencer->InstallID( $1, LOCAL_SCOPE, 0 );
+				}
+			else
+				delete $1;
+
 			$$ = null_stmt;
 			}
 	;
@@ -754,8 +772,12 @@ func_body:	'{' statement_list '}'
 var:		TOK_ID
 			{
 			$$ = current_sequencer->LookupID( strdup($1), LOCAL_SCOPE, 0 );
+
 			if ( ! $$ )
 				$$ = CreateVarExpr( $1, current_sequencer );
+			else
+				delete $1;
+
 			Ref($$);
 			}
 	;
