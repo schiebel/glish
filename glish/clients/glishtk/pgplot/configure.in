@@ -29,6 +29,7 @@ AC_ARG_ASSIGN(pgplot-incl-flags,   [  --pgplot-incl-flags=flags    PGPLOT includ
 AC_ARG_ASSIGN(pgplot-link-flags,   [  --pgplot-link-flags=flags    PGPLOT link flags])
 AC_ARG_ASSIGN(pgplot-link-search,  [  --pgplot-link-search=flags   PGPLOT search flags])
 AC_ARG_ASSIGN(extra-link-libs,     [  --extra-libs=libs            libraries to add to link line])
+AC_ARG_ENABLE(strip,               [  --disable-strip              do not strip binaries])
 
 dnl##
 dnl## add extra libraries
