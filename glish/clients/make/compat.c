@@ -56,7 +56,7 @@ static char *rcsid = "$Id$";
 
 #include    <stdio.h>
 #include    <sys/types.h>
-#include    <sys/signal.h>
+#include    <signal.h>
 #include    "wait.h"
 #include    <sys/errno.h>
 #include    <sys/stat.h>
