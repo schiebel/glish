@@ -1126,7 +1126,7 @@ void TkFrame::UnMap()
 		a->UnMap( );
 		}
 
-	int unmap_root = ! pseudo && ! frame && ! canvas;
+	int unmap_root = self && ! pseudo && ! frame && ! canvas;
 	TkAgent::UnMap();
 
 	if ( pseudo )
