@@ -541,13 +541,19 @@ recordptr copy_record_dict( recordptr rptr )
 
 	const char* key;
 	const Value* member;
+	Value* new_member;
 
 	if ( ordered )
 		{
 		for ( int i = 0; i < rptr->Length(); i++ )
 			{
 			member = rptr->NthEntry(i,key);
-			new_record->Insert( strdup(key), copy_value( member ) );
+			new_member = copy_value( member );
+			if ( member->IsConst() )
+				new_member->MakeConst();
+			if ( member->IsModConst() )
+				new_member->MakeModConst();
+			new_record->Insert( strdup(key), new_member );
 			}
 		}
 	else
