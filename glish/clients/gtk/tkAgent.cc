@@ -1375,6 +1375,16 @@ void TkAgent::FlushGlishEvents()
 		}
 	}
 
+void TkAgent::HaveGui( ProxyStore *s, Value *, void *)
+	{
+	if ( s->ReplyPending() )
+		{
+		Value val( TkHaveGui() ? glish_true : glish_false );
+		s->Reply( &val );
+		}
+	}
+
+
 int TkAgent::DoOneTkEvent( int flags, int hold_wait )
 	{
 //** 	if ( shutting_glish_down ) return 0;

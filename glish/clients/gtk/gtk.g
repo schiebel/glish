@@ -81,6 +81,7 @@ func init_gtk( ) {
 					     foreground, background, fill, mincolors,
 					     maxcolors, cmapshare, cmapfail )
 
+    ret.have_gui := func ( ) { return gtk->have_gui(); }
     ret.tk_hold := func ( ) { gtk->tk_hold(T); return T }
     ret.tk_release := func ( ) { gtk->tk_release(T); return T }
     ret.tk_iconpath := func ( path ) { gtk->tk_iconpath(path); return T }
@@ -102,7 +103,7 @@ listbox := dgtk.listbox
 canvas := dgtk.canvas
 pgplot := dgtk.pgplot
 
-func have_gui( ) { return T }
+have_gui := dgtk.have_gui
 tk_hold := dgtk.tk_hold
 tk_release := dgtk.tk_release
 tk_iconpath := dgtk.tk_iconpath
