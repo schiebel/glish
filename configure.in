@@ -78,11 +78,17 @@ dnl select.  Similarly for bzero.
 extern "C"
 #endif
 ],extern)
+[
+int strlen( char* );
+]ifelse(AC_LANG, CPLUSPLUS, [#ifdef __cplusplus
+extern "C"
+#endif
+],extern)
 [/* We use char because int might match the return type of a gcc2
     builtin and then its argument prototype would still apply.  */
 char* $1;
 ], [
-char* dummy = $1;
+strlen( $1 );
 ], eval "ac_cv_func_$1=yes", eval "ac_cv_func_$1=no")])dnl
 if eval "test \"`echo '$ac_cv_func_'$1`\" = yes"; then
   AC_MSG_RESULT(yes)
@@ -509,32 +515,6 @@ AC_MSG_CHECKING([for shmget declaration])
 AC_EGREP_HEADER(shmget, sys/shm.h, AC_MSG_RESULT(present), [
     AC_MSG_RESULT(missing)
     AC_DEFINE(SHMGET_NOT_DECLARED)])
-])
-
-AC_CHECK_VAR(environ,[
-AC_DEFINE(HAVE_ENVIRON)
-AC_MSG_CHECKING([for environ declaration])
-AC_TRY_LINK([
-#include <stdlib.h>
-#include <unistd.h>
-], [
-char **foo = environ;
-], AC_MSG_RESULT(present), [
-    AC_MSG_RESULT(missing)
-    AC_DEFINE(ENVIRON_NOT_DECLARED)])
-])
-
-AC_CHECK_VAR(__environ,[
-AC_DEFINE(HAVE___ENVIRON)
-AC_MSG_CHECKING([for __environ declaration])
-AC_TRY_LINK([
-#include <stdlib.h>
-#include <unistd.h>
-], [
-char **foo = __environ;
-], AC_MSG_RESULT(present), [
-    AC_MSG_RESULT(missing)
-    AC_DEFINE(__ENVIRON_NOT_DECLARED)])
 ])
 
 dnl##
@@ -968,6 +948,32 @@ dnl## vfork() must be called from C++, and cannot be
 dnl## wrapped in a C layer. Check to see if it is available.
 dnl##
 AC_FUNC_VFORK
+
+AC_CHECK_VAR(environ,[
+AC_DEFINE(HAVE_ENVIRON)
+AC_MSG_CHECKING([for environ declaration])
+AC_TRY_LINK([
+#include <stdlib.h>
+#include <unistd.h>
+], [
+char **foo = environ;
+], AC_MSG_RESULT(present), [
+    AC_MSG_RESULT(missing)
+    AC_DEFINE(ENVIRON_NOT_DECLARED)])
+])
+
+AC_CHECK_VAR(__environ,[
+AC_DEFINE(HAVE___ENVIRON)
+AC_MSG_CHECKING([for __environ declaration])
+AC_TRY_LINK([
+#include <stdlib.h>
+#include <unistd.h>
+], [
+char **foo = __environ;
+], AC_MSG_RESULT(present), [
+    AC_MSG_RESULT(missing)
+    AC_DEFINE(__ENVIRON_NOT_DECLARED)])
+])
 
 dnl##
 dnl## Find the scope of 'for' loop variables. Define
