@@ -13,7 +13,7 @@ SH = $(SHELL)
 
 all:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS all
@@ -22,7 +22,7 @@ all:
 install:
 	@echo Installing glish clients ...
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS install
@@ -32,56 +32,56 @@ build: all
 
 glishd:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS glishd
 
 echo_client:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS echo_client
 
 echo_mclient:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS echo_mclient
 
 shell_client:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS shell_client
 
 tell_glishd:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS tell_glishd
 
 test_client:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS test_client
 
 timer:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS timer
 
 multiplexer:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS multiplexer
@@ -102,14 +102,14 @@ rcsinfo:
 
 clean:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS clean
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../config/architecture`;			\
+		ARCH=`../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
 	cd $(BUILD_DIR); $(MAKE) $$FLGS distclean

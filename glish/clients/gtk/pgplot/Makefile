@@ -13,22 +13,22 @@ SH = $(SHELL)
 
 all:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../../../config/architecture`;		\
+		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	(cd $(BUILD_DIR); $(MAKE) $$FLGS all);			\
-	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS all); fi;
+	if test -d tkpgplot; then				\
+		(cd tkpgplot; $(MAKE) $$FLGS all); fi;		\
+	(cd $(BUILD_DIR); $(MAKE) $$FLGS all)
 
 install:
 	@echo Installing glish clients ...
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../../../config/architecture`;		\
+		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS install;		\
-	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS install); fi;
+	if test -d tkpgplot; then				\
+		(cd tkpgplot; $(MAKE) $$FLGS all); fi;		\
+	cd $(BUILD_DIR); $(MAKE) $$FLGS install
 
 build: all
 
@@ -49,18 +49,14 @@ rcsinfo:
 
 clean:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../../../config/architecture`;		\
+		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS clean;			\
-	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS clean); fi;
+	cd $(BUILD_DIR); $(MAKE) $$FLGS clean
 
 distclean:
 	@if test -z "$(ARCH)"; then 				\
-		ARCH=`../../../config/architecture`;		\
+		ARCH=`../../../../config/architecture`;		\
 		FLGS="$(MFLAGS) ARCH=$$ARCH";			\
 	else	FLGS=""; fi;					\
-	cd $(BUILD_DIR); $(MAKE) $$FLGS distclean;		\
-	if test -d pgplot; then					\
-		(cd pgplot; $(MAKE) $$FLGS distclean); fi;
+	cd $(BUILD_DIR); $(MAKE) $$FLGS distclean

@@ -315,6 +315,13 @@ dnl## wrong install path from the cache.
 dnl##
 AC_DEFUN(AC_INSTALL_CACHE_VAL,ac_cv_path_install_glish)
 
+dnl##
+dnl## Set up sub-directories which need to be configured
+dnl##
+if test -d glish/clients/gtk/pgplot; then
+    AC_CONFIG_SUBDIRS( glish/clients/gtk/pgplot )
+fi
+
 dnl##--------------------------------------------------------------------
 dnl##
 dnl## General autoconf checks
@@ -1466,11 +1473,4 @@ PREPROCESS(regx/mkfile.in,regx/$ARCH/dynamic.in,[DYNAMIC="yes"])
 PREPROCESS(sos/mkfile.in,sos/$ARCH/static.in)
 PREPROCESS(sos/mkfile.in,sos/$ARCH/dynamic.in,[DYNAMIC="yes"])
 
-OUTFILES="$ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/gtk/$ARCH/Makefile:glish/clients/gtk/Makefile.in"
-
-if test -d glish/clients/gtk/tkpgplot; then
-    OUTFILES="$OUTFILES glish/clients/gtk/tkpgplot/$ARCH/Makefile:glish/clients/gtk/tkpgplot/Makefile.in"
-fi
-
-AC_OUTPUT($OUTFILES)
-
+AC_OUTPUT($ARCH/glish.options:config/glish.options.in npd/$ARCH/static/Makefile:npd/$ARCH/static.in npd/$ARCH/dynamic/Makefile:npd/$ARCH/dynamic.in sos/$ARCH/static/Makefile:sos/$ARCH/static.in sos/$ARCH/dynamic/Makefile:sos/$ARCH/dynamic.in editline/$ARCH/static/Makefile:editline/$ARCH/static.in editline/$ARCH/dynamic/Makefile:editline/$ARCH/dynamic.in regx/$ARCH/static/Makefile:regx/$ARCH/static.in regx/$ARCH/dynamic/Makefile:regx/$ARCH/dynamic.in glish/$ARCH/static/Makefile:glish/$ARCH/static.in glish/$ARCH/dynamic/Makefile:glish/$ARCH/dynamic.in glish/clients/$ARCH/Makefile:glish/clients/Makefile.in glish/clients/gtk/$ARCH/Makefile:glish/clients/gtk/Makefile.in)
