@@ -317,13 +317,16 @@ void WheneverStmt::Init( event_dsg_list* arg_trigger, Stmt *arg_stmt, Expr *arg_
 
 	active = 1;
 
+	//
+	// This is checked to avoid Unref()ing this out from under
+	// us. A ref_count == 1 seems to happen when the agents
+	// upon which this whenever is based are not agents, e.g.
+	// when the widget creation routine <fail>s
+	//
+	// LEAK: I think in such cases, this memory is leaked...
+	//
 	if ( RefCount() > 1 )
 		Unref(this);
-	else
-		{
-		Str err = strFail( "WheneverStmt ref count" );
-		cerr << err.Chars() << endl;
-		}
 
 	sequencer->WheneverExecuted( this );
 	}
