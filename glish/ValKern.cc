@@ -134,6 +134,8 @@ void ValueKernel::array_t::SetType( glish_type new_type, unsigned short type_len
 
 void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 	{
+	unsigned long alen = len ? len : 1;
+
 	if ( len && len == length )
 		return;
 
@@ -146,8 +148,8 @@ void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 		{
 		if ( values == 0 || alloc_bytes == 0 )
 			{
-			values = (void *) new char[ len*type_bytes ];
-			alloc_bytes = len*type_bytes;
+			values = (void *) new char[ alen*type_bytes ];
+			alloc_bytes = alen*type_bytes;
 			}
 		else if ( len*type_bytes > alloc_bytes )
 		  	{
@@ -155,12 +157,12 @@ void ValueKernel::array_t::Grow( unsigned long len, int do_zero )
 			values = (void *) realloc_memory( values, alloc_bytes );
 			}
 
-		if ( do_zero )
+		if ( do_zero || ! len )
 			{
 			if ( zero  )
-				(*zero)( &(((char *)values)[length*type_bytes]), len-length );
+				(*zero)( &(((char *)values)[length*type_bytes]), alen-length );
 			else
-				memset( &((char *)values)[length*type_bytes], 0, (len-length)*type_bytes );
+				memset( &((char *)values)[length*type_bytes], 0, (alen-length)*type_bytes );
 			}
 		}
 
@@ -406,14 +408,27 @@ void delete_record( recordptr r )
 
 recordptr copy_record_dict( recordptr rptr )
 	{
-	recordptr new_record = create_record_dict();
+	int ordered = rptr->IsOrdered();
+	recordptr new_record = new PDict(Value)( ordered ? ORDERED : UNORDERED );
 
-	IterCookie *c = rptr->InitForIteration();
-	const Value* member;
 	const char* key;
-	while ( (member = rptr->NextEntry( key, c )) ) 
-		new_record->Insert( strdup( key ),
-				    copy_value( member ) );
+	const Value* member;
+
+	if ( ordered )
+		{
+		for ( int i = 0; i < rptr->Length(); i++ )
+			{
+			member = rptr->NthEntry(i,key);
+			new_record->Insert( strdup(key), copy_value( member ) );
+			}
+		}
+	else
+		{
+		IterCookie *c = rptr->InitForIteration();
+		while ( (member = rptr->NextEntry( key, c )) ) 
+			new_record->Insert( strdup( key ), copy_value( member ) );
+		}
+
 	return new_record;
 	}
 
