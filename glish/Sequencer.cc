@@ -732,6 +732,10 @@ void Sequencer::UpdateLocalBinPath( )
 					  (v1 = (IValue*) path->ExistingRecordElement( connection_host )) &&
 					   v1 != false_value && v1->Type() == TYPE_STRING )
 					set_executable_path( v1->StringPtr(0), v1->Length() );
+				else if ( path->HasRecordElement( "default" ) &&
+					  (v1 = (IValue*) path->ExistingRecordElement( "default" )) &&
+					   v1 != false_value && v1->Type() == TYPE_STRING )
+					set_executable_path( v1->StringPtr(0), v1->Length() );
 				}
 			}
 		}
@@ -749,8 +753,22 @@ void Sequencer::UpdateRemoteBinPath( )
 		IValue *path = (IValue*) system.BinPath();
 		if ( path  && (path = (IValue*) path->Deref()) )
 			{
-			if ( path && path->Type() == TYPE_RECORD )
+			if ( path && path->Type() == TYPE_STRING )
 				{
+				const char *key = 0;
+				RemoteDaemon *daemon = 0;
+				IterCookie* c = daemons.InitForIteration();
+				while ( daemon = daemons.NextEntry( key, c ) )
+					daemon->UpdatePath( path );
+				}
+			else if ( path && path->Type() == TYPE_RECORD )
+				{
+				const IValue *dflt = 0;
+				if ( path->HasRecordElement( "default" ) &&
+				     (dflt = (IValue*) path->ExistingRecordElement( "default" )) )
+					if ( dflt == false_value && dflt->Type() != TYPE_STRING )
+						dflt = 0;
+
 				const IValue *v1;
 				const char *key = 0;
 				RemoteDaemon *daemon = 0;
@@ -761,6 +779,8 @@ void Sequencer::UpdateRemoteBinPath( )
 					     (v1 = (IValue*) path->ExistingRecordElement( daemon->Host() )) &&
 					     v1 != false_value && v1->Type() == TYPE_STRING ) 
 						daemon->UpdatePath( v1 );
+					else if ( dflt )
+						daemon->UpdatePath( dflt );
 					}
 				}
 			}
