@@ -1843,13 +1843,18 @@ if test ! -d include; then
     echo "$ac_t""creating include symbolic links" 1>&AC_FD_MSG
     mkdir include
 fi
-if test ! -L include/sos; then
+
+dnl##
+dnl## On some systems (solaris), the test used by /bin/sh
+dnl## doesn't recognize 'test -L <symlink>'...
+dnl##
+if test ! -d include/sos; then
     (cd include; ln -s ../sos/include/sos sos)
 fi
-if test ! -L include/Npd; then 
+if test ! -d include/Npd; then 
     (cd include; ln -s ../npd/include/Npd Npd)
 fi
-if test ! -L include/regx; then
+if test ! -d include/regx; then
     (cd include; ln -s ../regx/include/regx regx)
 fi
 
