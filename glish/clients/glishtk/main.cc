@@ -13,7 +13,11 @@ class TkStore : public ProxyStore {
 	TkStore( int &argc, char **argv, Client::ShareType multithreaded = NONSHARED );
 	void FD_Change( int fd, int add_flag );
 	void Loop( );
+
+	const char *GetOption( const char * ) const;
+
     protected:
+	int focus_follows;
 	void addfile( int fd );
 	static void fileproc( ClientData data, int );
 	int done;
@@ -57,8 +61,16 @@ void TkStore::fileproc( ClientData data, int )
 	}
 
 TkStore::TkStore( int &argc, char **argv, Client::ShareType multithreaded ) :
-				ProxyStore( argc, argv, multithreaded ), done(0)
+				ProxyStore( argc, argv, multithreaded ), focus_follows(1), done(0)
 	{
+	for ( int i=1; i < argc; ++i )
+		{
+		if ( ! strcmp( argv[i], "-focus" ) )
+			if ( ++i < argc )
+				if ( ! strcmp( argv[i], "click" ) )
+					focus_follows = 0;
+		}
+
 	SetQuiet();
 	fd_set fds;
 	FD_ZERO( &fds );
@@ -73,6 +85,17 @@ void TkStore::Loop( )
 	{
 	while ( ! done )
 		TkProxy::DoOneTkEvent( );
+	}
+
+const char *TkStore::GetOption( const char *op ) const
+	{
+	if ( ! strcmp( op, "focus" ) )
+		{
+		static char follow[] = "follows";
+		static char click[] = "click";
+		return focus_follows ? follow : click;
+		}
+	return 0;
 	}
 
 int main( int argc, char** argv )

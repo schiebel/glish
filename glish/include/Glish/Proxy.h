@@ -45,6 +45,8 @@ friend class Proxy;
 
 	int QueuedEvents() const { return equeue.length() > 0; }
 
+	virtual const char *GetOption( const char * ) const;
+
     protected:
 	virtual void addProxy( Proxy * );
 	virtual void removeProxy( Proxy * );

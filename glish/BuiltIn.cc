@@ -2703,6 +2703,45 @@ IValue* as_string_built_in( const IValue* arg )
 	}
 
 
+#define DEFINE_IS_X_BUILT_IN(func,type)						\
+IValue* func( const IValue* arg )						\
+	{									\
+	((IValue*)arg)->MarkFail();						\
+	return new IValue( arg->Type() == type ? glish_true : glish_false );	\
+	}
+
+DEFINE_IS_X_BUILT_IN(is_boolean_built_in,TYPE_BOOL)
+DEFINE_IS_X_BUILT_IN(is_byte_built_in,TYPE_BYTE)
+DEFINE_IS_X_BUILT_IN(is_short_built_in,TYPE_SHORT)
+DEFINE_IS_X_BUILT_IN(is_integer_built_in,TYPE_INT)
+DEFINE_IS_X_BUILT_IN(is_float_built_in,TYPE_FLOAT)
+DEFINE_IS_X_BUILT_IN(is_double_built_in,TYPE_DOUBLE)
+DEFINE_IS_X_BUILT_IN(is_complex_built_in,TYPE_COMPLEX)
+DEFINE_IS_X_BUILT_IN(is_dcomplex_built_in,TYPE_DCOMPLEX)
+DEFINE_IS_X_BUILT_IN(is_string_built_in,TYPE_STRING)
+DEFINE_IS_X_BUILT_IN(is_record_built_in,TYPE_RECORD);
+DEFINE_IS_X_BUILT_IN(is_function_built_in,TYPE_FUNC)
+DEFINE_IS_X_BUILT_IN(is_regex_built_in,TYPE_REGEX)
+DEFINE_IS_X_BUILT_IN(is_file_built_in,TYPE_FILE)
+DEFINE_IS_X_BUILT_IN(is_fail_built_in,TYPE_FAIL)
+
+IValue* is_numeric_built_in( const IValue* arg )
+	{
+	((IValue*)arg)->MarkFail();
+	return new IValue( arg->IsNumeric() ? glish_true : glish_false );
+	}
+
+IValue* is_agent_built_in( const IValue* arg )
+	{
+	((IValue*)arg)->MarkFail();
+	arg = (const IValue *) arg->Deref( );
+	const IValue *agent = 0;
+	return new IValue( arg->Type() == TYPE_AGENT || arg->Type() == TYPE_RECORD &&
+			   (agent = (const IValue*) arg->HasRecordElement(AGENT_MEMBER_NAME)) &&
+			   agent->Type( ) == TYPE_AGENT &&
+			   agent->AgentVal( ) ? glish_true : glish_false );
+	}
+
 IValue* type_name_built_in( const IValue* arg )
 	{
 	glish_type t = arg->Type();
@@ -2730,22 +2769,6 @@ IValue* type_name_built_in( const IValue* arg )
 	return new IValue( type_names[t] );
 	}
 
-IValue* is_fail_built_in( const IValue* arg )
-	{
-	((IValue*)arg)->MarkFail();
-	return new IValue( arg->Type() == TYPE_FAIL ? glish_true : glish_false );
-	}
-
-IValue* is_agent_built_in( const IValue* arg )
-	{
-	((IValue*)arg)->MarkFail();
-	arg = (const IValue *) arg->Deref( );
-	const IValue *agent = 0;
-	return new IValue( arg->Type() == TYPE_AGENT || arg->Type() == TYPE_RECORD &&
-			   (agent = (const IValue*) arg->HasRecordElement(AGENT_MEMBER_NAME)) &&
-			   agent->Type( ) == TYPE_AGENT &&
-			   agent->AgentVal( ) ? glish_true : glish_false );
-	}
 
 IValue* length_built_in( const IValue* arg )
 	{
@@ -2870,9 +2893,25 @@ void create_built_ins( Sequencer* s, const char *program_name )
 	add_one_arg_built_in( s, as_string_built_in, "as_string" );
 	add_one_arg_built_in( s, as_evalstr_built_in, "as_evalstr" );
 
-	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
+	add_one_arg_built_in( s, is_boolean_built_in, "is_boolean", 0, 1 );
+	add_one_arg_built_in( s, is_byte_built_in, "is_byte", 0, 1 );
+	add_one_arg_built_in( s, is_short_built_in, "is_short", 0, 1 );
+	add_one_arg_built_in( s, is_integer_built_in, "is_integer", 0, 1 );
+	add_one_arg_built_in( s, is_float_built_in, "is_float", 0, 1 );
+	add_one_arg_built_in( s, is_double_built_in, "is_double", 0, 1 );
+	add_one_arg_built_in( s, is_complex_built_in, "is_complex", 0, 1 );
+	add_one_arg_built_in( s, is_dcomplex_built_in, "is_dcomplex", 0, 1 );
+	add_one_arg_built_in( s, is_string_built_in, "is_string", 0, 1 );
+	add_one_arg_built_in( s, is_record_built_in, "is_record", 0, 1 );
+	add_one_arg_built_in( s, is_function_built_in, "is_function", 0, 1 );
+	add_one_arg_built_in( s, is_regex_built_in, "is_regex", 0, 1 );
+	add_one_arg_built_in( s, is_file_built_in, "is_file", 0, 1 );
 	add_one_arg_built_in( s, is_fail_built_in, "is_fail", 0, 1 );
+
+	add_one_arg_built_in( s, is_numeric_built_in, "is_numeric", 0, 1 );
 	add_one_arg_built_in( s, is_agent_built_in, "is_agent", 0, 1 );
+	add_one_arg_built_in( s, type_name_built_in, "type_name", 0, 1 );
+
 	add_one_arg_built_in( s, field_names_built_in, "field_names" );
 
 	s->AddBuiltIn( new NumericVectorBuiltIn( sqrt, sqrt, "sqrt" ) );

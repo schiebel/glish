@@ -3,10 +3,14 @@ pragma include once
 func init_glishtk( ) {
     global system
 
-    gtk := client('glishtk')
-#   gtk := client('glishtk', suspend=T)
+    if ( ! is_record(system.tk) ) system.tk := [=]
 
-    system.tk := gtk->version()
+    if ( is_string(system.tk.focus ) )
+        gtk := client( 'glishtk', '-focus', system.tk.focus )
+    else
+        gtk := client( 'glishtk' )
+
+    system.tk.version := gtk->version()
 
     ret := [=]
 

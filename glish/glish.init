@@ -3,26 +3,8 @@
 pi := 3.141592653589793238462643
 e  := 2.718281828459045235360287
 
-func is_boolean( const x )	type_name(x) == "boolean"
-func is_byte( const x )		type_name(x) == "byte"
-func is_short( const x )	type_name(x) == "short"
-func is_integer( const x )	type_name(x) == "integer"
-func is_float( const x )	type_name(x) == "float"
-func is_double( const x )	type_name(x) == "double"
-func is_complex( const x )	type_name(x) == "complex"
-func is_dcomplex( const x )	type_name(x) == "dcomplex"
-func is_string( const x )	type_name(x) == "string"
-func is_record( const x )	type_name(x) == "record"
-func is_function( const x )	type_name(x) == "function"
-func is_regex( const x )	type_name(x) == "regex"
-func is_file( const x )		type_name(x) == "file"
-
 func to_lower( str )	tr('[A-Z]','[a-z]',str)
 func to_upper( str )	tr('[a-z]','[A-Z]',str)
-
-func is_numeric( const x )
-	sum(type_name(x) ==
-		"boolean byte short integer float double complex dcomplex") > 0
 
 func min(...)		range(...)[1]
 func max(...)		range(...)[2]

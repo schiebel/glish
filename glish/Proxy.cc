@@ -300,6 +300,8 @@ void ProxyStore::Loop( )
 		ProcessEvent( e );
 	}
 
+const char *ProxyStore::GetOption( const char * ) const { return 0; }
+
 void Proxy::setId( const ProxyId &i ) { id = i; }
 
 Proxy::Proxy( ProxyStore *s ) : store(s)
