@@ -5,7 +5,7 @@
 #ifndef tkcanvas_h
 #define tkcanvas_
 
-#include "tkAgent.h"
+#include "tkCore.h"
 //
 //  For glish_declare(Dict,int)
 //
