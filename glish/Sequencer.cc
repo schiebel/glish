@@ -1928,6 +1928,8 @@ void Sequencer::Await( AwaitStmt* arg_await_stmt, int only_flag,
 
 			al->append(await_agent);
 			}
+
+		(*el)[X]->EventAgentDone();
 		}
 
 	if ( yyin && isatty( fileno( yyin ) ) && 
