@@ -323,12 +323,19 @@ void Notification::Describe( ostream& s ) const
 	notifiee->stmt->DescribeSelf( s );
 	}
 
+#define LOG_CLEANUP_ONE(VAR)						\
+	{								\
+	if ( VAR##_file ) { fclose( VAR##_file ); VAR##_file = 0; }	\
+	if ( VAR##_val )  { Unref( VAR##_val );	VAR##_val = 0; }	\
+	if ( VAR##_name ) { delete VAR##_name; VAR##_name = 0; }	\
+	}
+
 SystemInfo::~SystemInfo()
 	{
 	if ( val ) Unref( val );
-	if ( log_file ) close( log_file );
-	if ( log_val ) Unref( log_val );
-	if ( log_name ) delete log_name;
+	LOG_CLEANUP_ONE(log)
+	LOG_CLEANUP_ONE(ilog)
+	LOG_CLEANUP_ONE(olog)
 	}
 
 void SystemInfo::SetVal(IValue *v)
@@ -339,42 +346,117 @@ void SystemInfo::SetVal(IValue *v)
 	update = ~((unsigned int) 0);
 	}
 
-void SystemInfo::DoLog( const char *buf, int len )
+const char *SystemInfo::prefix_buf(const char *prefix, const char *buf)
 	{
-	if ( LOGX(update) )
-		update_output( );
-	if ( log_file )
-		write(log_file, buf, len >= 0 ? len : strlen(buf));
-	else if ( log_val && log_val->Deref()->Type() == TYPE_FUNC && log_val->Length() >= 1 )
+	static unsigned int size = 1024;
+	static char *outbuf = new char[size];
+
+	if ( ! prefix || ! buf )
+		return buf;
+
+	int nlcount = 0;
+	int charcount = 0;
+	char *ptr = 0;
+	for (ptr = (char*)buf; *ptr; charcount++)
+		if ( *ptr++ == '\n' ) ++nlcount;
+
+	if ( nlcount <= 0 )
+		return buf;
+
+	unsigned int outsize = charcount + (nlcount + 1) * strlen(prefix) + 2;
+	if ( outsize > size )
 		{
-		parameter_list param;
-		ActualParameter *p = new ActualParameter( VAL_VAL, new ConstExpr( new IValue( buf ) ) );
-		param.append( p );
-		Func *func = ((IValue*)log_val->Deref())->FuncPtr()[0];
-		IValue *ret = func->Call( &param, EVAL_COPY);
-		if ( ret && ret->Type() == TYPE_FAIL )
-			{
-			error->Report("in trace function (disconnecting):");
-			ret->DescribeSelf( cerr );
-			cerr << endl;
-			Unref(log_val);
-			log_val = 0;
-			}
-		Unref( ret );
-		Unref( p );
+		while ( outsize > size ) size *= 2;
+		outbuf = (char*) realloc_memory( (void*) outbuf, size );
 		}
-	else if ( log_val && log_val->IsAgentRecord() )
-		{ 
-		Agent *agent = ((IValue*)log_val->Deref())->AgentVal();
-		IValue *val = new IValue( buf );
-		agent->SendSingleValueEvent( "append", val, 0 );
-		Unref( val );
+
+	char *pp = 0;
+	char *optr = outbuf;
+
+	for (pp=(char*)prefix; *pp; *pp++)
+		*optr++ = *pp;
+
+	for (ptr = (char*)buf; *ptr; ptr++)
+		{
+		*optr++ = *ptr;
+		if ( *ptr == '\n' )
+			for (pp=(char*)prefix; *pp; *pp++)
+				*optr++ = *pp;
 		}
+	*optr++ = '\n';
+	*optr = '\0';
+
+	return outbuf;
+	}
+		  
+
+void SystemInfo::DoLog( int input, const Value *v )
+	{
+	char* desc = v->StringVal( ' ', v->PrintLimit() , 1 );
+	DoLog( input, desc );
+	delete desc;
+	}
+
+void SystemInfo::DoLog( int input, const char *orig_buf, int len )
+	{
+	int done = 0;
+	const char *buf = orig_buf;
+
+	if ( ILOGX(update) || OLOGX(update) )
+		update_output( );
+
+#define DOLOG_ACTION(VAR,FIX_BUF)						\
+	if ( VAR##_file )							\
+		{								\
+		FIX_BUF								\
+		write(fileno(VAR##_file), buf, len >= 0 ? len : strlen(buf));	\
+		done = 1;							\
+		}								\
+	else if ( VAR##_val && VAR##_val->Deref()->Type() == TYPE_FUNC && VAR##_val->Length() >= 1 ) \
+		{								\
+		parameter_list param;						\
+		FIX_BUF								\
+		ActualParameter *p = new ActualParameter( VAL_VAL, new ConstExpr( new IValue( buf ) ) ); \
+		param.append( p );						\
+		Func *func = ((IValue*)VAR##_val->Deref())->FuncPtr()[0];	\
+		IValue *ret = func->Call( &param, EVAL_COPY);			\
+		done = 1;							\
+		if ( ret && ret->Type() == TYPE_FAIL )				\
+			{							\
+			error->Report("in trace function (disconnecting):");	\
+			ret->DescribeSelf( cerr );				\
+			cerr << endl;						\
+			Unref(VAR##_val);					\
+			VAR##_val = 0;						\
+			done = 0;						\
+			}							\
+		Unref( ret );							\
+		Unref( p );							\
+		}								\
+	else if ( VAR##_val && VAR##_val->IsAgentRecord() )			\
+		{								\
+		Agent *agent = ((IValue*)VAR##_val->Deref())->AgentVal();	\
+		FIX_BUF								\
+		IValue *val = new IValue( buf );				\
+		agent->SendSingleValueEvent( "append", val, 0 );		\
+		done = 1;							\
+		Unref( val );							\
+		}
+#define DOLOG_FIXBUF buf = prefix_buf("#",buf);
+
+	DOLOG_ACTION(log, if (!input) DOLOG_FIXBUF ) 
+	if ( ! done )
+		if ( input )
+			DOLOG_ACTION(ilog,)
+		else
+			DOLOG_ACTION(olog,DOLOG_FIXBUF)
 	}
 
 void SystemInfo::AbortOccurred()
 	{
-	if ( log_file ) close(log_file);
+	if ( log_file ) fclose(log_file);
+	if ( ilog_file ) fclose(ilog_file);
+	if ( olog_file ) fclose(olog_file);
 	}
 
 void SystemInfo::update_output( )
@@ -395,68 +477,91 @@ void SystemInfo::update_output( )
 		     v2->BoolVal() == glish_true )
 			trace = 1;
 
-		if ( v1->HasRecordElement( "log" ) &&
-		     (v2 = (const IValue*)(v1->ExistingRecordElement("log"))) &&
-		     v2 != false_value )
+#define UPDATE_LOG_ACTION(VAR, EXTRA_CLEANUP)				\
+if ( v1->HasRecordElement( #VAR ) &&					\
+     (v2 = (const IValue*)(v1->ExistingRecordElement( #VAR ))) &&	\
+     v2 != false_value )						\
+	{								\
+	if ( v2->Deref()->Type() == TYPE_STRING )			\
+		{							\
+		VAR = 1;						\
+		char *nf = v2->StringVal();				\
+		if ( VAR##_name )					\
+			if ( strcmp(nf,VAR##_name) )			\
+				{					\
+				delete VAR##_name;			\
+				VAR##_name = nf;			\
+				}					\
+			else						\
+				delete nf;				\
+		else							\
+			VAR##_name = nf;				\
+									\
+		if ( nf == VAR##_name )					\
+			{						\
+			if ( VAR##_file ) fclose( VAR##_file );		\
+			if ( ! access(VAR##_name, F_OK) )		\
+				VAR##_file = fopen(VAR##_name, "a");	\
+			else						\
+				{					\
+				VAR##_file = fopen(VAR##_name, "a");	\
+				if ( VAR##_file ) chmod(VAR##_name, S_IRUSR | S_IWUSR); \
+				}					\
+			}						\
+									\
+		if ( VAR##_val )					\
+			{						\
+			Unref(VAR##_val);				\
+			VAR##_val = 0;					\
+			}						\
+		}							\
+	else if ( v2->Deref()->Type() == TYPE_FUNC || v2->IsAgentRecord() ) \
+		{							\
+		VAR = 1;						\
+		if ( VAR##_val != v2 )					\
+			{						\
+			Unref(VAR##_val);				\
+			VAR##_val = (IValue*) v2;			\
+			if (VAR##_val) Ref(VAR##_val);			\
+			}						\
+		if ( VAR##_name )					\
+			{						\
+			delete VAR##_name;				\
+			VAR##_name = 0;					\
+			}						\
+		if ( VAR##_file )					\
+			{						\
+			fclose(VAR##_file);				\
+			VAR##_file = 0;					\
+			}						\
+		}							\
+	else								\
+		LOG_CLEANUP_ONE(VAR)					\
+									\
+	EXTRA_CLEANUP							\
+									\
+	}								\
+else									\
+	LOG_CLEANUP_ONE(VAR)
+
+#define UPDATE_LOG_CLEANUP			\
+	if ( log_file || log_val )		\
+		{				\
+		LOG_CLEANUP_ONE(ilog)		\
+		LOG_CLEANUP_ONE(olog)		\
+		}
+
+		UPDATE_LOG_ACTION(log, UPDATE_LOG_CLEANUP)
+		if ( ! log_file && ! log_val )
 			{
-			if ( v2->Deref()->Type() == TYPE_STRING )
-				{
-				log = 1;
-				char *nf = v2->StringVal();
-				if ( log_name )
-					if ( strcmp(nf,log_name) )
-						{
-						delete log_name;
-						log_name = nf;
-						}
-					else
-						delete nf;
-				else
-					log_name = nf;
-
-				if ( nf == log_name )
-					{
-					if ( log_file ) close( log_file );
-					if ( ! access(log_name, F_OK) )
-						log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
-					else
-						{
-						log_file = open(log_name, O_WRONLY | O_APPEND | O_CREAT);
-						if ( log_file ) chmod(log_name, S_IRUSR | S_IWUSR);
-						}
-					}
-
-				if ( log_val )
-					{
-					Unref(log_val);
-					log_val = 0;
-					}
-				}
-			else if ( v2->Deref()->Type() == TYPE_FUNC || v2->IsAgentRecord() )
-				{
-				log = 1;
-				if ( log_val != v2 )
-					{
-					Unref(log_val);
-					log_val = (IValue*) v2;
-					if (log_val) Ref(log_val);
-					}
-				if ( log_name )
-					{
-					delete log_name;
-					log_name = 0;
-					}
-				if ( log_file )
-					{
-					close(log_file);
-					log_file = 0;
-					}
-				}
+			UPDATE_LOG_ACTION(ilog,)
+			UPDATE_LOG_ACTION(olog,)
 			}
 		}
 
 	update &= ~TRACE();
-	update &= ~LOGX();
+	update &= ~ILOGX();
+	update &= ~OLOGX();
 	}
 
 void SystemInfo::update_print( )

@@ -888,11 +888,17 @@ IValue *glish_parser( Stmt *&stmt )
 
 			if ( current_sequencer->ErrorResult() )
 				{
+				if ( Sequencer::CurSeq()->System().OLog() )
+					Sequencer::CurSeq()->System().DoOLog(current_sequencer->ErrorResult());
+
 				message->Report( current_sequencer->ErrorResult() );
 				current_sequencer->ClearErrorResult();
 				}
 			else if ( val )
 				{
+				if ( Sequencer::CurSeq()->System().OLog() )
+					Sequencer::CurSeq()->System().DoOLog( val );
+
 				message->Report( val );
 				Unref( val );
 				}

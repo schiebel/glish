@@ -145,7 +145,7 @@ char RMessage::FirstChar() const
 		return str[0];
 
 	else
-		return '0';
+		return '\0';
 	}
 
 

@@ -109,11 +109,16 @@ public:
 	inline unsigned int PRINTLIMIT( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<1; }
 	inline unsigned int PRINTPRECISION( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<2; }
 	inline unsigned int INCLUDE( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<3; }
-	inline unsigned int LOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
+	inline unsigned int ILOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
+	inline unsigned int OLOGX( unsigned int mask=~((unsigned int) 0) ) const { return mask & 1<<4; }
 
 	int Trace() { if ( TRACE(update) ) update_output( ); return trace; }
-	int Log() { if ( LOGX(update) ) update_output( ); return log; }
-	void DoLog( const char *, int len=-1 );
+	int ILog() { if ( ILOGX(update) ) update_output( ); return ilog || log; }
+	int OLog() { if ( OLOGX(update) ) update_output( ); return olog || log; }
+	void DoILog( const char *s, int len=-1 ) { DoLog( 1, s, len ); }
+	void DoILog( const Value *v) { DoLog( 1, v ); }
+	void DoOLog( const char *s, int len=-1 ) { DoLog( 0, s, len ); }
+	void DoOLog( const Value *v) { DoLog( 0, v ); }
 	int PrintLimit() { if ( PRINTLIMIT(update) ) update_print( ); return printlimit; }
 	int PrintPrecision() { if ( PRINTPRECISION(update) ) update_print( ); return printprecision; }
 	charptr *Include() { if ( INCLUDE(update) ) update_include( ); return include; }
@@ -123,6 +128,9 @@ public:
 	~SystemInfo();
 	void AbortOccurred();
 private:
+	void DoLog( int input, const char *s, int len=-1 );
+	void DoLog( int input, const Value * );
+	const char *prefix_buf(const char *prefix, const char *buf);
 	void update_output( );
 	void update_print( );
 	void update_include( );
@@ -131,8 +139,16 @@ private:
 
 	int log;
 	IValue *log_val;
-	int log_file;
+	FILE *log_file;
 	char *log_name;
+	int olog;
+	IValue *olog_val;
+	FILE *olog_file;
+	char *olog_name;
+	int ilog;
+	IValue *ilog_val;
+	FILE *ilog_file;
+	char *ilog_name;
 
 	int printlimit;
 	int printprecision;

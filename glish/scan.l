@@ -516,10 +516,10 @@ int scanner_read( char buf[], int max_size )
 	if ( interactive && yyin == stdin )
 		{
 		const char* prompt = first_line ? "- " : "+ ";
-		if ( Sequencer::CurSeq()->System().Log() )
+		if ( Sequencer::CurSeq()->System().ILog() )
 			{
 			int len = interactive_read( yyin, prompt, buf, max_size );
-			Sequencer::CurSeq()->System().DoLog(buf,len);
+			Sequencer::CurSeq()->System().DoILog(buf,len);
 			return len;
 			}
 		else
