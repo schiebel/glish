@@ -1837,10 +1837,7 @@ IValue *RefExpr::Assign( IValue* new_value )
 		IValue* value = op->RefEval( VAL_REF );
 
 		if ( value->VecRefDeref()->IsConst() )
-			{
-			Unref( value );
 			ret = "'const' values cannot be modified.";
-			}
 		else if ( value->Deref()->IsVecRef() )
 			value->AssignElements( new_value );
 		else
