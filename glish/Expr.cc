@@ -1852,14 +1852,14 @@ IValue* ApplyRegExpr::Eval( eval_type /* etype */ )
 		{
 		if ( slen == 1 )
 			{
-			glish_bool *ret = (glish_bool*) alloc_memory( rlen * sizeof(glish_bool) );
+			int *ret = (int*) alloc_memory( rlen * sizeof(int) );
 			for ( int i=0; i < rlen; ++i )
 				ret[i] = regs[i]->Eval( (char*&) strs[0], in_place );
 			result = new IValue( ret, rlen );
 			}
 		else if ( slen > 1 )
 			{
-			glish_bool *ret = (glish_bool*) alloc_memory( slen * rlen * sizeof(glish_bool) );
+			int *ret = (int*) alloc_memory( slen * rlen * sizeof(int) );
 			for ( int row=0; row < slen; ++row )
 				for ( int col=0; col < rlen; ++col )
 					ret[row + col % rlen * slen] = regs[col]->Eval( (char*&) strs[row], in_place );

@@ -23,7 +23,7 @@ class regxsubst {
 	~regxsubst();
 	void compile( regexp *reg_ );
 	void compile( regexp *reg_, char *subst_ );
-	char *apply( const char *str );
+	char *apply( char *dest );
 	const char *error( ) const { return err; }
 	const char *str( ) const { return subst; };
 	void setStr( char *s );
@@ -66,7 +66,7 @@ class Regex : public GlishObject {
 	// Lower level routines to allow a series of REs to be applied to
 	// each string. The latter allocates memory which must be freed.
 	//
-	glish_bool Eval( char *&string, int in_place = 0 );
+	int Eval( char *&string, int in_place = 0 );
 
 	//
 	// returns non-null string if an error occurred
