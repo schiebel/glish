@@ -1,1 +1,1 @@
-#define GLISH_CHANGE 0
+#define GLISH_CHANGE 1
