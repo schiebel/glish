@@ -28,7 +28,7 @@ inline void in_evaluation_set( int v ) { interpreter_state = (v ? interpreter_st
 extern void set_statement_can_end( );
 extern void clear_statement_can_end( );
 extern int first_line;
-extern char* yytext;
+/*extern char* yytext;*/
 extern const char* glish_init[];
 
 extern int in_func_decl;
