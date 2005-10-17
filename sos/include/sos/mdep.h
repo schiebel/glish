@@ -81,6 +81,13 @@
 #endif
 
 //======================================================================
+#if defined(__x86_64__) || defined(__x86_64__)
+#define SOS_SHMEM 1
+#define SOS_ARC SOS_HCUBESARC
+#define SOS_BIGADDR 1
+#endif
+
+//======================================================================
 #if defined(__i486__) || defined(__i386__)
 #define SOS_SHMEM 1
 #define SOS_ARC SOS_HCUBESARC
@@ -247,7 +254,7 @@ typedef unsigned char sos_code;
  || defined(mac) || defined(__mac__) \
  || defined(__DGUX__) \
  || defined(mv147) || defined(__mv147__) || defined(VXWORKS) \
- || defined(__i486__) || defined(__i386__) || defined(__ia64__) \
+ || defined(__i486__) || defined(__i386__) || defined(__ia64__) || defined(__x86_64__) \
  || defined(mips) || defined(__mips__) \
  || defined(masscomp) || defined(__masscomp__) || defined(_AIX) \
  || defined(__APPLE_CC__)
