@@ -63,7 +63,7 @@ struct sos_fd_buf_kernel GC_FINAL_CLASS {
 	sos_fd_buf_kernel( );
 	void reset( );
 	~sos_fd_buf_kernel( );
-	char *tmp( unsigned int len ) { return len <= tmp_size && tmp_cur < tmp_cnt ? new_tmp( ) : 0; }
+	char *tmp( unsigned int len );
 
 	// iovec struct
 	struct iovec *iov;
@@ -76,11 +76,16 @@ struct sos_fd_buf_kernel GC_FINAL_CLASS {
 
 	// temporary buffers
 	char **tmp_bufs;
+	char *tmp_bufs_resize;
 	unsigned int tmp_cur;
 
+	// holder for partially sent iovec
+	void *buf_holder;
+	unsigned int buf_holder_index;
+
 	// constants
-	static unsigned int tmp_cnt;
-	static unsigned int tmp_size;
+	unsigned int tmp_cnt;
+	unsigned int tmp_size;
 	static unsigned int size;
 
 	// Finalize functions, set by user.
@@ -90,26 +95,17 @@ struct sos_fd_buf_kernel GC_FINAL_CLASS {
 	void finalize( final_func f, void *d )
 			{ final_list.append( new final_info( f, d ) ); }
 	finalize_list final_list;
-
-    private:
-	char *new_tmp( );
 };
 
-//
-//  These may need to be tuned for each application that uses
-//  this library. With glish, the only writes which are tagged
-//  as "COPY" are the writing of record headers (i.e. 
-//  SOS_HEADER_SIZE bytes).
-//
-unsigned int sos_fd_buf_kernel::tmp_cnt = 16;
-unsigned int sos_fd_buf_kernel::tmp_size = 256;
 unsigned int sos_fd_buf_kernel::size = MAXIOV;
 
-sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), total(0), tmp_cur(0)
+sos_fd_buf_kernel::sos_fd_buf_kernel( ) : cnt(0), total(0), tmp_cur(0), tmp_cnt(16), tmp_size(256),
+					  buf_holder(0), buf_holder_index(0)
 	{
 	iov = (struct iovec*) alloc_memory( size * sizeof( struct iovec ) );
 	status = (sos_sink::buffer_type*) alloc_memory_atomic( size * sizeof( sos_sink::buffer_type ) );
-	tmp_bufs = (char**) alloc_zero_memory( tmp_cnt * sizeof(void*) );
+	tmp_bufs = (char**) alloc_zero_memory( (tmp_cnt+1) * sizeof(void*) );
+	tmp_bufs_resize = (char*) alloc_zero_memory( (tmp_cnt+1) * sizeof(char) );
 	}
 
 sos_fd_buf_kernel::~sos_fd_buf_kernel()
@@ -120,17 +116,50 @@ sos_fd_buf_kernel::~sos_fd_buf_kernel()
 	free_memory( iov );
 	free_memory( status );
 	free_memory( tmp_bufs );
+	free_memory( tmp_bufs_resize );
 	}
 
-char *sos_fd_buf_kernel::new_tmp( )
+char *sos_fd_buf_kernel::tmp( unsigned int len )
 	{
+	if ( tmp_cur >= tmp_cnt )
+		{
+		int old_cnt = tmp_cnt;
+		tmp_cnt *= 2;
+		tmp_bufs = realloc_memory( tmp_bufs, (tmp_cnt+1) * sizeof(void*) );
+		tmp_bufs_resize = realloc_memory( tmp_bufs_resize, (tmp_cnt+1) * sizeof(char) );
+		for ( int x = old_cnt; x <= tmp_cnt; x++ )
+			{
+			tmp_bufs[x] = 0;
+			tmp_bufs_resize[x] = 0;
+			}
+		}
+
+	if ( len > tmp_size )
+		{
+		while ( len > tmp_size ) tmp_size *= 2;
+
+		for ( int x = 0; x < tmp_cur && tmp_bufs[x]; x++ )
+			tmp_bufs_resize[x] = 1;
+
+		for ( int x = tmp_cur; tmp_bufs[x]; x++ )
+			tmp_bufs[x] = realloc_memory( tmp_bufs[x], tmp_size );
+		}
+
 	if ( ! tmp_bufs[tmp_cur] )
 		tmp_bufs[tmp_cur] = alloc_char( tmp_size );
+
 	return tmp_bufs[tmp_cur++];
 	}
 
 void sos_fd_buf_kernel::reset( )
 	{
+	if ( buf_holder && buf_holder_index )
+		{
+		iov[buf_holder_index].iov_base = buf_holder;
+		buf_holder = 0;
+		buf_holder_index = 0;
+		}
+
 	for ( int x = 0; (unsigned int) x < cnt; x++ )
 		if ( status[x] == sos_sink::FREE )
 			free_memory( iov[x].iov_base );
@@ -145,6 +174,16 @@ void sos_fd_buf_kernel::reset( )
 	cnt = 0;
 	tmp_cur = 0;
 	total = 0;
+
+	for ( int x = 0; x < tmp_cnt; x++ )
+		{
+		if ( tmp_bufs_resize[x] )
+			{
+			if ( tmp_bufs[x] )
+				tmp_bufs[x] = realloc_memory( tmp_bufs[x], tmp_size );
+			tmp_bufs_resize[x] = 0;
+			}
+		}
 	}
 
 sos_fd_buf::sos_fd_buf( )
@@ -184,7 +223,7 @@ sos_fd_buf_kernel *sos_fd_buf::add( )
 sos_sink::~sos_sink() { }
 sos_source::~sos_source() { }
 
-sos_fd_sink::sos_fd_sink( int fd__, sos_common *c ) : sos_sink(c), sent(0), start(0), buf_holder(0), fd_(fd__) { }
+sos_fd_sink::sos_fd_sink( int fd__, sos_common *c ) : sos_sink(c), sent(0), start(0), fd_(fd__) { }
 
 void sos_fd_sink::setFd( int fd__ )
 	{
@@ -232,12 +271,6 @@ void sos_fd_sink::reset( )
 
 	struct iovec *iov = K->iov;
 
-	if ( buf_holder )
-		{
-		iov[start].iov_base = (char*) buf_holder;
-		buf_holder = 0;
-		}
-
 	start = sent = 0;
 	while ( (K = buf.next()) );
 	}
@@ -253,6 +286,8 @@ sos_status *sos_fd_sink::flush( )
 		struct iovec *iov = K->iov;
 		unsigned int needed = K->total - sent;
 		unsigned int buckets = K->cnt - start;
+		void *&buf_holder = K->buf_holder;
+		unsigned int &buf_holder_index = K->buf_holder_index;
 		int cur = 0;
 
 		if ( (cur = writev( fd_, &iov[start], buckets )) < (int) needed  || cur < 0 )
@@ -283,11 +318,16 @@ sos_status *sos_fd_sink::flush( )
 				{
 				iov[old_start].iov_base = (char*) buf_holder;
 				buf_holder = 0;
+				buf_holder_index = 0;
 				}
 
 			if ( (int) cnt > cur )
 				{
-				if ( ! buf_holder ) buf_holder = iov[start].iov_base;
+				if ( ! buf_holder )
+					{
+					buf_holder = iov[start].iov_base;
+					buf_holder_index = start;
+					}
 				iov[start].iov_base = (char *)(iov[start].iov_base) +
 							       iov[start].iov_len - (cnt - cur);
 				iov[start].iov_len = cnt - cur;
@@ -304,6 +344,7 @@ sos_status *sos_fd_sink::flush( )
 			{
 			iov[start].iov_base = (char*) buf_holder;
 			buf_holder = 0;
+			buf_holder_index = 0;
 			}
 
 		start = sent = 0;

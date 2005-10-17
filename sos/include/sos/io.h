@@ -133,8 +133,6 @@ class sos_fd_sink : public sos_sink {
 	unsigned int sent;
 	// where to start writing
 	unsigned int start;
-	// hold buffer from iovec struct
-	void *buf_holder;
 
 	sos_fd_buf buf;
 
