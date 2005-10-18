@@ -541,6 +541,38 @@ AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(libc.h sys/filio.h X11/fd.h sys/select.h sigLib.h unistd.h sys/uio.h limits.h float.h machine/fpu.h stropts.h sys/signal.h fp.h sys/time.h stdlib.h dirent.h termio.h termios.h sys/shm.h siginfo.h ucontext.h floatingpoint.h malloc.h mach-o/dyld.h crt_externs.h)
 
+AC_MSG_CHECKING(for FlexLexer.h)
+HAVE_FLEXLEXER_H=0
+HAVE_FLEXLEXER_H_result=no
+[flexpath=`type flex | sed 's/^.* //'`]
+
+[if [ -n "$flexpath" ]; then
+    flexinclude=`echo $flexpath | sed 's@/flex$@@'`
+    while [ -d "$flexinclude" ]; do
+        if [ -e "$flexinclude/include/FlexLexer.h" ]; then
+	    HAVE_FLEXLEXER_H=1
+	    HAVE_FLEXLEXER_H_result=yes
+	    break
+        fi
+	flexinclude=`echo $flexinclude | sed 's@/[^/]*$@@'`
+    done
+fi]
+
+
+AC_MSG_RESULT($HAVE_FLEXLEXER_H_result)
+
+HAVE_YY_CHAR_result=no
+[if [ "$HAVE_FLEXLEXER_H" = "1" ]; then
+    if [ -n "$flexinclude" ]; then]
+        AC_MSG_CHECKING(for YY_CHAR)
+        AC_EGREP_HEADER(YY_CHAR, $flexinclude/include/FlexLexer.h,
+			AC_DEFINE(HAVE_YY_CHAR)[
+			HAVE_YY_CHAR_result=yes])
+	AC_MSG_RESULT($HAVE_YY_CHAR_result)
+    fi
+fi
+AC_SUBST(HAVE_YY_CHAR)
+
 dnl##
 dnl## Checks for typedefs, structures, and compiler characteristics.
 dnl##
@@ -675,7 +707,7 @@ if test -z "$NO_AUTH" && test -d npd && test -f npd/config.h.in; then
     do_npd='yes'
     BUILD_NPD="BUILD_NPD"
     USENPD='1'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in regx/$ARCH/config.h:regx/config.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/input.h:glish/input.h.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in npd/$ARCH/config.h:npd/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in regx/$ARCH/config.h:regx/config.h.in)
     if test -z "$option_key_dir"; then
         KEYDIR="${sharedstatedir}/glish/keys"
 	EXPAND_VAR(KEYDIR)
@@ -688,7 +720,7 @@ else
     USENPD='0'
     NPD_LIB=""
     do_npd='no'
-    AC_CONFIG_HEADER(glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
+    AC_CONFIG_HEADER(glish/$ARCH/input.h:glish/input.h.in glish/$ARCH/config.h:glish/config.h.in glish/$ARCH/config_p.h:glish/config_p.h.in glish/clients/$ARCH/config.h:glish/config.h.in glish/clients/glishtk/$ARCH/config.h:glish/config.h.in editline/$ARCH/config.h:editline/config.h.in sos/$ARCH/config.h:sos/config.h.in sos/$ARCH/config_p.h:sos/config_p.h.in)
 fi
 
 dnl##--------------------------------------------------------------------

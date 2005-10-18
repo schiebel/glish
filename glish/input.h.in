@@ -15,7 +15,13 @@ extern Sequencer* current_sequencer;
 // Whether to use the editline library.
 #define USE_EDITLINE 1
 
+#undef HAVE_YY_CHAR
+#ifdef HAVE_YY_CHAR
 typedef unsigned char YY_CHAR;
+#else
+#define YY_CHAR char
+#endif
+
 extern YY_CHAR *yytext;
 extern FILE* yyin;
 

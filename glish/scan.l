@@ -100,7 +100,7 @@ protected:
 glish_declare(PList,InputFileInfo);
 PList(InputFileInfo) file_list;
 
-static int scanner_read( char buf[], int max_size );
+static int scanner_read( YY_CHAR buf[], int max_size );
 static void new_file();
 
 //
@@ -154,7 +154,7 @@ static char *literal( const char *s = 0, int clear = 0 );
 	{							\
 	if ( TEST_LITERALS )					\
 		{						\
-		YYLVAL(id) = string_dup( yytext );		\
+		YYLVAL(id) = string_dup((const char*) yytext );\
 		return TOK_ID;					\
 		}						\
 	else							\
@@ -371,7 +371,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <INITIAL,NO_REGEX>{ID} {
 		SET_STATEMENT_CAN_END;
-		YYLVAL(id) = string_dup( yytext );
+		YYLVAL(id) = string_dup((const char*) yytext );
 		BEGIN(INITIAL);
 		return TOK_ID;
 		}
@@ -382,23 +382,23 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 		BEGIN(INITIAL);
 		SET_STATEMENT_CAN_END;
-		YYLVAL(id) = string_dup( yytext );
+		YYLVAL(id) = string_dup((const char*) yytext );
 		return TOK_ID;
 		}
 
 <SCAN_EVENT_NAME>[*\[]	BEGIN(INITIAL); return yytext[0];
 
 {D}+		{
-		long longv = strtol( yytext, 0, 10 );
+		long longv = strtol((const char*) yytext, 0, 10 );
 		if ( errno == ERANGE )
-			RETURN_CONSTANT( strtod( yytext, 0 ) )
+			RETURN_CONSTANT( strtod((const char*) yytext, 0 ) )
 		else
 			RETURN_CONSTANT( (int) longv )
 		}
 
-{FLOAT}		RETURN_CONSTANT( strtod( yytext, 0 ) )
+{FLOAT}		RETURN_CONSTANT( strtod((const char*) yytext, 0) )
 
-{FLOAT}i	RETURN_CONSTANT( atodcpx( yytext ) )
+{FLOAT}i	RETURN_CONSTANT( atodcpx((const char*) yytext) )
 
 ["']		{
 		clear_literal();
@@ -416,8 +416,8 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 		break;
 		}
 		
-<REGEX>{RXCONT}+			literal( yytext ); break;
-<QUOTE,ATTR_QUOTE>[^'"\r\n\\]+		literal( yytext ); break;
+<REGEX>{RXCONT}+			literal((const char*) yytext ); break;
+<QUOTE,ATTR_QUOTE>[^'"\r\n\\]+		literal((const char*) yytext ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\n"		literal( "\n" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\t"		literal( "\t" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\r"		literal( "\r" ); break;
@@ -427,8 +427,8 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 					  literal( escape ); break; }
 <QUOTE,REGEX,ATTR_QUOTE>"\\a"		literal( "\a" ); break;
 <QUOTE,REGEX,ATTR_QUOTE>"\\"\r?\n{OWS}	++line_num; break;
-<QUOTE,ATTR_QUOTE>"\\".			literal( &yytext[1] ); break;
-<REGEX>"\\".				literal( yytext ); break;
+<QUOTE,ATTR_QUOTE>"\\".			literal((const char*) &yytext[1] ); break;
+<REGEX>"\\".				literal((const char*) yytext ); break;
 
 
 <ATTR>"["	{
@@ -447,7 +447,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <QUOTE>\'	{
 		if ( (is_double_quote && yytext[0] == '\'') ||
 		     (! is_double_quote && yytext[0] == '"') )
-			literal( &yytext[0] );
+			literal((const char*) &yytext[0]);
 
 		else
 			{
@@ -476,7 +476,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <ATTR_QUOTE>\'	{
 		if ( (is_double_quote && yytext[0] == '\'') ||
 		     (! is_double_quote && yytext[0] == '"') )
-			literal( &yytext[0] );
+			literal((const char *) &yytext[0]);
 
 		else
 			{
@@ -492,7 +492,7 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 <REGEX>{RXSTART} {
 		if ( yytext[0] != regex_delimit )
 			{
-			literal(yytext);
+			literal((const char*) yytext);
 			break;
 			}
 		else if ( regex_start == 'm' || match_regex_portion )
@@ -574,9 +574,9 @@ pragma		BEGIN(UNKNOWN_PRAGMA); break;
 
 <UNKNOWN_PRAGMA>.*	{
 		static Dict(int) unknown_pragma;
-		if ( ! unknown_pragma.Lookup(yytext) )
+		if ( ! unknown_pragma.Lookup((const char*) yytext) )
 			{
-			unknown_pragma.Insert(string_dup(yytext),1);
+			unknown_pragma.Insert(string_dup((const char*) yytext),1);
 			glish_warn->Report( "unknown pragma found:", yytext );
 			}
 		BEGIN(INITIAL);
@@ -676,8 +676,9 @@ void scan_strings( const char** strings )
 	input_offset = 0;
 	}
 
-int scanner_read( char buf[], int max_size )
+int scanner_read( YY_CHAR yybuf[], int max_size )
 	{
+        char *buf = (char*) yybuf;
 	if ( input_strings )
 		{
 		const char* s = input_strings[input_offset];
@@ -862,7 +863,7 @@ int begin_literal_ids( int lookahead )
 	     lookahead > START_KEYWORDS &&
 	     lookahead < END_KEYWORDS )
 		{
-		YYLVAL(id) = string_dup( yytext );
+		YYLVAL(id) = string_dup((const char*) yytext );
 		putback_token(TOK_ID);
 		clear_lookahead = 1;
 		}

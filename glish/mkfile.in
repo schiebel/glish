@@ -401,10 +401,10 @@ $(D)Queue.o: $(SRC)/Queue.cc $(H)/Queue.h
 $(D)gcQueue.o: $(SRC)/Queue.cc $(H)/Queue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcQueue.o $(SRC)/Queue.cc $(T)
 
-$(D)Reporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h $(SRC)/input.h $(SRC)/iosmacros.h
+$(D)Reporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h ../input.h $(SRC)/iosmacros.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/Reporter.cc $(T)
 
-$(D)gcReporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h $(SRC)/input.h
+$(D)gcReporter.o: $(SRC)/Reporter.cc $(H)/Reporter.h $(H)/Object.h ../input.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -DENABLE_GC -c -o gcReporter.o $(SRC)/Reporter.cc $(T)
 
 $(D)Socket.o: $(SRC)/Socket.cc $(SRC)/Socket.h
@@ -461,7 +461,7 @@ $(D)gcVecRef.o: $(SRC)/VecRef.cc $(H)/VecRef.h $(H)/Value.h
 $(D)glishlib.o: $(SRC)/glishlib.cc $(SRC)/glishlib.h $(H)/Value.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) -c $(SRC)/glishlib.cc $(T)
 
-main.o: $(SRC)/main.cc $(SRC)/Sequencer.h $(SRC)/input.h $(SRC)/IValue.h
+main.o: $(SRC)/main.cc $(SRC)/Sequencer.h ../input.h $(SRC)/IValue.h
 	$(CPLUS) $(INCLUDE) $(CXXFLAGS) $(GCFLAG) -c $(SRC)/main.cc
 
 malloc.o: $(SRC)/malloc.c
