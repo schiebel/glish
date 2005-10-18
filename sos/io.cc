@@ -125,8 +125,8 @@ char *sos_fd_buf_kernel::tmp( unsigned int len )
 		{
 		int old_cnt = tmp_cnt;
 		tmp_cnt *= 2;
-		tmp_bufs = realloc_memory( tmp_bufs, (tmp_cnt+1) * sizeof(void*) );
-		tmp_bufs_resize = realloc_memory( tmp_bufs_resize, (tmp_cnt+1) * sizeof(char) );
+		tmp_bufs = (char**) realloc_memory( tmp_bufs, (tmp_cnt+1) * sizeof(void*) );
+		tmp_bufs_resize = (char*) realloc_memory( tmp_bufs_resize, (tmp_cnt+1) * sizeof(char) );
 		for ( int x = old_cnt; x <= tmp_cnt; x++ )
 			{
 			tmp_bufs[x] = 0;
@@ -142,7 +142,7 @@ char *sos_fd_buf_kernel::tmp( unsigned int len )
 			tmp_bufs_resize[x] = 1;
 
 		for ( int x = tmp_cur; tmp_bufs[x]; x++ )
-			tmp_bufs[x] = realloc_memory( tmp_bufs[x], tmp_size );
+			tmp_bufs[x] = (char*) realloc_memory( tmp_bufs[x], tmp_size );
 		}
 
 	if ( ! tmp_bufs[tmp_cur] )
@@ -180,7 +180,7 @@ void sos_fd_buf_kernel::reset( )
 		if ( tmp_bufs_resize[x] )
 			{
 			if ( tmp_bufs[x] )
-				tmp_bufs[x] = realloc_memory( tmp_bufs[x], tmp_size );
+				tmp_bufs[x] = (char*) realloc_memory( tmp_bufs[x], tmp_size );
 			tmp_bufs_resize[x] = 0;
 			}
 		}
