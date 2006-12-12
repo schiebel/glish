@@ -1,3 +1,5 @@
+%option noyywrap
+
 %{
 /* $Id$
 ** Copyright (c) 1993 The Regents of the University of California.
@@ -188,7 +190,6 @@ static char *literal( const char *s = 0, int clear = 0 );
 // terminate with a "return" followed by a "break".
 #define YY_BREAK
 
-#define yywrap() 1
 %}
 
 %x QUOTE RECORD_FIELD SCAN_EVENT_NAME UNKNOWN_PRAGMA ATTR ATTR_QUOTE REGEX NO_REGEX END_REGEX
