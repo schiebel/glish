@@ -973,7 +973,7 @@ if test -n "$option_pgplot_link_search"; then
 else
     PGPLOTLINKSEARCH=""
     if test -z "$option_pgplot_incl_flags" -a -z "$option_pgplot_link_flags"; then
-	if test "$enable_pgplot" == "yes"; then
+	if test "$enable_pgplot" = "yes"; then
 	    BUILD_PGPLOT="BUILD_PGPLOT"
 	else
 	    BUILD_PGPLOT=""
