@@ -88,16 +88,11 @@
 #endif
 
 //======================================================================
-#if defined(__i486__) || defined(__i386__)
+#if (defined(__i486__) || defined(__i386__))
+#if !defined(__APPLE_CC__)
 #define SOS_SHMEM 1
 #define SOS_ARC SOS_HCUBESARC
-#else
-//======================================================================
-#if defined(apple) || defined(__APPLE_CC__)
-#define SOS_SHMEM 1
-#define SOS_MEMMAP 1
-#define SOS_ARC SOS_SPARC
-#endif 
+#endif
 #endif
 
 //======================================================================
@@ -119,6 +114,17 @@
 #define SOS_SHMEM 1
 #define SOS_MEMMAP 1
 #define SOS_ARC SOS_ALPHAARC
+#endif 
+
+//======================================================================
+#if defined(apple) || defined(__APPLE_CC__)
+#define SOS_SHMEM 1
+#define SOS_MEMMAP 1
+#if defined(__i486__) || defined(__i386__)
+#define SOS_ARC SOS_HCUBESARC
+#else
+#define SOS_ARC SOS_SPARC
+#endif
 #endif 
 
 //======================================================================
