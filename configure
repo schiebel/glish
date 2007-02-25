@@ -5404,7 +5404,7 @@ fi
 	SLIB_LD_LIBS_npd='-install_name $(LIBDIR)/libnpd$(GSUFFIX)'
 	SLIB_LD_LIBS_glish='-L${LIBDIR_P} -L${LIBDIR} -lsos -lnpd -install_name $(LIBDIR)/libglish$(GSUFFIX)'
 	SLIB_LD_LIBS_glishp='-L${LIBDIR_P} -L${LIBDIR} -lglish -lregx -ledit -lsos -lnpd'
-	SLIB_LD_LIBS_glishtk='-lX11 -install_name $(LIBDIR)/libglishtk$(GSUFFIX)'
+	SLIB_LD_LIBS_glishtk='-lX11 -framework ImageIO -install_name $(LIBDIR)/libglishtk$(GSUFFIX)'
 															SLIB_LD_FLAGS_glishtk=
 	SLIB_SUFFIX=".dylib"
 	DL_LIBS="-ldl"
