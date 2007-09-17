@@ -82,13 +82,13 @@ Channel *start_remote_daemon( const char *host )
 	if ( binpath )
 		{
 		write( input[1], binpath, strlen(binpath) );
-		write( input[1], ";\n", 2 );
+		write( input[1], "; export PATH\n", 14 );
 		}
 
 	if ( ldpath )
 		{
 		write( input[1], ldpath, strlen(ldpath) );
-		write( input[1], ";\n", 2 );
+		write( input[1], "; export LD_LIBRARY_PATH\n", 25 );
 		}
 
 	write( input[1], command_line, strlen(command_line) );
