@@ -764,7 +764,12 @@ int max_fds( )
 		if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
 			gripe( "getrlimit() failed" );
 
+#ifdef __APPLE__
+		max_num_fds = rl.rlim_cur;
+		while ( max_num_fds <= rl.rlim_max && max_num_fds < 2048 ) max_num_fds *= 2;
+#else
 		max_num_fds = (int) rl.rlim_max;
+#endif
 		}
 	return max_num_fds;
 #else
@@ -904,7 +909,7 @@ void maximize_num_fds()
 	if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
 		pgripe( "maximize_num_fds(): getrlimit failed" );
 
-	rl.rlim_cur = rl.rlim_max;
+	rl.rlim_cur = max_fds( );
 
 	if ( setrlimit( RLIMIT_NOFILE, &rl ) < 0 )
 		pgripe( "maximize_num_fds(): setrlimit failed" );

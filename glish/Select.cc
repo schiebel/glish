@@ -156,15 +156,7 @@ int SelectTimer::DoExpiration()
 
 Selector::Selector() : break_selection(0)
 	{
-#ifdef HAVE_SETRLIMIT
-	struct rlimit rl;
-	if ( getrlimit( RLIMIT_NOFILE, &rl ) < 0 )
-		gripe( "getrlimit() failed" );
-
-	max_num_fds = int( rl.rlim_max );
-#else
-	max_num_fds = 32;
-#endif
+	max_num_fds = max_fds( );
 
 	selectees = alloc_Selecteeptr( max_num_fds );
 
